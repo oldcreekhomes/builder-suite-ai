@@ -259,13 +259,13 @@ export function WriteChecksContent({ projectId }: WriteChecksContentProps) {
     const jobCostTotal = jobCostRows.reduce((total, row) => {
       const q = parseFloat(row.quantity || "0") || 0;
       const c = parseFloat(row.amount) || 0;
-      return total + q * c;
+      return total + Math.round(q * c * 100) / 100;
     }, 0);
 
     const expenseTotal = expenseRows.reduce((total, row) => {
       const q = parseFloat(row.quantity || "0") || 0;
       const c = parseFloat(row.amount) || 0;
-      return total + q * c;
+      return total + Math.round(q * c * 100) / 100;
     }, 0);
 
     return (jobCostTotal + expenseTotal).toFixed(2);

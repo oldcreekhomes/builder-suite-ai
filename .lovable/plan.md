@@ -1,38 +1,36 @@
 
-
-## Fix Floating-Point Rounding Error in Bill Totals
+## Share "As of Date" Across All Report Tabs
 
 ### Problem
-When two job cost line items have amounts like $8.48 and $8.49, the "Job Cost Total" displays $16.98 instead of the correct $16.97. This is caused by floating-point arithmetic — `quantity * amount` for each row produces tiny fractional errors that accumulate when summed without rounding.
+Each report tab (Balance Sheet, Income Statement, Job Costs, Accounts Payable) maintains its own independent `asOfDate` state initialized to `new Date()`. When you change the date on one tab and switch to another, it resets to today.
 
-### Fix
-Round each row's `quantity * amount` to the nearest cent **before** adding it to the running total. This is done by replacing `total + q * c` with `total + Math.round(q * c * 100) / 100` in every reduce callback that computes totals.
+### Solution
+Lift the `asOfDate` state up to `ReportsTabs` and pass it down to all four child components as a prop. When the Reports page unmounts (user navigates away), the state naturally resets since it lives in a component that gets destroyed.
 
-### Files to Change
+### Changes
 
-**`src/components/bills/EditBillDialog.tsx`**
-- Lines 903-920 (Job Cost Total — 3 identical reduce callbacks for label, color, and value): round each row contribution to cents
-- Lines 1037-1053 (Expense Total — same 3 reduce pattern): same fix
-- Lines 1117-1121 (BillNotesDialog amount): same fix
+**1. `src/components/reports/ReportsTabs.tsx`**
+- Add `asOfDate` / `setAsOfDate` state (initialized to today)
+- Pass `asOfDate` and `onAsOfDateChange` props to all four content components
 
-**`src/components/bills/ManualBillEntry.tsx`**
-- Lines 941-955 (Job Cost Total — same repeated reduce pattern): same fix
+**2. `src/components/reports/BalanceSheetContent.tsx`**
+- Add `asOfDate` and `onAsOfDateChange` to the props interface
+- Remove the local `useState<Date>(new Date())` for `asOfDate`
+- Replace all `setAsOfDate(date)` calls with `onAsOfDateChange(date)`
 
-**`src/components/bills/BatchBillLineItems.tsx`**
-- Line 86-87 (jobCostTotal/expenseTotal): round each line amount to cents before summing
+**3. `src/components/reports/IncomeStatementContent.tsx`**
+- Same pattern: accept `asOfDate` and `onAsOfDateChange` as props, remove local state
 
-**`src/pages/WriteChecks.tsx`** and **`src/components/transactions/WriteChecksContent.tsx`**
-- Their `calculateTotal` functions: same cent-rounding fix
+**4. `src/components/reports/JobCostsContent.tsx`**
+- Same pattern: accept `asOfDate` and `onAsOfDateChange` as props, remove local state
 
-**`src/components/bills/BillsApprovalTable.tsx`** (line 1028) and **`src/components/bills/PayBillsTable.tsx`** (line 1149)
-- Table footer totals summing `bill.total_amount`: apply `Math.round(sum * 100) / 100` to the final result
+**5. `src/components/reports/AccountsPayableContent.tsx`**
+- Same pattern: accept `asOfDate` and `onAsOfDateChange` as props, remove local state
 
-### Pattern
-```typescript
-// Before (floating-point error prone)
-return total + q * c;
+### Technical Detail
+Each file's change is minimal:
+- Add two props to the interface (`asOfDate: Date`, `onAsOfDateChange: (date: Date) => void`)
+- Delete the `const [asOfDate, setAsOfDate] = useState<Date>(new Date())` line
+- Replace `setAsOfDate` with `onAsOfDateChange` in calendar `onSelect` handlers
 
-// After (cent-precise)
-return total + Math.round(q * c * 100) / 100;
-```
-
+No query logic, formatting, or PDF export code needs to change since they all already reference the `asOfDate` variable by name.

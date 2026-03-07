@@ -1146,7 +1146,7 @@ export function PayBillsTable({ projectId, projectIds, showProjectColumn = true,
       {filteredBills.length > 0 && (
         <div className="mt-4 text-sm text-muted-foreground">
           <p>Total bills: {filteredBills.length}</p>
-          <p>Total amount: {formatCurrency(filteredBills.reduce((sum, bill) => sum + bill.total_amount, 0))}</p>
+          <p>Total amount: {formatCurrency(Math.round(filteredBills.reduce((sum, bill) => sum + bill.total_amount, 0) * 100) / 100)}</p>
         </div>
       )}
 

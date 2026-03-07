@@ -941,17 +941,17 @@ export function ManualBillEntry() {
                     jobCostRows.reduce((total, row) => {
                       const q = parseFloat(row.quantity) || 0;
                       const c = parseFloat(row.amount) || 0;
-                      return total + q * c;
+                      return total + Math.round(q * c * 100) / 100;
                     }, 0) < 0 && "text-green-600"
                   )}>
                     {jobCostRows.reduce((total, row) => {
                       const q = parseFloat(row.quantity) || 0;
                       const c = parseFloat(row.amount) || 0;
-                      return total + q * c;
+                      return total + Math.round(q * c * 100) / 100;
                     }, 0) < 0 ? 'Bill Credit Total:' : 'Job Cost Total:'} ${jobCostRows.reduce((total, row) => {
                       const q = parseFloat(row.quantity) || 0;
                       const c = parseFloat(row.amount) || 0;
-                      return total + q * c;
+                      return total + Math.round(q * c * 100) / 100;
                     }, 0).toFixed(2)}
                   </div>
                   <div className="flex gap-2">
@@ -1141,17 +1141,17 @@ export function ManualBillEntry() {
                     expenseRows.reduce((total, row) => {
                       const q = parseFloat(row.quantity) || 0;
                       const c = parseFloat(row.amount) || 0;
-                      return total + q * c;
+                      return total + Math.round(q * c * 100) / 100;
                     }, 0) < 0 && "text-green-600"
                   )}>
                     {expenseRows.reduce((total, row) => {
                       const q = parseFloat(row.quantity) || 0;
                       const c = parseFloat(row.amount) || 0;
-                      return total + q * c;
+                      return total + Math.round(q * c * 100) / 100;
                     }, 0) < 0 ? 'Bill Credit Total:' : 'Expense Total:'} ${expenseRows.reduce((total, row) => {
                       const q = parseFloat(row.quantity) || 0;
                       const c = parseFloat(row.amount) || 0;
-                      return total + q * c;
+                      return total + Math.round(q * c * 100) / 100;
                     }, 0).toFixed(2)}
                   </div>
                   <div className="flex gap-2">

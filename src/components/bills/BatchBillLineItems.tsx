@@ -83,8 +83,8 @@ export function BatchBillLineItems({ lines, onLinesChange }: BatchBillLineItemsP
   const jobCostLines = normalizedLines.filter(line => line.line_type === 'job_cost');
   const expenseLines = normalizedLines.filter(line => line.line_type === 'expense');
 
-  const jobCostTotal = jobCostLines.reduce((sum, line) => sum + (Number(line.amount) || 0), 0);
-  const expenseTotal = expenseLines.reduce((sum, line) => sum + (Number(line.amount) || 0), 0);
+  const jobCostTotal = jobCostLines.reduce((sum, line) => sum + Math.round((Number(line.amount) || 0) * 100) / 100, 0);
+  const expenseTotal = expenseLines.reduce((sum, line) => sum + Math.round((Number(line.amount) || 0) * 100) / 100, 0);
 
   return (
     <div className="space-y-4">

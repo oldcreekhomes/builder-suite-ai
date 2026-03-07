@@ -903,20 +903,20 @@ export function EditBillDialog({ open, onOpenChange, billId }: EditBillDialogPro
                           {jobCostRows.reduce((total, row) => {
                             const q = parseFloat(row.quantity) || 0;
                             const c = parseFloat(row.amount) || 0;
-                            return total + q * c;
+                            return total + Math.round(q * c * 100) / 100;
                           }, 0) < 0 ? 'Bill Credit Total:' : 'Job Cost Total:'}
                         </span>
                         <span className={cn(
                           jobCostRows.reduce((total, row) => {
                             const q = parseFloat(row.quantity) || 0;
                             const c = parseFloat(row.amount) || 0;
-                            return total + q * c;
+                            return total + Math.round(q * c * 100) / 100;
                           }, 0) < 0 && "text-green-600"
                         )}>
                           ${jobCostRows.reduce((total, row) => {
                             const q = parseFloat(row.quantity) || 0;
                             const c = parseFloat(row.amount) || 0;
-                            return total + q * c;
+                            return total + Math.round(q * c * 100) / 100;
                           }, 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                         </span>
                       </div>
@@ -1036,20 +1036,20 @@ export function EditBillDialog({ open, onOpenChange, billId }: EditBillDialogPro
                           {expenseRows.reduce((total, row) => {
                             const q = parseFloat(row.quantity) || 0;
                             const c = parseFloat(row.amount) || 0;
-                            return total + q * c;
+                            return total + Math.round(q * c * 100) / 100;
                           }, 0) < 0 ? 'Bill Credit Total:' : 'Expense Total:'}
                         </span>
                         <span className={cn(
                           expenseRows.reduce((total, row) => {
                             const q = parseFloat(row.quantity) || 0;
                             const c = parseFloat(row.amount) || 0;
-                            return total + q * c;
+                            return total + Math.round(q * c * 100) / 100;
                           }, 0) < 0 && "text-green-600"
                         )}>
                           ${expenseRows.reduce((total, row) => {
                             const q = parseFloat(row.quantity) || 0;
                             const c = parseFloat(row.amount) || 0;
-                            return total + q * c;
+                            return total + Math.round(q * c * 100) / 100;
                           }, 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                         </span>
                       </div>
@@ -1117,7 +1117,7 @@ export function EditBillDialog({ open, onOpenChange, billId }: EditBillDialogPro
             amount: [...jobCostRows, ...expenseRows].reduce((total, row) => {
               const q = parseFloat(row.quantity) || 0;
               const c = parseFloat(row.amount) || 0;
-              return total + q * c;
+              return total + Math.round(q * c * 100) / 100;
             }, 0)
           }}
           initialValue={internalNotes}
