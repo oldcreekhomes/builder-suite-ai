@@ -1053,8 +1053,8 @@ export function EditBillDialog({ open, onOpenChange, billId }: EditBillDialogPro
                           ${((parseFloat(row.quantity) || 0) * (parseFloat(row.amount) || 0)).toFixed(2)}
                         </span>
                       </div>
-                      <div className="col-span-1 flex justify-center items-center">
-                        {!isApprovedBill && (
+                      {!isApprovedBill && (
+                        <div className="col-span-1 flex justify-center items-center">
                           <Button
                             onClick={() => removeExpenseRow(row.id, row.dbId)}
                             size="sm"
@@ -1064,8 +1064,8 @@ export function EditBillDialog({ open, onOpenChange, billId }: EditBillDialogPro
                           >
                             <Trash2 className="h-4 w-4" />
                           </Button>
-                        )}
-                      </div>
+                        </div>
+                      )}
                     </div>
                   ))}
 
