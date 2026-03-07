@@ -183,7 +183,12 @@ export function useVendorPurchaseOrders(
       // Distribute PO-level billing to line items by cost_code + memo match, or keep as unallocated
       const billedByPoIdOnly = new Map<string, number>();
       const unallocatedInvoicesByPoId = new Map<string, BilledInvoice[]>();
-      activePoBilled.filter((bl: any) => bl.bill_id !== excludeBillId).forEach((bl: any) => {
+      activePoBilled.filter((bl: any) => {
+        if (bl.bill_id === excludeBillId) return false;
+        if (excludeBillDate && bl.bills?.bill_date > excludeBillDate) return false;
+        if (excludeBillDate && bl.bills?.bill_date === excludeBillDate && bl.bill_id > excludeBillId) return false;
+        return true;
+      }).forEach((bl: any) => {
         if (!bl.purchase_order_id) return;
 
         const invoice: BilledInvoice = {

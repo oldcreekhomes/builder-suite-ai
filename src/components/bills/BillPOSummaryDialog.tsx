@@ -54,7 +54,8 @@ export function BillPOSummaryDialog({
   const { data: vendorPOs } = useVendorPurchaseOrders(
     bill?.project_id,
     bill?.vendor_id,
-    bill?.id
+    bill?.id,
+    bill?.bill_date
   );
 
   const selectedPO = vendorPOs?.find(po => po.id === selectedPoId) || null;

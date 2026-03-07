@@ -15,7 +15,8 @@ export function PODetailsDialogWrapper({ poDialogState, onClose }: PODetailsDial
   const { data: vendorPOs } = useVendorPurchaseOrders(
     poDialogState.bill?.project_id,
     poDialogState.bill?.vendor_id,
-    poDialogState.bill?.id
+    poDialogState.bill?.id,
+    poDialogState.bill?.bill_date
   );
 
   const matchedPO = vendorPOs?.find(po => po.id === poDialogState.poMatch?.po_id) || null;
