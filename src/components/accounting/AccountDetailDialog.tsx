@@ -96,10 +96,12 @@ export function AccountDetailDialog({
     }
   }, [open, accountId, isAccountsPayable]);
   
-  const { deleteCheck, updateCheck, correctCheck } = useChecks();
-  const { deleteDeposit, updateDeposit, correctDeposit } = useDeposits();
-  const { deleteCreditCard, correctCreditCard } = useCreditCards();
-  const { deleteManualJournalEntry, updateJournalEntryField, updateJournalEntryLine, correctManualJournalEntry } = useJournalEntries();
+  const [editingBillId, setEditingBillId] = useState<string | null>(null);
+  const [editingDepositId, setEditingDepositId] = useState<string | null>(null);
+  const { deleteCheck } = useChecks();
+  const { deleteDeposit } = useDeposits();
+  const { deleteCreditCard } = useCreditCards();
+  const { deleteManualJournalEntry } = useJournalEntries();
   const { canDeleteBills } = useUserRole();
   const queryClient = useQueryClient();
   const prevOpenRef = useRef(open);
