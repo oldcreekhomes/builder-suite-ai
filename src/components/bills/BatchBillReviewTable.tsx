@@ -649,7 +649,7 @@ export function BatchBillReviewTable({
                     <TableCell>
                       <Checkbox disabled aria-label="Bill extracting" />
                     </TableCell>
-                    <TableCell colSpan={10 + (showProjectColumn ? 1 : 0)}>
+                    <TableCell colSpan={9 + (showProjectColumn ? 1 : 0) + (showAddressColumn ? 1 : 0)}>
                       <div className="flex items-center gap-2 text-xs text-muted-foreground">
                         <Loader2 className="h-3 w-3 animate-spin" />
                         <span>Extracting: {bill.file_name}</span>
