@@ -170,7 +170,7 @@ export function PODetailsDialog({
               ) : isWarning ? (
                 <Badge variant="secondary" className="bg-amber-100 text-amber-700 gap-1"><AlertTriangle className="h-3 w-3" />Near Limit</Badge>
               ) : (
-                <Badge variant="secondary" className="bg-green-100 text-green-700 gap-1">Within Budget</Badge>
+                <Badge variant="secondary" className="bg-green-100 text-green-700 gap-1"><Check className="h-3 w-3" />Matched</Badge>
               )}
             </div>
           </DialogTitle>

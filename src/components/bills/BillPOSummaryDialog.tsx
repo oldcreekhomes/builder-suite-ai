@@ -98,7 +98,12 @@ export function BillPOSummaryDialog({
         currentBillId={bill?.id}
         currentBillAmount={bill?.total_amount}
         currentBillReference={bill?.reference_number || undefined}
-        pendingBillLines={derivedPendingBillLines.filter(l => l.purchase_order_id === matches[0].po_id)}
+        pendingBillLines={derivedPendingBillLines.filter(l => {
+          if (l.purchase_order_id && l.purchase_order_id !== '__auto__' && l.purchase_order_id !== '__none__') {
+            return l.purchase_order_id === matches[0].po_id;
+          }
+          return l.cost_code_id === matches[0].cost_code_id;
+        })}
       />
     );
   }
