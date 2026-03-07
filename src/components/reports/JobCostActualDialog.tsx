@@ -500,6 +500,13 @@ const formatCurrency = (value: number) => {
         onOpenChange={handleEditDepositDialogClose}
         depositId={editingDepositId || ''}
       />
+
+      {/* Edit Check Dialog */}
+      <EditCheckDialog
+        open={!!editingCheckId}
+        onOpenChange={handleEditCheckDialogClose}
+        checkId={editingCheckId || ''}
+      />
     </>
   );
 }
