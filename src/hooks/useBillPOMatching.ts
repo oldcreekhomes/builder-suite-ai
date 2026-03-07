@@ -197,13 +197,26 @@ export function useBillPOMatching(bills: BillForMatching[]) {
           
           // Fallback: if no explicit PO link, match by vendor + project + cost_code
           if (!resolvedPoId && line.cost_code_id && bill.vendor_id && bill.project_id) {
-            const fallbackPo = pos.find(p =>
+            const candidatePos = pos.filter(p =>
               p.company_id === bill.vendor_id &&
               p.project_id === bill.project_id &&
               p.cost_code_id === line.cost_code_id
             );
-            if (fallbackPo) {
-              resolvedPoId = fallbackPo.id;
+            if (candidatePos.length === 1) {
+              resolvedPoId = candidatePos[0].id;
+            } else if (candidatePos.length > 1) {
+              // Multiple POs for same cost code — pick by closest amount
+              const lineAmount = line.amount || 0;
+              let bestPo = candidatePos[0];
+              let bestDiff = Math.abs((bestPo.total_amount || 0) - lineAmount);
+              for (let i = 1; i < candidatePos.length; i++) {
+                const diff = Math.abs((candidatePos[i].total_amount || 0) - lineAmount);
+                if (diff < bestDiff) {
+                  bestDiff = diff;
+                  bestPo = candidatePos[i];
+                }
+              }
+              resolvedPoId = bestPo.id;
             }
           }
           
