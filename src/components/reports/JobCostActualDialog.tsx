@@ -13,6 +13,7 @@ import { TableRowActions } from "@/components/ui/table-row-actions";
 import { useState, useMemo } from "react";
 import { EditBillDialog } from "@/components/bills/EditBillDialog";
 import { EditDepositDialog } from "@/components/deposits/EditDepositDialog";
+import { EditCheckDialog } from "@/components/checks/EditCheckDialog";
 
 interface JobCostActualDialogProps {
   isOpen: boolean;
