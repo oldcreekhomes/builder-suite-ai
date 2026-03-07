@@ -7,7 +7,7 @@ export interface POMatch {
   po_amount: number;
   total_billed: number;
   remaining: number;
-  status: 'matched' | 'over_po' | 'no_po';
+  status: 'matched' | 'over_po' | 'no_po' | 'draw';
   cost_code_id: string;
   cost_code_display: string;
 }
