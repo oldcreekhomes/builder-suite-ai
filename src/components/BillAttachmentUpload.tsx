@@ -28,7 +28,10 @@ export function BillAttachmentUpload({
   attachments, 
   onAttachmentsChange, 
   billId,
-  disabled = false 
+  disabled = false,
+  existingAttachments = [],
+  onDeleteExisting,
+  onClickExisting
 }: BillAttachmentUploadProps) {
   const [isUploading, setIsUploading] = useState(false);
 
