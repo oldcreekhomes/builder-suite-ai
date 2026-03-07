@@ -30,10 +30,14 @@ const statusGroups = [
 
 export function ProjectSelector() {
   const [open, setOpen] = useState(false);
+  const [editProject, setEditProject] = useState<Project | null>(null);
   const navigate = useNavigate();
   const { projectId } = useParams();
   const { data: projects = [], isLoading } = useProjects();
   const { isOwner } = useUserRole();
+  const { preferences } = useNotificationPreferences();
+  
+  const canEditProjects = isOwner || preferences.can_edit_projects;
 
   // Find current project if on a project page
   const currentProject = projects.find((p) => p.id === projectId);
