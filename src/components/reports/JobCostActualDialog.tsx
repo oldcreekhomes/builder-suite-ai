@@ -8,7 +8,7 @@ import { format } from "date-fns";
 import { formatDateSafe } from "@/utils/dateOnly";
 import { useAuth } from "@/hooks/useAuth";
 import { useClosedPeriodCheck } from "@/hooks/useClosedPeriodCheck";
-import { ArrowUpDown, Check } from "lucide-react";
+import { ArrowUpDown, Check, Lock } from "lucide-react";
 import { TableRowActions } from "@/components/ui/table-row-actions";
 import { useState, useMemo } from "react";
 import { EditBillDialog } from "@/components/bills/EditBillDialog";
