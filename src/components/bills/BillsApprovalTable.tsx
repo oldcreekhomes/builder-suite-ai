@@ -1,6 +1,7 @@
 import { useMemo, useState } from "react";
 import { useLots } from "@/hooks/useLots";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { Info } from 'lucide-react';
 import {
   Table,
   TableBody,
@@ -302,6 +303,91 @@ export function BillsApprovalTable({ status, projectId, projectIds, showProjectC
     },
   });
 
+  // Fetch payment breakdown data for paid bills
+  const isPaidStatus = status === 'paid' || (Array.isArray(status) && status.includes('paid'));
+  const paidBillIds = useMemo(() => {
+    if (!isPaidStatus) return [];
+    return bills.filter(b => b.status === 'paid' && b.total_amount >= 0).map(b => b.id);
+  }, [bills, isPaidStatus]);
+
+  const { data: paymentBreakdowns } = useQuery({
+    queryKey: ['paid-bill-breakdowns', paidBillIds],
+    queryFn: async () => {
+      if (paidBillIds.length === 0) return new Map<string, { cashPaid: number; credits: { ref: string; amount: number }[] }>();
+
+      // Get allocations for these bills
+      const { data: allocations, error: allocError } = await supabase
+        .from('bill_payment_allocations')
+        .select('bill_id, bill_payment_id, amount_allocated')
+        .in('bill_id', paidBillIds);
+
+      if (allocError) throw allocError;
+      if (!allocations || allocations.length === 0) return new Map();
+
+      // Get unique payment IDs
+      const paymentIds = [...new Set(allocations.map(a => a.bill_payment_id))];
+
+      // Get bill_payments total_amount (cash disbursed)
+      const { data: payments, error: payError } = await supabase
+        .from('bill_payments')
+        .select('id, total_amount')
+        .in('id', paymentIds);
+
+      if (payError) throw payError;
+
+      // Get ALL sibling allocations for these payments to find credits
+      const { data: siblingAllocations, error: sibError } = await supabase
+        .from('bill_payment_allocations')
+        .select(`
+          bill_payment_id,
+          bill_id,
+          amount_allocated,
+          bill:bills!bill_payment_allocations_bill_id_fkey(id, total_amount, reference_number)
+        `)
+        .in('bill_payment_id', paymentIds);
+
+      if (sibError) throw sibError;
+
+      const paymentsMap = new Map((payments || []).map(p => [p.id, p]));
+
+      // Build breakdown per bill
+      const result = new Map<string, { cashPaid: number; credits: { ref: string; amount: number }[] }>();
+
+      for (const billId of paidBillIds) {
+        const billAllocations = allocations.filter(a => a.bill_id === billId);
+        const credits: { ref: string; amount: number }[] = [];
+        let totalCashForBill = 0;
+
+        for (const alloc of billAllocations) {
+          const payment = paymentsMap.get(alloc.bill_payment_id);
+          if (!payment) continue;
+
+          // Find credit siblings in this payment
+          const siblings = (siblingAllocations || []).filter(
+            s => s.bill_payment_id === alloc.bill_payment_id && s.bill_id !== billId
+          );
+
+          for (const sib of siblings) {
+            const sibBill = sib.bill as any;
+            if (sibBill && sibBill.total_amount < 0) {
+              credits.push({
+                ref: sibBill.reference_number || 'Credit',
+                amount: Math.abs(sib.amount_allocated),
+              });
+            }
+          }
+
+          totalCashForBill += payment.total_amount;
+        }
+
+        result.set(billId, { cashPaid: totalCashForBill, credits });
+      }
+
+      return result;
+    },
+    enabled: isPaidStatus && paidBillIds.length > 0,
+  });
+
   // PO matching for approved/posted bills
   const billsForMatching = useMemo(() => {
     return bills.map(b => ({
@@ -597,7 +683,7 @@ export function BillsApprovalTable({ status, projectId, projectIds, showProjectC
   // + Delete(1) if shown
   // + PO Status(1) - always shown on all tabs
   const showPOStatusColumn = true;
-  const baseColCount = 11 + (showAddressColumn ? 1 : 0) + (showProjectColumn ? 1 : 0) + (showPayBillButton ? 1 : 0) + (canShowDeleteButton ? 1 : 0) + (showPOStatusColumn ? 1 : 0);
+  const baseColCount = 11 + (showAddressColumn ? 1 : 0) + (showProjectColumn ? 1 : 0) + (showPayBillButton ? 1 : 0) + (canShowDeleteButton ? 1 : 0) + (showPOStatusColumn ? 1 : 0) + (isPaidStatus ? 1 : 0);
 
   return (
     <>
@@ -699,6 +785,9 @@ export function BillsApprovalTable({ status, projectId, projectIds, showProjectC
                     )}
                   </TableHead>
                   <TableHead className="w-20">Amount</TableHead>
+                  {isPaidStatus && (
+                    <TableHead className="w-20">Paid</TableHead>
+                  )}
                   <TableHead className="w-24">Reference</TableHead>
                   <TableHead className="w-10 text-center">Memo</TableHead>
                   {showAddressColumn && <TableHead className="w-16">Address</TableHead>}
@@ -834,6 +923,51 @@ export function BillsApprovalTable({ status, projectId, projectIds, showProjectC
                       )}
                     </div>
                   </TableCell>
+                  {isPaidStatus && (
+                    <TableCell className="w-20">
+                      {(() => {
+                        if (bill.total_amount < 0) return <span className="text-muted-foreground">-</span>;
+                        const breakdown = paymentBreakdowns?.get(bill.id);
+                        if (!breakdown) return formatCurrency(bill.total_amount);
+                        
+                        const hasCredits = breakdown.credits.length > 0;
+                        const cashDisplay = formatCurrency(breakdown.cashPaid);
+                        
+                        if (!hasCredits) return cashDisplay;
+                        
+                        return (
+                          <TooltipProvider>
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <div className="flex items-center gap-1 cursor-default">
+                                  <span>{cashDisplay}</span>
+                                  <Info className="h-3.5 w-3.5 text-green-600 shrink-0" />
+                                </div>
+                              </TooltipTrigger>
+                              <TooltipContent className="max-w-xs">
+                                <div className="space-y-1 text-xs">
+                                  <div className="flex justify-between gap-4">
+                                    <span>Bill Amount:</span>
+                                    <span>${Math.abs(bill.total_amount).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+                                  </div>
+                                  {breakdown.credits.map((cr, i) => (
+                                    <div key={i} className="flex justify-between gap-4 text-green-600">
+                                      <span>Credit Applied ({cr.ref}):</span>
+                                      <span>-${cr.amount.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+                                    </div>
+                                  ))}
+                                  <div className="border-t pt-1 flex justify-between gap-4 font-medium">
+                                    <span>Cash Paid:</span>
+                                    <span>${breakdown.cashPaid.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+                                  </div>
+                                </div>
+                              </TooltipContent>
+                            </Tooltip>
+                          </TooltipProvider>
+                        );
+                      })()}
+                    </TableCell>
+                  )}
                   <TableCell className="w-24 max-w-[96px]">
                     <span className="block truncate">{bill.reference_number || '-'}</span>
                   </TableCell>
