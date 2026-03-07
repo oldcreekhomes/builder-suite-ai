@@ -20,11 +20,9 @@ export interface POStatusResult {
 }
 
 /**
- * Hook that determines PO status for pending/extracted bills by checking
- * explicit purchase_order_id on pending_bill_lines.
- * No inference or auto-matching -- only persisted links count.
- *
- * Returns a Map of bill_id -> POStatusResult (status + matched PO IDs)
+ * Hook that determines PO status for pending/extracted bills.
+ * First checks explicit purchase_order_id on pending_bill_lines,
+ * then falls back to matching by vendor + project + cost_code.
  */
 export function usePendingBillPOStatus(
   bills: PendingBillForStatus[],
@@ -34,6 +32,9 @@ export function usePendingBillPOStatus(
     queryKey: ['pending-bill-po-status', projectId, bills.map(b => b.id).sort().join(',')],
     queryFn: async () => {
       const resultMap = new Map<string, POStatusResult>();
+
+      // Collect unmatched cost_code + vendor pairs for fallback
+      const fallbackNeeded: Array<{ billId: string; vendorId: string; costCodeId: string }> = [];
 
       bills.forEach(bill => {
         const lines = bill.lines || [];
@@ -54,9 +55,63 @@ export function usePendingBillPOStatus(
         } else if (hasSomeLinked) {
           resultMap.set(bill.id, { status: 'partial', poIds: explicitPoIds });
         } else {
-          resultMap.set(bill.id, { status: 'no_po', poIds: [] });
+          // Needs fallback matching
+          const vendorId = bill.vendor_id || bill.extracted_data?.vendor_id || bill.extracted_data?.vendorId;
+          if (vendorId && projectId) {
+            lines.forEach(line => {
+              if (!line.purchase_order_id && line.cost_code_id) {
+                fallbackNeeded.push({ billId: bill.id, vendorId, costCodeId: line.cost_code_id });
+              }
+            });
+          }
+          if (!fallbackNeeded.some(f => f.billId === bill.id)) {
+            resultMap.set(bill.id, { status: 'no_po', poIds: [] });
+          }
         }
       });
+
+      // Perform fallback: query POs by vendor + project + cost_code
+      if (fallbackNeeded.length > 0 && projectId) {
+        const vendorIds = [...new Set(fallbackNeeded.map(f => f.vendorId))];
+        const costCodeIds = [...new Set(fallbackNeeded.map(f => f.costCodeId))];
+
+        const { data: fallbackPos } = await supabase
+          .from('project_purchase_orders')
+          .select('id, company_id, cost_code_id')
+          .eq('project_id', projectId)
+          .in('company_id', vendorIds)
+          .in('cost_code_id', costCodeIds);
+
+        const poLookup = fallbackPos || [];
+
+        // Group fallback items by bill
+        const billFallbacks = new Map<string, typeof fallbackNeeded>();
+        fallbackNeeded.forEach(f => {
+          if (!billFallbacks.has(f.billId)) billFallbacks.set(f.billId, []);
+          billFallbacks.get(f.billId)!.push(f);
+        });
+
+        billFallbacks.forEach((items, billId) => {
+          const matchedPoIds: string[] = [];
+          const bill = bills.find(b => b.id === billId);
+          const totalLines = bill?.lines?.length || 0;
+
+          items.forEach(item => {
+            const match = poLookup.find(
+              po => po.company_id === item.vendorId && po.cost_code_id === item.costCodeId
+            );
+            if (match) matchedPoIds.push(match.id);
+          });
+
+          if (matchedPoIds.length > 0 && matchedPoIds.length >= totalLines) {
+            resultMap.set(billId, { status: 'matched', poIds: [...new Set(matchedPoIds)] });
+          } else if (matchedPoIds.length > 0) {
+            resultMap.set(billId, { status: 'partial', poIds: [...new Set(matchedPoIds)] });
+          } else {
+            resultMap.set(billId, { status: 'no_po', poIds: [] });
+          }
+        });
+      }
 
       return resultMap;
     },
