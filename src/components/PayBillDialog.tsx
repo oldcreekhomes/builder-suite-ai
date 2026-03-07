@@ -69,7 +69,12 @@ export function PayBillDialog({
   // For single bill, calculate remaining balance and allow partial payment
   const singleBill = !isMultiple ? billsArray[0] : null;
   const remainingBalance = singleBill 
-    ? Math.round((singleBill.total_amount - (singleBill.amount_paid || 0)) * 100) / 100 
+    ? Math.round(
+        (singleBill.total_amount < 0
+          ? singleBill.total_amount + (singleBill.amount_paid || 0)
+          : singleBill.total_amount - (singleBill.amount_paid || 0)
+        ) * 100
+      ) / 100
     : 0;
   const [paymentAmount, setPaymentAmount] = useState<string>("");
   const [paymentAmountError, setPaymentAmountError] = useState<string>("");
