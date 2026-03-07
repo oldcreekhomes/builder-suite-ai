@@ -22,7 +22,7 @@ import { useDeposits } from "@/hooks/useDeposits";
 import { useCreditCards } from "@/hooks/useCreditCards";
 import { useJournalEntries } from "@/hooks/useJournalEntries";
 import { useUserRole } from "@/hooks/useUserRole";
-import { Check } from "lucide-react";
+import { Check, Lock } from "lucide-react";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { useClosedPeriodCheck } from "@/hooks/useClosedPeriodCheck";
 import { Switch } from "@/components/ui/switch";
@@ -1177,8 +1177,8 @@ export function AccountDetailDialog({
                           {txn.reconciled || isDateLocked(txn.date) || isConsolidated ? (
                             <Tooltip>
                               <TooltipTrigger asChild>
-                                <div>
-                                  <TableRowActions actions={[]} disabled />
+                                <div className="flex justify-center">
+                                  <Lock className="h-4 w-4 text-muted-foreground" />
                                 </div>
                               </TooltipTrigger>
                               <TooltipContent side="left" align="center">
