@@ -923,120 +923,27 @@ export function AccountDetailDialog({
     }
   };
 
-  const handleUpdate = async (
-    transaction: Transaction,
-    field: "date" | "reference" | "description" | "amount",
-    value: string | number | Date
-  ) => {
-    // CRITICAL: Never allow updates to reconciled transactions
-    if (transaction.reconciled) {
-      console.error('Cannot update reconciled transaction');
-      const { toast } = await import("@/hooks/use-toast");
-      toast({
-        title: "Cannot Edit",
-        description: "This transaction is reconciled and cannot be modified.",
-        variant: "destructive",
-      });
-      return;
-    }
-    
-    const queryKey = ['account-transactions', accountId, projectId, sortOrder] as const;
-    
-    try {
-      // Description is always updated on the journal entry line
-      if (field === "description") {
-        await updateJournalEntryLine.mutateAsync({ 
-          lineId: transaction.line_id, 
-          updates: { memo: value as string } 
-        });
-        
-        // Immediately refresh the dialog and balance sheet
-        await queryClient.invalidateQueries({ queryKey });
-        await queryClient.refetchQueries({ queryKey });
-        queryClient.invalidateQueries({ queryKey: ['balance-sheet'] });
-        queryClient.refetchQueries({ queryKey: ['balance-sheet'] });
-        return;
-      }
-
-      switch (transaction.source_type) {
-        case 'check':
-          // Always use updateCheck for inline edits (no correction/duplicate creation)
-          const checkUpdates: any = {};
-          if (field === "date") checkUpdates.check_date = format(value as Date, "yyyy-MM-dd");
-          if (field === "reference") checkUpdates.pay_to = value as string;
-          if (field === "amount") checkUpdates.amount = value as number;
-          await updateCheck.mutateAsync({ checkId: transaction.source_id, updates: checkUpdates });
-          
-          // Immediately refresh the dialog and balance sheet
-          await queryClient.invalidateQueries({ queryKey });
-          await queryClient.refetchQueries({ queryKey });
-          queryClient.invalidateQueries({ queryKey: ['balance-sheet'] });
-          queryClient.refetchQueries({ queryKey: ['balance-sheet'] });
-          break;
-        case 'deposit':
-          // Fetch deposit to determine status
-          const { data: depositData } = await supabase
-            .from('deposits')
-            .select('*, deposit_lines(*)')
-            .eq('id', transaction.source_id)
-            .single();
-          
-          if (depositData && (depositData.status === 'posted' || depositData.status === 'cleared')) {
-            // Use correction for posted/cleared deposits
-            const correctedDepositData: any = {
-              deposit_date: field === "date" ? format(value as Date, "yyyy-MM-dd") : depositData.deposit_date,
-              bank_account_id: depositData.bank_account_id,
-              project_id: depositData.project_id,
-              amount: field === "amount" ? value as number : depositData.amount,
-              memo: field === "reference" ? value as string : depositData.memo
-            };
-            const correctedDepositLines = depositData.deposit_lines.map((line: any) => ({
-              line_type: line.line_type,
-              account_id: line.account_id,
-              cost_code_id: line.cost_code_id,
-              project_id: line.project_id,
-              amount: field === "amount" ? (value as number) * (line.amount / depositData.amount) : line.amount,
-              memo: line.memo
-            }));
-            await correctDeposit.mutateAsync({ depositId: transaction.source_id, correctedDepositData, correctedDepositLines });
-          } else {
-            // Use update for draft deposits
-            const depositUpdates: any = {};
-            if (field === "date") depositUpdates.deposit_date = format(value as Date, "yyyy-MM-dd");
-            if (field === "reference") {
-              // For deposits, "Received From" updates the memo field which is displayed as the received from
-              depositUpdates.memo = value as string;
-            }
-            if (field === "amount") depositUpdates.amount = value as number;
-            await updateDeposit.mutateAsync({ depositId: transaction.source_id, updates: depositUpdates });
-          }
-          
-          // Immediately refresh the dialog and balance sheet
-          await queryClient.invalidateQueries({ queryKey });
-          await queryClient.refetchQueries({ queryKey });
-          queryClient.invalidateQueries({ queryKey: ['balance-sheet'] });
-          queryClient.refetchQueries({ queryKey: ['balance-sheet'] });
-          break;
-        case 'manual':
-          const journalUpdates: any = {};
-          if (field === "date") journalUpdates.entry_date = format(value as Date, "yyyy-MM-dd");
-          await updateJournalEntryField.mutateAsync({ entryId: transaction.source_id, updates: journalUpdates });
-          
-          // Immediately refresh the dialog and balance sheet
-          await queryClient.invalidateQueries({ queryKey });
-          await queryClient.refetchQueries({ queryKey });
-          queryClient.invalidateQueries({ queryKey: ['balance-sheet'] });
-          queryClient.refetchQueries({ queryKey: ['balance-sheet'] });
-          break;
-        default:
-          console.log('Edit not implemented for:', transaction.source_type);
-      }
-    } catch (error) {
-      console.error('Error updating transaction:', error);
+  const handleEditTransaction = (txn: Transaction) => {
+    if (txn.source_type === 'bill') {
+      setEditingBillId(txn.source_id);
+    } else if (txn.source_type === 'deposit') {
+      setEditingDepositId(txn.source_id);
     }
   };
 
-  const formatCurrency = (amount: number) => {
+  const handleEditDialogClose = () => {
+    setEditingBillId(null);
+    queryClient.invalidateQueries({ queryKey: ['account-transactions'] });
+    queryClient.invalidateQueries({ queryKey: ['balance-sheet'] });
+    queryClient.invalidateQueries({ queryKey: ['income-statement'] });
+  };
+
+  const handleEditDepositDialogClose = () => {
+    setEditingDepositId(null);
+    queryClient.invalidateQueries({ queryKey: ['account-transactions'] });
+    queryClient.invalidateQueries({ queryKey: ['balance-sheet'] });
+    queryClient.invalidateQueries({ queryKey: ['income-statement'] });
+  };
     return new Intl.NumberFormat('en-US', {
       style: 'currency',
       currency: 'USD',
