@@ -1,29 +1,36 @@
 
-
-## Fix Footer Total in Manage Bills Tables
+## Share "As of Date" Across All Report Tabs
 
 ### Problem
-The "Total amount" footer in the Approved tab (and potentially other tabs) sums raw `bill.total_amount` values instead of the **displayed** open balance amounts. When credits (negative amounts) and regular bills are mixed, the footer total does not match what users see in the Amount column.
+Each report tab (Balance Sheet, Income Statement, Job Costs, Accounts Payable) maintains its own independent `asOfDate` state initialized to `new Date()`. When you change the date on one tab and switch to another, it resets to today.
 
-The Amount column in PayBillsTable displays the open balance:
-- Credits: `total_amount + amount_paid`
-- Regular bills: `total_amount - amount_paid`
+### Solution
+Lift the `asOfDate` state up to `ReportsTabs` and pass it down to all four child components as a prop. When the Reports page unmounts (user navigates away), the state naturally resets since it lives in a component that gets destroyed.
 
-But the footer just sums `bill.total_amount`, ignoring partial payments and using raw values.
+### Changes
 
-### Plan
+**1. `src/components/reports/ReportsTabs.tsx`**
+- Add `asOfDate` / `setAsOfDate` state (initialized to today)
+- Pass `asOfDate` and `onAsOfDateChange` props to all four content components
 
-**`src/components/bills/PayBillsTable.tsx`** (line 1149)
-Update the footer reduce to use the same open balance formula as the display column:
-```typescript
-filteredBills.reduce((sum, bill) => {
-  const openBalance = bill.total_amount < 0
-    ? bill.total_amount + (bill.amount_paid || 0)
-    : bill.total_amount - (bill.amount_paid || 0);
-  return sum + Math.round(openBalance * 100) / 100;
-}, 0)
-```
+**2. `src/components/reports/BalanceSheetContent.tsx`**
+- Add `asOfDate` and `onAsOfDateChange` to the props interface
+- Remove the local `useState<Date>(new Date())` for `asOfDate`
+- Replace all `setAsOfDate(date)` calls with `onAsOfDateChange(date)`
 
-**`src/components/bills/BillsApprovalTable.tsx`** (line 1028)
-Same fix for consistency — the Paid tab shows bills here and should also reflect open balances correctly if amount_paid is relevant.
+**3. `src/components/reports/IncomeStatementContent.tsx`**
+- Same pattern: accept `asOfDate` and `onAsOfDateChange` as props, remove local state
 
+**4. `src/components/reports/JobCostsContent.tsx`**
+- Same pattern: accept `asOfDate` and `onAsOfDateChange` as props, remove local state
+
+**5. `src/components/reports/AccountsPayableContent.tsx`**
+- Same pattern: accept `asOfDate` and `onAsOfDateChange` as props, remove local state
+
+### Technical Detail
+Each file's change is minimal:
+- Add two props to the interface (`asOfDate: Date`, `onAsOfDateChange: (date: Date) => void`)
+- Delete the `const [asOfDate, setAsOfDate] = useState<Date>(new Date())` line
+- Replace `setAsOfDate` with `onAsOfDateChange` in calendar `onSelect` handlers
+
+No query logic, formatting, or PDF export code needs to change since they all already reference the `asOfDate` variable by name.

@@ -1146,7 +1146,12 @@ export function PayBillsTable({ projectId, projectIds, showProjectColumn = true,
       {filteredBills.length > 0 && (
         <div className="mt-4 text-sm text-muted-foreground">
           <p>Total bills: {filteredBills.length}</p>
-          <p>Total amount: {formatCurrency(Math.round(filteredBills.reduce((sum, bill) => sum + bill.total_amount, 0) * 100) / 100)}</p>
+          <p>Total amount: {formatCurrency(filteredBills.reduce((sum, bill) => {
+            const openBalance = bill.total_amount < 0
+              ? bill.total_amount + (bill.amount_paid || 0)
+              : bill.total_amount - (bill.amount_paid || 0);
+            return sum + Math.round(openBalance * 100) / 100;
+          }, 0))}</p>
         </div>
       )}
 
