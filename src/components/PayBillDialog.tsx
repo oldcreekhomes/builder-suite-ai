@@ -161,20 +161,25 @@ export function PayBillDialog({
   };
 
   // Calculate credit/bill breakdown for multiple bills
+  const getOpenBalance = (b: BillForPayment) =>
+    b.total_amount < 0
+      ? b.total_amount + (b.amount_paid || 0)
+      : b.total_amount - (b.amount_paid || 0);
+
   const regularBillsTotal = billsArray
-    .filter(b => (b.total_amount - (b.amount_paid || 0)) > 0)
-    .reduce((sum, b) => sum + (b.total_amount - (b.amount_paid || 0)), 0);
+    .filter(b => getOpenBalance(b) > 0)
+    .reduce((sum, b) => sum + Math.round(getOpenBalance(b) * 100) / 100, 0);
   
   const creditsTotal = billsArray
-    .filter(b => (b.total_amount - (b.amount_paid || 0)) < 0)
-    .reduce((sum, b) => sum + Math.abs(b.total_amount - (b.amount_paid || 0)), 0);
+    .filter(b => getOpenBalance(b) < 0)
+    .reduce((sum, b) => sum + Math.round(Math.abs(getOpenBalance(b)) * 100) / 100, 0);
   
   const netPayment = regularBillsTotal - creditsTotal;
   const hasCredits = creditsTotal > 0;
   const creditExceedsBills = creditsTotal > regularBillsTotal;
   const remainingCreditAfter = creditExceedsBills ? creditsTotal - regularBillsTotal : 0;
 
-  const totalAmount = billsArray.reduce((sum, bill) => sum + bill.total_amount, 0);
+  const totalAmount = billsArray.reduce((sum, bill) => sum + Math.round(getOpenBalance(bill) * 100) / 100, 0);
   const vendorName = billsArray[0]?.companies?.company_name || 'Unknown Vendor';
 
   return (
