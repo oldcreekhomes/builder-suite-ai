@@ -911,60 +911,55 @@ export function BillsApprovalTable({ status, projectId, projectIds, showProjectC
                     ) : '-'}
                   </TableCell>
                   <TableCell className="w-20">
-                    <div className="flex items-center gap-1">
-                      {formatCurrency(bill.total_amount)}
-                      {bill.total_amount < 0 && (
-                        <Badge variant="outline" className="text-green-600 border-green-600 text-[10px] px-1">
-                          CR
-                        </Badge>
-                      )}
-                    </div>
-                  </TableCell>
-                  {isPaidStatus && (
-                    <TableCell className="w-20">
-                      {(() => {
-                        if (bill.total_amount < 0) return <span className="text-muted-foreground">-</span>;
-                        const breakdown = paymentBreakdowns?.get(bill.id);
-                        if (!breakdown) return formatCurrency(bill.total_amount);
-                        
-                        const hasCredits = breakdown.credits.length > 0;
-                        const cashDisplay = formatCurrency(breakdown.cashPaid);
-                        
-                        if (!hasCredits) return cashDisplay;
-                        
+                    {(() => {
+                      if (!isPaidStatus || bill.total_amount < 0) {
                         return (
-                          <TooltipProvider>
-                            <Tooltip>
-                              <TooltipTrigger asChild>
-                                <div className="flex items-center gap-1 cursor-default">
-                                  <span>{cashDisplay}</span>
-                                  <Info className="h-3.5 w-3.5 text-green-600 shrink-0" />
-                                </div>
-                              </TooltipTrigger>
-                              <TooltipContent className="max-w-xs">
-                                <div className="space-y-1 text-xs">
-                                  <div className="flex justify-between gap-4">
-                                    <span>Bill Amount:</span>
-                                    <span>${Math.abs(bill.total_amount).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
-                                  </div>
-                                  {breakdown.credits.map((cr, i) => (
-                                    <div key={i} className="flex justify-between gap-4 text-green-600">
-                                      <span>Credit Applied ({cr.ref}):</span>
-                                      <span>-${cr.amount.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
-                                    </div>
-                                  ))}
-                                  <div className="border-t pt-1 flex justify-between gap-4 font-medium">
-                                    <span>Cash Paid:</span>
-                                    <span>${breakdown.cashPaid.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
-                                  </div>
-                                </div>
-                              </TooltipContent>
-                            </Tooltip>
-                          </TooltipProvider>
+                          <div className="flex items-center gap-1">
+                            {formatCurrency(bill.total_amount)}
+                            {bill.total_amount < 0 && (
+                              <Badge variant="outline" className="text-green-600 border-green-600 text-[10px] px-1">
+                                CR
+                              </Badge>
+                            )}
+                          </div>
                         );
-                      })()}
-                    </TableCell>
-                  )}
+                      }
+                      const breakdown = paymentBreakdowns?.get(bill.id);
+                      if (!breakdown || breakdown.credits.length === 0) {
+                        return formatCurrency(bill.total_amount);
+                      }
+                      return (
+                        <TooltipProvider>
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <div className="flex items-center gap-1 cursor-default">
+                                <span>{formatCurrency(breakdown.cashPaid)}</span>
+                                <Info className="h-3.5 w-3.5 text-green-600 shrink-0" />
+                              </div>
+                            </TooltipTrigger>
+                            <TooltipContent className="max-w-xs">
+                              <div className="space-y-1 text-xs">
+                                <div className="flex justify-between gap-4">
+                                  <span>Bill Amount:</span>
+                                  <span>${Math.abs(bill.total_amount).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+                                </div>
+                                {breakdown.credits.map((cr, i) => (
+                                  <div key={i} className="flex justify-between gap-4 text-green-600">
+                                    <span>Credit Applied ({cr.ref}):</span>
+                                    <span>-${cr.amount.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+                                  </div>
+                                ))}
+                                <div className="border-t pt-1 flex justify-between gap-4 font-medium">
+                                  <span>Cash Paid:</span>
+                                  <span>${breakdown.cashPaid.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+                                </div>
+                              </div>
+                            </TooltipContent>
+                          </Tooltip>
+                        </TooltipProvider>
+                      );
+                    })()}
+                  </TableCell>
                   <TableCell className="w-24 max-w-[96px]">
                     <span className="block truncate">{bill.reference_number || '-'}</span>
                   </TableCell>
