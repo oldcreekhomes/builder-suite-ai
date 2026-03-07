@@ -100,6 +100,7 @@ export function AccountDetailDialog({
   
   const [editingBillId, setEditingBillId] = useState<string | null>(null);
   const [editingDepositId, setEditingDepositId] = useState<string | null>(null);
+  const [editingCheckId, setEditingCheckId] = useState<string | null>(null);
   const { deleteCheck } = useChecks();
   const { deleteDeposit } = useDeposits();
   const { deleteCreditCard } = useCreditCards();
