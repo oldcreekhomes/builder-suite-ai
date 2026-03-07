@@ -22,6 +22,14 @@ export function POStatusBadge({ status, onClick, className }: POStatusBadgeProps
           bgClass: 'bg-green-100 hover:bg-green-200 text-green-700 border-green-200',
           iconClass: 'text-green-600',
         };
+      case 'draw':
+        return {
+          icon: Check,
+          label: 'Draw',
+          tooltip: 'Partial draw — bill is a portion of the PO total',
+          bgClass: 'bg-green-100 hover:bg-green-200 text-green-700 border-green-200',
+          iconClass: 'text-green-600',
+        };
       case 'over_po':
         return {
           icon: AlertTriangle,

@@ -276,11 +276,15 @@ export function useBillPOMatching(bills: BillForMatching[]) {
         });
 
         // Determine overall status
-        let overall_status: 'matched' | 'over_po' | 'no_po' | 'partial';
+        let overall_status: 'matched' | 'over_po' | 'no_po' | 'partial' | 'draw';
         if (matches.length === 0) {
           overall_status = 'no_po';
         } else if (matches.every(m => m.status === 'matched')) {
           overall_status = 'matched';
+        } else if (matches.every(m => m.status === 'draw')) {
+          overall_status = 'draw';
+        } else if (matches.every(m => m.status === 'matched' || m.status === 'draw')) {
+          overall_status = 'draw';
         } else if (matches.some(m => m.status === 'over_po')) {
           overall_status = 'over_po';
         } else {
