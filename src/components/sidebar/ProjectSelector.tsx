@@ -1,8 +1,9 @@
 import { useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
-import { MapPin, ChevronsUpDown, Search } from "lucide-react";
-import { useProjects } from "@/hooks/useProjects";
+import { MapPin, ChevronsUpDown, Search, MoreVertical } from "lucide-react";
+import { useProjects, Project } from "@/hooks/useProjects";
 import { useUserRole } from "@/hooks/useUserRole";
+import { useNotificationPreferences } from "@/hooks/useNotificationPreferences";
 import {
   Popover,
   PopoverContent,
@@ -17,6 +18,7 @@ import {
   CommandList,
 } from "@/components/ui/command";
 import { Button } from "@/components/ui/button";
+import { EditProjectDialog } from "@/components/EditProjectDialog";
 
 const statusGroups = [
   { status: "In Design", color: "bg-yellow-100 text-yellow-800" },
@@ -28,10 +30,14 @@ const statusGroups = [
 
 export function ProjectSelector() {
   const [open, setOpen] = useState(false);
+  const [editProject, setEditProject] = useState<Project | null>(null);
   const navigate = useNavigate();
   const { projectId } = useParams();
   const { data: projects = [], isLoading } = useProjects();
   const { isOwner } = useUserRole();
+  const { preferences } = useNotificationPreferences();
+  
+  const canEditProjects = isOwner || preferences.can_edit_projects;
 
   // Find current project if on a project page
   const currentProject = projects.find((p) => p.id === projectId);
@@ -94,7 +100,22 @@ export function ProjectSelector() {
                         onSelect={() => handleSelectProject(project)}
                         className="cursor-pointer"
                       >
-                        <MapPin className="mr-2 h-4 w-4 text-gray-400" />
+                        {canEditProjects ? (
+                          <button
+                            type="button"
+                            className="mr-2 p-0.5 rounded hover:bg-muted shrink-0"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setOpen(false);
+                              setEditProject(project);
+                            }}
+                            title="Edit project"
+                          >
+                            <MoreVertical className="h-4 w-4 text-muted-foreground" />
+                          </button>
+                        ) : (
+                          <MapPin className="mr-2 h-4 w-4 text-muted-foreground" />
+                        )}
                         <span className="truncate">{project.address}</span>
                       </CommandItem>
                     ))}
@@ -105,6 +126,12 @@ export function ProjectSelector() {
           </Command>
         </PopoverContent>
       </Popover>
+
+      <EditProjectDialog
+        project={editProject}
+        open={!!editProject}
+        onOpenChange={(open) => { if (!open) setEditProject(null); }}
+      />
     </div>
   );
 }
