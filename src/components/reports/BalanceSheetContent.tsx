@@ -1,6 +1,7 @@
 import { useState, useEffect, ReactNode } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import { fetchAllRows } from "@/lib/supabasePaginate";
 import { useAuth } from "@/hooks/useAuth";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -94,37 +95,32 @@ export function BalanceSheetContent({ projectId, onHeaderActionChange, asOfDate,
       // Format date for query - used for both entry_date filter and as-of-aware reversal filtering
       const formattedAsOfDate = asOfDate.toISOString().split('T')[0];
       
-      let journalLinesQuery = supabase
-        .from('journal_entry_lines')
-        .select(`
-          account_id,
-          debit,
-          credit,
-          journal_entries!inner(entry_date, reversed_at, reversed_by_id)
-        `)
-        .lte('journal_entries.entry_date', formattedAsOfDate)
-        .eq('journal_entries.is_reversal', false)
-        .is('journal_entries.reversed_by_id', null)
-        // As-of-aware reversal filtering: include entries that either haven't been reversed,
-        // or were reversed AFTER the as-of date (so they were still valid on the as-of date)
-        .or(`reversed_at.is.null,reversed_at.gt.${formattedAsOfDate}`, { referencedTable: 'journal_entries' });
-      
-      if (projectId) {
-        // For project-specific reports, only include lines explicitly assigned to this project
-        // This ensures balanced entries (both debit and credit sides must have the same project_id)
-        journalLinesQuery = journalLinesQuery.eq('project_id', projectId);
-      } else {
-        // For company-wide reports, only show lines with no project
-        journalLinesQuery = journalLinesQuery.is('project_id', null);
-      }
+      const buildJournalQuery = () => {
+        let q = supabase
+          .from('journal_entry_lines')
+          .select(`
+            account_id,
+            debit,
+            credit,
+            journal_entries!inner(entry_date, reversed_at, reversed_by_id)
+          `)
+          .lte('journal_entries.entry_date', formattedAsOfDate)
+          .eq('journal_entries.is_reversal', false)
+          .is('journal_entries.reversed_by_id', null)
+          .or(`reversed_at.is.null,reversed_at.gt.${formattedAsOfDate}`, { referencedTable: 'journal_entries' });
+        
+        if (projectId) {
+          q = q.eq('project_id', projectId);
+        } else {
+          q = q.is('project_id', null);
+        }
+        return q;
+      };
 
-      const { data: journalLines, error: journalError } = await journalLinesQuery;
+      const journalLines = await fetchAllRows(buildJournalQuery);
       console.timeEnd('⏱️ Balance Sheet: Journal lines query');
       
-      if (journalError) {
-        console.error("🔍 Balance Sheet: Journal lines query failed:", journalError);
-        throw journalError;
-      }
+      
       
       console.log(`📊 Balance Sheet: Processing ${journalLines?.length || 0} journal lines`);
 

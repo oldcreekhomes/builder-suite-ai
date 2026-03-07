@@ -1,31 +1,36 @@
 
+## Share "As of Date" Across All Report Tabs
 
-## Root Cause: Supabase 1000-Row Query Limit
+### Problem
+Each report tab (Balance Sheet, Income Statement, Job Costs, Accounts Payable) maintains its own independent `asOfDate` state initialized to `new Date()`. When you change the date on one tab and switch to another, it resets to today.
 
-**The Balance Sheet is WRONG ($4,000). The Account Detail Dialog is CORRECT ($0).**
+### Solution
+Lift the `asOfDate` state up to `ReportsTabs` and pass it down to all four child components as a prop. When the Reports page unmounts (user navigates away), the state naturally resets since it lives in a component that gets destroyed.
 
-The Balance Sheet query fetches all `journal_entry_lines` for a project to aggregate balances. This project has **1,109 journal entry lines**, but Supabase's default limit returns only **1,000 rows**. The truncated dataset produces incorrect balances. The console even confirms: `"Processing 1000 journal lines"` -- it should be 1,109.
+### Changes
 
-The Account Detail Dialog queries per-account (only ~32 lines for Equity Partner #1), so it gets all rows and calculates correctly: $0.
+**1. `src/components/reports/ReportsTabs.tsx`**
+- Add `asOfDate` / `setAsOfDate` state (initialized to today)
+- Pass `asOfDate` and `onAsOfDateChange` props to all four content components
 
-The Income Statement has the same bug (also queries all `journal_entry_lines` without pagination). The Job Costs report queries by cost_code_id and could also be affected.
+**2. `src/components/reports/BalanceSheetContent.tsx`**
+- Add `asOfDate` and `onAsOfDateChange` to the props interface
+- Remove the local `useState<Date>(new Date())` for `asOfDate`
+- Replace all `setAsOfDate(date)` calls with `onAsOfDateChange(date)`
 
-### Fix: Paginated Fetch Utility
+**3. `src/components/reports/IncomeStatementContent.tsx`**
+- Same pattern: accept `asOfDate` and `onAsOfDateChange` as props, remove local state
 
-Create a reusable helper that fetches all rows by paginating through Supabase in batches of 1,000, then apply it to all report queries.
+**4. `src/components/reports/JobCostsContent.tsx`**
+- Same pattern: accept `asOfDate` and `onAsOfDateChange` as props, remove local state
 
-**New file: `src/lib/supabasePaginate.ts`**
-- Export an `async function fetchAllRows()` that accepts a Supabase query builder, calls `.range()` in a loop (0-999, 1000-1999, etc.), and concatenates results until a batch returns fewer than 1,000 rows.
+**5. `src/components/reports/AccountsPayableContent.tsx`**
+- Same pattern: accept `asOfDate` and `onAsOfDateChange` as props, remove local state
 
-**Modified files:**
+### Technical Detail
+Each file's change is minimal:
+- Add two props to the interface (`asOfDate: Date`, `onAsOfDateChange: (date: Date) => void`)
+- Delete the `const [asOfDate, setAsOfDate] = useState<Date>(new Date())` line
+- Replace `setAsOfDate` with `onAsOfDateChange` in calendar `onSelect` handlers
 
-| File | Change |
-|---|---|
-| `src/lib/supabasePaginate.ts` | New utility for paginated fetching |
-| `src/components/reports/BalanceSheetContent.tsx` | Replace single query with paginated fetch (~line 97-121) |
-| `src/components/reports/IncomeStatementContent.tsx` | Replace single query with paginated fetch (~line 81-95) |
-| `src/components/reports/JobCostsContent.tsx` | Replace single query with paginated fetch (~line 177+) |
-| `src/components/accounting/AccountDetailDialog.tsx` | Apply pagination to the main journal_entry_lines query (~line 117-168) as a safety measure |
-
-No database changes required.
-
+No query logic, formatting, or PDF export code needs to change since they all already reference the `asOfDate` variable by name.
