@@ -1,27 +1,36 @@
 
+## Share "As of Date" Across All Report Tabs
 
-## Fix: EditCheckDialog Broken Grid Layout
+### Problem
+Each report tab (Balance Sheet, Income Statement, Job Costs, Accounts Payable) maintains its own independent `asOfDate` state initialized to `new Date()`. When you change the date on one tab and switch to another, it resets to today.
 
-The line items table is broken because `grid-cols-16` is not defined in the Tailwind config. Only `grid-cols-20`, `grid-cols-24`, and `grid-cols-25` are custom-defined (alongside Tailwind's default 1-12).
-
-The dialog uses `grid-cols-16` when there's no address column, causing the grid to collapse and stack all columns vertically.
-
-### Fix
-
-**Option A (match existing patterns):** Change `grid-cols-16` to `grid-cols-12` (standard Tailwind) and redistribute column spans to total 12:
-- Cost Code/Account: `col-span-4`
-- Memo: `col-span-3`
-- Amount: `col-span-2`
-- Action: `col-span-3`
-
-**Option B (preferred, match EditDepositDialog):** Use `grid-cols-20` (already in config) for the non-address case, keeping the current span distribution (5+4+3+4=16, bump Action to 8 to fill 20). This matches the EditDepositDialog pattern exactly.
+### Solution
+Lift the `asOfDate` state up to `ReportsTabs` and pass it down to all four child components as a prop. When the Reports page unmounts (user navigates away), the state naturally resets since it lives in a component that gets destroyed.
 
 ### Changes
 
-**`src/components/checks/EditCheckDialog.tsx`:**
-- Replace all `grid-cols-16` with `grid-cols-20`
-- Adjust Action column from `col-span-4` to `col-span-8` in the non-address case
-- In the footer totals row, adjust the empty spacer from `col-span-4` to `col-span-8`
+**1. `src/components/reports/ReportsTabs.tsx`**
+- Add `asOfDate` / `setAsOfDate` state (initialized to today)
+- Pass `asOfDate` and `onAsOfDateChange` props to all four content components
 
-**`tailwind.config.ts`:** No changes needed -- `grid-cols-20` already exists.
+**2. `src/components/reports/BalanceSheetContent.tsx`**
+- Add `asOfDate` and `onAsOfDateChange` to the props interface
+- Remove the local `useState<Date>(new Date())` for `asOfDate`
+- Replace all `setAsOfDate(date)` calls with `onAsOfDateChange(date)`
 
+**3. `src/components/reports/IncomeStatementContent.tsx`**
+- Same pattern: accept `asOfDate` and `onAsOfDateChange` as props, remove local state
+
+**4. `src/components/reports/JobCostsContent.tsx`**
+- Same pattern: accept `asOfDate` and `onAsOfDateChange` as props, remove local state
+
+**5. `src/components/reports/AccountsPayableContent.tsx`**
+- Same pattern: accept `asOfDate` and `onAsOfDateChange` as props, remove local state
+
+### Technical Detail
+Each file's change is minimal:
+- Add two props to the interface (`asOfDate: Date`, `onAsOfDateChange: (date: Date) => void`)
+- Delete the `const [asOfDate, setAsOfDate] = useState<Date>(new Date())` line
+- Replace `setAsOfDate` with `onAsOfDateChange` in calendar `onSelect` handlers
+
+No query logic, formatting, or PDF export code needs to change since they all already reference the `asOfDate` variable by name.

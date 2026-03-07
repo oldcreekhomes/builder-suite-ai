@@ -245,20 +245,17 @@ export function EditCheckDialog({ open, onOpenChange, checkId }: EditCheckDialog
         <div className="border rounded-lg overflow-hidden">
           <div className={cn(
             "grid gap-2 p-3 bg-muted font-medium text-sm",
-            showAddressColumn ? "grid-cols-20" : "grid-cols-16"
+            "grid-cols-20"
           )}>
             <div className="col-span-5">{type === 'job_cost' ? 'Cost Code' : 'Account'}</div>
             <div className="col-span-4">Memo</div>
             <div className="col-span-3">Amount</div>
             {showAddressColumn && <div className="col-span-4">Address</div>}
-            <div className="col-span-4 text-right">Action</div>
+            <div className={cn(showAddressColumn ? "col-span-4" : "col-span-8", "text-right")}>Action</div>
           </div>
 
           {rows.map(row => (
-            <div key={row.id} className={cn(
-              "grid gap-2 p-3 border-t",
-              showAddressColumn ? "grid-cols-20" : "grid-cols-16"
-            )}>
+            <div key={row.id} className="grid gap-2 p-3 border-t grid-cols-20">
               <div className="col-span-5">
                 {type === 'job_cost' ? (
                   <CostCodeSearchInput
@@ -322,7 +319,7 @@ export function EditCheckDialog({ open, onOpenChange, checkId }: EditCheckDialog
                   </Select>
                 </div>
               )}
-              <div className="col-span-4 flex items-center justify-end">
+              <div className={cn(showAddressColumn ? "col-span-4" : "col-span-8", "flex items-center justify-end")}>
                 <Button
                   variant="destructive"
                   size="sm"
@@ -337,15 +334,12 @@ export function EditCheckDialog({ open, onOpenChange, checkId }: EditCheckDialog
           ))}
 
           <div className="p-3 bg-muted border-t">
-            <div className={cn(
-              "grid gap-2",
-              showAddressColumn ? "grid-cols-20" : "grid-cols-16"
-            )}>
+            <div className="grid gap-2 grid-cols-20">
               <div className="col-span-9 font-medium whitespace-nowrap">{tabLabel}</div>
               <div className="col-span-3 font-medium">
                 {formatCurrency(tabTotal)}
               </div>
-              <div className={showAddressColumn ? "col-span-8" : "col-span-4"}></div>
+              <div className="col-span-8"></div>
             </div>
           </div>
         </div>
