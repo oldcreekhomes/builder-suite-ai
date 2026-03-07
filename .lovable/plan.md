@@ -1,36 +1,47 @@
 
-## Share "As of Date" Across All Report Tabs
 
-### Problem
-Each report tab (Balance Sheet, Income Statement, Job Costs, Accounts Payable) maintains its own independent `asOfDate` state initialized to `new Date()`. When you change the date on one tab and switch to another, it resets to today.
+## Fix: Fallback PO Matching Returns Wrong PO When Multiple POs Share Same Cost Code
+
+### Root Cause
+
+In `useBillPOMatching.ts`, when bill lines lack an explicit `purchase_order_id`, the fallback uses `pos.find()` (line 200) to match by vendor + project + cost_code. This returns the **first** PO found. When multiple POs share the same cost code (e.g., two POs for "4330: Lumber & Framing Material" — one for $27,647.92 and one for $239.80), both bills incorrectly match to whichever PO was fetched first.
 
 ### Solution
-Lift the `asOfDate` state up to `ReportsTabs` and pass it down to all four child components as a prop. When the Reports page unmounts (user navigates away), the state naturally resets since it lives in a component that gets destroyed.
 
-### Changes
+When the fallback finds **multiple** POs for the same vendor + project + cost_code, use **amount proximity** to pick the best match. The bill line amount is compared to each candidate PO's remaining budget, and the closest match wins.
 
-**1. `src/components/reports/ReportsTabs.tsx`**
-- Add `asOfDate` / `setAsOfDate` state (initialized to today)
-- Pass `asOfDate` and `onAsOfDateChange` props to all four content components
+### Changes — `src/hooks/useBillPOMatching.ts`
 
-**2. `src/components/reports/BalanceSheetContent.tsx`**
-- Add `asOfDate` and `onAsOfDateChange` to the props interface
-- Remove the local `useState<Date>(new Date())` for `asOfDate`
-- Replace all `setAsOfDate(date)` calls with `onAsOfDateChange(date)`
+**Lines 198-208** — Replace the single `pos.find()` with logic that collects all matching POs and selects the one whose `total_amount` is closest to the bill line's amount:
 
-**3. `src/components/reports/IncomeStatementContent.tsx`**
-- Same pattern: accept `asOfDate` and `onAsOfDateChange` as props, remove local state
+```typescript
+// Fallback: if no explicit PO link, match by vendor + project + cost_code
+if (!resolvedPoId && line.cost_code_id && bill.vendor_id && bill.project_id) {
+  const candidatePos = pos.filter(p =>
+    p.company_id === bill.vendor_id &&
+    p.project_id === bill.project_id &&
+    p.cost_code_id === line.cost_code_id
+  );
+  if (candidatePos.length === 1) {
+    resolvedPoId = candidatePos[0].id;
+  } else if (candidatePos.length > 1) {
+    // Multiple POs for same cost code — pick by closest amount
+    const lineAmount = line.amount || 0;
+    let bestPo = candidatePos[0];
+    let bestDiff = Math.abs((bestPo.total_amount || 0) - lineAmount);
+    for (let i = 1; i < candidatePos.length; i++) {
+      const diff = Math.abs((candidatePos[i].total_amount || 0) - lineAmount);
+      if (diff < bestDiff) {
+        bestDiff = diff;
+        bestPo = candidatePos[i];
+      }
+    }
+    resolvedPoId = bestPo.id;
+  }
+}
+```
 
-**4. `src/components/reports/JobCostsContent.tsx`**
-- Same pattern: accept `asOfDate` and `onAsOfDateChange` as props, remove local state
+This ensures the $239.80 bill matches PO 2026-923T-0051 ($239.80) and the $27,647.92 bill matches PO 2025-923T-0005 ($27,647.92).
 
-**5. `src/components/reports/AccountsPayableContent.tsx`**
-- Same pattern: accept `asOfDate` and `onAsOfDateChange` as props, remove local state
+One file, one section changed.
 
-### Technical Detail
-Each file's change is minimal:
-- Add two props to the interface (`asOfDate: Date`, `onAsOfDateChange: (date: Date) => void`)
-- Delete the `const [asOfDate, setAsOfDate] = useState<Date>(new Date())` line
-- Replace `setAsOfDate` with `onAsOfDateChange` in calendar `onSelect` handlers
-
-No query logic, formatting, or PDF export code needs to change since they all already reference the `asOfDate` variable by name.
