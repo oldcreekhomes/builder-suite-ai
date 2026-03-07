@@ -1,36 +1,24 @@
 
-## Share "As of Date" Across All Report Tabs
+
+## Fix: Make "Over" Badge in Table Match "Over Budget" Dialog Styling
 
 ### Problem
-Each report tab (Balance Sheet, Income Statement, Job Costs, Accounts Payable) maintains its own independent `asOfDate` state initialized to `new Date()`. When you change the date on one tab and switch to another, it resets to today.
+The table's PO status badge for `over_po` uses **yellow/amber** styling (`bg-yellow-100 text-yellow-700`), but the PODetailsDialog shows **red** styling for "Over Budget." These should be visually consistent.
 
-### Solution
-Lift the `asOfDate` state up to `ReportsTabs` and pass it down to all four child components as a prop. When the Reports page unmounts (user navigates away), the state naturally resets since it lives in a component that gets destroyed.
+### Changes — `src/components/bills/POStatusBadge.tsx`
 
-### Changes
+**Lines 25-32** — Change the `over_po` case from yellow to red, and update the label from "Over" to "Over Budget" to match the dialog:
 
-**1. `src/components/reports/ReportsTabs.tsx`**
-- Add `asOfDate` / `setAsOfDate` state (initialized to today)
-- Pass `asOfDate` and `onAsOfDateChange` props to all four content components
+```typescript
+case 'over_po':
+  return {
+    icon: AlertTriangle,
+    label: 'Over Budget',
+    tooltip: 'Cumulative bills exceed PO amount',
+    bgClass: 'bg-red-100 hover:bg-red-200 text-red-700 border-red-200',
+    iconClass: 'text-red-600',
+  };
+```
 
-**2. `src/components/reports/BalanceSheetContent.tsx`**
-- Add `asOfDate` and `onAsOfDateChange` to the props interface
-- Remove the local `useState<Date>(new Date())` for `asOfDate`
-- Replace all `setAsOfDate(date)` calls with `onAsOfDateChange(date)`
+One file, one section. The badge will now show a red "Over Budget" label matching the dialog exactly.
 
-**3. `src/components/reports/IncomeStatementContent.tsx`**
-- Same pattern: accept `asOfDate` and `onAsOfDateChange` as props, remove local state
-
-**4. `src/components/reports/JobCostsContent.tsx`**
-- Same pattern: accept `asOfDate` and `onAsOfDateChange` as props, remove local state
-
-**5. `src/components/reports/AccountsPayableContent.tsx`**
-- Same pattern: accept `asOfDate` and `onAsOfDateChange` as props, remove local state
-
-### Technical Detail
-Each file's change is minimal:
-- Add two props to the interface (`asOfDate: Date`, `onAsOfDateChange: (date: Date) => void`)
-- Delete the `const [asOfDate, setAsOfDate] = useState<Date>(new Date())` line
-- Replace `setAsOfDate` with `onAsOfDateChange` in calendar `onSelect` handlers
-
-No query logic, formatting, or PDF export code needs to change since they all already reference the `asOfDate` variable by name.
