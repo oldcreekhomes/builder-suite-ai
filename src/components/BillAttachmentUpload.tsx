@@ -19,6 +19,9 @@ interface BillAttachmentUploadProps {
   onAttachmentsChange: (attachments: BillAttachment[]) => void;
   billId?: string;
   disabled?: boolean;
+  existingAttachments?: BillAttachment[];
+  onDeleteExisting?: (attachment: BillAttachment) => void;
+  onClickExisting?: (attachment: BillAttachment) => void;
 }
 
 export function BillAttachmentUpload({ 
