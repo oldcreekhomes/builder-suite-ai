@@ -823,19 +823,19 @@ export function EditBillDialog({ open, onOpenChange, billId }: EditBillDialogPro
                 )}
 
                 <div className="border rounded-lg overflow-hidden w-full">
-                <div className={cn("grid gap-2 p-3 bg-muted font-medium text-sm w-full", showAddressColumn ? (isApprovedBill ? "grid-cols-23" : "grid-cols-24") : (isApprovedBill ? "grid-cols-19" : "grid-cols-20"))}>
+                <div className={cn("grid gap-2 p-3 bg-muted font-medium text-sm w-full", showAddressColumn ? "grid-cols-24" : "grid-cols-20")}>
                     <div className="col-span-5">Cost Code</div>
                     <div className="col-span-5">Memo</div>
                     <div className="col-span-2">Quantity</div>
                     <div className="col-span-2">Cost</div>
                     <div className="col-span-2">Total</div>
                     {showAddressColumn && <div className="col-span-3">Address</div>}
-                    <div className={showAddressColumn ? "col-span-4" : "col-span-3"}>Purchase Order</div>
+                    <div className={showAddressColumn ? (isApprovedBill ? "col-span-5" : "col-span-4") : (isApprovedBill ? "col-span-4" : "col-span-3")}>Purchase Order</div>
                     {!isApprovedBill && <div className="col-span-1 text-right">Action</div>}
                   </div>
 
                   {jobCostRows.map((row) => (
-                    <div key={row.id} className={cn("grid gap-2 p-3 border-t w-full", showAddressColumn ? (isApprovedBill ? "grid-cols-23" : "grid-cols-24") : (isApprovedBill ? "grid-cols-19" : "grid-cols-20"))}>
+                    <div key={row.id} className={cn("grid gap-2 p-3 border-t w-full", showAddressColumn ? "grid-cols-24" : "grid-cols-20")}>
                       <div className="col-span-5">
                         <CostCodeSearchInput
                           value={row.account}
@@ -906,7 +906,7 @@ export function EditBillDialog({ open, onOpenChange, billId }: EditBillDialogPro
                           </Select>
                         </div>
                       )}
-                      <div className={showAddressColumn ? "col-span-4" : "col-span-3"}>
+                      <div className={showAddressColumn ? (isApprovedBill ? "col-span-5" : "col-span-4") : (isApprovedBill ? "col-span-4" : "col-span-3")}>
                         <POSelectionDropdown
                           projectId={billData?.project_id}
                           vendorId={vendor}
@@ -984,10 +984,10 @@ export function EditBillDialog({ open, onOpenChange, billId }: EditBillDialogPro
                 )}
 
                 <div className="border rounded-lg overflow-hidden">
-                  <div className={cn("grid gap-2 p-3 bg-muted font-medium text-sm", isApprovedBill ? "grid-cols-11" : "grid-cols-12")}>
+                  <div className="grid grid-cols-12 gap-2 p-3 bg-muted font-medium text-sm">
                     <div className="col-span-2">Account</div>
                     <div className="col-span-2">Project</div>
-                    <div className="col-span-4">Memo</div>
+                    <div className={isApprovedBill ? "col-span-5" : "col-span-4"}>Memo</div>
                     <div className="col-span-1">Quantity</div>
                     <div className="col-span-1">Cost</div>
                     <div className="col-span-1">Total</div>
@@ -995,7 +995,7 @@ export function EditBillDialog({ open, onOpenChange, billId }: EditBillDialogPro
                   </div>
 
                   {expenseRows.map((row) => (
-                    <div key={row.id} className={cn("grid gap-2 p-3 border-t", isApprovedBill ? "grid-cols-11" : "grid-cols-12")}>
+                    <div key={row.id} className="grid grid-cols-12 gap-2 p-3 border-t">
                       <div className="col-span-2">
                         <AccountSearchInput
                           value={row.accountId || ""}
@@ -1015,7 +1015,7 @@ export function EditBillDialog({ open, onOpenChange, billId }: EditBillDialogPro
                           disabled={isApprovedBill}
                         />
                       </div>
-                      <div className="col-span-4">
+                      <div className={isApprovedBill ? "col-span-5" : "col-span-4"}>
                         <Input 
                           placeholder="Expense memo"
                           value={row.memo}
