@@ -332,6 +332,10 @@ const formatCurrency = (value: number) => {
     setEditingDepositId(depositId);
   };
 
+  const handleEditCheck = (checkId: string) => {
+    setEditingCheckId(checkId);
+  };
+
   const handleEditDialogClose = () => {
     setEditingBillId(null);
     queryClient.invalidateQueries({ queryKey: ['job-cost-actual-details', projectId, costCode] });
@@ -340,6 +344,13 @@ const formatCurrency = (value: number) => {
   const handleEditDepositDialogClose = () => {
     setEditingDepositId(null);
     queryClient.invalidateQueries({ queryKey: ['job-cost-actual-details', projectId, costCode] });
+  };
+
+  const handleEditCheckDialogClose = (open: boolean) => {
+    if (!open) {
+      setEditingCheckId(null);
+      queryClient.invalidateQueries({ queryKey: ['job-cost-actual-details', projectId, costCode] });
+    }
   };
 
   return (
