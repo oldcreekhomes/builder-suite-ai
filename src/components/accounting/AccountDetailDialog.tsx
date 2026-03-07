@@ -1212,8 +1212,8 @@ export function AccountDetailDialog({
                             </Tooltip>
                           ) : canDeleteBills ? (
                             <TableRowActions actions={[
-                              ...(['bill', 'deposit'].includes(txn.source_type) ? [{
-                                label: txn.source_type === 'bill' ? 'Edit Bill' : 'Edit Deposit',
+                              ...(['bill', 'deposit', 'check'].includes(txn.source_type) ? [{
+                                label: txn.source_type === 'bill' ? 'Edit Bill' : txn.source_type === 'deposit' ? 'Edit Deposit' : 'Edit Check',
                                 onClick: () => handleEditTransaction(txn),
                               }] : []),
                               {
