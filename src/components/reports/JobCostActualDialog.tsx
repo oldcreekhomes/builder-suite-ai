@@ -252,6 +252,7 @@ export function JobCostActualDialog({
           const checkData = checksMap.get(sourceId);
           vendor_name = checkData?.pay_to;
           reconciled = checkData?.reconciled ?? line.reconciled;
+          check_id = sourceId;
         } else if (sourceType === 'deposit') {
           const depData = depositsMap.get(sourceId);
           vendor_name = depData?.company_name ?? undefined;
