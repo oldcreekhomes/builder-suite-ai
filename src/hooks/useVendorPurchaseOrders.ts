@@ -50,10 +50,11 @@ export interface VendorPurchaseOrder {
 export function useVendorPurchaseOrders(
   projectId: string | null | undefined,
   vendorId: string | null | undefined,
-  excludeBillId?: string
+  excludeBillId?: string,
+  excludeBillDate?: string
 ) {
   return useQuery({
-    queryKey: ['vendor-pos', projectId, vendorId, excludeBillId],
+    queryKey: ['vendor-pos', projectId, vendorId, excludeBillId, excludeBillDate],
     queryFn: async (): Promise<VendorPurchaseOrder[]> => {
       if (!projectId || !vendorId) return [];
 
