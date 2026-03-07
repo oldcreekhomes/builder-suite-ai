@@ -60,7 +60,7 @@ export function POStatusBadge({ status, onClick, className }: POStatusBadgeProps
           <Badge
             variant="outline"
             className={cn(
-              "cursor-pointer transition-colors gap-1 text-xs px-2 py-0.5",
+              "cursor-pointer transition-colors gap-1 text-xs px-2 py-0.5 whitespace-nowrap font-normal",
               config.bgClass,
               className
             )}
