@@ -334,15 +334,12 @@ export function EditCheckDialog({ open, onOpenChange, checkId }: EditCheckDialog
           ))}
 
           <div className="p-3 bg-muted border-t">
-            <div className={cn(
-              "grid gap-2",
-              showAddressColumn ? "grid-cols-20" : "grid-cols-16"
-            )}>
+            <div className="grid gap-2 grid-cols-20">
               <div className="col-span-9 font-medium whitespace-nowrap">{tabLabel}</div>
               <div className="col-span-3 font-medium">
                 {formatCurrency(tabTotal)}
               </div>
-              <div className={showAddressColumn ? "col-span-8" : "col-span-4"}></div>
+              <div className="col-span-8"></div>
             </div>
           </div>
         </div>
