@@ -205,18 +205,35 @@ export function useBillPOMatching(bills: BillForMatching[]) {
             if (candidatePos.length === 1) {
               resolvedPoId = candidatePos[0].id;
             } else if (candidatePos.length > 1) {
-              // Multiple POs for same cost code — pick by closest amount
+              // Multiple POs for same cost code — prefer PO where bill fits within remaining budget
               const lineAmount = line.amount || 0;
-              let bestPo = candidatePos[0];
-              let bestDiff = Math.abs((bestPo.total_amount || 0) - lineAmount);
-              for (let i = 1; i < candidatePos.length; i++) {
-                const diff = Math.abs((candidatePos[i].total_amount || 0) - lineAmount);
-                if (diff < bestDiff) {
-                  bestDiff = diff;
-                  bestPo = candidatePos[i];
+              const fittingPos = candidatePos.filter(p => {
+                const poAmount = p.total_amount || 0;
+                const alreadyBilled = billedLookup.get(p.id) || 0;
+                return (poAmount - alreadyBilled - lineAmount) >= 0;
+              });
+              
+              if (fittingPos.length === 1) {
+                resolvedPoId = fittingPos[0].id;
+              } else if (fittingPos.length > 1) {
+                // Multiple POs can accommodate — pick largest PO (most likely the parent contract)
+                let bestPo = fittingPos[0];
+                for (let i = 1; i < fittingPos.length; i++) {
+                  if ((fittingPos[i].total_amount || 0) > (bestPo.total_amount || 0)) {
+                    bestPo = fittingPos[i];
+                  }
                 }
+                resolvedPoId = bestPo.id;
+              } else {
+                // No PO can accommodate — pick largest PO as fallback
+                let bestPo = candidatePos[0];
+                for (let i = 1; i < candidatePos.length; i++) {
+                  if ((candidatePos[i].total_amount || 0) > (bestPo.total_amount || 0)) {
+                    bestPo = candidatePos[i];
+                  }
+                }
+                resolvedPoId = bestPo.id;
               }
-              resolvedPoId = bestPo.id;
             }
           }
           
