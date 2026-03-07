@@ -45,6 +45,7 @@ interface JournalEntryLine {
   reference_number?: string;
   bill_id?: string;
   deposit_id?: string;
+  check_id?: string;
   source_type?: string;
 }
 
