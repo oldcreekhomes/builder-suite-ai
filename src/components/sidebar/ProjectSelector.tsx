@@ -100,7 +100,22 @@ export function ProjectSelector() {
                         onSelect={() => handleSelectProject(project)}
                         className="cursor-pointer"
                       >
-                        <MapPin className="mr-2 h-4 w-4 text-gray-400" />
+                        {canEditProjects ? (
+                          <button
+                            type="button"
+                            className="mr-2 p-0.5 rounded hover:bg-muted shrink-0"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setOpen(false);
+                              setEditProject(project);
+                            }}
+                            title="Edit project"
+                          >
+                            <MoreVertical className="h-4 w-4 text-muted-foreground" />
+                          </button>
+                        ) : (
+                          <MapPin className="mr-2 h-4 w-4 text-muted-foreground" />
+                        )}
                         <span className="truncate">{project.address}</span>
                       </CommandItem>
                     ))}
@@ -111,6 +126,12 @@ export function ProjectSelector() {
           </Command>
         </PopoverContent>
       </Popover>
+
+      <EditProjectDialog
+        project={editProject}
+        open={!!editProject}
+        onOpenChange={(open) => { if (!open) setEditProject(null); }}
+      />
     </div>
   );
 }
