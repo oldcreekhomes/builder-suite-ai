@@ -107,8 +107,7 @@ export function AccountDetailDialog({
   const prevOpenRef = useRef(open);
   const { isDateLocked, latestClosedDate } = useClosedPeriodCheck(projectId);
 
-  // Helper to parse date-only strings as local midnight (avoids timezone shift)
-  const toLocalDate = (dateStr: string) => new Date(`${dateStr}T00:00:00`);
+  const toLocalDate = (dateStr: string) => new Date(`${dateStr}T00:00:00`); // kept for potential future use
 
   const { data: transactions, isLoading } = useQuery<Transaction[]>({
     queryKey: ['account-transactions', accountId, projectId, sortOrder, asOfDate?.toISOString()],
