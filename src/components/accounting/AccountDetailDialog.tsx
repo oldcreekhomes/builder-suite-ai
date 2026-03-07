@@ -943,6 +943,7 @@ export function AccountDetailDialog({
     queryClient.invalidateQueries({ queryKey: ['balance-sheet'] });
     queryClient.invalidateQueries({ queryKey: ['income-statement'] });
   };
+  const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat('en-US', {
       style: 'currency',
       currency: 'USD',
