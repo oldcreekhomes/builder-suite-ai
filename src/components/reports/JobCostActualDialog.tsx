@@ -265,6 +265,7 @@ export function JobCostActualDialog({
           source_type: sourceType || 'unknown',
           bill_id,
           deposit_id,
+          check_id,
           vendor_name,
           reference_number,
           reconciled,
