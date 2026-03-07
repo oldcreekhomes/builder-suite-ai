@@ -107,6 +107,8 @@ interface BillsApprovalTableProps {
 }
 
 export function BillsApprovalTable({ status, projectId, projectIds, showProjectColumn = true, defaultSortBy, sortOrder, enableSorting = false, showPayBillButton = false, searchQuery, showEditButton = false }: BillsApprovalTableProps) {
+  const { lots } = useLots(projectId);
+  const showAddressColumn = lots.length > 1;
   const { approveBill, rejectBill, deleteBill, payBill } = useBills();
   const { isOwner } = useUserRole();
   const { canDeleteBills } = useAccountingPermissions();

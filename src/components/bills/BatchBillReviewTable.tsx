@@ -137,6 +137,8 @@ export function BatchBillReviewTable({
   showProjectColumn = true,
   projectId,
 }: BatchBillReviewTableProps) {
+  const { lots } = useLots(projectId);
+  const showAddressColumn = lots.length > 1;
   const [editingBillId, setEditingBillId] = useState<string | null>(null);
   const [addingVendorForBillId, setAddingVendorForBillId] = useState<string | null>(null);
   const [addingVendorName, setAddingVendorName] = useState<string>("");

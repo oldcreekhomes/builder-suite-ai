@@ -94,6 +94,8 @@ interface PayBillsTableProps {
 }
 
 export function PayBillsTable({ projectId, projectIds, showProjectColumn = true, searchQuery, dueDateFilter = "all", filterDate, showEditButton = false }: PayBillsTableProps) {
+  const { lots } = useLots(projectId);
+  const showAddressColumn = lots.length > 1;
   const { payBill, payMultipleBills, deleteBill } = useBills();
   const queryClient = useQueryClient();
   const [selectedBill, setSelectedBill] = useState<BillForPayment | null>(null);
