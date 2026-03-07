@@ -229,7 +229,19 @@ export function useBillPOMatching(bills: BillForMatching[]) {
             const ccData = costCodeLookup.get(matchedPo.cost_code_id || '');
             const totalBilled = billedLookup.get(matchedPo.id) || 0;
             const poAmount = matchedPo.total_amount || 0;
-            const remaining = poAmount - totalBilled;
+
+            // Include current bill's lines allocated to this PO
+            const thisBillAmount = allLines
+              .filter(l => {
+                let lpId = l.purchase_order_id;
+                if (lpId === '__none__' || lpId === '__auto__') lpId = undefined;
+                if (lpId === matchedPo.id) return true;
+                if (!lpId && l.cost_code_id === matchedPo.cost_code_id) return true;
+                return false;
+              })
+              .reduce((s, l) => s + (l.amount || 0), 0);
+
+            const remaining = poAmount - totalBilled - thisBillAmount;
             const status: 'matched' | 'over_po' = remaining >= 0 ? 'matched' : 'over_po';
             
             matches.push({
