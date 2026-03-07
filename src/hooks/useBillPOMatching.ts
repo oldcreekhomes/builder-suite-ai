@@ -61,8 +61,6 @@ export function useBillPOMatching(bills: BillForMatching[]) {
         ) || [])
       )] as string[];
 
-      // No fallback inference -- only explicit purchase_order_id links drive status
-
       // Fetch explicitly linked POs
       let pos: Array<{ id: string; po_number: string | null; total_amount: number | null; project_id: string | null; company_id: string | null; cost_code_id: string | null }> = [];
       if (explicitPoIds.length) {
@@ -72,6 +70,54 @@ export function useBillPOMatching(bills: BillForMatching[]) {
           .in('id', explicitPoIds);
         if (error) throw error;
         pos = data || [];
+      }
+
+      // Fallback: for bill lines without explicit PO, find POs by vendor + project + cost_code
+      const unmatchedLines: Array<{ vendorId: string; projectId: string; costCodeId: string }> = [];
+      bills.forEach(bill => {
+        (bill.bill_lines || []).forEach(line => {
+          const poId = line.purchase_order_id;
+          if (!poId || poId === '__none__' || poId === '__auto__') {
+            if (bill.vendor_id && bill.project_id && line.cost_code_id) {
+              unmatchedLines.push({
+                vendorId: bill.vendor_id,
+                projectId: bill.project_id,
+                costCodeId: line.cost_code_id,
+              });
+            }
+          }
+        });
+      });
+
+      // Fetch POs for unmatched lines by vendor + project
+      if (unmatchedLines.length > 0) {
+        const vendorProjectPairs = [...new Set(
+          unmatchedLines.map(l => `${l.vendorId}|${l.projectId}`)
+        )];
+        
+        for (const pair of vendorProjectPairs) {
+          const [vendorId, projectId] = pair.split('|');
+          const costCodeIds = [...new Set(
+            unmatchedLines
+              .filter(l => l.vendorId === vendorId && l.projectId === projectId)
+              .map(l => l.costCodeId)
+          )];
+          
+          const { data: fallbackPos, error } = await supabase
+            .from('project_purchase_orders')
+            .select(`id, po_number, total_amount, project_id, company_id, cost_code_id`)
+            .eq('company_id', vendorId)
+            .eq('project_id', projectId)
+            .in('cost_code_id', costCodeIds);
+          
+          if (!error && fallbackPos) {
+            fallbackPos.forEach(po => {
+              if (!pos.find(p => p.id === po.id)) {
+                pos.push(po);
+              }
+            });
+          }
+        }
       }
 
       // Collect cost code IDs from all POs (for display labels)
