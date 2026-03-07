@@ -377,10 +377,13 @@ export function BillsApprovalTable({ status, projectId, projectIds, showProjectC
             }
           }
 
-          totalCashForBill += payment.total_amount;
         }
 
-        result.set(billId, { cashPaid: totalCashForBill, credits });
+        // Derive cash paid from the bill's own total minus credits applied
+        const totalCredits = credits.reduce((sum, c) => sum + c.amount, 0);
+        const bill = bills.find(b => b.id === billId);
+        const billTotal = bill ? bill.total_amount : 0;
+        result.set(billId, { cashPaid: billTotal - totalCredits, credits });
       }
 
       return result;
