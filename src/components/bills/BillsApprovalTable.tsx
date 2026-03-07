@@ -356,7 +356,6 @@ export function BillsApprovalTable({ status, projectId, projectIds, showProjectC
       for (const billId of paidBillIds) {
         const billAllocations = allocations.filter(a => a.bill_id === billId);
         const credits: { ref: string; amount: number }[] = [];
-        let totalCashForBill = 0;
 
         for (const alloc of billAllocations) {
           const payment = paymentsMap.get(alloc.bill_payment_id);
