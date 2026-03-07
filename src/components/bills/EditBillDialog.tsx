@@ -835,7 +835,7 @@ export function EditBillDialog({ open, onOpenChange, billId }: EditBillDialogPro
                   </div>
 
                   {jobCostRows.map((row) => (
-                    <div key={row.id} className={cn("grid gap-2 p-3 border-t w-full", showAddressColumn ? "grid-cols-24" : "grid-cols-20")}>
+                    <div key={row.id} className={cn("grid gap-2 p-3 border-t w-full", showAddressColumn ? (isApprovedBill ? "grid-cols-23" : "grid-cols-24") : (isApprovedBill ? "grid-cols-19" : "grid-cols-20"))}>
                       <div className="col-span-5">
                         <CostCodeSearchInput
                           value={row.account}
