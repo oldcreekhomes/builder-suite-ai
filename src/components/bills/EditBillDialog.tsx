@@ -984,14 +984,14 @@ export function EditBillDialog({ open, onOpenChange, billId }: EditBillDialogPro
                 )}
 
                 <div className="border rounded-lg overflow-hidden">
-                  <div className="grid grid-cols-12 gap-2 p-3 bg-muted font-medium text-sm">
+                  <div className={cn("grid gap-2 p-3 bg-muted font-medium text-sm", isApprovedBill ? "grid-cols-11" : "grid-cols-12")}>
                     <div className="col-span-2">Account</div>
                     <div className="col-span-2">Project</div>
                     <div className="col-span-4">Memo</div>
                     <div className="col-span-1">Quantity</div>
                     <div className="col-span-1">Cost</div>
                     <div className="col-span-1">Total</div>
-                    <div className="col-span-1 text-center">Action</div>
+                    {!isApprovedBill && <div className="col-span-1 text-center">Action</div>}
                   </div>
 
                   {expenseRows.map((row) => (
