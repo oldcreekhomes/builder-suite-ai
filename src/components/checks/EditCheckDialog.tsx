@@ -255,10 +255,7 @@ export function EditCheckDialog({ open, onOpenChange, checkId }: EditCheckDialog
           </div>
 
           {rows.map(row => (
-            <div key={row.id} className={cn(
-              "grid gap-2 p-3 border-t",
-              showAddressColumn ? "grid-cols-20" : "grid-cols-16"
-            )}>
+            <div key={row.id} className="grid gap-2 p-3 border-t grid-cols-20">
               <div className="col-span-5">
                 {type === 'job_cost' ? (
                   <CostCodeSearchInput
