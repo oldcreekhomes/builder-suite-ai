@@ -1,36 +1,58 @@
 
-## Share "As of Date" Across All Report Tabs
+
+## Fix: Correct PO Assignment and Add "Draw" Status for Partial Billings
 
 ### Problem
-Each report tab (Balance Sheet, Income Statement, Job Costs, Accounts Payable) maintains its own independent `asOfDate` state initialized to `new Date()`. When you change the date on one tab and switch to another, it resets to today.
+1. **Wrong PO match**: Bills $12,640.64 (ref 379869-070) and $7,373.71 (ref 381241-070) are matching to PO 2026-923T-0052 ($330) instead of PO 2025-923T-0008 ($21,067.73). Both POs share the same vendor, project, and cost code. The fallback disambiguation picks the PO with the closest amount to the bill line (~$6,320), which is $330 — the wrong one.
 
-### Solution
-Lift the `asOfDate` state up to `ReportsTabs` and pass it down to all four child components as a prop. When the Reports page unmounts (user navigates away), the state naturally resets since it lives in a component that gets destroyed.
+2. **No "partial draw" indicator**: When a vendor bills in segments (60% draw, 35% draw), the system just shows "Matched." There's no way for the user to see at a glance that a bill is a partial draw against a larger PO.
 
-### Changes
+### Root Cause
+The amount-proximity disambiguation in `useBillPOMatching.ts` compares individual **line amounts** ($6,320.32) to **PO totals**, so the $330 PO wins over the $21,067.73 PO. This heuristic fails for partial draws where the bill line is intentionally much smaller than the PO.
 
-**1. `src/components/reports/ReportsTabs.tsx`**
-- Add `asOfDate` / `setAsOfDate` state (initialized to today)
-- Pass `asOfDate` and `onAsOfDateChange` props to all four content components
+### Fix Part 1 — Database: Explicitly Link Bill Lines to Correct PO
 
-**2. `src/components/reports/BalanceSheetContent.tsx`**
-- Add `asOfDate` and `onAsOfDateChange` to the props interface
-- Remove the local `useState<Date>(new Date())` for `asOfDate`
-- Replace all `setAsOfDate(date)` calls with `onAsOfDateChange(date)`
+SQL migration to set `purchase_order_id` on the 4 bill lines for both bills, pointing them to PO 2025-923T-0008. This prevents future fallback matching issues for these bills.
 
-**3. `src/components/reports/IncomeStatementContent.tsx`**
-- Same pattern: accept `asOfDate` and `onAsOfDateChange` as props, remove local state
+```sql
+UPDATE bill_lines 
+SET purchase_order_id = '04e9078c-d39d-4789-a8dd-b51e81fa8cd9'
+WHERE id IN (
+  '9fe3a073-7c87-4284-a2a5-8fd7b102293c',
+  'ec294daf-9a53-4db9-9268-19acab82b5b8',
+  '96b28e02-ace5-4da8-b485-8a4a02ed575c',
+  '70455a3a-b4f0-430b-b73e-47de314944c9'
+);
+```
 
-**4. `src/components/reports/JobCostsContent.tsx`**
-- Same pattern: accept `asOfDate` and `onAsOfDateChange` as props, remove local state
+### Fix Part 2 — Improve Disambiguation Logic
 
-**5. `src/components/reports/AccountsPayableContent.tsx`**
-- Same pattern: accept `asOfDate` and `onAsOfDateChange` as props, remove local state
+In `useBillPOMatching.ts`, when multiple POs match the same vendor+project+cost_code, change the tiebreaker from "closest line amount" to prefer the PO where the bill fits within the remaining budget. This prevents a tiny PO from stealing matches from a large PO that the bill is actually a draw against.
 
-### Technical Detail
-Each file's change is minimal:
-- Add two props to the interface (`asOfDate: Date`, `onAsOfDateChange: (date: Date) => void`)
-- Delete the `const [asOfDate, setAsOfDate] = useState<Date>(new Date())` line
-- Replace `setAsOfDate` with `onAsOfDateChange` in calendar `onSelect` handlers
+**`src/hooks/useBillPOMatching.ts` (lines 207-220)**:
+- For each candidate PO, check if the bill line amount fits within (PO amount - already billed). Prefer POs where it fits.
+- Only fall back to amount proximity if multiple POs can accommodate the amount.
 
-No query logic, formatting, or PDF export code needs to change since they all already reference the `asOfDate` variable by name.
+### Fix Part 3 — Add "Draw" Status Badge
+
+Add a new `'draw'` status to indicate a bill is a partial draw on a PO (bill amount < PO amount, within budget).
+
+**`src/hooks/useBillPOMatching.ts`**:
+- In the `POMatch` interface, add `'draw'` to the status union type.
+- When computing status per match: if `remaining >= 0` and `thisBillAmount < poAmount`, set status to `'draw'` instead of `'matched'`.
+- Update the `BillPOMatchResult` overall_status logic to treat `'draw'` as a healthy state.
+
+**`src/components/bills/POStatusBadge.tsx`**:
+- Add a `'draw'` case: green badge with a different icon (e.g., `ArrowDownRight` or keep `Check`), label "Draw", tooltip "Partial draw — bill is a portion of the PO total."
+
+**`src/components/bills/PODetailsDialog.tsx`**:
+- The existing "Matched" badge logic already handles this correctly since it's based on remaining >= 0.
+
+### Summary of Files Changed
+| File | Change |
+|---|---|
+| `supabase/migrations/...` | Set `purchase_order_id` on 4 bill lines |
+| `src/hooks/useBillPOMatching.ts` | Add `'draw'` status, fix disambiguation to prefer budget-fit over amount proximity |
+| `src/components/bills/POStatusBadge.tsx` | Add `'draw'` badge variant |
+| `src/hooks/usePendingBillPOStatus.ts` | Add `'draw'` to POStatus type if referenced |
+
