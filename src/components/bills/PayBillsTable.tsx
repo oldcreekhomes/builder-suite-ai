@@ -825,10 +825,13 @@ export function PayBillsTable({ projectId, projectIds, showProjectColumn = true,
             </div>
           </div>
           <div className="flex items-center gap-2">
+            {hasOnlyCredits && (
+              <span className="text-sm text-muted-foreground italic">Credits can only be applied alongside bills</span>
+            )}
             <Button
               size="sm"
               onClick={handlePaySelectedBills}
-              disabled={payBill.isPending || payMultipleBills.isPending}
+              disabled={payBill.isPending || payMultipleBills.isPending || hasOnlyCredits}
             >
               Pay Selected Bills
             </Button>
