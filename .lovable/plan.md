@@ -1,36 +1,48 @@
 
-## Share "As of Date" Across All Report Tabs
+
+## Block Credit-Only Payment & Fix Single-Credit Dialog
 
 ### Problem
-Each report tab (Balance Sheet, Income Statement, Job Costs, Accounts Payable) maintains its own independent `asOfDate` state initialized to `new Date()`. When you change the date on one tab and switch to another, it resets to today.
-
-### Solution
-Lift the `asOfDate` state up to `ReportsTabs` and pass it down to all four child components as a prop. When the Reports page unmounts (user navigates away), the state naturally resets since it lives in a component that gets destroyed.
+1. Users can select only credit notes and click "Pay Selected Bills," which makes no sense — credits should only be applied alongside positive bills.
+2. When a single credit is selected, the dialog shows nonsensical values because `remainingBalance` on line 71-72 of `PayBillDialog.tsx` still uses `total_amount - amount_paid` instead of the open-balance formula.
 
 ### Changes
 
-**1. `src/components/reports/ReportsTabs.tsx`**
-- Add `asOfDate` / `setAsOfDate` state (initialized to today)
-- Pass `asOfDate` and `onAsOfDateChange` props to all four content components
+**`src/components/bills/PayBillsTable.tsx`**
 
-**2. `src/components/reports/BalanceSheetContent.tsx`**
-- Add `asOfDate` and `onAsOfDateChange` to the props interface
-- Remove the local `useState<Date>(new Date())` for `asOfDate`
-- Replace all `setAsOfDate(date)` calls with `onAsOfDateChange(date)`
+1. **Compute whether selection is credit-only** (near line 661, after `selectedTotal`):
+```typescript
+const hasOnlyCredits = selectedBills.length > 0 && selectedBills.every(bill => {
+  const ob = bill.total_amount < 0
+    ? bill.total_amount + (bill.amount_paid || 0)
+    : bill.total_amount - (bill.amount_paid || 0);
+  return ob < 0;
+});
+```
 
-**3. `src/components/reports/IncomeStatementContent.tsx`**
-- Same pattern: accept `asOfDate` and `onAsOfDateChange` as props, remove local state
+2. **Disable "Pay Selected Bills" button** (line 824) when `hasOnlyCredits` is true, and add a helper message:
+```typescript
+disabled={payBill.isPending || payMultipleBills.isPending || hasOnlyCredits}
+```
 
-**4. `src/components/reports/JobCostsContent.tsx`**
-- Same pattern: accept `asOfDate` and `onAsOfDateChange` as props, remove local state
+3. **Show info message** in the toolbar when `hasOnlyCredits`:
+```
+"Credits can only be applied alongside bills"
+```
 
-**5. `src/components/reports/AccountsPayableContent.tsx`**
-- Same pattern: accept `asOfDate` and `onAsOfDateChange` as props, remove local state
+**`src/components/PayBillDialog.tsx`**
 
-### Technical Detail
-Each file's change is minimal:
-- Add two props to the interface (`asOfDate: Date`, `onAsOfDateChange: (date: Date) => void`)
-- Delete the `const [asOfDate, setAsOfDate] = useState<Date>(new Date())` line
-- Replace `setAsOfDate` with `onAsOfDateChange` in calendar `onSelect` handlers
+4. **Fix single-bill `remainingBalance`** (line 71-72) to use the open-balance formula:
+```typescript
+const remainingBalance = singleBill
+  ? Math.round(
+      (singleBill.total_amount < 0
+        ? singleBill.total_amount + (singleBill.amount_paid || 0)
+        : singleBill.total_amount - (singleBill.amount_paid || 0)
+      ) * 100
+    ) / 100
+  : 0;
+```
 
-No query logic, formatting, or PDF export code needs to change since they all already reference the `asOfDate` variable by name.
+This also fixes the "Original Amount" / "Previously Paid" / "Remaining" display for single credits (lines ~248-260) — those use `billsArray[0].total_amount` and `remainingBalance` which will now be correct.
+
