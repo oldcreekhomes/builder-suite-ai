@@ -259,7 +259,8 @@ export function useBillPOMatching(bills: BillForMatching[]) {
               .reduce((s, l) => s + (l.amount || 0), 0);
 
             const remaining = poAmount - totalBilled - thisBillAmount;
-            const status: 'matched' | 'over_po' = remaining >= 0 ? 'matched' : 'over_po';
+            const isDraw = remaining >= 0 && thisBillAmount < poAmount && poAmount > 0;
+            const status: 'matched' | 'over_po' | 'draw' = remaining < 0 ? 'over_po' : isDraw ? 'draw' : 'matched';
             
             matches.push({
               po_id: matchedPo.id,
