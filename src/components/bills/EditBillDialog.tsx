@@ -1015,7 +1015,7 @@ export function EditBillDialog({ open, onOpenChange, billId }: EditBillDialogPro
                           disabled={isApprovedBill}
                         />
                       </div>
-                      <div className="col-span-4">
+                      <div className={isApprovedBill ? "col-span-5" : "col-span-4"}>
                         <Input 
                           placeholder="Expense memo"
                           value={row.memo}
