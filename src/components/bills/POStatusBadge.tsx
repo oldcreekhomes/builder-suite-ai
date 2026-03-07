@@ -3,7 +3,7 @@ import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 
-export type POStatus = 'matched' | 'over_po' | 'no_po' | 'partial';
+export type POStatus = 'matched' | 'over_po' | 'no_po' | 'partial' | 'draw';
 
 interface POStatusBadgeProps {
   status: POStatus;
