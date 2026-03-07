@@ -683,7 +683,7 @@ export function BillsApprovalTable({ status, projectId, projectIds, showProjectC
   // + Delete(1) if shown
   // + PO Status(1) - always shown on all tabs
   const showPOStatusColumn = true;
-  const baseColCount = 11 + (showAddressColumn ? 1 : 0) + (showProjectColumn ? 1 : 0) + (showPayBillButton ? 1 : 0) + (canShowDeleteButton ? 1 : 0) + (showPOStatusColumn ? 1 : 0);
+  const baseColCount = 11 + (showAddressColumn ? 1 : 0) + (showProjectColumn ? 1 : 0) + (showPayBillButton ? 1 : 0) + (canShowDeleteButton ? 1 : 0) + (showPOStatusColumn ? 1 : 0) + (isPaidStatus ? 1 : 0);
 
   return (
     <>
