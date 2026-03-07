@@ -1266,6 +1266,20 @@ export function AccountDetailDialog({
       onOpenChange={handleEditDepositDialogClose}
       depositId={editingDepositId || ''}
     />
+
+    {/* Edit Check Dialog */}
+    <EditCheckDialog
+      open={!!editingCheckId}
+      onOpenChange={(open) => {
+        if (!open) {
+          setEditingCheckId(null);
+          queryClient.invalidateQueries({ queryKey: ['account-transactions'] });
+          queryClient.invalidateQueries({ queryKey: ['balance-sheet'] });
+          queryClient.invalidateQueries({ queryKey: ['income-statement'] });
+        }
+      }}
+      checkId={editingCheckId || ''}
+    />
     </>
   );
 }
