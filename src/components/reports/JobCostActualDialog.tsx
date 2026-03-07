@@ -408,39 +408,38 @@ const formatCurrency = (value: number) => {
                         </TableCell>
                         <TableCell>
                         <div className="flex items-center justify-center">
-                            {!line.reconciled && !isDateLocked(line.journal_entries.entry_date) && (line.bill_id || line.deposit_id) && (
+                            {line.reconciled || isDateLocked(line.journal_entries.entry_date) ? (
+                              <Tooltip>
+                                <TooltipTrigger asChild>
+                                  <div>
+                                    <TableRowActions actions={[]} disabled />
+                                  </div>
+                                </TooltipTrigger>
+                                <TooltipContent side="left" align="center">
+                                  {line.reconciled && isDateLocked(line.journal_entries.entry_date) ? (
+                                    <>
+                                      <p className="font-medium">Reconciled and Books Closed</p>
+                                      <p className="text-xs text-muted-foreground">Cannot be edited or deleted</p>
+                                    </>
+                                  ) : line.reconciled ? (
+                                    <>
+                                      <p className="font-medium">Reconciled</p>
+                                      <p className="text-xs text-muted-foreground">Cannot be edited or deleted</p>
+                                    </>
+                                  ) : (
+                                    <>
+                                      <p className="font-medium">Books Closed</p>
+                                      <p className="text-xs text-muted-foreground">Cannot be edited or deleted</p>
+                                    </>
+                                  )}
+                                </TooltipContent>
+                              </Tooltip>
+                            ) : (line.bill_id || line.deposit_id) ? (
                               <TableRowActions actions={[
                                 ...(line.bill_id ? [{ label: "Edit Bill", onClick: () => handleEditBill(line.bill_id!) }] : []),
                                 ...(line.deposit_id ? [{ label: "Edit Deposit", onClick: () => handleEditDeposit(line.deposit_id!) }] : []),
                               ]} />
-                            )}
-                            {(line.reconciled || isDateLocked(line.journal_entries.entry_date)) && (
-                              <TooltipProvider>
-                                <Tooltip>
-                                  <TooltipTrigger asChild>
-                                    <span className="text-base">🔒</span>
-                                  </TooltipTrigger>
-                                  <TooltipContent side="left" align="center">
-                                    {line.reconciled && isDateLocked(line.journal_entries.entry_date) ? (
-                                      <>
-                                        <p className="font-medium">Reconciled and Books Closed</p>
-                                        <p className="text-xs text-muted-foreground">Cannot be edited or deleted</p>
-                                      </>
-                                    ) : line.reconciled ? (
-                                      <>
-                                        <p className="font-medium">Reconciled</p>
-                                        <p className="text-xs text-muted-foreground">Cannot be edited or deleted</p>
-                                      </>
-                                    ) : (
-                                      <>
-                                        <p className="font-medium">Books Closed</p>
-                                        <p className="text-xs text-muted-foreground">Cannot be edited or deleted</p>
-                                      </>
-                                    )}
-                                  </TooltipContent>
-                                </Tooltip>
-                              </TooltipProvider>
-                            )}
+                            ) : null}
                           </div>
                         </TableCell>
                       </TableRow>
