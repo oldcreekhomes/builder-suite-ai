@@ -811,7 +811,7 @@ export function BillsApprovalTable({ status, projectId, projectIds, showProjectC
                         today.setHours(0, 0, 0, 0);
                         const dueDate = new Date(bill.due_date);
                         dueDate.setHours(0, 0, 0, 0);
-                        const isOverdue = dueDate < today;
+                        const isOverdue = dueDate < today && status !== 'paid';
                         
                         return (
                           <span className={isOverdue ? 'text-red-600 font-semibold' : ''}>
