@@ -1,38 +1,36 @@
 
-
-## Fix: Prioritize Exact Amount PO Match Over Largest PO
+## Share "As of Date" Across All Report Tabs
 
 ### Problem
-The $239.80 bill (cost code 4330: Lumber & Framing) has an exact-match PO for $239.80, but the disambiguation logic picks the **largest** PO ($27,647.92) when multiple POs fit within budget. This causes it to display as "Draw" instead of "Matched."
+Each report tab (Balance Sheet, Income Statement, Job Costs, Accounts Payable) maintains its own independent `asOfDate` state initialized to `new Date()`. When you change the date on one tab and switch to another, it resets to today.
 
-### Root Cause
-Lines 218-226 of `useBillPOMatching.ts`: when multiple POs can accommodate the bill amount, the code always picks the largest PO. It never checks if one PO's total amount exactly equals the bill line amount.
+### Solution
+Lift the `asOfDate` state up to `ReportsTabs` and pass it down to all four child components as a prop. When the Reports page unmounts (user navigates away), the state naturally resets since it lives in a component that gets destroyed.
 
-### Fix
-**`src/hooks/useBillPOMatching.ts` — lines 218-226**
+### Changes
 
-Before falling back to "pick largest PO," check if any fitting PO has `total_amount` exactly equal to the bill line amount. If so, use that PO.
+**1. `src/components/reports/ReportsTabs.tsx`**
+- Add `asOfDate` / `setAsOfDate` state (initialized to today)
+- Pass `asOfDate` and `onAsOfDateChange` props to all four content components
 
-```typescript
-if (fittingPos.length > 1) {
-  // First: prefer PO whose total matches the bill line exactly
-  const exactMatch = fittingPos.find(p => (p.total_amount || 0) === lineAmount);
-  if (exactMatch) {
-    resolvedPoId = exactMatch.id;
-  } else {
-    // Fallback: pick largest PO
-    let bestPo = fittingPos[0];
-    for (let i = 1; i < fittingPos.length; i++) {
-      if ((fittingPos[i].total_amount || 0) > (bestPo.total_amount || 0)) {
-        bestPo = fittingPos[i];
-      }
-    }
-    resolvedPoId = bestPo.id;
-  }
-}
-```
+**2. `src/components/reports/BalanceSheetContent.tsx`**
+- Add `asOfDate` and `onAsOfDateChange` to the props interface
+- Remove the local `useState<Date>(new Date())` for `asOfDate`
+- Replace all `setAsOfDate(date)` calls with `onAsOfDateChange(date)`
 
-Also apply the same exact-match-first check in the "no PO can accommodate" fallback (lines 228-235) so even if the exact PO is fully billed, it still gets preferred over a random large PO.
+**3. `src/components/reports/IncomeStatementContent.tsx`**
+- Same pattern: accept `asOfDate` and `onAsOfDateChange` as props, remove local state
 
-One file, one logic change. The $239.80 bill will match to the $239.80 PO and show "Matched" instead of "Draw."
+**4. `src/components/reports/JobCostsContent.tsx`**
+- Same pattern: accept `asOfDate` and `onAsOfDateChange` as props, remove local state
 
+**5. `src/components/reports/AccountsPayableContent.tsx`**
+- Same pattern: accept `asOfDate` and `onAsOfDateChange` as props, remove local state
+
+### Technical Detail
+Each file's change is minimal:
+- Add two props to the interface (`asOfDate: Date`, `onAsOfDateChange: (date: Date) => void`)
+- Delete the `const [asOfDate, setAsOfDate] = useState<Date>(new Date())` line
+- Replace `setAsOfDate` with `onAsOfDateChange` in calendar `onSelect` handlers
+
+No query logic, formatting, or PDF export code needs to change since they all already reference the `asOfDate` variable by name.

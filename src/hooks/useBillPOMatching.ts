@@ -216,23 +216,35 @@ export function useBillPOMatching(bills: BillForMatching[]) {
               if (fittingPos.length === 1) {
                 resolvedPoId = fittingPos[0].id;
               } else if (fittingPos.length > 1) {
-                // Multiple POs can accommodate — pick largest PO (most likely the parent contract)
-                let bestPo = fittingPos[0];
-                for (let i = 1; i < fittingPos.length; i++) {
-                  if ((fittingPos[i].total_amount || 0) > (bestPo.total_amount || 0)) {
-                    bestPo = fittingPos[i];
+                // First: prefer PO whose total matches the bill line exactly
+                const exactMatch = fittingPos.find(p => (p.total_amount || 0) === lineAmount);
+                if (exactMatch) {
+                  resolvedPoId = exactMatch.id;
+                } else {
+                  // Fallback: pick largest PO (most likely the parent contract)
+                  let bestPo = fittingPos[0];
+                  for (let i = 1; i < fittingPos.length; i++) {
+                    if ((fittingPos[i].total_amount || 0) > (bestPo.total_amount || 0)) {
+                      bestPo = fittingPos[i];
+                    }
                   }
+                  resolvedPoId = bestPo.id;
                 }
-                resolvedPoId = bestPo.id;
               } else {
-                // No PO can accommodate — pick largest PO as fallback
-                let bestPo = candidatePos[0];
-                for (let i = 1; i < candidatePos.length; i++) {
-                  if ((candidatePos[i].total_amount || 0) > (bestPo.total_amount || 0)) {
-                    bestPo = candidatePos[i];
+                // No PO can accommodate — prefer exact amount match first
+                const exactMatch = candidatePos.find(p => (p.total_amount || 0) === lineAmount);
+                if (exactMatch) {
+                  resolvedPoId = exactMatch.id;
+                } else {
+                  // Fallback: pick largest PO
+                  let bestPo = candidatePos[0];
+                  for (let i = 1; i < candidatePos.length; i++) {
+                    if ((candidatePos[i].total_amount || 0) > (bestPo.total_amount || 0)) {
+                      bestPo = candidatePos[i];
+                    }
                   }
+                  resolvedPoId = bestPo.id;
                 }
-                resolvedPoId = bestPo.id;
               }
             }
           }
