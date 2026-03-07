@@ -932,7 +932,7 @@ export function PayBillsTable({ projectId, projectIds, showProjectColumn = true,
           <TableBody>
             {filteredBills.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={12 + (showProjectColumn ? 1 : 0)} className="text-center py-8 text-muted-foreground">
+                <TableCell colSpan={11 + (showProjectColumn ? 1 : 0) + (showAddressColumn ? 1 : 0)} className="text-center py-8 text-muted-foreground">
                   No approved bills found for payment.
                 </TableCell>
               </TableRow>
