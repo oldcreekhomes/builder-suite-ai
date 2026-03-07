@@ -1,36 +1,25 @@
 
-## Share "As of Date" Across All Report Tabs
+
+## Fix: Update PO 2025-923T-0006 Amount to $12,860.02
 
 ### Problem
-Each report tab (Balance Sheet, Income Statement, Job Costs, Accounts Payable) maintains its own independent `asOfDate` state initialized to `new Date()`. When you change the date on one tab and switch to another, it resets to today.
+PO 2025-923T-0006 has a total_amount of $12,860.01 but the bill is $12,860.02, causing a 1-cent "Over Budget" discrepancy. The PO should be $12,860.02 to match the bill.
 
-### Solution
-Lift the `asOfDate` state up to `ReportsTabs` and pass it down to all four child components as a prop. When the Reports page unmounts (user navigates away), the state naturally resets since it lives in a component that gets destroyed.
+### Changes — Database Migration
 
-### Changes
+A single SQL migration to update both the PO header and its line item:
 
-**1. `src/components/reports/ReportsTabs.tsx`**
-- Add `asOfDate` / `setAsOfDate` state (initialized to today)
-- Pass `asOfDate` and `onAsOfDateChange` props to all four content components
+```sql
+-- Update PO total amount
+UPDATE project_purchase_orders 
+SET total_amount = 12860.02 
+WHERE id = '0cc3139e-8901-4ba9-a753-10608b1f980b';
 
-**2. `src/components/reports/BalanceSheetContent.tsx`**
-- Add `asOfDate` and `onAsOfDateChange` to the props interface
-- Remove the local `useState<Date>(new Date())` for `asOfDate`
-- Replace all `setAsOfDate(date)` calls with `onAsOfDateChange(date)`
+-- Update PO line item amount and unit cost
+UPDATE purchase_order_lines 
+SET amount = 12860.02, unit_cost = 12860.02 
+WHERE id = '2dc65515-3080-43c8-9f6c-43cce1856540';
+```
 
-**3. `src/components/reports/IncomeStatementContent.tsx`**
-- Same pattern: accept `asOfDate` and `onAsOfDateChange` as props, remove local state
+This will make the PO amount match the bill exactly ($12,860.02), resolving the 1-cent over-budget status. Both the table badge and dialog should then show "Matched."
 
-**4. `src/components/reports/JobCostsContent.tsx`**
-- Same pattern: accept `asOfDate` and `onAsOfDateChange` as props, remove local state
-
-**5. `src/components/reports/AccountsPayableContent.tsx`**
-- Same pattern: accept `asOfDate` and `onAsOfDateChange` as props, remove local state
-
-### Technical Detail
-Each file's change is minimal:
-- Add two props to the interface (`asOfDate: Date`, `onAsOfDateChange: (date: Date) => void`)
-- Delete the `const [asOfDate, setAsOfDate] = useState<Date>(new Date())` line
-- Replace `setAsOfDate` with `onAsOfDateChange` in calendar `onSelect` handlers
-
-No query logic, formatting, or PDF export code needs to change since they all already reference the `asOfDate` variable by name.
