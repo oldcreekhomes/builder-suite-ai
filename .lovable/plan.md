@@ -1,19 +1,36 @@
 
+## Share "As of Date" Across All Report Tabs
 
-## Revert "Paid" Column, Add Tooltip on Amount Instead
+### Problem
+Each report tab (Balance Sheet, Income Statement, Job Costs, Accounts Payable) maintains its own independent `asOfDate` state initialized to `new Date()`. When you change the date on one tab and switch to another, it resets to today.
 
-### What changed
-The separate "Paid" column is confusing. Instead, the existing **Amount** column on the Paid tab should show the **net cash paid** (e.g., $50.00) with an info tooltip when credits were involved, explaining the breakdown (Bill: $200, Credit: -$150, Cash Paid: $50).
+### Solution
+Lift the `asOfDate` state up to `ReportsTabs` and pass it down to all four child components as a prop. When the Reports page unmounts (user navigates away), the state naturally resets since it lives in a component that gets destroyed.
 
-### Changes to `src/components/bills/BillsApprovalTable.tsx`
+### Changes
 
-1. **Remove the "Paid" column header** (line 788-790) and **cell** (lines 926-969)
+**1. `src/components/reports/ReportsTabs.tsx`**
+- Add `asOfDate` / `setAsOfDate` state (initialized to today)
+- Pass `asOfDate` and `onAsOfDateChange` props to all four content components
 
-2. **Remove `isPaidStatus` from `baseColCount`** (line 686) — drop the `+ (isPaidStatus ? 1 : 0)`
+**2. `src/components/reports/BalanceSheetContent.tsx`**
+- Add `asOfDate` and `onAsOfDateChange` to the props interface
+- Remove the local `useState<Date>(new Date())` for `asOfDate`
+- Replace all `setAsOfDate(date)` calls with `onAsOfDateChange(date)`
 
-3. **Keep the `paymentBreakdowns` query** (lines 306-389) — this data is still needed
+**3. `src/components/reports/IncomeStatementContent.tsx`**
+- Same pattern: accept `asOfDate` and `onAsOfDateChange` as props, remove local state
 
-4. **Modify the Amount cell** (lines 916-925): For paid bills with credits applied, show the net cash paid amount instead of `total_amount`, and attach the info tooltip with the breakdown (Bill Amount, Credits Applied, Cash Paid). For paid bills without credits, show `total_amount` as before. Non-paid tabs remain unchanged.
+**4. `src/components/reports/JobCostsContent.tsx`**
+- Same pattern: accept `asOfDate` and `onAsOfDateChange` as props, remove local state
 
-Essentially the tooltip content that was in the "Paid" column cell moves onto the Amount cell, and the displayed value changes from `bill.total_amount` to `breakdown.cashPaid` when credits exist.
+**5. `src/components/reports/AccountsPayableContent.tsx`**
+- Same pattern: accept `asOfDate` and `onAsOfDateChange` as props, remove local state
 
+### Technical Detail
+Each file's change is minimal:
+- Add two props to the interface (`asOfDate: Date`, `onAsOfDateChange: (date: Date) => void`)
+- Delete the `const [asOfDate, setAsOfDate] = useState<Date>(new Date())` line
+- Replace `setAsOfDate` with `onAsOfDateChange` in calendar `onSelect` handlers
+
+No query logic, formatting, or PDF export code needs to change since they all already reference the `asOfDate` variable by name.
