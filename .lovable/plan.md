@@ -1,38 +1,36 @@
 
+## Share "As of Date" Across All Report Tabs
 
-## Investigation: Equity Partner #1 Balance Discrepancy ($4,000 vs $0)
+### Problem
+Each report tab (Balance Sheet, Income Statement, Job Costs, Accounts Payable) maintains its own independent `asOfDate` state initialized to `new Date()`. When you change the date on one tab and switch to another, it resets to today.
 
-### Root Cause Found
+### Solution
+Lift the `asOfDate` state up to `ReportsTabs` and pass it down to all four child components as a prop. When the Reports page unmounts (user navigates away), the state naturally resets since it lives in a component that gets destroyed.
 
-The **Balance Sheet is correct** ($4,000). The **detail dialog is wrong** ($0).
+### Changes
 
-The difference comes from how each component filters by `project_id`:
+**1. `src/components/reports/ReportsTabs.tsx`**
+- Add `asOfDate` / `setAsOfDate` state (initialized to today)
+- Pass `asOfDate` and `onAsOfDateChange` props to all four content components
 
-- **Balance Sheet** (line 115): `query.eq('project_id', projectId)` — only includes journal lines explicitly assigned to this project.
-- **Account Detail Dialog** (line 160): `query.or('project_id.eq.${projectId},project_id.is.null')` — includes project lines **plus** company-wide lines (where `project_id` is null).
+**2. `src/components/reports/BalanceSheetContent.tsx`**
+- Add `asOfDate` and `onAsOfDateChange` to the props interface
+- Remove the local `useState<Date>(new Date())` for `asOfDate`
+- Replace all `setAsOfDate(date)` calls with `onAsOfDateChange(date)`
 
-For equity account 2905.1, there are likely company-wide journal entries (with `project_id = NULL`) that offset the project-specific entries, causing the dialog's running balance to net to $0. These null-project entries should not appear in a project-scoped detail view — the Balance Sheet correctly excludes them.
+**3. `src/components/reports/IncomeStatementContent.tsx`**
+- Same pattern: accept `asOfDate` and `onAsOfDateChange` as props, remove local state
 
-### Fix
+**4. `src/components/reports/JobCostsContent.tsx`**
+- Same pattern: accept `asOfDate` and `onAsOfDateChange` as props, remove local state
 
-**File: `src/components/accounting/AccountDetailDialog.tsx`** (line ~158-161)
+**5. `src/components/reports/AccountsPayableContent.tsx`**
+- Same pattern: accept `asOfDate` and `onAsOfDateChange` as props, remove local state
 
-Change the project filtering from:
-```typescript
-if (projectId) {
-  query = query.or(`project_id.eq.${projectId},project_id.is.null`);
-}
-```
-To match the Balance Sheet's strict filter:
-```typescript
-if (projectId) {
-  query = query.eq('project_id', projectId);
-} else {
-  query = query.is('project_id', null);
-}
-```
+### Technical Detail
+Each file's change is minimal:
+- Add two props to the interface (`asOfDate: Date`, `onAsOfDateChange: (date: Date) => void`)
+- Delete the `const [asOfDate, setAsOfDate] = useState<Date>(new Date())` line
+- Replace `setAsOfDate` with `onAsOfDateChange` in calendar `onSelect` handlers
 
-This ensures the dialog only shows transactions that belong to the selected project, matching the Balance Sheet calculation exactly. Company-wide entries (null project_id) will only appear in the company-wide report view.
-
-The same fix should also be applied to the consolidated bill payments query (~line 437-441), which already uses the correct pattern — so only the journal_entry_lines query needs updating.
-
+No query logic, formatting, or PDF export code needs to change since they all already reference the `asOfDate` variable by name.
