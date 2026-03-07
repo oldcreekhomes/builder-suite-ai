@@ -1026,9 +1026,10 @@ export function BillsApprovalTable({ status, projectId, projectIds, showProjectC
           <div className="mt-4 text-sm text-muted-foreground shrink-0">
             <p>Total bills: {filteredBills.length}</p>
             <p>Total amount: {formatCurrency(filteredBills.reduce((sum, bill) => {
+              const amountPaid = (bill as any).amount_paid || 0;
               const openBalance = bill.total_amount < 0
-                ? bill.total_amount + (bill.amount_paid || 0)
-                : bill.total_amount - (bill.amount_paid || 0);
+                ? bill.total_amount + amountPaid
+                : bill.total_amount - amountPaid;
               return sum + Math.round(openBalance * 100) / 100;
             }, 0))}</p>
           </div>
