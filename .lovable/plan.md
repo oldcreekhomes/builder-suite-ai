@@ -1,23 +1,36 @@
 
-
-## Fix Selection Banner Total for Credits in PayBillsTable
+## Share "As of Date" Across All Report Tabs
 
 ### Problem
-Line 656 in `PayBillsTable.tsx` calculates the selected total as `total_amount - amount_paid` for every bill. This is correct for regular bills but wrong for credits (negative `total_amount`), where the open balance is `total_amount + amount_paid`. This is the same bug that was just fixed in the footer total.
+Each report tab (Balance Sheet, Income Statement, Job Costs, Accounts Payable) maintains its own independent `asOfDate` state initialized to `new Date()`. When you change the date on one tab and switch to another, it resets to today.
 
-Example: A credit with `total_amount = -150` and `amount_paid = 0` produces `-150 - 0 = -150`, but when added to the selection total, something in the selection logic produces the wrong number ($850 or $650 instead of the expected values).
+### Solution
+Lift the `asOfDate` state up to `ReportsTabs` and pass it down to all four child components as a prop. When the Reports page unmounts (user navigates away), the state naturally resets since it lives in a component that gets destroyed.
 
-### Fix
-**`src/components/bills/PayBillsTable.tsx`** — Line 656: Apply the same open-balance formula used in the footer fix:
+### Changes
 
-```typescript
-const selectedTotal = selectedBills.reduce((sum, bill) => {
-  const openBalance = bill.total_amount < 0
-    ? bill.total_amount + (bill.amount_paid || 0)
-    : bill.total_amount - (bill.amount_paid || 0);
-  return sum + Math.round(openBalance * 100) / 100;
-}, 0);
-```
+**1. `src/components/reports/ReportsTabs.tsx`**
+- Add `asOfDate` / `setAsOfDate` state (initialized to today)
+- Pass `asOfDate` and `onAsOfDateChange` props to all four content components
 
-Single line change, one file.
+**2. `src/components/reports/BalanceSheetContent.tsx`**
+- Add `asOfDate` and `onAsOfDateChange` to the props interface
+- Remove the local `useState<Date>(new Date())` for `asOfDate`
+- Replace all `setAsOfDate(date)` calls with `onAsOfDateChange(date)`
 
+**3. `src/components/reports/IncomeStatementContent.tsx`**
+- Same pattern: accept `asOfDate` and `onAsOfDateChange` as props, remove local state
+
+**4. `src/components/reports/JobCostsContent.tsx`**
+- Same pattern: accept `asOfDate` and `onAsOfDateChange` as props, remove local state
+
+**5. `src/components/reports/AccountsPayableContent.tsx`**
+- Same pattern: accept `asOfDate` and `onAsOfDateChange` as props, remove local state
+
+### Technical Detail
+Each file's change is minimal:
+- Add two props to the interface (`asOfDate: Date`, `onAsOfDateChange: (date: Date) => void`)
+- Delete the `const [asOfDate, setAsOfDate] = useState<Date>(new Date())` line
+- Replace `setAsOfDate` with `onAsOfDateChange` in calendar `onSelect` handlers
+
+No query logic, formatting, or PDF export code needs to change since they all already reference the `asOfDate` variable by name.

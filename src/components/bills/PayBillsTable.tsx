@@ -653,7 +653,12 @@ export function PayBillsTable({ projectId, projectIds, showProjectColumn = true,
     ? selectedBills[0].companies?.company_name || 'Unknown Vendor'
     : '';
 
-  const selectedTotal = selectedBills.reduce((sum, bill) => sum + (bill.total_amount - (bill.amount_paid || 0)), 0);
+  const selectedTotal = selectedBills.reduce((sum, bill) => {
+    const openBalance = bill.total_amount < 0
+      ? bill.total_amount + (bill.amount_paid || 0)
+      : bill.total_amount - (bill.amount_paid || 0);
+    return sum + Math.round(openBalance * 100) / 100;
+  }, 0);
 
   const isHeaderChecked = useMemo(() => {
     if (filteredBills.length === 0) return false;
