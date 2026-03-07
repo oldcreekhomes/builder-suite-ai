@@ -31,6 +31,7 @@ import { Label } from "@/components/ui/label";
 import { TableRowActions } from "@/components/ui/table-row-actions";
 import { EditBillDialog } from "@/components/bills/EditBillDialog";
 import { EditDepositDialog } from "@/components/deposits/EditDepositDialog";
+import { EditCheckDialog } from "@/components/checks/EditCheckDialog";
 import { formatDateSafe } from "@/utils/dateOnly";
 
 interface IncludedBillPayment {
