@@ -79,29 +79,27 @@ export function IncomeStatementContent({ projectId, onHeaderActionChange, asOfDa
 
       console.time('⏱️ Income Statement: Journal lines query');
       
-      let journalLinesQuery = supabase
-        .from('journal_entry_lines')
-        .select(`
-          account_id,
-          debit,
-          credit,
-          journal_entries!inner(entry_date)
-        `)
-        .lte('journal_entries.entry_date', asOfDate.toISOString().split('T')[0]);
-      
-      if (projectId) {
-        journalLinesQuery = journalLinesQuery.or(`project_id.eq.${projectId},project_id.is.null`);
-      } else {
-        journalLinesQuery = journalLinesQuery.is('project_id', null);
-      }
+      const buildJournalQuery = () => {
+        let q = supabase
+          .from('journal_entry_lines')
+          .select(`
+            account_id,
+            debit,
+            credit,
+            journal_entries!inner(entry_date)
+          `)
+          .lte('journal_entries.entry_date', asOfDate.toISOString().split('T')[0]);
+        
+        if (projectId) {
+          q = q.or(`project_id.eq.${projectId},project_id.is.null`);
+        } else {
+          q = q.is('project_id', null);
+        }
+        return q;
+      };
 
-      const { data: journalLines, error: journalError } = await journalLinesQuery;
+      const journalLines = await fetchAllRows(buildJournalQuery);
       console.timeEnd('⏱️ Income Statement: Journal lines query');
-      
-      if (journalError) {
-        console.error("🔍 Income Statement: Journal lines query failed:", journalError);
-        throw journalError;
-      }
       
       console.log(`📊 Income Statement: Processing ${journalLines?.length || 0} journal lines`);
 

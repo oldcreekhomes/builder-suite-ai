@@ -120,10 +120,7 @@ export function BalanceSheetContent({ projectId, onHeaderActionChange, asOfDate,
       const journalLines = await fetchAllRows(buildJournalQuery);
       console.timeEnd('⏱️ Balance Sheet: Journal lines query');
       
-      if (journalError) {
-        console.error("🔍 Balance Sheet: Journal lines query failed:", journalError);
-        throw journalError;
-      }
+      
       
       console.log(`📊 Balance Sheet: Processing ${journalLines?.length || 0} journal lines`);
 
