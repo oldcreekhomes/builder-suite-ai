@@ -1,4 +1,5 @@
 import { useMemo, useState } from "react";
+import { useLots } from "@/hooks/useLots";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import {
   Table,
@@ -106,6 +107,8 @@ interface BillsApprovalTableProps {
 }
 
 export function BillsApprovalTable({ status, projectId, projectIds, showProjectColumn = true, defaultSortBy, sortOrder, enableSorting = false, showPayBillButton = false, searchQuery, showEditButton = false }: BillsApprovalTableProps) {
+  const { lots } = useLots(projectId);
+  const showAddressColumn = lots.length > 1;
   const { approveBill, rejectBill, deleteBill, payBill } = useBills();
   const { isOwner } = useUserRole();
   const { canDeleteBills } = useAccountingPermissions();
@@ -594,7 +597,7 @@ export function BillsApprovalTable({ status, projectId, projectIds, showProjectC
   // + Delete(1) if shown
   // + PO Status(1) - always shown on all tabs
   const showPOStatusColumn = true;
-  const baseColCount = 12 + (showProjectColumn ? 1 : 0) + (showPayBillButton ? 1 : 0) + (canShowDeleteButton ? 1 : 0) + (showPOStatusColumn ? 1 : 0);
+  const baseColCount = 11 + (showAddressColumn ? 1 : 0) + (showProjectColumn ? 1 : 0) + (showPayBillButton ? 1 : 0) + (canShowDeleteButton ? 1 : 0) + (showPOStatusColumn ? 1 : 0);
 
   return (
     <>
@@ -698,7 +701,7 @@ export function BillsApprovalTable({ status, projectId, projectIds, showProjectC
                   <TableHead className="w-20">Amount</TableHead>
                   <TableHead className="w-24">Reference</TableHead>
                   <TableHead className="w-10 text-center">Memo</TableHead>
-                  <TableHead className="w-16">Address</TableHead>
+                  {showAddressColumn && <TableHead className="w-16">Address</TableHead>}
                   <TableHead className="w-10 text-center">Files</TableHead>
                   <TableHead className="w-10 text-center">Notes</TableHead>
                   {showPOStatusColumn && (
@@ -851,6 +854,7 @@ export function BillsApprovalTable({ status, projectId, projectIds, showProjectC
                       <span className="text-muted-foreground">-</span>
                     )}
                   </TableCell>
+                  {showAddressColumn && (
                   <TableCell className="w-16 max-w-[64px]">
                     {(() => {
                       const { display, costCodeBreakdown, totalAmount, uniqueLotCount } = getLotAllocationData(bill);
@@ -889,6 +893,7 @@ export function BillsApprovalTable({ status, projectId, projectIds, showProjectC
                       );
                     })()}
                   </TableCell>
+                  )}
                   <TableCell className="w-10 text-center">
                     <BillFilesCell attachments={bill.bill_attachments || []} />
                   </TableCell>

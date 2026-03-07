@@ -1,4 +1,5 @@
 import { useState, useMemo } from "react";
+import { useLots } from "@/hooks/useLots";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useBills } from "@/hooks/useBills";
@@ -93,6 +94,8 @@ interface PayBillsTableProps {
 }
 
 export function PayBillsTable({ projectId, projectIds, showProjectColumn = true, searchQuery, dueDateFilter = "all", filterDate, showEditButton = false }: PayBillsTableProps) {
+  const { lots } = useLots(projectId);
+  const showAddressColumn = lots.length > 1;
   const { payBill, payMultipleBills, deleteBill } = useBills();
   const queryClient = useQueryClient();
   const [selectedBill, setSelectedBill] = useState<BillForPayment | null>(null);
@@ -918,7 +921,7 @@ export function PayBillsTable({ projectId, projectIds, showProjectColumn = true,
               </TableHead>
               <TableHead className="w-24">Amount</TableHead>
               <TableHead className="w-40">Reference</TableHead>
-              <TableHead className="w-24">Address</TableHead>
+              {showAddressColumn && <TableHead className="w-24">Address</TableHead>}
               
               <TableHead className="w-16">Files</TableHead>
               <TableHead className="text-center w-16">Notes</TableHead>
@@ -929,7 +932,7 @@ export function PayBillsTable({ projectId, projectIds, showProjectColumn = true,
           <TableBody>
             {filteredBills.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={12 + (showProjectColumn ? 1 : 0)} className="text-center py-8 text-muted-foreground">
+                <TableCell colSpan={11 + (showProjectColumn ? 1 : 0) + (showAddressColumn ? 1 : 0)} className="text-center py-8 text-muted-foreground">
                   No approved bills found for payment.
                 </TableCell>
               </TableRow>
@@ -1032,6 +1035,7 @@ export function PayBillsTable({ projectId, projectIds, showProjectColumn = true,
                   <TableCell className="whitespace-nowrap">
                     {bill.reference_number || '-'}
                   </TableCell>
+                  {showAddressColumn && (
                   <TableCell>
                     {(() => {
                       const { display, costCodeBreakdown, totalAmount, uniqueLotCount } = getLotAllocationData(bill);
@@ -1070,6 +1074,7 @@ export function PayBillsTable({ projectId, projectIds, showProjectColumn = true,
                       );
                     })()}
                   </TableCell>
+                  )}
                   
                   <TableCell>
                     <BillFilesCell attachments={bill.bill_attachments || []} />

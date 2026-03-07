@@ -1,4 +1,5 @@
 import { useState, useEffect, useMemo } from "react";
+import { useLots } from "@/hooks/useLots";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -136,6 +137,8 @@ export function BatchBillReviewTable({
   showProjectColumn = true,
   projectId,
 }: BatchBillReviewTableProps) {
+  const { lots } = useLots(projectId);
+  const showAddressColumn = lots.length > 1;
   const [editingBillId, setEditingBillId] = useState<string | null>(null);
   const [addingVendorForBillId, setAddingVendorForBillId] = useState<string | null>(null);
   const [addingVendorName, setAddingVendorName] = useState<string>("");
@@ -559,9 +562,7 @@ export function BatchBillReviewTable({
     }).format(amount);
   };
 
-  // Column count for empty state: Checkbox(1) + Vendor(1) + CostCode(1) + BillDate(1) + DueDate(1) + Amount(1) + Reference(1) + Memo(1) + Address(1) + Files(1) + POStatus(1) + Actions(1) = 12
-  // + Project(1) if shown = 13
-  const emptyStateColSpan = 12 + (showProjectColumn ? 1 : 0);
+  const emptyStateColSpan = 11 + (showProjectColumn ? 1 : 0) + (showAddressColumn ? 1 : 0);
 
   if (bills.length === 0) {
     return (
@@ -582,7 +583,7 @@ export function BatchBillReviewTable({
               <TableHead className="w-24">Amount</TableHead>
               <TableHead className="w-32">Reference</TableHead>
               <TableHead className="w-12 text-center">Memo</TableHead>
-              <TableHead className="w-24">Address</TableHead>
+              {showAddressColumn && <TableHead className="w-24">Address</TableHead>}
               <TableHead className="w-14 text-center">Files</TableHead>
               <TableHead className="w-20 text-center">PO Status</TableHead>
               <TableHead className="w-20 text-center">Actions</TableHead>
@@ -633,7 +634,7 @@ export function BatchBillReviewTable({
               <TableHead className="w-24">Amount</TableHead>
               <TableHead className="w-32">Reference</TableHead>
               <TableHead className="w-12 text-center">Memo</TableHead>
-              <TableHead className="w-24">Address</TableHead>
+              {showAddressColumn && <TableHead className="w-24">Address</TableHead>}
               <TableHead className="w-14 text-center">Files</TableHead>
               <TableHead className="w-20 text-center">PO Status</TableHead>
               <TableHead className="w-20 text-center">Actions</TableHead>
@@ -648,7 +649,7 @@ export function BatchBillReviewTable({
                     <TableCell>
                       <Checkbox disabled aria-label="Bill extracting" />
                     </TableCell>
-                    <TableCell colSpan={10 + (showProjectColumn ? 1 : 0)}>
+                    <TableCell colSpan={9 + (showProjectColumn ? 1 : 0) + (showAddressColumn ? 1 : 0)}>
                       <div className="flex items-center gap-2 text-xs text-muted-foreground">
                         <Loader2 className="h-3 w-3 animate-spin" />
                         <span>Extracting: {bill.file_name}</span>
@@ -869,6 +870,7 @@ export function BatchBillReviewTable({
                   </TableCell>
                   
                   {/* Address */}
+                  {showAddressColumn && (
                   <TableCell className="w-24">
                     {lotAllocationData.uniqueLotCount > 1 ? (
                       <TooltipProvider>
@@ -896,6 +898,7 @@ export function BatchBillReviewTable({
                       lotAllocationData.display
                     )}
                   </TableCell>
+                  )}
                   
                   {/* Files */}
                   <TableCell className="w-14 text-center">
