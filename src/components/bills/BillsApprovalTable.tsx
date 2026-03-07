@@ -303,6 +303,91 @@ export function BillsApprovalTable({ status, projectId, projectIds, showProjectC
     },
   });
 
+  // Fetch payment breakdown data for paid bills
+  const isPaidStatus = status === 'paid' || (Array.isArray(status) && status.includes('paid'));
+  const paidBillIds = useMemo(() => {
+    if (!isPaidStatus) return [];
+    return bills.filter(b => b.status === 'paid' && b.total_amount >= 0).map(b => b.id);
+  }, [bills, isPaidStatus]);
+
+  const { data: paymentBreakdowns } = useQuery({
+    queryKey: ['paid-bill-breakdowns', paidBillIds],
+    queryFn: async () => {
+      if (paidBillIds.length === 0) return new Map<string, { cashPaid: number; credits: { ref: string; amount: number }[] }>();
+
+      // Get allocations for these bills
+      const { data: allocations, error: allocError } = await supabase
+        .from('bill_payment_allocations')
+        .select('bill_id, bill_payment_id, amount_allocated')
+        .in('bill_id', paidBillIds);
+
+      if (allocError) throw allocError;
+      if (!allocations || allocations.length === 0) return new Map();
+
+      // Get unique payment IDs
+      const paymentIds = [...new Set(allocations.map(a => a.bill_payment_id))];
+
+      // Get bill_payments total_amount (cash disbursed)
+      const { data: payments, error: payError } = await supabase
+        .from('bill_payments')
+        .select('id, total_amount')
+        .in('id', paymentIds);
+
+      if (payError) throw payError;
+
+      // Get ALL sibling allocations for these payments to find credits
+      const { data: siblingAllocations, error: sibError } = await supabase
+        .from('bill_payment_allocations')
+        .select(`
+          bill_payment_id,
+          bill_id,
+          amount_allocated,
+          bill:bills!bill_payment_allocations_bill_id_fkey(id, total_amount, reference_number)
+        `)
+        .in('bill_payment_id', paymentIds);
+
+      if (sibError) throw sibError;
+
+      const paymentsMap = new Map((payments || []).map(p => [p.id, p]));
+
+      // Build breakdown per bill
+      const result = new Map<string, { cashPaid: number; credits: { ref: string; amount: number }[] }>();
+
+      for (const billId of paidBillIds) {
+        const billAllocations = allocations.filter(a => a.bill_id === billId);
+        const credits: { ref: string; amount: number }[] = [];
+        let totalCashForBill = 0;
+
+        for (const alloc of billAllocations) {
+          const payment = paymentsMap.get(alloc.bill_payment_id);
+          if (!payment) continue;
+
+          // Find credit siblings in this payment
+          const siblings = (siblingAllocations || []).filter(
+            s => s.bill_payment_id === alloc.bill_payment_id && s.bill_id !== billId
+          );
+
+          for (const sib of siblings) {
+            const sibBill = sib.bill as any;
+            if (sibBill && sibBill.total_amount < 0) {
+              credits.push({
+                ref: sibBill.reference_number || 'Credit',
+                amount: Math.abs(sib.amount_allocated),
+              });
+            }
+          }
+
+          totalCashForBill += payment.total_amount;
+        }
+
+        result.set(billId, { cashPaid: totalCashForBill, credits });
+      }
+
+      return result;
+    },
+    enabled: isPaidStatus && paidBillIds.length > 0,
+  });
+
   // PO matching for approved/posted bills
   const billsForMatching = useMemo(() => {
     return bills.map(b => ({
