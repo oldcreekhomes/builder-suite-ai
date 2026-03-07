@@ -1053,6 +1053,10 @@ export function BatchBillReviewTable({
               const bill = bills.find(b => b.id === poDialogBillId);
               return bill?.reference_number || bill?.extracted_data?.reference_number || bill?.extracted_data?.referenceNumber || null;
             })(),
+            bill_date: (() => {
+              const bill = bills.find(b => b.id === poDialogBillId);
+              return bill?.extracted_data?.bill_date || bill?.extracted_data?.billDate || undefined;
+            })(),
             bill_lines: (() => {
               const bill = bills.find(b => b.id === poDialogBillId);
               return (bill?.lines || []).map(l => {

@@ -38,6 +38,7 @@ interface BillPOSummaryDialogProps {
     vendor_id?: string;
     total_amount?: number;
     reference_number?: string | null;
+    bill_date?: string;
     bill_lines?: BillLine[];
   } | null;
 }
@@ -53,7 +54,8 @@ export function BillPOSummaryDialog({
   const { data: vendorPOs } = useVendorPurchaseOrders(
     bill?.project_id,
     bill?.vendor_id,
-    bill?.id
+    bill?.id,
+    bill?.bill_date
   );
 
   const selectedPO = vendorPOs?.find(po => po.id === selectedPoId) || null;
