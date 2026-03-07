@@ -1,8 +1,9 @@
 import { useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
-import { MapPin, ChevronsUpDown, Search } from "lucide-react";
-import { useProjects } from "@/hooks/useProjects";
+import { MapPin, ChevronsUpDown, Search, MoreVertical } from "lucide-react";
+import { useProjects, Project } from "@/hooks/useProjects";
 import { useUserRole } from "@/hooks/useUserRole";
+import { useNotificationPreferences } from "@/hooks/useNotificationPreferences";
 import {
   Popover,
   PopoverContent,
@@ -17,6 +18,7 @@ import {
   CommandList,
 } from "@/components/ui/command";
 import { Button } from "@/components/ui/button";
+import { EditProjectDialog } from "@/components/EditProjectDialog";
 
 const statusGroups = [
   { status: "In Design", color: "bg-yellow-100 text-yellow-800" },
