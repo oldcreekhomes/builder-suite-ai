@@ -920,8 +920,8 @@ export function EditBillDialog({ open, onOpenChange, billId }: EditBillDialogPro
                           className="h-8"
                         />
                       </div>
-                      <div className="col-span-1 flex items-center justify-end">
-                        {!isApprovedBill && (
+                      {!isApprovedBill && (
+                        <div className="col-span-1 flex items-center justify-end">
                           <Button
                             onClick={() => removeJobCostRow(row.id, row.dbId)}
                             size="sm"
@@ -931,8 +931,8 @@ export function EditBillDialog({ open, onOpenChange, billId }: EditBillDialogPro
                           >
                             <Trash2 className="h-4 w-4" />
                           </Button>
-                        )}
-                      </div>
+                        </div>
+                      )}
                     </div>
                   ))}
 
