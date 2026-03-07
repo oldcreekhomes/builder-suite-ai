@@ -319,7 +319,7 @@ export function EditCheckDialog({ open, onOpenChange, checkId }: EditCheckDialog
                   </Select>
                 </div>
               )}
-              <div className="col-span-4 flex items-center justify-end">
+              <div className={cn(showAddressColumn ? "col-span-4" : "col-span-8", "flex items-center justify-end")}>
                 <Button
                   variant="destructive"
                   size="sm"
