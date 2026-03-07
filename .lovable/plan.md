@@ -1,36 +1,31 @@
 
-## Share "As of Date" Across All Report Tabs
+
+## Replace Disabled 3-Dot Menu with Lock Icon for Locked Rows
 
 ### Problem
-Each report tab (Balance Sheet, Income Statement, Job Costs, Accounts Payable) maintains its own independent `asOfDate` state initialized to `new Date()`. When you change the date on one tab and switch to another, it resets to today.
-
-### Solution
-Lift the `asOfDate` state up to `ReportsTabs` and pass it down to all four child components as a prop. When the Reports page unmounts (user navigates away), the state naturally resets since it lives in a component that gets destroyed.
+In the report detail dialogs (`AccountDetailDialog` and `JobCostActualDialog`), locked/reconciled rows show a grayed-out 3-dot menu icon. The rest of the application uses a **Lock icon** from lucide-react for this purpose. These should match.
 
 ### Changes
 
-**1. `src/components/reports/ReportsTabs.tsx`**
-- Add `asOfDate` / `setAsOfDate` state (initialized to today)
-- Pass `asOfDate` and `onAsOfDateChange` props to all four content components
+**Pattern to apply** (matching `ProjectBudget.tsx` and `JobCostsContent.tsx`):
+Replace `<TableRowActions actions={[]} disabled />` with a Lock icon wrapped in a Tooltip:
+```tsx
+<Tooltip>
+  <TooltipTrigger asChild>
+    <div className="flex justify-center">
+      <Lock className="h-4 w-4 text-muted-foreground" />
+    </div>
+  </TooltipTrigger>
+  <TooltipContent>...</TooltipContent>
+</Tooltip>
+```
 
-**2. `src/components/reports/BalanceSheetContent.tsx`**
-- Add `asOfDate` and `onAsOfDateChange` to the props interface
-- Remove the local `useState<Date>(new Date())` for `asOfDate`
-- Replace all `setAsOfDate(date)` calls with `onAsOfDateChange(date)`
+**Files:**
 
-**3. `src/components/reports/IncomeStatementContent.tsx`**
-- Same pattern: accept `asOfDate` and `onAsOfDateChange` as props, remove local state
+| File | Change |
+|---|---|
+| `src/components/accounting/AccountDetailDialog.tsx` | Import `Lock` from lucide-react. Replace `<TableRowActions actions={[]} disabled />` (line 1181) with `<Lock>` icon, keep existing tooltip logic |
+| `src/components/reports/JobCostActualDialog.tsx` | Import `Lock` from lucide-react. Replace `<TableRowActions actions={[]} disabled />` (line 415) with `<Lock>` icon, keep existing tooltip logic |
 
-**4. `src/components/reports/JobCostsContent.tsx`**
-- Same pattern: accept `asOfDate` and `onAsOfDateChange` as props, remove local state
+Both files already have the Tooltip wrapping and descriptive content -- only the inner element changes from the disabled dots to a Lock icon.
 
-**5. `src/components/reports/AccountsPayableContent.tsx`**
-- Same pattern: accept `asOfDate` and `onAsOfDateChange` as props, remove local state
-
-### Technical Detail
-Each file's change is minimal:
-- Add two props to the interface (`asOfDate: Date`, `onAsOfDateChange: (date: Date) => void`)
-- Delete the `const [asOfDate, setAsOfDate] = useState<Date>(new Date())` line
-- Replace `setAsOfDate` with `onAsOfDateChange` in calendar `onSelect` handlers
-
-No query logic, formatting, or PDF export code needs to change since they all already reference the `asOfDate` variable by name.
