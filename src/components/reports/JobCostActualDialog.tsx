@@ -13,6 +13,7 @@ import { TableRowActions } from "@/components/ui/table-row-actions";
 import { useState, useMemo } from "react";
 import { EditBillDialog } from "@/components/bills/EditBillDialog";
 import { EditDepositDialog } from "@/components/deposits/EditDepositDialog";
+import { EditCheckDialog } from "@/components/checks/EditCheckDialog";
 
 interface JobCostActualDialogProps {
   isOpen: boolean;
@@ -44,6 +45,7 @@ interface JournalEntryLine {
   reference_number?: string;
   bill_id?: string;
   deposit_id?: string;
+  check_id?: string;
   source_type?: string;
 }
 
@@ -62,6 +64,7 @@ export function JobCostActualDialog({
   const queryClient = useQueryClient();
   const [editingBillId, setEditingBillId] = useState<string | null>(null);
   const [editingDepositId, setEditingDepositId] = useState<string | null>(null);
+  const [editingCheckId, setEditingCheckId] = useState<string | null>(null);
   const [descriptionSort, setDescriptionSort] = useState<'asc' | 'desc' | null>(null);
   const { isDateLocked } = useClosedPeriodCheck(projectId);
 
@@ -237,6 +240,7 @@ export function JobCostActualDialog({
         let reference_number: string | undefined;
         let bill_id: string | undefined;
         let deposit_id: string | undefined;
+        let check_id: string | undefined;
 
         if (sourceType === 'bill') {
           const billData = billsMap.get(sourceId);
@@ -248,6 +252,7 @@ export function JobCostActualDialog({
           const checkData = checksMap.get(sourceId);
           vendor_name = checkData?.pay_to;
           reconciled = checkData?.reconciled ?? line.reconciled;
+          check_id = sourceId;
         } else if (sourceType === 'deposit') {
           const depData = depositsMap.get(sourceId);
           vendor_name = depData?.company_name ?? undefined;
@@ -260,6 +265,7 @@ export function JobCostActualDialog({
           source_type: sourceType || 'unknown',
           bill_id,
           deposit_id,
+          check_id,
           vendor_name,
           reference_number,
           reconciled,
@@ -326,6 +332,10 @@ const formatCurrency = (value: number) => {
     setEditingDepositId(depositId);
   };
 
+  const handleEditCheck = (checkId: string) => {
+    setEditingCheckId(checkId);
+  };
+
   const handleEditDialogClose = () => {
     setEditingBillId(null);
     queryClient.invalidateQueries({ queryKey: ['job-cost-actual-details', projectId, costCode] });
@@ -334,6 +344,13 @@ const formatCurrency = (value: number) => {
   const handleEditDepositDialogClose = () => {
     setEditingDepositId(null);
     queryClient.invalidateQueries({ queryKey: ['job-cost-actual-details', projectId, costCode] });
+  };
+
+  const handleEditCheckDialogClose = (open: boolean) => {
+    if (!open) {
+      setEditingCheckId(null);
+      queryClient.invalidateQueries({ queryKey: ['job-cost-actual-details', projectId, costCode] });
+    }
   };
 
   return (
@@ -434,10 +451,11 @@ const formatCurrency = (value: number) => {
                                   )}
                                 </TooltipContent>
                               </Tooltip>
-                            ) : (line.bill_id || line.deposit_id) ? (
+                            ) : (line.bill_id || line.deposit_id || line.check_id) ? (
                               <TableRowActions actions={[
                                 ...(line.bill_id ? [{ label: "Edit Bill", onClick: () => handleEditBill(line.bill_id!) }] : []),
                                 ...(line.deposit_id ? [{ label: "Edit Deposit", onClick: () => handleEditDeposit(line.deposit_id!) }] : []),
+                                ...(line.check_id ? [{ label: "Edit Check", onClick: () => handleEditCheck(line.check_id!) }] : []),
                               ]} />
                             ) : null}
                           </div>
@@ -481,6 +499,13 @@ const formatCurrency = (value: number) => {
         open={!!editingDepositId}
         onOpenChange={handleEditDepositDialogClose}
         depositId={editingDepositId || ''}
+      />
+
+      {/* Edit Check Dialog */}
+      <EditCheckDialog
+        open={!!editingCheckId}
+        onOpenChange={handleEditCheckDialogClose}
+        checkId={editingCheckId || ''}
       />
     </>
   );
