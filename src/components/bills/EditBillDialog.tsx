@@ -995,7 +995,7 @@ export function EditBillDialog({ open, onOpenChange, billId }: EditBillDialogPro
                   </div>
 
                   {expenseRows.map((row) => (
-                    <div key={row.id} className="grid grid-cols-12 gap-2 p-3 border-t">
+                    <div key={row.id} className={cn("grid gap-2 p-3 border-t", isApprovedBill ? "grid-cols-11" : "grid-cols-12")}>
                       <div className="col-span-2">
                         <AccountSearchInput
                           value={row.accountId || ""}
