@@ -107,7 +107,7 @@ export function AccountDetailDialog({
   const prevOpenRef = useRef(open);
   const { isDateLocked, latestClosedDate } = useClosedPeriodCheck(projectId);
 
-  const toLocalDate = (dateStr: string) => new Date(`${dateStr}T00:00:00`); // kept for potential future use
+  
 
   const { data: transactions, isLoading } = useQuery<Transaction[]>({
     queryKey: ['account-transactions', accountId, projectId, sortOrder, asOfDate?.toISOString()],
