@@ -1,36 +1,29 @@
 
-## Share "As of Date" Across All Report Tabs
+
+## Fix Bill #20316 Data — Correct Rounding Error
 
 ### Problem
-Each report tab (Balance Sheet, Income Statement, Job Costs, Accounts Payable) maintains its own independent `asOfDate` state initialized to `new Date()`. When you change the date on one tab and switch to another, it resets to today.
+Bill #20316 has incorrect line item amounts due to the original 0.5 qty × cost calculation creating rounding issues:
+- **Current DB**: Line 1: qty=0.5, cost=16.97, amount=8.49 | Line 2: qty=0.5, cost=16.99, amount=8.50 | Total=16.98
+- **Correct values**: Line 1: qty=1, cost=8.48, amount=8.48 | Line 2: qty=1, cost=8.49, amount=8.49 | Total=16.97
 
-### Solution
-Lift the `asOfDate` state up to `ReportsTabs` and pass it down to all four child components as a prop. When the Reports page unmounts (user navigates away), the state naturally resets since it lives in a component that gets destroyed.
+This requires direct database corrections since the UI correctly prevents editing amounts on posted bills.
 
-### Changes
+### Plan
 
-**1. `src/components/reports/ReportsTabs.tsx`**
-- Add `asOfDate` / `setAsOfDate` state (initialized to today)
-- Pass `asOfDate` and `onAsOfDateChange` props to all four content components
+**Step 1: Update `bill_lines`** — Set quantity=1, correct unit_cost and amount for both lines:
+- Line `340874ca` → qty=1, unit_cost=8.48, amount=8.48
+- Line `346f2b5f` → qty=1, unit_cost=8.49, amount=8.49
 
-**2. `src/components/reports/BalanceSheetContent.tsx`**
-- Add `asOfDate` and `onAsOfDateChange` to the props interface
-- Remove the local `useState<Date>(new Date())` for `asOfDate`
-- Replace all `setAsOfDate(date)` calls with `onAsOfDateChange(date)`
+**Step 2: Update `bills` total** — Set total_amount=16.97 on bill `271ee4cc`
 
-**3. `src/components/reports/IncomeStatementContent.tsx`**
-- Same pattern: accept `asOfDate` and `onAsOfDateChange` as props, remove local state
+**Step 3: Update `journal_entry_lines`** — Fix the 3 journal entry lines on JE `9479de8a`:
+- JEL `e7bcfe09` (line 1): debit=8.48
+- JEL `7f08dfab` (line 2): debit=8.49
+- JEL `04c3b056` (line 3, AP credit): credit=16.97
 
-**4. `src/components/reports/JobCostsContent.tsx`**
-- Same pattern: accept `asOfDate` and `onAsOfDateChange` as props, remove local state
+All updates will be executed via direct SQL statements against Supabase.
 
-**5. `src/components/reports/AccountsPayableContent.tsx`**
-- Same pattern: accept `asOfDate` and `onAsOfDateChange` as props, remove local state
+### Files
+No code file changes — database-only fix.
 
-### Technical Detail
-Each file's change is minimal:
-- Add two props to the interface (`asOfDate: Date`, `onAsOfDateChange: (date: Date) => void`)
-- Delete the `const [asOfDate, setAsOfDate] = useState<Date>(new Date())` line
-- Replace `setAsOfDate` with `onAsOfDateChange` in calendar `onSelect` handlers
-
-No query logic, formatting, or PDF export code needs to change since they all already reference the `asOfDate` variable by name.
