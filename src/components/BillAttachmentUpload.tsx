@@ -19,13 +19,19 @@ interface BillAttachmentUploadProps {
   onAttachmentsChange: (attachments: BillAttachment[]) => void;
   billId?: string;
   disabled?: boolean;
+  existingAttachments?: BillAttachment[];
+  onDeleteExisting?: (attachment: BillAttachment) => void;
+  onClickExisting?: (attachment: BillAttachment) => void;
 }
 
 export function BillAttachmentUpload({ 
   attachments, 
   onAttachmentsChange, 
   billId,
-  disabled = false 
+  disabled = false,
+  existingAttachments = [],
+  onDeleteExisting,
+  onClickExisting
 }: BillAttachmentUploadProps) {
   const [isUploading, setIsUploading] = useState(false);
 
@@ -230,12 +236,38 @@ export function BillAttachmentUpload({
     <div className="space-y-2">
       <Label>Attachments</Label>
       <div className="flex items-center space-x-2">
-        {/* Show existing files as small icons */}
+        {/* Show existing (saved) attachment icons */}
+        {existingAttachments.map((attachment) => {
+          const IconComponent = getFileIcon(attachment.file_name);
+          const iconColorClass = getFileIconColor(attachment.file_name);
+          return (
+            <div key={`existing-${attachment.id}`} className="relative group">
+              <button
+                onClick={() => onClickExisting?.(attachment)}
+                className={`${iconColorClass} transition-colors p-1 rounded hover:bg-muted/50`}
+                title={getCleanFileName(attachment.file_name)}
+                type="button"
+              >
+                <IconComponent className="h-5 w-5" />
+              </button>
+              <button
+                onClick={() => onDeleteExisting?.(attachment)}
+                className="absolute -top-1 -right-1 bg-destructive hover:bg-destructive/90 text-destructive-foreground rounded-full w-4 h-4 flex items-center justify-center transition-colors"
+                title="Remove attachment"
+                type="button"
+                disabled={disabled}
+              >
+                <span className="text-xs font-bold leading-none">×</span>
+              </button>
+            </div>
+          );
+        })}
+        {/* Show newly added file icons */}
         {attachments.map((attachment, index) => {
           const IconComponent = getFileIcon(attachment.file_name);
           const iconColorClass = getFileIconColor(attachment.file_name);
           return (
-            <div key={index} className="relative group">
+            <div key={`new-${index}`} className="relative group">
               <button
                 onClick={() => handleDownloadAttachment(attachment)}
                 className={`${iconColorClass} transition-colors p-1 rounded hover:bg-muted/50`}
@@ -247,7 +279,7 @@ export function BillAttachmentUpload({
               </button>
               <button
                 onClick={() => handleRemoveAttachment(index)}
-                className="absolute -top-1 -right-1 bg-red-500 hover:bg-red-600 text-white rounded-full w-4 h-4 flex items-center justify-center transition-colors"
+                className="absolute -top-1 -right-1 bg-destructive hover:bg-destructive/90 text-destructive-foreground rounded-full w-4 h-4 flex items-center justify-center transition-colors"
                 title="Remove attachment"
                 type="button"
                 disabled={disabled}

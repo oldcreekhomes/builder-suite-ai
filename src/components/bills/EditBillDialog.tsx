@@ -714,96 +714,56 @@ export function EditBillDialog({ open, onOpenChange, billId }: EditBillDialogPro
                 onAttachmentsChange={setNewAttachments}
                 billId={billId}
                 disabled={false}
+                existingAttachments={attachments}
+                onDeleteExisting={handleDeleteAttachment}
+                onClickExisting={(attachment) => openBillAttachment(attachment.file_path, attachment.file_name, {
+                  id: attachment.id,
+                  size: attachment.file_size,
+                  mimeType: attachment.content_type
+                })}
               />
             </div>
 
             <div className="md:col-span-2 space-y-2">
               <Label>Internal Notes</Label>
-              <Button
-                type="button"
-                variant="outline"
-                className="w-full h-10"
-                onClick={() => setNotesDialogOpen(true)}
-              >
-                {internalNotes.trim() ? (
-                  <>
-                    <StickyNote className="h-4 w-4 mr-2 text-yellow-600" />
-                    View Notes
-                  </>
-                ) : (
-                  "Add Internal Notes"
+              <div className="flex items-center gap-2">
+                <Button
+                  type="button"
+                  variant="outline"
+                  className="h-10 flex-1"
+                  onClick={() => setNotesDialogOpen(true)}
+                >
+                  {internalNotes.trim() ? (
+                    <>
+                      <StickyNote className="h-4 w-4 mr-2 text-yellow-600" />
+                      View Notes
+                    </>
+                  ) : (
+                    "Add Internal Notes"
+                  )}
+                </Button>
+                {billData?.notes && (
+                  <TooltipProvider>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <button
+                          onClick={() => setShowReviewNotesDialog(true)}
+                          className="text-yellow-600 transition-colors p-1 rounded hover:bg-muted/50"
+                          title="View review notes"
+                          type="button"
+                        >
+                          <StickyNote className="h-5 w-5" />
+                        </button>
+                      </TooltipTrigger>
+                      <TooltipContent>
+                        <p>View review notes</p>
+                      </TooltipContent>
+                    </Tooltip>
+                  </TooltipProvider>
                 )}
-              </Button>
+              </div>
             </div>
           </div>
-
-          {/* Existing Attachments and Review Notes - 2 column grid */}
-          {(attachments.length > 0 || billData?.notes) && (
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              {/* Existing Attachments - left side */}
-              {attachments.length > 0 && (
-                <div className="space-y-2">
-                  <Label>Existing Attachments</Label>
-                  <div className="flex items-center gap-2 flex-wrap">
-                    {attachments.map((attachment) => {
-                      const IconComponent = getFileIcon(attachment.file_name);
-                      const iconColorClass = getFileIconColor(attachment.file_name);
-                      return (
-                        <div key={attachment.id} className="relative group">
-                          <button
-                            onClick={() => openBillAttachment(attachment.file_path, attachment.file_name, {
-                              id: attachment.id,
-                              size: attachment.file_size,
-                              mimeType: attachment.content_type
-                            })}
-                            className={`${iconColorClass} transition-colors p-1 rounded hover:bg-muted/50`}
-                            title={getCleanFileName(attachment.file_name)}
-                            type="button"
-                          >
-                            <IconComponent className="h-5 w-5" />
-                          </button>
-                          <button
-                            onClick={() => handleDeleteAttachment(attachment)}
-                            className="absolute -top-1 -right-1 bg-red-500 hover:bg-red-600 text-white rounded-full w-5 h-5 flex items-center justify-center transition-colors"
-                            title="Remove attachment"
-                            type="button"
-                          >
-                            <span className="text-xs font-bold leading-none">×</span>
-                          </button>
-                        </div>
-                      );
-                    })}
-                  </div>
-                </div>
-              )}
-              
-              {/* Review Notes - right side */}
-              {billData?.notes && (
-                <div className="space-y-2">
-                  <Label>Review Notes</Label>
-                  <div className="flex items-center gap-2">
-                    <TooltipProvider>
-                      <Tooltip>
-                        <TooltipTrigger asChild>
-                          <button
-                            onClick={() => setShowReviewNotesDialog(true)}
-                            className="text-yellow-600 transition-colors p-1 rounded hover:bg-muted/50"
-                            title="View review notes"
-                            type="button"
-                          >
-                            <StickyNote className="h-5 w-5" />
-                          </button>
-                        </TooltipTrigger>
-                        <TooltipContent>
-                          <p>View review notes</p>
-                        </TooltipContent>
-                      </Tooltip>
-                    </TooltipProvider>
-                  </div>
-                </div>
-              )}
-            </div>
-          )}
 
           <div className="space-y-4">
             <Tabs defaultValue="job-cost" className="w-full">
