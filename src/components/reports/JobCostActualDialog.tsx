@@ -451,10 +451,11 @@ const formatCurrency = (value: number) => {
                                   )}
                                 </TooltipContent>
                               </Tooltip>
-                            ) : (line.bill_id || line.deposit_id) ? (
+                            ) : (line.bill_id || line.deposit_id || line.check_id) ? (
                               <TableRowActions actions={[
                                 ...(line.bill_id ? [{ label: "Edit Bill", onClick: () => handleEditBill(line.bill_id!) }] : []),
                                 ...(line.deposit_id ? [{ label: "Edit Deposit", onClick: () => handleEditDeposit(line.deposit_id!) }] : []),
+                                ...(line.check_id ? [{ label: "Edit Check", onClick: () => handleEditCheck(line.check_id!) }] : []),
                               ]} />
                             ) : null}
                           </div>
