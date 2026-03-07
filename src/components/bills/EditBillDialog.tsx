@@ -1108,14 +1108,6 @@ export function EditBillDialog({ open, onOpenChange, billId }: EditBillDialogPro
             </Tabs>
           </div>
 
-          <DialogFooter>
-            <Button variant="outline" onClick={() => onOpenChange(false)} disabled={updateBill.isPending || correctBill.isPending}>
-              Cancel
-            </Button>
-            <Button onClick={handleSave} disabled={updateBill.isPending || correctBill.isPending}>
-              {updateBill.isPending || correctBill.isPending ? "Saving..." : "Save Changes"}
-            </Button>
-          </DialogFooter>
         </div>
 
         <AlertDialog open={showSaveConfirmation} onOpenChange={setShowSaveConfirmation}>
