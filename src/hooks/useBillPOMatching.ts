@@ -195,6 +195,18 @@ export function useBillPOMatching(bills: BillForMatching[]) {
             resolvedPoId = undefined;
           }
           
+          // Fallback: if no explicit PO link, match by vendor + project + cost_code
+          if (!resolvedPoId && line.cost_code_id && bill.vendor_id && bill.project_id) {
+            const fallbackPo = pos.find(p =>
+              p.company_id === bill.vendor_id &&
+              p.project_id === bill.project_id &&
+              p.cost_code_id === line.cost_code_id
+            );
+            if (fallbackPo) {
+              resolvedPoId = fallbackPo.id;
+            }
+          }
+          
           if (!resolvedPoId) return;
           
           const matchedPo = pos.find(p => p.id === resolvedPoId);
