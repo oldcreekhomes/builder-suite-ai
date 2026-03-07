@@ -1,36 +1,22 @@
 
-## Share "As of Date" Across All Report Tabs
 
-### Problem
-Each report tab (Balance Sheet, Income Statement, Job Costs, Accounts Payable) maintains its own independent `asOfDate` state initialized to `new Date()`. When you change the date on one tab and switch to another, it resets to today.
+## Fix Edit Bill Dialog Layout Issues
 
-### Solution
-Lift the `asOfDate` state up to `ReportsTabs` and pass it down to all four child components as a prop. When the Reports page unmounts (user navigates away), the state naturally resets since it lives in a component that gets destroyed.
+### Problems
+1. "Job Cost Total:" label wraps to 3 lines because it's in a `col-span-14` grid cell that's too narrow at the label's position
+2. Cancel/Save buttons are in a separate `DialogFooter` below the table, wasting vertical space
+3. The "Action" column is empty for approved bills (by design — delete is hidden when `isApprovedBill`) but wastes horizontal space
 
 ### Changes
 
-**1. `src/components/reports/ReportsTabs.tsx`**
-- Add `asOfDate` / `setAsOfDate` state (initialized to today)
-- Pass `asOfDate` and `onAsOfDateChange` props to all four content components
+**`src/components/bills/EditBillDialog.tsx`**
 
-**2. `src/components/reports/BalanceSheetContent.tsx`**
-- Add `asOfDate` and `onAsOfDateChange` to the props interface
-- Remove the local `useState<Date>(new Date())` for `asOfDate`
-- Replace all `setAsOfDate(date)` calls with `onAsOfDateChange(date)`
+1. **Job Cost Total footer (lines 939-964)**: Add `whitespace-nowrap` to the label div and reduce its col-span so text stays on one line. Do the same for the Expense Total footer (lines 1064-1089).
 
-**3. `src/components/reports/IncomeStatementContent.tsx`**
-- Same pattern: accept `asOfDate` and `onAsOfDateChange` as props, remove local state
+2. **Move Cancel/Save into the footer row**: Remove the `<DialogFooter>` block (lines 1095-1102). Instead, add the Cancel and Save buttons to the right side of both the Job Cost and Expense total footer rows (inside the empty spacer div at the end of each footer grid). This puts them inline with the total in the grey `bg-muted` bar, saving a full row of vertical space.
 
-**4. `src/components/reports/JobCostsContent.tsx`**
-- Same pattern: accept `asOfDate` and `onAsOfDateChange` as props, remove local state
+3. **Action column for approved bills**: No change — the column header "Action" remains for consistency with edit mode. The delete button is intentionally hidden for approved bills since only date, cost code allocation, files, and notes can be modified.
 
-**5. `src/components/reports/AccountsPayableContent.tsx`**
-- Same pattern: accept `asOfDate` and `onAsOfDateChange` as props, remove local state
+### Files
+1. `src/components/bills/EditBillDialog.tsx`
 
-### Technical Detail
-Each file's change is minimal:
-- Add two props to the interface (`asOfDate: Date`, `onAsOfDateChange: (date: Date) => void`)
-- Delete the `const [asOfDate, setAsOfDate] = useState<Date>(new Date())` line
-- Replace `setAsOfDate` with `onAsOfDateChange` in calendar `onSelect` handlers
-
-No query logic, formatting, or PDF export code needs to change since they all already reference the `asOfDate` variable by name.
