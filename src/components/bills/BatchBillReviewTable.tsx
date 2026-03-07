@@ -870,6 +870,7 @@ export function BatchBillReviewTable({
                   </TableCell>
                   
                   {/* Address */}
+                  {showAddressColumn && (
                   <TableCell className="w-24">
                     {lotAllocationData.uniqueLotCount > 1 ? (
                       <TooltipProvider>
@@ -897,6 +898,7 @@ export function BatchBillReviewTable({
                       lotAllocationData.display
                     )}
                   </TableCell>
+                  )}
                   
                   {/* Files */}
                   <TableCell className="w-14 text-center">

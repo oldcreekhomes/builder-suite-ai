@@ -854,6 +854,7 @@ export function BillsApprovalTable({ status, projectId, projectIds, showProjectC
                       <span className="text-muted-foreground">-</span>
                     )}
                   </TableCell>
+                  {showAddressColumn && (
                   <TableCell className="w-16 max-w-[64px]">
                     {(() => {
                       const { display, costCodeBreakdown, totalAmount, uniqueLotCount } = getLotAllocationData(bill);
@@ -892,6 +893,7 @@ export function BillsApprovalTable({ status, projectId, projectIds, showProjectC
                       );
                     })()}
                   </TableCell>
+                  )}
                   <TableCell className="w-10 text-center">
                     <BillFilesCell attachments={bill.bill_attachments || []} />
                   </TableCell>

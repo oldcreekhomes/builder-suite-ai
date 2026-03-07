@@ -1035,6 +1035,7 @@ export function PayBillsTable({ projectId, projectIds, showProjectColumn = true,
                   <TableCell className="whitespace-nowrap">
                     {bill.reference_number || '-'}
                   </TableCell>
+                  {showAddressColumn && (
                   <TableCell>
                     {(() => {
                       const { display, costCodeBreakdown, totalAmount, uniqueLotCount } = getLotAllocationData(bill);
@@ -1073,6 +1074,7 @@ export function PayBillsTable({ projectId, projectIds, showProjectColumn = true,
                       );
                     })()}
                   </TableCell>
+                  )}
                   
                   <TableCell>
                     <BillFilesCell attachments={bill.bill_attachments || []} />
