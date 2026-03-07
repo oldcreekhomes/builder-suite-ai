@@ -660,6 +660,13 @@ export function PayBillsTable({ projectId, projectIds, showProjectColumn = true,
     return sum + Math.round(openBalance * 100) / 100;
   }, 0);
 
+  const hasOnlyCredits = selectedBills.length > 0 && selectedBills.every(bill => {
+    const ob = bill.total_amount < 0
+      ? bill.total_amount + (bill.amount_paid || 0)
+      : bill.total_amount - (bill.amount_paid || 0);
+    return ob < 0;
+  });
+
   const isHeaderChecked = useMemo(() => {
     if (filteredBills.length === 0) return false;
     const targetVendor = getSelectedVendor() || filteredBills[0]?.vendor_id;
