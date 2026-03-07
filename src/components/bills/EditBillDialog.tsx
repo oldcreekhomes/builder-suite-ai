@@ -906,7 +906,7 @@ export function EditBillDialog({ open, onOpenChange, billId }: EditBillDialogPro
                           </Select>
                         </div>
                       )}
-                      <div className={showAddressColumn ? "col-span-4" : "col-span-3"}>
+                      <div className={showAddressColumn ? (isApprovedBill ? "col-span-5" : "col-span-4") : (isApprovedBill ? "col-span-4" : "col-span-3")}>
                         <POSelectionDropdown
                           projectId={billData?.project_id}
                           vendorId={vendor}
