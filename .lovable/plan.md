@@ -1,36 +1,56 @@
 
-## Share "As of Date" Across All Report Tabs
+
+## Show Payment Breakdown on the Paid Bills Tab
 
 ### Problem
-Each report tab (Balance Sheet, Income Statement, Job Costs, Accounts Payable) maintains its own independent `asOfDate` state initialized to `new Date()`. When you change the date on one tab and switch to another, it resets to today.
+The Paid tab's Amount column shows only `total_amount` (e.g., $200), giving no indication that a credit was applied. In the user's case, a $200 bill was paid using a $150 credit, meaning only $50 was actually disbursed -- but the table gives no visibility into this.
 
 ### Solution
-Lift the `asOfDate` state up to `ReportsTabs` and pass it down to all four child components as a prop. When the Reports page unmounts (user navigates away), the state naturally resets since it lives in a component that gets destroyed.
+Add a **"Paid"** column to the Paid tab that shows the net cash paid, with a tooltip breakdown when credits were involved. This keeps the Amount column as-is (the bill face value) while adding clarity on actual payment.
 
-### Changes
+### Technical Approach
 
-**1. `src/components/reports/ReportsTabs.tsx`**
-- Add `asOfDate` / `setAsOfDate` state (initialized to today)
-- Pass `asOfDate` and `onAsOfDateChange` props to all four content components
+**1. Fetch payment allocation data for paid bills**
 
-**2. `src/components/reports/BalanceSheetContent.tsx`**
-- Add `asOfDate` and `onAsOfDateChange` to the props interface
-- Remove the local `useState<Date>(new Date())` for `asOfDate`
-- Replace all `setAsOfDate(date)` calls with `onAsOfDateChange(date)`
+In `BillsApprovalTable.tsx`, when `status === 'paid'`, run a secondary query to fetch `bill_payment_allocations` for all displayed bill IDs. This gives us which `bill_payment_id` each bill belongs to. Then for each payment, fetch sibling allocations to identify credits applied.
 
-**3. `src/components/reports/IncomeStatementContent.tsx`**
-- Same pattern: accept `asOfDate` and `onAsOfDateChange` as props, remove local state
+Specifically:
+- Query `bill_payment_allocations` for all displayed bill IDs to get `bill_payment_id` and `amount_allocated`
+- Query `bill_payments` for those payment IDs to get `total_amount` (the actual cash disbursed)
+- Query sibling allocations to identify credits in the same payment group
 
-**4. `src/components/reports/JobCostsContent.tsx`**
-- Same pattern: accept `asOfDate` and `onAsOfDateChange` as props, remove local state
+**2. Add a "Paid" column (visible only on the Paid tab)**
 
-**5. `src/components/reports/AccountsPayableContent.tsx`**
-- Same pattern: accept `asOfDate` and `onAsOfDateChange` as props, remove local state
+Between the Amount column and the Reference column, show:
+- **Net paid amount** (cash actually disbursed for this bill)
+- When credits were involved, show a tooltip with the breakdown:
+  ```
+  Bill Amount:    $200.00
+  Credit Applied: -$150.00 (OCH-02302)
+  Cash Paid:       $50.00
+  ```
+- Use a small info icon or the green CR badge to indicate credits were involved
 
-### Technical Detail
-Each file's change is minimal:
-- Add two props to the interface (`asOfDate: Date`, `onAsOfDateChange: (date: Date) => void`)
-- Delete the `const [asOfDate, setAsOfDate] = useState<Date>(new Date())` line
-- Replace `setAsOfDate` with `onAsOfDateChange` in calendar `onSelect` handlers
+**3. Files to modify**
 
-No query logic, formatting, or PDF export code needs to change since they all already reference the `asOfDate` variable by name.
+- **`src/components/bills/BillsApprovalTable.tsx`**:
+  - Add a `useQuery` that fetches payment allocation data when status is `'paid'`
+  - Add a `TableHead` for "Paid" column, conditionally rendered for paid status
+  - Add a `TableCell` that shows the net payment with tooltip breakdown
+  - Add the column to `baseColCount` when on the paid tab
+
+### Data Flow
+
+```text
+bill_payment_allocations (bill_id = this bill)
+  → bill_payment_id
+    → bill_payments.total_amount (total cash for the grouped payment)
+    → sibling bill_payment_allocations (same payment_id)
+      → identify credits (bills with negative total_amount)
+```
+
+### UI Behavior
+- Bills paid without credits: "Paid" column shows same value as Amount (e.g., "$200.00")
+- Bills paid with credits: "Paid" column shows net cash (e.g., "$50.00") with an info icon; hovering shows the credit breakdown with reference numbers
+- Credit memo rows themselves: "Paid" column shows "-" or the applied amount
+
