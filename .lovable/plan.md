@@ -1,55 +1,36 @@
 
-
-## Unify PayBillDialog Summary Format
+## Share "As of Date" Across All Report Tabs
 
 ### Problem
-Single-bill and multi-bill payments show completely different summary layouts. The multi-bill format (line items + total) is cleaner and more intuitive. The single-bill format shows "Original Amount", "Previously Paid", "Remaining Balance", "Due Date", "Reference" — a different paradigm that's unnecessarily complex.
+Each report tab (Balance Sheet, Income Statement, Job Costs, Accounts Payable) maintains its own independent `asOfDate` state initialized to `new Date()`. When you change the date on one tab and switch to another, it resets to today.
 
 ### Solution
-Use the same line-item format for both single and multi-bill views. Remove the `isMultiple` conditional entirely and always render the unified format:
+Lift the `asOfDate` state up to `ReportsTabs` and pass it down to all four child components as a prop. When the Reports page unmounts (user navigates away), the state naturally resets since it lives in a component that gets destroyed.
 
-### Changes — `src/components/PayBillDialog.tsx`
+### Changes
 
-**Lines 194** — Update title to always say "Pay Bill" or "Pay Bills" (plural only when >1):
-```tsx
-<DialogTitle>{billsArray.length > 1 ? `Pay ${billsArray.length} Bills` : 'Pay Bill'}</DialogTitle>
-```
+**1. `src/components/reports/ReportsTabs.tsx`**
+- Add `asOfDate` / `setAsOfDate` state (initialized to today)
+- Pass `asOfDate` and `onAsOfDateChange` props to all four content components
 
-**Lines 204-255** — Replace the entire `isMultiple ? (...) : (...)` block with a single unified format that works for any number of bills:
+**2. `src/components/reports/BalanceSheetContent.tsx`**
+- Add `asOfDate` and `onAsOfDateChange` to the props interface
+- Remove the local `useState<Date>(new Date())` for `asOfDate`
+- Replace all `setAsOfDate(date)` calls with `onAsOfDateChange(date)`
 
-```tsx
-{/* Line items */}
-<div className="space-y-1">
-  {billsArray.map((bill) => {
-    const openBalance = getOpenBalance(bill);
-    const isCredit = openBalance < 0;
-    return (
-      <div key={bill.id} className="flex justify-between text-sm">
-        <span>
-          {bill.reference_number || 'No ref'}
-          {isCredit && <span className="ml-1 text-green-600">(Credit)</span>}
-        </span>
-        <span className={isCredit ? 'text-green-600' : ''}>
-          {formatCurrency(openBalance)}
-        </span>
-      </div>
-    );
-  })}
-</div>
-{/* Total */}
-<div className="flex justify-between font-semibold pt-2 border-t">
-  <span>Total:</span>
-  <span>{formatCurrency(totalAmount)}</span>
-</div>
-```
+**3. `src/components/reports/IncomeStatementContent.tsx`**
+- Same pattern: accept `asOfDate` and `onAsOfDateChange` as props, remove local state
 
-This means a single $200 bill will show:
-```
-Vendor:          JZ Structural Consulting, Inc.
-260056                                 $200.00
-────────────────────────────────────────────────
-Total:                                 $200.00
-```
+**4. `src/components/reports/JobCostsContent.tsx`**
+- Same pattern: accept `asOfDate` and `onAsOfDateChange` as props, remove local state
 
-The Payment Amount input field (for partial payments) remains below the summary for single bills. No other changes needed.
+**5. `src/components/reports/AccountsPayableContent.tsx`**
+- Same pattern: accept `asOfDate` and `onAsOfDateChange` as props, remove local state
 
+### Technical Detail
+Each file's change is minimal:
+- Add two props to the interface (`asOfDate: Date`, `onAsOfDateChange: (date: Date) => void`)
+- Delete the `const [asOfDate, setAsOfDate] = useState<Date>(new Date())` line
+- Replace `setAsOfDate` with `onAsOfDateChange` in calendar `onSelect` handlers
+
+No query logic, formatting, or PDF export code needs to change since they all already reference the `asOfDate` variable by name.
