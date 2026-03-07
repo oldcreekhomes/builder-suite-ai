@@ -227,7 +227,7 @@ export function PayBillDialog({
                   <div className="text-sm font-medium mb-1">Items:</div>
                   <div className="max-h-32 overflow-y-auto space-y-1">
                     {billsArray.map((bill) => {
-                      const remaining = bill.total_amount - (bill.amount_paid || 0);
+                      const remaining = getOpenBalance(bill);
                       const isCredit = remaining < 0;
                       return (
                         <div key={bill.id} className="flex justify-between text-sm">
