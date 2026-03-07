@@ -115,62 +115,61 @@ export function AccountDetailDialog({
     queryFn: async (): Promise<Transaction[]> => {
       if (!accountId) return [];
 
-      let query = supabase
-        .from('journal_entry_lines')
-        .select(`
-          id,
-          memo,
-          debit,
-          credit,
-          account_id,
-          cost_code_id,
-          reconciled,
-          reconciliation_id,
-          reconciliation_date,
-        journal_entries!inner(
-          id,
-          entry_date,
-          description,
-          source_type,
-          source_id,
-          created_at,
-          is_reversal,
-          reversed_at,
-          reversed_by_id
-        )
-        `)
-        .eq('account_id', accountId)
-        .eq('journal_entries.is_reversal', false)
-        .is('journal_entries.reversed_by_id', null);
+      const buildQuery = () => {
+        let query = supabase
+          .from('journal_entry_lines')
+          .select(`
+            id,
+            memo,
+            debit,
+            credit,
+            account_id,
+            cost_code_id,
+            reconciled,
+            reconciliation_id,
+            reconciliation_date,
+          journal_entries!inner(
+            id,
+            entry_date,
+            description,
+            source_type,
+            source_id,
+            created_at,
+            is_reversal,
+            reversed_at,
+            reversed_by_id
+          )
+          `)
+          .eq('account_id', accountId)
+          .eq('journal_entries.is_reversal', false)
+          .is('journal_entries.reversed_by_id', null);
 
-      // As-of-date-aware reversal filtering
-      if (asOfDate) {
-        const asOfDateStr = asOfDate.toISOString().split('T')[0];
-        query = query.or(`reversed_at.is.null,reversed_at.gt.${asOfDateStr}`, { referencedTable: 'journal_entries' });
-      } else {
-        query = query.is('journal_entries.reversed_at', null);
-      }
+        if (asOfDate) {
+          const asOfDateStr = asOfDate.toISOString().split('T')[0];
+          query = query.or(`reversed_at.is.null,reversed_at.gt.${asOfDateStr}`, { referencedTable: 'journal_entries' });
+        } else {
+          query = query.is('journal_entries.reversed_at', null);
+        }
 
-      // Apply date filter if asOfDate is provided
-      if (asOfDate) {
-        query = query.lte('journal_entries.entry_date', asOfDate.toISOString().split('T')[0]);
-      }
+        if (asOfDate) {
+          query = query.lte('journal_entries.entry_date', asOfDate.toISOString().split('T')[0]);
+        }
 
-      if (projectId) {
-        query = query.eq('project_id', projectId);
-      } else {
-        query = query.is('project_id', null);
-      }
+        if (projectId) {
+          query = query.eq('project_id', projectId);
+        } else {
+          query = query.is('project_id', null);
+        }
 
-      // Apply stable server-side ordering to reduce reshuffling
-      query = query
-        .order('entry_date', { foreignTable: 'journal_entries', ascending: sortOrder !== 'desc' })
-        .order('created_at', { foreignTable: 'journal_entries', ascending: sortOrder !== 'desc' })
-        .order('id', { ascending: sortOrder !== 'desc' });
+        query = query
+          .order('entry_date', { foreignTable: 'journal_entries', ascending: sortOrder !== 'desc' })
+          .order('created_at', { foreignTable: 'journal_entries', ascending: sortOrder !== 'desc' })
+          .order('id', { ascending: sortOrder !== 'desc' });
 
-      const { data, error } = await query;
+        return query;
+      };
 
-      if (error) throw error;
+      const data = await fetchAllRows(buildQuery);
 
       // Get check IDs for check transactions
       const checkIds = (data || [])
