@@ -937,29 +937,37 @@ export function EditBillDialog({ open, onOpenChange, billId }: EditBillDialogPro
                   ))}
 
                   <div className="p-3 bg-muted border-t">
-                    <div className={cn("grid gap-2 w-full", showAddressColumn ? "grid-cols-24" : "grid-cols-20")}>
-                      <div className={cn("font-medium", showAddressColumn ? "col-span-14" : "col-span-14")}>
-                        {jobCostRows.reduce((total, row) => {
-                          const q = parseFloat(row.quantity) || 0;
-                          const c = parseFloat(row.amount) || 0;
-                          return total + q * c;
-                        }, 0) < 0 ? 'Bill Credit Total:' : 'Job Cost Total:'}
+                    <div className="flex items-center justify-between w-full">
+                      <div className="flex items-center gap-2 font-medium whitespace-nowrap">
+                        <span>
+                          {jobCostRows.reduce((total, row) => {
+                            const q = parseFloat(row.quantity) || 0;
+                            const c = parseFloat(row.amount) || 0;
+                            return total + q * c;
+                          }, 0) < 0 ? 'Bill Credit Total:' : 'Job Cost Total:'}
+                        </span>
+                        <span className={cn(
+                          jobCostRows.reduce((total, row) => {
+                            const q = parseFloat(row.quantity) || 0;
+                            const c = parseFloat(row.amount) || 0;
+                            return total + q * c;
+                          }, 0) < 0 && "text-green-600"
+                        )}>
+                          ${jobCostRows.reduce((total, row) => {
+                            const q = parseFloat(row.quantity) || 0;
+                            const c = parseFloat(row.amount) || 0;
+                            return total + q * c;
+                          }, 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                        </span>
                       </div>
-                      <div className={cn(
-                        "col-span-2 font-medium",
-                        jobCostRows.reduce((total, row) => {
-                          const q = parseFloat(row.quantity) || 0;
-                          const c = parseFloat(row.amount) || 0;
-                          return total + q * c;
-                        }, 0) < 0 && "text-green-600"
-                      )}>
-                        ${jobCostRows.reduce((total, row) => {
-                          const q = parseFloat(row.quantity) || 0;
-                          const c = parseFloat(row.amount) || 0;
-                          return total + q * c;
-                        }, 0).toFixed(2)}
+                      <div className="flex items-center gap-2">
+                        <Button variant="outline" size="sm" onClick={() => onOpenChange(false)} disabled={updateBill.isPending || correctBill.isPending}>
+                          Cancel
+                        </Button>
+                        <Button size="sm" onClick={handleSave} disabled={updateBill.isPending || correctBill.isPending}>
+                          {updateBill.isPending || correctBill.isPending ? "Saving..." : "Save Changes"}
+                        </Button>
                       </div>
-                      <div className={showAddressColumn ? "col-span-8" : "col-span-4"}></div>
                     </div>
                   </div>
                 </div>
