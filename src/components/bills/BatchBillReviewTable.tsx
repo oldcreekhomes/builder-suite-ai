@@ -1,4 +1,5 @@
 import { useState, useEffect, useMemo } from "react";
+import { useLots } from "@/hooks/useLots";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";

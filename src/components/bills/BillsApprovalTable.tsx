@@ -1,4 +1,5 @@
 import { useMemo, useState } from "react";
+import { useLots } from "@/hooks/useLots";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import {
   Table,
