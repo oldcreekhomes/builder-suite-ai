@@ -562,9 +562,7 @@ export function BatchBillReviewTable({
     }).format(amount);
   };
 
-  // Column count for empty state: Checkbox(1) + Vendor(1) + CostCode(1) + BillDate(1) + DueDate(1) + Amount(1) + Reference(1) + Memo(1) + Address(1) + Files(1) + POStatus(1) + Actions(1) = 12
-  // + Project(1) if shown = 13
-  const emptyStateColSpan = 12 + (showProjectColumn ? 1 : 0);
+  const emptyStateColSpan = 11 + (showProjectColumn ? 1 : 0) + (showAddressColumn ? 1 : 0);
 
   if (bills.length === 0) {
     return (
