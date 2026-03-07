@@ -31,6 +31,7 @@ import { Label } from "@/components/ui/label";
 import { TableRowActions } from "@/components/ui/table-row-actions";
 import { EditBillDialog } from "@/components/bills/EditBillDialog";
 import { EditDepositDialog } from "@/components/deposits/EditDepositDialog";
+import { EditCheckDialog } from "@/components/checks/EditCheckDialog";
 import { formatDateSafe } from "@/utils/dateOnly";
 
 interface IncludedBillPayment {
@@ -99,6 +100,7 @@ export function AccountDetailDialog({
   
   const [editingBillId, setEditingBillId] = useState<string | null>(null);
   const [editingDepositId, setEditingDepositId] = useState<string | null>(null);
+  const [editingCheckId, setEditingCheckId] = useState<string | null>(null);
   const { deleteCheck } = useChecks();
   const { deleteDeposit } = useDeposits();
   const { deleteCreditCard } = useCreditCards();
@@ -928,6 +930,8 @@ export function AccountDetailDialog({
       setEditingBillId(txn.source_id);
     } else if (txn.source_type === 'deposit') {
       setEditingDepositId(txn.source_id);
+    } else if (txn.source_type === 'check') {
+      setEditingCheckId(txn.source_id);
     }
   };
 
@@ -1208,8 +1212,8 @@ export function AccountDetailDialog({
                             </Tooltip>
                           ) : canDeleteBills ? (
                             <TableRowActions actions={[
-                              ...(['bill', 'deposit'].includes(txn.source_type) ? [{
-                                label: txn.source_type === 'bill' ? 'Edit Bill' : 'Edit Deposit',
+                              ...(['bill', 'deposit', 'check'].includes(txn.source_type) ? [{
+                                label: txn.source_type === 'bill' ? 'Edit Bill' : txn.source_type === 'deposit' ? 'Edit Deposit' : 'Edit Check',
                                 onClick: () => handleEditTransaction(txn),
                               }] : []),
                               {
@@ -1261,6 +1265,20 @@ export function AccountDetailDialog({
       open={!!editingDepositId}
       onOpenChange={handleEditDepositDialogClose}
       depositId={editingDepositId || ''}
+    />
+
+    {/* Edit Check Dialog */}
+    <EditCheckDialog
+      open={!!editingCheckId}
+      onOpenChange={(open) => {
+        if (!open) {
+          setEditingCheckId(null);
+          queryClient.invalidateQueries({ queryKey: ['account-transactions'] });
+          queryClient.invalidateQueries({ queryKey: ['balance-sheet'] });
+          queryClient.invalidateQueries({ queryKey: ['income-statement'] });
+        }
+      }}
+      checkId={editingCheckId || ''}
     />
     </>
   );

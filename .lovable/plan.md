@@ -1,29 +1,36 @@
 
+## Share "As of Date" Across All Report Tabs
 
-## Add Edit Check Dialog for Account Detail Dialog
+### Problem
+Each report tab (Balance Sheet, Income Statement, Job Costs, Accounts Payable) maintains its own independent `asOfDate` state initialized to `new Date()`. When you change the date on one tab and switch to another, it resets to today.
 
-The Account Detail Dialog currently only shows a "Delete" action for check transactions in the dropdown menu. Bill and deposit transactions already have Edit actions that open inline edit dialogs. We need to create an equivalent `EditCheckDialog` for checks.
+### Solution
+Lift the `asOfDate` state up to `ReportsTabs` and pass it down to all four child components as a prop. When the Reports page unmounts (user navigates away), the state naturally resets since it lives in a component that gets destroyed.
 
-### What's happening now
-- The `TableRowActions` in `AccountDetailDialog.tsx` (line 1211) only adds Edit for `bill` and `deposit` source types
-- There is no `EditCheckDialog` component in the codebase
-- The `useChecks` hook already has a working `updateCheck` mutation that supports updating date, check number, pay to, memo, amount, and check lines
+### Changes
 
-### Plan
+**1. `src/components/reports/ReportsTabs.tsx`**
+- Add `asOfDate` / `setAsOfDate` state (initialized to today)
+- Pass `asOfDate` and `onAsOfDateChange` props to all four content components
 
-**1. Create `src/components/checks/EditCheckDialog.tsx`**
-- Follow the same pattern as `EditDepositDialog` (dialog-based inline editor)
-- Load check data + check_lines via a query keyed on `checkId`
-- Form fields: Check Date, Pay To, Check Number, Memo, Bank Account (read-only)
-- Two tabs: Job Cost lines and Expense lines (matching WriteChecks page structure)
-- Each line: Account/Cost Code, Project, Amount, Memo, Lot (if applicable)
-- Save button calls `updateCheck` from `useChecks`
-- Follow the `shadcn-native` dialog standard (max-w-6xl, dense layout)
+**2. `src/components/reports/BalanceSheetContent.tsx`**
+- Add `asOfDate` and `onAsOfDateChange` to the props interface
+- Remove the local `useState<Date>(new Date())` for `asOfDate`
+- Replace all `setAsOfDate(date)` calls with `onAsOfDateChange(date)`
 
-**2. Update `src/components/accounting/AccountDetailDialog.tsx`**
-- Import `EditCheckDialog`
-- Add `editingCheckId` state (alongside existing `editingBillId` and `editingDepositId`)
-- Extend `handleEditTransaction` to handle `source_type === 'check'`
-- Add the Edit action for check transactions in the `TableRowActions` (line 1211): change `['bill', 'deposit']` to `['bill', 'deposit', 'check']` with appropriate label
-- Render the `EditCheckDialog` component with proper close/invalidation handler
+**3. `src/components/reports/IncomeStatementContent.tsx`**
+- Same pattern: accept `asOfDate` and `onAsOfDateChange` as props, remove local state
 
+**4. `src/components/reports/JobCostsContent.tsx`**
+- Same pattern: accept `asOfDate` and `onAsOfDateChange` as props, remove local state
+
+**5. `src/components/reports/AccountsPayableContent.tsx`**
+- Same pattern: accept `asOfDate` and `onAsOfDateChange` as props, remove local state
+
+### Technical Detail
+Each file's change is minimal:
+- Add two props to the interface (`asOfDate: Date`, `onAsOfDateChange: (date: Date) => void`)
+- Delete the `const [asOfDate, setAsOfDate] = useState<Date>(new Date())` line
+- Replace `setAsOfDate` with `onAsOfDateChange` in calendar `onSelect` handlers
+
+No query logic, formatting, or PDF export code needs to change since they all already reference the `asOfDate` variable by name.
