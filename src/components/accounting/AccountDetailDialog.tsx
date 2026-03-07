@@ -17,18 +17,20 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Skeleton } from "@/components/ui/skeleton";
-import { DeleteButton } from "@/components/ui/delete-button";
 import { useChecks } from "@/hooks/useChecks";
 import { useDeposits } from "@/hooks/useDeposits";
 import { useCreditCards } from "@/hooks/useCreditCards";
 import { useJournalEntries } from "@/hooks/useJournalEntries";
 import { useUserRole } from "@/hooks/useUserRole";
-import { AccountTransactionInlineEditor } from "./AccountTransactionInlineEditor";
 import { Check } from "lucide-react";
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { useClosedPeriodCheck } from "@/hooks/useClosedPeriodCheck";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
+import { TableRowActions } from "@/components/ui/table-row-actions";
+import { EditBillDialog } from "@/components/bills/EditBillDialog";
+import { EditDepositDialog } from "@/components/deposits/EditDepositDialog";
+import { formatDateSafe } from "@/utils/dateOnly";
 
 interface IncludedBillPayment {
   bill_id: string;
@@ -94,17 +96,18 @@ export function AccountDetailDialog({
     }
   }, [open, accountId, isAccountsPayable]);
   
-  const { deleteCheck, updateCheck, correctCheck } = useChecks();
-  const { deleteDeposit, updateDeposit, correctDeposit } = useDeposits();
-  const { deleteCreditCard, correctCreditCard } = useCreditCards();
-  const { deleteManualJournalEntry, updateJournalEntryField, updateJournalEntryLine, correctManualJournalEntry } = useJournalEntries();
+  const [editingBillId, setEditingBillId] = useState<string | null>(null);
+  const [editingDepositId, setEditingDepositId] = useState<string | null>(null);
+  const { deleteCheck } = useChecks();
+  const { deleteDeposit } = useDeposits();
+  const { deleteCreditCard } = useCreditCards();
+  const { deleteManualJournalEntry } = useJournalEntries();
   const { canDeleteBills } = useUserRole();
   const queryClient = useQueryClient();
   const prevOpenRef = useRef(open);
   const { isDateLocked, latestClosedDate } = useClosedPeriodCheck(projectId);
 
-  // Helper to parse date-only strings as local midnight (avoids timezone shift)
-  const toLocalDate = (dateStr: string) => new Date(`${dateStr}T00:00:00`);
+  
 
   const { data: transactions, isLoading } = useQuery<Transaction[]>({
     queryKey: ['account-transactions', accountId, projectId, sortOrder, asOfDate?.toISOString()],
@@ -919,119 +922,27 @@ export function AccountDetailDialog({
     }
   };
 
-  const handleUpdate = async (
-    transaction: Transaction,
-    field: "date" | "reference" | "description" | "amount",
-    value: string | number | Date
-  ) => {
-    // CRITICAL: Never allow updates to reconciled transactions
-    if (transaction.reconciled) {
-      console.error('Cannot update reconciled transaction');
-      const { toast } = await import("@/hooks/use-toast");
-      toast({
-        title: "Cannot Edit",
-        description: "This transaction is reconciled and cannot be modified.",
-        variant: "destructive",
-      });
-      return;
-    }
-    
-    const queryKey = ['account-transactions', accountId, projectId, sortOrder] as const;
-    
-    try {
-      // Description is always updated on the journal entry line
-      if (field === "description") {
-        await updateJournalEntryLine.mutateAsync({ 
-          lineId: transaction.line_id, 
-          updates: { memo: value as string } 
-        });
-        
-        // Immediately refresh the dialog and balance sheet
-        await queryClient.invalidateQueries({ queryKey });
-        await queryClient.refetchQueries({ queryKey });
-        queryClient.invalidateQueries({ queryKey: ['balance-sheet'] });
-        queryClient.refetchQueries({ queryKey: ['balance-sheet'] });
-        return;
-      }
-
-      switch (transaction.source_type) {
-        case 'check':
-          // Always use updateCheck for inline edits (no correction/duplicate creation)
-          const checkUpdates: any = {};
-          if (field === "date") checkUpdates.check_date = format(value as Date, "yyyy-MM-dd");
-          if (field === "reference") checkUpdates.pay_to = value as string;
-          if (field === "amount") checkUpdates.amount = value as number;
-          await updateCheck.mutateAsync({ checkId: transaction.source_id, updates: checkUpdates });
-          
-          // Immediately refresh the dialog and balance sheet
-          await queryClient.invalidateQueries({ queryKey });
-          await queryClient.refetchQueries({ queryKey });
-          queryClient.invalidateQueries({ queryKey: ['balance-sheet'] });
-          queryClient.refetchQueries({ queryKey: ['balance-sheet'] });
-          break;
-        case 'deposit':
-          // Fetch deposit to determine status
-          const { data: depositData } = await supabase
-            .from('deposits')
-            .select('*, deposit_lines(*)')
-            .eq('id', transaction.source_id)
-            .single();
-          
-          if (depositData && (depositData.status === 'posted' || depositData.status === 'cleared')) {
-            // Use correction for posted/cleared deposits
-            const correctedDepositData: any = {
-              deposit_date: field === "date" ? format(value as Date, "yyyy-MM-dd") : depositData.deposit_date,
-              bank_account_id: depositData.bank_account_id,
-              project_id: depositData.project_id,
-              amount: field === "amount" ? value as number : depositData.amount,
-              memo: field === "reference" ? value as string : depositData.memo
-            };
-            const correctedDepositLines = depositData.deposit_lines.map((line: any) => ({
-              line_type: line.line_type,
-              account_id: line.account_id,
-              cost_code_id: line.cost_code_id,
-              project_id: line.project_id,
-              amount: field === "amount" ? (value as number) * (line.amount / depositData.amount) : line.amount,
-              memo: line.memo
-            }));
-            await correctDeposit.mutateAsync({ depositId: transaction.source_id, correctedDepositData, correctedDepositLines });
-          } else {
-            // Use update for draft deposits
-            const depositUpdates: any = {};
-            if (field === "date") depositUpdates.deposit_date = format(value as Date, "yyyy-MM-dd");
-            if (field === "reference") {
-              // For deposits, "Received From" updates the memo field which is displayed as the received from
-              depositUpdates.memo = value as string;
-            }
-            if (field === "amount") depositUpdates.amount = value as number;
-            await updateDeposit.mutateAsync({ depositId: transaction.source_id, updates: depositUpdates });
-          }
-          
-          // Immediately refresh the dialog and balance sheet
-          await queryClient.invalidateQueries({ queryKey });
-          await queryClient.refetchQueries({ queryKey });
-          queryClient.invalidateQueries({ queryKey: ['balance-sheet'] });
-          queryClient.refetchQueries({ queryKey: ['balance-sheet'] });
-          break;
-        case 'manual':
-          const journalUpdates: any = {};
-          if (field === "date") journalUpdates.entry_date = format(value as Date, "yyyy-MM-dd");
-          await updateJournalEntryField.mutateAsync({ entryId: transaction.source_id, updates: journalUpdates });
-          
-          // Immediately refresh the dialog and balance sheet
-          await queryClient.invalidateQueries({ queryKey });
-          await queryClient.refetchQueries({ queryKey });
-          queryClient.invalidateQueries({ queryKey: ['balance-sheet'] });
-          queryClient.refetchQueries({ queryKey: ['balance-sheet'] });
-          break;
-        default:
-          console.log('Edit not implemented for:', transaction.source_type);
-      }
-    } catch (error) {
-      console.error('Error updating transaction:', error);
+  const handleEditTransaction = (txn: Transaction) => {
+    if (txn.source_type === 'bill') {
+      setEditingBillId(txn.source_id);
+    } else if (txn.source_type === 'deposit') {
+      setEditingDepositId(txn.source_id);
     }
   };
 
+  const handleEditDialogClose = () => {
+    setEditingBillId(null);
+    queryClient.invalidateQueries({ queryKey: ['account-transactions'] });
+    queryClient.invalidateQueries({ queryKey: ['balance-sheet'] });
+    queryClient.invalidateQueries({ queryKey: ['income-statement'] });
+  };
+
+  const handleEditDepositDialogClose = () => {
+    setEditingDepositId(null);
+    queryClient.invalidateQueries({ queryKey: ['account-transactions'] });
+    queryClient.invalidateQueries({ queryKey: ['balance-sheet'] });
+    queryClient.invalidateQueries({ queryKey: ['income-statement'] });
+  };
   const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat('en-US', {
       style: 'currency',
@@ -1109,6 +1020,7 @@ export function AccountDetailDialog({
   const balances = calculateRunningBalance(displayedTransactions);
 
   return (
+    <>
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-5xl max-h-[85vh] overflow-hidden flex flex-col">
         <DialogHeader>
@@ -1196,24 +1108,12 @@ export function AccountDetailDialog({
                 <span className="text-xs">{getTypeLabel(txn.source_type)}</span>
                       </TableCell>
                       <TableCell className="px-2 py-1">
-                        <AccountTransactionInlineEditor
-                          value={toLocalDate(txn.date)}
-                          field="date"
-                          onSave={(value) => handleUpdate(txn, "date", value)}
-                          readOnly={!canDeleteBills || txn.reconciled || isConsolidated}
-                        />
+                        <span className="text-xs">{formatDateSafe(txn.date, 'MM/dd/yyyy')}</span>
                       </TableCell>
                       <TableCell className="px-2 py-1 max-w-[120px]">
                         <Tooltip>
                           <TooltipTrigger asChild>
-                            <div className="truncate">
-                              <AccountTransactionInlineEditor
-                                value={txn.reference || '-'}
-                                field="reference"
-                                onSave={(value) => handleUpdate(txn, "reference", value)}
-                                readOnly={!canDeleteBills || txn.reconciled || !['check', 'deposit'].includes(txn.source_type) || isConsolidated}
-                              />
-                            </div>
+                            <span className="text-xs truncate block">{txn.reference || '-'}</span>
                           </TooltipTrigger>
                           <TooltipContent>{txn.reference || '-'}</TooltipContent>
                         </Tooltip>
@@ -1256,14 +1156,7 @@ export function AccountDetailDialog({
                       <TableCell className="px-2 py-1 max-w-[160px]">
                         <Tooltip>
                           <TooltipTrigger asChild>
-                            <div className="truncate">
-                              <AccountTransactionInlineEditor
-                                value={txn.description || '-'}
-                                field="description"
-                                onSave={(value) => handleUpdate(txn, "description", value)}
-                                readOnly={!canDeleteBills || txn.reconciled || isConsolidated}
-                              />
-                            </div>
+                            <span className="text-xs truncate block">{txn.description || '-'}</span>
                           </TooltipTrigger>
                           <TooltipContent className="max-w-xs">{txn.description || '-'}</TooltipContent>
                         </Tooltip>
@@ -1281,41 +1174,53 @@ export function AccountDetailDialog({
                       </TableCell>
                       <TableCell className="px-2 py-1">
                         <div className="flex items-center justify-center">
-                          {canDeleteBills && !txn.reconciled && !isDateLocked(txn.date) && !isConsolidated && (
-                            <DeleteButton
-                              onDelete={() => handleDelete(txn)}
-                              title="Delete Transaction"
-                              description={`Are you sure you want to delete this ${txn.source_type} transaction? This will remove all related journal entries and cannot be undone.`}
-                              size="sm"
-                              variant="ghost"
-                              className="h-6 w-6 p-0"
-                            />
-                          )}
-                          {(txn.reconciled || isDateLocked(txn.date)) && (
+                          {txn.reconciled || isDateLocked(txn.date) || isConsolidated ? (
                             <Tooltip>
                               <TooltipTrigger asChild>
-                                <span className="text-muted-foreground text-lg cursor-help">🔒</span>
+                                <div>
+                                  <TableRowActions actions={[]} disabled />
+                                </div>
                               </TooltipTrigger>
                               <TooltipContent side="left" align="center">
-                                {txn.reconciled && isDateLocked(txn.date) ? (
+                                {isConsolidated ? (
+                                  <>
+                                    <p className="font-medium">Consolidated Payment</p>
+                                    <p className="text-xs text-muted-foreground">Cannot be edited individually</p>
+                                  </>
+                                ) : txn.reconciled && isDateLocked(txn.date) ? (
                                   <>
                                     <p className="font-medium">Reconciled and Books Closed</p>
-                                    <p className="text-xs">Cannot be edited or deleted</p>
+                                    <p className="text-xs text-muted-foreground">Cannot be edited or deleted</p>
                                   </>
                                 ) : txn.reconciled ? (
                                   <>
                                     <p className="font-medium">Reconciled</p>
-                                    <p className="text-xs">Cannot be edited or deleted</p>
+                                    <p className="text-xs text-muted-foreground">Cannot be edited or deleted</p>
                                   </>
                                 ) : (
                                   <>
                                     <p className="font-medium">Books Closed</p>
-                                    <p className="text-xs">Cannot be edited or deleted</p>
+                                    <p className="text-xs text-muted-foreground">Cannot be edited or deleted</p>
                                   </>
                                 )}
                               </TooltipContent>
                             </Tooltip>
-                          )}
+                          ) : canDeleteBills ? (
+                            <TableRowActions actions={[
+                              ...(['bill', 'deposit'].includes(txn.source_type) ? [{
+                                label: txn.source_type === 'bill' ? 'Edit Bill' : 'Edit Deposit',
+                                onClick: () => handleEditTransaction(txn),
+                              }] : []),
+                              {
+                                label: 'Delete',
+                                onClick: () => handleDelete(txn),
+                                variant: 'destructive' as const,
+                                requiresConfirmation: true,
+                                confirmTitle: 'Delete Transaction',
+                                confirmDescription: `Are you sure you want to delete this ${txn.source_type} transaction? This will remove all related journal entries and cannot be undone.`,
+                              },
+                            ]} />
+                          ) : null}
                         </div>
                       </TableCell>
                     </TableRow>
@@ -1342,5 +1247,20 @@ export function AccountDetailDialog({
         </div>
       </DialogContent>
     </Dialog>
+
+    {/* Edit Bill Dialog */}
+    <EditBillDialog
+      open={!!editingBillId}
+      onOpenChange={handleEditDialogClose}
+      billId={editingBillId || ''}
+    />
+
+    {/* Edit Deposit Dialog */}
+    <EditDepositDialog
+      open={!!editingDepositId}
+      onOpenChange={handleEditDepositDialogClose}
+      depositId={editingDepositId || ''}
+    />
+    </>
   );
 }
