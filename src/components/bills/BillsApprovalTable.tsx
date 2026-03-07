@@ -785,9 +785,6 @@ export function BillsApprovalTable({ status, projectId, projectIds, showProjectC
                     )}
                   </TableHead>
                   <TableHead className="w-20">Amount</TableHead>
-                  {isPaidStatus && (
-                    <TableHead className="w-20">Paid</TableHead>
-                  )}
                   <TableHead className="w-24">Reference</TableHead>
                   <TableHead className="w-10 text-center">Memo</TableHead>
                   {showAddressColumn && <TableHead className="w-16">Address</TableHead>}
