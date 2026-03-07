@@ -25,10 +25,10 @@ export function POStatusBadge({ status, onClick, className }: POStatusBadgeProps
       case 'over_po':
         return {
           icon: AlertTriangle,
-          label: 'Over',
+          label: 'Over Budget',
           tooltip: 'Cumulative bills exceed PO amount',
-          bgClass: 'bg-yellow-100 hover:bg-yellow-200 text-yellow-700 border-yellow-200',
-          iconClass: 'text-yellow-600',
+          bgClass: 'bg-red-100 hover:bg-red-200 text-red-700 border-red-200',
+          iconClass: 'text-red-600',
         };
       case 'partial':
         return {
