@@ -240,6 +240,7 @@ export function JobCostActualDialog({
         let reference_number: string | undefined;
         let bill_id: string | undefined;
         let deposit_id: string | undefined;
+        let check_id: string | undefined;
 
         if (sourceType === 'bill') {
           const billData = billsMap.get(sourceId);
