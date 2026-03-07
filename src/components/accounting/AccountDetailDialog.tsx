@@ -930,6 +930,8 @@ export function AccountDetailDialog({
       setEditingBillId(txn.source_id);
     } else if (txn.source_type === 'deposit') {
       setEditingDepositId(txn.source_id);
+    } else if (txn.source_type === 'check') {
+      setEditingCheckId(txn.source_id);
     }
   };
 
