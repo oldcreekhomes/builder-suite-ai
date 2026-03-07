@@ -1,28 +1,36 @@
 
-
-## Fix: Payment Breakdown Calculation Uses Wrong Data Source
+## Share "As of Date" Across All Report Tabs
 
 ### Problem
-The "Cash Paid" calculation on the Paid tab uses `payment.total_amount` from `bill_payments`, which is the net cash for the **entire payment batch**, not the per-bill share. This produces incorrect results:
-- A $200 bill paid with a $150 credit should show $50 cash paid
-- Instead it shows $0.00 because `bill_payments.total_amount` reflects a different grouping
+Each report tab (Balance Sheet, Income Statement, Job Costs, Accounts Payable) maintains its own independent `asOfDate` state initialized to `new Date()`. When you change the date on one tab and switch to another, it resets to today.
 
-The root cause is on line 380: `totalCashForBill += payment.total_amount` — this is the wrong value to use per-bill.
+### Solution
+Lift the `asOfDate` state up to `ReportsTabs` and pass it down to all four child components as a prop. When the Reports page unmounts (user navigates away), the state naturally resets since it lives in a component that gets destroyed.
 
-### Fix in `src/components/bills/BillsApprovalTable.tsx`
+### Changes
 
-**Change the `cashPaid` calculation** (lines 356-384): Instead of using `payment.total_amount`, compute cash paid as:
+**1. `src/components/reports/ReportsTabs.tsx`**
+- Add `asOfDate` / `setAsOfDate` state (initialized to today)
+- Pass `asOfDate` and `onAsOfDateChange` props to all four content components
 
-```
-cashPaid = bill.total_amount - sum(credit allocations in same payment)
-```
+**2. `src/components/reports/BalanceSheetContent.tsx`**
+- Add `asOfDate` and `onAsOfDateChange` to the props interface
+- Remove the local `useState<Date>(new Date())` for `asOfDate`
+- Replace all `setAsOfDate(date)` calls with `onAsOfDateChange(date)`
 
-This is straightforward: take the bill's face value and subtract the absolute value of credits applied in the same payment group. For a $200 bill with $150 credit applied, that yields $50 regardless of what `bill_payments.total_amount` stores.
+**3. `src/components/reports/IncomeStatementContent.tsx`**
+- Same pattern: accept `asOfDate` and `onAsOfDateChange` as props, remove local state
 
-Specifically, replace the loop logic:
-- Remove `totalCashForBill += payment.total_amount` 
-- After collecting all credits, calculate: `cashPaid = bill.total_amount - credits.reduce((sum, c) => sum + c.amount, 0)`
-- This derives the cash amount from the bill's own data rather than the payment batch total
+**4. `src/components/reports/JobCostsContent.tsx`**
+- Same pattern: accept `asOfDate` and `onAsOfDateChange` as props, remove local state
 
-No other files need changes. The tooltip content and display logic remain the same — only the underlying calculation is fixed.
+**5. `src/components/reports/AccountsPayableContent.tsx`**
+- Same pattern: accept `asOfDate` and `onAsOfDateChange` as props, remove local state
 
+### Technical Detail
+Each file's change is minimal:
+- Add two props to the interface (`asOfDate: Date`, `onAsOfDateChange: (date: Date) => void`)
+- Delete the `const [asOfDate, setAsOfDate] = useState<Date>(new Date())` line
+- Replace `setAsOfDate` with `onAsOfDateChange` in calendar `onSelect` handlers
+
+No query logic, formatting, or PDF export code needs to change since they all already reference the `asOfDate` variable by name.
