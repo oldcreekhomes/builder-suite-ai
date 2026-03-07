@@ -410,9 +410,9 @@ const formatCurrency = (value: number) => {
                         <div className="flex items-center justify-center">
                             {line.reconciled || isDateLocked(line.journal_entries.entry_date) ? (
                               <Tooltip>
-                                <TooltipTrigger asChild>
-                                  <div>
-                                    <TableRowActions actions={[]} disabled />
+                              <TooltipTrigger asChild>
+                                  <div className="flex justify-center">
+                                    <Lock className="h-4 w-4 text-muted-foreground" />
                                   </div>
                                 </TooltipTrigger>
                                 <TooltipContent side="left" align="center">

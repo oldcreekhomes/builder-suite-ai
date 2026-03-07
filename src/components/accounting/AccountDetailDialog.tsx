@@ -1177,8 +1177,8 @@ export function AccountDetailDialog({
                           {txn.reconciled || isDateLocked(txn.date) || isConsolidated ? (
                             <Tooltip>
                               <TooltipTrigger asChild>
-                                <div>
-                                  <TableRowActions actions={[]} disabled />
+                                <div className="flex justify-center">
+                                  <Lock className="h-4 w-4 text-muted-foreground" />
                                 </div>
                               </TooltipTrigger>
                               <TooltipContent side="left" align="center">
