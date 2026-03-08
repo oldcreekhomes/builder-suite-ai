@@ -149,6 +149,7 @@ export function BillsApprovalTable({ status, projectId, projectIds, showProjectC
     initialNotes: '',
   });
   const [editingBillId, setEditingBillId] = useState<string | null>(null);
+  const [expandedPayments, setExpandedPayments] = useState<Set<string>>(new Set());
   
   const [poDialogState, setPoDialogState] = useState<{
     open: boolean;
