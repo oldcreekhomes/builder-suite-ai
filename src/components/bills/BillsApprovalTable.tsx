@@ -729,6 +729,336 @@ export function BillsApprovalTable({ status, projectId, projectIds, showProjectC
   const showPOStatusColumn = true;
   const baseColCount = 11 + (showAddressColumn ? 1 : 0) + (showProjectColumn ? 1 : 0) + (showPayBillButton ? 1 : 0) + (canShowDeleteButton ? 1 : 0) + (showPOStatusColumn ? 1 : 0);
 
+  const renderBillRow = (bill: BillForApproval, memoSummary: string | null) => (
+    <TableRow key={bill.id}>
+      {showProjectColumn && (
+        <TableCell className="w-44">
+          <TooltipProvider>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <span className="block truncate">
+                  {bill.projects?.address || '-'}
+                </span>
+              </TooltipTrigger>
+              <TooltipContent>
+                <p>{bill.projects?.address || '-'}</p>
+              </TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
+        </TableCell>
+      )}
+      <TableCell className="w-32 max-w-[128px]">
+        <TooltipProvider>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <span className="block truncate">
+                {bill.companies?.company_name || 'Unknown Vendor'}
+              </span>
+            </TooltipTrigger>
+            <TooltipContent>
+              <p>{bill.companies?.company_name || 'Unknown Vendor'}</p>
+            </TooltipContent>
+          </Tooltip>
+        </TooltipProvider>
+      </TableCell>
+      <TableCell className="w-36 max-w-[144px] overflow-hidden">
+        {(() => {
+          const { display, costCodeBreakdown, totalAmount, count } = getCostCodeOrAccountData(bill);
+          return (
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <span className="block truncate cursor-default">
+                    {display}
+                  </span>
+                </TooltipTrigger>
+                <TooltipContent className="max-w-xs">
+                  {count <= 1 ? (
+                    <p>{display}</p>
+                  ) : (
+                    <div className="space-y-2">
+                      {costCodeBreakdown.map((cc, i) => (
+                        <div key={i}>
+                          <div className="font-medium text-xs">{cc.costCode}</div>
+                          <div className="pl-2 space-y-0.5">
+                            {cc.lots.map((lot, j) => (
+                              <div key={j} className="flex justify-between gap-4 text-xs">
+                                <span className="text-muted-foreground">{lot.name}:</span>
+                                <span>${lot.amount.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      ))}
+                      <div className="border-t pt-1 flex justify-between gap-4 font-medium text-xs">
+                        <span>Total:</span>
+                        <span>${totalAmount.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+                      </div>
+                    </div>
+                  )}
+                </TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
+          );
+        })()}
+      </TableCell>
+      <TableCell className="w-20">
+        {formatDisplayFromAny(bill.bill_date)}
+      </TableCell>
+      <TableCell className="w-20">
+        {bill.due_date ? (
+          (() => {
+            const today = new Date();
+            today.setHours(0, 0, 0, 0);
+            const dueDate = new Date(bill.due_date);
+            dueDate.setHours(0, 0, 0, 0);
+            const isOverdue = dueDate < today && status !== 'paid';
+            
+            return (
+              <span className={isOverdue ? 'text-red-600 font-semibold' : ''}>
+                {formatDisplayFromAny(bill.due_date)}
+              </span>
+            );
+          })()
+        ) : '-'}
+      </TableCell>
+      <TableCell className="w-20">
+        {(() => {
+          if (!isPaidStatus || bill.total_amount < 0) {
+            return (
+              <div className="flex items-center gap-1">
+                {formatCurrency(bill.total_amount)}
+                {bill.total_amount < 0 && (
+                  <Badge variant="outline" className="text-green-600 border-green-600 text-[10px] px-1">
+                    CR
+                  </Badge>
+                )}
+              </div>
+            );
+          }
+          const breakdown = paymentBreakdowns?.get(bill.id);
+          if (!breakdown || breakdown.credits.length === 0) {
+            return formatCurrency(bill.total_amount);
+          }
+          return (
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <div className="flex items-center gap-1 cursor-default">
+                    <span>{formatCurrency(breakdown.cashPaid)}</span>
+                    <Info className="h-3.5 w-3.5 text-green-600 shrink-0" />
+                  </div>
+                </TooltipTrigger>
+                <TooltipContent className="max-w-xs">
+                  <div className="space-y-1 text-xs">
+                    <div className="flex justify-between gap-4">
+                      <span>Bill Amount:</span>
+                      <span>${Math.abs(bill.total_amount).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+                    </div>
+                    {breakdown.credits.map((cr, i) => (
+                      <div key={i} className="flex justify-between gap-4 text-green-600">
+                        <span>Credit Applied ({cr.ref}):</span>
+                        <span>-${cr.amount.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+                      </div>
+                    ))}
+                    <div className="border-t pt-1 flex justify-between gap-4 font-medium">
+                      <span>Cash Paid:</span>
+                      <span>${breakdown.cashPaid.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+                    </div>
+                  </div>
+                </TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
+          );
+        })()}
+      </TableCell>
+      <TableCell className="w-24 max-w-[96px]">
+        <span className="block truncate">{bill.reference_number || '-'}</span>
+      </TableCell>
+      {/* Memo column */}
+      <TableCell className="w-10 text-center">
+        {memoSummary ? (
+          <TooltipProvider>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <FileText className="h-4 w-4 text-yellow-600 mx-auto cursor-default" />
+              </TooltipTrigger>
+              <TooltipContent className="max-w-xs">
+                <p className="whitespace-pre-wrap">{memoSummary}</p>
+              </TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
+        ) : (
+          <span className="text-muted-foreground">-</span>
+        )}
+      </TableCell>
+      {showAddressColumn && (
+      <TableCell className="w-16 max-w-[64px]">
+        {(() => {
+          const { display, costCodeBreakdown, totalAmount, uniqueLotCount } = getLotAllocationData(bill);
+          if (uniqueLotCount <= 1) {
+            return display;
+          }
+          return (
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger>
+                  {display}
+                </TooltipTrigger>
+                <TooltipContent className="max-w-xs">
+                  <div className="space-y-2">
+                    {costCodeBreakdown.map((cc, i) => (
+                      <div key={i}>
+                        <div className="font-medium text-xs">{cc.costCode}</div>
+                        <div className="pl-2 space-y-0.5">
+                          {cc.lots.map((lot, j) => (
+                            <div key={j} className="flex justify-between gap-4 text-xs">
+                              <span className="text-muted-foreground">{lot.name}:</span>
+                              <span>${lot.amount.toLocaleString('en-US', { minimumFractionDigits: 2 })}</span>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    ))}
+                    <div className="border-t pt-1 flex justify-between gap-4 font-medium text-xs">
+                      <span>Total:</span>
+                      <span>${totalAmount.toLocaleString('en-US', { minimumFractionDigits: 2 })}</span>
+                    </div>
+                  </div>
+                </TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
+          );
+        })()}
+      </TableCell>
+      )}
+      <TableCell className="w-10 text-center">
+        <BillFilesCell attachments={bill.bill_attachments || []} />
+      </TableCell>
+      <TableCell className="w-10 text-center">
+        <TooltipProvider>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button
+                variant="ghost"
+                size="sm"
+                className="h-6 w-6 p-0 hover:bg-muted"
+                onClick={() => setNotesDialog({ 
+                  open: true, 
+                  billId: bill.id,
+                  billInfo: {
+                    vendor: bill.companies?.company_name || 'Unknown Vendor',
+                    amount: bill.total_amount
+                  },
+                  initialNotes: bill.notes || ''
+                })}
+              >
+                {bill.notes?.trim() ? (
+                  <StickyNote className="h-3.5 w-3.5 text-yellow-600" />
+                ) : (
+                  <span className="text-xs text-muted-foreground">Add</span>
+                )}
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent>
+              <p>{bill.notes?.trim() ? 'View/Edit Notes' : 'Add Notes'}</p>
+            </TooltipContent>
+          </Tooltip>
+        </TooltipProvider>
+      </TableCell>
+      {/* PO Status column */}
+      {showPOStatusColumn && (
+        <TableCell className="w-20 text-center">
+          {(() => {
+            const matchResult = poMatchingData?.get(bill.id);
+            const poStatus = matchResult?.overall_status || 'no_po';
+            const allMatches = matchResult?.matches || [];
+            
+            return (
+              <POStatusBadge
+                status={poStatus}
+                onClick={() => {
+                  if (allMatches.length > 0) {
+                    setPoDialogState({
+                      open: true,
+                      matches: allMatches,
+                      bill: bill
+                    });
+                  }
+                }}
+              />
+            );
+          })()}
+        </TableCell>
+      )}
+      {/* Final column: Actions for draft, Cleared for posted/paid */}
+      <TableCell className="w-24 text-center">
+        {isDraftStatus ? (
+          <TableRowActions actions={[
+            { label: "Approve", onClick: () => handleActionChange(bill.id, 'approve'), disabled: approveBill.isPending || rejectBill.isPending },
+            { label: "Edit", onClick: () => handleActionChange(bill.id, 'edit'), disabled: approveBill.isPending || rejectBill.isPending },
+            { label: "Reject", onClick: () => handleActionChange(bill.id, 'reject'), variant: 'destructive' as const, disabled: approveBill.isPending || rejectBill.isPending },
+          ]} />
+        ) : (
+          bill.reconciled ? <Check className="h-4 w-4 text-green-600 mx-auto" /> : <span className="text-muted-foreground">-</span>
+        )}
+      </TableCell>
+      {showPayBillButton && (
+        <TableCell className="text-center w-24">
+          <Button
+            size="sm"
+            onClick={() => handlePayBill(bill)}
+            disabled={payBill.isPending}
+            className="h-7 text-xs px-2"
+          >
+            {payBill.isPending ? "..." : "Pay Bill"}
+          </Button>
+        </TableCell>
+      )}
+      {canShowDeleteButton && (
+        <TableCell className="text-center w-16">
+          {showEditButton ? (
+            <TableRowActions actions={[
+              {
+                label: "Edit",
+                onClick: () => setEditingBillId(bill.id),
+                disabled: bill.reconciled,
+              },
+              {
+                label: "Delete Bill",
+                onClick: () => deleteBill.mutate(bill.id),
+                variant: "destructive",
+                requiresConfirmation: true,
+                confirmTitle: "Delete Bill",
+                confirmDescription: `Are you sure you want to delete this bill from ${bill.companies?.company_name} for ${formatCurrency(bill.total_amount)}? This will also delete all associated journal entries and attachments.`,
+                isLoading: deleteBill.isPending,
+                disabled: isDateLocked(bill.bill_date) || bill.reconciled,
+              },
+            ]} />
+          ) : (
+            <TableRowActions actions={[
+              {
+                label: "Edit",
+                onClick: () => setEditingBillId(bill.id),
+                disabled: bill.reconciled,
+              },
+              {
+                label: "Delete Bill",
+                onClick: () => deleteBill.mutate(bill.id),
+                variant: "destructive",
+                requiresConfirmation: true,
+                confirmTitle: "Delete Bill",
+                confirmDescription: `Are you sure you want to delete this bill from ${bill.companies?.company_name} for ${formatCurrency(bill.total_amount)}? This will also delete all associated journal entries and attachments.`,
+                isLoading: deleteBill.isPending,
+                disabled: isDateLocked(bill.bill_date) || bill.reconciled,
+              },
+            ]} />
+          )}
+        </TableCell>
+      )}
+    </TableRow>
+  );
+
   return (
     <>
       <div className="flex flex-col min-w-0">
