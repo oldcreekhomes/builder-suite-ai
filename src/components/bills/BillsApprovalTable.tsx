@@ -1358,7 +1358,7 @@ export function BillsApprovalTable({ status, projectId, projectIds, showProjectC
                           for (const alloc of group.allocations) {
                             const childBill = filteredBills.find(b => b.id === alloc.billId);
                             rows.push(
-                              <TableRow key={`alloc-${paymentId}-${alloc.billId}`}>
+                              <TableRow key={`alloc-${paymentId}-${alloc.billId}`} className="h-11">
                                 {showProjectColumn && <TableCell className="w-44" />}
                                 <TableCell className="w-32 max-w-[128px] pl-10">
                                   <TooltipProvider>
