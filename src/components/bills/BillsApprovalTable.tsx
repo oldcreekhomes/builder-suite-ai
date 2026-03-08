@@ -310,10 +310,11 @@ export function BillsApprovalTable({ status, projectId, projectIds, showProjectC
     return bills.filter(b => b.status === 'paid' && b.total_amount >= 0).map(b => b.id);
   }, [bills, isPaidStatus]);
 
-  const { data: paymentBreakdowns } = useQuery({
-    queryKey: ['paid-bill-breakdowns', paidBillIds],
+  // Fetch consolidated payment groups for the Paid tab
+  const { data: paymentGroups } = useQuery({
+    queryKey: ['paid-bill-payment-groups', paidBillIds],
     queryFn: async () => {
-      if (paidBillIds.length === 0) return new Map<string, { cashPaid: number; credits: { ref: string; amount: number }[] }>();
+      if (paidBillIds.length === 0) return { breakdowns: new Map<string, { cashPaid: number; credits: { ref: string; amount: number }[] }>(), groups: new Map<string, { paymentId: string; paymentDate: string; totalAmount: number; memo: string | null; billIds: string[]; allocations: { billId: string; amount: number; ref: string | null; billTotal: number; isCredit: boolean }[] }>() };
 
       // Get allocations for these bills
       const { data: allocations, error: allocError } = await supabase
@@ -322,27 +323,27 @@ export function BillsApprovalTable({ status, projectId, projectIds, showProjectC
         .in('bill_id', paidBillIds);
 
       if (allocError) throw allocError;
-      if (!allocations || allocations.length === 0) return new Map();
+      if (!allocations || allocations.length === 0) return { breakdowns: new Map(), groups: new Map() };
 
       // Get unique payment IDs
       const paymentIds = [...new Set(allocations.map(a => a.bill_payment_id))];
 
-      // Get bill_payments total_amount (cash disbursed)
+      // Get bill_payments details
       const { data: payments, error: payError } = await supabase
         .from('bill_payments')
-        .select('id, total_amount')
+        .select('id, total_amount, payment_date, memo')
         .in('id', paymentIds);
 
       if (payError) throw payError;
 
-      // Get ALL sibling allocations for these payments to find credits
+      // Get ALL sibling allocations for these payments (including credits)
       const { data: siblingAllocations, error: sibError } = await supabase
         .from('bill_payment_allocations')
         .select(`
           bill_payment_id,
           bill_id,
           amount_allocated,
-          bill:bills!bill_payment_allocations_bill_id_fkey(id, total_amount, reference_number)
+          bill:bills!bill_payment_allocations_bill_id_fkey(id, total_amount, reference_number, amount_paid)
         `)
         .in('bill_payment_id', paymentIds);
 
@@ -350,8 +351,8 @@ export function BillsApprovalTable({ status, projectId, projectIds, showProjectC
 
       const paymentsMap = new Map((payments || []).map(p => [p.id, p]));
 
-      // Build breakdown per bill
-      const result = new Map<string, { cashPaid: number; credits: { ref: string; amount: number }[] }>();
+      // Build breakdown per bill (for the Amount column tooltip)
+      const breakdowns = new Map<string, { cashPaid: number; credits: { ref: string; amount: number }[] }>();
 
       for (const billId of paidBillIds) {
         const billAllocations = allocations.filter(a => a.bill_id === billId);
@@ -361,12 +362,10 @@ export function BillsApprovalTable({ status, projectId, projectIds, showProjectC
           const payment = paymentsMap.get(alloc.bill_payment_id);
           if (!payment) continue;
 
-          // Find credit siblings in this payment
           const siblings = (siblingAllocations || []).filter(
             s => s.bill_payment_id === alloc.bill_payment_id && s.bill_id !== billId
           );
 
-          // Get all positive allocations in this payment (including this bill's)
           const allPositiveAllocations = (siblingAllocations || []).filter(
             s => s.bill_payment_id === alloc.bill_payment_id && s.amount_allocated > 0
           );
@@ -376,7 +375,6 @@ export function BillsApprovalTable({ status, projectId, projectIds, showProjectC
           for (const sib of siblings) {
             const sibBill = sib.bill as any;
             if (sibBill && sibBill.total_amount < 0) {
-              // Distribute credit proportionally based on this bill's share of positive allocations
               const creditAmount = Math.abs(sib.amount_allocated);
               const myShare = totalPositive > 0
                 ? Math.round(creditAmount * (myAllocation / totalPositive) * 100) / 100
@@ -387,20 +385,51 @@ export function BillsApprovalTable({ status, projectId, projectIds, showProjectC
               });
             }
           }
-
         }
 
-        // Derive cash paid from the bill's own total minus credits applied
         const totalCredits = credits.reduce((sum, c) => sum + c.amount, 0);
         const bill = bills.find(b => b.id === billId);
         const billTotal = bill ? bill.total_amount : 0;
-        result.set(billId, { cashPaid: billTotal - totalCredits, credits });
+        breakdowns.set(billId, { cashPaid: billTotal - totalCredits, credits });
       }
 
-      return result;
+      // Build payment groups (for consolidated row rendering)
+      const groups = new Map<string, { paymentId: string; paymentDate: string; totalAmount: number; memo: string | null; billIds: string[]; allocations: { billId: string; amount: number; ref: string | null; billTotal: number; isCredit: boolean }[] }>();
+
+      for (const payment of (payments || [])) {
+        const paymentAllocations = (siblingAllocations || []).filter(a => a.bill_payment_id === payment.id);
+        const allocs = paymentAllocations.map(a => {
+          const billData = a.bill as any;
+          return {
+            billId: a.bill_id,
+            amount: a.amount_allocated,
+            ref: billData?.reference_number || null,
+            billTotal: billData?.total_amount || 0,
+            isCredit: (billData?.total_amount || 0) < 0,
+          };
+        });
+
+        // Only include groups that contain at least one of our paidBillIds
+        const relevantBillIds = allocs.filter(a => paidBillIds.includes(a.billId)).map(a => a.billId);
+        if (relevantBillIds.length === 0) continue;
+
+        groups.set(payment.id, {
+          paymentId: payment.id,
+          paymentDate: payment.payment_date,
+          totalAmount: payment.total_amount,
+          memo: payment.memo,
+          billIds: relevantBillIds,
+          allocations: allocs,
+        });
+      }
+
+      return { breakdowns, groups };
     },
     enabled: isPaidStatus && paidBillIds.length > 0,
   });
+
+  const paymentBreakdowns = paymentGroups?.breakdowns;
+  const paymentGroupsMap = paymentGroups?.groups;
 
   // PO matching for approved/posted bills
   const billsForMatching = useMemo(() => {
