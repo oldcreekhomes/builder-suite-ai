@@ -1,4 +1,5 @@
 import { useMemo, useState } from "react";
+import { cn } from "@/lib/utils";
 import { useLots } from "@/hooks/useLots";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Info, ChevronRight, ChevronDown } from 'lucide-react';
