@@ -730,7 +730,7 @@ export function BillsApprovalTable({ status, projectId, projectIds, showProjectC
   const baseColCount = 11 + (showAddressColumn ? 1 : 0) + (showProjectColumn ? 1 : 0) + (showPayBillButton ? 1 : 0) + (canShowDeleteButton ? 1 : 0) + (showPOStatusColumn ? 1 : 0);
 
   const renderBillRow = (bill: BillForApproval, memoSummary: string | null) => (
-    <TableRow key={bill.id}>
+    <TableRow key={bill.id} className="h-11">
       {showProjectColumn && (
         <TableCell className="w-44">
           <TooltipProvider>
@@ -1230,7 +1230,7 @@ export function BillsApprovalTable({ status, projectId, projectIds, showProjectC
                         rows.push(
                           <TableRow 
                             key={`payment-${paymentId}`} 
-                            className="cursor-pointer"
+                            className="h-11 cursor-pointer"
                             onClick={toggleExpand}
                           >
                             {showProjectColumn && (
@@ -1358,7 +1358,7 @@ export function BillsApprovalTable({ status, projectId, projectIds, showProjectC
                           for (const alloc of group.allocations) {
                             const childBill = filteredBills.find(b => b.id === alloc.billId);
                             rows.push(
-                              <TableRow key={`alloc-${paymentId}-${alloc.billId}`}>
+                              <TableRow key={`alloc-${paymentId}-${alloc.billId}`} className="h-11">
                                 {showProjectColumn && <TableCell className="w-44" />}
                                 <TableCell className="w-32 max-w-[128px] pl-10">
                                   <TooltipProvider>
