@@ -1278,44 +1278,43 @@ export function BillsApprovalTable({ status, projectId, projectIds, showProjectC
                         if (isExpanded) {
                           for (const alloc of group.allocations) {
                             const childBill = filteredBills.find(b => b.id === alloc.billId);
-                            // For credits that aren't in filteredBills (they have status=paid with negative total)
                             rows.push(
-                              <TableRow key={`alloc-${paymentId}-${alloc.billId}`} className="bg-muted/10">
+                              <TableRow key={`alloc-${paymentId}-${alloc.billId}`}>
                                 {showProjectColumn && <TableCell className="w-44" />}
                                 <TableCell className="w-32 max-w-[128px] pl-10">
-                                  {alloc.isCredit ? (
-                                    <span className="text-green-600 text-sm">Credit Memo</span>
-                                  ) : (
-                                    <span className="text-sm text-muted-foreground">Bill</span>
-                                  )}
+                                  <span className="block truncate">
+                                    {alloc.isCredit ? 'Credit Memo' : 'Bill'}
+                                  </span>
                                 </TableCell>
-                                <TableCell className="w-36 text-sm text-muted-foreground">
-                                  {childBill ? (() => { const { display } = getCostCodeOrAccountData(childBill); return display; })() : '-'}
+                                <TableCell className="w-36 max-w-[144px] overflow-hidden">
+                                  <span className="block truncate">
+                                    {childBill ? (() => { const { display } = getCostCodeOrAccountData(childBill); return display; })() : '-'}
+                                  </span>
                                 </TableCell>
-                                <TableCell className="w-20 text-sm">
+                                <TableCell className="w-20">
                                   {childBill ? formatDisplayFromAny(childBill.bill_date) : '-'}
                                 </TableCell>
-                                <TableCell className="w-20 text-sm">
+                                <TableCell className="w-20">
                                   {childBill?.due_date ? formatDisplayFromAny(childBill.due_date) : '-'}
                                 </TableCell>
-                                <TableCell className="w-20 text-sm">
-                                  <div className="flex items-center gap-1">
-                                    {alloc.isCredit ? (
-                                      <span className="text-green-600">({formatCurrencyValue(Math.abs(alloc.amount))})</span>
-                                    ) : (
-                                      <span>{formatCurrencyValue(alloc.amount)}</span>
-                                    )}
-                                  </div>
+                                <TableCell className="w-20">
+                                  {alloc.isCredit
+                                    ? `(${formatCurrencyValue(Math.abs(alloc.amount))})`
+                                    : formatCurrencyValue(alloc.amount)}
                                 </TableCell>
-                                <TableCell className="w-24 text-sm">
+                                <TableCell className="w-24 max-w-[96px]">
                                   <span className="block truncate">{alloc.ref || '-'}</span>
                                 </TableCell>
-                                <TableCell className="w-10 text-center text-sm">-</TableCell>
+                                <TableCell className="w-10 text-center">
+                                  <span className="text-muted-foreground">-</span>
+                                </TableCell>
                                 {showAddressColumn && <TableCell className="w-16">-</TableCell>}
                                 <TableCell className="w-10 text-center">
-                                  {childBill ? <BillFilesCell attachments={childBill.bill_attachments || []} /> : '-'}
+                                  {childBill ? <BillFilesCell attachments={childBill.bill_attachments || []} /> : <span className="text-muted-foreground">-</span>}
                                 </TableCell>
-                                <TableCell className="w-10 text-center">-</TableCell>
+                                <TableCell className="w-10 text-center">
+                                  <span className="text-muted-foreground">-</span>
+                                </TableCell>
                                 {showPOStatusColumn && <TableCell className="w-20 text-center">-</TableCell>}
                                 <TableCell className="w-24 text-center">-</TableCell>
                                 {showPayBillButton && <TableCell className="text-center w-20" />}
