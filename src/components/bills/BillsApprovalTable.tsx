@@ -1457,9 +1457,27 @@ export function BillsApprovalTable({ status, projectId, projectIds, showProjectC
                                   </TooltipProvider>
                                 </TableCell>
                                 <TableCell className="w-10 text-center">
-                                  <div className="flex justify-center">
-                                    <div className="h-8 w-8 opacity-0 pointer-events-none" />
-                                  </div>
+                                  {childBill ? (() => {
+                                    const childMemo = getBillMemoSummary(childBill);
+                                    return childMemo ? (
+                                      <TooltipProvider>
+                                        <Tooltip>
+                                          <TooltipTrigger asChild>
+                                            <FileText className="h-4 w-4 text-yellow-600 mx-auto cursor-default" />
+                                          </TooltipTrigger>
+                                          <TooltipContent className="max-w-xs">
+                                            <p className="whitespace-pre-wrap">{childMemo}</p>
+                                          </TooltipContent>
+                                        </Tooltip>
+                                      </TooltipProvider>
+                                    ) : (
+                                      <span className="text-muted-foreground">-</span>
+                                    );
+                                  })() : (
+                                    <div className="flex justify-center">
+                                      <div className="h-8 w-8 opacity-0 pointer-events-none" />
+                                    </div>
+                                  )}
                                 </TableCell>
                                 {showAddressColumn && <TableCell className="w-16">
                                   <div className="flex justify-center">
