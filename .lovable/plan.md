@@ -1,36 +1,53 @@
 
-## Share "As of Date" Across All Report Tabs
 
-### Problem
-Each report tab (Balance Sheet, Income Statement, Job Costs, Accounts Payable) maintains its own independent `asOfDate` state initialized to `new Date()`. When you change the date on one tab and switch to another, it resets to today.
+## Fix Bill Payment: Data Repair + Credit Calculation + Consolidated Payment View
 
-### Solution
-Lift the `asOfDate` state up to `ReportsTabs` and pass it down to all four child components as a prop. When the Reports page unmounts (user navigates away), the state naturally resets since it lives in a component that gets destroyed.
+### Problem Summary
+
+Three issues need fixing:
+
+1. **Credit remaining balance formula** in `useBills.ts` calculates wrong remaining credit, causing over-allocation
+2. **Paid tab credit distribution** in `BillsApprovalTable.tsx` attributes all credits to every bill instead of proportionally
+3. **Missing consolidated payment view** — the Paid tab shows individual bill rows but doesn't show the actual payment amount or the bills that made up that payment (like QuickBooks does in the screenshot)
 
 ### Changes
 
-**1. `src/components/reports/ReportsTabs.tsx`**
-- Add `asOfDate` / `setAsOfDate` state (initialized to today)
-- Pass `asOfDate` and `onAsOfDateChange` props to all four content components
+**1. Fix credit remaining balance in `useBills.ts` (~line 417)**
 
-**2. `src/components/reports/BalanceSheetContent.tsx`**
-- Add `asOfDate` and `onAsOfDateChange` to the props interface
-- Remove the local `useState<Date>(new Date())` for `asOfDate`
-- Replace all `setAsOfDate(date)` calls with `onAsOfDateChange(date)`
+The formula `total_amount - amount_paid` is wrong for credits. Fix:
+```
+credits: total_amount + amount_paid  (e.g., -500 + 350 = -150 remaining)
+bills:   total_amount - amount_paid  (unchanged)
+```
 
-**3. `src/components/reports/IncomeStatementContent.tsx`**
-- Same pattern: accept `asOfDate` and `onAsOfDateChange` as props, remove local state
+**2. Fix proportional credit distribution in `BillsApprovalTable.tsx` (lines 356-386)**
 
-**4. `src/components/reports/JobCostsContent.tsx`**
-- Same pattern: accept `asOfDate` and `onAsOfDateChange` as props, remove local state
+Currently every bill in a payment gets the full credit amount. Fix: distribute credits proportionally based on each bill's share of positive allocations in the payment.
 
-**5. `src/components/reports/AccountsPayableContent.tsx`**
-- Same pattern: accept `asOfDate` and `onAsOfDateChange` as props, remove local state
+**3. Add consolidated payment grouping on the Paid tab**
 
-### Technical Detail
-Each file's change is minimal:
-- Add two props to the interface (`asOfDate: Date`, `onAsOfDateChange: (date: Date) => void`)
-- Delete the `const [asOfDate, setAsOfDate] = useState<Date>(new Date())` line
-- Replace `setAsOfDate` with `onAsOfDateChange` in calendar `onSelect` handlers
+Instead of showing each bill as a standalone row, group bills by their `bill_payment_id`. The display will work like the QuickBooks screenshot:
 
-No query logic, formatting, or PDF export code needs to change since they all already reference the `asOfDate` variable by name.
+- **Payment row** (parent): Shows vendor, payment date, total cash paid (e.g., $50.00), expandable
+- **Bill detail rows** (children, shown on expand): Show each bill and credit in the payment with Ref No., Bill Amount, and Amount Paid
+
+For payments with a single bill and no credits, the row looks exactly as it does today (no expand). For consolidated payments (multiple bills or bills + credits), clicking the row or an expand chevron reveals the component transactions.
+
+This will be implemented by:
+- Querying `bill_payment_allocations` grouped by `bill_payment_id` to build payment groups
+- Rendering a collapsible parent row per payment with a chevron toggle
+- Child rows indented slightly showing: Ref No., Bill Amount, Credit Applied, Amount Paid
+- The parent row shows the `bill_payments.total_amount` (actual cash disbursed)
+
+**4. Data repair via SQL migration**
+
+Fix the two corrupted payments involving credit OCH-02302:
+- Payment `5eac23ed`: credit allocation -500 → -350, total_amount -150 → 0
+- Payment `c5b31abb`: credit allocation → -150, total_amount → 50
+- Credit OCH-02302: amount_paid 550 → 500
+
+### Files Modified
+- `src/hooks/useBills.ts` — Fix remaining balance formula for credits
+- `src/components/bills/BillsApprovalTable.tsx` — Proportional credit distribution + consolidated payment grouping on Paid tab
+- New SQL migration — Data repair
+
