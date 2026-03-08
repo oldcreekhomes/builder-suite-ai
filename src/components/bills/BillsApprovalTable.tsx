@@ -1319,17 +1319,35 @@ export function BillsApprovalTable({ status, projectId, projectIds, showProjectC
                               </TooltipProvider>
                             </TableCell>
                             <TableCell className="w-10 text-center">
-                              <span className="text-muted-foreground">-</span>
+                              <div className="flex justify-center">
+                                <Button variant="ghost" size="sm" className="h-6 w-6 p-0 opacity-0 pointer-events-none" />
+                              </div>
                             </TableCell>
-                            {showAddressColumn && <TableCell className="w-16">-</TableCell>}
+                            {showAddressColumn && <TableCell className="w-16">
+                              <div className="flex justify-center">
+                                <Button variant="ghost" size="sm" className="h-6 w-6 p-0 opacity-0 pointer-events-none" />
+                              </div>
+                            </TableCell>}
                             <TableCell className="w-10 text-center">
-                              <span className="text-muted-foreground">-</span>
+                              <div className="flex justify-center">
+                                <Button variant="ghost" size="sm" className="h-6 w-6 p-0 opacity-0 pointer-events-none" />
+                              </div>
                             </TableCell>
                             <TableCell className="w-10 text-center">
-                              <span className="text-muted-foreground">-</span>
+                              <div className="flex justify-center">
+                                <Button variant="ghost" size="sm" className="h-6 w-6 p-0 opacity-0 pointer-events-none" />
+                              </div>
                             </TableCell>
-                            {showPOStatusColumn && <TableCell className="w-20 text-center">-</TableCell>}
-                            <TableCell className="w-24 text-center">-</TableCell>
+                            {showPOStatusColumn && <TableCell className="w-20 text-center">
+                              <div className="flex justify-center">
+                                <Button variant="ghost" size="sm" className="h-6 w-6 p-0 opacity-0 pointer-events-none" />
+                              </div>
+                            </TableCell>}
+                            <TableCell className="w-24 text-center">
+                              <div className="flex justify-center">
+                                <Button variant="ghost" size="sm" className="h-6 w-6 p-0 opacity-0 pointer-events-none" />
+                              </div>
+                            </TableCell>
                             {showPayBillButton && <TableCell className="text-center w-20" />}
                             {canShowDeleteButton && <TableCell className="text-center w-16" />}
                           </TableRow>
