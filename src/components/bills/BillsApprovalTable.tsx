@@ -1230,7 +1230,7 @@ export function BillsApprovalTable({ status, projectId, projectIds, showProjectC
                         rows.push(
                           <TableRow 
                             key={`payment-${paymentId}`} 
-                            className="cursor-pointer"
+                            className="h-11 cursor-pointer"
                             onClick={toggleExpand}
                           >
                             {showProjectColumn && (
