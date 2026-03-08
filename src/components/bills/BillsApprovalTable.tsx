@@ -858,6 +858,149 @@ export function BillsApprovalTable({ status, projectId, projectIds, showProjectC
                   No bills found for this status.
                 </TableCell>
               </TableRow>
+            ) : isPaidStatus && paymentGroupsMap && paymentGroupsMap.size > 0 ? (
+              (() => {
+                // Build consolidated view: group bills by payment
+                const billToPaymentMap = new Map<string, string>();
+                const renderedPayments = new Set<string>();
+                
+                paymentGroupsMap.forEach((group, paymentId) => {
+                  group.billIds.forEach(billId => billToPaymentMap.set(billId, paymentId));
+                });
+
+                // Also find bills not in any payment group (standalone)
+                const rows: React.ReactNode[] = [];
+                
+                for (const bill of filteredBills) {
+                  const paymentId = billToPaymentMap.get(bill.id);
+                  
+                  if (paymentId && paymentGroupsMap.has(paymentId)) {
+                    const group = paymentGroupsMap.get(paymentId)!;
+                    const isMulti = group.allocations.length > 1;
+                    
+                    if (isMulti) {
+                      // Only render the payment header once
+                      if (!renderedPayments.has(paymentId)) {
+                        renderedPayments.add(paymentId);
+                        const isExpanded = expandedPayments.has(paymentId);
+                        const toggleExpand = () => {
+                          setExpandedPayments(prev => {
+                            const next = new Set(prev);
+                            if (next.has(paymentId)) next.delete(paymentId);
+                            else next.add(paymentId);
+                            return next;
+                          });
+                        };
+                        
+                        // Find the first bill in this group for vendor/project info
+                        const firstBill = filteredBills.find(b => group.billIds.includes(b.id)) || bill;
+                        const formatCurrencyValue = (amount: number) => new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(Math.abs(amount));
+
+                        // Payment header row
+                        rows.push(
+                          <TableRow 
+                            key={`payment-${paymentId}`} 
+                            className="bg-muted/30 cursor-pointer hover:bg-muted/50"
+                            onClick={toggleExpand}
+                          >
+                            {showProjectColumn && (
+                              <TableCell className="w-44">
+                                <span className="block truncate">{firstBill.projects?.address || '-'}</span>
+                              </TableCell>
+                            )}
+                            <TableCell className="w-32 max-w-[128px]">
+                              <div className="flex items-center gap-1">
+                                {isExpanded ? <ChevronDown className="h-3.5 w-3.5 shrink-0" /> : <ChevronRight className="h-3.5 w-3.5 shrink-0" />}
+                                <span className="block truncate font-medium">{firstBill.companies?.company_name || 'Unknown Vendor'}</span>
+                              </div>
+                            </TableCell>
+                            <TableCell className="w-36">
+                              <span className="text-muted-foreground text-sm">{group.allocations.length} items</span>
+                            </TableCell>
+                            <TableCell className="w-20">
+                              {formatDisplayFromAny(group.paymentDate)}
+                            </TableCell>
+                            <TableCell className="w-20">-</TableCell>
+                            <TableCell className="w-20 font-medium">
+                              {formatCurrencyValue(group.totalAmount)}
+                            </TableCell>
+                            <TableCell className="w-24">
+                              <span className="text-muted-foreground text-sm">Payment</span>
+                            </TableCell>
+                            <TableCell className="w-10 text-center">-</TableCell>
+                            {showAddressColumn && <TableCell className="w-16">-</TableCell>}
+                            <TableCell className="w-10 text-center">-</TableCell>
+                            <TableCell className="w-10 text-center">-</TableCell>
+                            {showPOStatusColumn && <TableCell className="w-20 text-center">-</TableCell>}
+                            <TableCell className="w-24 text-center">-</TableCell>
+                            {showPayBillButton && <TableCell className="text-center w-20" />}
+                            {canShowDeleteButton && <TableCell className="text-center w-16" />}
+                          </TableRow>
+                        );
+
+                        // Expanded child rows
+                        if (isExpanded) {
+                          for (const alloc of group.allocations) {
+                            const childBill = filteredBills.find(b => b.id === alloc.billId);
+                            // For credits that aren't in filteredBills (they have status=paid with negative total)
+                            rows.push(
+                              <TableRow key={`alloc-${paymentId}-${alloc.billId}`} className="bg-muted/10">
+                                {showProjectColumn && <TableCell className="w-44" />}
+                                <TableCell className="w-32 max-w-[128px] pl-10">
+                                  {alloc.isCredit ? (
+                                    <span className="text-green-600 text-sm">Credit Memo</span>
+                                  ) : (
+                                    <span className="text-sm text-muted-foreground">Bill</span>
+                                  )}
+                                </TableCell>
+                                <TableCell className="w-36 text-sm text-muted-foreground">
+                                  {childBill ? (() => { const { display } = getCostCodeOrAccountData(childBill); return display; })() : '-'}
+                                </TableCell>
+                                <TableCell className="w-20 text-sm">
+                                  {childBill ? formatDisplayFromAny(childBill.bill_date) : '-'}
+                                </TableCell>
+                                <TableCell className="w-20 text-sm">
+                                  {childBill?.due_date ? formatDisplayFromAny(childBill.due_date) : '-'}
+                                </TableCell>
+                                <TableCell className="w-20 text-sm">
+                                  <div className="flex items-center gap-1">
+                                    {alloc.isCredit ? (
+                                      <span className="text-green-600">({formatCurrencyValue(Math.abs(alloc.amount))})</span>
+                                    ) : (
+                                      <span>{formatCurrencyValue(alloc.amount)}</span>
+                                    )}
+                                  </div>
+                                </TableCell>
+                                <TableCell className="w-24 text-sm">
+                                  <span className="block truncate">{alloc.ref || '-'}</span>
+                                </TableCell>
+                                <TableCell className="w-10 text-center text-sm">-</TableCell>
+                                {showAddressColumn && <TableCell className="w-16">-</TableCell>}
+                                <TableCell className="w-10 text-center">
+                                  {childBill ? <BillFilesCell attachments={childBill.bill_attachments || []} /> : '-'}
+                                </TableCell>
+                                <TableCell className="w-10 text-center">-</TableCell>
+                                {showPOStatusColumn && <TableCell className="w-20 text-center">-</TableCell>}
+                                <TableCell className="w-24 text-center">-</TableCell>
+                                {showPayBillButton && <TableCell className="text-center w-20" />}
+                                {canShowDeleteButton && <TableCell className="text-center w-16" />}
+                              </TableRow>
+                            );
+                          }
+                        }
+                      }
+                      // Skip individual rendering for bills in multi-payment groups
+                      continue;
+                    }
+                  }
+                  
+                  // Standalone bill or single-bill payment — render normally
+                  const memoSummary = getBillMemoSummary(bill);
+                  rows.push(renderBillRow(bill, memoSummary));
+                }
+                
+                return rows;
+              })()
             ) : (
               filteredBills.map((bill) => {
                 const memoSummary = getBillMemoSummary(bill);
