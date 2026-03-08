@@ -1,7 +1,7 @@
 import { useMemo, useState } from "react";
 import { useLots } from "@/hooks/useLots";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { Info } from 'lucide-react';
+import { Info, ChevronRight, ChevronDown } from 'lucide-react';
 import {
   Table,
   TableBody,
@@ -149,6 +149,7 @@ export function BillsApprovalTable({ status, projectId, projectIds, showProjectC
     initialNotes: '',
   });
   const [editingBillId, setEditingBillId] = useState<string | null>(null);
+  const [expandedPayments, setExpandedPayments] = useState<Set<string>>(new Set());
   
   const [poDialogState, setPoDialogState] = useState<{
     open: boolean;
@@ -310,10 +311,11 @@ export function BillsApprovalTable({ status, projectId, projectIds, showProjectC
     return bills.filter(b => b.status === 'paid' && b.total_amount >= 0).map(b => b.id);
   }, [bills, isPaidStatus]);
 
-  const { data: paymentBreakdowns } = useQuery({
-    queryKey: ['paid-bill-breakdowns', paidBillIds],
+  // Fetch consolidated payment groups for the Paid tab
+  const { data: paymentGroups } = useQuery({
+    queryKey: ['paid-bill-payment-groups', paidBillIds],
     queryFn: async () => {
-      if (paidBillIds.length === 0) return new Map<string, { cashPaid: number; credits: { ref: string; amount: number }[] }>();
+      if (paidBillIds.length === 0) return { breakdowns: new Map<string, { cashPaid: number; credits: { ref: string; amount: number }[] }>(), groups: new Map<string, { paymentId: string; paymentDate: string; totalAmount: number; memo: string | null; billIds: string[]; allocations: { billId: string; amount: number; ref: string | null; billTotal: number; isCredit: boolean }[] }>() };
 
       // Get allocations for these bills
       const { data: allocations, error: allocError } = await supabase
@@ -322,27 +324,27 @@ export function BillsApprovalTable({ status, projectId, projectIds, showProjectC
         .in('bill_id', paidBillIds);
 
       if (allocError) throw allocError;
-      if (!allocations || allocations.length === 0) return new Map();
+      if (!allocations || allocations.length === 0) return { breakdowns: new Map(), groups: new Map() };
 
       // Get unique payment IDs
       const paymentIds = [...new Set(allocations.map(a => a.bill_payment_id))];
 
-      // Get bill_payments total_amount (cash disbursed)
+      // Get bill_payments details
       const { data: payments, error: payError } = await supabase
         .from('bill_payments')
-        .select('id, total_amount')
+        .select('id, total_amount, payment_date, memo')
         .in('id', paymentIds);
 
       if (payError) throw payError;
 
-      // Get ALL sibling allocations for these payments to find credits
+      // Get ALL sibling allocations for these payments (including credits)
       const { data: siblingAllocations, error: sibError } = await supabase
         .from('bill_payment_allocations')
         .select(`
           bill_payment_id,
           bill_id,
           amount_allocated,
-          bill:bills!bill_payment_allocations_bill_id_fkey(id, total_amount, reference_number)
+          bill:bills!bill_payment_allocations_bill_id_fkey(id, total_amount, reference_number, amount_paid)
         `)
         .in('bill_payment_id', paymentIds);
 
@@ -350,8 +352,8 @@ export function BillsApprovalTable({ status, projectId, projectIds, showProjectC
 
       const paymentsMap = new Map((payments || []).map(p => [p.id, p]));
 
-      // Build breakdown per bill
-      const result = new Map<string, { cashPaid: number; credits: { ref: string; amount: number }[] }>();
+      // Build breakdown per bill (for the Amount column tooltip)
+      const breakdowns = new Map<string, { cashPaid: number; credits: { ref: string; amount: number }[] }>();
 
       for (const billId of paidBillIds) {
         const billAllocations = allocations.filter(a => a.bill_id === billId);
@@ -361,34 +363,74 @@ export function BillsApprovalTable({ status, projectId, projectIds, showProjectC
           const payment = paymentsMap.get(alloc.bill_payment_id);
           if (!payment) continue;
 
-          // Find credit siblings in this payment
           const siblings = (siblingAllocations || []).filter(
             s => s.bill_payment_id === alloc.bill_payment_id && s.bill_id !== billId
           );
 
+          const allPositiveAllocations = (siblingAllocations || []).filter(
+            s => s.bill_payment_id === alloc.bill_payment_id && s.amount_allocated > 0
+          );
+          const totalPositive = allPositiveAllocations.reduce((sum, s) => sum + s.amount_allocated, 0);
+          const myAllocation = alloc.amount_allocated;
+
           for (const sib of siblings) {
             const sibBill = sib.bill as any;
             if (sibBill && sibBill.total_amount < 0) {
+              const creditAmount = Math.abs(sib.amount_allocated);
+              const myShare = totalPositive > 0
+                ? Math.round(creditAmount * (myAllocation / totalPositive) * 100) / 100
+                : creditAmount;
               credits.push({
                 ref: sibBill.reference_number || 'Credit',
-                amount: Math.abs(sib.amount_allocated),
+                amount: myShare,
               });
             }
           }
-
         }
 
-        // Derive cash paid from the bill's own total minus credits applied
         const totalCredits = credits.reduce((sum, c) => sum + c.amount, 0);
         const bill = bills.find(b => b.id === billId);
         const billTotal = bill ? bill.total_amount : 0;
-        result.set(billId, { cashPaid: billTotal - totalCredits, credits });
+        breakdowns.set(billId, { cashPaid: billTotal - totalCredits, credits });
       }
 
-      return result;
+      // Build payment groups (for consolidated row rendering)
+      const groups = new Map<string, { paymentId: string; paymentDate: string; totalAmount: number; memo: string | null; billIds: string[]; allocations: { billId: string; amount: number; ref: string | null; billTotal: number; isCredit: boolean }[] }>();
+
+      for (const payment of (payments || [])) {
+        const paymentAllocations = (siblingAllocations || []).filter(a => a.bill_payment_id === payment.id);
+        const allocs = paymentAllocations.map(a => {
+          const billData = a.bill as any;
+          return {
+            billId: a.bill_id,
+            amount: a.amount_allocated,
+            ref: billData?.reference_number || null,
+            billTotal: billData?.total_amount || 0,
+            isCredit: (billData?.total_amount || 0) < 0,
+          };
+        });
+
+        // Only include groups that contain at least one of our paidBillIds
+        const relevantBillIds = allocs.filter(a => paidBillIds.includes(a.billId)).map(a => a.billId);
+        if (relevantBillIds.length === 0) continue;
+
+        groups.set(payment.id, {
+          paymentId: payment.id,
+          paymentDate: payment.payment_date,
+          totalAmount: payment.total_amount,
+          memo: payment.memo,
+          billIds: relevantBillIds,
+          allocations: allocs,
+        });
+      }
+
+      return { breakdowns, groups };
     },
     enabled: isPaidStatus && paidBillIds.length > 0,
   });
+
+  const paymentBreakdowns = paymentGroups?.breakdowns;
+  const paymentGroupsMap = paymentGroups?.groups;
 
   // PO matching for approved/posted bills
   const billsForMatching = useMemo(() => {
@@ -687,6 +729,336 @@ export function BillsApprovalTable({ status, projectId, projectIds, showProjectC
   const showPOStatusColumn = true;
   const baseColCount = 11 + (showAddressColumn ? 1 : 0) + (showProjectColumn ? 1 : 0) + (showPayBillButton ? 1 : 0) + (canShowDeleteButton ? 1 : 0) + (showPOStatusColumn ? 1 : 0);
 
+  const renderBillRow = (bill: BillForApproval, memoSummary: string | null) => (
+    <TableRow key={bill.id}>
+      {showProjectColumn && (
+        <TableCell className="w-44">
+          <TooltipProvider>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <span className="block truncate">
+                  {bill.projects?.address || '-'}
+                </span>
+              </TooltipTrigger>
+              <TooltipContent>
+                <p>{bill.projects?.address || '-'}</p>
+              </TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
+        </TableCell>
+      )}
+      <TableCell className="w-32 max-w-[128px]">
+        <TooltipProvider>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <span className="block truncate">
+                {bill.companies?.company_name || 'Unknown Vendor'}
+              </span>
+            </TooltipTrigger>
+            <TooltipContent>
+              <p>{bill.companies?.company_name || 'Unknown Vendor'}</p>
+            </TooltipContent>
+          </Tooltip>
+        </TooltipProvider>
+      </TableCell>
+      <TableCell className="w-36 max-w-[144px] overflow-hidden">
+        {(() => {
+          const { display, costCodeBreakdown, totalAmount, count } = getCostCodeOrAccountData(bill);
+          return (
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <span className="block truncate cursor-default">
+                    {display}
+                  </span>
+                </TooltipTrigger>
+                <TooltipContent className="max-w-xs">
+                  {count <= 1 ? (
+                    <p>{display}</p>
+                  ) : (
+                    <div className="space-y-2">
+                      {costCodeBreakdown.map((cc, i) => (
+                        <div key={i}>
+                          <div className="font-medium text-xs">{cc.costCode}</div>
+                          <div className="pl-2 space-y-0.5">
+                            {cc.lots.map((lot, j) => (
+                              <div key={j} className="flex justify-between gap-4 text-xs">
+                                <span className="text-muted-foreground">{lot.name}:</span>
+                                <span>${lot.amount.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      ))}
+                      <div className="border-t pt-1 flex justify-between gap-4 font-medium text-xs">
+                        <span>Total:</span>
+                        <span>${totalAmount.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+                      </div>
+                    </div>
+                  )}
+                </TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
+          );
+        })()}
+      </TableCell>
+      <TableCell className="w-20">
+        {formatDisplayFromAny(bill.bill_date)}
+      </TableCell>
+      <TableCell className="w-20">
+        {bill.due_date ? (
+          (() => {
+            const today = new Date();
+            today.setHours(0, 0, 0, 0);
+            const dueDate = new Date(bill.due_date);
+            dueDate.setHours(0, 0, 0, 0);
+            const isOverdue = dueDate < today && status !== 'paid';
+            
+            return (
+              <span className={isOverdue ? 'text-red-600 font-semibold' : ''}>
+                {formatDisplayFromAny(bill.due_date)}
+              </span>
+            );
+          })()
+        ) : '-'}
+      </TableCell>
+      <TableCell className="w-20">
+        {(() => {
+          if (!isPaidStatus || bill.total_amount < 0) {
+            return (
+              <div className="flex items-center gap-1">
+                {formatCurrency(bill.total_amount)}
+                {bill.total_amount < 0 && (
+                  <Badge variant="outline" className="text-green-600 border-green-600 text-[10px] px-1">
+                    CR
+                  </Badge>
+                )}
+              </div>
+            );
+          }
+          const breakdown = paymentBreakdowns?.get(bill.id);
+          if (!breakdown || breakdown.credits.length === 0) {
+            return formatCurrency(bill.total_amount);
+          }
+          return (
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <div className="flex items-center gap-1 cursor-default">
+                    <span>{formatCurrency(breakdown.cashPaid)}</span>
+                    <Info className="h-3.5 w-3.5 text-green-600 shrink-0" />
+                  </div>
+                </TooltipTrigger>
+                <TooltipContent className="max-w-xs">
+                  <div className="space-y-1 text-xs">
+                    <div className="flex justify-between gap-4">
+                      <span>Bill Amount:</span>
+                      <span>${Math.abs(bill.total_amount).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+                    </div>
+                    {breakdown.credits.map((cr, i) => (
+                      <div key={i} className="flex justify-between gap-4 text-green-600">
+                        <span>Credit Applied ({cr.ref}):</span>
+                        <span>-${cr.amount.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+                      </div>
+                    ))}
+                    <div className="border-t pt-1 flex justify-between gap-4 font-medium">
+                      <span>Cash Paid:</span>
+                      <span>${breakdown.cashPaid.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+                    </div>
+                  </div>
+                </TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
+          );
+        })()}
+      </TableCell>
+      <TableCell className="w-24 max-w-[96px]">
+        <span className="block truncate">{bill.reference_number || '-'}</span>
+      </TableCell>
+      {/* Memo column */}
+      <TableCell className="w-10 text-center">
+        {memoSummary ? (
+          <TooltipProvider>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <FileText className="h-4 w-4 text-yellow-600 mx-auto cursor-default" />
+              </TooltipTrigger>
+              <TooltipContent className="max-w-xs">
+                <p className="whitespace-pre-wrap">{memoSummary}</p>
+              </TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
+        ) : (
+          <span className="text-muted-foreground">-</span>
+        )}
+      </TableCell>
+      {showAddressColumn && (
+      <TableCell className="w-16 max-w-[64px]">
+        {(() => {
+          const { display, costCodeBreakdown, totalAmount, uniqueLotCount } = getLotAllocationData(bill);
+          if (uniqueLotCount <= 1) {
+            return display;
+          }
+          return (
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger>
+                  {display}
+                </TooltipTrigger>
+                <TooltipContent className="max-w-xs">
+                  <div className="space-y-2">
+                    {costCodeBreakdown.map((cc, i) => (
+                      <div key={i}>
+                        <div className="font-medium text-xs">{cc.costCode}</div>
+                        <div className="pl-2 space-y-0.5">
+                          {cc.lots.map((lot, j) => (
+                            <div key={j} className="flex justify-between gap-4 text-xs">
+                              <span className="text-muted-foreground">{lot.name}:</span>
+                              <span>${lot.amount.toLocaleString('en-US', { minimumFractionDigits: 2 })}</span>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    ))}
+                    <div className="border-t pt-1 flex justify-between gap-4 font-medium text-xs">
+                      <span>Total:</span>
+                      <span>${totalAmount.toLocaleString('en-US', { minimumFractionDigits: 2 })}</span>
+                    </div>
+                  </div>
+                </TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
+          );
+        })()}
+      </TableCell>
+      )}
+      <TableCell className="w-10 text-center">
+        <BillFilesCell attachments={bill.bill_attachments || []} />
+      </TableCell>
+      <TableCell className="w-10 text-center">
+        <TooltipProvider>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button
+                variant="ghost"
+                size="sm"
+                className="h-6 w-6 p-0 hover:bg-muted"
+                onClick={() => setNotesDialog({ 
+                  open: true, 
+                  billId: bill.id,
+                  billInfo: {
+                    vendor: bill.companies?.company_name || 'Unknown Vendor',
+                    amount: bill.total_amount
+                  },
+                  initialNotes: bill.notes || ''
+                })}
+              >
+                {bill.notes?.trim() ? (
+                  <StickyNote className="h-3.5 w-3.5 text-yellow-600" />
+                ) : (
+                  <span className="text-xs text-muted-foreground">Add</span>
+                )}
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent>
+              <p>{bill.notes?.trim() ? 'View/Edit Notes' : 'Add Notes'}</p>
+            </TooltipContent>
+          </Tooltip>
+        </TooltipProvider>
+      </TableCell>
+      {/* PO Status column */}
+      {showPOStatusColumn && (
+        <TableCell className="w-20 text-center">
+          {(() => {
+            const matchResult = poMatchingData?.get(bill.id);
+            const poStatus = matchResult?.overall_status || 'no_po';
+            const allMatches = matchResult?.matches || [];
+            
+            return (
+              <POStatusBadge
+                status={poStatus}
+                onClick={() => {
+                  if (allMatches.length > 0) {
+                    setPoDialogState({
+                      open: true,
+                      matches: allMatches,
+                      bill: bill
+                    });
+                  }
+                }}
+              />
+            );
+          })()}
+        </TableCell>
+      )}
+      {/* Final column: Actions for draft, Cleared for posted/paid */}
+      <TableCell className="w-24 text-center">
+        {isDraftStatus ? (
+          <TableRowActions actions={[
+            { label: "Approve", onClick: () => handleActionChange(bill.id, 'approve'), disabled: approveBill.isPending || rejectBill.isPending },
+            { label: "Edit", onClick: () => handleActionChange(bill.id, 'edit'), disabled: approveBill.isPending || rejectBill.isPending },
+            { label: "Reject", onClick: () => handleActionChange(bill.id, 'reject'), variant: 'destructive' as const, disabled: approveBill.isPending || rejectBill.isPending },
+          ]} />
+        ) : (
+          bill.reconciled ? <Check className="h-4 w-4 text-green-600 mx-auto" /> : <span className="text-muted-foreground">-</span>
+        )}
+      </TableCell>
+      {showPayBillButton && (
+        <TableCell className="text-center w-24">
+          <Button
+            size="sm"
+            onClick={() => handlePayBill(bill)}
+            disabled={payBill.isPending}
+            className="h-7 text-xs px-2"
+          >
+            {payBill.isPending ? "..." : "Pay Bill"}
+          </Button>
+        </TableCell>
+      )}
+      {canShowDeleteButton && (
+        <TableCell className="text-center w-16">
+          {showEditButton ? (
+            <TableRowActions actions={[
+              {
+                label: "Edit",
+                onClick: () => setEditingBillId(bill.id),
+                disabled: bill.reconciled,
+              },
+              {
+                label: "Delete Bill",
+                onClick: () => deleteBill.mutate(bill.id),
+                variant: "destructive",
+                requiresConfirmation: true,
+                confirmTitle: "Delete Bill",
+                confirmDescription: `Are you sure you want to delete this bill from ${bill.companies?.company_name} for ${formatCurrency(bill.total_amount)}? This will also delete all associated journal entries and attachments.`,
+                isLoading: deleteBill.isPending,
+                disabled: isDateLocked(bill.bill_date) || bill.reconciled,
+              },
+            ]} />
+          ) : (
+            <TableRowActions actions={[
+              {
+                label: "Edit",
+                onClick: () => setEditingBillId(bill.id),
+                disabled: bill.reconciled,
+              },
+              {
+                label: "Delete Bill",
+                onClick: () => deleteBill.mutate(bill.id),
+                variant: "destructive",
+                requiresConfirmation: true,
+                confirmTitle: "Delete Bill",
+                confirmDescription: `Are you sure you want to delete this bill from ${bill.companies?.company_name} for ${formatCurrency(bill.total_amount)}? This will also delete all associated journal entries and attachments.`,
+                isLoading: deleteBill.isPending,
+                disabled: isDateLocked(bill.bill_date) || bill.reconciled,
+              },
+            ]} />
+          )}
+        </TableCell>
+      )}
+    </TableRow>
+  );
+
   return (
     <>
       <div className="flex flex-col min-w-0">
@@ -816,339 +1188,154 @@ export function BillsApprovalTable({ status, projectId, projectIds, showProjectC
                   No bills found for this status.
                 </TableCell>
               </TableRow>
+            ) : isPaidStatus && paymentGroupsMap && paymentGroupsMap.size > 0 ? (
+              (() => {
+                // Build consolidated view: group bills by payment
+                const billToPaymentMap = new Map<string, string>();
+                const renderedPayments = new Set<string>();
+                
+                paymentGroupsMap.forEach((group, paymentId) => {
+                  group.billIds.forEach(billId => billToPaymentMap.set(billId, paymentId));
+                });
+
+                // Also find bills not in any payment group (standalone)
+                const rows: React.ReactNode[] = [];
+                
+                for (const bill of filteredBills) {
+                  const paymentId = billToPaymentMap.get(bill.id);
+                  
+                  if (paymentId && paymentGroupsMap.has(paymentId)) {
+                    const group = paymentGroupsMap.get(paymentId)!;
+                    const isMulti = group.allocations.length > 1;
+                    
+                    if (isMulti) {
+                      // Only render the payment header once
+                      if (!renderedPayments.has(paymentId)) {
+                        renderedPayments.add(paymentId);
+                        const isExpanded = expandedPayments.has(paymentId);
+                        const toggleExpand = () => {
+                          setExpandedPayments(prev => {
+                            const next = new Set(prev);
+                            if (next.has(paymentId)) next.delete(paymentId);
+                            else next.add(paymentId);
+                            return next;
+                          });
+                        };
+                        
+                        // Find the first bill in this group for vendor/project info
+                        const firstBill = filteredBills.find(b => group.billIds.includes(b.id)) || bill;
+                        const formatCurrencyValue = (amount: number) => new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(Math.abs(amount));
+
+                        // Payment header row
+                        rows.push(
+                          <TableRow 
+                            key={`payment-${paymentId}`} 
+                            className="bg-muted/30 cursor-pointer hover:bg-muted/50"
+                            onClick={toggleExpand}
+                          >
+                            {showProjectColumn && (
+                              <TableCell className="w-44">
+                                <span className="block truncate">{firstBill.projects?.address || '-'}</span>
+                              </TableCell>
+                            )}
+                            <TableCell className="w-32 max-w-[128px]">
+                              <div className="flex items-center gap-1">
+                                {isExpanded ? <ChevronDown className="h-3.5 w-3.5 shrink-0" /> : <ChevronRight className="h-3.5 w-3.5 shrink-0" />}
+                                <span className="block truncate font-medium">{firstBill.companies?.company_name || 'Unknown Vendor'}</span>
+                              </div>
+                            </TableCell>
+                            <TableCell className="w-36">
+                              <span className="text-muted-foreground text-sm">{group.allocations.length} items</span>
+                            </TableCell>
+                            <TableCell className="w-20">
+                              {formatDisplayFromAny(group.paymentDate)}
+                            </TableCell>
+                            <TableCell className="w-20">-</TableCell>
+                            <TableCell className="w-20 font-medium">
+                              {formatCurrencyValue(group.totalAmount)}
+                            </TableCell>
+                            <TableCell className="w-24">
+                              <span className="text-muted-foreground text-sm">Payment</span>
+                            </TableCell>
+                            <TableCell className="w-10 text-center">-</TableCell>
+                            {showAddressColumn && <TableCell className="w-16">-</TableCell>}
+                            <TableCell className="w-10 text-center">-</TableCell>
+                            <TableCell className="w-10 text-center">-</TableCell>
+                            {showPOStatusColumn && <TableCell className="w-20 text-center">-</TableCell>}
+                            <TableCell className="w-24 text-center">-</TableCell>
+                            {showPayBillButton && <TableCell className="text-center w-20" />}
+                            {canShowDeleteButton && <TableCell className="text-center w-16" />}
+                          </TableRow>
+                        );
+
+                        // Expanded child rows
+                        if (isExpanded) {
+                          for (const alloc of group.allocations) {
+                            const childBill = filteredBills.find(b => b.id === alloc.billId);
+                            // For credits that aren't in filteredBills (they have status=paid with negative total)
+                            rows.push(
+                              <TableRow key={`alloc-${paymentId}-${alloc.billId}`} className="bg-muted/10">
+                                {showProjectColumn && <TableCell className="w-44" />}
+                                <TableCell className="w-32 max-w-[128px] pl-10">
+                                  {alloc.isCredit ? (
+                                    <span className="text-green-600 text-sm">Credit Memo</span>
+                                  ) : (
+                                    <span className="text-sm text-muted-foreground">Bill</span>
+                                  )}
+                                </TableCell>
+                                <TableCell className="w-36 text-sm text-muted-foreground">
+                                  {childBill ? (() => { const { display } = getCostCodeOrAccountData(childBill); return display; })() : '-'}
+                                </TableCell>
+                                <TableCell className="w-20 text-sm">
+                                  {childBill ? formatDisplayFromAny(childBill.bill_date) : '-'}
+                                </TableCell>
+                                <TableCell className="w-20 text-sm">
+                                  {childBill?.due_date ? formatDisplayFromAny(childBill.due_date) : '-'}
+                                </TableCell>
+                                <TableCell className="w-20 text-sm">
+                                  <div className="flex items-center gap-1">
+                                    {alloc.isCredit ? (
+                                      <span className="text-green-600">({formatCurrencyValue(Math.abs(alloc.amount))})</span>
+                                    ) : (
+                                      <span>{formatCurrencyValue(alloc.amount)}</span>
+                                    )}
+                                  </div>
+                                </TableCell>
+                                <TableCell className="w-24 text-sm">
+                                  <span className="block truncate">{alloc.ref || '-'}</span>
+                                </TableCell>
+                                <TableCell className="w-10 text-center text-sm">-</TableCell>
+                                {showAddressColumn && <TableCell className="w-16">-</TableCell>}
+                                <TableCell className="w-10 text-center">
+                                  {childBill ? <BillFilesCell attachments={childBill.bill_attachments || []} /> : '-'}
+                                </TableCell>
+                                <TableCell className="w-10 text-center">-</TableCell>
+                                {showPOStatusColumn && <TableCell className="w-20 text-center">-</TableCell>}
+                                <TableCell className="w-24 text-center">-</TableCell>
+                                {showPayBillButton && <TableCell className="text-center w-20" />}
+                                {canShowDeleteButton && <TableCell className="text-center w-16" />}
+                              </TableRow>
+                            );
+                          }
+                        }
+                      }
+                      // Skip individual rendering for bills in multi-payment groups
+                      continue;
+                    }
+                  }
+                  
+                  // Standalone bill or single-bill payment — render normally
+                  const memoSummary = getBillMemoSummary(bill);
+                  rows.push(renderBillRow(bill, memoSummary));
+                }
+                
+                return rows;
+              })()
             ) : (
               filteredBills.map((bill) => {
                 const memoSummary = getBillMemoSummary(bill);
-                return (
-                <TableRow key={bill.id}>
-                  {showProjectColumn && (
-                    <TableCell className="w-44">
-                      <TooltipProvider>
-                        <Tooltip>
-                          <TooltipTrigger asChild>
-                            <span className="block truncate">
-                              {bill.projects?.address || '-'}
-                            </span>
-                          </TooltipTrigger>
-                          <TooltipContent>
-                            <p>{bill.projects?.address || '-'}</p>
-                          </TooltipContent>
-                        </Tooltip>
-                      </TooltipProvider>
-                    </TableCell>
-                  )}
-                  <TableCell className="w-32 max-w-[128px]">
-                    <TooltipProvider>
-                      <Tooltip>
-                        <TooltipTrigger asChild>
-                          <span className="block truncate">
-                            {bill.companies?.company_name || 'Unknown Vendor'}
-                          </span>
-                        </TooltipTrigger>
-                        <TooltipContent>
-                          <p>{bill.companies?.company_name || 'Unknown Vendor'}</p>
-                        </TooltipContent>
-                      </Tooltip>
-                    </TooltipProvider>
-                  </TableCell>
-                  <TableCell className="w-36 max-w-[144px] overflow-hidden">
-                    {(() => {
-                      const { display, costCodeBreakdown, totalAmount, count } = getCostCodeOrAccountData(bill);
-                      return (
-                        <TooltipProvider>
-                          <Tooltip>
-                            <TooltipTrigger asChild>
-                              <span className="block truncate cursor-default">
-                                {display}
-                              </span>
-                            </TooltipTrigger>
-                            <TooltipContent className="max-w-xs">
-                              {count <= 1 ? (
-                                <p>{display}</p>
-                              ) : (
-                                <div className="space-y-2">
-                                  {costCodeBreakdown.map((cc, i) => (
-                                    <div key={i}>
-                                      <div className="font-medium text-xs">{cc.costCode}</div>
-                                      <div className="pl-2 space-y-0.5">
-                                        {cc.lots.map((lot, j) => (
-                                          <div key={j} className="flex justify-between gap-4 text-xs">
-                                            <span className="text-muted-foreground">{lot.name}:</span>
-                                            <span>${lot.amount.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
-                                          </div>
-                                        ))}
-                                      </div>
-                                    </div>
-                                  ))}
-                                  <div className="border-t pt-1 flex justify-between gap-4 font-medium text-xs">
-                                    <span>Total:</span>
-                                    <span>${totalAmount.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
-                                  </div>
-                                </div>
-                              )}
-                            </TooltipContent>
-                          </Tooltip>
-                        </TooltipProvider>
-                      );
-                    })()}
-                  </TableCell>
-                  <TableCell className="w-20">
-                    {formatDisplayFromAny(bill.bill_date)}
-                  </TableCell>
-                  <TableCell className="w-20">
-                    {bill.due_date ? (
-                      (() => {
-                        const today = new Date();
-                        today.setHours(0, 0, 0, 0);
-                        const dueDate = new Date(bill.due_date);
-                        dueDate.setHours(0, 0, 0, 0);
-                        const isOverdue = dueDate < today && status !== 'paid';
-                        
-                        return (
-                          <span className={isOverdue ? 'text-red-600 font-semibold' : ''}>
-                            {formatDisplayFromAny(bill.due_date)}
-                          </span>
-                        );
-                      })()
-                    ) : '-'}
-                  </TableCell>
-                  <TableCell className="w-20">
-                    {(() => {
-                      if (!isPaidStatus || bill.total_amount < 0) {
-                        return (
-                          <div className="flex items-center gap-1">
-                            {formatCurrency(bill.total_amount)}
-                            {bill.total_amount < 0 && (
-                              <Badge variant="outline" className="text-green-600 border-green-600 text-[10px] px-1">
-                                CR
-                              </Badge>
-                            )}
-                          </div>
-                        );
-                      }
-                      const breakdown = paymentBreakdowns?.get(bill.id);
-                      if (!breakdown || breakdown.credits.length === 0) {
-                        return formatCurrency(bill.total_amount);
-                      }
-                      return (
-                        <TooltipProvider>
-                          <Tooltip>
-                            <TooltipTrigger asChild>
-                              <div className="flex items-center gap-1 cursor-default">
-                                <span>{formatCurrency(breakdown.cashPaid)}</span>
-                                <Info className="h-3.5 w-3.5 text-green-600 shrink-0" />
-                              </div>
-                            </TooltipTrigger>
-                            <TooltipContent className="max-w-xs">
-                              <div className="space-y-1 text-xs">
-                                <div className="flex justify-between gap-4">
-                                  <span>Bill Amount:</span>
-                                  <span>${Math.abs(bill.total_amount).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
-                                </div>
-                                {breakdown.credits.map((cr, i) => (
-                                  <div key={i} className="flex justify-between gap-4 text-green-600">
-                                    <span>Credit Applied ({cr.ref}):</span>
-                                    <span>-${cr.amount.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
-                                  </div>
-                                ))}
-                                <div className="border-t pt-1 flex justify-between gap-4 font-medium">
-                                  <span>Cash Paid:</span>
-                                  <span>${breakdown.cashPaid.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
-                                </div>
-                              </div>
-                            </TooltipContent>
-                          </Tooltip>
-                        </TooltipProvider>
-                      );
-                    })()}
-                  </TableCell>
-                  <TableCell className="w-24 max-w-[96px]">
-                    <span className="block truncate">{bill.reference_number || '-'}</span>
-                  </TableCell>
-                  {/* Memo column */}
-                  <TableCell className="w-10 text-center">
-                    {memoSummary ? (
-                      <TooltipProvider>
-                        <Tooltip>
-                          <TooltipTrigger asChild>
-                            <FileText className="h-4 w-4 text-yellow-600 mx-auto cursor-default" />
-                          </TooltipTrigger>
-                          <TooltipContent className="max-w-xs">
-                            <p className="whitespace-pre-wrap">{memoSummary}</p>
-                          </TooltipContent>
-                        </Tooltip>
-                      </TooltipProvider>
-                    ) : (
-                      <span className="text-muted-foreground">-</span>
-                    )}
-                  </TableCell>
-                  {showAddressColumn && (
-                  <TableCell className="w-16 max-w-[64px]">
-                    {(() => {
-                      const { display, costCodeBreakdown, totalAmount, uniqueLotCount } = getLotAllocationData(bill);
-                      if (uniqueLotCount <= 1) {
-                        return display;
-                      }
-                      return (
-                        <TooltipProvider>
-                          <Tooltip>
-                            <TooltipTrigger>
-                              {display}
-                            </TooltipTrigger>
-                            <TooltipContent className="max-w-xs">
-                              <div className="space-y-2">
-                                {costCodeBreakdown.map((cc, i) => (
-                                  <div key={i}>
-                                    <div className="font-medium text-xs">{cc.costCode}</div>
-                                    <div className="pl-2 space-y-0.5">
-                                      {cc.lots.map((lot, j) => (
-                                        <div key={j} className="flex justify-between gap-4 text-xs">
-                                          <span className="text-muted-foreground">{lot.name}:</span>
-                                          <span>${lot.amount.toLocaleString('en-US', { minimumFractionDigits: 2 })}</span>
-                                        </div>
-                                      ))}
-                                    </div>
-                                  </div>
-                                ))}
-                                <div className="border-t pt-1 flex justify-between gap-4 font-medium text-xs">
-                                  <span>Total:</span>
-                                  <span>${totalAmount.toLocaleString('en-US', { minimumFractionDigits: 2 })}</span>
-                                </div>
-                              </div>
-                            </TooltipContent>
-                          </Tooltip>
-                        </TooltipProvider>
-                      );
-                    })()}
-                  </TableCell>
-                  )}
-                  <TableCell className="w-10 text-center">
-                    <BillFilesCell attachments={bill.bill_attachments || []} />
-                  </TableCell>
-                  <TableCell className="w-10 text-center">
-                    <TooltipProvider>
-                      <Tooltip>
-                        <TooltipTrigger asChild>
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            className="h-6 w-6 p-0 hover:bg-muted"
-                            onClick={() => setNotesDialog({ 
-                              open: true, 
-                              billId: bill.id,
-                              billInfo: {
-                                vendor: bill.companies?.company_name || 'Unknown Vendor',
-                                amount: bill.total_amount
-                              },
-                              initialNotes: bill.notes || ''
-                            })}
-                          >
-                            {bill.notes?.trim() ? (
-                              <StickyNote className="h-3.5 w-3.5 text-yellow-600" />
-                            ) : (
-                              <span className="text-xs text-muted-foreground">Add</span>
-                            )}
-                          </Button>
-                        </TooltipTrigger>
-                        <TooltipContent>
-                          <p>{bill.notes?.trim() ? 'View/Edit Notes' : 'Add Notes'}</p>
-                        </TooltipContent>
-                      </Tooltip>
-                    </TooltipProvider>
-                  </TableCell>
-                  {/* PO Status column */}
-                  {showPOStatusColumn && (
-                    <TableCell className="w-20 text-center">
-                      {(() => {
-                        const matchResult = poMatchingData?.get(bill.id);
-                        const status = matchResult?.overall_status || 'no_po';
-                        const allMatches = matchResult?.matches || [];
-                        
-                        return (
-                          <POStatusBadge
-                            status={status}
-                            onClick={() => {
-                              if (allMatches.length > 0) {
-                                setPoDialogState({
-                                  open: true,
-                                  matches: allMatches,
-                                  bill: bill
-                                });
-                              }
-                            }}
-                          />
-                        );
-                      })()}
-                    </TableCell>
-                  )}
-                  {/* Final column: Actions for draft, Cleared for posted/paid */}
-                  <TableCell className="w-24 text-center">
-                    {isDraftStatus ? (
-                      <TableRowActions actions={[
-                        { label: "Approve", onClick: () => handleActionChange(bill.id, 'approve'), disabled: approveBill.isPending || rejectBill.isPending },
-                        { label: "Edit", onClick: () => handleActionChange(bill.id, 'edit'), disabled: approveBill.isPending || rejectBill.isPending },
-                        { label: "Reject", onClick: () => handleActionChange(bill.id, 'reject'), variant: 'destructive' as const, disabled: approveBill.isPending || rejectBill.isPending },
-                      ]} />
-                    ) : (
-                      bill.reconciled ? <Check className="h-4 w-4 text-green-600 mx-auto" /> : <span className="text-muted-foreground">-</span>
-                    )}
-                  </TableCell>
-                  {showPayBillButton && (
-                    <TableCell className="text-center w-24">
-                      <Button
-                        size="sm"
-                        onClick={() => handlePayBill(bill)}
-                        disabled={payBill.isPending}
-                        className="h-7 text-xs px-2"
-                      >
-                        {payBill.isPending ? "..." : "Pay Bill"}
-                      </Button>
-                    </TableCell>
-                  )}
-                  {canShowDeleteButton && (
-                    <TableCell className="text-center w-16">
-                      {showEditButton ? (
-                        <TableRowActions actions={[
-                          {
-                            label: "Edit",
-                            onClick: () => setEditingBillId(bill.id),
-                            disabled: bill.reconciled,
-                          },
-                          {
-                            label: "Delete Bill",
-                            onClick: () => deleteBill.mutate(bill.id),
-                            variant: "destructive",
-                            requiresConfirmation: true,
-                            confirmTitle: "Delete Bill",
-                            confirmDescription: `Are you sure you want to delete this bill from ${bill.companies?.company_name} for ${formatCurrency(bill.total_amount)}? This will also delete all associated journal entries and attachments.`,
-                            isLoading: deleteBill.isPending,
-                            disabled: isDateLocked(bill.bill_date) || bill.reconciled,
-                          },
-                        ]} />
-                      ) : (
-                        <TableRowActions actions={[
-                          {
-                            label: "Edit",
-                            onClick: () => setEditingBillId(bill.id),
-                            disabled: bill.reconciled,
-                          },
-                          {
-                            label: "Delete Bill",
-                            onClick: () => deleteBill.mutate(bill.id),
-                            variant: "destructive",
-                            requiresConfirmation: true,
-                            confirmTitle: "Delete Bill",
-                            confirmDescription: `Are you sure you want to delete this bill from ${bill.companies?.company_name} for ${formatCurrency(bill.total_amount)}? This will also delete all associated journal entries and attachments.`,
-                            isLoading: deleteBill.isPending,
-                            disabled: isDateLocked(bill.bill_date) || bill.reconciled,
-                          },
-                        ]} />
-                      )}
-                    </TableCell>
-                  )}
-                </TableRow>
-              );
-            })
+                return renderBillRow(bill, memoSummary);
+              })
             )}
               </TableBody>
             </Table>
