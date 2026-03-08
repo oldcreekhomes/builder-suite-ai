@@ -1196,6 +1196,12 @@ export function BillsApprovalTable({ status, projectId, projectIds, showProjectC
                 
                 paymentGroupsMap.forEach((group, paymentId) => {
                   group.billIds.forEach(billId => billToPaymentMap.set(billId, paymentId));
+                  // Also map credit allocation bill IDs to prevent duplicate standalone rows
+                  group.allocations.forEach(alloc => {
+                    if (alloc.isCredit) {
+                      billToPaymentMap.set(alloc.billId, paymentId);
+                    }
+                  });
                 });
 
                 // Also find bills not in any payment group (standalone)
