@@ -584,10 +584,11 @@ return parentRows;
             </PopoverTrigger>
             <PopoverContent className="w-auto p-0" align="end">
               <Calendar
-                mode="single"
-                selected={asOfDate}
-                onSelect={(date) => date && onAsOfDateChange(date)}
-                initialFocus
+                 mode="single"
+                 selected={asOfDate}
+                 defaultMonth={asOfDate}
+                 onSelect={(date) => date && onAsOfDateChange(date)}
+                 initialFocus
                 className="pointer-events-auto"
               />
             </PopoverContent>
