@@ -1,9 +1,20 @@
 
-## ✅ COMPLETED: Fix Bill Payment — Credit Calculation + Data Repair + Consolidated Payment View
 
-All three fixes have been implemented:
+## Fix Row Heights for Payment Group Rows
 
-1. **Credit remaining balance formula** — Fixed in `useBills.ts` line 417 to use `total_amount + amount_paid` for credits
-2. **Proportional credit distribution** — Fixed in `BillsApprovalTable.tsx` to distribute credits proportionally based on each bill's share of positive allocations
-3. **Consolidated payment view** — Paid tab now groups multi-bill payments with expandable rows showing individual allocations (bills + credits)
-4. **Data repair** — Corrected over-allocated amounts for OCH-02302 via SQL migration
+The payment header rows and child rows use `h-[41px]` which doesn't match the natural height of regular bill rows. Regular rows are taller because they wrap content in `TooltipProvider > Tooltip > TooltipTrigger` components, which adds vertical space.
+
+### Fix
+
+In `src/components/bills/BillsApprovalTable.tsx`:
+
+1. **Remove `h-[41px]`** from both the payment header `TableRow` (line 1233) and child `TableRow` (line 1282).
+
+2. **Wrap content in Tooltip components** in the payment header and child rows — matching the exact same `TooltipProvider > Tooltip > TooltipTrigger > span.block.truncate` pattern used in `renderBillRow`. This ensures the DOM structure and natural padding/height are identical.
+
+Specifically, wrap the following cells in tooltips (same as `renderBillRow`):
+- **Header row**: Vendor name, "{N} items" text, amount, "Payment" reference
+- **Child rows**: "Credit Memo"/"Bill" label, cost code, amounts, reference number
+
+This makes every row structurally identical to standard bill rows, producing uniform natural height without any hardcoded pixel values.
+
