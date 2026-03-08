@@ -1492,9 +1492,41 @@ export function BillsApprovalTable({ status, projectId, projectIds, showProjectC
                                   }
                                 </TableCell>
                                 <TableCell className="w-10 text-center">
-                                  <div className="flex justify-center">
-                                    <div className="h-8 w-8 opacity-0 pointer-events-none" />
-                                  </div>
+                                  {childBill ? (
+                                    <TooltipProvider>
+                                      <Tooltip>
+                                        <TooltipTrigger asChild>
+                                          <Button
+                                            variant="ghost"
+                                            size="sm"
+                                            className="h-6 w-6 p-0 hover:bg-muted"
+                                            onClick={() => setNotesDialog({ 
+                                              open: true, 
+                                              billId: childBill.id,
+                                              billInfo: {
+                                                vendor: childBill.companies?.company_name || 'Unknown Vendor',
+                                                amount: childBill.total_amount
+                                              },
+                                              initialNotes: childBill.notes || ''
+                                            })}
+                                          >
+                                            {childBill.notes?.trim() ? (
+                                              <StickyNote className="h-3.5 w-3.5 text-yellow-600" />
+                                            ) : (
+                                              <span className="text-xs text-muted-foreground">Add</span>
+                                            )}
+                                          </Button>
+                                        </TooltipTrigger>
+                                        <TooltipContent>
+                                          <p>{childBill.notes?.trim() ? 'View/Edit Notes' : 'Add Notes'}</p>
+                                        </TooltipContent>
+                                      </Tooltip>
+                                    </TooltipProvider>
+                                  ) : (
+                                    <div className="flex justify-center">
+                                      <div className="h-8 w-8 opacity-0 pointer-events-none" />
+                                    </div>
+                                  )}
                                 </TableCell>
                                 {showPOStatusColumn && <TableCell className="w-20 text-center">
                                   <div className="flex justify-center">
