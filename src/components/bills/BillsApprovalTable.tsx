@@ -1230,32 +1230,93 @@ export function BillsApprovalTable({ status, projectId, projectIds, showProjectC
                         rows.push(
                           <TableRow 
                             key={`payment-${paymentId}`} 
-                            className="cursor-pointer h-[41px]"
+                            className="cursor-pointer"
                             onClick={toggleExpand}
                           >
                             {showProjectColumn && (
                               <TableCell className="w-44">
-                                <span className="block truncate">{firstBill.projects?.address || '-'}</span>
+                                <TooltipProvider>
+                                  <Tooltip>
+                                    <TooltipTrigger asChild>
+                                      <span className="block truncate">{firstBill.projects?.address || '-'}</span>
+                                    </TooltipTrigger>
+                                    <TooltipContent>
+                                      <p>{firstBill.projects?.address || '-'}</p>
+                                    </TooltipContent>
+                                  </Tooltip>
+                                </TooltipProvider>
                               </TableCell>
                             )}
                             <TableCell className="w-32 max-w-[128px]">
-                              <div className="flex items-center gap-1">
-                                {isExpanded ? <ChevronDown className="h-3.5 w-3.5 shrink-0" /> : <ChevronRight className="h-3.5 w-3.5 shrink-0" />}
-                                <span className="block truncate">{firstBill.companies?.company_name || 'Unknown Vendor'}</span>
-                              </div>
+                              <TooltipProvider>
+                                <Tooltip>
+                                  <TooltipTrigger asChild>
+                                    <div className="flex items-center gap-1">
+                                      {isExpanded ? <ChevronDown className="h-3.5 w-3.5 shrink-0" /> : <ChevronRight className="h-3.5 w-3.5 shrink-0" />}
+                                      <span className="block truncate">{firstBill.companies?.company_name || 'Unknown Vendor'}</span>
+                                    </div>
+                                  </TooltipTrigger>
+                                  <TooltipContent>
+                                    <p>{firstBill.companies?.company_name || 'Unknown Vendor'}</p>
+                                  </TooltipContent>
+                                </Tooltip>
+                              </TooltipProvider>
                             </TableCell>
                             <TableCell className="w-36 max-w-[144px] overflow-hidden">
-                              <span className="block truncate">{group.allocations.length} items</span>
+                              <TooltipProvider>
+                                <Tooltip>
+                                  <TooltipTrigger asChild>
+                                    <span className="block truncate">{group.allocations.length} items</span>
+                                  </TooltipTrigger>
+                                  <TooltipContent>
+                                    <p>{group.allocations.length} items</p>
+                                  </TooltipContent>
+                                </Tooltip>
+                              </TooltipProvider>
                             </TableCell>
                             <TableCell className="w-20">
-                              {formatDisplayFromAny(group.paymentDate)}
+                              <TooltipProvider>
+                                <Tooltip>
+                                  <TooltipTrigger asChild>
+                                    <span className="block truncate">{formatDisplayFromAny(group.paymentDate)}</span>
+                                  </TooltipTrigger>
+                                  <TooltipContent>
+                                    <p>{formatDisplayFromAny(group.paymentDate)}</p>
+                                  </TooltipContent>
+                                </Tooltip>
+                              </TooltipProvider>
                             </TableCell>
-                            <TableCell className="w-20">-</TableCell>
                             <TableCell className="w-20">
-                              {formatCurrencyValue(group.totalAmount)}
+                              <TooltipProvider>
+                                <Tooltip>
+                                  <TooltipTrigger asChild>
+                                    <span className="block truncate">-</span>
+                                  </TooltipTrigger>
+                                  <TooltipContent><p>-</p></TooltipContent>
+                                </Tooltip>
+                              </TooltipProvider>
+                            </TableCell>
+                            <TableCell className="w-20">
+                              <TooltipProvider>
+                                <Tooltip>
+                                  <TooltipTrigger asChild>
+                                    <span className="block truncate">{formatCurrencyValue(group.totalAmount)}</span>
+                                  </TooltipTrigger>
+                                  <TooltipContent>
+                                    <p>{formatCurrencyValue(group.totalAmount)}</p>
+                                  </TooltipContent>
+                                </Tooltip>
+                              </TooltipProvider>
                             </TableCell>
                             <TableCell className="w-24 max-w-[96px]">
-                              <span className="block truncate">Payment</span>
+                              <TooltipProvider>
+                                <Tooltip>
+                                  <TooltipTrigger asChild>
+                                    <span className="block truncate">Payment</span>
+                                  </TooltipTrigger>
+                                  <TooltipContent><p>Payment</p></TooltipContent>
+                                </Tooltip>
+                              </TooltipProvider>
                             </TableCell>
                             <TableCell className="w-10 text-center">
                               <span className="text-muted-foreground">-</span>
@@ -1279,31 +1340,81 @@ export function BillsApprovalTable({ status, projectId, projectIds, showProjectC
                           for (const alloc of group.allocations) {
                             const childBill = filteredBills.find(b => b.id === alloc.billId);
                             rows.push(
-                              <TableRow key={`alloc-${paymentId}-${alloc.billId}`} className="h-[41px]">
+                              <TableRow key={`alloc-${paymentId}-${alloc.billId}`}>
                                 {showProjectColumn && <TableCell className="w-44" />}
                                 <TableCell className="w-32 max-w-[128px] pl-10">
-                                  <span className="block truncate">
-                                    {alloc.isCredit ? 'Credit Memo' : 'Bill'}
-                                  </span>
+                                  <TooltipProvider>
+                                    <Tooltip>
+                                      <TooltipTrigger asChild>
+                                        <span className="block truncate">
+                                          {alloc.isCredit ? 'Credit Memo' : 'Bill'}
+                                        </span>
+                                      </TooltipTrigger>
+                                      <TooltipContent><p>{alloc.isCredit ? 'Credit Memo' : 'Bill'}</p></TooltipContent>
+                                    </Tooltip>
+                                  </TooltipProvider>
                                 </TableCell>
                                 <TableCell className="w-36 max-w-[144px] overflow-hidden">
-                                  <span className="block truncate">
-                                    {childBill ? (() => { const { display } = getCostCodeOrAccountData(childBill); return display; })() : '-'}
-                                  </span>
+                                  <TooltipProvider>
+                                    <Tooltip>
+                                      <TooltipTrigger asChild>
+                                        <span className="block truncate">
+                                          {childBill ? (() => { const { display } = getCostCodeOrAccountData(childBill); return display; })() : '-'}
+                                        </span>
+                                      </TooltipTrigger>
+                                      <TooltipContent>
+                                        <p>{childBill ? (() => { const { display } = getCostCodeOrAccountData(childBill); return display; })() : '-'}</p>
+                                      </TooltipContent>
+                                    </Tooltip>
+                                  </TooltipProvider>
                                 </TableCell>
                                 <TableCell className="w-20">
-                                  {childBill ? formatDisplayFromAny(childBill.bill_date) : '-'}
+                                  <TooltipProvider>
+                                    <Tooltip>
+                                      <TooltipTrigger asChild>
+                                        <span className="block truncate">{childBill ? formatDisplayFromAny(childBill.bill_date) : '-'}</span>
+                                      </TooltipTrigger>
+                                      <TooltipContent><p>{childBill ? formatDisplayFromAny(childBill.bill_date) : '-'}</p></TooltipContent>
+                                    </Tooltip>
+                                  </TooltipProvider>
                                 </TableCell>
                                 <TableCell className="w-20">
-                                  {childBill?.due_date ? formatDisplayFromAny(childBill.due_date) : '-'}
+                                  <TooltipProvider>
+                                    <Tooltip>
+                                      <TooltipTrigger asChild>
+                                        <span className="block truncate">{childBill?.due_date ? formatDisplayFromAny(childBill.due_date) : '-'}</span>
+                                      </TooltipTrigger>
+                                      <TooltipContent><p>{childBill?.due_date ? formatDisplayFromAny(childBill.due_date) : '-'}</p></TooltipContent>
+                                    </Tooltip>
+                                  </TooltipProvider>
                                 </TableCell>
                                 <TableCell className="w-20">
-                                  {alloc.isCredit
-                                    ? `(${formatCurrencyValue(Math.abs(alloc.amount))})`
-                                    : formatCurrencyValue(alloc.amount)}
+                                  <TooltipProvider>
+                                    <Tooltip>
+                                      <TooltipTrigger asChild>
+                                        <span className="block truncate">
+                                          {alloc.isCredit
+                                            ? `(${formatCurrencyValue(Math.abs(alloc.amount))})`
+                                            : formatCurrencyValue(alloc.amount)}
+                                        </span>
+                                      </TooltipTrigger>
+                                      <TooltipContent>
+                                        <p>{alloc.isCredit
+                                          ? `(${formatCurrencyValue(Math.abs(alloc.amount))})`
+                                          : formatCurrencyValue(alloc.amount)}</p>
+                                      </TooltipContent>
+                                    </Tooltip>
+                                  </TooltipProvider>
                                 </TableCell>
                                 <TableCell className="w-24 max-w-[96px]">
-                                  <span className="block truncate">{alloc.ref || '-'}</span>
+                                  <TooltipProvider>
+                                    <Tooltip>
+                                      <TooltipTrigger asChild>
+                                        <span className="block truncate">{alloc.ref || '-'}</span>
+                                      </TooltipTrigger>
+                                      <TooltipContent><p>{alloc.ref || '-'}</p></TooltipContent>
+                                    </Tooltip>
+                                  </TooltipProvider>
                                 </TableCell>
                                 <TableCell className="w-10 text-center">
                                   <span className="text-muted-foreground">-</span>
