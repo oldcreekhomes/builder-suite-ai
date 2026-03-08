@@ -1369,7 +1369,8 @@ export function BillsApprovalTable({ status, projectId, projectIds, showProjectC
 
                         // Expanded child rows
                         if (isExpanded) {
-                          for (const alloc of group.allocations) {
+                          const sortedAllocations = [...group.allocations].sort((a, b) => (b.isCredit ? 1 : 0) - (a.isCredit ? 1 : 0));
+                          for (const alloc of sortedAllocations) {
                             const childBill = filteredBills.find(b => b.id === alloc.billId);
                             rows.push(
                               <TableRow key={`alloc-${paymentId}-${alloc.billId}`} className="h-11">
