@@ -414,7 +414,9 @@ export const useBills = () => {
 
         if (billError) throw billError;
 
-        const remainingBalance = bill.total_amount - (bill.amount_paid || 0);
+        const remainingBalance = bill.total_amount < 0
+          ? bill.total_amount + (bill.amount_paid || 0)
+          : bill.total_amount - (bill.amount_paid || 0);
         billsData.push({
           id: bill.id,
           vendor_id: bill.vendor_id,

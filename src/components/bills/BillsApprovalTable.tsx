@@ -366,12 +366,24 @@ export function BillsApprovalTable({ status, projectId, projectIds, showProjectC
             s => s.bill_payment_id === alloc.bill_payment_id && s.bill_id !== billId
           );
 
+          // Get all positive allocations in this payment (including this bill's)
+          const allPositiveAllocations = (siblingAllocations || []).filter(
+            s => s.bill_payment_id === alloc.bill_payment_id && s.amount_allocated > 0
+          );
+          const totalPositive = allPositiveAllocations.reduce((sum, s) => sum + s.amount_allocated, 0);
+          const myAllocation = alloc.amount_allocated;
+
           for (const sib of siblings) {
             const sibBill = sib.bill as any;
             if (sibBill && sibBill.total_amount < 0) {
+              // Distribute credit proportionally based on this bill's share of positive allocations
+              const creditAmount = Math.abs(sib.amount_allocated);
+              const myShare = totalPositive > 0
+                ? Math.round(creditAmount * (myAllocation / totalPositive) * 100) / 100
+                : creditAmount;
               credits.push({
                 ref: sibBill.reference_number || 'Credit',
-                amount: Math.abs(sib.amount_allocated),
+                amount: myShare,
               });
             }
           }
