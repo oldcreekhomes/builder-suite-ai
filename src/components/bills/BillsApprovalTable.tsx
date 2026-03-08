@@ -729,7 +729,7 @@ export function BillsApprovalTable({ status, projectId, projectIds, showProjectC
   const showPOStatusColumn = true;
   const baseColCount = 11 + (showAddressColumn ? 1 : 0) + (showProjectColumn ? 1 : 0) + (showPayBillButton ? 1 : 0) + (canShowDeleteButton ? 1 : 0) + (showPOStatusColumn ? 1 : 0);
 
-  const renderBillRow = (bill: BillForApproval, memoSummary: string | null) => {
+  
     <>
       <div className="flex flex-col min-w-0">
         {/* Scrollable table container */}
