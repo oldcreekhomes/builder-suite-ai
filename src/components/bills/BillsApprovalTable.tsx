@@ -1,4 +1,5 @@
 import { useMemo, useState } from "react";
+import { cn } from "@/lib/utils";
 import { useLots } from "@/hooks/useLots";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Info, ChevronRight, ChevronDown } from 'lucide-react';
@@ -1196,6 +1197,12 @@ export function BillsApprovalTable({ status, projectId, projectIds, showProjectC
                 
                 paymentGroupsMap.forEach((group, paymentId) => {
                   group.billIds.forEach(billId => billToPaymentMap.set(billId, paymentId));
+                  // Also map credit allocation bill IDs to prevent duplicate standalone rows
+                  group.allocations.forEach(alloc => {
+                    if (alloc.isCredit) {
+                      billToPaymentMap.set(alloc.billId, paymentId);
+                    }
+                  });
                 });
 
                 // Also find bills not in any payment group (standalone)
@@ -1363,7 +1370,8 @@ export function BillsApprovalTable({ status, projectId, projectIds, showProjectC
 
                         // Expanded child rows
                         if (isExpanded) {
-                          for (const alloc of group.allocations) {
+                          const sortedAllocations = [...group.allocations].sort((a, b) => (b.isCredit ? 1 : 0) - (a.isCredit ? 1 : 0));
+                          for (const alloc of sortedAllocations) {
                             const childBill = filteredBills.find(b => b.id === alloc.billId);
                             rows.push(
                               <TableRow key={`alloc-${paymentId}-${alloc.billId}`} className="h-11">
@@ -1418,11 +1426,18 @@ export function BillsApprovalTable({ status, projectId, projectIds, showProjectC
                                   <TooltipProvider>
                                     <Tooltip>
                                       <TooltipTrigger asChild>
-                                        <span className="block truncate">
-                                          {alloc.isCredit
-                                            ? `(${formatCurrencyValue(Math.abs(alloc.amount))})`
-                                            : formatCurrencyValue(alloc.amount)}
-                                        </span>
+                                        <div className="flex items-center gap-1">
+                                          <span className={cn("block truncate", alloc.isCredit && "text-green-600 font-medium")}>
+                                            {alloc.isCredit
+                                              ? `(${formatCurrencyValue(Math.abs(alloc.amount))})`
+                                              : formatCurrencyValue(alloc.amount)}
+                                          </span>
+                                          {alloc.isCredit && (
+                                            <Badge variant="outline" className="text-green-600 border-green-600 text-[10px] px-1">
+                                              CR
+                                            </Badge>
+                                          )}
+                                        </div>
                                       </TooltipTrigger>
                                       <TooltipContent>
                                         <p>{alloc.isCredit
@@ -1443,9 +1458,27 @@ export function BillsApprovalTable({ status, projectId, projectIds, showProjectC
                                   </TooltipProvider>
                                 </TableCell>
                                 <TableCell className="w-10 text-center">
-                                  <div className="flex justify-center">
-                                    <div className="h-8 w-8 opacity-0 pointer-events-none" />
-                                  </div>
+                                  {childBill ? (() => {
+                                    const childMemo = getBillMemoSummary(childBill);
+                                    return childMemo ? (
+                                      <TooltipProvider>
+                                        <Tooltip>
+                                          <TooltipTrigger asChild>
+                                            <FileText className="h-4 w-4 text-yellow-600 mx-auto cursor-default" />
+                                          </TooltipTrigger>
+                                          <TooltipContent className="max-w-xs">
+                                            <p className="whitespace-pre-wrap">{childMemo}</p>
+                                          </TooltipContent>
+                                        </Tooltip>
+                                      </TooltipProvider>
+                                    ) : (
+                                      <span className="text-muted-foreground">-</span>
+                                    );
+                                  })() : (
+                                    <div className="flex justify-center">
+                                      <div className="h-8 w-8 opacity-0 pointer-events-none" />
+                                    </div>
+                                  )}
                                 </TableCell>
                                 {showAddressColumn && <TableCell className="w-16">
                                   <div className="flex justify-center">
@@ -1460,9 +1493,41 @@ export function BillsApprovalTable({ status, projectId, projectIds, showProjectC
                                   }
                                 </TableCell>
                                 <TableCell className="w-10 text-center">
-                                  <div className="flex justify-center">
-                                    <div className="h-8 w-8 opacity-0 pointer-events-none" />
-                                  </div>
+                                  {childBill ? (
+                                    <TooltipProvider>
+                                      <Tooltip>
+                                        <TooltipTrigger asChild>
+                                          <Button
+                                            variant="ghost"
+                                            size="sm"
+                                            className="h-6 w-6 p-0 hover:bg-muted"
+                                            onClick={() => setNotesDialog({ 
+                                              open: true, 
+                                              billId: childBill.id,
+                                              billInfo: {
+                                                vendor: childBill.companies?.company_name || 'Unknown Vendor',
+                                                amount: childBill.total_amount
+                                              },
+                                              initialNotes: childBill.notes || ''
+                                            })}
+                                          >
+                                            {childBill.notes?.trim() ? (
+                                              <StickyNote className="h-3.5 w-3.5 text-yellow-600" />
+                                            ) : (
+                                              <span className="text-xs text-muted-foreground">Add</span>
+                                            )}
+                                          </Button>
+                                        </TooltipTrigger>
+                                        <TooltipContent>
+                                          <p>{childBill.notes?.trim() ? 'View/Edit Notes' : 'Add Notes'}</p>
+                                        </TooltipContent>
+                                      </Tooltip>
+                                    </TooltipProvider>
+                                  ) : (
+                                    <div className="flex justify-center">
+                                      <div className="h-8 w-8 opacity-0 pointer-events-none" />
+                                    </div>
+                                  )}
                                 </TableCell>
                                 {showPOStatusColumn && <TableCell className="w-20 text-center">
                                   <div className="flex justify-center">
