@@ -1320,36 +1320,44 @@ export function BillsApprovalTable({ status, projectId, projectIds, showProjectC
                             </TableCell>
                             <TableCell className="w-10 text-center">
                               <div className="flex justify-center">
-                                <Button variant="ghost" size="sm" className="h-6 w-6 p-0 opacity-0 pointer-events-none" />
+                                <div className="h-8 w-8 opacity-0 pointer-events-none" />
                               </div>
                             </TableCell>
                             {showAddressColumn && <TableCell className="w-16">
                               <div className="flex justify-center">
-                                <Button variant="ghost" size="sm" className="h-6 w-6 p-0 opacity-0 pointer-events-none" />
+                                <div className="h-8 w-8 opacity-0 pointer-events-none" />
                               </div>
                             </TableCell>}
                             <TableCell className="w-10 text-center">
                               <div className="flex justify-center">
-                                <Button variant="ghost" size="sm" className="h-6 w-6 p-0 opacity-0 pointer-events-none" />
+                                <div className="h-8 w-8 opacity-0 pointer-events-none" />
                               </div>
                             </TableCell>
                             <TableCell className="w-10 text-center">
                               <div className="flex justify-center">
-                                <Button variant="ghost" size="sm" className="h-6 w-6 p-0 opacity-0 pointer-events-none" />
+                                <div className="h-8 w-8 opacity-0 pointer-events-none" />
                               </div>
                             </TableCell>
                             {showPOStatusColumn && <TableCell className="w-20 text-center">
                               <div className="flex justify-center">
-                                <Button variant="ghost" size="sm" className="h-6 w-6 p-0 opacity-0 pointer-events-none" />
+                                <div className="h-8 w-8 opacity-0 pointer-events-none" />
                               </div>
                             </TableCell>}
                             <TableCell className="w-24 text-center">
                               <div className="flex justify-center">
-                                <Button variant="ghost" size="sm" className="h-6 w-6 p-0 opacity-0 pointer-events-none" />
+                                <div className="h-8 w-8 opacity-0 pointer-events-none" />
                               </div>
                             </TableCell>
-                            {showPayBillButton && <TableCell className="text-center w-20" />}
-                            {canShowDeleteButton && <TableCell className="text-center w-16" />}
+                            {showPayBillButton && <TableCell className="text-center w-20">
+                              <div className="flex justify-center">
+                                <div className="h-8 w-8 opacity-0 pointer-events-none" />
+                              </div>
+                            </TableCell>}
+                            {canShowDeleteButton && <TableCell className="text-center w-16">
+                              <div className="flex justify-center">
+                                <div className="h-8 w-8 opacity-0 pointer-events-none" />
+                              </div>
+                            </TableCell>}
                           </TableRow>
                         );
 
