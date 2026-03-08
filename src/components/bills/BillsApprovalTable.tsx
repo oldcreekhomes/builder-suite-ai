@@ -1230,32 +1230,93 @@ export function BillsApprovalTable({ status, projectId, projectIds, showProjectC
                         rows.push(
                           <TableRow 
                             key={`payment-${paymentId}`} 
-                            className="cursor-pointer h-[41px]"
+                            className="cursor-pointer"
                             onClick={toggleExpand}
                           >
                             {showProjectColumn && (
                               <TableCell className="w-44">
-                                <span className="block truncate">{firstBill.projects?.address || '-'}</span>
+                                <TooltipProvider>
+                                  <Tooltip>
+                                    <TooltipTrigger asChild>
+                                      <span className="block truncate">{firstBill.projects?.address || '-'}</span>
+                                    </TooltipTrigger>
+                                    <TooltipContent>
+                                      <p>{firstBill.projects?.address || '-'}</p>
+                                    </TooltipContent>
+                                  </Tooltip>
+                                </TooltipProvider>
                               </TableCell>
                             )}
                             <TableCell className="w-32 max-w-[128px]">
-                              <div className="flex items-center gap-1">
-                                {isExpanded ? <ChevronDown className="h-3.5 w-3.5 shrink-0" /> : <ChevronRight className="h-3.5 w-3.5 shrink-0" />}
-                                <span className="block truncate">{firstBill.companies?.company_name || 'Unknown Vendor'}</span>
-                              </div>
+                              <TooltipProvider>
+                                <Tooltip>
+                                  <TooltipTrigger asChild>
+                                    <div className="flex items-center gap-1">
+                                      {isExpanded ? <ChevronDown className="h-3.5 w-3.5 shrink-0" /> : <ChevronRight className="h-3.5 w-3.5 shrink-0" />}
+                                      <span className="block truncate">{firstBill.companies?.company_name || 'Unknown Vendor'}</span>
+                                    </div>
+                                  </TooltipTrigger>
+                                  <TooltipContent>
+                                    <p>{firstBill.companies?.company_name || 'Unknown Vendor'}</p>
+                                  </TooltipContent>
+                                </Tooltip>
+                              </TooltipProvider>
                             </TableCell>
                             <TableCell className="w-36 max-w-[144px] overflow-hidden">
-                              <span className="block truncate">{group.allocations.length} items</span>
+                              <TooltipProvider>
+                                <Tooltip>
+                                  <TooltipTrigger asChild>
+                                    <span className="block truncate">{group.allocations.length} items</span>
+                                  </TooltipTrigger>
+                                  <TooltipContent>
+                                    <p>{group.allocations.length} items</p>
+                                  </TooltipContent>
+                                </Tooltip>
+                              </TooltipProvider>
                             </TableCell>
                             <TableCell className="w-20">
-                              {formatDisplayFromAny(group.paymentDate)}
+                              <TooltipProvider>
+                                <Tooltip>
+                                  <TooltipTrigger asChild>
+                                    <span className="block truncate">{formatDisplayFromAny(group.paymentDate)}</span>
+                                  </TooltipTrigger>
+                                  <TooltipContent>
+                                    <p>{formatDisplayFromAny(group.paymentDate)}</p>
+                                  </TooltipContent>
+                                </Tooltip>
+                              </TooltipProvider>
                             </TableCell>
-                            <TableCell className="w-20">-</TableCell>
                             <TableCell className="w-20">
-                              {formatCurrencyValue(group.totalAmount)}
+                              <TooltipProvider>
+                                <Tooltip>
+                                  <TooltipTrigger asChild>
+                                    <span className="block truncate">-</span>
+                                  </TooltipTrigger>
+                                  <TooltipContent><p>-</p></TooltipContent>
+                                </Tooltip>
+                              </TooltipProvider>
+                            </TableCell>
+                            <TableCell className="w-20">
+                              <TooltipProvider>
+                                <Tooltip>
+                                  <TooltipTrigger asChild>
+                                    <span className="block truncate">{formatCurrencyValue(group.totalAmount)}</span>
+                                  </TooltipTrigger>
+                                  <TooltipContent>
+                                    <p>{formatCurrencyValue(group.totalAmount)}</p>
+                                  </TooltipContent>
+                                </Tooltip>
+                              </TooltipProvider>
                             </TableCell>
                             <TableCell className="w-24 max-w-[96px]">
-                              <span className="block truncate">Payment</span>
+                              <TooltipProvider>
+                                <Tooltip>
+                                  <TooltipTrigger asChild>
+                                    <span className="block truncate">Payment</span>
+                                  </TooltipTrigger>
+                                  <TooltipContent><p>Payment</p></TooltipContent>
+                                </Tooltip>
+                              </TooltipProvider>
                             </TableCell>
                             <TableCell className="w-10 text-center">
                               <span className="text-muted-foreground">-</span>
