@@ -388,6 +388,7 @@ export function BalanceSheetContent({ projectId, onHeaderActionChange, asOfDate,
             <Calendar
               mode="single"
               selected={asOfDate}
+              defaultMonth={asOfDate}
               onSelect={(date) => date && onAsOfDateChange(date)}
               initialFocus
               className="pointer-events-auto"
