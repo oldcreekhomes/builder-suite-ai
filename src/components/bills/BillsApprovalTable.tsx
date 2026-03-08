@@ -1230,7 +1230,7 @@ export function BillsApprovalTable({ status, projectId, projectIds, showProjectC
                         rows.push(
                           <TableRow 
                             key={`payment-${paymentId}`} 
-                            className="bg-muted/30 cursor-pointer hover:bg-muted/50"
+                            className="cursor-pointer"
                             onClick={toggleExpand}
                           >
                             {showProjectColumn && (
@@ -1241,26 +1241,32 @@ export function BillsApprovalTable({ status, projectId, projectIds, showProjectC
                             <TableCell className="w-32 max-w-[128px]">
                               <div className="flex items-center gap-1">
                                 {isExpanded ? <ChevronDown className="h-3.5 w-3.5 shrink-0" /> : <ChevronRight className="h-3.5 w-3.5 shrink-0" />}
-                                <span className="block truncate font-medium">{firstBill.companies?.company_name || 'Unknown Vendor'}</span>
+                                <span className="block truncate">{firstBill.companies?.company_name || 'Unknown Vendor'}</span>
                               </div>
                             </TableCell>
-                            <TableCell className="w-36">
-                              <span className="text-muted-foreground text-sm">{group.allocations.length} items</span>
+                            <TableCell className="w-36 max-w-[144px] overflow-hidden">
+                              <span className="block truncate">{group.allocations.length} items</span>
                             </TableCell>
                             <TableCell className="w-20">
                               {formatDisplayFromAny(group.paymentDate)}
                             </TableCell>
                             <TableCell className="w-20">-</TableCell>
-                            <TableCell className="w-20 font-medium">
+                            <TableCell className="w-20">
                               {formatCurrencyValue(group.totalAmount)}
                             </TableCell>
-                            <TableCell className="w-24">
-                              <span className="text-muted-foreground text-sm">Payment</span>
+                            <TableCell className="w-24 max-w-[96px]">
+                              <span className="block truncate">Payment</span>
                             </TableCell>
-                            <TableCell className="w-10 text-center">-</TableCell>
+                            <TableCell className="w-10 text-center">
+                              <span className="text-muted-foreground">-</span>
+                            </TableCell>
                             {showAddressColumn && <TableCell className="w-16">-</TableCell>}
-                            <TableCell className="w-10 text-center">-</TableCell>
-                            <TableCell className="w-10 text-center">-</TableCell>
+                            <TableCell className="w-10 text-center">
+                              <span className="text-muted-foreground">-</span>
+                            </TableCell>
+                            <TableCell className="w-10 text-center">
+                              <span className="text-muted-foreground">-</span>
+                            </TableCell>
                             {showPOStatusColumn && <TableCell className="w-20 text-center">-</TableCell>}
                             <TableCell className="w-24 text-center">-</TableCell>
                             {showPayBillButton && <TableCell className="text-center w-20" />}
