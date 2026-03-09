@@ -442,40 +442,6 @@ const AboutUs = () => {
         </div>
       </section>
 
-      {/* Meet the Founder Section */}
-      <section className="py-20 bg-muted/30">
-        <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="text-center mb-12">
-            <h2 className="text-3xl md:text-4xl font-bold text-foreground mb-4">
-              Meet the Founder
-            </h2>
-          </div>
-
-          <Card className="overflow-hidden">
-            <div className="flex flex-col md:flex-row">
-              <div className="md:w-1/3 bg-gradient-to-br from-primary/20 to-primary/10 p-8 flex items-center justify-center">
-                <img 
-                  src="https://nlmnwlvmmkngrgatnzkj.supabase.co/storage/v1/object/public/avatars/2653aba8-d154-4301-99bf-77d559492e19/avatar.png" 
-                  alt="Matt Gray"
-                  className="w-40 h-40 rounded-full object-cover border-4 border-background shadow-xl"
-                />
-              </div>
-              <div className="md:w-2/3 p-8">
-                <h3 className="text-2xl font-bold text-foreground mb-2">Matt Gray</h3>
-                <p className="text-primary font-medium mb-4">Founder</p>
-                <div className="space-y-4 text-muted-foreground">
-                  <p>
-                    Matt Gray is the founder of both Old Creek Homes, LLC and BuilderSuite. He's been in the construction industry for over twenty years, building hundreds of homes and thousands of apartments throughout the Washington, DC region.
-                  </p>
-                  <p>
-                    After years of frustration with construction software that promised everything and delivered headaches, Matt decided to build the platform he always wished existed. Today, he uses BuilderSuite every day at Old Creek Homes, LLC—and he's committed to building the best construction management software in the industry.
-                  </p>
-                </div>
-              </div>
-            </div>
-          </Card>
-        </div>
-      </section>
 
       {/* CTA Section */}
       <section className="py-20 bg-gradient-to-b from-background to-muted">
