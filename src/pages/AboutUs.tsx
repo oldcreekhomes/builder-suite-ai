@@ -188,7 +188,7 @@ const AboutUs = () => {
       </section>
 
       {/* Vision Section */}
-      <section className="py-16 md:py-20 bg-gradient-to-br from-primary/5 to-primary/10">
+      <section className="py-16 md:py-20 bg-muted">
         <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
           <span className="text-sm font-semibold tracking-widest uppercase text-primary mb-4 block">
             Our Vision
