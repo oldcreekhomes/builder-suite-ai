@@ -62,7 +62,7 @@ const AboutUs = () => {
       </Dialog>
 
       {/* Hero Section */}
-      <section className="py-20 md:py-28 bg-gradient-to-b from-muted to-background">
+      <section className="py-20 md:py-28 bg-muted">
         <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
           {/* Main Headline */}
           <div className="text-center mb-12">
