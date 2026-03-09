@@ -62,7 +62,7 @@ const AboutUs = () => {
       </Dialog>
 
       {/* Hero Section */}
-      <section className="py-20 md:py-28 bg-gradient-to-b from-muted to-background">
+      <section className="py-20 md:py-28 bg-muted">
         <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
           {/* Main Headline */}
           <div className="text-center mb-12">
@@ -188,7 +188,7 @@ const AboutUs = () => {
       </section>
 
       {/* Vision Section */}
-      <section className="py-16 md:py-20 bg-gradient-to-br from-primary/5 to-primary/10">
+      <section className="py-16 md:py-20 bg-muted">
         <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
           <span className="text-sm font-semibold tracking-widest uppercase text-primary mb-4 block">
             Our Vision
@@ -207,7 +207,7 @@ const AboutUs = () => {
 
 
       {/* Our Story Section */}
-      <section className="py-20 bg-muted/30">
+      <section className="py-20 bg-background">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
             <div>
@@ -272,7 +272,7 @@ const AboutUs = () => {
       </section>
 
       {/* The Old Creek Homes Difference */}
-      <section className="py-20 bg-background">
+      <section className="py-20 bg-muted">
         <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-12">
             <h2 className="text-3xl md:text-4xl font-bold text-foreground mb-4">
@@ -326,7 +326,7 @@ const AboutUs = () => {
       </section>
 
       {/* Our Philosophy Section */}
-      <section className="py-20 bg-muted/30">
+      <section className="py-20 bg-background">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-16">
             <h2 className="text-3xl md:text-4xl font-bold text-foreground mb-4">
@@ -390,7 +390,7 @@ const AboutUs = () => {
       </section>
 
       {/* Why We're Different Section */}
-      <section className="py-20 bg-background">
+      <section className="py-20 bg-muted">
         <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-12">
             <h2 className="text-3xl md:text-4xl font-bold text-foreground mb-4">
@@ -444,7 +444,7 @@ const AboutUs = () => {
 
 
       {/* CTA Section */}
-      <section className="py-20 bg-gradient-to-b from-background to-muted">
+      <section className="py-20 bg-background">
         <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
           <h2 className="text-3xl md:text-4xl font-bold text-foreground mb-4">
             Join the Builders Who Get It
