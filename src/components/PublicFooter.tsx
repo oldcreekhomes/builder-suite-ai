@@ -26,7 +26,8 @@ export function PublicFooter({ className }: PublicFooterProps) {
             </Link>
           </div>
           <p className="text-muted-foreground mb-4">
-            Software for Builders. Built by Builders.
+            Construction Management Software<br />
+            Built by Builders
           </p>
           <p className="text-sm text-muted-foreground">
             © 2026 BuilderSuite ML. All rights reserved.
