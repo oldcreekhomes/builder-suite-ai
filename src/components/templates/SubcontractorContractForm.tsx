@@ -169,7 +169,7 @@ const SubcontractorContractForm = ({ onPrintReady }: { onPrintReady?: (printFn: 
     ));
 
   const renderPartyBlock = (title: string, fieldKeys: { name: keyof ContractFields; address: keyof ContractFields; phone: keyof ContractFields; contact: keyof ContractFields }, contactLabel: string) => (
-    <div className="border rounded-lg p-3 space-y-1">
+    <div className="p-3 space-y-1">
       <h3 className="text-xs font-bold text-foreground tracking-wide">{title}</h3>
       <Field label="Company" fieldKey={fieldKeys.name} />
       <Field label="Address" fieldKey={fieldKeys.address} />
