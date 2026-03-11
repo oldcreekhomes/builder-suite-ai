@@ -368,7 +368,7 @@ const SubcontractorContractForm = ({ onPrintReady }: { onPrintReady?: (printFn: 
       <p className="text-xs text-foreground italic text-center">(hereinafter referred to as the "Project").</p>
 
       {/* Contract Value Breakdown */}
-      <div className="border rounded-lg p-3">
+      <div className="p-3">
       <h3 className="text-xs font-bold text-foreground tracking-wide mb-2">CONTRACT VALUE BREAKDOWN</h3>
         <table className="w-full text-xs border-collapse">
           <thead>
