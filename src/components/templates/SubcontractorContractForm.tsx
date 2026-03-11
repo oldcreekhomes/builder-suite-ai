@@ -169,14 +169,24 @@ const SubcontractorContractForm = () => {
     ));
 
   const renderPartyBlock = (title: string, fieldKeys: { name: keyof ContractFields; address: keyof ContractFields; phone: keyof ContractFields; contact: keyof ContractFields }, contactLabel: string) => (
-    <div className="border rounded-lg p-4 space-y-2">
-      <h3 className="text-sm font-bold text-foreground tracking-wide">{title}</h3>
+    <div className="border rounded-lg p-3 space-y-1">
+      <h3 className="text-xs font-bold text-foreground tracking-wide">{title}</h3>
       <Field label="Company" fieldKey={fieldKeys.name} />
       <Field label="Address" fieldKey={fieldKeys.address} />
       <Field label="Phone" fieldKey={fieldKeys.phone} />
       <Field label={contactLabel} fieldKey={fieldKeys.contact} />
     </div>
   );
+
+  const formatCurrency = (amount: number) =>
+    amount.toLocaleString("en-US", { style: "currency", currency: "USD" });
+
+  const updateLineItemAmount = (index: number, value: string) => {
+    const parsed = parseFloat(value.replace(/[^0-9.-]/g, ""));
+    setLineItems((prev) =>
+      prev.map((item, i) => (i === index ? { ...item, amount: isNaN(parsed) ? 0 : parsed } : item))
+    );
+  };
 
   const renderPage1Content = () => (
     <div className="space-y-6">
