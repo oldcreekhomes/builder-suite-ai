@@ -341,22 +341,6 @@ const SubcontractorContractForm = ({ onPrintReady }: { onPrintReady?: (printFn: 
         {/* ===== PAGE 5: Exhibits ===== */}
         {currentPage === 5 && renderExhibits()}
 
-        {/* ===== PRINT: render all pages together ===== */}
-        <div className="hidden print:block">
-          {renderPage1Content()}
-
-          <section className="space-y-4 print-page-break pt-4">
-            {renderArticles(page2Articles)}
-          </section>
-
-          <section className="space-y-4 print-page-break pt-4">
-            {renderArticles(page3Articles)}
-          </section>
-
-          <div className="print-page-break pt-4">{renderSignatures()}</div>
-
-          <div className="print-page-break pt-4">{renderExhibits(true)}</div>
-        </div>
       </div>
     </div>
   );
