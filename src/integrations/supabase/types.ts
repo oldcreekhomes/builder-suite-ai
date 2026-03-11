@@ -3934,6 +3934,36 @@ export type Database = {
           },
         ]
       }
+      template_content: {
+        Row: {
+          content: Json
+          created_at: string
+          id: string
+          owner_id: string
+          template_key: string
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          content?: Json
+          created_at?: string
+          id?: string
+          owner_id: string
+          template_key: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          content?: Json
+          created_at?: string
+          id?: string
+          owner_id?: string
+          template_key?: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: []
+      }
       user_chat_messages: {
         Row: {
           created_at: string
@@ -3988,6 +4018,7 @@ export type Database = {
           can_delete_bills: boolean
           can_delete_price_history: boolean
           can_edit_projects: boolean
+          can_edit_templates: boolean
           can_lock_budgets: boolean | null
           can_undo_reconciliation: boolean
           created_at: string
@@ -4014,6 +4045,7 @@ export type Database = {
           can_delete_bills?: boolean
           can_delete_price_history?: boolean
           can_edit_projects?: boolean
+          can_edit_templates?: boolean
           can_lock_budgets?: boolean | null
           can_undo_reconciliation?: boolean
           created_at?: string
@@ -4040,6 +4072,7 @@ export type Database = {
           can_delete_bills?: boolean
           can_delete_price_history?: boolean
           can_edit_projects?: boolean
+          can_edit_templates?: boolean
           can_lock_budgets?: boolean | null
           can_undo_reconciliation?: boolean
           created_at?: string
