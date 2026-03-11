@@ -214,26 +214,32 @@ K. Asphalt and Paving
     </div>
   `).join('');
 
-  const formatScopeForPrint = (text: string) => {
+  const formatScopeForPrint = (text: string, startLetter: string, endLetter: string) => {
     const lines = text.split('\n');
     let html = '';
     let currentSection = '';
+    let inRange = false;
     
     for (const line of lines) {
-      if (/^[A-K]\./.test(line.trim())) {
-        if (currentSection) {
-          html += `</div>`; // close previous scope-section
+      const sectionMatch = line.trim().match(/^([A-K])\./);
+      if (sectionMatch) {
+        const letter = sectionMatch[1];
+        if (letter >= startLetter && letter <= endLetter) {
+          inRange = true;
+          if (currentSection) html += `</div>`;
+          html += `<div style="break-inside: avoid;">`;
+          html += `<div style="font-weight: 700; text-transform: uppercase; margin-top: 8px;">${line.trim()}</div>`;
+          currentSection = letter;
+        } else {
+          if (currentSection) html += `</div>`;
+          inRange = false;
+          currentSection = '';
         }
-        html += `<div class="scope-section">`;
-        html += `<div class="scope-header">${line.trim()}</div>`;
-        currentSection = line.trim();
-      } else {
+      } else if (inRange) {
         html += `<div>${line}</div>`;
       }
     }
-    if (currentSection) {
-      html += `</div>`; // close last scope-section
-    }
+    if (currentSection) html += `</div>`;
     return html;
   };
 
@@ -244,34 +250,28 @@ K. Asphalt and Paving
     const now = new Date();
     const dateStr = now.toLocaleDateString('en-US', { month: '2-digit', day: '2-digit', year: '2-digit' });
     const timeStr = now.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true });
+    const totalPages = 6;
 
-    const htmlContent = [
-      `<!DOCTYPE html><html><head><title> </title>`,
-      `<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Montserrat:wght@300;400;500;600;700&display=swap">`,
-      `<style>`,
-      `body { font-family: 'Montserrat', sans-serif; font-size: 11px; margin: 0.5in 0.75in 0.9in 0.75in; padding: 0; }`,
-      `table { border-collapse: collapse; width: 100%; }`,
-      `.page-break { page-break-before: always; }`,
-      `@media print {`,
-      `  @page { margin: 0; size: letter; }`,
-      `  .print-footer { position: fixed; bottom: 0; left: 0; right: 0; display: flex; justify-content: space-between; align-items: center; font-size: 8px; color: #000; padding: 4px 0.75in 6px 0.75in; border-top: 1px solid #000; }`,
-      `  .print-footer .page-num::after { content: "Page " counter(page); }`,
-      `}`,
-      `@media screen {`,
-      `  .print-footer { position: fixed; bottom: 0; left: 0.75in; right: 0.75in; display: flex; justify-content: space-between; font-size: 8px; color: #000; padding: 4px 0; border-top: 1px solid #000; }`,
-      `  .print-footer .page-num::after { content: "Page"; }`,
-      `}`,
-      `.scope-header { font-weight: 700; text-transform: uppercase; margin-top: 8px; }`,
-      `.scope-section { break-inside: avoid; }`,
-      `.exhibit-a-table { width: 100%; }`,
-      `.exhibit-a-table thead { display: table-header-group; }`,
-      `.exhibit-a-table thead th { text-align: center; border-bottom: 1px solid #000; padding-bottom: 8px; margin-bottom: 12px; font-weight: normal; }`,
-      `</style></head><body>`,
-      `<div class="print-footer"><span>${dateStr}</span><span>${timeStr}</span><span class="page-num"></span></div>`,
+    const makeFooter = (pageNum: number) => `
+      <div style="position: absolute; bottom: 0; left: 0; right: 0; display: flex; justify-content: space-between; align-items: center; font-size: 8px; color: #000; padding: 4px 0 6px 0; border-top: 0.5px solid #ccc;">
+        <span>${dateStr}</span>
+        <span>${timeStr}</span>
+        <span>Page ${pageNum} of ${totalPages}</span>
+      </div>
+    `;
 
-      // Page 1
-      `<div>`,
-      generatePrintHeader("CONTRACT SUMMARY"),
+    const makePage = (pageNum: number, subtitle: string, content: string) => `
+      <div style="min-height: 9.5in; position: relative; box-sizing: border-box; ${pageNum > 1 ? 'page-break-before: always;' : ''}">
+        ${generatePrintHeader(subtitle)}
+        <div style="padding-bottom: 30px;">
+          ${content}
+        </div>
+        ${makeFooter(pageNum)}
+      </div>
+    `;
+
+    // Page 1: Contract Summary
+    const page1Content = [
       `<p style="font-size: 10px; margin-bottom: 12px;">THIS AGREEMENT, made and entered into this <span style="border-bottom: 1px solid #000; padding: 0 4px;">${fields.contractDate || '_______________'}</span> ("Contract Date") by and between</p>`,
       generatePrintPartyBlock("CONTRACTOR", fields.contractorName, fields.contractorAddress, fields.contractorPhone, fields.contractorPM, "Project Manager"),
       `<p style="font-size: 10px; font-style: italic; text-align: center; margin: 4px 0;">(hereinafter called the "Contractor") and</p>`,
@@ -284,42 +284,43 @@ K. Asphalt and Paving
       `<tbody>${generatePrintLineItems()}</tbody>`,
       `<tfoot><tr style="border-top: 2px solid #000;"><td style="padding: 4px 6px;"></td><td style="padding: 4px 6px; font-weight: 700;">TOTAL</td><td style="padding: 4px 6px; text-align: right; font-weight: 700;">${formatCurrency(contractTotal)}</td></tr></tfoot></table></div>`,
       fields.startDate ? `<p style="font-size: 11px; margin-top: 12px;"><strong>Start Date:</strong> ${fields.startDate}</p>` : '',
-      `</div>`,
+    ].join('');
 
-      // Page 2: Articles
-      `<div class="page-break">`,
-      generatePrintHeader("ARTICLES"),
-      generatePrintArticles(articles),
-      `</div>`,
+    // Page 2: Articles
+    const page2Content = generatePrintArticles(articles);
 
-      // Page 3+: Exhibit A (uses table with repeating thead for continuation pages)
-      `<div class="page-break">`,
-      `<table class="exhibit-a-table"><thead><tr><th>`,
-      `<div style="text-align: center; border-bottom: 1px solid #000; padding-bottom: 8px; margin-bottom: 12px;">`,
-      `<h1 style="font-size: 16px; font-weight: 700; text-decoration: underline; margin: 0;">SUBCONTRACT AGREEMENT</h1>`,
-      `<p style="font-size: 10px; color: #888; margin: 4px 0 0 0;">EXHIBIT A – SCOPE OF WORK</p>`,
-      `</div>`,
-      `</th></tr></thead>`,
-      `<tbody><tr><td style="font-size: 11px;">`,
-      formatScopeForPrint(fields.scopeOfWork || ''),
-      `</td></tr></tbody></table>`,
-      `</div>`,
+    // Page 3: Exhibit A (A-F)
+    const page3Content = `<div style="font-size: 11px;">${formatScopeForPrint(fields.scopeOfWork || '', 'A', 'F')}</div>`;
 
-      // Exhibit B
-      `<div class="page-break">`,
-      generatePrintHeader("EXHIBIT B – PROJECT DRAWINGS"),
-      `<div style="white-space: pre-line; font-size: 11px;">${fields.projectDrawings || ''}</div>`,
-      `</div>`,
+    // Page 4: Exhibit A continued (G-K)
+    const page4Content = `<div style="font-size: 11px;">${formatScopeForPrint(fields.scopeOfWork || '', 'G', 'K')}</div>`;
 
-      // Signatures
-      `<div class="page-break">`,
-      generatePrintHeader("SIGNATURES"),
+    // Page 5: Exhibit B
+    const page5Content = `<div style="white-space: pre-line; font-size: 11px;">${fields.projectDrawings || ''}</div>`;
+
+    // Page 6: Signatures
+    const page6Content = [
       `<div style="display: flex; gap: 40px; margin-top: 24px;">`,
       `<div style="flex: 1;"><p style="font-weight: 600;">CONTRACTOR</p><div style="border-bottom: 1px solid #999; height: 40px; margin-top: 20px;"></div><p style="font-size: 10px; color: #888;">Signature</p><p style="font-size: 11px; margin-top: 8px;"><strong>Name:</strong> ${fields.contractorSignerName || '_______________'}</p><p style="font-size: 11px;"><strong>Title:</strong> ${fields.contractorSignerTitle || '_______________'}</p></div>`,
       `<div style="flex: 1;"><p style="font-weight: 600;">SUBCONTRACTOR</p><div style="border-bottom: 1px solid #999; height: 40px; margin-top: 20px;"></div><p style="font-size: 10px; color: #888;">Signature</p><p style="font-size: 11px; margin-top: 8px;"><strong>Name:</strong> ${fields.subcontractorSignerName || '_______________'}</p><p style="font-size: 11px;"><strong>Title:</strong> ${fields.subcontractorSignerTitle || '_______________'}</p></div>`,
       `</div>`,
-      `</div>`,
+    ].join('');
 
+    const htmlContent = [
+      `<!DOCTYPE html><html><head><title> </title>`,
+      `<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Montserrat:wght@300;400;500;600;700&display=swap">`,
+      `<style>`,
+      `* { box-sizing: border-box; }`,
+      `body { font-family: 'Montserrat', sans-serif; font-size: 11px; margin: 0; padding: 0; }`,
+      `table { border-collapse: collapse; width: 100%; }`,
+      `@media print { @page { margin: 0; size: letter; } }`,
+      `</style></head><body style="padding: 0.5in 0.75in;">`,
+      makePage(1, "CONTRACT SUMMARY", page1Content),
+      makePage(2, "ARTICLES", page2Content),
+      makePage(3, "EXHIBIT A – SCOPE OF WORK", page3Content),
+      makePage(4, "EXHIBIT A – SCOPE OF WORK (CONTINUED)", page4Content),
+      makePage(5, "EXHIBIT B – PROJECT DRAWINGS", page5Content),
+      makePage(6, "SIGNATURES", page6Content),
       `</body></html>`
     ].join('\n');
 
