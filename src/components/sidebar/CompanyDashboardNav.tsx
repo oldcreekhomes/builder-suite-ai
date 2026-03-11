@@ -7,6 +7,7 @@ import { useTemplatePermissions } from "@/hooks/useTemplatePermissions";
 export function CompanyDashboardNav() {
   const { data: issueCounts } = useIssueCounts();
   const { canAccessMarketplace, isLoading: marketplaceLoading } = useMarketplacePermissions();
+  const { canAccessTemplates, isLoading: templateLoading } = useTemplatePermissions();
   
   // Calculate total issue counts
   const totalNormalIssues = Object.values(issueCounts || {}).reduce(
