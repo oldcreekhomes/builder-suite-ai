@@ -1,7 +1,8 @@
-import { AlertTriangle, Store } from "lucide-react";
+import { AlertTriangle, FileText, Store } from "lucide-react";
 import { Link } from "react-router-dom";
 import { useIssueCounts } from "@/hooks/useIssueCounts";
 import { useMarketplacePermissions } from "@/hooks/useMarketplacePermissions";
+import { useTemplatePermissions } from "@/hooks/useTemplatePermissions";
 
 export function CompanyDashboardNav() {
   const { data: issueCounts } = useIssueCounts();
