@@ -60,6 +60,7 @@ import CloseBooks from "./pages/accounting/CloseBooks";
 import OutboundRedirect from "./pages/OutboundRedirect";
 import Marketplace from "./pages/Marketplace";
 import Templates from "./pages/Templates";
+import SubcontractorContract from "./pages/templates/SubcontractorContract";
 import { MarketplaceGuard } from "./components/guards/MarketplaceGuard";
 import { TemplatesGuard } from "./components/guards/TemplatesGuard";
 import ScrollToTop from "./components/ScrollToTop";
