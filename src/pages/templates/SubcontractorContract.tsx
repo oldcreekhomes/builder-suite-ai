@@ -1,3 +1,4 @@
+import { useState, useCallback } from "react";
 import { AppSidebar } from "@/components/AppSidebar";
 import { SidebarInset } from "@/components/ui/sidebar";
 import { CompanyDashboardHeader } from "@/components/CompanyDashboardHeader";
@@ -5,10 +6,14 @@ import { Button } from "@/components/ui/button";
 import { ArrowLeft, Printer } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import SubcontractorContractForm from "@/components/templates/SubcontractorContractForm";
-import "@/styles/print.css";
 
 const SubcontractorContract = () => {
   const navigate = useNavigate();
+  const [printFn, setPrintFn] = useState<(() => void) | null>(null);
+
+  const handlePrintReady = useCallback((fn: () => void) => {
+    setPrintFn(() => fn);
+  }, []);
 
   return (
     <>
@@ -26,13 +31,13 @@ const SubcontractorContract = () => {
                 <p className="text-muted-foreground text-sm mt-1">Fill in the fields below, then print or save as PDF</p>
               </div>
             </div>
-            <Button onClick={() => window.print()} className="gap-2">
+            <Button onClick={() => printFn?.()} className="gap-2" disabled={!printFn}>
               <Printer className="h-4 w-4" />
               Print
             </Button>
           </div>
 
-          <SubcontractorContractForm />
+          <SubcontractorContractForm onPrintReady={handlePrintReady} />
         </div>
       </SidebarInset>
     </>
