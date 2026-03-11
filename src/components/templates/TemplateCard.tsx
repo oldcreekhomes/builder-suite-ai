@@ -1,6 +1,6 @@
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { LucideIcon } from "lucide-react";
+import { LucideIcon, Pencil } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 
 interface TemplateCardProps {
@@ -8,19 +8,32 @@ interface TemplateCardProps {
   description: string;
   icon: LucideIcon;
   route: string;
+  onEdit?: () => void;
 }
 
-const TemplateCard = ({ title, description, icon: Icon, route }: TemplateCardProps) => {
+const TemplateCard = ({ title, description, icon: Icon, route, onEdit }: TemplateCardProps) => {
   const navigate = useNavigate();
 
   return (
     <Card className="flex flex-col hover:shadow-md transition-shadow">
       <CardHeader>
-        <div className="flex items-center gap-3">
-          <div className="p-2 rounded-md bg-primary/10">
-            <Icon className="h-5 w-5 text-primary" />
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <div className="p-2 rounded-md bg-primary/10">
+              <Icon className="h-5 w-5 text-primary" />
+            </div>
+            <CardTitle className="text-base">{title}</CardTitle>
           </div>
-          <CardTitle className="text-base">{title}</CardTitle>
+          {onEdit && (
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={onEdit}
+              className="h-8 w-8 text-muted-foreground hover:text-foreground"
+            >
+              <Pencil className="h-4 w-4" />
+            </Button>
+          )}
         </div>
       </CardHeader>
       <CardContent className="flex-1">

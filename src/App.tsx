@@ -61,6 +61,7 @@ import OutboundRedirect from "./pages/OutboundRedirect";
 import Marketplace from "./pages/Marketplace";
 import Templates from "./pages/Templates";
 import SubcontractorContract from "./pages/templates/SubcontractorContract";
+import SubcontractorContractEdit from "./pages/templates/SubcontractorContractEdit";
 import { MarketplaceGuard } from "./components/guards/MarketplaceGuard";
 import { TemplatesGuard } from "./components/guards/TemplatesGuard";
 import ScrollToTop from "./components/ScrollToTop";
@@ -136,6 +137,7 @@ const AppContent = () => {
               <Route path="/issues" element={<ProtectedRoute><Issues /></ProtectedRoute>} />
               <Route path="/templates" element={<ProtectedRoute><TemplatesGuard><Templates /></TemplatesGuard></ProtectedRoute>} />
               <Route path="/templates/subcontractor-contract" element={<ProtectedRoute><TemplatesGuard><SubcontractorContract /></TemplatesGuard></ProtectedRoute>} />
+              <Route path="/templates/subcontractor-contract/edit" element={<ProtectedRoute><TemplatesGuard><SubcontractorContractEdit /></TemplatesGuard></ProtectedRoute>} />
               <Route path="/marketplace" element={<ProtectedRoute><MarketplaceGuard><Marketplace /></MarketplaceGuard></ProtectedRoute>} />
               <Route path="/companies" element={<ProtectedRoute><Companies /></ProtectedRoute>} />
               <Route path="/settings" element={<ProtectedRoute><Settings /></ProtectedRoute>} />

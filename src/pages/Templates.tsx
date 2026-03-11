@@ -2,6 +2,8 @@ import { AppSidebar } from "@/components/AppSidebar";
 import { SidebarInset } from "@/components/ui/sidebar";
 import { CompanyDashboardHeader } from "@/components/CompanyDashboardHeader";
 import { FileText } from "lucide-react";
+import { useNavigate } from "react-router-dom";
+import { useTemplatePermissions } from "@/hooks/useTemplatePermissions";
 import TemplateCard from "@/components/templates/TemplateCard";
 
 const templates = [
@@ -10,10 +12,14 @@ const templates = [
     description: "Standard subcontract agreement with articles covering scope of work, payments, schedule, change orders, warranty, and more. Print-ready 8.5×11 format.",
     icon: FileText,
     route: "/templates/subcontractor-contract",
+    editRoute: "/templates/subcontractor-contract/edit",
   },
 ];
 
 const Templates = () => {
+  const navigate = useNavigate();
+  const { canEditTemplates } = useTemplatePermissions();
+
   return (
     <>
       <AppSidebar />
@@ -29,7 +35,14 @@ const Templates = () => {
 
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
             {templates.map((t) => (
-              <TemplateCard key={t.route} {...t} />
+              <TemplateCard
+                key={t.route}
+                title={t.title}
+                description={t.description}
+                icon={t.icon}
+                route={t.route}
+                onEdit={canEditTemplates ? () => navigate(t.editRoute) : undefined}
+              />
             ))}
           </div>
         </div>

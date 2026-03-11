@@ -25,6 +25,7 @@ export interface NotificationPreferences {
   can_access_templates: boolean;
   can_delete_bills: boolean;
   can_delete_price_history: boolean;
+  can_edit_templates: boolean;
 }
 
 const defaultPreferences: Omit<NotificationPreferences, 'id' | 'user_id'> = {
@@ -46,6 +47,7 @@ const defaultPreferences: Omit<NotificationPreferences, 'id' | 'user_id'> = {
   can_access_templates: false,
   can_delete_bills: false,
   can_delete_price_history: false,
+  can_edit_templates: false,
 };
 
 export const useNotificationPreferences = (userId?: string) => {
