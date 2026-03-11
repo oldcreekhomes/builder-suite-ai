@@ -7,14 +7,22 @@ import { useTemplateContent } from "@/hooks/useTemplateContent";
 
 interface ContractFields {
   contractorName: string;
+  contractorAddress: string;
+  contractorPhone: string;
+  contractorPM: string;
   subcontractorName: string;
+  subcontractorAddress: string;
+  subcontractorPhone: string;
+  subcontractorContact: string;
   projectName: string;
+  projectAddress: string;
+  projectPhone: string;
+  projectContact: string;
   contractAmount: string;
   alternateName: string;
   alternateAmount: string;
   startDate: string;
-  contractorPM: string;
-  subcontractorContact: string;
+  contractDate: string;
   contractorSignerName: string;
   contractorSignerTitle: string;
   subcontractorSignerName: string;
@@ -24,7 +32,7 @@ interface ContractFields {
   generalRequirements: string;
 }
 
-const TOTAL_PAGES = 4;
+const TOTAL_PAGES = 5;
 
 const SubcontractorContractForm = () => {
   const { articles, exhibits, isLoading } = useTemplateContent("subcontractor-contract");
@@ -32,14 +40,22 @@ const SubcontractorContractForm = () => {
 
   const [fields, setFields] = useState<ContractFields>({
     contractorName: "",
+    contractorAddress: "",
+    contractorPhone: "",
+    contractorPM: "",
     subcontractorName: "",
+    subcontractorAddress: "",
+    subcontractorPhone: "",
+    subcontractorContact: "",
     projectName: "",
+    projectAddress: "",
+    projectPhone: "",
+    projectContact: "",
     contractAmount: "",
     alternateName: "",
     alternateAmount: "",
     startDate: "",
-    contractorPM: "",
-    subcontractorContact: "",
+    contractDate: "",
     contractorSignerName: "",
     contractorSignerTitle: "",
     subcontractorSignerName: "",
@@ -72,8 +88,8 @@ const SubcontractorContractForm = () => {
     </div>
   );
 
-  const page1Articles = articles.filter((a) => a.num <= 7);
-  const page2Articles = articles.filter((a) => a.num > 7);
+  const page2Articles = articles.filter((a) => a.num <= 7);
+  const page3Articles = articles.filter((a) => a.num > 7);
 
   if (isLoading) {
     return (
@@ -136,157 +152,155 @@ const SubcontractorContractForm = () => {
       </div>
     ));
 
+  const renderContactColumns = () => (
+    <div className="grid grid-cols-1 md:grid-cols-3 divide-y md:divide-y-0 md:divide-x divide-border border rounded-lg">
+      {/* Contractor Column */}
+      <div className="p-4 space-y-2">
+        <h3 className="text-sm font-bold text-foreground tracking-wide">CONTRACTOR</h3>
+        <Field label="Company" fieldKey="contractorName" />
+        <Field label="Address" fieldKey="contractorAddress" />
+        <Field label="Phone" fieldKey="contractorPhone" />
+        <Field label="PM" fieldKey="contractorPM" />
+      </div>
+      {/* Subcontractor Column */}
+      <div className="p-4 space-y-2">
+        <h3 className="text-sm font-bold text-foreground tracking-wide">SUBCONTRACTOR</h3>
+        <Field label="Company" fieldKey="subcontractorName" />
+        <Field label="Address" fieldKey="subcontractorAddress" />
+        <Field label="Phone" fieldKey="subcontractorPhone" />
+        <Field label="ATTN" fieldKey="subcontractorContact" />
+      </div>
+      {/* Project Column */}
+      <div className="p-4 space-y-2">
+        <h3 className="text-sm font-bold text-foreground tracking-wide">PROJECT</h3>
+        <Field label="Name" fieldKey="projectName" />
+        <Field label="Address" fieldKey="projectAddress" />
+        <Field label="Phone" fieldKey="projectPhone" />
+        <Field label="ATTN" fieldKey="projectContact" />
+      </div>
+    </div>
+  );
+
+  const renderContractDetails = () => (
+    <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-2 border rounded-lg p-4">
+      <Field label="Contract Date" fieldKey="contractDate" />
+      <Field label="Contract Amount" fieldKey="contractAmount" />
+      <Field label="Alternate" fieldKey="alternateName" />
+      <Field label="Alternate Amount" fieldKey="alternateAmount" />
+      <Field label="Start Date" fieldKey="startDate" />
+    </div>
+  );
+
+  const renderSignatures = () => (
+    <section className="space-y-6">
+      <h2 className="text-base font-bold text-foreground">SIGNATURES</h2>
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+        <div className="space-y-4">
+          <p className="font-semibold text-foreground">CONTRACTOR</p>
+          <div className="border-b border-muted-foreground/40 pt-8" />
+          <p className="text-xs text-muted-foreground">Signature</p>
+          <Field label="Name" fieldKey="contractorSignerName" />
+          <Field label="Title" fieldKey="contractorSignerTitle" />
+        </div>
+        <div className="space-y-4">
+          <p className="font-semibold text-foreground">SUBCONTRACTOR</p>
+          <div className="border-b border-muted-foreground/40 pt-8" />
+          <p className="text-xs text-muted-foreground">Signature</p>
+          <Field label="Name" fieldKey="subcontractorSignerName" />
+          <Field label="Title" fieldKey="subcontractorSignerTitle" />
+        </div>
+      </div>
+    </section>
+  );
+
+  const renderExhibits = (readOnly = false) => (
+    <section className="space-y-6">
+      <div className="space-y-3">
+        <h2 className="text-base font-bold text-foreground">EXHIBIT A – SCOPE OF WORK</h2>
+        <Textarea
+          value={fields.scopeOfWork}
+          onChange={readOnly ? undefined : (e) => update("scopeOfWork", e.target.value)}
+          readOnly={readOnly}
+          placeholder="Describe the scope of work..."
+          className="min-h-[120px] text-sm"
+        />
+      </div>
+      <div className="space-y-3">
+        <h2 className="text-base font-bold text-foreground">EXHIBIT B – PROJECT DRAWINGS</h2>
+        <Textarea
+          value={fields.projectDrawings}
+          onChange={readOnly ? undefined : (e) => update("projectDrawings", e.target.value)}
+          readOnly={readOnly}
+          className="min-h-[80px] text-sm"
+        />
+      </div>
+      <div className="space-y-3">
+        <h2 className="text-base font-bold text-foreground">EXHIBIT C – GENERAL REQUIREMENTS</h2>
+        <Textarea
+          value={fields.generalRequirements}
+          onChange={readOnly ? undefined : (e) => update("generalRequirements", e.target.value)}
+          readOnly={readOnly}
+          className="min-h-[80px] text-sm"
+        />
+      </div>
+    </section>
+  );
+
   return (
     <div className="print-container bg-background text-foreground max-w-[8.5in] mx-auto border rounded-lg shadow-sm">
       <div className="p-8 md:p-12 space-y-6 text-sm leading-relaxed">
         {renderPageNav()}
 
-        {/* ===== PAGE 1 (screen) ===== */}
+        {/* ===== PAGE 1: Summary & Contacts ===== */}
         {currentPage === 1 && (
           <>
             <div className="text-center space-y-1 border-b pb-6">
               <h1 className="text-xl font-bold tracking-wide text-foreground">SUBCONTRACT AGREEMENT</h1>
             </div>
-            <section className="space-y-3">
-              <h2 className="text-base font-bold text-foreground">SUBCONTRACT SUMMARY</h2>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-2">
-                <Field label="Contractor" fieldKey="contractorName" />
-                <Field label="Subcontractor" fieldKey="subcontractorName" />
-                <Field label="Project" fieldKey="projectName" />
-                <Field label="Contract Amount" fieldKey="contractAmount" />
-                <Field label="Alternate" fieldKey="alternateName" />
-                <Field label="Alternate Amount" fieldKey="alternateAmount" />
-                <Field label="Start Date" fieldKey="startDate" />
-              </div>
-            </section>
-            <section className="space-y-3">
-              <h2 className="text-base font-bold text-foreground">KEY CONTACTS</h2>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-2">
-                <Field label="Contractor PM" fieldKey="contractorPM" />
-                <Field label="Subcontractor Contact" fieldKey="subcontractorContact" />
-              </div>
-            </section>
-            <section className="space-y-4">{renderArticles(page1Articles)}</section>
+            <Field label="Contract Date" fieldKey="contractDate" className="max-w-xs" />
+            {renderContactColumns()}
+            {renderContractDetails()}
           </>
         )}
 
-        {/* ===== PAGE 2 (screen) ===== */}
+        {/* ===== PAGE 2: Articles 1–7 ===== */}
         {currentPage === 2 && (
           <section className="space-y-4">{renderArticles(page2Articles)}</section>
         )}
 
-        {/* ===== PAGE 3 (screen) ===== */}
+        {/* ===== PAGE 3: Articles 8–14 ===== */}
         {currentPage === 3 && (
-          <section className="space-y-6">
-            <h2 className="text-base font-bold text-foreground">SIGNATURES</h2>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-              <div className="space-y-4">
-                <p className="font-semibold text-foreground">CONTRACTOR</p>
-                <div className="border-b border-muted-foreground/40 pt-8" />
-                <p className="text-xs text-muted-foreground">Signature</p>
-                <Field label="Name" fieldKey="contractorSignerName" />
-                <Field label="Title" fieldKey="contractorSignerTitle" />
-              </div>
-              <div className="space-y-4">
-                <p className="font-semibold text-foreground">SUBCONTRACTOR</p>
-                <div className="border-b border-muted-foreground/40 pt-8" />
-                <p className="text-xs text-muted-foreground">Signature</p>
-                <Field label="Name" fieldKey="subcontractorSignerName" />
-                <Field label="Title" fieldKey="subcontractorSignerTitle" />
-              </div>
-            </div>
-          </section>
+          <section className="space-y-4">{renderArticles(page3Articles)}</section>
         )}
 
-        {/* ===== PAGE 4 (screen) ===== */}
-        {currentPage === 4 && (
-          <section className="space-y-6">
-            <div className="space-y-3">
-              <h2 className="text-base font-bold text-foreground">EXHIBIT A – SCOPE OF WORK</h2>
-              <Textarea
-                value={fields.scopeOfWork}
-                onChange={(e) => update("scopeOfWork", e.target.value)}
-                placeholder="Describe the scope of work..."
-                className="min-h-[120px] text-sm"
-              />
-            </div>
-            <div className="space-y-3">
-              <h2 className="text-base font-bold text-foreground">EXHIBIT B – PROJECT DRAWINGS</h2>
-              <Textarea
-                value={fields.projectDrawings}
-                onChange={(e) => update("projectDrawings", e.target.value)}
-                className="min-h-[80px] text-sm"
-              />
-            </div>
-            <div className="space-y-3">
-              <h2 className="text-base font-bold text-foreground">EXHIBIT C – GENERAL REQUIREMENTS</h2>
-              <Textarea
-                value={fields.generalRequirements}
-                onChange={(e) => update("generalRequirements", e.target.value)}
-                className="min-h-[80px] text-sm"
-              />
-            </div>
-          </section>
-        )}
+        {/* ===== PAGE 4: Signatures ===== */}
+        {currentPage === 4 && renderSignatures()}
+
+        {/* ===== PAGE 5: Exhibits ===== */}
+        {currentPage === 5 && renderExhibits()}
 
         {/* ===== PRINT: render all pages together ===== */}
         <div className="hidden print:block">
           <div className="text-center space-y-1 border-b pb-6">
             <h1 className="text-xl font-bold tracking-wide text-foreground">SUBCONTRACT AGREEMENT</h1>
           </div>
-          <section className="space-y-3">
-            <h2 className="text-base font-bold text-foreground">SUBCONTRACT SUMMARY</h2>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-2">
-              <Field label="Contractor" fieldKey="contractorName" />
-              <Field label="Subcontractor" fieldKey="subcontractorName" />
-              <Field label="Project" fieldKey="projectName" />
-              <Field label="Contract Amount" fieldKey="contractAmount" />
-              <Field label="Alternate" fieldKey="alternateName" />
-              <Field label="Alternate Amount" fieldKey="alternateAmount" />
-              <Field label="Start Date" fieldKey="startDate" />
-            </div>
+          <div className="mb-4">
+            <Field label="Contract Date" fieldKey="contractDate" className="max-w-xs" />
+          </div>
+          {renderContactColumns()}
+          <div className="mt-4">{renderContractDetails()}</div>
+
+          <section className="space-y-4 print-page-break pt-4">
+            {renderArticles(page2Articles)}
           </section>
-          <section className="space-y-3">
-            <h2 className="text-base font-bold text-foreground">KEY CONTACTS</h2>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-2">
-              <Field label="Contractor PM" fieldKey="contractorPM" />
-              <Field label="Subcontractor Contact" fieldKey="subcontractorContact" />
-            </div>
+
+          <section className="space-y-4 print-page-break pt-4">
+            {renderArticles(page3Articles)}
           </section>
-          <section className="space-y-4">{renderArticles(articles)}</section>
-          <section className="space-y-6 print-page-break pt-4">
-            <h2 className="text-base font-bold text-foreground">SIGNATURES</h2>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-              <div className="space-y-4">
-                <p className="font-semibold text-foreground">CONTRACTOR</p>
-                <div className="border-b border-muted-foreground/40 pt-8" />
-                <p className="text-xs text-muted-foreground">Signature</p>
-                <Field label="Name" fieldKey="contractorSignerName" />
-                <Field label="Title" fieldKey="contractorSignerTitle" />
-              </div>
-              <div className="space-y-4">
-                <p className="font-semibold text-foreground">SUBCONTRACTOR</p>
-                <div className="border-b border-muted-foreground/40 pt-8" />
-                <p className="text-xs text-muted-foreground">Signature</p>
-                <Field label="Name" fieldKey="subcontractorSignerName" />
-                <Field label="Title" fieldKey="subcontractorSignerTitle" />
-              </div>
-            </div>
-          </section>
-          <section className="space-y-6 print-page-break pt-4">
-            <div className="space-y-3">
-              <h2 className="text-base font-bold text-foreground">EXHIBIT A – SCOPE OF WORK</h2>
-              <Textarea value={fields.scopeOfWork} readOnly className="min-h-[120px] text-sm" />
-            </div>
-            <div className="space-y-3">
-              <h2 className="text-base font-bold text-foreground">EXHIBIT B – PROJECT DRAWINGS</h2>
-              <Textarea value={fields.projectDrawings} readOnly className="min-h-[80px] text-sm" />
-            </div>
-            <div className="space-y-3">
-              <h2 className="text-base font-bold text-foreground">EXHIBIT C – GENERAL REQUIREMENTS</h2>
-              <Textarea value={fields.generalRequirements} readOnly className="min-h-[80px] text-sm" />
-            </div>
-          </section>
+
+          <div className="print-page-break pt-4">{renderSignatures()}</div>
+
+          <div className="print-page-break pt-4">{renderExhibits(true)}</div>
         </div>
       </div>
     </div>
