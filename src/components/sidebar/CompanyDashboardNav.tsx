@@ -1,11 +1,13 @@
-import { AlertTriangle, Store } from "lucide-react";
+import { AlertTriangle, FileText, Store } from "lucide-react";
 import { Link } from "react-router-dom";
 import { useIssueCounts } from "@/hooks/useIssueCounts";
 import { useMarketplacePermissions } from "@/hooks/useMarketplacePermissions";
+import { useTemplatePermissions } from "@/hooks/useTemplatePermissions";
 
 export function CompanyDashboardNav() {
   const { data: issueCounts } = useIssueCounts();
   const { canAccessMarketplace, isLoading: marketplaceLoading } = useMarketplacePermissions();
+  const { canAccessTemplates, isLoading: templateLoading } = useTemplatePermissions();
   
   // Calculate total issue counts
   const totalNormalIssues = Object.values(issueCounts || {}).reduce(
@@ -20,6 +22,19 @@ export function CompanyDashboardNav() {
   return (
     <div className="flex-1 overflow-y-auto">
       <div className="px-3 py-1">
+        {/* Templates Link - only show if user has permission */}
+        {!templateLoading && canAccessTemplates && (
+          <div>
+            <Link 
+              to="/templates" 
+              className="flex items-center space-x-2 px-2 py-2 rounded-lg w-full hover:bg-gray-100 text-gray-700 hover:text-black transition-colors text-sm"
+            >
+              <FileText className="h-4 w-4" />
+              <span className="flex-1">Templates</span>
+            </Link>
+          </div>
+        )}
+
         {/* Marketplace Link - only show if user has permission */}
         {!marketplaceLoading && canAccessMarketplace && (
           <div>

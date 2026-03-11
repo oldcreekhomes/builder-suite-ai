@@ -3,6 +3,7 @@ import { useState } from "react";
 import { useAccountingPermissions } from "@/hooks/useAccountingPermissions";
 import { useEstimatePermissions } from "@/hooks/useEstimatePermissions";
 import { useMarketplacePermissions } from "@/hooks/useMarketplacePermissions";
+import { useTemplatePermissions } from "@/hooks/useTemplatePermissions";
 
 import { 
   DollarSign, 
@@ -110,6 +111,7 @@ export function SidebarNavigation({ unreadCounts }: SidebarNavigationProps) {
   } = useAccountingPermissions();
   const { canAccessEstimate, isLoading: estimatePermissionsLoading } = useEstimatePermissions();
   const { canAccessMarketplace, isLoading: marketplacePermissionsLoading } = useMarketplacePermissions();
+  const { canAccessTemplates, isLoading: templatePermissionsLoading } = useTemplatePermissions();
   const { data: issueCounts } = useIssueCounts();
   const { projectContext, goBackToProject, hasProjectContext } = useProjectContextWithData();
   
@@ -250,6 +252,17 @@ export function SidebarNavigation({ unreadCounts }: SidebarNavigationProps) {
               </div>
             )}
             
+            {/* Templates - Global link, shown only if user has permission */}
+            {!templatePermissionsLoading && canAccessTemplates && (
+              <Link
+                to="/templates"
+                className="flex items-center space-x-2 px-2 py-1.5 rounded-lg w-full hover:bg-gray-100 text-gray-700 hover:text-black transition-colors text-sm"
+              >
+                <FileText className="h-4 w-4" />
+                <span className="flex-1">Templates</span>
+              </Link>
+            )}
+
             {/* Marketplace - Global link, shown only if user has permission */}
             {!marketplacePermissionsLoading && canAccessMarketplace && (
               <Link

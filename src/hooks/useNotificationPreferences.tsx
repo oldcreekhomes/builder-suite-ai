@@ -22,6 +22,7 @@ export interface NotificationPreferences {
   can_access_accountant_dashboard: boolean;
   can_access_estimate: boolean;
   can_access_marketplace: boolean;
+  can_access_templates: boolean;
   can_delete_bills: boolean;
   can_delete_price_history: boolean;
 }
@@ -42,6 +43,7 @@ const defaultPreferences: Omit<NotificationPreferences, 'id' | 'user_id'> = {
   can_access_accountant_dashboard: false,
   can_access_estimate: false,
   can_access_marketplace: false,
+  can_access_templates: false,
   can_delete_bills: false,
   can_delete_price_history: false,
 };
