@@ -5,6 +5,12 @@ import { Button } from "@/components/ui/button";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import { useTemplateContent } from "@/hooks/useTemplateContent";
 
+interface LineItem {
+  letter: string;
+  description: string;
+  amount: number;
+}
+
 interface ContractFields {
   contractorName: string;
   contractorAddress: string;
@@ -18,9 +24,6 @@ interface ContractFields {
   projectAddress: string;
   projectPhone: string;
   projectContact: string;
-  contractAmount: string;
-  alternateName: string;
-  alternateAmount: string;
   startDate: string;
   contractDate: string;
   contractorSignerName: string;
@@ -38,6 +41,22 @@ const SubcontractorContractForm = () => {
   const { articles, exhibits, isLoading } = useTemplateContent("subcontractor-contract");
   const [currentPage, setCurrentPage] = useState(1);
 
+  const [lineItems, setLineItems] = useState<LineItem[]>([
+    { letter: "A", description: "General Conditions/Mobilization", amount: 19653 },
+    { letter: "B", description: "Erosion Control", amount: 20382 },
+    { letter: "C", description: "Site Demolition", amount: 18726 },
+    { letter: "D", description: "Building Demolition", amount: 22489 },
+    { letter: "E", description: "Clearing", amount: 9998 },
+    { letter: "F", description: "Excavation and Grading", amount: 282578 },
+    { letter: "G", description: "Sanitary", amount: 129546 },
+    { letter: "H", description: "Storm Drain", amount: 236503 },
+    { letter: "I", description: "Water", amount: 86259 },
+    { letter: "J", description: "Site Concrete", amount: 68423 },
+    { letter: "K", description: "Asphalt and Paving", amount: 45569 },
+  ]);
+
+  const contractTotal = lineItems.reduce((sum, item) => sum + item.amount, 0);
+
   const [fields, setFields] = useState<ContractFields>({
     contractorName: "Old Creek Homes, LLC",
     contractorAddress: "228 S Washington St Suite B-30, Alexandria, VA 22314",
@@ -51,11 +70,8 @@ const SubcontractorContractForm = () => {
     projectAddress: "100 Nob Hill Ct, Alexandria, VA 22314",
     projectPhone: "(240)-418-2388",
     projectContact: "Steven Chen",
-    contractAmount: "",
-    alternateName: "",
-    alternateAmount: "",
     startDate: "",
-    contractDate: "",
+    contractDate: "March 12, 2026",
     contractorSignerName: "",
     contractorSignerTitle: "",
     subcontractorSignerName: "",
@@ -153,8 +169,8 @@ const SubcontractorContractForm = () => {
     ));
 
   const renderPartyBlock = (title: string, fieldKeys: { name: keyof ContractFields; address: keyof ContractFields; phone: keyof ContractFields; contact: keyof ContractFields }, contactLabel: string) => (
-    <div className="border rounded-lg p-4 space-y-2">
-      <h3 className="text-sm font-bold text-foreground tracking-wide">{title}</h3>
+    <div className="border rounded-lg p-3 space-y-1">
+      <h3 className="text-xs font-bold text-foreground tracking-wide">{title}</h3>
       <Field label="Company" fieldKey={fieldKeys.name} />
       <Field label="Address" fieldKey={fieldKeys.address} />
       <Field label="Phone" fieldKey={fieldKeys.phone} />
@@ -162,19 +178,30 @@ const SubcontractorContractForm = () => {
     </div>
   );
 
+  const formatCurrency = (amount: number) =>
+    amount.toLocaleString("en-US", { style: "currency", currency: "USD" });
+
+  const updateLineItemAmount = (index: number, value: string) => {
+    const parsed = parseFloat(value.replace(/[^0-9.-]/g, ""));
+    setLineItems((prev) =>
+      prev.map((item, i) => (i === index ? { ...item, amount: isNaN(parsed) ? 0 : parsed } : item))
+    );
+  };
+
   const renderPage1Content = () => (
-    <div className="space-y-6">
-      <div className="text-center space-y-1 border-b pb-6">
-        <h1 className="text-xl font-bold tracking-wide text-foreground underline">SUBCONTRACT AGREEMENT</h1>
+    <div className="space-y-3">
+      <div className="text-center border-b pb-3">
+        <h1 className="text-lg font-bold tracking-wide text-foreground underline">CONTRACT SUMMARY</h1>
+        <p className="text-xs text-muted-foreground mt-1">SUBCONTRACT AGREEMENT</p>
       </div>
 
-      <p className="text-sm text-foreground leading-relaxed">
+      <p className="text-xs text-foreground leading-relaxed">
         THIS AGREEMENT, made and entered into this{" "}
-        <span className="inline-block min-w-[200px] border-b border-foreground">
+        <span className="inline-block min-w-[180px] border-b border-foreground">
           <Input
             value={fields.contractDate}
             onChange={(e) => update("contractDate", e.target.value)}
-            className="h-6 text-sm border-0 bg-transparent px-1 focus-visible:ring-0 focus-visible:ring-offset-0 inline"
+            className="h-5 text-xs border-0 bg-transparent px-1 focus-visible:ring-0 focus-visible:ring-offset-0 inline"
             placeholder="date"
           />
         </span>{" "}
@@ -183,21 +210,54 @@ const SubcontractorContractForm = () => {
 
       {renderPartyBlock("CONTRACTOR", { name: "contractorName", address: "contractorAddress", phone: "contractorPhone", contact: "contractorPM" }, "Project Manager")}
 
-      <p className="text-sm text-foreground italic text-center">(hereinafter called the "Contractor") and</p>
+      <p className="text-xs text-foreground italic text-center">(hereinafter called the "Contractor") and</p>
 
       {renderPartyBlock("SUBCONTRACTOR", { name: "subcontractorName", address: "subcontractorAddress", phone: "subcontractorPhone", contact: "subcontractorContact" }, "ATTN")}
 
-      <p className="text-sm text-foreground italic text-center">(hereinafter called "Subcontractor")</p>
+      <p className="text-xs text-foreground italic text-center">(hereinafter called "Subcontractor")</p>
 
       {renderPartyBlock("PROJECT", { name: "projectName", address: "projectAddress", phone: "projectPhone", contact: "projectContact" }, "ATTN")}
 
-      <p className="text-sm text-foreground italic text-center">(hereinafter referred to as the "Project").</p>
+      <p className="text-xs text-foreground italic text-center">(hereinafter referred to as the "Project").</p>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-2 border rounded-lg p-4">
-        <Field label="Contract Amount" fieldKey="contractAmount" />
-        <Field label="Alternate" fieldKey="alternateName" />
-        <Field label="Alternate Amount" fieldKey="alternateAmount" />
-        <Field label="Start Date" fieldKey="startDate" />
+      {/* Contract Value Breakdown */}
+      <div className="border rounded-lg p-3">
+        <h3 className="text-xs font-bold text-foreground tracking-wide mb-2">CONTRACT VALUE BREAKDOWN</h3>
+        <table className="w-full text-xs">
+          <thead>
+            <tr className="border-b border-muted">
+              <th className="text-left py-1 w-8 font-semibold text-muted-foreground">Item</th>
+              <th className="text-left py-1 font-semibold text-muted-foreground">Description</th>
+              <th className="text-right py-1 font-semibold text-muted-foreground w-28">Amount</th>
+            </tr>
+          </thead>
+          <tbody>
+            {lineItems.map((item, index) => (
+              <tr key={item.letter} className="border-b border-muted/50">
+                <td className="py-0.5 text-foreground font-medium">{item.letter}</td>
+                <td className="py-0.5 text-foreground">{item.description}</td>
+                <td className="py-0.5 text-right">
+                  <Input
+                    value={formatCurrency(item.amount)}
+                    onChange={(e) => updateLineItemAmount(index, e.target.value)}
+                    className="h-5 text-xs text-right border-0 bg-transparent px-0 focus-visible:ring-0 focus-visible:ring-offset-0 w-28 ml-auto"
+                  />
+                </td>
+              </tr>
+            ))}
+          </tbody>
+          <tfoot>
+            <tr className="border-t-2 border-foreground">
+              <td className="py-1" />
+              <td className="py-1 text-foreground font-bold">TOTAL</td>
+              <td className="py-1 text-right text-foreground font-bold">{formatCurrency(contractTotal)}</td>
+            </tr>
+          </tfoot>
+        </table>
+      </div>
+
+      <div className="flex gap-4">
+        <Field label="Start Date" fieldKey="startDate" className="flex-1" />
       </div>
     </div>
   );
