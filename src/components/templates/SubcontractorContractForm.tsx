@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
+import { useTemplateContent } from "@/hooks/useTemplateContent";
 
 interface ContractFields {
   contractorName: string;
@@ -22,6 +23,8 @@ interface ContractFields {
 }
 
 const SubcontractorContractForm = () => {
+  const { articles, exhibits, isLoading } = useTemplateContent("subcontractor-contract");
+
   const [fields, setFields] = useState<ContractFields>({
     contractorName: "",
     subcontractorName: "",
@@ -37,8 +40,8 @@ const SubcontractorContractForm = () => {
     subcontractorSignerName: "",
     subcontractorSignerTitle: "",
     scopeOfWork: "",
-    projectDrawings: "Subcontractor shall perform work in accordance with approved civil, landscape and architectural drawings listed in the project drawing schedule.",
-    generalRequirements: "Work Hours: Monday–Friday, 7:00 AM–5:00 PM. Subcontractor shall coordinate daily with Contractor, maintain a clean and safe jobsite, and follow project safety and delivery requirements.",
+    projectDrawings: exhibits.projectDrawings,
+    generalRequirements: exhibits.generalRequirements,
   });
 
   const update = (key: keyof ContractFields, value: string) =>
@@ -63,6 +66,17 @@ const SubcontractorContractForm = () => {
       />
     </div>
   );
+
+  if (isLoading) {
+    return (
+      <div className="print-container bg-background text-foreground max-w-[8.5in] mx-auto border rounded-lg shadow-sm p-12">
+        <div className="animate-pulse space-y-4">
+          <div className="h-6 bg-muted rounded w-1/3 mx-auto" />
+          <div className="h-40 bg-muted rounded" />
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="print-container bg-background text-foreground max-w-[8.5in] mx-auto border rounded-lg shadow-sm">
@@ -95,70 +109,18 @@ const SubcontractorContractForm = () => {
           </div>
         </section>
 
-        {/* Articles */}
+        {/* Articles — loaded from Supabase or defaults */}
         <section className="space-y-4">
-          <Article num={1} title="THE WORK">
-            Subcontractor shall furnish all labor, materials, equipment, supervision, transportation and services necessary to complete the Work described in Exhibit A – Scope of Work and the Contract Documents. Work shall comply with project drawings, applicable codes and regulations, and accepted industry standards. Subcontractor shall coordinate its work with Contractor and other trades.
-          </Article>
-
-          <Article num={2} title="CONTRACT DOCUMENTS">
-            <p className="mb-2">The Subcontract Documents consist of the following:</p>
-            <ul className="list-disc pl-6 space-y-1">
-              <li>This Agreement</li>
-              <li>Exhibit A – Scope of Work</li>
-              <li>Exhibit B – Project Drawings</li>
-              <li>Exhibit C – General Requirements</li>
-              <li>Written Change Orders issued by Contractor</li>
-            </ul>
-          </Article>
-
-          <Article num={3} title="CONTRACT SUM">
-            The Contractor agrees to pay the Subcontractor the amounts stated in the Subcontract Summary for full performance of the Work. Payments will be made based on approved progress of the Work in accordance with the Contractor's payment procedures.
-          </Article>
-
-          <Article num={4} title="PAYMENTS (PAY-IF-PAID)">
-            Payment to Subcontractor is expressly conditioned upon Contractor receiving payment from the Owner for Subcontractor's Work. Payment by Owner to Contractor for Subcontractor work is a condition precedent to payment to Subcontractor.
-          </Article>
-
-          <Article num={5} title="PROJECT SCHEDULE">
-            Time is of the essence. Subcontractor shall begin work within seven (7) days of written notice to proceed and maintain sufficient manpower and equipment to meet the project schedule. If Subcontractor falls behind schedule, Subcontractor shall provide additional labor, equipment or overtime at its own cost to recover lost time.
-          </Article>
-
-          <Article num={6} title="CHANGE ORDERS">
-            Changes to the Work must be authorized in writing by the Contractor's Project Manager prior to performing the work.
-          </Article>
-
-          <Article num={7} title="INSPECTIONS AND COORDINATION">
-            Subcontractor shall coordinate inspections for its work, notify Contractor prior to scheduling inspections, attend inspections, and correct deficiencies identified by inspectors. Costs resulting from failed inspections caused by Subcontractor shall be borne by Subcontractor.
-          </Article>
-
-          <Article num={8} title="PERMITS AND COMPLIANCE">
-            Subcontractor shall obtain required trade permits and comply with all applicable local, state and federal laws including OSHA regulations.
-          </Article>
-
-          <Article num={9} title="SAFETY">
-            Subcontractor shall maintain safe working conditions and comply with OSHA and project safety requirements. Required safety equipment including hard hats shall be worn at all times.
-          </Article>
-
-          <Article num={10} title="CLEANUP">
-            Subcontractor shall keep work areas clean and remove debris generated by its work. Contractor may perform cleanup and deduct costs from payments owed if Subcontractor fails to maintain jobsite cleanliness.
-          </Article>
-
-          <Article num={11} title="WARRANTY">
-            Subcontractor warrants that all work shall be free from defects in materials and workmanship for one (1) year following project completion. Subcontractor shall repair defective work at no cost to Contractor.
-          </Article>
-
-          <Article num={12} title="DEFAULT">
-            If Subcontractor fails to perform according to this Agreement, Contractor may provide written notice, supplement the workforce, or terminate the subcontract. Costs resulting from Subcontractor default may be deducted from payments owed.
-          </Article>
-
-          <Article num={13} title="INDEMNIFICATION">
-            Subcontractor shall defend, indemnify and hold harmless Contractor and Owner from claims, damages, losses or expenses arising from Subcontractor's work.
-          </Article>
-
-          <Article num={14} title="TERMINATION">
-            Contractor may terminate this Agreement with ten (10) days written notice. Subcontractor shall be paid for properly completed work to the date of termination.
-          </Article>
+          {articles.map((article) => (
+            <div key={article.num} className="space-y-1">
+              <h3 className="text-sm font-bold text-foreground">
+                ARTICLE {article.num} – {article.title}
+              </h3>
+              <div className="text-sm text-muted-foreground whitespace-pre-line">
+                {article.body}
+              </div>
+            </div>
+          ))}
         </section>
 
         {/* Signatures */}
@@ -218,22 +180,5 @@ const SubcontractorContractForm = () => {
     </div>
   );
 };
-
-const Article = ({
-  num,
-  title,
-  children,
-}: {
-  num: number;
-  title: string;
-  children: React.ReactNode;
-}) => (
-  <div className="space-y-1">
-    <h3 className="text-sm font-bold text-foreground">
-      ARTICLE {num} – {title}
-    </h3>
-    <div className="text-sm text-muted-foreground">{children}</div>
-  </div>
-);
 
 export default SubcontractorContractForm;
