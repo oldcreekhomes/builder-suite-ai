@@ -79,7 +79,80 @@ const SubcontractorContractForm = ({ onPrintReady }: { onPrintReady?: (printFn: 
     contractorSignerTitle: "",
     subcontractorSignerName: "",
     subcontractorSignerTitle: "",
-    scopeOfWork: "",
+    scopeOfWork: `A. General Conditions/Mobilization
+   1. Project mobilization and site setup
+   2. Temporary facilities and utilities
+   3. Construction entrance and access roads
+   4. Project management and supervision
+   5. Demobilization upon completion
+
+B. Erosion Control
+   1. Installation of silt fence perimeter controls
+   2. Construction entrance stabilization
+   3. Sediment basin installation and maintenance
+   4. Inlet protection devices
+   5. Ongoing erosion control maintenance and inspections
+
+C. Site Demolition
+   1. Removal of existing pavement and curbing
+   2. Demolition of existing site utilities
+   3. Removal of existing fencing and signage
+   4. Hauling and disposal of demolition debris
+
+D. Building Demolition
+   1. Demolition of existing structures
+   2. Foundation removal and disposal
+   3. Utility disconnection and capping
+   4. Debris hauling and landfill disposal
+
+E. Clearing
+   1. Tree removal and stump grinding
+   2. Brush clearing and disposal
+   3. Topsoil stripping and stockpiling
+   4. Root removal from grading areas
+
+F. Excavation and Grading
+   1. Mass earthwork cut and fill operations
+   2. Building pad preparation and compaction
+   3. Fine grading for roadways and parking
+   4. Subgrade preparation and proof rolling
+   5. Import/export of fill material as required
+   6. Compaction testing coordination
+
+G. Sanitary
+   1. Sanitary sewer main installation
+   2. Sanitary sewer lateral connections
+   3. Manhole installation
+   4. Testing and inspection coordination
+   5. Trench backfill and compaction
+
+H. Storm Drain
+   1. Storm drain pipe installation
+   2. Storm drain structure and inlet installation
+   3. Stormwater management facility construction
+   4. Outfall construction and stabilization
+   5. Testing and video inspection
+
+I. Water
+   1. Water main installation
+   2. Water service lateral connections
+   3. Fire hydrant installation
+   4. Valve and fitting installation
+   5. Pressure testing and bacteriological testing
+
+J. Site Concrete
+   1. Concrete curb and gutter installation
+   2. Sidewalk construction
+   3. Concrete pad and apron installation
+   4. ADA ramp construction
+   5. Concrete dumpster pads
+
+K. Asphalt and Paving
+   1. Aggregate base course installation
+   2. Asphalt base course paving
+   3. Asphalt surface course paving
+   4. Pavement markings and striping
+   5. Speed bumps and signage`,
     projectDrawings: exhibits.projectDrawings,
     generalRequirements: exhibits.generalRequirements,
   });
@@ -158,11 +231,10 @@ const SubcontractorContractForm = ({ onPrintReady }: { onPrintReady?: (printFn: 
       `.page-break { page-break-before: always; }`,
       `@media print { @page { margin: 0; size: letter; } body { margin: 0; } }`,
       `@media screen { body { margin: 0.5in; } }`,
-      `.page-content { padding: 0.5in 0.75in 0.8in 0.75in; }`,
-      `.page-footer { position: fixed; bottom: 0; left: 0; right: 0; padding: 0 0.75in 0.35in 0.75in; display: flex; justify-content: space-between; align-items: center; font-size: 8px; color: #999; }`,
+      `.page-content { padding: 0.5in 0.75in 0.3in 0.75in; min-height: 9.5in; position: relative; box-sizing: border-box; }`,
+      `.page-footer { position: absolute; bottom: 0.35in; left: 0.75in; right: 0.75in; display: flex; justify-content: space-between; align-items: center; font-size: 8px; color: #000; }`,
       `</style></head><body>`,
-      // Footer
-      `<div class="page-footer"><span>${dateStr}</span><span>${timeStr}</span><span></span></div>`,
+
       // Page 1
       `<div class="page-content">`,
       generatePrintHeader("CONTRACT SUMMARY"),
@@ -178,29 +250,40 @@ const SubcontractorContractForm = ({ onPrintReady }: { onPrintReady?: (printFn: 
       `<tbody>${generatePrintLineItems()}</tbody>`,
       `<tfoot><tr style="border-top: 2px solid #000;"><td style="padding: 4px 6px;"></td><td style="padding: 4px 6px; font-weight: 700;">TOTAL</td><td style="padding: 4px 6px; text-align: right; font-weight: 700;">${formatCurrency(contractTotal)}</td></tr></tfoot></table></div>`,
       fields.startDate ? `<p style="font-size: 11px; margin-top: 12px;"><strong>Start Date:</strong> ${fields.startDate}</p>` : '',
+      `<div class="page-footer"><span>${dateStr}</span><span>${timeStr}</span><span>Page 1 of ${TOTAL_PAGES}</span></div>`,
       `</div>`,
+
       // Page 2: Articles
       `<div class="page-break page-content">`,
       generatePrintHeader("ARTICLES"),
       generatePrintArticles(articles),
+      `<div class="page-footer"><span>${dateStr}</span><span>${timeStr}</span><span>Page 2 of ${TOTAL_PAGES}</span></div>`,
       `</div>`,
+
       // Page 3: Exhibit A
       `<div class="page-break page-content">`,
       generatePrintHeader("EXHIBIT A – SCOPE OF WORK"),
       `<div style="white-space: pre-line; min-height: 80px; font-size: 11px;">${fields.scopeOfWork || ''}</div>`,
+      `<div class="page-footer"><span>${dateStr}</span><span>${timeStr}</span><span>Page 3 of ${TOTAL_PAGES}</span></div>`,
       `</div>`,
+
       // Page 4: Exhibit B
       `<div class="page-break page-content">`,
       generatePrintHeader("EXHIBIT B – PROJECT DRAWINGS"),
       `<div style="white-space: pre-line; min-height: 60px; font-size: 11px;">${fields.projectDrawings || ''}</div>`,
+      `<div class="page-footer"><span>${dateStr}</span><span>${timeStr}</span><span>Page 4 of ${TOTAL_PAGES}</span></div>`,
       `</div>`,
+
       // Page 5: Signatures
       `<div class="page-break page-content">`,
       generatePrintHeader("SIGNATURES"),
       `<div style="display: flex; gap: 40px; margin-top: 24px;">`,
       `<div style="flex: 1;"><p style="font-weight: 600;">CONTRACTOR</p><div style="border-bottom: 1px solid #999; height: 40px; margin-top: 20px;"></div><p style="font-size: 10px; color: #888;">Signature</p><p style="font-size: 11px; margin-top: 8px;"><strong>Name:</strong> ${fields.contractorSignerName || '_______________'}</p><p style="font-size: 11px;"><strong>Title:</strong> ${fields.contractorSignerTitle || '_______________'}</p></div>`,
       `<div style="flex: 1;"><p style="font-weight: 600;">SUBCONTRACTOR</p><div style="border-bottom: 1px solid #999; height: 40px; margin-top: 20px;"></div><p style="font-size: 10px; color: #888;">Signature</p><p style="font-size: 11px; margin-top: 8px;"><strong>Name:</strong> ${fields.subcontractorSignerName || '_______________'}</p><p style="font-size: 11px;"><strong>Title:</strong> ${fields.subcontractorSignerTitle || '_______________'}</p></div>`,
-      `</div></div>`,
+      `</div>`,
+      `<div class="page-footer"><span>${dateStr}</span><span>${timeStr}</span><span>Page 5 of ${TOTAL_PAGES}</span></div>`,
+      `</div>`,
+
       `</body></html>`
     ].join('\n');
 
