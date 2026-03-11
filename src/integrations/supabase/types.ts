@@ -3982,6 +3982,7 @@ export type Database = {
           can_access_owner_dashboard: boolean
           can_access_pm_dashboard: boolean
           can_access_reports: boolean
+          can_access_templates: boolean
           can_access_transactions: boolean
           can_close_books: boolean
           can_delete_bills: boolean
@@ -4007,6 +4008,7 @@ export type Database = {
           can_access_owner_dashboard?: boolean
           can_access_pm_dashboard?: boolean
           can_access_reports?: boolean
+          can_access_templates?: boolean
           can_access_transactions?: boolean
           can_close_books?: boolean
           can_delete_bills?: boolean
@@ -4032,6 +4034,7 @@ export type Database = {
           can_access_owner_dashboard?: boolean
           can_access_pm_dashboard?: boolean
           can_access_reports?: boolean
+          can_access_templates?: boolean
           can_access_transactions?: boolean
           can_close_books?: boolean
           can_delete_bills?: boolean
