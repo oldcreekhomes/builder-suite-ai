@@ -283,14 +283,7 @@ const SubcontractorContractForm = () => {
 
         {/* ===== PRINT: render all pages together ===== */}
         <div className="hidden print:block">
-          <div className="text-center space-y-1 border-b pb-6">
-            <h1 className="text-xl font-bold tracking-wide text-foreground">SUBCONTRACT AGREEMENT</h1>
-          </div>
-          <div className="mb-4">
-            <Field label="Contract Date" fieldKey="contractDate" className="max-w-xs" />
-          </div>
-          {renderContactColumns()}
-          <div className="mt-4">{renderContractDetails()}</div>
+          {renderPage1Content()}
 
           <section className="space-y-4 print-page-break pt-4">
             {renderArticles(page2Articles)}
