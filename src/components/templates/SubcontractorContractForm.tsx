@@ -232,10 +232,12 @@ K. Asphalt and Paving
       `@media print { @page { margin: 0; size: letter; } body { margin: 0; } }`,
       `@media screen { body { margin: 0.5in; } }`,
       `.page-content { padding: 0.5in 0.75in 0.8in 0.75in; }`,
-      `.page-footer { position: fixed; bottom: 0; left: 0; right: 0; padding: 0 0.75in 0.35in 0.75in; display: flex; justify-content: space-between; align-items: center; font-size: 8px; color: #999; }`,
+      `.page-footer { position: fixed; bottom: 0; left: 0; right: 0; padding: 0 0.75in 0.35in 0.75in; display: flex; justify-content: space-between; align-items: center; font-size: 8px; color: #000; }`,
+      `.page-number { position: running(pageNumber); }`,
       `</style></head><body>`,
-      // Footer
-      `<div class="page-footer"><span>${dateStr}</span><span>${timeStr}</span><span></span></div>`,
+      // Footer with date, time, and page number
+      `<div class="page-footer"><span>${dateStr}</span><span>${timeStr}</span><span>Page <span class="page-num"></span> of ${TOTAL_PAGES}</span></div>`,
+      `<script>window.addEventListener('afterprint', function() { window.close(); }); window.addEventListener('load', function() { window.print(); });</script>`,
       // Page 1
       `<div class="page-content">`,
       generatePrintHeader("CONTRACT SUMMARY"),
