@@ -263,16 +263,7 @@ const SubcontractorContractForm = () => {
         {renderPageNav()}
 
         {/* ===== PAGE 1: Summary & Contacts ===== */}
-        {currentPage === 1 && (
-          <>
-            <div className="text-center space-y-1 border-b pb-6">
-              <h1 className="text-xl font-bold tracking-wide text-foreground">SUBCONTRACT AGREEMENT</h1>
-            </div>
-            <Field label="Contract Date" fieldKey="contractDate" className="max-w-xs" />
-            {renderContactColumns()}
-            {renderContractDetails()}
-          </>
-        )}
+        {currentPage === 1 && renderPage1Content()}
 
         {/* ===== PAGE 2: Articles 1–7 ===== */}
         {currentPage === 2 && (
