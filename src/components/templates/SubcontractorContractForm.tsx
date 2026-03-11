@@ -215,12 +215,26 @@ K. Asphalt and Paving
   `).join('');
 
   const formatScopeForPrint = (text: string) => {
-    return text.split('\n').map(line => {
+    const lines = text.split('\n');
+    let html = '';
+    let currentSection = '';
+    
+    for (const line of lines) {
       if (/^[A-K]\./.test(line.trim())) {
-        return `<div class="scope-header">${line.trim()}</div>`;
+        if (currentSection) {
+          html += `</div>`; // close previous scope-section
+        }
+        html += `<div class="scope-section">`;
+        html += `<div class="scope-header">${line.trim()}</div>`;
+        currentSection = line.trim();
+      } else {
+        html += `<div>${line}</div>`;
       }
-      return `<div>${line}</div>`;
-    }).join('');
+    }
+    if (currentSection) {
+      html += `</div>`; // close last scope-section
+    }
+    return html;
   };
 
   const handlePrint = useCallback(() => {
@@ -235,23 +249,28 @@ K. Asphalt and Paving
       `<!DOCTYPE html><html><head><title> </title>`,
       `<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Montserrat:wght@300;400;500;600;700&display=swap">`,
       `<style>`,
-      `body { font-family: 'Montserrat', sans-serif; margin: 0; padding: 0; font-size: 11px; }`,
+      `body { font-family: 'Montserrat', sans-serif; font-size: 11px; margin: 0.5in 0.75in 0.9in 0.75in; padding: 0; }`,
       `table { border-collapse: collapse; width: 100%; }`,
       `.page-break { page-break-before: always; }`,
       `@media print {`,
-      `  @page { margin: 0.5in 0.75in; size: letter; }`,
-      `  body { margin: 0; }`,
-      `  .print-footer { position: fixed; bottom: 0; left: 0; right: 0; display: flex; justify-content: space-between; align-items: center; font-size: 8px; color: #000; padding: 4px 0; border-top: 1px solid #ccc; }`,
+      `  @page { margin: 0; size: letter; }`,
+      `  .print-footer { position: fixed; bottom: 0; left: 0; right: 0; display: flex; justify-content: space-between; align-items: center; font-size: 8px; color: #000; padding: 4px 0.75in 6px 0.75in; border-top: 1px solid #000; }`,
       `  .print-footer .page-num::after { content: "Page " counter(page); }`,
       `}`,
-      `@media screen { body { margin: 0.5in; } .print-footer { position: fixed; bottom: 0; left: 0.5in; right: 0.5in; display: flex; justify-content: space-between; font-size: 8px; color: #000; padding: 4px 0; border-top: 1px solid #ccc; } .print-footer .page-num::after { content: "Page"; } }`,
-      `.page-content { padding-bottom: 0.5in; box-sizing: border-box; }`,
+      `@media screen {`,
+      `  .print-footer { position: fixed; bottom: 0; left: 0.75in; right: 0.75in; display: flex; justify-content: space-between; font-size: 8px; color: #000; padding: 4px 0; border-top: 1px solid #000; }`,
+      `  .print-footer .page-num::after { content: "Page"; }`,
+      `}`,
       `.scope-header { font-weight: 700; text-transform: uppercase; margin-top: 8px; }`,
+      `.scope-section { break-inside: avoid; }`,
+      `.exhibit-a-table { width: 100%; }`,
+      `.exhibit-a-table thead { display: table-header-group; }`,
+      `.exhibit-a-table thead th { text-align: center; border-bottom: 1px solid #000; padding-bottom: 8px; margin-bottom: 12px; font-weight: normal; }`,
       `</style></head><body>`,
       `<div class="print-footer"><span>${dateStr}</span><span>${timeStr}</span><span class="page-num"></span></div>`,
 
       // Page 1
-      `<div class="page-content">`,
+      `<div>`,
       generatePrintHeader("CONTRACT SUMMARY"),
       `<p style="font-size: 10px; margin-bottom: 12px;">THIS AGREEMENT, made and entered into this <span style="border-bottom: 1px solid #000; padding: 0 4px;">${fields.contractDate || '_______________'}</span> ("Contract Date") by and between</p>`,
       generatePrintPartyBlock("CONTRACTOR", fields.contractorName, fields.contractorAddress, fields.contractorPhone, fields.contractorPM, "Project Manager"),
@@ -268,25 +287,32 @@ K. Asphalt and Paving
       `</div>`,
 
       // Page 2: Articles
-      `<div class="page-break page-content">`,
+      `<div class="page-break">`,
       generatePrintHeader("ARTICLES"),
       generatePrintArticles(articles),
       `</div>`,
 
-      // Page 3: Exhibit A
-      `<div class="page-break page-content">`,
-      generatePrintHeader("EXHIBIT A – SCOPE OF WORK"),
-      `<div style="font-size: 11px;">${formatScopeForPrint(fields.scopeOfWork || '')}</div>`,
+      // Page 3+: Exhibit A (uses table with repeating thead for continuation pages)
+      `<div class="page-break">`,
+      `<table class="exhibit-a-table"><thead><tr><th>`,
+      `<div style="text-align: center; border-bottom: 1px solid #000; padding-bottom: 8px; margin-bottom: 12px;">`,
+      `<h1 style="font-size: 16px; font-weight: 700; text-decoration: underline; margin: 0;">SUBCONTRACT AGREEMENT</h1>`,
+      `<p style="font-size: 10px; color: #888; margin: 4px 0 0 0;">EXHIBIT A – SCOPE OF WORK</p>`,
+      `</div>`,
+      `</th></tr></thead>`,
+      `<tbody><tr><td style="font-size: 11px;">`,
+      formatScopeForPrint(fields.scopeOfWork || ''),
+      `</td></tr></tbody></table>`,
       `</div>`,
 
-      // Page 4: Exhibit B
-      `<div class="page-break page-content">`,
+      // Exhibit B
+      `<div class="page-break">`,
       generatePrintHeader("EXHIBIT B – PROJECT DRAWINGS"),
       `<div style="white-space: pre-line; font-size: 11px;">${fields.projectDrawings || ''}</div>`,
       `</div>`,
 
-      // Page 5: Signatures
-      `<div class="page-break page-content">`,
+      // Signatures
+      `<div class="page-break">`,
       generatePrintHeader("SIGNATURES"),
       `<div style="display: flex; gap: 40px; margin-top: 24px;">`,
       `<div style="flex: 1;"><p style="font-weight: 600;">CONTRACTOR</p><div style="border-bottom: 1px solid #999; height: 40px; margin-top: 20px;"></div><p style="font-size: 10px; color: #888;">Signature</p><p style="font-size: 11px; margin-top: 8px;"><strong>Name:</strong> ${fields.contractorSignerName || '_______________'}</p><p style="font-size: 11px;"><strong>Title:</strong> ${fields.contractorSignerTitle || '_______________'}</p></div>`,
