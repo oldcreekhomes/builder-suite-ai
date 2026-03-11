@@ -152,42 +152,53 @@ const SubcontractorContractForm = () => {
       </div>
     ));
 
-  const renderContactColumns = () => (
-    <div className="grid grid-cols-1 md:grid-cols-3 divide-y md:divide-y-0 md:divide-x divide-border border rounded-lg">
-      {/* Contractor Column */}
-      <div className="p-4 space-y-2">
-        <h3 className="text-sm font-bold text-foreground tracking-wide">CONTRACTOR</h3>
-        <Field label="Company" fieldKey="contractorName" />
-        <Field label="Address" fieldKey="contractorAddress" />
-        <Field label="Phone" fieldKey="contractorPhone" />
-        <Field label="PM" fieldKey="contractorPM" />
-      </div>
-      {/* Subcontractor Column */}
-      <div className="p-4 space-y-2">
-        <h3 className="text-sm font-bold text-foreground tracking-wide">SUBCONTRACTOR</h3>
-        <Field label="Company" fieldKey="subcontractorName" />
-        <Field label="Address" fieldKey="subcontractorAddress" />
-        <Field label="Phone" fieldKey="subcontractorPhone" />
-        <Field label="ATTN" fieldKey="subcontractorContact" />
-      </div>
-      {/* Project Column */}
-      <div className="p-4 space-y-2">
-        <h3 className="text-sm font-bold text-foreground tracking-wide">PROJECT</h3>
-        <Field label="Name" fieldKey="projectName" />
-        <Field label="Address" fieldKey="projectAddress" />
-        <Field label="Phone" fieldKey="projectPhone" />
-        <Field label="ATTN" fieldKey="projectContact" />
-      </div>
+  const renderPartyBlock = (title: string, fieldKeys: { name: keyof ContractFields; address: keyof ContractFields; phone: keyof ContractFields; contact: keyof ContractFields }, contactLabel: string) => (
+    <div className="border rounded-lg p-4 space-y-2">
+      <h3 className="text-sm font-bold text-foreground tracking-wide">{title}</h3>
+      <Field label="Company" fieldKey={fieldKeys.name} />
+      <Field label="Address" fieldKey={fieldKeys.address} />
+      <Field label="Phone" fieldKey={fieldKeys.phone} />
+      <Field label={contactLabel} fieldKey={fieldKeys.contact} />
     </div>
   );
 
-  const renderContractDetails = () => (
-    <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-2 border rounded-lg p-4">
-      <Field label="Contract Date" fieldKey="contractDate" />
-      <Field label="Contract Amount" fieldKey="contractAmount" />
-      <Field label="Alternate" fieldKey="alternateName" />
-      <Field label="Alternate Amount" fieldKey="alternateAmount" />
-      <Field label="Start Date" fieldKey="startDate" />
+  const renderPage1Content = () => (
+    <div className="space-y-6">
+      <div className="text-center space-y-1 border-b pb-6">
+        <h1 className="text-xl font-bold tracking-wide text-foreground underline">SUBCONTRACT AGREEMENT</h1>
+      </div>
+
+      <p className="text-sm text-foreground leading-relaxed">
+        THIS AGREEMENT, made and entered into this{" "}
+        <span className="inline-block min-w-[200px] border-b border-foreground">
+          <Input
+            value={fields.contractDate}
+            onChange={(e) => update("contractDate", e.target.value)}
+            className="h-6 text-sm border-0 bg-transparent px-1 focus-visible:ring-0 focus-visible:ring-offset-0 inline"
+            placeholder="date"
+          />
+        </span>{" "}
+        ("Contract Date") by and between
+      </p>
+
+      {renderPartyBlock("CONTRACTOR", { name: "contractorName", address: "contractorAddress", phone: "contractorPhone", contact: "contractorPM" }, "PM")}
+
+      <p className="text-sm text-foreground italic text-center">(hereinafter called the "Contractor") and</p>
+
+      {renderPartyBlock("SUBCONTRACTOR", { name: "subcontractorName", address: "subcontractorAddress", phone: "subcontractorPhone", contact: "subcontractorContact" }, "ATTN")}
+
+      <p className="text-sm text-foreground italic text-center">(hereinafter called "Subcontractor") for work to be performed at</p>
+
+      {renderPartyBlock("PROJECT", { name: "projectName", address: "projectAddress", phone: "projectPhone", contact: "projectContact" }, "ATTN")}
+
+      <p className="text-sm text-foreground italic text-center">(hereinafter referred to as the "Project").</p>
+
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-2 border rounded-lg p-4">
+        <Field label="Contract Amount" fieldKey="contractAmount" />
+        <Field label="Alternate" fieldKey="alternateName" />
+        <Field label="Alternate Amount" fieldKey="alternateAmount" />
+        <Field label="Start Date" fieldKey="startDate" />
+      </div>
     </div>
   );
 
@@ -252,16 +263,7 @@ const SubcontractorContractForm = () => {
         {renderPageNav()}
 
         {/* ===== PAGE 1: Summary & Contacts ===== */}
-        {currentPage === 1 && (
-          <>
-            <div className="text-center space-y-1 border-b pb-6">
-              <h1 className="text-xl font-bold tracking-wide text-foreground">SUBCONTRACT AGREEMENT</h1>
-            </div>
-            <Field label="Contract Date" fieldKey="contractDate" className="max-w-xs" />
-            {renderContactColumns()}
-            {renderContractDetails()}
-          </>
-        )}
+        {currentPage === 1 && renderPage1Content()}
 
         {/* ===== PAGE 2: Articles 1–7 ===== */}
         {currentPage === 2 && (
@@ -281,14 +283,7 @@ const SubcontractorContractForm = () => {
 
         {/* ===== PRINT: render all pages together ===== */}
         <div className="hidden print:block">
-          <div className="text-center space-y-1 border-b pb-6">
-            <h1 className="text-xl font-bold tracking-wide text-foreground">SUBCONTRACT AGREEMENT</h1>
-          </div>
-          <div className="mb-4">
-            <Field label="Contract Date" fieldKey="contractDate" className="max-w-xs" />
-          </div>
-          {renderContactColumns()}
-          <div className="mt-4">{renderContractDetails()}</div>
+          {renderPage1Content()}
 
           <section className="space-y-4 print-page-break pt-4">
             {renderArticles(page2Articles)}
