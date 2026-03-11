@@ -404,6 +404,24 @@ export function EmployeeAccessPreferences({ employeeId }: EmployeeAccessPreferen
               }
             />
           </div>
+
+          <div className="flex items-center justify-between gap-4">
+            <div className="space-y-0.5 flex-1">
+              <Label htmlFor="edit-templates" className="text-sm font-normal cursor-pointer">
+                Edit Templates
+              </Label>
+              <p className="text-xs text-muted-foreground">
+                Ability to edit template boilerplate content (articles, exhibits, etc.)
+              </p>
+            </div>
+            <Switch
+              id="edit-templates"
+              checked={preferences.can_edit_templates}
+              onCheckedChange={(checked) => 
+                updatePreferences({ can_edit_templates: checked })
+              }
+            />
+          </div>
         </div>
       </div>
 
