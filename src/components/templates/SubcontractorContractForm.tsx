@@ -5,6 +5,12 @@ import { Button } from "@/components/ui/button";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import { useTemplateContent } from "@/hooks/useTemplateContent";
 
+interface LineItem {
+  letter: string;
+  description: string;
+  amount: number;
+}
+
 interface ContractFields {
   contractorName: string;
   contractorAddress: string;
@@ -18,9 +24,6 @@ interface ContractFields {
   projectAddress: string;
   projectPhone: string;
   projectContact: string;
-  contractAmount: string;
-  alternateName: string;
-  alternateAmount: string;
   startDate: string;
   contractDate: string;
   contractorSignerName: string;
