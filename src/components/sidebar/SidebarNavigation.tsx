@@ -111,6 +111,7 @@ export function SidebarNavigation({ unreadCounts }: SidebarNavigationProps) {
   } = useAccountingPermissions();
   const { canAccessEstimate, isLoading: estimatePermissionsLoading } = useEstimatePermissions();
   const { canAccessMarketplace, isLoading: marketplacePermissionsLoading } = useMarketplacePermissions();
+  const { canAccessTemplates, isLoading: templatePermissionsLoading } = useTemplatePermissions();
   const { data: issueCounts } = useIssueCounts();
   const { projectContext, goBackToProject, hasProjectContext } = useProjectContextWithData();
   
