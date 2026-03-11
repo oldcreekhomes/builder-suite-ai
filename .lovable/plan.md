@@ -1,9 +1,34 @@
 
-## ✅ COMPLETED: Fix Bill Payment — Credit Calculation + Data Repair + Consolidated Payment View
 
-All three fixes have been implemented:
+## Plan: Match Page 1 to Real Contract Format
 
-1. **Credit remaining balance formula** — Fixed in `useBills.ts` line 417 to use `total_amount + amount_paid` for credits
-2. **Proportional credit distribution** — Fixed in `BillsApprovalTable.tsx` to distribute credits proportionally based on each bill's share of positive allocations
-3. **Consolidated payment view** — Paid tab now groups multi-bill payments with expandable rows showing individual allocations (bills + credits)
-4. **Data repair** — Corrected over-allocated amounts for OCH-02302 via SQL migration
+The screenshots show the actual contract's Page 1 uses a **vertical flowing format** with legal connector text between each party block — not a 3-column grid. The current implementation is missing this narrative structure.
+
+### What Page 1 Should Look Like
+
+Based on the screenshot, Page 1 flows vertically:
+
+1. **"SUBCONTRACT AGREEMENT"** (centered, underlined)
+2. `THIS AGREEMENT, made and entered into this` **[Contract Date]** `("Contract Date") by and between`
+3. **Contractor block** — bold name, address, phone, PM (stacked vertically)
+4. `(hereinafter called the "Contractor") and`
+5. **Subcontractor block** — bold name, address, phone, ATTN (stacked vertically)
+6. `(hereinafter called "Subcontractor") for work to be performed at`
+7. **Project block** — bold name, address, phone, Attn (stacked vertically)
+8. `(hereinafter referred to as the "Project").`
+9. Then the **contract details** (Contract Amount, Alternate, Start Date) below
+
+### Changes to `SubcontractorContractForm.tsx`
+
+- **Replace** the 3-column `renderContactColumns()` with a new `renderPage1()` that renders the vertical legal format shown in the screenshot
+- Each party block shows its fields stacked vertically with bold labels (matching the document style)
+- Add the legal connector phrases between blocks as static text
+- Keep the contract details section below
+- Update print section to match
+
+### Keep Existing
+
+- All fields in `ContractFields` stay the same
+- Pages 2-5 unchanged
+- Navigation unchanged
+
