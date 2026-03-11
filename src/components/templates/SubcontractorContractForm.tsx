@@ -37,7 +37,7 @@ interface ContractFields {
 
 const TOTAL_PAGES = 5;
 
-const SubcontractorContractForm = () => {
+const SubcontractorContractForm = ({ onPrintReady }: { onPrintReady?: (printFn: () => void) => void }) => {
   const { articles, exhibits, isLoading } = useTemplateContent("subcontractor-contract");
   const [currentPage, setCurrentPage] = useState(1);
 
