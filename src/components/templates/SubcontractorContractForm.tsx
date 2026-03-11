@@ -35,7 +35,7 @@ interface ContractFields {
   generalRequirements: string;
 }
 
-const TOTAL_PAGES = 6;
+const TOTAL_PAGES = 5;
 
 const formatCurrency = (amount: number) =>
   amount.toLocaleString("en-US", { style: "currency", currency: "USD" });
@@ -145,119 +145,66 @@ const SubcontractorContractForm = ({ onPrintReady }: { onPrintReady?: (printFn: 
     const printWindow = window.open('', '_blank');
     if (!printWindow) return;
 
-    printWindow.document.write(`
-      <!DOCTYPE html>
-      <html>
-      <head>
-        <title>Subcontract Agreement</title>
-        <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Montserrat:wght@300;400;500;600;700&display=swap">
-        <style>
-          body { font-family: 'Montserrat', sans-serif; margin: 0; padding: 0; font-size: 11px; }
-          table { border-collapse: collapse; width: 100%; }
-          .page-break { page-break-before: always; }
-          .font-bold { font-weight: 700; }
-          @media print {
-            @page { margin: 0.5in; size: letter; }
-            body { margin: 0; }
-          }
-          @media screen {
-            body { margin: 0.5in; }
-          }
-        </style>
-      </head>
-      <body>
-        <!-- PAGE 1: Contract Summary -->
-        <div>
-          ${generatePrintHeader("CONTRACT SUMMARY")}
+    const now = new Date();
+    const dateStr = now.toLocaleDateString('en-US', { month: '2-digit', day: '2-digit', year: '2-digit' });
+    const timeStr = now.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true });
 
-          <p style="font-size: 10px; margin-bottom: 12px;">
-            THIS AGREEMENT, made and entered into this <span style="border-bottom: 1px solid #000; padding: 0 4px;">${fields.contractDate || '_______________'}</span>
-            ("Contract Date") by and between
-          </p>
+    const htmlContent = [
+      `<!DOCTYPE html><html><head><title> </title>`,
+      `<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Montserrat:wght@300;400;500;600;700&display=swap">`,
+      `<style>`,
+      `body { font-family: 'Montserrat', sans-serif; margin: 0; padding: 0; font-size: 11px; }`,
+      `table { border-collapse: collapse; width: 100%; }`,
+      `.page-break { page-break-before: always; }`,
+      `@media print { @page { margin: 0; size: letter; } body { margin: 0; } }`,
+      `@media screen { body { margin: 0.5in; } }`,
+      `.page-content { padding: 0.5in 0.75in 0.8in 0.75in; }`,
+      `.page-footer { position: fixed; bottom: 0; left: 0; right: 0; padding: 0 0.75in 0.35in 0.75in; display: flex; justify-content: space-between; align-items: center; font-size: 8px; color: #999; }`,
+      `</style></head><body>`,
+      // Footer
+      `<div class="page-footer"><span>${dateStr}</span><span>${timeStr}</span><span></span></div>`,
+      // Page 1
+      `<div class="page-content">`,
+      generatePrintHeader("CONTRACT SUMMARY"),
+      `<p style="font-size: 10px; margin-bottom: 12px;">THIS AGREEMENT, made and entered into this <span style="border-bottom: 1px solid #000; padding: 0 4px;">${fields.contractDate || '_______________'}</span> ("Contract Date") by and between</p>`,
+      generatePrintPartyBlock("CONTRACTOR", fields.contractorName, fields.contractorAddress, fields.contractorPhone, fields.contractorPM, "Project Manager"),
+      `<p style="font-size: 10px; font-style: italic; text-align: center; margin: 4px 0;">(hereinafter called the "Contractor") and</p>`,
+      generatePrintPartyBlock("SUBCONTRACTOR", fields.subcontractorName, fields.subcontractorAddress, fields.subcontractorPhone, fields.subcontractorContact, "ATTN"),
+      `<p style="font-size: 10px; font-style: italic; text-align: center; margin: 4px 0;">(hereinafter called "Subcontractor")</p>`,
+      generatePrintPartyBlock("PROJECT", fields.projectName, fields.projectAddress, fields.projectPhone, fields.projectContact, "ATTN"),
+      `<p style="font-size: 10px; font-style: italic; text-align: center; margin: 4px 0 12px 0;">(hereinafter referred to as the "Project").</p>`,
+      `<div><div style="font-weight: 700; font-size: 10px; letter-spacing: 0.05em; margin-bottom: 6px;">CONTRACT VALUE BREAKDOWN</div>`,
+      `<table><thead><tr style="border-bottom: 2px solid #000;"><th style="text-align: left; padding: 2px 6px; font-size: 10px; width: 30px;">Item</th><th style="text-align: left; padding: 2px 6px; font-size: 10px;">Description</th><th style="text-align: right; padding: 2px 6px; font-size: 10px; width: 100px;">Amount</th></tr></thead>`,
+      `<tbody>${generatePrintLineItems()}</tbody>`,
+      `<tfoot><tr style="border-top: 2px solid #000;"><td style="padding: 4px 6px;"></td><td style="padding: 4px 6px; font-weight: 700;">TOTAL</td><td style="padding: 4px 6px; text-align: right; font-weight: 700;">${formatCurrency(contractTotal)}</td></tr></tfoot></table></div>`,
+      fields.startDate ? `<p style="font-size: 11px; margin-top: 12px;"><strong>Start Date:</strong> ${fields.startDate}</p>` : '',
+      `</div>`,
+      // Page 2: Articles
+      `<div class="page-break page-content">`,
+      generatePrintHeader("ARTICLES"),
+      generatePrintArticles(articles),
+      `</div>`,
+      // Page 3: Exhibit A
+      `<div class="page-break page-content">`,
+      generatePrintHeader("EXHIBIT A – SCOPE OF WORK"),
+      `<div style="white-space: pre-line; min-height: 80px; font-size: 11px;">${fields.scopeOfWork || ''}</div>`,
+      `</div>`,
+      // Page 4: Exhibit B
+      `<div class="page-break page-content">`,
+      generatePrintHeader("EXHIBIT B – PROJECT DRAWINGS"),
+      `<div style="white-space: pre-line; min-height: 60px; font-size: 11px;">${fields.projectDrawings || ''}</div>`,
+      `</div>`,
+      // Page 5: Signatures
+      `<div class="page-break page-content">`,
+      generatePrintHeader("SIGNATURES"),
+      `<div style="display: flex; gap: 40px; margin-top: 24px;">`,
+      `<div style="flex: 1;"><p style="font-weight: 600;">CONTRACTOR</p><div style="border-bottom: 1px solid #999; height: 40px; margin-top: 20px;"></div><p style="font-size: 10px; color: #888;">Signature</p><p style="font-size: 11px; margin-top: 8px;"><strong>Name:</strong> ${fields.contractorSignerName || '_______________'}</p><p style="font-size: 11px;"><strong>Title:</strong> ${fields.contractorSignerTitle || '_______________'}</p></div>`,
+      `<div style="flex: 1;"><p style="font-weight: 600;">SUBCONTRACTOR</p><div style="border-bottom: 1px solid #999; height: 40px; margin-top: 20px;"></div><p style="font-size: 10px; color: #888;">Signature</p><p style="font-size: 11px; margin-top: 8px;"><strong>Name:</strong> ${fields.subcontractorSignerName || '_______________'}</p><p style="font-size: 11px;"><strong>Title:</strong> ${fields.subcontractorSignerTitle || '_______________'}</p></div>`,
+      `</div></div>`,
+      `</body></html>`
+    ].join('\n');
 
-          ${generatePrintPartyBlock("CONTRACTOR", fields.contractorName, fields.contractorAddress, fields.contractorPhone, fields.contractorPM, "Project Manager")}
-          <p style="font-size: 10px; font-style: italic; text-align: center; margin: 4px 0;">(hereinafter called the "Contractor") and</p>
-          ${generatePrintPartyBlock("SUBCONTRACTOR", fields.subcontractorName, fields.subcontractorAddress, fields.subcontractorPhone, fields.subcontractorContact, "ATTN")}
-          <p style="font-size: 10px; font-style: italic; text-align: center; margin: 4px 0;">(hereinafter called "Subcontractor")</p>
-          ${generatePrintPartyBlock("PROJECT", fields.projectName, fields.projectAddress, fields.projectPhone, fields.projectContact, "ATTN")}
-          <p style="font-size: 10px; font-style: italic; text-align: center; margin: 4px 0 12px 0;">(hereinafter referred to as the "Project").</p>
-
-          <div>
-            <div style="font-weight: 700; font-size: 10px; letter-spacing: 0.05em; margin-bottom: 6px;">CONTRACT VALUE BREAKDOWN</div>
-            <table>
-              <thead>
-                <tr style="border-bottom: 2px solid #000;">
-                  <th style="text-align: left; padding: 2px 6px; font-size: 10px; width: 30px;">Item</th>
-                  <th style="text-align: left; padding: 2px 6px; font-size: 10px;">Description</th>
-                  <th style="text-align: right; padding: 2px 6px; font-size: 10px; width: 100px;">Amount</th>
-                </tr>
-              </thead>
-              <tbody>
-                ${generatePrintLineItems()}
-              </tbody>
-              <tfoot>
-                <tr style="border-top: 2px solid #000;">
-                  <td style="padding: 4px 6px;"></td>
-                  <td style="padding: 4px 6px; font-weight: 700;">TOTAL</td>
-                  <td style="padding: 4px 6px; text-align: right; font-weight: 700;">${formatCurrency(contractTotal)}</td>
-                </tr>
-              </tfoot>
-            </table>
-          </div>
-
-          ${fields.startDate ? `<p style="font-size: 11px; margin-top: 12px;"><strong>Start Date:</strong> ${fields.startDate}</p>` : ''}
-        </div>
-
-        <!-- PAGE 2: All Articles -->
-        <div class="page-break">
-          ${generatePrintHeader("ARTICLES")}
-          ${generatePrintArticles(articles)}
-        </div>
-
-        <!-- PAGE 3: Exhibit A -->
-        <div class="page-break">
-          ${generatePrintHeader("EXHIBITS")}
-          <h2 style="font-size: 13px; font-weight: 700; margin-bottom: 8px;">EXHIBIT A – SCOPE OF WORK</h2>
-          <div style="white-space: pre-line; min-height: 80px; font-size: 11px;">${fields.scopeOfWork || ''}</div>
-        </div>
-
-        <!-- PAGE 4: Exhibit B -->
-        <div class="page-break">
-          ${generatePrintHeader("EXHIBITS")}
-          <h2 style="font-size: 13px; font-weight: 700; margin-bottom: 8px;">EXHIBIT B – PROJECT DRAWINGS</h2>
-          <div style="white-space: pre-line; min-height: 60px; font-size: 11px;">${fields.projectDrawings || ''}</div>
-        </div>
-
-        <!-- PAGE 5: Exhibit C -->
-        <div class="page-break">
-          ${generatePrintHeader("EXHIBITS")}
-          <h2 style="font-size: 13px; font-weight: 700; margin-bottom: 8px;">EXHIBIT C – GENERAL REQUIREMENTS</h2>
-          <div style="white-space: pre-line; min-height: 60px; font-size: 11px;">${fields.generalRequirements || ''}</div>
-        </div>
-
-        <!-- PAGE 6: Signatures -->
-        <div class="page-break">
-          ${generatePrintHeader("SIGNATURES")}
-          <div style="display: flex; gap: 40px; margin-top: 24px;">
-            <div style="flex: 1;">
-              <p style="font-weight: 600;">CONTRACTOR</p>
-              <div style="border-bottom: 1px solid #999; height: 40px; margin-top: 20px;"></div>
-              <p style="font-size: 10px; color: #888;">Signature</p>
-              <p style="font-size: 11px; margin-top: 8px;"><strong>Name:</strong> ${fields.contractorSignerName || '_______________'}</p>
-              <p style="font-size: 11px;"><strong>Title:</strong> ${fields.contractorSignerTitle || '_______________'}</p>
-            </div>
-            <div style="flex: 1;">
-              <p style="font-weight: 600;">SUBCONTRACTOR</p>
-              <div style="border-bottom: 1px solid #999; height: 40px; margin-top: 20px;"></div>
-              <p style="font-size: 10px; color: #888;">Signature</p>
-              <p style="font-size: 11px; margin-top: 8px;"><strong>Name:</strong> ${fields.subcontractorSignerName || '_______________'}</p>
-              <p style="font-size: 11px;"><strong>Title:</strong> ${fields.subcontractorSignerTitle || '_______________'}</p>
-            </div>
-          </div>
-        </div>
-      </body>
-      </html>
-    `);
+    printWindow.document.write(htmlContent);
     printWindow.document.close();
     printWindow.print();
   }, [fields, lineItems, contractTotal, articles]);
@@ -458,8 +405,7 @@ const SubcontractorContractForm = ({ onPrintReady }: { onPrintReady?: (printFn: 
 
         {currentPage === 3 && (
           <section className="space-y-3">
-            {renderPageHeader("EXHIBITS")}
-            <h2 className="text-base font-bold text-foreground">EXHIBIT A – SCOPE OF WORK</h2>
+            {renderPageHeader("EXHIBIT A – SCOPE OF WORK")}
             <Textarea
               value={fields.scopeOfWork}
               onChange={(e) => update("scopeOfWork", e.target.value)}
@@ -471,8 +417,7 @@ const SubcontractorContractForm = ({ onPrintReady }: { onPrintReady?: (printFn: 
 
         {currentPage === 4 && (
           <section className="space-y-3">
-            {renderPageHeader("EXHIBITS")}
-            <h2 className="text-base font-bold text-foreground">EXHIBIT B – PROJECT DRAWINGS</h2>
+            {renderPageHeader("EXHIBIT B – PROJECT DRAWINGS")}
             <Textarea
               value={fields.projectDrawings}
               onChange={(e) => update("projectDrawings", e.target.value)}
@@ -481,19 +426,7 @@ const SubcontractorContractForm = ({ onPrintReady }: { onPrintReady?: (printFn: 
           </section>
         )}
 
-        {currentPage === 5 && (
-          <section className="space-y-3">
-            {renderPageHeader("EXHIBITS")}
-            <h2 className="text-base font-bold text-foreground">EXHIBIT C – GENERAL REQUIREMENTS</h2>
-            <Textarea
-              value={fields.generalRequirements}
-              onChange={(e) => update("generalRequirements", e.target.value)}
-              className="min-h-[80px] text-sm"
-            />
-          </section>
-        )}
-
-        {currentPage === 6 && renderSignatures()}
+        {currentPage === 5 && renderSignatures()}
       </div>
     </div>
   );
