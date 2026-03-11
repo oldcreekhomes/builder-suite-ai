@@ -215,12 +215,26 @@ K. Asphalt and Paving
   `).join('');
 
   const formatScopeForPrint = (text: string) => {
-    return text.split('\n').map(line => {
+    const lines = text.split('\n');
+    let html = '';
+    let currentSection = '';
+    
+    for (const line of lines) {
       if (/^[A-K]\./.test(line.trim())) {
-        return `<div class="scope-header">${line.trim()}</div>`;
+        if (currentSection) {
+          html += `</div>`; // close previous scope-section
+        }
+        html += `<div class="scope-section">`;
+        html += `<div class="scope-header">${line.trim()}</div>`;
+        currentSection = line.trim();
+      } else {
+        html += `<div>${line}</div>`;
       }
-      return `<div>${line}</div>`;
-    }).join('');
+    }
+    if (currentSection) {
+      html += `</div>`; // close last scope-section
+    }
+    return html;
   };
 
   const handlePrint = useCallback(() => {
