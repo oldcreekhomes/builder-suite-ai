@@ -1,1 +1,1 @@
-/// <reference types="google.maps" />
+/// <reference types="@types/google.maps" />
