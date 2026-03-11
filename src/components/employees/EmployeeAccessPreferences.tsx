@@ -377,6 +377,36 @@ export function EmployeeAccessPreferences({ employeeId }: EmployeeAccessPreferen
         </div>
       </div>
 
+      {/* Templates Section */}
+      <div className="space-y-4">
+        <div>
+          <h3 className="text-sm font-medium">Templates</h3>
+          <p className="text-xs text-muted-foreground mt-1">
+            Control access to document templates
+          </p>
+        </div>
+        
+        <div className="space-y-3 pl-6">
+          <div className="flex items-center justify-between gap-4">
+            <div className="space-y-0.5 flex-1">
+              <Label htmlFor="access-templates" className="text-sm font-normal cursor-pointer">
+                Access Templates
+              </Label>
+              <p className="text-xs text-muted-foreground">
+                View and manage document templates like subcontractor agreements
+              </p>
+            </div>
+            <Switch
+              id="access-templates"
+              checked={preferences.can_access_templates}
+              onCheckedChange={(checked) => 
+                updatePreferences({ can_access_templates: checked })
+              }
+            />
+          </div>
+        </div>
+      </div>
+
       {/* Marketplace Section */}
       <div className="space-y-4">
         <div>

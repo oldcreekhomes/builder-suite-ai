@@ -133,6 +133,7 @@ const AppContent = () => {
               <Route path="/project/:projectId/accounting/banking/reconciliation" element={<ProtectedRoute><BankReconciliation /></ProtectedRoute>} />
               <Route path="/project/:projectId/accounting/close-books" element={<ProtectedRoute><CloseBooks /></ProtectedRoute>} />
               <Route path="/issues" element={<ProtectedRoute><Issues /></ProtectedRoute>} />
+              <Route path="/templates" element={<ProtectedRoute><TemplatesGuard><Templates /></TemplatesGuard></ProtectedRoute>} />
               <Route path="/marketplace" element={<ProtectedRoute><MarketplaceGuard><Marketplace /></MarketplaceGuard></ProtectedRoute>} />
               <Route path="/companies" element={<ProtectedRoute><Companies /></ProtectedRoute>} />
               <Route path="/settings" element={<ProtectedRoute><Settings /></ProtectedRoute>} />
