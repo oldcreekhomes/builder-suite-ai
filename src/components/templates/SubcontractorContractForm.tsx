@@ -326,7 +326,9 @@ K. Asphalt and Paving
 
     printWindow.document.write(htmlContent);
     printWindow.document.close();
-    printWindow.print();
+    printWindow.document.fonts.ready.then(() => {
+      printWindow.print();
+    });
   }, [fields, lineItems, contractTotal, articles]);
 
   useEffect(() => {
