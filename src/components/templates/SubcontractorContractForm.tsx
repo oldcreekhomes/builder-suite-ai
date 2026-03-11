@@ -35,7 +35,10 @@ interface ContractFields {
   generalRequirements: string;
 }
 
-const TOTAL_PAGES = 5;
+const TOTAL_PAGES = 6;
+
+const formatCurrency = (amount: number) =>
+  amount.toLocaleString("en-US", { style: "currency", currency: "USD" });
 
 const SubcontractorContractForm = ({ onPrintReady }: { onPrintReady?: (printFn: () => void) => void }) => {
   const { articles, exhibits, isLoading } = useTemplateContent("subcontractor-contract");
@@ -104,8 +107,14 @@ const SubcontractorContractForm = ({ onPrintReady }: { onPrintReady?: (printFn: 
     </div>
   );
 
-  const page2Articles = articles.filter((a) => a.num <= 7);
-  const page3Articles = articles.filter((a) => a.num > 7);
+  // ── Print helpers ──
+
+  const generatePrintHeader = (subtitle: string) => `
+    <div style="text-align: center; border-bottom: 1px solid #000; padding-bottom: 8px; margin-bottom: 12px;">
+      <h1 style="font-size: 16px; font-weight: 700; text-decoration: underline; margin: 0;">SUBCONTRACT AGREEMENT</h1>
+      <p style="font-size: 10px; color: #888; margin: 4px 0 0 0;">${subtitle}</p>
+    </div>
+  `;
 
   const generatePrintPartyBlock = (title: string, company: string, address: string, phone: string, contact: string, contactLabel: string) => `
     <div style="margin-bottom: 8px;">
@@ -126,9 +135,9 @@ const SubcontractorContractForm = ({ onPrintReady }: { onPrintReady?: (printFn: 
   `).join('');
 
   const generatePrintArticles = (list: typeof articles) => list.map(article => `
-    <div style="margin-bottom: 8px;">
-      <h3 style="font-size: 11px; font-weight: 700; margin: 0 0 2px 0;">ARTICLE ${article.num} – ${article.title}</h3>
-      <div style="font-size: 11px; white-space: pre-line; color: #555;">${article.body}</div>
+    <div style="margin-bottom: 6px;">
+      <h3 style="font-size: 10px; font-weight: 700; margin: 0 0 1px 0;">ARTICLE ${article.num} – ${article.title}</h3>
+      <div style="font-size: 9.5px; white-space: pre-line; color: #555; line-height: 1.3;">${article.body}</div>
     </div>
   `).join('');
 
@@ -143,76 +152,93 @@ const SubcontractorContractForm = ({ onPrintReady }: { onPrintReady?: (printFn: 
         <title>Subcontract Agreement</title>
         <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Montserrat:wght@300;400;500;600;700&display=swap">
         <style>
-          body { font-family: 'Montserrat', sans-serif; margin: 15px; font-size: 11px; }
+          body { font-family: 'Montserrat', sans-serif; margin: 0; padding: 0; font-size: 11px; }
           table { border-collapse: collapse; width: 100%; }
-          .text-right { text-align: right; }
-          .text-center { text-align: center; }
           .page-break { page-break-before: always; }
           .font-bold { font-weight: 700; }
           @media print {
+            @page { margin: 0.5in; size: letter; }
+            body { margin: 0; }
+          }
+          @media screen {
             body { margin: 0.5in; }
-            @page { margin: 0; size: auto; }
           }
         </style>
       </head>
       <body>
         <!-- PAGE 1: Contract Summary -->
-        <div style="text-align: center; border-bottom: 1px solid #000; padding-bottom: 8px; margin-bottom: 12px;">
-          <h1 style="font-size: 16px; font-weight: 700; text-decoration: underline; margin: 0;">SUBCONTRACT AGREEMENT</h1>
-          <p style="font-size: 10px; color: #888; margin: 4px 0 0 0;">CONTRACT SUMMARY</p>
-        </div>
-
-        <p style="font-size: 10px; margin-bottom: 12px;">
-          THIS AGREEMENT, made and entered into this <span style="border-bottom: 1px solid #000; padding: 0 4px;">${fields.contractDate || '_______________'}</span>
-          ("Contract Date") by and between
-        </p>
-
-        ${generatePrintPartyBlock("CONTRACTOR", fields.contractorName, fields.contractorAddress, fields.contractorPhone, fields.contractorPM, "Project Manager")}
-        <p style="font-size: 10px; font-style: italic; text-align: center; margin: 4px 0;">(hereinafter called the "Contractor") and</p>
-        ${generatePrintPartyBlock("SUBCONTRACTOR", fields.subcontractorName, fields.subcontractorAddress, fields.subcontractorPhone, fields.subcontractorContact, "ATTN")}
-        <p style="font-size: 10px; font-style: italic; text-align: center; margin: 4px 0;">(hereinafter called "Subcontractor")</p>
-        ${generatePrintPartyBlock("PROJECT", fields.projectName, fields.projectAddress, fields.projectPhone, fields.projectContact, "ATTN")}
-        <p style="font-size: 10px; font-style: italic; text-align: center; margin: 4px 0 12px 0;">(hereinafter referred to as the "Project").</p>
-
         <div>
-          <div style="font-weight: 700; font-size: 10px; letter-spacing: 0.05em; margin-bottom: 6px;">CONTRACT VALUE BREAKDOWN</div>
-          <table>
-            <thead>
-              <tr style="border-bottom: 2px solid #000;">
-                <th style="text-align: left; padding: 2px 6px; font-size: 10px; width: 30px;">Item</th>
-                <th style="text-align: left; padding: 2px 6px; font-size: 10px;">Description</th>
-                <th style="text-align: right; padding: 2px 6px; font-size: 10px; width: 100px;">Amount</th>
-              </tr>
-            </thead>
-            <tbody>
-              ${generatePrintLineItems()}
-            </tbody>
-            <tfoot>
-              <tr style="border-top: 2px solid #000;">
-                <td style="padding: 4px 6px;"></td>
-                <td style="padding: 4px 6px; font-weight: 700;">TOTAL</td>
-                <td style="padding: 4px 6px; text-align: right; font-weight: 700;">${formatCurrency(contractTotal)}</td>
-              </tr>
-            </tfoot>
-          </table>
+          ${generatePrintHeader("CONTRACT SUMMARY")}
+
+          <p style="font-size: 10px; margin-bottom: 12px;">
+            THIS AGREEMENT, made and entered into this <span style="border-bottom: 1px solid #000; padding: 0 4px;">${fields.contractDate || '_______________'}</span>
+            ("Contract Date") by and between
+          </p>
+
+          ${generatePrintPartyBlock("CONTRACTOR", fields.contractorName, fields.contractorAddress, fields.contractorPhone, fields.contractorPM, "Project Manager")}
+          <p style="font-size: 10px; font-style: italic; text-align: center; margin: 4px 0;">(hereinafter called the "Contractor") and</p>
+          ${generatePrintPartyBlock("SUBCONTRACTOR", fields.subcontractorName, fields.subcontractorAddress, fields.subcontractorPhone, fields.subcontractorContact, "ATTN")}
+          <p style="font-size: 10px; font-style: italic; text-align: center; margin: 4px 0;">(hereinafter called "Subcontractor")</p>
+          ${generatePrintPartyBlock("PROJECT", fields.projectName, fields.projectAddress, fields.projectPhone, fields.projectContact, "ATTN")}
+          <p style="font-size: 10px; font-style: italic; text-align: center; margin: 4px 0 12px 0;">(hereinafter referred to as the "Project").</p>
+
+          <div>
+            <div style="font-weight: 700; font-size: 10px; letter-spacing: 0.05em; margin-bottom: 6px;">CONTRACT VALUE BREAKDOWN</div>
+            <table>
+              <thead>
+                <tr style="border-bottom: 2px solid #000;">
+                  <th style="text-align: left; padding: 2px 6px; font-size: 10px; width: 30px;">Item</th>
+                  <th style="text-align: left; padding: 2px 6px; font-size: 10px;">Description</th>
+                  <th style="text-align: right; padding: 2px 6px; font-size: 10px; width: 100px;">Amount</th>
+                </tr>
+              </thead>
+              <tbody>
+                ${generatePrintLineItems()}
+              </tbody>
+              <tfoot>
+                <tr style="border-top: 2px solid #000;">
+                  <td style="padding: 4px 6px;"></td>
+                  <td style="padding: 4px 6px; font-weight: 700;">TOTAL</td>
+                  <td style="padding: 4px 6px; text-align: right; font-weight: 700;">${formatCurrency(contractTotal)}</td>
+                </tr>
+              </tfoot>
+            </table>
+          </div>
+
+          ${fields.startDate ? `<p style="font-size: 11px; margin-top: 12px;"><strong>Start Date:</strong> ${fields.startDate}</p>` : ''}
         </div>
 
-        ${fields.startDate ? `<p style="font-size: 11px; margin-top: 12px;"><strong>Start Date:</strong> ${fields.startDate}</p>` : ''}
-
-        <!-- PAGE 2: Articles 1-7 -->
+        <!-- PAGE 2: All Articles -->
         <div class="page-break">
-          ${generatePrintArticles(page2Articles)}
+          ${generatePrintHeader("ARTICLES")}
+          ${generatePrintArticles(articles)}
         </div>
 
-        <!-- PAGE 3: Articles 8+ -->
+        <!-- PAGE 3: Exhibit A -->
         <div class="page-break">
-          ${generatePrintArticles(page3Articles)}
+          ${generatePrintHeader("EXHIBITS")}
+          <h2 style="font-size: 13px; font-weight: 700; margin-bottom: 8px;">EXHIBIT A – SCOPE OF WORK</h2>
+          <div style="white-space: pre-line; min-height: 80px; font-size: 11px;">${fields.scopeOfWork || ''}</div>
         </div>
 
-        <!-- PAGE 4: Signatures -->
+        <!-- PAGE 4: Exhibit B -->
         <div class="page-break">
-          <h2 style="font-size: 14px; font-weight: 700; margin-bottom: 16px;">SIGNATURES</h2>
-          <div style="display: flex; gap: 40px;">
+          ${generatePrintHeader("EXHIBITS")}
+          <h2 style="font-size: 13px; font-weight: 700; margin-bottom: 8px;">EXHIBIT B – PROJECT DRAWINGS</h2>
+          <div style="white-space: pre-line; min-height: 60px; font-size: 11px;">${fields.projectDrawings || ''}</div>
+        </div>
+
+        <!-- PAGE 5: Exhibit C -->
+        <div class="page-break">
+          ${generatePrintHeader("EXHIBITS")}
+          <h2 style="font-size: 13px; font-weight: 700; margin-bottom: 8px;">EXHIBIT C – GENERAL REQUIREMENTS</h2>
+          <div style="white-space: pre-line; min-height: 60px; font-size: 11px;">${fields.generalRequirements || ''}</div>
+        </div>
+
+        <!-- PAGE 6: Signatures -->
+        <div class="page-break">
+          ${generatePrintHeader("SIGNATURES")}
+          <div style="display: flex; gap: 40px; margin-top: 24px;">
             <div style="flex: 1;">
               <p style="font-weight: 600;">CONTRACTOR</p>
               <div style="border-bottom: 1px solid #999; height: 40px; margin-top: 20px;"></div>
@@ -229,24 +255,12 @@ const SubcontractorContractForm = ({ onPrintReady }: { onPrintReady?: (printFn: 
             </div>
           </div>
         </div>
-
-        <!-- PAGE 5: Exhibits -->
-        <div class="page-break">
-          <h2 style="font-size: 14px; font-weight: 700; margin-bottom: 8px;">EXHIBIT A – SCOPE OF WORK</h2>
-          <div style="white-space: pre-line; min-height: 80px; font-size: 11px; margin-bottom: 16px;">${fields.scopeOfWork || ''}</div>
-
-          <h2 style="font-size: 14px; font-weight: 700; margin-bottom: 8px;">EXHIBIT B – PROJECT DRAWINGS</h2>
-          <div style="white-space: pre-line; min-height: 60px; font-size: 11px; margin-bottom: 16px;">${fields.projectDrawings || ''}</div>
-
-          <h2 style="font-size: 14px; font-weight: 700; margin-bottom: 8px;">EXHIBIT C – GENERAL REQUIREMENTS</h2>
-          <div style="white-space: pre-line; min-height: 60px; font-size: 11px;">${fields.generalRequirements || ''}</div>
-        </div>
       </body>
       </html>
     `);
     printWindow.document.close();
     printWindow.print();
-  }, [fields, lineItems, contractTotal, articles, page2Articles, page3Articles]);
+  }, [fields, lineItems, contractTotal, articles]);
 
   useEffect(() => {
     if (onPrintReady) {
@@ -264,6 +278,15 @@ const SubcontractorContractForm = ({ onPrintReady }: { onPrintReady?: (printFn: 
       </div>
     );
   }
+
+  // ── On-screen helpers ──
+
+  const renderPageHeader = (subtitle: string) => (
+    <div className="text-center border-b border-foreground pb-3 mb-6">
+      <h1 className="text-lg font-bold tracking-wide text-foreground underline">SUBCONTRACT AGREEMENT</h1>
+      <p className="text-xs text-muted-foreground mt-1">{subtitle}</p>
+    </div>
+  );
 
   const renderPageNav = () => (
     <div className="no-print flex items-center justify-between border-b pb-4 mb-6">
@@ -325,9 +348,6 @@ const SubcontractorContractForm = ({ onPrintReady }: { onPrintReady?: (printFn: 
     </div>
   );
 
-  const formatCurrency = (amount: number) =>
-    amount.toLocaleString("en-US", { style: "currency", currency: "USD" });
-
   const updateLineItemAmount = (index: number, value: string) => {
     const parsed = parseFloat(value.replace(/[^0-9.-]/g, ""));
     setLineItems((prev) =>
@@ -337,10 +357,7 @@ const SubcontractorContractForm = ({ onPrintReady }: { onPrintReady?: (printFn: 
 
   const renderPage1Content = () => (
     <div className="space-y-3">
-      <div className="text-center border-b pb-3">
-        <h1 className="text-lg font-bold tracking-wide text-foreground underline">SUBCONTRACT AGREEMENT</h1>
-        <p className="text-xs text-muted-foreground mt-1">CONTRACT SUMMARY</p>
-      </div>
+      {renderPageHeader("CONTRACT SUMMARY")}
 
       <p className="text-xs text-foreground leading-relaxed">
         THIS AGREEMENT, made and entered into this{" "}
@@ -356,20 +373,14 @@ const SubcontractorContractForm = ({ onPrintReady }: { onPrintReady?: (printFn: 
       </p>
 
       {renderPartyBlock("CONTRACTOR", { name: "contractorName", address: "contractorAddress", phone: "contractorPhone", contact: "contractorPM" }, "Project Manager")}
-
       <p className="text-xs text-foreground italic text-center">(hereinafter called the "Contractor") and</p>
-
       {renderPartyBlock("SUBCONTRACTOR", { name: "subcontractorName", address: "subcontractorAddress", phone: "subcontractorPhone", contact: "subcontractorContact" }, "ATTN")}
-
       <p className="text-xs text-foreground italic text-center">(hereinafter called "Subcontractor")</p>
-
       {renderPartyBlock("PROJECT", { name: "projectName", address: "projectAddress", phone: "projectPhone", contact: "projectContact" }, "ATTN")}
-
       <p className="text-xs text-foreground italic text-center">(hereinafter referred to as the "Project").</p>
 
-      {/* Contract Value Breakdown */}
       <div className="p-3">
-      <h3 className="text-xs font-bold text-foreground tracking-wide mb-2">CONTRACT VALUE BREAKDOWN</h3>
+        <h3 className="text-xs font-bold text-foreground tracking-wide mb-2">CONTRACT VALUE BREAKDOWN</h3>
         <table className="w-full text-xs border-collapse">
           <thead>
             <tr className="border-b border-foreground">
@@ -411,7 +422,7 @@ const SubcontractorContractForm = ({ onPrintReady }: { onPrintReady?: (printFn: 
 
   const renderSignatures = () => (
     <section className="space-y-6">
-      <h2 className="text-base font-bold text-foreground">SIGNATURES</h2>
+      {renderPageHeader("SIGNATURES")}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
         <div className="space-y-4">
           <p className="font-semibold text-foreground">CONTRACTOR</p>
@@ -431,63 +442,58 @@ const SubcontractorContractForm = ({ onPrintReady }: { onPrintReady?: (printFn: 
     </section>
   );
 
-  const renderExhibits = (readOnly = false) => (
-    <section className="space-y-6">
-      <div className="space-y-3">
-        <h2 className="text-base font-bold text-foreground">EXHIBIT A – SCOPE OF WORK</h2>
-        <Textarea
-          value={fields.scopeOfWork}
-          onChange={readOnly ? undefined : (e) => update("scopeOfWork", e.target.value)}
-          readOnly={readOnly}
-          placeholder="Describe the scope of work..."
-          className="min-h-[120px] text-sm"
-        />
-      </div>
-      <div className="space-y-3">
-        <h2 className="text-base font-bold text-foreground">EXHIBIT B – PROJECT DRAWINGS</h2>
-        <Textarea
-          value={fields.projectDrawings}
-          onChange={readOnly ? undefined : (e) => update("projectDrawings", e.target.value)}
-          readOnly={readOnly}
-          className="min-h-[80px] text-sm"
-        />
-      </div>
-      <div className="space-y-3">
-        <h2 className="text-base font-bold text-foreground">EXHIBIT C – GENERAL REQUIREMENTS</h2>
-        <Textarea
-          value={fields.generalRequirements}
-          onChange={readOnly ? undefined : (e) => update("generalRequirements", e.target.value)}
-          readOnly={readOnly}
-          className="min-h-[80px] text-sm"
-        />
-      </div>
-    </section>
-  );
-
   return (
-    <div className="print-container bg-background text-foreground max-w-[8.5in] mx-auto">
+    <div className="print-container bg-background text-foreground max-w-[8.5in] mx-auto border border-border rounded-lg shadow-sm">
       <div className="p-8 md:p-12 space-y-6 text-sm leading-relaxed">
         {renderPageNav()}
 
-        {/* ===== PAGE 1: Summary & Contacts ===== */}
         {currentPage === 1 && renderPage1Content()}
 
-        {/* ===== PAGE 2: Articles 1–7 ===== */}
         {currentPage === 2 && (
-          <section className="space-y-4">{renderArticles(page2Articles)}</section>
+          <section className="space-y-4">
+            {renderPageHeader("ARTICLES")}
+            {renderArticles(articles)}
+          </section>
         )}
 
-        {/* ===== PAGE 3: Articles 8–14 ===== */}
         {currentPage === 3 && (
-          <section className="space-y-4">{renderArticles(page3Articles)}</section>
+          <section className="space-y-3">
+            {renderPageHeader("EXHIBITS")}
+            <h2 className="text-base font-bold text-foreground">EXHIBIT A – SCOPE OF WORK</h2>
+            <Textarea
+              value={fields.scopeOfWork}
+              onChange={(e) => update("scopeOfWork", e.target.value)}
+              placeholder="Describe the scope of work..."
+              className="min-h-[120px] text-sm"
+            />
+          </section>
         )}
 
-        {/* ===== PAGE 4: Signatures ===== */}
-        {currentPage === 4 && renderSignatures()}
+        {currentPage === 4 && (
+          <section className="space-y-3">
+            {renderPageHeader("EXHIBITS")}
+            <h2 className="text-base font-bold text-foreground">EXHIBIT B – PROJECT DRAWINGS</h2>
+            <Textarea
+              value={fields.projectDrawings}
+              onChange={(e) => update("projectDrawings", e.target.value)}
+              className="min-h-[80px] text-sm"
+            />
+          </section>
+        )}
 
-        {/* ===== PAGE 5: Exhibits ===== */}
-        {currentPage === 5 && renderExhibits()}
+        {currentPage === 5 && (
+          <section className="space-y-3">
+            {renderPageHeader("EXHIBITS")}
+            <h2 className="text-base font-bold text-foreground">EXHIBIT C – GENERAL REQUIREMENTS</h2>
+            <Textarea
+              value={fields.generalRequirements}
+              onChange={(e) => update("generalRequirements", e.target.value)}
+              className="min-h-[80px] text-sm"
+            />
+          </section>
+        )}
 
+        {currentPage === 6 && renderSignatures()}
       </div>
     </div>
   );
