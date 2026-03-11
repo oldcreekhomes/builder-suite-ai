@@ -41,6 +41,22 @@ const SubcontractorContractForm = () => {
   const { articles, exhibits, isLoading } = useTemplateContent("subcontractor-contract");
   const [currentPage, setCurrentPage] = useState(1);
 
+  const [lineItems, setLineItems] = useState<LineItem[]>([
+    { letter: "A", description: "General Conditions/Mobilization", amount: 19653 },
+    { letter: "B", description: "Erosion Control", amount: 20382 },
+    { letter: "C", description: "Site Demolition", amount: 18726 },
+    { letter: "D", description: "Building Demolition", amount: 22489 },
+    { letter: "E", description: "Clearing", amount: 9998 },
+    { letter: "F", description: "Excavation and Grading", amount: 282578 },
+    { letter: "G", description: "Sanitary", amount: 129546 },
+    { letter: "H", description: "Storm Drain", amount: 236503 },
+    { letter: "I", description: "Water", amount: 86259 },
+    { letter: "J", description: "Site Concrete", amount: 68423 },
+    { letter: "K", description: "Asphalt and Paving", amount: 45569 },
+  ]);
+
+  const contractTotal = lineItems.reduce((sum, item) => sum + item.amount, 0);
+
   const [fields, setFields] = useState<ContractFields>({
     contractorName: "Old Creek Homes, LLC",
     contractorAddress: "228 S Washington St Suite B-30, Alexandria, VA 22314",
@@ -54,11 +70,8 @@ const SubcontractorContractForm = () => {
     projectAddress: "100 Nob Hill Ct, Alexandria, VA 22314",
     projectPhone: "(240)-418-2388",
     projectContact: "Steven Chen",
-    contractAmount: "",
-    alternateName: "",
-    alternateAmount: "",
     startDate: "",
-    contractDate: "",
+    contractDate: "March 12, 2026",
     contractorSignerName: "",
     contractorSignerTitle: "",
     subcontractorSignerName: "",
