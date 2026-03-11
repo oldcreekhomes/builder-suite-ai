@@ -261,7 +261,7 @@ K. Asphalt and Paving
     `;
 
     const makePage = (pageNum: number, subtitle: string, content: string) => `
-      <div style="min-height: 9.5in; position: relative; box-sizing: border-box; ${pageNum > 1 ? 'page-break-before: always;' : ''}">
+      <div style="min-height: 10in; position: relative; box-sizing: border-box; ${pageNum > 1 ? 'page-break-before: always;' : ''}">
         ${generatePrintHeader(subtitle)}
         <div style="padding-bottom: 30px;">
           ${content}
