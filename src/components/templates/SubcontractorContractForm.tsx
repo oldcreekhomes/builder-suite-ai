@@ -222,13 +222,13 @@ const SubcontractorContractForm = ({ onPrintReady }: { onPrintReady?: (printFn: 
 
       {/* Contract Value Breakdown */}
       <div className="border rounded-lg p-3">
-        <h3 className="text-xs font-bold text-foreground tracking-wide mb-2">CONTRACT VALUE BREAKDOWN</h3>
-        <table className="w-full text-xs">
+      <h3 className="text-xs font-bold text-foreground tracking-wide mb-2">CONTRACT VALUE BREAKDOWN</h3>
+        <table className="w-full text-xs border-collapse">
           <thead>
-            <tr className="border-b border-muted">
-              <th className="text-left py-1 w-8 font-semibold text-muted-foreground">Item</th>
-              <th className="text-left py-1 font-semibold text-muted-foreground">Description</th>
-              <th className="text-right py-1 font-semibold text-muted-foreground w-28">Amount</th>
+            <tr className="border-b border-foreground">
+              <th className="text-left py-1 w-8 font-semibold text-foreground">Item</th>
+              <th className="text-left py-1 font-semibold text-foreground">Description</th>
+              <th className="text-right py-1 font-semibold text-foreground w-28">Amount</th>
             </tr>
           </thead>
           <tbody>
