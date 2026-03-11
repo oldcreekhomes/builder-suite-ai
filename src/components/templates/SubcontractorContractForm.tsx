@@ -191,8 +191,8 @@ const SubcontractorContractForm = ({ onPrintReady }: { onPrintReady?: (printFn: 
   const renderPage1Content = () => (
     <div className="space-y-3">
       <div className="text-center border-b pb-3">
-        <h1 className="text-lg font-bold tracking-wide text-foreground underline">CONTRACT SUMMARY</h1>
-        <p className="text-xs text-muted-foreground mt-1">SUBCONTRACT AGREEMENT</p>
+        <h1 className="text-lg font-bold tracking-wide text-foreground underline">SUBCONTRACT AGREEMENT</h1>
+        <p className="text-xs text-muted-foreground mt-1">CONTRACT SUMMARY</p>
       </div>
 
       <p className="text-xs text-foreground leading-relaxed">
