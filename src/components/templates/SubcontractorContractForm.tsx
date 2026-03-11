@@ -181,7 +181,7 @@ const SubcontractorContractForm = () => {
         ("Contract Date") by and between
       </p>
 
-      {renderPartyBlock("CONTRACTOR", { name: "contractorName", address: "contractorAddress", phone: "contractorPhone", contact: "contractorPM" }, "PM")}
+      {renderPartyBlock("CONTRACTOR", { name: "contractorName", address: "contractorAddress", phone: "contractorPhone", contact: "contractorPM" }, "Project Manager")}
 
       <p className="text-sm text-foreground italic text-center">(hereinafter called the "Contractor") and</p>
 
