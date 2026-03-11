@@ -458,8 +458,7 @@ const SubcontractorContractForm = ({ onPrintReady }: { onPrintReady?: (printFn: 
 
         {currentPage === 3 && (
           <section className="space-y-3">
-            {renderPageHeader("EXHIBITS")}
-            <h2 className="text-base font-bold text-foreground">EXHIBIT A – SCOPE OF WORK</h2>
+            {renderPageHeader("EXHIBIT A – SCOPE OF WORK")}
             <Textarea
               value={fields.scopeOfWork}
               onChange={(e) => update("scopeOfWork", e.target.value)}
@@ -471,8 +470,7 @@ const SubcontractorContractForm = ({ onPrintReady }: { onPrintReady?: (printFn: 
 
         {currentPage === 4 && (
           <section className="space-y-3">
-            {renderPageHeader("EXHIBITS")}
-            <h2 className="text-base font-bold text-foreground">EXHIBIT B – PROJECT DRAWINGS</h2>
+            {renderPageHeader("EXHIBIT B – PROJECT DRAWINGS")}
             <Textarea
               value={fields.projectDrawings}
               onChange={(e) => update("projectDrawings", e.target.value)}
@@ -481,19 +479,7 @@ const SubcontractorContractForm = ({ onPrintReady }: { onPrintReady?: (printFn: 
           </section>
         )}
 
-        {currentPage === 5 && (
-          <section className="space-y-3">
-            {renderPageHeader("EXHIBITS")}
-            <h2 className="text-base font-bold text-foreground">EXHIBIT C – GENERAL REQUIREMENTS</h2>
-            <Textarea
-              value={fields.generalRequirements}
-              onChange={(e) => update("generalRequirements", e.target.value)}
-              className="min-h-[80px] text-sm"
-            />
-          </section>
-        )}
-
-        {currentPage === 6 && renderSignatures()}
+        {currentPage === 5 && renderSignatures()}
       </div>
     </div>
   );
