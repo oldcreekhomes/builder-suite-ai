@@ -318,7 +318,7 @@ const SubcontractorContractForm = ({ onPrintReady }: { onPrintReady?: (printFn: 
   );
 
   return (
-    <div className="print-container bg-background text-foreground max-w-[8.5in] mx-auto border rounded-lg shadow-sm">
+    <div className="print-container bg-background text-foreground max-w-[8.5in] mx-auto">
       <div className="p-8 md:p-12 space-y-6 text-sm leading-relaxed">
         {renderPageNav()}
 
