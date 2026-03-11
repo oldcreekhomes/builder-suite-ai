@@ -187,7 +187,7 @@ const SubcontractorContractForm = () => {
 
       {renderPartyBlock("SUBCONTRACTOR", { name: "subcontractorName", address: "subcontractorAddress", phone: "subcontractorPhone", contact: "subcontractorContact" }, "ATTN")}
 
-      <p className="text-sm text-foreground italic text-center">(hereinafter called "Subcontractor") for work to be performed at</p>
+      <p className="text-sm text-foreground italic text-center">(hereinafter called "Subcontractor")</p>
 
       {renderPartyBlock("PROJECT", { name: "projectName", address: "projectAddress", phone: "projectPhone", contact: "projectContact" }, "ATTN")}
 
