@@ -1,0 +1,46 @@
+@media print {
+  /* Hide everything except the print container */
+  body * {
+    visibility: hidden;
+  }
+
+  .print-container,
+  .print-container * {
+    visibility: visible;
+  }
+
+  .print-container {
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 8.5in;
+    padding: 0.75in 1in;
+    background: white !important;
+    color: black !important;
+  }
+
+  .no-print {
+    display: none !important;
+  }
+
+  /* Reset backgrounds and shadows for print */
+  .print-container * {
+    box-shadow: none !important;
+    border-color: #000 !important;
+  }
+
+  /* Page break helpers */
+  .print-page-break {
+    page-break-before: always;
+  }
+
+  /* Ensure inputs show their values cleanly */
+  .print-container input,
+  .print-container textarea {
+    border: none !important;
+    background: transparent !important;
+    padding: 0 !important;
+    font-size: inherit !important;
+    color: black !important;
+  }
+}
