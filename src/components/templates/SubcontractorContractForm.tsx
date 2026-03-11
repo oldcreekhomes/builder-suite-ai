@@ -256,7 +256,7 @@ const SubcontractorContractForm = ({ onPrintReady }: { onPrintReady?: (printFn: 
 
   if (isLoading) {
     return (
-      <div className="print-container bg-background text-foreground max-w-[8.5in] mx-auto border rounded-lg shadow-sm p-12">
+      <div className="print-container bg-background text-foreground max-w-[8.5in] mx-auto p-12">
         <div className="animate-pulse space-y-4">
           <div className="h-6 bg-muted rounded w-1/3 mx-auto" />
           <div className="h-40 bg-muted rounded" />
