@@ -39,10 +39,10 @@ const SubcontractorContractForm = () => {
   const [currentPage, setCurrentPage] = useState(1);
 
   const [fields, setFields] = useState<ContractFields>({
-    contractorName: "Old Creek Homes",
+    contractorName: "Old Creek Homes, LLC",
     contractorAddress: "228 S Washington St Suite B-30, Alexandria, VA 22314",
-    contractorPhone: "(571)-405-7671",
-    contractorPM: "Matthew Gray",
+    contractorPhone: "(240)-418-2388",
+    contractorPM: "Steven Chen",
     subcontractorName: "LCS Site Services LLC.",
     subcontractorAddress: "P.O Box 5983 | Springfield, VA 22150",
     subcontractorPhone: "(703) 887-9598",
@@ -181,13 +181,13 @@ const SubcontractorContractForm = () => {
         ("Contract Date") by and between
       </p>
 
-      {renderPartyBlock("CONTRACTOR", { name: "contractorName", address: "contractorAddress", phone: "contractorPhone", contact: "contractorPM" }, "PM")}
+      {renderPartyBlock("CONTRACTOR", { name: "contractorName", address: "contractorAddress", phone: "contractorPhone", contact: "contractorPM" }, "Project Manager")}
 
       <p className="text-sm text-foreground italic text-center">(hereinafter called the "Contractor") and</p>
 
       {renderPartyBlock("SUBCONTRACTOR", { name: "subcontractorName", address: "subcontractorAddress", phone: "subcontractorPhone", contact: "subcontractorContact" }, "ATTN")}
 
-      <p className="text-sm text-foreground italic text-center">(hereinafter called "Subcontractor") for work to be performed at</p>
+      <p className="text-sm text-foreground italic text-center">(hereinafter called "Subcontractor")</p>
 
       {renderPartyBlock("PROJECT", { name: "projectName", address: "projectAddress", phone: "projectPhone", contact: "projectContact" }, "ATTN")}
 
