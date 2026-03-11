@@ -214,6 +214,15 @@ K. Asphalt and Paving
     </div>
   `).join('');
 
+  const formatScopeForPrint = (text: string) => {
+    return text.split('\n').map(line => {
+      if (/^[A-K]\./.test(line.trim())) {
+        return `<div class="scope-header">${line.trim()}</div>`;
+      }
+      return `<div>${line}</div>`;
+    }).join('');
+  };
+
   const handlePrint = useCallback(() => {
     const printWindow = window.open('', '_blank');
     if (!printWindow) return;
@@ -229,11 +238,17 @@ K. Asphalt and Paving
       `body { font-family: 'Montserrat', sans-serif; margin: 0; padding: 0; font-size: 11px; }`,
       `table { border-collapse: collapse; width: 100%; }`,
       `.page-break { page-break-before: always; }`,
-      `@media print { @page { margin: 0; size: letter; } body { margin: 0; } }`,
-      `@media screen { body { margin: 0.5in; } }`,
-      `.page-content { padding: 0.5in 0.75in 0.3in 0.75in; min-height: 9.5in; position: relative; box-sizing: border-box; }`,
-      `.page-footer { position: absolute; bottom: 0.35in; left: 0.75in; right: 0.75in; display: flex; justify-content: space-between; align-items: center; font-size: 8px; color: #000; }`,
+      `@media print {`,
+      `  @page { margin: 0.5in 0.75in; size: letter; }`,
+      `  body { margin: 0; }`,
+      `  .print-footer { position: fixed; bottom: 0; left: 0; right: 0; display: flex; justify-content: space-between; align-items: center; font-size: 8px; color: #000; padding: 4px 0; border-top: 1px solid #ccc; }`,
+      `  .print-footer .page-num::after { content: "Page " counter(page); }`,
+      `}`,
+      `@media screen { body { margin: 0.5in; } .print-footer { position: fixed; bottom: 0; left: 0.5in; right: 0.5in; display: flex; justify-content: space-between; font-size: 8px; color: #000; padding: 4px 0; border-top: 1px solid #ccc; } .print-footer .page-num::after { content: "Page"; } }`,
+      `.page-content { padding-bottom: 0.5in; box-sizing: border-box; }`,
+      `.scope-header { font-weight: 700; text-transform: uppercase; margin-top: 8px; }`,
       `</style></head><body>`,
+      `<div class="print-footer"><span>${dateStr}</span><span>${timeStr}</span><span class="page-num"></span></div>`,
 
       // Page 1
       `<div class="page-content">`,
@@ -250,28 +265,24 @@ K. Asphalt and Paving
       `<tbody>${generatePrintLineItems()}</tbody>`,
       `<tfoot><tr style="border-top: 2px solid #000;"><td style="padding: 4px 6px;"></td><td style="padding: 4px 6px; font-weight: 700;">TOTAL</td><td style="padding: 4px 6px; text-align: right; font-weight: 700;">${formatCurrency(contractTotal)}</td></tr></tfoot></table></div>`,
       fields.startDate ? `<p style="font-size: 11px; margin-top: 12px;"><strong>Start Date:</strong> ${fields.startDate}</p>` : '',
-      `<div class="page-footer"><span>${dateStr}</span><span>${timeStr}</span><span>Page 1 of ${TOTAL_PAGES}</span></div>`,
       `</div>`,
 
       // Page 2: Articles
       `<div class="page-break page-content">`,
       generatePrintHeader("ARTICLES"),
       generatePrintArticles(articles),
-      `<div class="page-footer"><span>${dateStr}</span><span>${timeStr}</span><span>Page 2 of ${TOTAL_PAGES}</span></div>`,
       `</div>`,
 
       // Page 3: Exhibit A
       `<div class="page-break page-content">`,
       generatePrintHeader("EXHIBIT A – SCOPE OF WORK"),
-      `<div style="white-space: pre-line; min-height: 80px; font-size: 11px;">${fields.scopeOfWork || ''}</div>`,
-      `<div class="page-footer"><span>${dateStr}</span><span>${timeStr}</span><span>Page 3 of ${TOTAL_PAGES}</span></div>`,
+      `<div style="font-size: 11px;">${formatScopeForPrint(fields.scopeOfWork || '')}</div>`,
       `</div>`,
 
       // Page 4: Exhibit B
       `<div class="page-break page-content">`,
       generatePrintHeader("EXHIBIT B – PROJECT DRAWINGS"),
-      `<div style="white-space: pre-line; min-height: 60px; font-size: 11px;">${fields.projectDrawings || ''}</div>`,
-      `<div class="page-footer"><span>${dateStr}</span><span>${timeStr}</span><span>Page 4 of ${TOTAL_PAGES}</span></div>`,
+      `<div style="white-space: pre-line; font-size: 11px;">${fields.projectDrawings || ''}</div>`,
       `</div>`,
 
       // Page 5: Signatures
@@ -281,7 +292,6 @@ K. Asphalt and Paving
       `<div style="flex: 1;"><p style="font-weight: 600;">CONTRACTOR</p><div style="border-bottom: 1px solid #999; height: 40px; margin-top: 20px;"></div><p style="font-size: 10px; color: #888;">Signature</p><p style="font-size: 11px; margin-top: 8px;"><strong>Name:</strong> ${fields.contractorSignerName || '_______________'}</p><p style="font-size: 11px;"><strong>Title:</strong> ${fields.contractorSignerTitle || '_______________'}</p></div>`,
       `<div style="flex: 1;"><p style="font-weight: 600;">SUBCONTRACTOR</p><div style="border-bottom: 1px solid #999; height: 40px; margin-top: 20px;"></div><p style="font-size: 10px; color: #888;">Signature</p><p style="font-size: 11px; margin-top: 8px;"><strong>Name:</strong> ${fields.subcontractorSignerName || '_______________'}</p><p style="font-size: 11px;"><strong>Title:</strong> ${fields.subcontractorSignerTitle || '_______________'}</p></div>`,
       `</div>`,
-      `<div class="page-footer"><span>${dateStr}</span><span>${timeStr}</span><span>Page 5 of ${TOTAL_PAGES}</span></div>`,
       `</div>`,
 
       `</body></html>`
