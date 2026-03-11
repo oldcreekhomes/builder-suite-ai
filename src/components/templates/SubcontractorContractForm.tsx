@@ -35,7 +35,7 @@ interface ContractFields {
   generalRequirements: string;
 }
 
-const TOTAL_PAGES = 5;
+const TOTAL_PAGES = 6;
 
 const formatCurrency = (amount: number) =>
   amount.toLocaleString("en-US", { style: "currency", currency: "USD" });
@@ -327,7 +327,7 @@ K. Asphalt and Paving
     printWindow.document.write(htmlContent);
     printWindow.document.close();
     printWindow.document.fonts.ready.then(() => {
-      printWindow.print();
+      setTimeout(() => printWindow.print(), 150);
     });
   }, [fields, lineItems, contractTotal, articles]);
 
@@ -539,6 +539,13 @@ K. Asphalt and Paving
 
         {currentPage === 4 && (
           <section className="space-y-3">
+            {renderPageHeader("EXHIBIT A – SCOPE OF WORK (CONTINUED)")}
+            <p className="text-xs text-muted-foreground italic">This page displays sections G–K in print output.</p>
+          </section>
+        )}
+
+        {currentPage === 5 && (
+          <section className="space-y-3">
             {renderPageHeader("EXHIBIT B – PROJECT DRAWINGS")}
             <Textarea
               value={fields.projectDrawings}
@@ -548,7 +555,7 @@ K. Asphalt and Paving
           </section>
         )}
 
-        {currentPage === 5 && renderSignatures()}
+        {currentPage === 6 && renderSignatures()}
       </div>
     </div>
   );
