@@ -98,6 +98,7 @@ export function PayBillsTable({ projectId, projectIds, showProjectColumn = true,
   const { lots } = useLots(projectId);
   const showAddressColumn = lots.length > 1;
   const { payBill, payMultipleBills, deleteBill } = useBills();
+  const { canDeleteBills } = useAccountingPermissions();
   const queryClient = useQueryClient();
   const [selectedBill, setSelectedBill] = useState<BillForPayment | null>(null);
   const [selectedBillIds, setSelectedBillIds] = useState<Set<string>>(new Set());
