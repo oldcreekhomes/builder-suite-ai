@@ -20,8 +20,9 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { Plus, Pencil, Trash2, Check, X } from "lucide-react";
+import { Plus, Check, X } from "lucide-react";
 import { useLots, ProjectLot } from "@/hooks/useLots";
+import { TableRowActions } from "@/components/ui/table-row-actions";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 
