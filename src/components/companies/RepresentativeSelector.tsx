@@ -116,7 +116,7 @@ export function RepresentativeContent({ companyId }: RepresentativeContentProps)
       <>
         <div className="border rounded-md overflow-hidden">
           {/* Header row */}
-          <div className="grid grid-cols-[1fr_1fr_1fr_1.5fr_1fr_auto] gap-2 px-3 py-2 bg-muted/50 text-xs font-medium text-muted-foreground border-b">
+          <div className="grid grid-cols-[1fr_1fr_1fr_1.5fr_1fr_4rem] gap-2 px-3 py-2 bg-muted/50 text-xs font-medium text-muted-foreground border-b">
             <span>First Name</span>
             <span>Last Name</span>
             <span>Type</span>
@@ -129,7 +129,7 @@ export function RepresentativeContent({ companyId }: RepresentativeContentProps)
             {representatives.map(representative => (
               <div 
                 key={representative.id} 
-                className="grid grid-cols-[1fr_1fr_1fr_1.5fr_1fr_auto] gap-2 px-3 py-2 border-b last:border-b-0 hover:bg-muted/30 items-center"
+                className="grid grid-cols-[1fr_1fr_1fr_1.5fr_1fr_4rem] gap-2 px-3 py-2 border-b last:border-b-0 hover:bg-muted/30 items-center"
               >
                 <span className="truncate text-xs">
                   {representative.first_name}
