@@ -4,6 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { FormLabel } from "@/components/ui/form";
 import { ChevronDown, ChevronRight, Users } from "lucide-react";
 import { toTitleCase } from "@/lib/utils";
+import { formatPhoneNumber } from "@/lib/phoneFormat";
 import {
   Collapsible,
   CollapsibleContent,
