@@ -3,6 +3,7 @@ import { useLots } from "@/hooks/useLots";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useBills } from "@/hooks/useBills";
+import { useAccountingPermissions } from "@/hooks/useAccountingPermissions";
 import { formatDisplayFromAny, normalizeToYMD } from "@/utils/dateOnly";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
