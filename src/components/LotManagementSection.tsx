@@ -134,7 +134,7 @@ export function LotManagementSection({ projectId }: LotManagementSectionProps) {
         </Button>
       </div>
 
-      <div className="border rounded-md">
+      <div className="border rounded-md max-h-[240px] overflow-y-auto">
         <Table>
           <TableHeader>
             <TableRow>
