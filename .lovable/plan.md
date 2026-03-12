@@ -1,21 +1,9 @@
 
+## ✅ COMPLETED: Fix Bill Payment — Credit Calculation + Data Repair + Consolidated Payment View
 
-## Investigation Summary
+All three fixes have been implemented:
 
-I traced the "Delete Bill" flow on the Approved tab through `PayBillsTable.tsx`. The delete action exists (line 1150-1159) and is visible when `canDeleteBills` is true (which it is, based on your screenshot). However, the action has this guard:
-
-```
-disabled: isDateLocked(bill.bill_date)
-```
-
-This disables the delete button for any bill whose `bill_date` falls on or before your latest closed accounting period. Looking at your Approved tab, all 11 bills have dates from July 2025 through November 2025. If you have a closed accounting period covering any of those months, those delete buttons will appear in the menu but be non-clickable (disabled/grayed).
-
-## Fix
-
-Remove the `isDateLocked` guard from the Delete Bill action on the Approved tab. The `delete_bill_with_journal_entries` database function already has its own safeguard — it blocks deletion of reconciled bills. For unreconciled approved bills, hard-deleting is safe because both the bill and its journal entries are removed together, keeping the ledger balanced.
-
-### File: `src/components/bills/PayBillsTable.tsx`
-- Line 1157: Remove `disabled: isDateLocked(bill.bill_date)` from the Delete Bill action, so the only gate is the `canDeleteBills` permission and the DB-level reconciliation check.
-
-This is a one-line change. The reconciliation guard in the database function remains the true safety net — if a bill has been reconciled, the RPC will throw an error and the UI will show a toast.
-
+1. **Credit remaining balance formula** — Fixed in `useBills.ts` line 417 to use `total_amount + amount_paid` for credits
+2. **Proportional credit distribution** — Fixed in `BillsApprovalTable.tsx` to distribute credits proportionally based on each bill's share of positive allocations
+3. **Consolidated payment view** — Paid tab now groups multi-bill payments with expandable rows showing individual allocations (bills + credits)
+4. **Data repair** — Corrected over-allocated amounts for OCH-02302 via SQL migration
