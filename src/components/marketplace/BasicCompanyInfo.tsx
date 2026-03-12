@@ -1,4 +1,5 @@
 import { Input } from "@/components/ui/input";
+import { PhoneInput } from "@/components/ui/phone-input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Search } from "lucide-react";
@@ -128,11 +129,10 @@ export function BasicCompanyInfo({
 
         <div>
           <Label htmlFor="phoneNumber">Phone Number</Label>
-          <Input
+          <PhoneInput
             id="phoneNumber"
             value={phoneNumber}
-            onChange={(e) => setPhoneNumber(e.target.value)}
-            placeholder="(555) 123-4567"
+            onChange={setPhoneNumber}
           />
         </div>
       </div>

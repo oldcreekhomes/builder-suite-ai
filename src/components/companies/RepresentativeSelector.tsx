@@ -4,6 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { FormLabel } from "@/components/ui/form";
 import { ChevronDown, ChevronRight, Users } from "lucide-react";
 import { toTitleCase } from "@/lib/utils";
+import { formatPhoneNumber } from "@/lib/phoneFormat";
 import {
   Collapsible,
   CollapsibleContent,
@@ -150,7 +151,7 @@ export function RepresentativeContent({ companyId }: RepresentativeContentProps)
                   {representative.email || '—'}
                 </span>
                 <span className="truncate text-xs">
-                  {representative.phone_number || '—'}
+                  {formatPhoneNumber(representative.phone_number) || '—'}
                 </span>
                 <div className="flex justify-center items-center w-16">
                   <TableRowActions

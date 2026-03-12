@@ -1,4 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
+import { formatPhoneNumber } from "@/lib/phoneFormat";
 import {
   Dialog,
   DialogContent,
@@ -91,7 +92,7 @@ export function CompanyRepresentativesModal({
                   {rep.phone_number && (
                     <div className="flex items-center space-x-1">
                       <Phone className="h-3 w-3 text-gray-400" />
-                      <span className="text-xs text-gray-600">{rep.phone_number}</span>
+                      <span className="text-xs text-gray-600">{formatPhoneNumber(rep.phone_number)}</span>
                     </div>
                   )}
                 </div>
