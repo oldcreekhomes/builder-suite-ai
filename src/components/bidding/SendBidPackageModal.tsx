@@ -9,7 +9,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { format } from 'date-fns';
 import { getFileIcon, getFileIconColor } from './utils/fileIconUtils';
 import { useToast } from '@/hooks/use-toast';
-import { useCompanyUsers } from '@/hooks/useCompanyUsers';
+
 import { useUniversalFilePreviewContext } from '@/components/files/UniversalFilePreviewProvider';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 
