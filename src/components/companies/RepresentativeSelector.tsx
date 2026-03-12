@@ -114,7 +114,7 @@ export function RepresentativeContent({ companyId }: RepresentativeContentProps)
   if (representatives.length > 0) {
     return (
       <>
-        <div className="border rounded-md overflow-hidden">
+        <div className="border rounded-md overflow-y-auto max-h-64">
           {/* Header row */}
           <div className="grid grid-cols-[1fr_1fr_1fr_1.5fr_1fr_4rem] gap-2 px-3 py-2 bg-muted/50 text-xs font-medium text-muted-foreground border-b">
             <span>First Name</span>
@@ -125,7 +125,7 @@ export function RepresentativeContent({ companyId }: RepresentativeContentProps)
             <span className="text-center w-16">Actions</span>
           </div>
           {/* Data rows with max height and scroll */}
-          <div className="max-h-64 overflow-y-auto">
+          <div>
             {representatives.map(representative => (
               <div 
                 key={representative.id} 
