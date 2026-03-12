@@ -30,7 +30,7 @@ export function SendBidPackageModal({ open, onOpenChange, bidPackage, filteredCo
   const [isSending, setIsSending] = useState(false);
   const { toast } = useToast();
   const queryClient = useQueryClient();
-  const { users } = useCompanyUsers();
+  
   const { openSpecificationFile } = useUniversalFilePreviewContext();
 
   // Fetch companies and representatives for this bid package
