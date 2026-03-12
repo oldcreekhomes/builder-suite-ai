@@ -371,10 +371,15 @@ export function RepresentativesTable({ searchQuery = "" }: RepresentativesTableP
                   <TableCell>
                     <input
                       value={rep.phone_number || ''}
-                      onChange={(e) => handlePhoneChange(rep.id, e.target.value)}
+                      onChange={(e) => {
+                        const formatted = formatPhoneInput(e.target.value);
+                        e.target.value = formatted;
+                        handlePhoneChange(rep.id, formatted);
+                      }}
                       onBlur={(e) => handlePhoneChange(rep.id, e.target.value)}
-                      placeholder="Enter phone"
+                      placeholder="xxx-xxx-xxxx"
                       className="w-full bg-transparent text-sm border-none outline-none p-0 m-0"
+                      maxLength={12}
                     />
                   </TableCell>
                   <TableCell className="text-center">
