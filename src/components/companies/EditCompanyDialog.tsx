@@ -549,7 +549,7 @@ export function EditCompanyDialog({ company, open, onOpenChange }: EditCompanyDi
                       <FormItem>
                         <FormLabel>Phone Number</FormLabel>
                         <FormControl>
-                          <Input placeholder="(555) 123-4567" {...field} />
+                          <PhoneInput value={field.value || ""} onChange={field.onChange} />
                         </FormControl>
                         <FormMessage />
                       </FormItem>

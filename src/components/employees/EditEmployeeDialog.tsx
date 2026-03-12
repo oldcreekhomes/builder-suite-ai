@@ -322,11 +322,10 @@ export function EditEmployeeDialog({ employee, open, onOpenChange }: EditEmploye
 
               <div className="space-y-2">
                 <Label htmlFor="phoneNumber">Phone Number</Label>
-                <Input
+                <PhoneInput
                   id="phoneNumber"
-                  type="tel"
                   value={formData.phoneNumber}
-                  onChange={(e) => setFormData({ ...formData, phoneNumber: e.target.value })}
+                  onChange={(val) => setFormData({ ...formData, phoneNumber: val })}
                 />
               </div>
 

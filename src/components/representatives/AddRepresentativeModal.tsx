@@ -243,7 +243,7 @@ export function AddRepresentativeModal({ open, onOpenChange }: AddRepresentative
                       <FormItem>
                         <FormLabel>Phone Number</FormLabel>
                         <FormControl>
-                          <Input placeholder="Enter phone number" {...field} />
+                          <PhoneInput value={field.value || ""} onChange={field.onChange} />
                         </FormControl>
                         <FormMessage />
                       </FormItem>

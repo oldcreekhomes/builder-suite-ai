@@ -173,12 +173,10 @@ export function MyProfileTab() {
 
             <div className="space-y-2">
               <Label htmlFor="phoneNumber">Phone Number</Label>
-              <Input
+              <PhoneInput
                 id="phoneNumber"
-                type="tel"
                 value={phoneNumber}
-                onChange={(e) => setPhoneNumber(e.target.value)}
-                placeholder="Enter phone number"
+                onChange={setPhoneNumber}
               />
             </div>
           </div>

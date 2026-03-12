@@ -128,11 +128,10 @@ export function BasicCompanyInfo({
 
         <div>
           <Label htmlFor="phoneNumber">Phone Number</Label>
-          <Input
+          <PhoneInput
             id="phoneNumber"
             value={phoneNumber}
-            onChange={(e) => setPhoneNumber(e.target.value)}
-            placeholder="(555) 123-4567"
+            onChange={setPhoneNumber}
           />
         </div>
       </div>

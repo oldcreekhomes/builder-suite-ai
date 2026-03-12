@@ -300,12 +300,7 @@ export function EditRepresentativeDialog({ representative, open, onOpenChange }:
                       <FormItem>
                         <FormLabel>Phone Number</FormLabel>
                         <FormControl>
-                          <Input 
-                            placeholder="xxx-xxx-xxxx" 
-                            {...field}
-                            onChange={(e) => handlePhoneChange(e.target.value)}
-                            maxLength={12}
-                          />
+                          <PhoneInput value={field.value || ""} onChange={field.onChange} />
                         </FormControl>
                         <FormMessage />
                       </FormItem>

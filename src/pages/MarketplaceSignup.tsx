@@ -241,13 +241,11 @@ const MarketplaceSignup = () => {
                 {/* Phone */}
                 <div className="space-y-2">
                   <Label htmlFor="phoneNumber">Phone Number</Label>
-                  <Input
-                    id="phoneNumber"
-                    type="tel"
-                    value={phoneNumber}
-                    onChange={(e) => setPhoneNumber(e.target.value)}
-                    placeholder="(555) 123-4567"
-                  />
+                    <PhoneInput
+                      id="phoneNumber"
+                      value={phoneNumber}
+                      onChange={setPhoneNumber}
+                    />
                 </div>
 
                 {/* Website */}

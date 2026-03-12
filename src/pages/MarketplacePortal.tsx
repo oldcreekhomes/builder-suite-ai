@@ -249,12 +249,10 @@ const MarketplacePortal = () => {
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div className="space-y-2">
                     <Label htmlFor="phone_number">Phone Number</Label>
-                    <Input
+                    <PhoneInput
                       id="phone_number"
-                      type="tel"
                       value={editForm.phone_number}
-                      onChange={(e) => setEditForm(prev => ({ ...prev, phone_number: e.target.value }))}
-                      placeholder="(555) 123-4567"
+                      onChange={(val) => setEditForm(prev => ({ ...prev, phone_number: val }))}
                     />
                   </div>
                   <div className="space-y-2">

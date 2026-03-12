@@ -203,7 +203,7 @@ export function AddRepresentativeDialog({ companyId, open, onOpenChange }: AddRe
                 <FormItem>
                   <FormLabel>Phone Number</FormLabel>
                   <FormControl>
-                    <Input placeholder="Enter phone number" {...field} />
+                    <PhoneInput value={field.value || ""} onChange={field.onChange} />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
