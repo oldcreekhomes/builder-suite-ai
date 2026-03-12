@@ -185,7 +185,7 @@ const generateFileDownloadLinks = (files: string[]) => {
     // Create numbered filename like PO emails: File 1.pdf, File 2.pdf, etc.
     const displayFileName = `File ${index + 1}${fileExtension}`;
     
-    // Normalize path: remove any prefixes and ensure proper specifications path
+    // Normalize path: remove any prefixes
     let normalizedPath = file;
     if (normalizedPath.startsWith('project-files/specifications/')) {
       normalizedPath = normalizedPath.replace('project-files/specifications/', '');
@@ -195,8 +195,13 @@ const generateFileDownloadLinks = (files: string[]) => {
       normalizedPath = normalizedPath.replace('specifications/', '');
     }
     
+    // Determine if this is a bidding upload (needs specifications/ prefix) or a linked project file (use as-is)
+    // Bidding uploads start with "bidding_", linked project files contain "/" (e.g., projectId/uuid_filename)
+    const isBiddingUpload = normalizedPath.startsWith('bidding_') || !normalizedPath.includes('/');
+    const storagePath = isBiddingUpload ? `specifications/${normalizedPath}` : normalizedPath;
+    
     // Build proper public URL with correct encoding
-    const downloadUrl = `https://nlmnwlvmmkngrgatnzkj.supabase.co/storage/v1/object/public/project-files/specifications/${encodeURI(normalizedPath)}`;
+    const downloadUrl = `https://nlmnwlvmmkngrgatnzkj.supabase.co/storage/v1/object/public/project-files/${encodeURI(storagePath)}`;
     
     console.log('🔗 Generating file link:', { originalFile: file, normalizedPath, fileName: displayFileName, downloadUrl });
     
@@ -274,25 +279,25 @@ const generateEmailHTML = async (data: BidPackageEmailRequest, companyId?: strin
                                                     <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%" style="width: 100%; border-collapse: collapse;">
                                                         <tr>
                                                             <td style="margin: 0; padding: 0 0 8px 0;">
-                                                                <span style="color: #666666; font-weight: 500; display: inline-block; width: 120px; font-size: 14px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif;">Project Address:</span>
+                                                                <span style="color: #666666; font-weight: 500; display: inline-block; width: 140px; font-size: 14px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif;">Project Address:</span>
                                                                 <span style="color: #000000; font-weight: 600; font-size: 14px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif;">${projectAddress}</span>
                                                             </td>
                                                         </tr>
                                                         <tr>
                                                             <td style="margin: 0; padding: 0 0 8px 0;">
-                                                                <span style="color: #666666; font-weight: 500; display: inline-block; width: 120px; font-size: 14px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif;">Cost Code:</span>
+                                                                <span style="color: #666666; font-weight: 500; display: inline-block; width: 140px; font-size: 14px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif;">Cost Code:</span>
                                                                 <span style="color: #000000; font-weight: 600; font-size: 14px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif;">${data.bidPackage.costCode?.code} - ${data.bidPackage.costCode?.name}</span>
                                                             </td>
                                                         </tr>
                                                         <tr>
                                                             <td style="margin: 0; padding: 0 0 8px 0;">
-                                                                <span style="color: #666666; font-weight: 500; display: inline-block; width: 120px; font-size: 14px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif; vertical-align: top;">Contact:</span>
+                                                                <span style="color: #666666; font-weight: 500; display: inline-block; width: 140px; font-size: 14px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif; vertical-align: top;">Contact:</span>
                                                                 <span style="color: #000000; font-weight: 600; font-size: 14px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif; display: inline-block; vertical-align: top; line-height: 1.4;">${managerName}${managerPhone ? `<br>${managerPhone}` : ''}${managerEmail ? `<br>${managerEmail}` : ''}</span>
                                                             </td>
                                                         </tr>
                                                         <tr>
                                                             <td style="margin: 0; padding: 0 0 8px 0;">
-                                                                <span style="color: #666666; font-weight: 500; display: inline-block; width: 120px; font-size: 14px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif;">Bid Due Date:</span>
+                                                                <span style="color: #666666; font-weight: 500; display: inline-block; width: 140px; font-size: 14px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif;">Bid Due Date:</span>
                                                                 <span style="color: #000000; font-weight: 600; font-size: 14px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif;">${dueDate}</span>
                                                             </td>
                                                         </tr>
@@ -300,7 +305,7 @@ const generateEmailHTML = async (data: BidPackageEmailRequest, companyId?: strin
                                                             <td style="margin: 0; padding: 0 0 8px 0;">
                                                                 <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%" style="width: 100%; border-collapse: collapse;">
                                                                     <tr>
-                                                                        <td style="color: #666666; font-weight: 500; width: 120px; font-size: 14px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif; vertical-align: top; padding: 0;">Scope of Work:</td>
+                                                                        <td style="color: #666666; font-weight: 500; width: 140px; min-width: 140px; font-size: 14px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif; vertical-align: top; padding: 0; white-space: nowrap;">Scope of Work:</td>
                                                                         <td style="color: #000000; font-weight: 600; font-size: 14px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif; vertical-align: top; padding: 0;">${specifications}</td>
                                                                     </tr>
                                                                 </table>
@@ -308,7 +313,7 @@ const generateEmailHTML = async (data: BidPackageEmailRequest, companyId?: strin
                                                         </tr>
                                                         <tr>
                                                             <td style="margin: 0; padding: 0 0 8px 0;">
-                                                                <span style="color: #666666; font-weight: 500; display: inline-block; width: 120px; font-size: 14px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif;">Project Files:</span>
+                                                                <span style="color: #666666; font-weight: 500; display: inline-block; width: 140px; font-size: 14px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif;">Project Files:</span>
                                                                 <span style="color: #000000; font-weight: 600; font-size: 14px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif;">${fileLinks}</span>
                                                             </td>
                                                         </tr>

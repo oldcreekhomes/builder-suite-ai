@@ -9,7 +9,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { format } from 'date-fns';
 import { getFileIcon, getFileIconColor } from './utils/fileIconUtils';
 import { useToast } from '@/hooks/use-toast';
-import { useCompanyUsers } from '@/hooks/useCompanyUsers';
+
 import { useUniversalFilePreviewContext } from '@/components/files/UniversalFilePreviewProvider';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 
@@ -30,7 +30,7 @@ export function SendBidPackageModal({ open, onOpenChange, bidPackage, filteredCo
   const [isSending, setIsSending] = useState(false);
   const { toast } = useToast();
   const queryClient = useQueryClient();
-  const { users } = useCompanyUsers();
+  
   const { openSpecificationFile } = useUniversalFilePreviewContext();
 
   // Fetch companies and representatives for this bid package
@@ -147,17 +147,22 @@ export function SendBidPackageModal({ open, onOpenChange, bidPackage, filteredCo
     console.log('📧 Starting email send process...');
     setIsSending(true);
     try {
-      // Get project manager's details from company users
+      // Get project manager's details directly from users table
       let managerEmail = undefined;
       let managerPhone = undefined;
-      let managerFullName = 'Project Manager'; // Default fallback
+      let managerFullName = 'Not assigned';
       
       if (projectData?.construction_manager) {
-        const manager = users.find(user => user.id === projectData.construction_manager);
-        if (manager) {
-          managerFullName = `${manager.first_name || ''} ${manager.last_name || ''}`.trim() || 'Project Manager';
-          managerEmail = manager.email;
-          managerPhone = manager.phone_number;
+        const { data: managerData } = await supabase
+          .from('users')
+          .select('first_name, last_name, email, phone_number')
+          .eq('id', projectData.construction_manager)
+          .maybeSingle();
+        
+        if (managerData) {
+          managerFullName = `${managerData.first_name || ''} ${managerData.last_name || ''}`.trim() || 'Not assigned';
+          managerEmail = managerData.email;
+          managerPhone = managerData.phone_number;
         }
       }
 

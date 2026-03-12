@@ -10,7 +10,7 @@ import { format } from 'date-fns';
 import { formatDateSafe } from "@/utils/dateOnly";
 import { getFileIcon, getFileIconColor } from './utils/fileIconUtils';
 import { useToast } from '@/hooks/use-toast';
-import { useCompanyUsers } from '@/hooks/useCompanyUsers';
+
 import { useUniversalFilePreviewContext } from '@/components/files/UniversalFilePreviewProvider';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 
@@ -36,7 +36,7 @@ export function SendTestEmailModal({
   const [isSending, setIsSending] = useState(false);
   const [testEmail, setTestEmail] = useState('');
   const { toast } = useToast();
-  const { users } = useCompanyUsers();
+  
   const { openSpecificationFile } = useUniversalFilePreviewContext();
 
   // Get current user's email as default
@@ -196,17 +196,22 @@ export function SendTestEmailModal({
 
     setIsSending(true);
     try {
-      // Get project manager's details from company users
+      // Get project manager's details directly from users table
       let managerEmail = undefined;
       let managerPhone = undefined;
-      let managerFullName = 'Project Manager'; // Default fallback
+      let managerFullName = 'Not assigned';
       
       if (projectData?.construction_manager) {
-        const manager = users.find(user => user.id === projectData.construction_manager);
-        if (manager) {
-          managerFullName = `${manager.first_name || ''} ${manager.last_name || ''}`.trim() || 'Project Manager';
-          managerEmail = manager.email;
-          managerPhone = manager.phone_number;
+        const { data: managerData } = await supabase
+          .from('users')
+          .select('first_name, last_name, email, phone_number')
+          .eq('id', projectData.construction_manager)
+          .maybeSingle();
+        
+        if (managerData) {
+          managerFullName = `${managerData.first_name || ''} ${managerData.last_name || ''}`.trim() || 'Not assigned';
+          managerEmail = managerData.email;
+          managerPhone = managerData.phone_number;
         }
       }
 
