@@ -156,6 +156,25 @@ export function SendSingleCompanyEmailModal({
       }
 
       // Prepare email data for single company
+      // Get project manager's details directly from users table
+      let managerEmail = undefined;
+      let managerPhone = undefined;
+      let managerFullName = 'Not assigned';
+      
+      if (projectData?.construction_manager) {
+        const { data: managerData } = await supabase
+          .from('users')
+          .select('first_name, last_name, email, phone_number')
+          .eq('id', projectData.construction_manager)
+          .maybeSingle();
+        
+        if (managerData) {
+          managerFullName = `${managerData.first_name || ''} ${managerData.last_name || ''}`.trim() || 'Not assigned';
+          managerEmail = managerData.email;
+          managerPhone = managerData.phone_number;
+        }
+      }
+
       const emailData = {
         bidPackage: {
           id: bidPackage.id,
@@ -168,9 +187,9 @@ export function SendSingleCompanyEmailModal({
         },
         project: projectData ? {
           address: projectData.address,
-          manager: projectData.construction_manager,
-          managerEmail: undefined, // Will need to be fetched if needed
-          managerPhone: undefined // Will need to be fetched if needed
+          manager: managerFullName,
+          managerEmail: managerEmail,
+          managerPhone: managerPhone
         } : undefined,
         senderCompany: senderCompanyData ? {
           company_name: senderCompanyData.company_name,
