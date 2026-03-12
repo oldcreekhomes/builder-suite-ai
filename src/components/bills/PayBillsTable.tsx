@@ -1154,7 +1154,7 @@ export function PayBillsTable({ projectId, projectIds, showProjectColumn = true,
                         confirmTitle: "Delete Bill",
                         confirmDescription: `Are you sure you want to delete this bill from ${bill.companies?.company_name || 'Unknown Vendor'} for ${formatCurrency(bill.total_amount)}? This action cannot be undone. All associated journal entries will also be removed.`,
                         isLoading: deleteBill.isPending,
-                        disabled: isDateLocked(bill.bill_date),
+                        
                         hidden: !canDeleteBills,
                       },
                     ]} />
