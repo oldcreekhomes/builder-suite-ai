@@ -2,7 +2,7 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { FormLabel } from "@/components/ui/form";
-import { ChevronDown, ChevronRight, Users, Edit } from "lucide-react";
+import { ChevronDown, ChevronRight, Users } from "lucide-react";
 import { toTitleCase } from "@/lib/utils";
 import {
   Collapsible,
@@ -11,7 +11,7 @@ import {
 } from "@/components/ui/collapsible";
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
-import { DeleteButton } from "@/components/ui/delete-button";
+import { TableRowActions } from "@/components/ui/table-row-actions";
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
 import { EditRepresentativeDialog } from "./EditRepresentativeDialog";
@@ -152,28 +152,23 @@ export function RepresentativeContent({ companyId }: RepresentativeContentProps)
                 <span className="truncate text-xs">
                   {representative.phone_number || '—'}
                 </span>
-                <div className="flex justify-center items-center space-x-1 w-16">
-                  <Button 
-                    type="button"
-                    variant="ghost" 
-                    size="sm"
-                    onPointerDownCapture={(e) => e.stopPropagation()}
-                    onPointerDown={(e) => e.stopPropagation()}
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      setEditingRep(representative);
-                    }}
-                    className="h-6 w-6 p-0 flex items-center justify-center"
-                  >
-                    <Edit className="h-3 w-3" />
-                  </Button>
-                  <DeleteButton
-                    onDelete={() => deleteRepMutation.mutate(representative.id)}
-                    title="Delete Representative"
-                    description={`Are you sure you want to delete ${representative.first_name} ${representative.last_name || ''}?`}
-                    isLoading={deleteRepMutation.isPending}
-                    size="icon"
-                    className="h-6 w-6 p-0"
+                <div className="flex justify-center items-center w-16">
+                  <TableRowActions
+                    actions={[
+                      {
+                        label: "Edit",
+                        onClick: () => setEditingRep(representative),
+                      },
+                      {
+                        label: "Delete",
+                        onClick: () => deleteRepMutation.mutate(representative.id),
+                        variant: "destructive",
+                        requiresConfirmation: true,
+                        confirmTitle: "Delete Representative",
+                        confirmDescription: `Are you sure you want to delete ${representative.first_name} ${representative.last_name || ''}?`,
+                        isLoading: deleteRepMutation.isPending,
+                      },
+                    ]}
                   />
                 </div>
               </div>
