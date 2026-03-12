@@ -265,7 +265,7 @@ export function ViewCompanyDialog({ company, open, onOpenChange }: ViewCompanyDi
                               <div className="flex items-center space-x-2 text-sm">
                                 <Phone className="h-3 w-3 text-gray-400" />
                                 <a href={`tel:${rep.phone_number}`} className="text-blue-600 hover:text-blue-800">
-                                  {rep.phone_number}
+                                  {formatPhoneNumber(rep.phone_number)}
                                 </a>
                               </div>
                             )}
