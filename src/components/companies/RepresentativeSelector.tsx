@@ -11,7 +11,7 @@ import {
 } from "@/components/ui/collapsible";
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
-import { DeleteButton } from "@/components/ui/delete-button";
+import { TableRowActions } from "@/components/ui/table-row-actions";
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
 import { EditRepresentativeDialog } from "./EditRepresentativeDialog";
