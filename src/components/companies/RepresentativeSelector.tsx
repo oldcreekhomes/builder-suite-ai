@@ -151,7 +151,7 @@ export function RepresentativeContent({ companyId }: RepresentativeContentProps)
                   {representative.email || '—'}
                 </span>
                 <span className="truncate text-xs">
-                  {representative.phone_number || '—'}
+                  {formatPhoneNumber(representative.phone_number) || '—'}
                 </span>
                 <div className="flex justify-center items-center w-16">
                   <TableRowActions
