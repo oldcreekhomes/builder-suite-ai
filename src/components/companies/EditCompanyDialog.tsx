@@ -430,7 +430,7 @@ export function EditCompanyDialog({ company, open, onOpenChange }: EditCompanyDi
   return (
     <Dialog key={stableCompanyId} open={open} onOpenChange={onOpenChange}>
       <DialogContent 
-        className="max-w-3xl max-h-[90vh] overflow-y-auto"
+        className="max-w-3xl max-h-[90vh] overflow-hidden"
         onPointerDownOutside={(e) => e.preventDefault()}
         onInteractOutside={(e) => e.preventDefault()}
         onFocusOutside={(e) => e.preventDefault()}
