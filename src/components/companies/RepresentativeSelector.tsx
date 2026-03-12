@@ -125,7 +125,7 @@ export function RepresentativeContent({ companyId }: RepresentativeContentProps)
             <span className="text-center w-16">Actions</span>
           </div>
           {/* Data rows with max height and scroll */}
-          <div className="max-h-64 overflow-y-auto">
+          <div>
             {representatives.map(representative => (
               <div 
                 key={representative.id} 
