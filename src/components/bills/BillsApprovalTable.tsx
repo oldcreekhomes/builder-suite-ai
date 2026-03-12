@@ -712,10 +712,9 @@ export function BillsApprovalTable({ status, projectId, projectIds, showProjectC
     // Delete access is solely controlled by the can_delete_bills preference toggle
     (canDeleteBills && (
       status === 'void' ||
-      status === 'approved' ||
       status === 'posted' ||
       status === 'paid' ||
-      (Array.isArray(status) && (status.includes('void') || status.includes('approved') || status.includes('posted') || status.includes('paid')))
+      (Array.isArray(status) && (status.includes('void') || status.includes('posted') || status.includes('paid')))
     ));
 
   if (isLoading) {
