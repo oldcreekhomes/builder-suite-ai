@@ -20,8 +20,9 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { Plus, Pencil, Trash2, Check, X } from "lucide-react";
+import { Plus, Check, X } from "lucide-react";
 import { useLots, ProjectLot } from "@/hooks/useLots";
+import { TableRowActions } from "@/components/ui/table-row-actions";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 
@@ -133,7 +134,7 @@ export function LotManagementSection({ projectId }: LotManagementSectionProps) {
         </Button>
       </div>
 
-      <div className="border rounded-md">
+      <div className="border rounded-md max-h-[240px] overflow-y-auto">
         <Table>
           <TableHeader>
             <TableRow>
@@ -177,9 +178,9 @@ export function LotManagementSection({ projectId }: LotManagementSectionProps) {
                         </span>
                       )}
                     </TableCell>
-                    <TableCell className="py-1.5 text-right">
+                    <TableCell className="py-1.5 text-center">
                       {editingLotId === lot.id ? (
-                        <div className="flex justify-end gap-1">
+                        <div className="flex justify-center gap-1">
                           <Button
                             type="button"
                             variant="ghost"
@@ -201,26 +202,20 @@ export function LotManagementSection({ projectId }: LotManagementSectionProps) {
                           </Button>
                         </div>
                       ) : (
-                        <div className="flex justify-end gap-1">
-                          <Button
-                            type="button"
-                            variant="ghost"
-                            size="icon"
-                            className="h-7 w-7"
-                            onClick={() => startEditing(lot)}
-                          >
-                            <Pencil className="h-4 w-4" />
-                          </Button>
-                          <Button
-                            type="button"
-                            variant="ghost"
-                            size="icon"
-                            className="h-7 w-7 text-destructive hover:text-destructive"
-                            onClick={() => setDeleteConfirmLot(lot)}
-                          >
-                            <Trash2 className="h-4 w-4" />
-                          </Button>
-                        </div>
+                        <TableRowActions
+                          actions={[
+                            {
+                              label: "Edit",
+                              onClick: () => startEditing(lot),
+                            },
+                            {
+                              label: "Delete Lot",
+                              onClick: () => setDeleteConfirmLot(lot),
+                              variant: "destructive",
+                              requiresConfirmation: false,
+                            },
+                          ]}
+                        />
                       )}
                     </TableCell>
                   </TableRow>

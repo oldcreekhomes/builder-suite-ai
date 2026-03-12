@@ -1,19 +1,9 @@
 
+## ✅ COMPLETED: Fix Bill Payment — Credit Calculation + Data Repair + Consolidated Payment View
 
-## Plan: Fix Edit Project Dialog Overflow & Standardize Lot Actions
+All three fixes have been implemented:
 
-### Problem
-1. **Dialog overflow**: The lots table grows unbounded inside the dialog, pushing the Cancel/Update buttons off-screen with no way to scroll.
-2. **Lot actions**: Edit (pencil) and Delete (trash) icons are inline buttons instead of the standardized 3-dot `TableRowActions` dropdown used everywhere else.
-
-### Changes
-
-#### 1. `src/components/EditProjectDialog.tsx`
-- Add `max-h-[80vh]` and `overflow-y-auto` to the DialogContent or the form's inner content area so the dialog scrolls when lots push content beyond viewport height.
-- Ensure the Cancel/Update buttons remain visible (sticky footer or within scroll area).
-
-#### 2. `src/components/LotManagementSection.tsx`
-- Constrain the lots table with `max-h-[240px] overflow-y-auto` on the table wrapper so it scrolls internally instead of growing the dialog infinitely.
-- Replace the inline Pencil/Trash2 buttons with `TableRowActions` dropdown (3-dot menu) containing "Edit" and "Delete Lot" (destructive, with existing confirmation dialog). This matches the standardized pattern used across Companies, POs, Bills, etc.
-- Keep the inline Check/X buttons for the active editing state (those are contextual save/cancel, not row actions).
-
+1. **Credit remaining balance formula** — Fixed in `useBills.ts` line 417 to use `total_amount + amount_paid` for credits
+2. **Proportional credit distribution** — Fixed in `BillsApprovalTable.tsx` to distribute credits proportionally based on each bill's share of positive allocations
+3. **Consolidated payment view** — Paid tab now groups multi-bill payments with expandable rows showing individual allocations (bills + credits)
+4. **Data repair** — Corrected over-allocated amounts for OCH-02302 via SQL migration
