@@ -305,7 +305,7 @@ const generateEmailHTML = async (data: BidPackageEmailRequest, companyId?: strin
                                                             <td style="margin: 0; padding: 0 0 8px 0;">
                                                                 <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%" style="width: 100%; border-collapse: collapse;">
                                                                     <tr>
-                                                                        <td style="color: #666666; font-weight: 500; width: 120px; font-size: 14px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif; vertical-align: top; padding: 0;">Scope of Work:</td>
+                                                                        <td style="color: #666666; font-weight: 500; width: 140px; min-width: 140px; font-size: 14px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif; vertical-align: top; padding: 0; white-space: nowrap;">Scope of Work:</td>
                                                                         <td style="color: #000000; font-weight: 600; font-size: 14px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif; vertical-align: top; padding: 0;">${specifications}</td>
                                                                     </tr>
                                                                 </table>
