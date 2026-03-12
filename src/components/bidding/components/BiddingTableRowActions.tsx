@@ -28,7 +28,7 @@ export function BiddingTableRowActions({
   cellClassName
 }: BiddingTableRowActionsProps) {
   return (
-    <TableCell className={cellClassName} onClick={onCellClick}>
+    <TableCell className={`text-center ${cellClassName || ''}`} onClick={onCellClick}>
       <TableRowActions actions={[
         { label: "Send Bid Package", onClick: onSendClick, hidden: isReadOnly },
         { label: "Send Test Email", onClick: onTestEmailClick || (() => {}), hidden: isReadOnly || !onTestEmailClick },

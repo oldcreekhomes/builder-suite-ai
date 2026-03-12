@@ -12,7 +12,7 @@ export function BiddingTableHeader() {
         <TableHead className="w-32">Sent On</TableHead>
         <TableHead className="w-32">Due Date</TableHead>
         <TableHead className="w-32">Reminder Date</TableHead>
-        <TableHead className="w-32">Specifications</TableHead>
+        <TableHead className="w-32 text-center">Specifications</TableHead>
         <TableHead className="w-40">Files</TableHead>
         <TableHead className="w-16 text-center">Actions</TableHead>
       </TableRow>

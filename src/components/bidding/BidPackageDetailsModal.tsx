@@ -204,7 +204,7 @@ export function BidPackageDetailsModal({
                   <TableHead>Sent On</TableHead>
                   <TableHead>Due Date</TableHead>
                   <TableHead>Reminder</TableHead>
-                  <TableHead>Specifications</TableHead>
+                  <TableHead className="text-center">Specifications</TableHead>
                   <TableHead>Files</TableHead>
                   <TableHead className="text-center">Actions</TableHead>
                 </TableRow>
