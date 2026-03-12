@@ -4393,6 +4393,7 @@ export type Database = {
         Args: { message_id_param: string }
         Returns: undefined
       }
+      normalize_phone_number: { Args: { phone: string }; Returns: string }
       normalize_po_file_elem: {
         Args: { elem: Json; project_id: string }
         Returns: Json
