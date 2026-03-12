@@ -96,7 +96,7 @@ interface BillForApproval {
 }
 
 interface BillsApprovalTableProps {
-  status: 'draft' | 'void' | 'posted' | 'paid' | Array<'draft' | 'void' | 'posted' | 'paid'>;
+  status: 'draft' | 'approved' | 'void' | 'posted' | 'paid' | Array<'draft' | 'approved' | 'void' | 'posted' | 'paid'>;
   projectId?: string;
   projectIds?: string[];
   showProjectColumn?: boolean;
