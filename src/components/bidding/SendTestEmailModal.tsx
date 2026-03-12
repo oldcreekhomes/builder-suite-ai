@@ -36,7 +36,7 @@ export function SendTestEmailModal({
   const [isSending, setIsSending] = useState(false);
   const [testEmail, setTestEmail] = useState('');
   const { toast } = useToast();
-  const { users } = useCompanyUsers();
+  
   const { openSpecificationFile } = useUniversalFilePreviewContext();
 
   // Get current user's email as default
