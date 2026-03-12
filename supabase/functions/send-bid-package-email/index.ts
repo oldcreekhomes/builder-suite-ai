@@ -185,7 +185,7 @@ const generateFileDownloadLinks = (files: string[]) => {
     // Create numbered filename like PO emails: File 1.pdf, File 2.pdf, etc.
     const displayFileName = `File ${index + 1}${fileExtension}`;
     
-    // Normalize path: remove any prefixes and ensure proper specifications path
+    // Normalize path: remove any prefixes
     let normalizedPath = file;
     if (normalizedPath.startsWith('project-files/specifications/')) {
       normalizedPath = normalizedPath.replace('project-files/specifications/', '');
@@ -195,8 +195,13 @@ const generateFileDownloadLinks = (files: string[]) => {
       normalizedPath = normalizedPath.replace('specifications/', '');
     }
     
+    // Determine if this is a bidding upload (needs specifications/ prefix) or a linked project file (use as-is)
+    // Bidding uploads start with "bidding_", linked project files contain "/" (e.g., projectId/uuid_filename)
+    const isBiddingUpload = normalizedPath.startsWith('bidding_') || !normalizedPath.includes('/');
+    const storagePath = isBiddingUpload ? `specifications/${normalizedPath}` : normalizedPath;
+    
     // Build proper public URL with correct encoding
-    const downloadUrl = `https://nlmnwlvmmkngrgatnzkj.supabase.co/storage/v1/object/public/project-files/specifications/${encodeURI(normalizedPath)}`;
+    const downloadUrl = `https://nlmnwlvmmkngrgatnzkj.supabase.co/storage/v1/object/public/project-files/${encodeURI(storagePath)}`;
     
     console.log('🔗 Generating file link:', { originalFile: file, normalizedPath, fileName: displayFileName, downloadUrl });
     
