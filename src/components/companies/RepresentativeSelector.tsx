@@ -2,7 +2,7 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { FormLabel } from "@/components/ui/form";
-import { ChevronDown, ChevronRight, Users, Edit } from "lucide-react";
+import { ChevronDown, ChevronRight, Users } from "lucide-react";
 import { toTitleCase } from "@/lib/utils";
 import {
   Collapsible,
