@@ -1,28 +1,9 @@
 
+## ✅ COMPLETED: Fix Bill Payment — Credit Calculation + Data Repair + Consolidated Payment View
 
-## Plan: Bold SOW Section Headers in Print Output
+All three fixes have been implemented:
 
-### Problem
-The Scope of Work section headers (A. General Conditions/Mobilization, B. Erosion Control, etc.) appear as plain text in the printed output. They should be bold.
-
-### Approach
-The SOW is stored as plain text in a `<Textarea>` (which can't render bold), so this change targets the **print output only**. In the `handlePrint` function, when rendering each scope chunk, apply a regex replacement to wrap lines matching `^[A-Z]\. ` with `<strong>` tags.
-
-### File: `src/components/templates/SubcontractorContractForm.tsx` (~line 423)
-
-Replace the plain text rendering:
-```js
-const content = `<div style="white-space: pre-line;">${chunk}</div>`;
-```
-
-With a version that bolds section headers:
-```js
-const boldedChunk = chunk.replace(/^([A-Z]\.\s.+)$/gm, '<strong>$1</strong>');
-const content = `<div style="white-space: pre-line;">${boldedChunk}</div>`;
-```
-
-This regex matches any line starting with a capital letter followed by `. ` (e.g., "A. General Conditions/Mobilization") and wraps the entire line in `<strong>` tags. Sub-items (numbered lines like "1. Project mobilization...") are unaffected.
-
-### Files to Edit
-- `src/components/templates/SubcontractorContractForm.tsx` (line 423)
-
+1. **Credit remaining balance formula** — Fixed in `useBills.ts` line 417 to use `total_amount + amount_paid` for credits
+2. **Proportional credit distribution** — Fixed in `BillsApprovalTable.tsx` to distribute credits proportionally based on each bill's share of positive allocations
+3. **Consolidated payment view** — Paid tab now groups multi-bill payments with expandable rows showing individual allocations (bills + credits)
+4. **Data repair** — Corrected over-allocated amounts for OCH-02302 via SQL migration
