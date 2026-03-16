@@ -160,15 +160,7 @@ K. Asphalt and Paving
   const update = (key: keyof ContractFields, value: string) =>
     setFields((prev) => ({ ...prev, [key]: value }));
 
-  const Field = ({
-    label,
-    fieldKey,
-    className = "",
-  }: {
-    label: string;
-    fieldKey: keyof ContractFields;
-    className?: string;
-  }) => (
+  const renderField = (label: string, fieldKey: keyof ContractFields, className = "") => (
     <div className={`flex items-baseline gap-2 ${className}`}>
       <span className="text-sm font-medium whitespace-nowrap">{label}:</span>
       <Input
@@ -410,10 +402,10 @@ K. Asphalt and Paving
   const renderPartyBlock = (title: string, fieldKeys: { name: keyof ContractFields; address: keyof ContractFields; phone: keyof ContractFields; contact: keyof ContractFields }, contactLabel: string) => (
     <div className="p-3 space-y-1">
       <h3 className="text-xs font-bold text-foreground tracking-wide">{title}</h3>
-      <Field label="Company" fieldKey={fieldKeys.name} />
-      <Field label="Address" fieldKey={fieldKeys.address} />
-      <Field label="Phone" fieldKey={fieldKeys.phone} />
-      <Field label={contactLabel} fieldKey={fieldKeys.contact} />
+      {renderField("Company", fieldKeys.name)}
+      {renderField("Address", fieldKeys.address)}
+      {renderField("Phone", fieldKeys.phone)}
+      {renderField(contactLabel, fieldKeys.contact)}
     </div>
   );
 
@@ -484,7 +476,7 @@ K. Asphalt and Paving
       </div>
 
       <div className="flex gap-4">
-        <Field label="Start Date" fieldKey="startDate" className="flex-1" />
+        {renderField("Start Date", "startDate", "flex-1")}
       </div>
     </div>
   );
@@ -497,15 +489,15 @@ K. Asphalt and Paving
           <p className="font-semibold text-foreground">CONTRACTOR</p>
           <div className="border-b border-muted-foreground/40 pt-8" />
           <p className="text-xs text-muted-foreground">Signature</p>
-          <Field label="Name" fieldKey="contractorSignerName" />
-          <Field label="Title" fieldKey="contractorSignerTitle" />
+          {renderField("Name", "contractorSignerName")}
+          {renderField("Title", "contractorSignerTitle")}
         </div>
         <div className="space-y-4">
           <p className="font-semibold text-foreground">SUBCONTRACTOR</p>
           <div className="border-b border-muted-foreground/40 pt-8" />
           <p className="text-xs text-muted-foreground">Signature</p>
-          <Field label="Name" fieldKey="subcontractorSignerName" />
-          <Field label="Title" fieldKey="subcontractorSignerTitle" />
+          {renderField("Name", "subcontractorSignerName")}
+          {renderField("Title", "subcontractorSignerTitle")}
         </div>
       </div>
     </section>
