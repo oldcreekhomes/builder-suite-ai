@@ -235,7 +235,7 @@ L. Retaining Walls
     }, 2000);
 
     return () => clearTimeout(timer);
-  }, [fields, lineItems]);
+  }, [fields, lineItems, alternates]);
 
   const contractTotal = lineItems.reduce((sum, item) => sum + item.amount, 0);
 
