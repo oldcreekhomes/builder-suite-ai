@@ -545,7 +545,7 @@ K. Asphalt and Paving
               value={fields.scopeOfWork}
               onChange={(e) => update("scopeOfWork", e.target.value)}
               placeholder="Describe the scope of work..."
-              className="min-h-[120px] text-sm"
+              className="min-h-[600px] text-sm"
             />
           </section>
         )}
