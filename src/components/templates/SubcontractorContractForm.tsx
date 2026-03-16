@@ -271,34 +271,7 @@ L. Retaining Walls
     </div>
   `).join('');
 
-  const formatScopeForPrint = (text: string, startLetter: string, endLetter: string) => {
-    const lines = text.split('\n');
-    let html = '';
-    let currentSection = '';
-    let inRange = false;
-    
-    for (const line of lines) {
-      const sectionMatch = line.trim().match(/^([A-Z])\./);
-      if (sectionMatch) {
-        const letter = sectionMatch[1];
-        if (letter >= startLetter && letter <= endLetter) {
-          inRange = true;
-          if (currentSection) html += `</div>`;
-          html += `<div style="break-inside: avoid;">`;
-          html += `<div style="font-weight: 700; text-transform: uppercase; margin-top: 8px;">${line.trim()}</div>`;
-          currentSection = letter;
-        } else {
-          if (currentSection) html += `</div>`;
-          inRange = false;
-          currentSection = '';
-        }
-      } else if (inRange) {
-        html += `<div>${line}</div>`;
-      }
-    }
-    if (currentSection) html += `</div>`;
-    return html;
-  };
+
 
   const handlePrint = useCallback(() => {
     const printWindow = window.open('', '_blank');
