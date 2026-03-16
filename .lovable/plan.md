@@ -1,26 +1,9 @@
 
+## ✅ COMPLETED: Fix Bill Payment — Credit Calculation + Data Repair + Consolidated Payment View
 
-## Plan: Update Signature Page with Company Names and Date
+All three fixes have been implemented:
 
-### What the user wants
-On the Signatures page (page 6), replace the generic "CONTRACTOR" / "SUBCONTRACTOR" headings with the actual company names derived from page 1 fields (`contractorName` and `subcontractorName`), and add a "Date:" field below each "Title:" field.
-
-### Changes: `src/components/templates/SubcontractorContractForm.tsx`
-
-**1. On-screen signature section (~line 600-619)**
-- Replace hardcoded `"CONTRACTOR"` with `fields.contractorName || "CONTRACTOR"`
-- Replace hardcoded `"SUBCONTRACTOR"` with `fields.subcontractorName || "SUBCONTRACTOR"`
-- Add a "Date:" line below each "Title:" field using `renderField("Date", "contractorSignerDate")` and `renderField("Date", "subcontractorSignerDate")`
-
-**2. Print signature section (~line 397-401)**
-- Same updates: use `fields.contractorName` / `fields.subcontractorName` for headings
-- Add `Date: _______________` line below each Title line
-
-**3. Add new fields to `ContractFields` interface (~line 16)**
-- Add `contractorSignerDate: string` and `subcontractorSignerDate: string`
-
-**4. Update default fields initialization** to include the two new date fields with empty defaults.
-
-### Files to Edit
-- `src/components/templates/SubcontractorContractForm.tsx`
-
+1. **Credit remaining balance formula** — Fixed in `useBills.ts` line 417 to use `total_amount + amount_paid` for credits
+2. **Proportional credit distribution** — Fixed in `BillsApprovalTable.tsx` to distribute credits proportionally based on each bill's share of positive allocations
+3. **Consolidated payment view** — Paid tab now groups multi-bill payments with expandable rows showing individual allocations (bills + credits)
+4. **Data repair** — Corrected over-allocated amounts for OCH-02302 via SQL migration
