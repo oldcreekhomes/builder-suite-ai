@@ -350,7 +350,7 @@ L. Retaining Walls
       `</div>`,
     ].join('');
 
-    const htmlContent = `<!DOCTYPE html><html><head><title> </title>
+    const htmlContent = `<!DOCTYPE html><html><head>const htmlContent = `<!DOCTYPE html><html><head><title>Subcontractor Agreement</title>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Montserrat:wght@300;400;500;600;700&display=swap">
 <style>
   * { box-sizing: border-box; }
