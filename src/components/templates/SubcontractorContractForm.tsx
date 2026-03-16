@@ -205,6 +205,9 @@ L. Retaining Walls
       if (savedData.lineItems) {
         setLineItems(savedData.lineItems);
       }
+      if (savedData.alternates) {
+        setAlternates(savedData.alternates);
+      }
       isInitialLoad.current = false;
     } else if (!isLoadingFormData && !savedData) {
       isInitialLoad.current = false;
@@ -218,7 +221,7 @@ L. Retaining Walls
     const timer = setTimeout(() => {
       setSaveStatus("saving");
       saveFormData(
-        { fields: fields as unknown as { [key: string]: string }, lineItems },
+        { fields: fields as unknown as { [key: string]: string }, lineItems, alternates },
         {
           onSuccess: () => {
             setSaveStatus("saved");
