@@ -286,8 +286,9 @@ L. Retaining Walls
     }
     if (scopeChunks.length === 0) scopeChunks.push([]);
 
-    const makePage = (_pageNum: number, _subtitle: string, content: string) => `
+    const makePage = (_pageNum: number, subtitle: string, content: string) => `
       <div style="position: relative; width: 8.5in; height: 11in; padding: 0.5in 0.75in; page-break-after: always; box-sizing: border-box;">
+        ${generatePrintHeader(subtitle)}
         <div style="font-size: 11px;">${content}</div>
       </div>
     `;
@@ -341,6 +342,7 @@ L. Retaining Walls
   * { box-sizing: border-box; }
   body { font-family: 'Montserrat', sans-serif; font-size: 11px; margin: 0; padding: 0; }
   table { border-collapse: collapse; width: 100%; }
+  @page { margin: 0; }
   @media print { body { -webkit-print-color-adjust: exact; } }
 </style></head><body>
 ${makePage(1, "CONTRACT SUMMARY", page1Content)}
