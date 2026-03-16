@@ -563,7 +563,7 @@ K. Asphalt and Paving
             <Textarea
               value={fields.projectDrawings}
               onChange={(e) => update("projectDrawings", e.target.value)}
-              className="min-h-[80px] text-sm"
+              className="min-h-[400px] text-sm"
             />
           </section>
         )}
