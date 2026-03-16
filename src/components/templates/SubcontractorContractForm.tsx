@@ -220,7 +220,7 @@ K. Asphalt and Paving
     let inRange = false;
     
     for (const line of lines) {
-      const sectionMatch = line.trim().match(/^([A-K])\./);
+      const sectionMatch = line.trim().match(/^([A-Z])\./);
       if (sectionMatch) {
         const letter = sectionMatch[1];
         if (letter >= startLetter && letter <= endLetter) {
