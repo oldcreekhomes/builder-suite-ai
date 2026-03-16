@@ -400,8 +400,8 @@ L. Retaining Walls
     const sigPageNum = exhibitBStartPage + drawingChunks.length;
     const signaturesContent = [
       `<div style="display: flex; gap: 40px; margin-top: 24px;">`,
-      `<div style="flex: 1;"><p style="font-weight: 600;">${fields.contractorName || 'CONTRACTOR'}</p><div style="border-bottom: 1px solid #999; height: 40px; margin-top: 20px;"></div><p style="font-size: 10px; color: #888;">Signature</p><p style="font-size: 11px; margin-top: 8px;"><strong>Name:</strong> ${fields.contractorSignerName || '_______________'}</p><p style="font-size: 11px;"><strong>Title:</strong> ${fields.contractorSignerTitle || '_______________'}</p><p style="font-size: 11px;"><strong>Date:</strong> ${fields.contractorSignerDate || '_______________'}</p></div>`,
-      `<div style="flex: 1;"><p style="font-weight: 600;">${fields.subcontractorName || 'SUBCONTRACTOR'}</p><div style="border-bottom: 1px solid #999; height: 40px; margin-top: 20px;"></div><p style="font-size: 10px; color: #888;">Signature</p><p style="font-size: 11px; margin-top: 8px;"><strong>Name:</strong> ${fields.subcontractorSignerName || '_______________'}</p><p style="font-size: 11px;"><strong>Title:</strong> ${fields.subcontractorSignerTitle || '_______________'}</p><p style="font-size: 11px;"><strong>Date:</strong> ${fields.subcontractorSignerDate || '_______________'}</p></div>`,
+      `<div style="flex: 1;"><p style="font-size: 10px; color: #888; text-transform: uppercase; letter-spacing: 0.05em;">Contractor</p><p style="font-weight: 600;">${fields.contractorName || 'CONTRACTOR'}</p><div style="border-bottom: 1px solid #999; height: 40px; margin-top: 20px;"></div><p style="font-size: 10px; color: #888;">Signature</p><p style="font-size: 11px; margin-top: 8px;"><strong>Name:</strong> ${fields.contractorSignerName || '______________________________'}</p><p style="font-size: 11px;"><strong>Title:</strong> ${fields.contractorSignerTitle || '______________________________'}</p><p style="font-size: 11px;"><strong>Date:</strong> ${fields.contractorSignerDate || '_______________'}</p></div>`,
+      `<div style="flex: 1;"><p style="font-size: 10px; color: #888; text-transform: uppercase; letter-spacing: 0.05em;">Subcontractor</p><p style="font-weight: 600;">${fields.subcontractorName || 'SUBCONTRACTOR'}</p><div style="border-bottom: 1px solid #999; height: 40px; margin-top: 20px;"></div><p style="font-size: 10px; color: #888;">Signature</p><p style="font-size: 11px; margin-top: 8px;"><strong>Name:</strong> ${fields.subcontractorSignerName || '______________________________'}</p><p style="font-size: 11px;"><strong>Title:</strong> ${fields.subcontractorSignerTitle || '______________________________'}</p><p style="font-size: 11px;"><strong>Date:</strong> ${fields.subcontractorSignerDate || '_______________'}</p></div>`,
       `</div>`,
     ].join('');
 
@@ -606,6 +606,7 @@ ${makePage(sigPageNum, "SIGNATURES", signaturesContent)}
       {renderPageHeader("SIGNATURES")}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
         <div className="space-y-4">
+          <p className="text-xs text-muted-foreground uppercase tracking-wide">Contractor</p>
           <p className="font-semibold text-foreground uppercase">{fields.contractorName || "CONTRACTOR"}</p>
           <div className="border-b border-muted-foreground/40 pt-8" />
           <p className="text-xs text-muted-foreground">Signature</p>
@@ -614,6 +615,7 @@ ${makePage(sigPageNum, "SIGNATURES", signaturesContent)}
           {renderField("Date", "contractorSignerDate")}
         </div>
         <div className="space-y-4">
+          <p className="text-xs text-muted-foreground uppercase tracking-wide">Subcontractor</p>
           <p className="font-semibold text-foreground uppercase">{fields.subcontractorName || "SUBCONTRACTOR"}</p>
           <div className="border-b border-muted-foreground/40 pt-8" />
           <p className="text-xs text-muted-foreground">Signature</p>
