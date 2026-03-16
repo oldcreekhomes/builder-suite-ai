@@ -199,6 +199,13 @@ K. Asphalt and Paving
     </tr>
   `).join('');
 
+  const getEnrichedArticles = (list: typeof articles) =>
+    list.map(article =>
+      article.num === 3
+        ? { ...article, body: `The Contractor agrees to pay the Subcontractor ${formatCurrency(contractTotal)} for full performance of the Work. Payments will be made based on approved progress of the Work in accordance with the Contractor's payment procedures.` }
+        : article
+    );
+
   const generatePrintArticles = (list: typeof articles) => list.map(article => `
     <div style="margin-bottom: 6px;">
       <h3 style="font-size: 10px; font-weight: 700; margin: 0 0 1px 0;">ARTICLE ${article.num} – ${article.title}</h3>
