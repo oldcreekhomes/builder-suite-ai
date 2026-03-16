@@ -184,7 +184,7 @@ K. Asphalt and Paving
     const timer = setTimeout(() => {
       setSaveStatus("saving");
       saveFormData(
-        { fields, lineItems },
+        { fields: fields as unknown as { [key: string]: string }, lineItems },
         {
           onSuccess: () => {
             setSaveStatus("saved");
