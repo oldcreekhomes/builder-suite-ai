@@ -252,7 +252,7 @@ K. Asphalt and Paving
     const totalPages = 7;
 
     const makeFooter = (pageNum: number) => `
-      <div style="position: absolute; bottom: 0; left: 0; right: 0; display: flex; justify-content: space-between; align-items: center; font-size: 8px; color: #000; padding: 4px 0 6px 0; border-top: 0.5px solid #ccc;">
+      <div style="position: absolute; bottom: 0.5in; left: 0.75in; right: 0.75in; display: flex; justify-content: space-between; align-items: center; font-size: 8px; color: #000; padding: 4px 0 6px 0; border-top: 0.5px solid #ccc;">
         <span>${dateStr}</span>
         <span>${timeStr}</span>
         <span>Page ${pageNum} of ${totalPages}</span>
@@ -260,9 +260,9 @@ K. Asphalt and Paving
     `;
 
     const makePage = (pageNum: number, subtitle: string, content: string) => `
-      <div style="min-height: 10in; position: relative; box-sizing: border-box; ${pageNum > 1 ? 'page-break-before: always;' : ''}">
+      <div style="min-height: 11in; position: relative; box-sizing: border-box; padding: 0.5in 0.75in; ${pageNum > 1 ? 'page-break-before: always;' : ''}">
         ${generatePrintHeader(subtitle)}
-        <div style="padding-bottom: 30px;">
+        <div style="margin-top: 12px;">
           ${content}
         </div>
         ${makeFooter(pageNum)}
