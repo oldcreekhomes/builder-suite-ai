@@ -179,6 +179,10 @@ L. Retaining Walls
         if (savedData.fields.scopeOfWork && !savedData.fields.scopeOfWork.includes("VA American Water")) {
           mergedFields.scopeOfWork = DEFAULT_FIELDS.scopeOfWork;
         }
+        // One-time migration: if saved projectDrawings is missing the full sheet index, use new defaults
+        if (!savedData.fields.projectDrawings || !savedData.fields.projectDrawings.includes("Sheet 1: Cover Sheet")) {
+          mergedFields.projectDrawings = DEFAULT_FIELDS.projectDrawings;
+        }
         setFields(mergedFields);
       }
       if (savedData.lineItems) {
