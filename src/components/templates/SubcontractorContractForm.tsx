@@ -628,6 +628,58 @@ ${makePage(sigPageNum, "SIGNATURES", signaturesContent)}
         </table>
       </div>
 
+      <div className="p-3">
+        <div className="flex items-center justify-between mb-2">
+          <h3 className="text-xs font-bold text-foreground tracking-wide">ADD ALTERNATES</h3>
+          <div className="flex gap-1">
+            <Button variant="outline" size="sm" className="h-6 text-xs px-2" onClick={addAlternate}>+ Add</Button>
+          </div>
+        </div>
+        <table className="w-full text-xs border-collapse">
+          <thead>
+            <tr className="border-b border-foreground">
+              <th className="text-left py-1 w-8 font-semibold text-foreground">Item</th>
+              <th className="text-left py-1 font-semibold text-foreground">Description</th>
+              <th className="text-right py-1 font-semibold text-foreground w-28">Amount</th>
+              <th className="w-8" />
+            </tr>
+          </thead>
+          <tbody>
+            {alternates.map((item, index) => (
+              <tr key={index} className="border-b border-muted/50">
+                <td className="py-0.5 text-foreground font-medium">{item.letter}</td>
+                <td className="py-0.5">
+                  <Input
+                    value={item.description}
+                    onChange={(e) => setAlternates((prev) => prev.map((a, i) => i === index ? { ...a, description: e.target.value } : a))}
+                    className="h-5 text-xs border-0 bg-transparent px-0 focus-visible:ring-0 focus-visible:ring-offset-0"
+                    placeholder="Description"
+                  />
+                </td>
+                <td className="py-0.5 text-right">
+                  <Input
+                    value={formatCurrency(item.amount)}
+                    onChange={(e) => updateAlternateAmount(index, e.target.value)}
+                    className="h-5 text-xs text-right border-0 bg-transparent px-0 focus-visible:ring-0 focus-visible:ring-offset-0 w-28 ml-auto"
+                  />
+                </td>
+                <td className="py-0.5 text-center">
+                  <Button variant="ghost" size="sm" className="h-5 w-5 p-0 text-muted-foreground hover:text-destructive" onClick={() => removeAlternate(index)}>×</Button>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+          <tfoot>
+            <tr className="border-t-2 border-foreground">
+              <td className="py-1" />
+              <td className="py-1 text-foreground font-bold">ALTERNATES TOTAL</td>
+              <td className="py-1 text-right text-foreground font-bold">{formatCurrency(alternatesTotal)}</td>
+              <td />
+            </tr>
+          </tfoot>
+        </table>
+      </div>
+
       <div className="flex gap-4">
         {renderField("Start Date", "startDate", "flex-1")}
       </div>
