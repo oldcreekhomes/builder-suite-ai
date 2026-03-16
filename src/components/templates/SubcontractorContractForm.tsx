@@ -29,8 +29,10 @@ interface ContractFields {
   contractDate: string;
   contractorSignerName: string;
   contractorSignerTitle: string;
+  contractorSignerDate: string;
   subcontractorSignerName: string;
   subcontractorSignerTitle: string;
+  subcontractorSignerDate: string;
   scopeOfWork: string;
   projectDrawings: string;
   generalRequirements: string;
