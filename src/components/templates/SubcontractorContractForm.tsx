@@ -181,7 +181,7 @@ L. Retaining Walls
         }
         // One-time migration: if saved projectDrawings is missing the full sheet index, use new defaults
         if (!savedData.fields.projectDrawings || !savedData.fields.projectDrawings.includes("Sheet 1: Cover Sheet") || !savedData.fields.projectDrawings.includes("HIGHLIGHTED SCOPE OF WORK")) {
-          mergedFields.projectDrawings = DEFAULT_FIELDS.projectDrawings;
+          mergedFields.projectDrawings = DEFAULT_EXHIBITS.projectDrawings;
         }
         setFields(mergedFields);
       }
