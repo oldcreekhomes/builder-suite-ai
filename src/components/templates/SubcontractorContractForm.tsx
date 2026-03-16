@@ -179,9 +179,6 @@ L. Retaining Walls
         if (savedData.fields.scopeOfWork && savedData.fields.scopeOfWork.includes("Water main and service installation") && !savedData.fields.scopeOfWork.includes("VA American Water")) {
           mergedFields.scopeOfWork = DEFAULT_FIELDS.scopeOfWork;
         }
-        if (savedData.fields.scopeOfWorkContinued && savedData.fields.scopeOfWorkContinued.includes("Water main and service installation") && !savedData.fields.scopeOfWorkContinued.includes("VA American Water")) {
-          mergedFields.scopeOfWorkContinued = DEFAULT_FIELDS.scopeOfWorkContinued;
-        }
         setFields(mergedFields);
       }
       if (savedData.lineItems) {
