@@ -175,8 +175,8 @@ L. Retaining Walls
     if (savedData && isInitialLoad.current) {
       if (savedData.fields) {
         const mergedFields = { ...DEFAULT_FIELDS, ...savedData.fields };
-        // One-time migration: if saved scope of work contains old stale content, use new defaults
-        if (savedData.fields.scopeOfWork && savedData.fields.scopeOfWork.includes("Water main and service installation") && !savedData.fields.scopeOfWork.includes("VA American Water")) {
+        // One-time migration: if saved scope of work is missing updated I/J/K/L sections, use new defaults
+        if (savedData.fields.scopeOfWork && !savedData.fields.scopeOfWork.includes("VA American Water")) {
           mergedFields.scopeOfWork = DEFAULT_FIELDS.scopeOfWork;
         }
         setFields(mergedFields);
