@@ -283,7 +283,7 @@ L. Retaining Walls
 
     // Split scope of work into chunks of ~45 lines per page
     const scopeLines = (fields.scopeOfWork || '').split('\n');
-    const LINES_PER_PAGE = 45;
+    const LINES_PER_PAGE = 65;
     const scopeChunks: string[][] = [];
     for (let i = 0; i < scopeLines.length; i += LINES_PER_PAGE) {
       scopeChunks.push(scopeLines.slice(i, i + LINES_PER_PAGE));
@@ -294,10 +294,8 @@ L. Retaining Walls
     const totalPages = 3 + scopeChunks.length + 2;
 
     const makeFooter = (pageNum: number) => `
-      <div style="position: absolute; bottom: 0.4in; left: 0.75in; right: 0.75in; display: flex; justify-content: space-between; font-size: 8px; color: #000; border-top: 0.5px solid #ccc; padding-top: 4px;">
-        <span>${dateStr}</span>
-        <span>${timeStr}</span>
-        <span>Page ${pageNum} of ${totalPages}</span>
+      <div style="position: absolute; bottom: 0.4in; left: 0.75in; right: 0.75in; text-align: right; font-size: 8px; color: #000; border-top: 0.5px solid #ccc; padding-top: 4px;">
+        Page ${pageNum} of ${totalPages}
       </div>
     `;
 
@@ -352,7 +350,7 @@ L. Retaining Walls
       `</div>`,
     ].join('');
 
-    const htmlContent = `<!DOCTYPE html><html><head><title> </title>
+    const htmlContent = `<!DOCTYPE html><html><head><title>Subcontractor Agreement</title>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Montserrat:wght@300;400;500;600;700&display=swap">
 <style>
   * { box-sizing: border-box; }
