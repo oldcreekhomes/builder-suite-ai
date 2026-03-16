@@ -496,8 +496,8 @@ K. Asphalt and Paving
           <p className="font-semibold text-foreground">SUBCONTRACTOR</p>
           <div className="border-b border-muted-foreground/40 pt-8" />
           <p className="text-xs text-muted-foreground">Signature</p>
-          <Field label="Name" fieldKey="subcontractorSignerName" />
-          <Field label="Title" fieldKey="subcontractorSignerTitle" />
+          {renderField("Name", "subcontractorSignerName")}
+          {renderField("Title", "subcontractorSignerTitle")}
         </div>
       </div>
     </section>
