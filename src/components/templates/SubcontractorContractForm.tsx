@@ -298,7 +298,7 @@ K. Asphalt and Paving
     const page4Content = `<div style="font-size: 11px;">${formatScopeForPrint(fields.scopeOfWork || '', 'A', 'F')}</div>`;
 
     // Page 5: Exhibit A continued (G-K)
-    const page5Content = `<div style="font-size: 11px;">${formatScopeForPrint(fields.scopeOfWork || '', 'G', 'K')}</div>`;
+    const page5Content = `<div style="font-size: 11px;">${formatScopeForPrint(fields.scopeOfWork || '', 'G', 'Z')}</div>`;
 
     // Page 6: Exhibit B
     const page6Content = `<div style="white-space: pre-line; font-size: 11px;">${fields.projectDrawings || ''}</div>`;
