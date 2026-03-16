@@ -352,17 +352,14 @@ L. Retaining Walls
     // Page 3: Articles continued (10-15)
     const page3Content = generatePrintArticles(articlesSecondHalf);
 
-    // Page 4: Exhibit A (A-F)
-    const page4Content = `<div style="font-size: 11px;">${formatScopeForPrint(fields.scopeOfWork || '', 'A', 'F')}</div>`;
+    // Page 4: Exhibit A (full scope)
+    const page4Content = `<div style="font-size: 11px; white-space: pre-line;">${fields.scopeOfWork || ''}</div>`;
 
-    // Page 5: Exhibit A continued (G-K)
-    const page5Content = `<div style="font-size: 11px;">${formatScopeForPrint(fields.scopeOfWork || '', 'G', 'Z')}</div>`;
+    // Page 5: Exhibit B
+    const page5Content = `<div style="white-space: pre-line; font-size: 11px;">${fields.projectDrawings || ''}</div>`;
 
-    // Page 6: Exhibit B
-    const page6Content = `<div style="white-space: pre-line; font-size: 11px;">${fields.projectDrawings || ''}</div>`;
-
-    // Page 7: Signatures
-    const page7Content = [
+    // Page 6: Signatures
+    const page6Content = [
       `<div style="display: flex; gap: 40px; margin-top: 24px;">`,
       `<div style="flex: 1;"><p style="font-weight: 600;">CONTRACTOR</p><div style="border-bottom: 1px solid #999; height: 40px; margin-top: 20px;"></div><p style="font-size: 10px; color: #888;">Signature</p><p style="font-size: 11px; margin-top: 8px;"><strong>Name:</strong> ${fields.contractorSignerName || '_______________'}</p><p style="font-size: 11px;"><strong>Title:</strong> ${fields.contractorSignerTitle || '_______________'}</p></div>`,
       `<div style="flex: 1;"><p style="font-weight: 600;">SUBCONTRACTOR</p><div style="border-bottom: 1px solid #999; height: 40px; margin-top: 20px;"></div><p style="font-size: 10px; color: #888;">Signature</p><p style="font-size: 11px; margin-top: 8px;"><strong>Name:</strong> ${fields.subcontractorSignerName || '_______________'}</p><p style="font-size: 11px;"><strong>Title:</strong> ${fields.subcontractorSignerTitle || '_______________'}</p></div>`,
@@ -382,9 +379,8 @@ L. Retaining Walls
       makePage(2, "ARTICLES", page2Content),
       makePage(3, "ARTICLES (CONTINUED)", page3Content),
       makePage(4, "EXHIBIT A – SCOPE OF WORK", page4Content),
-      makePage(5, "EXHIBIT A – SCOPE OF WORK (CONTINUED)", page5Content),
-      makePage(6, "EXHIBIT B – PROJECT DRAWINGS", page6Content),
-      makePage(7, "SIGNATURES", page7Content),
+      makePage(5, "EXHIBIT B – PROJECT DRAWINGS", page5Content),
+      makePage(6, "SIGNATURES", page6Content),
       `</body></html>`
     ].join('\n');
 
