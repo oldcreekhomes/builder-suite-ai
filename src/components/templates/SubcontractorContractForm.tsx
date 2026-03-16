@@ -520,11 +520,18 @@ K. Asphalt and Paving
         {currentPage === 2 && (
           <section className="space-y-4">
             {renderPageHeader("ARTICLES")}
-            {renderArticles(getEnrichedArticles(articles))}
+            {renderArticles(getEnrichedArticles(articles).filter(a => a.num <= 8))}
           </section>
         )}
 
         {currentPage === 3 && (
+          <section className="space-y-4">
+            {renderPageHeader("ARTICLES (CONTINUED)")}
+            {renderArticles(getEnrichedArticles(articles).filter(a => a.num > 8))}
+          </section>
+        )}
+
+        {currentPage === 4 && (
           <section className="space-y-3">
             {renderPageHeader("EXHIBIT A – SCOPE OF WORK")}
             <Textarea
@@ -536,14 +543,14 @@ K. Asphalt and Paving
           </section>
         )}
 
-        {currentPage === 4 && (
+        {currentPage === 5 && (
           <section className="space-y-3">
             {renderPageHeader("EXHIBIT A – SCOPE OF WORK (CONTINUED)")}
             <p className="text-xs text-muted-foreground italic">This page displays sections G–K in print output.</p>
           </section>
         )}
 
-        {currentPage === 5 && (
+        {currentPage === 6 && (
           <section className="space-y-3">
             {renderPageHeader("EXHIBIT B – PROJECT DRAWINGS")}
             <Textarea
@@ -554,7 +561,7 @@ K. Asphalt and Paving
           </section>
         )}
 
-        {currentPage === 6 && renderSignatures()}
+        {currentPage === 7 && renderSignatures()}
       </div>
     </div>
   );
