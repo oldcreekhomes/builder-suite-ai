@@ -615,6 +615,7 @@ ${makePage(sigPageNum, "SIGNATURES", signaturesContent)}
           {renderField("Date", "contractorSignerDate")}
         </div>
         <div className="space-y-4">
+          <p className="text-xs text-muted-foreground uppercase tracking-wide">Subcontractor</p>
           <p className="font-semibold text-foreground uppercase">{fields.subcontractorName || "SUBCONTRACTOR"}</p>
           <div className="border-b border-muted-foreground/40 pt-8" />
           <p className="text-xs text-muted-foreground">Signature</p>
