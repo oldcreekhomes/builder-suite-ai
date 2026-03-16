@@ -342,6 +342,7 @@ L. Retaining Walls
   * { box-sizing: border-box; }
   body { font-family: 'Montserrat', sans-serif; font-size: 11px; margin: 0; padding: 0; }
   table { border-collapse: collapse; width: 100%; }
+  @page { margin: 0; }
   @media print { body { -webkit-print-color-adjust: exact; } }
 </style></head><body>
 ${makePage(1, "CONTRACT SUMMARY", page1Content)}
