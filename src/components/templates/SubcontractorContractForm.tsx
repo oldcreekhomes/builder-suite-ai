@@ -179,6 +179,10 @@ L. Retaining Walls
         if (savedData.fields.scopeOfWork && !savedData.fields.scopeOfWork.includes("VA American Water")) {
           mergedFields.scopeOfWork = DEFAULT_FIELDS.scopeOfWork;
         }
+        // One-time migration: if saved projectDrawings is missing the full sheet index, use new defaults
+        if (!savedData.fields.projectDrawings || !savedData.fields.projectDrawings.includes("Sheet 1: Cover Sheet")) {
+          mergedFields.projectDrawings = DEFAULT_FIELDS.projectDrawings;
+        }
         setFields(mergedFields);
       }
       if (savedData.lineItems) {
@@ -318,8 +322,29 @@ L. Retaining Walls
     if (currentChunk.trim()) scopeChunks.push(currentChunk);
     if (scopeChunks.length === 0) scopeChunks.push('');
 
-    // Calculate total pages: 1 (summary) + 2 (articles) + scopeChunks + 1 (exhibit B) + 1 (signatures)
-    const totalPages = 3 + scopeChunks.length + 2;
+    // Section-aware Exhibit B pagination
+    const drawingsText = fields.projectDrawings || '';
+    const drawingsLines = drawingsText.split('\n');
+    const MAX_DRAWING_LINES = 55;
+    const drawingChunks: string[] = [];
+    let currentDrawingChunk = '';
+    let currentDrawingLineCount = 0;
+    
+    for (const line of drawingsLines) {
+      if (currentDrawingLineCount > 0 && currentDrawingLineCount + 1 > MAX_DRAWING_LINES) {
+        drawingChunks.push(currentDrawingChunk);
+        currentDrawingChunk = line;
+        currentDrawingLineCount = 1;
+      } else {
+        currentDrawingChunk += (currentDrawingChunk ? '\n' : '') + line;
+        currentDrawingLineCount += 1;
+      }
+    }
+    if (currentDrawingChunk.trim()) drawingChunks.push(currentDrawingChunk);
+    if (drawingChunks.length === 0) drawingChunks.push('');
+
+    // Calculate total pages: 1 (summary) + 2 (articles) + scopeChunks + drawingChunks + 1 (signatures)
+    const totalPages = 3 + scopeChunks.length + drawingChunks.length + 1;
 
     const makePage = (pageNum: number, subtitle: string, content: string) => `
       <div style="position: relative; width: 8.5in; height: 11in; padding: 0.5in 0.75in 0.9in 0.75in; page-break-after: always; box-sizing: border-box;">
@@ -359,12 +384,16 @@ L. Retaining Walls
       return makePage(4 + i, subtitle, content);
     }).join('');
 
-    // Exhibit B
-    const exhibitBPageNum = 4 + scopeChunks.length;
-    const exhibitBContent = `<div style="white-space: pre-line; font-size: 11px;">${fields.projectDrawings || ''}</div>`;
+    // Exhibit B pages
+    const exhibitBStartPage = 4 + scopeChunks.length;
+    const exhibitBPages = drawingChunks.map((chunk, i) => {
+      const subtitle = i === 0 ? "EXHIBIT B – PROJECT DRAWINGS" : "EXHIBIT B – PROJECT DRAWINGS (CONTINUED)";
+      const content = `<div style="white-space: pre-line; font-size: 11px;">${chunk}</div>`;
+      return makePage(exhibitBStartPage + i, subtitle, content);
+    }).join('');
 
     // Signatures
-    const sigPageNum = exhibitBPageNum + 1;
+    const sigPageNum = exhibitBStartPage + drawingChunks.length;
     const signaturesContent = [
       `<div style="display: flex; gap: 40px; margin-top: 24px;">`,
       `<div style="flex: 1;"><p style="font-weight: 600;">CONTRACTOR</p><div style="border-bottom: 1px solid #999; height: 40px; margin-top: 20px;"></div><p style="font-size: 10px; color: #888;">Signature</p><p style="font-size: 11px; margin-top: 8px;"><strong>Name:</strong> ${fields.contractorSignerName || '_______________'}</p><p style="font-size: 11px;"><strong>Title:</strong> ${fields.contractorSignerTitle || '_______________'}</p></div>`,
@@ -385,7 +414,7 @@ ${makePage(1, "CONTRACT SUMMARY", page1Content)}
 ${makePage(2, "ARTICLES", page2Content)}
 ${makePage(3, "ARTICLES (CONTINUED)", page3Content)}
 ${scopePages}
-${makePage(exhibitBPageNum, "EXHIBIT B – PROJECT DRAWINGS", exhibitBContent)}
+${exhibitBPages}
 ${makePage(sigPageNum, "SIGNATURES", signaturesContent)}
 </body></html>`;
 
