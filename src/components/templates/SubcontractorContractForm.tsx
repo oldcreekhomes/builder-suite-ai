@@ -286,7 +286,7 @@ K. Asphalt and Paving
     ].join('');
 
     // Page 2: Articles
-    const page2Content = generatePrintArticles(articles);
+    const page2Content = generatePrintArticles(getEnrichedArticles(articles));
 
     // Page 3: Exhibit A (A-F)
     const page3Content = `<div style="font-size: 11px;">${formatScopeForPrint(fields.scopeOfWork || '', 'A', 'F')}</div>`;
