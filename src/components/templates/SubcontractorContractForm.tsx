@@ -12,6 +12,18 @@ interface LineItem {
   amount: number;
 }
 
+interface AlternateItem {
+  letter: string;
+  description: string;
+  amount: number;
+}
+
+const DEFAULT_ALTERNATES: AlternateItem[] = [
+  { letter: "1", description: "Retaining Walls", amount: 48500 },
+  { letter: "2", description: "Additional Clearing — Parcel B", amount: 12750 },
+  { letter: "3", description: "Temporary Access Road", amount: 22000 },
+];
+
 interface ContractFields {
   contractorName: string;
   contractorAddress: string;
