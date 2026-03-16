@@ -36,7 +36,7 @@ interface ContractFields {
   generalRequirements: string;
 }
 
-const TOTAL_PAGES = 7;
+const TOTAL_PAGES = 6;
 
 const formatCurrency = (amount: number) =>
   amount.toLocaleString("en-US", { style: "currency", currency: "USD" });
@@ -271,34 +271,7 @@ L. Retaining Walls
     </div>
   `).join('');
 
-  const formatScopeForPrint = (text: string, startLetter: string, endLetter: string) => {
-    const lines = text.split('\n');
-    let html = '';
-    let currentSection = '';
-    let inRange = false;
-    
-    for (const line of lines) {
-      const sectionMatch = line.trim().match(/^([A-Z])\./);
-      if (sectionMatch) {
-        const letter = sectionMatch[1];
-        if (letter >= startLetter && letter <= endLetter) {
-          inRange = true;
-          if (currentSection) html += `</div>`;
-          html += `<div style="break-inside: avoid;">`;
-          html += `<div style="font-weight: 700; text-transform: uppercase; margin-top: 8px;">${line.trim()}</div>`;
-          currentSection = letter;
-        } else {
-          if (currentSection) html += `</div>`;
-          inRange = false;
-          currentSection = '';
-        }
-      } else if (inRange) {
-        html += `<div>${line}</div>`;
-      }
-    }
-    if (currentSection) html += `</div>`;
-    return html;
-  };
+
 
   const handlePrint = useCallback(() => {
     const printWindow = window.open('', '_blank');
@@ -307,7 +280,7 @@ L. Retaining Walls
     const now = new Date();
     const dateStr = now.toLocaleDateString('en-US', { month: '2-digit', day: '2-digit', year: '2-digit' });
     const timeStr = now.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true });
-    const totalPages = 7;
+    const totalPages = 6;
 
     const makeFooter = (pageNum: number) => `
       <div style="position: absolute; bottom: 0.5in; left: 0.75in; right: 0.75in; display: flex; justify-content: space-between; align-items: center; font-size: 8px; color: #000; padding: 4px 0 6px 0; border-top: 0.5px solid #ccc;">
@@ -352,17 +325,14 @@ L. Retaining Walls
     // Page 3: Articles continued (10-15)
     const page3Content = generatePrintArticles(articlesSecondHalf);
 
-    // Page 4: Exhibit A (A-F)
-    const page4Content = `<div style="font-size: 11px;">${formatScopeForPrint(fields.scopeOfWork || '', 'A', 'F')}</div>`;
+    // Page 4: Exhibit A (full scope)
+    const page4Content = `<div style="font-size: 11px; white-space: pre-line;">${fields.scopeOfWork || ''}</div>`;
 
-    // Page 5: Exhibit A continued (G-K)
-    const page5Content = `<div style="font-size: 11px;">${formatScopeForPrint(fields.scopeOfWork || '', 'G', 'Z')}</div>`;
+    // Page 5: Exhibit B
+    const page5Content = `<div style="white-space: pre-line; font-size: 11px;">${fields.projectDrawings || ''}</div>`;
 
-    // Page 6: Exhibit B
-    const page6Content = `<div style="white-space: pre-line; font-size: 11px;">${fields.projectDrawings || ''}</div>`;
-
-    // Page 7: Signatures
-    const page7Content = [
+    // Page 6: Signatures
+    const page6Content = [
       `<div style="display: flex; gap: 40px; margin-top: 24px;">`,
       `<div style="flex: 1;"><p style="font-weight: 600;">CONTRACTOR</p><div style="border-bottom: 1px solid #999; height: 40px; margin-top: 20px;"></div><p style="font-size: 10px; color: #888;">Signature</p><p style="font-size: 11px; margin-top: 8px;"><strong>Name:</strong> ${fields.contractorSignerName || '_______________'}</p><p style="font-size: 11px;"><strong>Title:</strong> ${fields.contractorSignerTitle || '_______________'}</p></div>`,
       `<div style="flex: 1;"><p style="font-weight: 600;">SUBCONTRACTOR</p><div style="border-bottom: 1px solid #999; height: 40px; margin-top: 20px;"></div><p style="font-size: 10px; color: #888;">Signature</p><p style="font-size: 11px; margin-top: 8px;"><strong>Name:</strong> ${fields.subcontractorSignerName || '_______________'}</p><p style="font-size: 11px;"><strong>Title:</strong> ${fields.subcontractorSignerTitle || '_______________'}</p></div>`,
@@ -382,9 +352,8 @@ L. Retaining Walls
       makePage(2, "ARTICLES", page2Content),
       makePage(3, "ARTICLES (CONTINUED)", page3Content),
       makePage(4, "EXHIBIT A – SCOPE OF WORK", page4Content),
-      makePage(5, "EXHIBIT A – SCOPE OF WORK (CONTINUED)", page5Content),
-      makePage(6, "EXHIBIT B – PROJECT DRAWINGS", page6Content),
-      makePage(7, "SIGNATURES", page7Content),
+      makePage(5, "EXHIBIT B – PROJECT DRAWINGS", page5Content),
+      makePage(6, "SIGNATURES", page6Content),
       `</body></html>`
     ].join('\n');
 
@@ -624,22 +593,6 @@ L. Retaining Walls
 
         {currentPage === 5 && (
           <section className="space-y-3">
-            {renderPageHeader("EXHIBIT A – SCOPE OF WORK (CONTINUED)")}
-            <div className="text-sm whitespace-pre-line text-foreground">
-              {fields.scopeOfWork
-                ?.split('\n')
-                .filter((_, i, arr) => {
-                  // Find index of first line starting with G.
-                  const gIndex = arr.findIndex(l => l.trim().startsWith('G.'));
-                  return gIndex >= 0 && i >= gIndex;
-                })
-                .join('\n') || ''}
-            </div>
-          </section>
-        )}
-
-        {currentPage === 6 && (
-          <section className="space-y-3">
             {renderPageHeader("EXHIBIT B – PROJECT DRAWINGS")}
             <Textarea
               value={fields.projectDrawings}
@@ -649,7 +602,7 @@ L. Retaining Walls
           </section>
         )}
 
-        {currentPage === 7 && renderSignatures()}
+        {currentPage === 6 && renderSignatures()}
       </div>
     </div>
   );
