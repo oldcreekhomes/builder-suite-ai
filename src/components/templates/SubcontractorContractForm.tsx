@@ -183,6 +183,7 @@ L. Retaining Walls
     generalRequirements: exhibits.generalRequirements,
   };
 
+  const [alternates, setAlternates] = useState<AlternateItem[]>(DEFAULT_ALTERNATES);
   const [lineItems, setLineItems] = useState<LineItem[]>(DEFAULT_LINE_ITEMS);
   const [fields, setFields] = useState<ContractFields>(DEFAULT_FIELDS);
 
