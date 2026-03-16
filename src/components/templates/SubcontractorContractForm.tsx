@@ -520,7 +520,7 @@ K. Asphalt and Paving
         {currentPage === 2 && (
           <section className="space-y-4">
             {renderPageHeader("ARTICLES")}
-            {renderArticles(articles)}
+            {renderArticles(getEnrichedArticles(articles))}
           </section>
         )}
 
