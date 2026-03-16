@@ -319,7 +319,7 @@ K. Asphalt and Paving
       `body { font-family: 'Montserrat', sans-serif; font-size: 11px; margin: 0; padding: 0; }`,
       `table { border-collapse: collapse; width: 100%; }`,
       `@media print { @page { margin: 0; size: letter; } }`,
-      `</style></head><body style="padding: 0.5in 0.75in;">`,
+      `</style></head><body style="padding: 0; margin: 0;">`,
       makePage(1, "CONTRACT SUMMARY", page1Content),
       makePage(2, "ARTICLES", page2Content),
       makePage(3, "ARTICLES (CONTINUED)", page3Content),
