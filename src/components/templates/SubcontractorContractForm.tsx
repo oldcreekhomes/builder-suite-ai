@@ -534,7 +534,7 @@ K. Asphalt and Paving
         {currentPage === 3 && (
           <section className="space-y-4">
             {renderPageHeader("ARTICLES (CONTINUED)")}
-            {renderArticles(getEnrichedArticles(articles).filter(a => a.num > 8))}
+            {renderArticles(getEnrichedArticles(articles).filter(a => a.num > 9))}
           </section>
         )}
 
