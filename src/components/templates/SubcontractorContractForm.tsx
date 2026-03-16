@@ -174,7 +174,15 @@ L. Retaining Walls
   useEffect(() => {
     if (savedData && isInitialLoad.current) {
       if (savedData.fields) {
-        setFields(prev => ({ ...prev, ...savedData.fields }));
+        const mergedFields = { ...DEFAULT_FIELDS, ...savedData.fields };
+        // One-time migration: if saved scope of work contains old stale content, use new defaults
+        if (savedData.fields.scopeOfWork && savedData.fields.scopeOfWork.includes("Water main and service installation") && !savedData.fields.scopeOfWork.includes("VA American Water")) {
+          mergedFields.scopeOfWork = DEFAULT_FIELDS.scopeOfWork;
+        }
+        if (savedData.fields.scopeOfWorkContinued && savedData.fields.scopeOfWorkContinued.includes("Water main and service installation") && !savedData.fields.scopeOfWorkContinued.includes("VA American Water")) {
+          mergedFields.scopeOfWorkContinued = DEFAULT_FIELDS.scopeOfWorkContinued;
+        }
+        setFields(mergedFields);
       }
       if (savedData.lineItems) {
         setLineItems(savedData.lineItems);
