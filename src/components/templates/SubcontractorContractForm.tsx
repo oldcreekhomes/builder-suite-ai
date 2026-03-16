@@ -3,7 +3,7 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
 import { ChevronLeft, ChevronRight, Check, Loader2 } from "lucide-react";
-import { useTemplateContent } from "@/hooks/useTemplateContent";
+import { useTemplateContent, DEFAULT_EXHIBITS } from "@/hooks/useTemplateContent";
 import { useContractFormData } from "@/hooks/useContractFormData";
 
 interface LineItem {
