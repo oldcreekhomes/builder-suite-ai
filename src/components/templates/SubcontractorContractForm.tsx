@@ -12,6 +12,18 @@ interface LineItem {
   amount: number;
 }
 
+interface AlternateItem {
+  letter: string;
+  description: string;
+  amount: number;
+}
+
+const DEFAULT_ALTERNATES: AlternateItem[] = [
+  { letter: "1", description: "Retaining Walls", amount: 48500 },
+  { letter: "2", description: "Additional Clearing — Parcel B", amount: 12750 },
+  { letter: "3", description: "Temporary Access Road", amount: 22000 },
+];
+
 interface ContractFields {
   contractorName: string;
   contractorAddress: string;
@@ -171,6 +183,7 @@ L. Retaining Walls
     generalRequirements: exhibits.generalRequirements,
   };
 
+  const [alternates, setAlternates] = useState<AlternateItem[]>(DEFAULT_ALTERNATES);
   const [lineItems, setLineItems] = useState<LineItem[]>(DEFAULT_LINE_ITEMS);
   const [fields, setFields] = useState<ContractFields>(DEFAULT_FIELDS);
 
@@ -192,6 +205,9 @@ L. Retaining Walls
       if (savedData.lineItems) {
         setLineItems(savedData.lineItems);
       }
+      if (savedData.alternates) {
+        setAlternates(savedData.alternates);
+      }
       isInitialLoad.current = false;
     } else if (!isLoadingFormData && !savedData) {
       isInitialLoad.current = false;
@@ -205,7 +221,7 @@ L. Retaining Walls
     const timer = setTimeout(() => {
       setSaveStatus("saving");
       saveFormData(
-        { fields: fields as unknown as { [key: string]: string }, lineItems },
+        { fields: fields as unknown as { [key: string]: string }, lineItems, alternates },
         {
           onSuccess: () => {
             setSaveStatus("saved");
@@ -219,9 +235,26 @@ L. Retaining Walls
     }, 2000);
 
     return () => clearTimeout(timer);
-  }, [fields, lineItems]);
+  }, [fields, lineItems, alternates]);
 
   const contractTotal = lineItems.reduce((sum, item) => sum + item.amount, 0);
+  const alternatesTotal = alternates.reduce((sum, item) => sum + item.amount, 0);
+
+  const updateAlternateAmount = (index: number, raw: string) => {
+    const num = parseFloat(raw.replace(/[^0-9.-]/g, ""));
+    setAlternates((prev) =>
+      prev.map((item, i) => (i === index ? { ...item, amount: isNaN(num) ? 0 : num } : item))
+    );
+  };
+
+  const addAlternate = () => {
+    const nextNum = alternates.length + 1;
+    setAlternates((prev) => [...prev, { letter: String(nextNum), description: "", amount: 0 }]);
+  };
+
+  const removeAlternate = (index: number) => {
+    setAlternates((prev) => prev.filter((_, i) => i !== index).map((item, i) => ({ ...item, letter: String(i + 1) })));
+  };
 
   const update = (key: keyof ContractFields, value: string) =>
     setFields((prev) => ({ ...prev, [key]: value }));
@@ -371,6 +404,7 @@ L. Retaining Walls
       `<table><thead><tr style="border-bottom: 2px solid #000;"><th style="text-align: left; padding: 2px 6px; font-size: 10px; width: 30px;">Item</th><th style="text-align: left; padding: 2px 6px; font-size: 10px;">Description</th><th style="text-align: right; padding: 2px 6px; font-size: 10px; width: 100px;">Amount</th></tr></thead>`,
       `<tbody>${generatePrintLineItems()}</tbody>`,
       `<tfoot><tr style="border-top: 2px solid #000;"><td style="padding: 4px 6px;"></td><td style="padding: 4px 6px; font-weight: 700;">TOTAL</td><td style="padding: 4px 6px; text-align: right; font-weight: 700;">${formatCurrency(contractTotal)}</td></tr></tfoot></table></div>`,
+      alternates.length > 0 ? `<div style="margin-top: 12px;"><div style="font-weight: 700; font-size: 10px; letter-spacing: 0.05em; margin-bottom: 6px;">ADD ALTERNATES</div><table><thead><tr style="border-bottom: 2px solid #000;"><th style="text-align: left; padding: 2px 6px; font-size: 10px; width: 30px;">Item</th><th style="text-align: left; padding: 2px 6px; font-size: 10px;">Description</th><th style="text-align: right; padding: 2px 6px; font-size: 10px; width: 100px;">Amount</th></tr></thead><tbody>${alternates.map(item => `<tr><td style="padding: 2px 6px; border-bottom: 1px solid #ddd; font-weight: 500;">${item.letter}</td><td style="padding: 2px 6px; border-bottom: 1px solid #ddd;">${item.description}</td><td style="padding: 2px 6px; border-bottom: 1px solid #ddd; text-align: right;">${formatCurrency(item.amount)}</td></tr>`).join('')}</tbody><tfoot><tr style="border-top: 2px solid #000;"><td style="padding: 4px 6px;"></td><td style="padding: 4px 6px; font-weight: 700;">ALTERNATES TOTAL</td><td style="padding: 4px 6px; text-align: right; font-weight: 700;">${formatCurrency(alternatesTotal)}</td></tr></tfoot></table></div>` : '',
       fields.startDate ? `<p style="font-size: 11px; margin-top: 12px;"><strong>Start Date:</strong> ${fields.startDate}</p>` : '',
     ].join('');
 
@@ -590,6 +624,58 @@ ${makePage(sigPageNum, "SIGNATURES", signaturesContent)}
               <td className="py-1" />
               <td className="py-1 text-foreground font-bold">TOTAL</td>
               <td className="py-1 text-right text-foreground font-bold">{formatCurrency(contractTotal)}</td>
+            </tr>
+          </tfoot>
+        </table>
+      </div>
+
+      <div className="p-3">
+        <div className="flex items-center justify-between mb-2">
+          <h3 className="text-xs font-bold text-foreground tracking-wide">ADD ALTERNATES</h3>
+          <div className="flex gap-1">
+            <Button variant="outline" size="sm" className="h-6 text-xs px-2" onClick={addAlternate}>+ Add</Button>
+          </div>
+        </div>
+        <table className="w-full text-xs border-collapse">
+          <thead>
+            <tr className="border-b border-foreground">
+              <th className="text-left py-1 w-8 font-semibold text-foreground">Item</th>
+              <th className="text-left py-1 font-semibold text-foreground">Description</th>
+              <th className="text-right py-1 font-semibold text-foreground w-28">Amount</th>
+              <th className="w-8" />
+            </tr>
+          </thead>
+          <tbody>
+            {alternates.map((item, index) => (
+              <tr key={index} className="border-b border-muted/50">
+                <td className="py-0.5 text-foreground font-medium">{item.letter}</td>
+                <td className="py-0.5">
+                  <Input
+                    value={item.description}
+                    onChange={(e) => setAlternates((prev) => prev.map((a, i) => i === index ? { ...a, description: e.target.value } : a))}
+                    className="h-5 text-xs border-0 bg-transparent px-0 focus-visible:ring-0 focus-visible:ring-offset-0"
+                    placeholder="Description"
+                  />
+                </td>
+                <td className="py-0.5 text-right">
+                  <Input
+                    value={formatCurrency(item.amount)}
+                    onChange={(e) => updateAlternateAmount(index, e.target.value)}
+                    className="h-5 text-xs text-right border-0 bg-transparent px-0 focus-visible:ring-0 focus-visible:ring-offset-0 w-28 ml-auto"
+                  />
+                </td>
+                <td className="py-0.5 text-center">
+                  <Button variant="ghost" size="sm" className="h-5 w-5 p-0 text-muted-foreground hover:text-destructive" onClick={() => removeAlternate(index)}>×</Button>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+          <tfoot>
+            <tr className="border-t-2 border-foreground">
+              <td className="py-1" />
+              <td className="py-1 text-foreground font-bold">ALTERNATES TOTAL</td>
+              <td className="py-1 text-right text-foreground font-bold">{formatCurrency(alternatesTotal)}</td>
+              <td />
             </tr>
           </tfoot>
         </table>

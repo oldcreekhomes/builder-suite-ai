@@ -7,6 +7,7 @@ const TEMPLATE_KEY = "subcontractor-contract-form-data";
 export interface ContractFormData {
   fields: { [key: string]: string };
   lineItems: { letter: string; description: string; amount: number }[];
+  alternates?: { letter: string; description: string; amount: number }[];
 }
 
 export const useContractFormData = () => {
