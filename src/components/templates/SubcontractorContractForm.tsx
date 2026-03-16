@@ -43,9 +43,12 @@ const formatCurrency = (amount: number) =>
 
 const SubcontractorContractForm = ({ onPrintReady }: { onPrintReady?: (printFn: () => void) => void }) => {
   const { articles, exhibits, isLoading } = useTemplateContent("subcontractor-contract");
+  const { savedData, isLoading: isLoadingFormData, save: saveFormData, isSaving } = useContractFormData();
   const [currentPage, setCurrentPage] = useState(1);
+  const isInitialLoad = useRef(true);
+  const [saveStatus, setSaveStatus] = useState<"idle" | "saving" | "saved">("idle");
 
-  const [lineItems, setLineItems] = useState<LineItem[]>([
+  const DEFAULT_LINE_ITEMS: LineItem[] = [
     { letter: "A", description: "General Conditions/Mobilization", amount: 19653 },
     { letter: "B", description: "Erosion Control", amount: 20382 },
     { letter: "C", description: "Site Demolition", amount: 18726 },
@@ -57,11 +60,9 @@ const SubcontractorContractForm = ({ onPrintReady }: { onPrintReady?: (printFn: 
     { letter: "I", description: "Water", amount: 86259 },
     { letter: "J", description: "Site Concrete", amount: 68423 },
     { letter: "K", description: "Asphalt and Paving", amount: 45569 },
-  ]);
+  ];
 
-  const contractTotal = lineItems.reduce((sum, item) => sum + item.amount, 0);
-
-  const [fields, setFields] = useState<ContractFields>({
+  const DEFAULT_FIELDS: ContractFields = {
     contractorName: "Old Creek Homes, LLC",
     contractorAddress: "228 S Washington St Suite B-30, Alexandria, VA 22314",
     contractorPhone: "(240)-418-2388",
@@ -156,7 +157,50 @@ K. Asphalt and Paving
    5. Speed bumps and signage`,
     projectDrawings: exhibits.projectDrawings,
     generalRequirements: exhibits.generalRequirements,
-  });
+  };
+
+  const [lineItems, setLineItems] = useState<LineItem[]>(DEFAULT_LINE_ITEMS);
+  const [fields, setFields] = useState<ContractFields>(DEFAULT_FIELDS);
+
+  // Load saved data once available
+  useEffect(() => {
+    if (savedData && isInitialLoad.current) {
+      if (savedData.fields) {
+        setFields(prev => ({ ...prev, ...savedData.fields }));
+      }
+      if (savedData.lineItems) {
+        setLineItems(savedData.lineItems);
+      }
+      isInitialLoad.current = false;
+    } else if (!isLoadingFormData && !savedData) {
+      isInitialLoad.current = false;
+    }
+  }, [savedData, isLoadingFormData]);
+
+  // Debounced autosave - 2 seconds after last change
+  useEffect(() => {
+    if (isInitialLoad.current || isLoadingFormData) return;
+
+    const timer = setTimeout(() => {
+      setSaveStatus("saving");
+      saveFormData(
+        { fields, lineItems },
+        {
+          onSuccess: () => {
+            setSaveStatus("saved");
+            setTimeout(() => setSaveStatus("idle"), 2000);
+          },
+          onError: () => {
+            setSaveStatus("idle");
+          },
+        }
+      );
+    }, 2000);
+
+    return () => clearTimeout(timer);
+  }, [fields, lineItems]);
+
+  const contractTotal = lineItems.reduce((sum, item) => sum + item.amount, 0);
 
   const update = (key: keyof ContractFields, value: string) =>
     setFields((prev) => ({ ...prev, [key]: value }));
