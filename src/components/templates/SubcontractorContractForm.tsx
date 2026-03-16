@@ -180,7 +180,7 @@ L. Retaining Walls
           mergedFields.scopeOfWork = DEFAULT_FIELDS.scopeOfWork;
         }
         // One-time migration: if saved projectDrawings is missing the full sheet index, use new defaults
-        if (!savedData.fields.projectDrawings || !savedData.fields.projectDrawings.includes("Sheet 1: Cover Sheet")) {
+        if (!savedData.fields.projectDrawings || !savedData.fields.projectDrawings.includes("Sheet 1: Cover Sheet") || !savedData.fields.projectDrawings.includes("HIGHLIGHTED SCOPE OF WORK")) {
           mergedFields.projectDrawings = DEFAULT_FIELDS.projectDrawings;
         }
         setFields(mergedFields);
