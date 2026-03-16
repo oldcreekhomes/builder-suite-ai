@@ -620,22 +620,6 @@ L. Retaining Walls
 
         {currentPage === 5 && (
           <section className="space-y-3">
-            {renderPageHeader("EXHIBIT A – SCOPE OF WORK (CONTINUED)")}
-            <div className="text-sm whitespace-pre-line text-foreground">
-              {fields.scopeOfWork
-                ?.split('\n')
-                .filter((_, i, arr) => {
-                  // Find index of first line starting with G.
-                  const gIndex = arr.findIndex(l => l.trim().startsWith('G.'));
-                  return gIndex >= 0 && i >= gIndex;
-                })
-                .join('\n') || ''}
-            </div>
-          </section>
-        )}
-
-        {currentPage === 6 && (
-          <section className="space-y-3">
             {renderPageHeader("EXHIBIT B – PROJECT DRAWINGS")}
             <Textarea
               value={fields.projectDrawings}
@@ -645,7 +629,7 @@ L. Retaining Walls
           </section>
         )}
 
-        {currentPage === 7 && renderSignatures()}
+        {currentPage === 6 && renderSignatures()}
       </div>
     </div>
   );
