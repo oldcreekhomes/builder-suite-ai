@@ -277,19 +277,55 @@ L. Retaining Walls
     const printWindow = window.open('', '_blank');
     if (!printWindow) return;
 
-    // Split scope of work into chunks per page
-    const scopeLines = (fields.scopeOfWork || '').split('\n');
-    const LINES_PER_PAGE = 75;
-    const scopeChunks: string[][] = [];
-    for (let i = 0; i < scopeLines.length; i += LINES_PER_PAGE) {
-      scopeChunks.push(scopeLines.slice(i, i + LINES_PER_PAGE));
-    }
-    if (scopeChunks.length === 0) scopeChunks.push([]);
+    // Capture print timestamp once
+    const printedAt = new Date();
+    const printDate = printedAt.toLocaleDateString('en-US', { month: '2-digit', day: '2-digit', year: 'numeric' });
+    const printTime = printedAt.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
 
-    const makePage = (_pageNum: number, subtitle: string, content: string) => `
-      <div style="position: relative; width: 8.5in; height: 11in; padding: 0.5in 0.75in; page-break-after: always; box-sizing: border-box;">
+    // Footer helper
+    const makeFooter = (pageNum: number, totalPages: number) => `
+      <div style="position: absolute; bottom: 0.5in; left: 0.75in; right: 0.75in; border-top: 1px solid #000; padding-top: 4px; display: flex; justify-content: space-between; font-size: 9px; color: #444;">
+        <span>${printDate}</span>
+        <span>${printTime}</span>
+        <span>Page ${pageNum} of ${totalPages}</span>
+      </div>
+    `;
+
+    // Section-aware Exhibit A pagination
+    const scopeText = fields.scopeOfWork || '';
+    // Split by major section headers (A., B., C., ... Z.) at the start of a line
+    const sectionRegex = /(?=^[A-Z]\.\s)/m;
+    const rawSections = scopeText.split(sectionRegex).filter(s => s.trim());
+    
+    // Group sections into pages based on estimated line count
+    const MAX_LINES_PER_PAGE = 68; // reduced from 75 to leave room for footer
+    const scopeChunks: string[] = [];
+    let currentChunk = '';
+    let currentLineCount = 0;
+    
+    for (const section of rawSections) {
+      const sectionLines = section.split('\n').length;
+      if (currentLineCount > 0 && currentLineCount + sectionLines > MAX_LINES_PER_PAGE) {
+        // Push current chunk and start a new page
+        scopeChunks.push(currentChunk);
+        currentChunk = section;
+        currentLineCount = sectionLines;
+      } else {
+        currentChunk += (currentChunk ? '\n' : '') + section;
+        currentLineCount += sectionLines;
+      }
+    }
+    if (currentChunk.trim()) scopeChunks.push(currentChunk);
+    if (scopeChunks.length === 0) scopeChunks.push('');
+
+    // Calculate total pages: 1 (summary) + 2 (articles) + scopeChunks + 1 (exhibit B) + 1 (signatures)
+    const totalPages = 3 + scopeChunks.length + 2;
+
+    const makePage = (pageNum: number, subtitle: string, content: string) => `
+      <div style="position: relative; width: 8.5in; height: 11in; padding: 0.5in 0.75in 0.9in 0.75in; page-break-after: always; box-sizing: border-box;">
         ${generatePrintHeader(subtitle)}
         <div style="font-size: 11px;">${content}</div>
+        ${makeFooter(pageNum, totalPages)}
       </div>
     `;
 
@@ -319,7 +355,7 @@ L. Retaining Walls
     // Scope pages
     const scopePages = scopeChunks.map((chunk, i) => {
       const subtitle = i === 0 ? "EXHIBIT A – SCOPE OF WORK" : "EXHIBIT A – SCOPE OF WORK (CONTINUED)";
-      const content = `<div style="white-space: pre-line;">${chunk.join('\n')}</div>`;
+      const content = `<div style="white-space: pre-line;">${chunk}</div>`;
       return makePage(4 + i, subtitle, content);
     }).join('');
 
