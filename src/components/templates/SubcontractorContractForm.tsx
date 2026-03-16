@@ -385,7 +385,7 @@ L. Retaining Walls
 
   const renderPageHeader = (subtitle: string) => (
     <div className="text-center border-b border-foreground pb-3 mb-6">
-      <h1 className="text-lg font-bold tracking-wide text-foreground underline">SUBCONTRACT AGREEMENT</h1>
+      <h1 className="text-lg font-bold tracking-wide text-foreground underline">SUBCONTRACTOR AGREEMENT</h1>
       <p className="text-xs text-muted-foreground mt-1">{subtitle}</p>
     </div>
   );
