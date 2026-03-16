@@ -36,7 +36,7 @@ interface ContractFields {
   generalRequirements: string;
 }
 
-const TOTAL_PAGES = 7;
+const TOTAL_PAGES = 6;
 
 const formatCurrency = (amount: number) =>
   amount.toLocaleString("en-US", { style: "currency", currency: "USD" });
