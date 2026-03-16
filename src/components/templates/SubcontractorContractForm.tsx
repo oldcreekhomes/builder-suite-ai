@@ -220,7 +220,7 @@ K. Asphalt and Paving
     let inRange = false;
     
     for (const line of lines) {
-      const sectionMatch = line.trim().match(/^([A-K])\./);
+      const sectionMatch = line.trim().match(/^([A-Z])\./);
       if (sectionMatch) {
         const letter = sectionMatch[1];
         if (letter >= startLetter && letter <= endLetter) {
@@ -298,7 +298,7 @@ K. Asphalt and Paving
     const page4Content = `<div style="font-size: 11px;">${formatScopeForPrint(fields.scopeOfWork || '', 'A', 'F')}</div>`;
 
     // Page 5: Exhibit A continued (G-K)
-    const page5Content = `<div style="font-size: 11px;">${formatScopeForPrint(fields.scopeOfWork || '', 'G', 'K')}</div>`;
+    const page5Content = `<div style="font-size: 11px;">${formatScopeForPrint(fields.scopeOfWork || '', 'G', 'Z')}</div>`;
 
     // Page 6: Exhibit B
     const page6Content = `<div style="white-space: pre-line; font-size: 11px;">${fields.projectDrawings || ''}</div>`;
@@ -553,7 +553,7 @@ K. Asphalt and Paving
         {currentPage === 5 && (
           <section className="space-y-3">
             {renderPageHeader("EXHIBIT A – SCOPE OF WORK (CONTINUED)")}
-            <p className="text-xs text-muted-foreground italic">This page displays sections G–K in print output.</p>
+            <p className="text-xs text-muted-foreground italic">This page displays sections G–Z in print output.</p>
           </section>
         )}
 
