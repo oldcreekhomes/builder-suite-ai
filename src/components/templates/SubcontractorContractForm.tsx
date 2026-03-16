@@ -625,7 +625,16 @@ L. Retaining Walls
         {currentPage === 5 && (
           <section className="space-y-3">
             {renderPageHeader("EXHIBIT A – SCOPE OF WORK (CONTINUED)")}
-            <p className="text-xs text-muted-foreground italic">This page displays sections G–Z in print output.</p>
+            <div className="text-sm whitespace-pre-line text-foreground">
+              {fields.scopeOfWork
+                ?.split('\n')
+                .filter((_, i, arr) => {
+                  // Find index of first line starting with G.
+                  const gIndex = arr.findIndex(l => l.trim().startsWith('G.'));
+                  return gIndex >= 0 && i >= gIndex;
+                })
+                .join('\n') || ''}
+            </div>
           </section>
         )}
 
