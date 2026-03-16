@@ -240,6 +240,8 @@ L. Retaining Walls
   const contractTotal = lineItems.reduce((sum, item) => sum + item.amount, 0);
   const alternatesTotal = alternates.reduce((sum, item) => sum + item.amount, 0);
 
+  const [editingAmount, setEditingAmount] = useState<{ type: 'line' | 'alt'; index: number; raw: string } | null>(null);
+
   const updateAlternateAmount = (index: number, raw: string) => {
     const num = parseFloat(raw.replace(/[^0-9.-]/g, ""));
     setAlternates((prev) =>
