@@ -553,7 +553,7 @@ K. Asphalt and Paving
         {currentPage === 5 && (
           <section className="space-y-3">
             {renderPageHeader("EXHIBIT A – SCOPE OF WORK (CONTINUED)")}
-            <p className="text-xs text-muted-foreground italic">This page displays sections G–K in print output.</p>
+            <p className="text-xs text-muted-foreground italic">This page displays sections G–Z in print output.</p>
           </section>
         )}
 
