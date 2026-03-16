@@ -5,7 +5,7 @@ import { useAuth } from "./useAuth";
 const TEMPLATE_KEY = "subcontractor-contract-form-data";
 
 export interface ContractFormData {
-  fields: Record<string, string>;
+  fields: { [key: string]: string };
   lineItems: { letter: string; description: string; amount: number }[];
 }
 
