@@ -762,12 +762,23 @@ ${makePage(sigPageNum, "SIGNATURES", signaturesContent)}
         {currentPage === 4 && (
           <section className="space-y-3">
             {renderPageHeader("EXHIBIT A – SCOPE OF WORK")}
-            <Textarea
-              value={fields.scopeOfWork}
-              onChange={(e) => update("scopeOfWork", e.target.value)}
-              placeholder="Describe the scope of work..."
-              className="min-h-[600px] text-sm"
-            />
+            <div className="relative">
+              <div
+                className="min-h-[600px] text-sm whitespace-pre-wrap border rounded-md p-3 focus:outline-none focus:ring-2 focus:ring-ring bg-background"
+                contentEditable
+                suppressContentEditableWarning
+                onBlur={(e) => update("scopeOfWork", e.currentTarget.innerText)}
+                dangerouslySetInnerHTML={{
+                  __html: fields.scopeOfWork
+                    ? fields.scopeOfWork
+                        .replace(/&/g, '&amp;')
+                        .replace(/</g, '&lt;')
+                        .replace(/>/g, '&gt;')
+                        .replace(/^([A-Z]\.\s.+)$/gm, '<strong>$1</strong>')
+                    : '<span class="text-muted-foreground">Describe the scope of work...</span>'
+                }}
+              />
+            </div>
           </section>
         )}
 
