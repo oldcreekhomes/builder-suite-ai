@@ -277,33 +277,18 @@ L. Retaining Walls
     const printWindow = window.open('', '_blank');
     if (!printWindow) return;
 
-    const now = new Date();
-    const dateStr = now.toLocaleDateString('en-US', { month: '2-digit', day: '2-digit', year: '2-digit' });
-    const timeStr = now.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true });
-
-    // Split scope of work into chunks of ~45 lines per page
+    // Split scope of work into chunks per page
     const scopeLines = (fields.scopeOfWork || '').split('\n');
-    const LINES_PER_PAGE = 65;
+    const LINES_PER_PAGE = 75;
     const scopeChunks: string[][] = [];
     for (let i = 0; i < scopeLines.length; i += LINES_PER_PAGE) {
       scopeChunks.push(scopeLines.slice(i, i + LINES_PER_PAGE));
     }
     if (scopeChunks.length === 0) scopeChunks.push([]);
 
-    // totalPages = Contract Summary + Articles + Articles Cont + scope pages + Exhibit B + Signatures
-    const totalPages = 3 + scopeChunks.length + 2;
-
-    const makeFooter = (pageNum: number) => `
-      <div style="position: absolute; bottom: 0.4in; left: 0.75in; right: 0.75in; text-align: right; font-size: 8px; color: #000; border-top: 0.5px solid #ccc; padding-top: 4px;">
-        Page ${pageNum} of ${totalPages}
-      </div>
-    `;
-
-    const makePage = (pageNum: number, subtitle: string, content: string) => `
-      <div style="position: relative; width: 8.5in; height: 11in; padding: 0.6in 0.75in 0.8in 0.75in; page-break-after: always; box-sizing: border-box;">
-        ${generatePrintHeader(subtitle)}
+    const makePage = (_pageNum: number, _subtitle: string, content: string) => `
+      <div style="position: relative; width: 8.5in; height: 11in; padding: 0.5in 0.75in; page-break-after: always; box-sizing: border-box;">
         <div style="font-size: 11px;">${content}</div>
-        ${makeFooter(pageNum)}
       </div>
     `;
 
