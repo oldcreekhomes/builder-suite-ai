@@ -604,18 +604,20 @@ ${makePage(sigPageNum, "SIGNATURES", signaturesContent)}
       {renderPageHeader("SIGNATURES")}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
         <div className="space-y-4">
-          <p className="font-semibold text-foreground">CONTRACTOR</p>
+          <p className="font-semibold text-foreground uppercase">{fields.contractorName || "CONTRACTOR"}</p>
           <div className="border-b border-muted-foreground/40 pt-8" />
           <p className="text-xs text-muted-foreground">Signature</p>
           {renderField("Name", "contractorSignerName")}
           {renderField("Title", "contractorSignerTitle")}
+          {renderField("Date", "contractorSignerDate")}
         </div>
         <div className="space-y-4">
-          <p className="font-semibold text-foreground">SUBCONTRACTOR</p>
+          <p className="font-semibold text-foreground uppercase">{fields.subcontractorName || "SUBCONTRACTOR"}</p>
           <div className="border-b border-muted-foreground/40 pt-8" />
           <p className="text-xs text-muted-foreground">Signature</p>
           {renderField("Name", "subcontractorSignerName")}
           {renderField("Title", "subcontractorSignerTitle")}
+          {renderField("Date", "subcontractorSignerDate")}
         </div>
       </div>
     </section>
