@@ -402,10 +402,10 @@ K. Asphalt and Paving
   const renderPartyBlock = (title: string, fieldKeys: { name: keyof ContractFields; address: keyof ContractFields; phone: keyof ContractFields; contact: keyof ContractFields }, contactLabel: string) => (
     <div className="p-3 space-y-1">
       <h3 className="text-xs font-bold text-foreground tracking-wide">{title}</h3>
-      <Field label="Company" fieldKey={fieldKeys.name} />
-      <Field label="Address" fieldKey={fieldKeys.address} />
-      <Field label="Phone" fieldKey={fieldKeys.phone} />
-      <Field label={contactLabel} fieldKey={fieldKeys.contact} />
+      {renderField("Company", fieldKeys.name)}
+      {renderField("Address", fieldKeys.address)}
+      {renderField("Phone", fieldKeys.phone)}
+      {renderField(contactLabel, fieldKeys.contact)}
     </div>
   );
 
