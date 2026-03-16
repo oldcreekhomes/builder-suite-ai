@@ -234,7 +234,7 @@ L. Retaining Walls
 
   const generatePrintHeader = (subtitle: string) => `
     <div style="text-align: center; border-bottom: 1px solid #000; padding-bottom: 8px; margin-bottom: 12px;">
-      <h1 style="font-size: 16px; font-weight: 700; text-decoration: underline; margin: 0;">SUBCONTRACT AGREEMENT</h1>
+      <h1 style="font-size: 16px; font-weight: 700; text-decoration: underline; margin: 0;">SUBCONTRACTOR AGREEMENT</h1>
       <p style="font-size: 10px; color: #888; margin: 4px 0 0 0;">${subtitle}</p>
     </div>
   `;
