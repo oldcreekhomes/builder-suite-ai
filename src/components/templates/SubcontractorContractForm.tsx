@@ -35,7 +35,7 @@ interface ContractFields {
   generalRequirements: string;
 }
 
-const TOTAL_PAGES = 6;
+const TOTAL_PAGES = 7;
 
 const formatCurrency = (amount: number) =>
   amount.toLocaleString("en-US", { style: "currency", currency: "USD" });
@@ -249,7 +249,7 @@ K. Asphalt and Paving
     const now = new Date();
     const dateStr = now.toLocaleDateString('en-US', { month: '2-digit', day: '2-digit', year: '2-digit' });
     const timeStr = now.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true });
-    const totalPages = 6;
+    const totalPages = 7;
 
     const makeFooter = (pageNum: number) => `
       <div style="position: absolute; bottom: 0; left: 0; right: 0; display: flex; justify-content: space-between; align-items: center; font-size: 8px; color: #000; padding: 4px 0 6px 0; border-top: 0.5px solid #ccc;">
@@ -285,20 +285,26 @@ K. Asphalt and Paving
       fields.startDate ? `<p style="font-size: 11px; margin-top: 12px;"><strong>Start Date:</strong> ${fields.startDate}</p>` : '',
     ].join('');
 
-    // Page 2: Articles
-    const page2Content = generatePrintArticles(getEnrichedArticles(articles));
+    // Page 2: Articles (1-8)
+    const enrichedArticles = getEnrichedArticles(articles);
+    const articlesFirstHalf = enrichedArticles.filter(a => a.num <= 8);
+    const articlesSecondHalf = enrichedArticles.filter(a => a.num > 8);
+    const page2Content = generatePrintArticles(articlesFirstHalf);
 
-    // Page 3: Exhibit A (A-F)
-    const page3Content = `<div style="font-size: 11px;">${formatScopeForPrint(fields.scopeOfWork || '', 'A', 'F')}</div>`;
+    // Page 3: Articles continued (9-15)
+    const page3Content = generatePrintArticles(articlesSecondHalf);
 
-    // Page 4: Exhibit A continued (G-K)
-    const page4Content = `<div style="font-size: 11px;">${formatScopeForPrint(fields.scopeOfWork || '', 'G', 'K')}</div>`;
+    // Page 4: Exhibit A (A-F)
+    const page4Content = `<div style="font-size: 11px;">${formatScopeForPrint(fields.scopeOfWork || '', 'A', 'F')}</div>`;
 
-    // Page 5: Exhibit B
-    const page5Content = `<div style="white-space: pre-line; font-size: 11px;">${fields.projectDrawings || ''}</div>`;
+    // Page 5: Exhibit A continued (G-K)
+    const page5Content = `<div style="font-size: 11px;">${formatScopeForPrint(fields.scopeOfWork || '', 'G', 'K')}</div>`;
 
-    // Page 6: Signatures
-    const page6Content = [
+    // Page 6: Exhibit B
+    const page6Content = `<div style="white-space: pre-line; font-size: 11px;">${fields.projectDrawings || ''}</div>`;
+
+    // Page 7: Signatures
+    const page7Content = [
       `<div style="display: flex; gap: 40px; margin-top: 24px;">`,
       `<div style="flex: 1;"><p style="font-weight: 600;">CONTRACTOR</p><div style="border-bottom: 1px solid #999; height: 40px; margin-top: 20px;"></div><p style="font-size: 10px; color: #888;">Signature</p><p style="font-size: 11px; margin-top: 8px;"><strong>Name:</strong> ${fields.contractorSignerName || '_______________'}</p><p style="font-size: 11px;"><strong>Title:</strong> ${fields.contractorSignerTitle || '_______________'}</p></div>`,
       `<div style="flex: 1;"><p style="font-weight: 600;">SUBCONTRACTOR</p><div style="border-bottom: 1px solid #999; height: 40px; margin-top: 20px;"></div><p style="font-size: 10px; color: #888;">Signature</p><p style="font-size: 11px; margin-top: 8px;"><strong>Name:</strong> ${fields.subcontractorSignerName || '_______________'}</p><p style="font-size: 11px;"><strong>Title:</strong> ${fields.subcontractorSignerTitle || '_______________'}</p></div>`,
@@ -316,10 +322,11 @@ K. Asphalt and Paving
       `</style></head><body style="padding: 0.5in 0.75in;">`,
       makePage(1, "CONTRACT SUMMARY", page1Content),
       makePage(2, "ARTICLES", page2Content),
-      makePage(3, "EXHIBIT A – SCOPE OF WORK", page3Content),
-      makePage(4, "EXHIBIT A – SCOPE OF WORK (CONTINUED)", page4Content),
-      makePage(5, "EXHIBIT B – PROJECT DRAWINGS", page5Content),
-      makePage(6, "SIGNATURES", page6Content),
+      makePage(3, "ARTICLES (CONTINUED)", page3Content),
+      makePage(4, "EXHIBIT A – SCOPE OF WORK", page4Content),
+      makePage(5, "EXHIBIT A – SCOPE OF WORK (CONTINUED)", page5Content),
+      makePage(6, "EXHIBIT B – PROJECT DRAWINGS", page6Content),
+      makePage(7, "SIGNATURES", page7Content),
       `</body></html>`
     ].join('\n');
 
@@ -520,11 +527,18 @@ K. Asphalt and Paving
         {currentPage === 2 && (
           <section className="space-y-4">
             {renderPageHeader("ARTICLES")}
-            {renderArticles(getEnrichedArticles(articles))}
+            {renderArticles(getEnrichedArticles(articles).filter(a => a.num <= 8))}
           </section>
         )}
 
         {currentPage === 3 && (
+          <section className="space-y-4">
+            {renderPageHeader("ARTICLES (CONTINUED)")}
+            {renderArticles(getEnrichedArticles(articles).filter(a => a.num > 8))}
+          </section>
+        )}
+
+        {currentPage === 4 && (
           <section className="space-y-3">
             {renderPageHeader("EXHIBIT A – SCOPE OF WORK")}
             <Textarea
@@ -536,14 +550,14 @@ K. Asphalt and Paving
           </section>
         )}
 
-        {currentPage === 4 && (
+        {currentPage === 5 && (
           <section className="space-y-3">
             {renderPageHeader("EXHIBIT A – SCOPE OF WORK (CONTINUED)")}
             <p className="text-xs text-muted-foreground italic">This page displays sections G–K in print output.</p>
           </section>
         )}
 
-        {currentPage === 5 && (
+        {currentPage === 6 && (
           <section className="space-y-3">
             {renderPageHeader("EXHIBIT B – PROJECT DRAWINGS")}
             <Textarea
@@ -554,7 +568,7 @@ K. Asphalt and Paving
           </section>
         )}
 
-        {currentPage === 6 && renderSignatures()}
+        {currentPage === 7 && renderSignatures()}
       </div>
     </div>
   );
