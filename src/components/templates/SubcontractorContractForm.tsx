@@ -286,8 +286,9 @@ L. Retaining Walls
     }
     if (scopeChunks.length === 0) scopeChunks.push([]);
 
-    const makePage = (_pageNum: number, _subtitle: string, content: string) => `
+    const makePage = (_pageNum: number, subtitle: string, content: string) => `
       <div style="position: relative; width: 8.5in; height: 11in; padding: 0.5in 0.75in; page-break-after: always; box-sizing: border-box;">
+        ${generatePrintHeader(subtitle)}
         <div style="font-size: 11px;">${content}</div>
       </div>
     `;
