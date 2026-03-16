@@ -285,13 +285,13 @@ K. Asphalt and Paving
       fields.startDate ? `<p style="font-size: 11px; margin-top: 12px;"><strong>Start Date:</strong> ${fields.startDate}</p>` : '',
     ].join('');
 
-    // Page 2: Articles (1-8)
+    // Page 2: Articles (1-9)
     const enrichedArticles = getEnrichedArticles(articles);
-    const articlesFirstHalf = enrichedArticles.filter(a => a.num <= 8);
-    const articlesSecondHalf = enrichedArticles.filter(a => a.num > 8);
+    const articlesFirstHalf = enrichedArticles.filter(a => a.num <= 9);
+    const articlesSecondHalf = enrichedArticles.filter(a => a.num > 9);
     const page2Content = generatePrintArticles(articlesFirstHalf);
 
-    // Page 3: Articles continued (9-15)
+    // Page 3: Articles continued (10-15)
     const page3Content = generatePrintArticles(articlesSecondHalf);
 
     // Page 4: Exhibit A (A-F)
@@ -527,14 +527,14 @@ K. Asphalt and Paving
         {currentPage === 2 && (
           <section className="space-y-4">
             {renderPageHeader("ARTICLES")}
-            {renderArticles(getEnrichedArticles(articles).filter(a => a.num <= 8))}
+            {renderArticles(getEnrichedArticles(articles).filter(a => a.num <= 9))}
           </section>
         )}
 
         {currentPage === 3 && (
           <section className="space-y-4">
             {renderPageHeader("ARTICLES (CONTINUED)")}
-            {renderArticles(getEnrichedArticles(articles).filter(a => a.num > 8))}
+            {renderArticles(getEnrichedArticles(articles).filter(a => a.num > 9))}
           </section>
         )}
 

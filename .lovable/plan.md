@@ -1,17 +1,9 @@
 
+## ✅ COMPLETED: Fix Bill Payment — Credit Calculation + Data Repair + Consolidated Payment View
 
-## Plan: Move Article 9 to Page 2
+All three fixes have been implemented:
 
-Change the split point from Articles 1-8 / 9-15 to Articles 1-9 / 10-15.
-
-### Changes — `src/components/templates/SubcontractorContractForm.tsx`
-
-Update 4 locations where the split filter is applied:
-
-1. **Line 290**: Change `a.num <= 8` → `a.num <= 9`
-2. **Line 291**: Change `a.num > 8` → `a.num > 9`
-3. **Line 530**: Change `a.num <= 8` → `a.num <= 9`
-4. **Line 537**: Change `a.num > 8` → `a.num > 9`
-
-This moves Article 9 (Insurance) onto the end of Page 2, and Page 3 will start with Article 10 (Safety).
-
+1. **Credit remaining balance formula** — Fixed in `useBills.ts` line 417 to use `total_amount + amount_paid` for credits
+2. **Proportional credit distribution** — Fixed in `BillsApprovalTable.tsx` to distribute credits proportionally based on each bill's share of positive allocations
+3. **Consolidated payment view** — Paid tab now groups multi-bill payments with expandable rows showing individual allocations (bills + credits)
+4. **Data repair** — Corrected over-allocated amounts for OCH-02302 via SQL migration
