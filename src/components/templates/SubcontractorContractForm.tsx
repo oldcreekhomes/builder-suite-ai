@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useRef } from "react";
+import { useState, useEffect, useCallback, useRef, useMemo } from "react";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
@@ -239,6 +239,8 @@ L. Retaining Walls
 
   const contractTotal = lineItems.reduce((sum, item) => sum + item.amount, 0);
   const alternatesTotal = alternates.reduce((sum, item) => sum + item.amount, 0);
+
+  const [editingAmount, setEditingAmount] = useState<{ type: 'line' | 'alt'; index: number; raw: string } | null>(null);
 
   const updateAlternateAmount = (index: number, raw: string) => {
     const num = parseFloat(raw.replace(/[^0-9.-]/g, ""));
@@ -611,8 +613,19 @@ ${makePage(sigPageNum, "SIGNATURES", signaturesContent)}
                 <td className="py-0.5 text-foreground">{item.description}</td>
                 <td className="py-0.5 text-right">
                   <Input
-                    value={formatCurrency(item.amount)}
-                    onChange={(e) => updateLineItemAmount(index, e.target.value)}
+                    value={
+                      editingAmount?.type === 'line' && editingAmount.index === index
+                        ? editingAmount.raw
+                        : formatCurrency(item.amount)
+                    }
+                    onFocus={() => setEditingAmount({ type: 'line', index, raw: item.amount ? String(item.amount) : '' })}
+                    onChange={(e) => setEditingAmount(prev => prev ? { ...prev, raw: e.target.value } : null)}
+                    onBlur={() => {
+                      if (editingAmount) {
+                        updateLineItemAmount(index, editingAmount.raw);
+                        setEditingAmount(null);
+                      }
+                    }}
                     className="h-5 text-xs text-right border-0 bg-transparent px-0 focus-visible:ring-0 focus-visible:ring-offset-0 w-28 ml-auto"
                   />
                 </td>
@@ -659,8 +672,19 @@ ${makePage(sigPageNum, "SIGNATURES", signaturesContent)}
                 </td>
                 <td className="py-0.5 text-right">
                   <Input
-                    value={formatCurrency(item.amount)}
-                    onChange={(e) => updateAlternateAmount(index, e.target.value)}
+                    value={
+                      editingAmount?.type === 'alt' && editingAmount.index === index
+                        ? editingAmount.raw
+                        : formatCurrency(item.amount)
+                    }
+                    onFocus={() => setEditingAmount({ type: 'alt', index, raw: item.amount ? String(item.amount) : '' })}
+                    onChange={(e) => setEditingAmount(prev => prev ? { ...prev, raw: e.target.value } : null)}
+                    onBlur={() => {
+                      if (editingAmount) {
+                        updateAlternateAmount(index, editingAmount.raw);
+                        setEditingAmount(null);
+                      }
+                    }}
                     className="h-5 text-xs text-right border-0 bg-transparent px-0 focus-visible:ring-0 focus-visible:ring-offset-0 w-28 ml-auto"
                   />
                 </td>
