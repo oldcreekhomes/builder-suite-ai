@@ -238,6 +238,23 @@ L. Retaining Walls
   }, [fields, lineItems, alternates]);
 
   const contractTotal = lineItems.reduce((sum, item) => sum + item.amount, 0);
+  const alternatesTotal = alternates.reduce((sum, item) => sum + item.amount, 0);
+
+  const updateAlternateAmount = (index: number, raw: string) => {
+    const num = parseFloat(raw.replace(/[^0-9.-]/g, ""));
+    setAlternates((prev) =>
+      prev.map((item, i) => (i === index ? { ...item, amount: isNaN(num) ? 0 : num } : item))
+    );
+  };
+
+  const addAlternate = () => {
+    const nextNum = alternates.length + 1;
+    setAlternates((prev) => [...prev, { letter: String(nextNum), description: "", amount: 0 }]);
+  };
+
+  const removeAlternate = (index: number) => {
+    setAlternates((prev) => prev.filter((_, i) => i !== index).map((item, i) => ({ ...item, letter: String(i + 1) })));
+  };
 
   const update = (key: keyof ContractFields, value: string) =>
     setFields((prev) => ({ ...prev, [key]: value }));
