@@ -81,8 +81,10 @@ const SubcontractorContractForm = ({ onPrintReady }: { onPrintReady?: (printFn: 
     contractDate: "March 12, 2026",
     contractorSignerName: "",
     contractorSignerTitle: "",
+    contractorSignerDate: "",
     subcontractorSignerName: "",
     subcontractorSignerTitle: "",
+    subcontractorSignerDate: "",
     scopeOfWork: `A. General Conditions/Mobilization
    1. Project mobilization and site setup
    2. Temporary facilities and utilities
