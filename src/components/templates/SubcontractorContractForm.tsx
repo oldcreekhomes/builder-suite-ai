@@ -160,15 +160,7 @@ K. Asphalt and Paving
   const update = (key: keyof ContractFields, value: string) =>
     setFields((prev) => ({ ...prev, [key]: value }));
 
-  const Field = ({
-    label,
-    fieldKey,
-    className = "",
-  }: {
-    label: string;
-    fieldKey: keyof ContractFields;
-    className?: string;
-  }) => (
+  const renderField = (label: string, fieldKey: keyof ContractFields, className = "") => (
     <div className={`flex items-baseline gap-2 ${className}`}>
       <span className="text-sm font-medium whitespace-nowrap">{label}:</span>
       <Input
