@@ -283,7 +283,7 @@ L. Retaining Walls
 
     // Split scope of work into chunks of ~45 lines per page
     const scopeLines = (fields.scopeOfWork || '').split('\n');
-    const LINES_PER_PAGE = 45;
+    const LINES_PER_PAGE = 65;
     const scopeChunks: string[][] = [];
     for (let i = 0; i < scopeLines.length; i += LINES_PER_PAGE) {
       scopeChunks.push(scopeLines.slice(i, i + LINES_PER_PAGE));
