@@ -476,7 +476,7 @@ K. Asphalt and Paving
       </div>
 
       <div className="flex gap-4">
-        <Field label="Start Date" fieldKey="startDate" className="flex-1" />
+        {renderField("Start Date", "startDate", "flex-1")}
       </div>
     </div>
   );
