@@ -420,18 +420,32 @@ K. Asphalt and Paving
         <ChevronLeft className="h-4 w-4" />
         Previous
       </Button>
-      <div className="flex items-center gap-1">
-        {Array.from({ length: TOTAL_PAGES }, (_, i) => i + 1).map((page) => (
-          <Button
-            key={page}
-            variant={page === currentPage ? "default" : "outline"}
-            size="sm"
-            className="h-8 w-8 p-0"
-            onClick={() => setCurrentPage(page)}
-          >
-            {page}
-          </Button>
-        ))}
+      <div className="flex items-center gap-2">
+        <div className="flex items-center gap-1">
+          {Array.from({ length: TOTAL_PAGES }, (_, i) => i + 1).map((page) => (
+            <Button
+              key={page}
+              variant={page === currentPage ? "default" : "outline"}
+              size="sm"
+              className="h-8 w-8 p-0"
+              onClick={() => setCurrentPage(page)}
+            >
+              {page}
+            </Button>
+          ))}
+        </div>
+        {saveStatus === "saving" && (
+          <span className="flex items-center gap-1 text-xs text-muted-foreground animate-pulse">
+            <Loader2 className="h-3 w-3 animate-spin" />
+            Saving...
+          </span>
+        )}
+        {saveStatus === "saved" && (
+          <span className="flex items-center gap-1 text-xs text-muted-foreground">
+            <Check className="h-3 w-3 text-green-500" />
+            Saved
+          </span>
+        )}
       </div>
       <Button
         variant="ghost"
