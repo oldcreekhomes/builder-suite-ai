@@ -137,24 +137,32 @@ H. Storm Drain
 
 I. Water
    1. Water main installation
-   2. Water service lateral connections
+   2. Water service lateral connections by VA American Water
    3. Fire hydrant installation
    4. Valve and fitting installation
-   5. Pressure testing and bacteriological testing
+   5. Pressure, Fire Marshal and chlorination testing
+   6. Removal, transportation and disposal of spoils
 
 J. Site Concrete
    1. Concrete curb and gutter installation
-   2. Sidewalk construction
-   3. Concrete pad and apron installation
-   4. ADA ramp construction
-   5. Concrete dumpster pads
+   2. Sidewalk installations
+   3. Apron installations
+   4. Curb & gutter installations
+   5. Inspection coordination
+   6. Maintenance of Traffic including flaggers
+   7. Removal, transportation and disposal of spoils
 
 K. Asphalt and Paving
    1. Aggregate base course installation
-   2. Asphalt base course paving
-   3. Asphalt surface course paving
-   4. Pavement markings and striping
-   5. Speed bumps and signage`,
+   2. Asphalt base course paving. Assumes demobilization at this point.
+   3. Asphalt surface course paving. 2nd mobilization included
+   4. Removal, transportation and disposal of spoils if needed
+   5. Inspection coordination as required
+   6. Maintenance of Traffic including flaggers
+
+L. Retaining Walls
+   1. Excluded from contract
+   2. Subcontractor must meet with Contractor, prior to starting, to coordinate installation of retaining walls`,
     projectDrawings: exhibits.projectDrawings,
     generalRequirements: exhibits.generalRequirements,
   };
