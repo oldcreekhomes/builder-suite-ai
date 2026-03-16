@@ -280,7 +280,7 @@ L. Retaining Walls
     const now = new Date();
     const dateStr = now.toLocaleDateString('en-US', { month: '2-digit', day: '2-digit', year: '2-digit' });
     const timeStr = now.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true });
-    const totalPages = 6;
+    const totalPages = 7;
 
     const makeFooter = (pageNum: number) => `
       <div style="position: absolute; bottom: 0.5in; left: 0.75in; right: 0.75in; display: flex; justify-content: space-between; align-items: center; font-size: 8px; color: #000; padding: 4px 0 6px 0; border-top: 0.5px solid #ccc;">
@@ -325,14 +325,28 @@ L. Retaining Walls
     // Page 3: Articles continued (10-15)
     const page3Content = generatePrintArticles(articlesSecondHalf);
 
-    // Page 4: Exhibit A (full scope)
-    const page4Content = `<div style="font-size: 11px; white-space: pre-line;">${fields.scopeOfWork || ''}</div>`;
+    // Page 4 & 5: Exhibit A split at section "I."
+    const scopeText = fields.scopeOfWork || '';
+    const scopeLines = scopeText.split('\n');
+    const splitIndex = scopeLines.findIndex(line => /^\s*I\.\s/.test(line));
+    let page4Scope: string;
+    let page5Scope: string;
+    if (splitIndex > 0) {
+      page4Scope = scopeLines.slice(0, splitIndex).join('\n');
+      page5Scope = scopeLines.slice(splitIndex).join('\n');
+    } else {
+      // If no split point found, put everything on page 4
+      page4Scope = scopeText;
+      page5Scope = '';
+    }
+    const page4Content = `<div style="font-size: 11px; white-space: pre-line;">${page4Scope}</div>`;
+    const page5Content = `<div style="font-size: 11px; white-space: pre-line;">${page5Scope}</div>`;
 
-    // Page 5: Exhibit B
-    const page5Content = `<div style="white-space: pre-line; font-size: 11px;">${fields.projectDrawings || ''}</div>`;
+    // Page 6: Exhibit B
+    const page6Content = `<div style="white-space: pre-line; font-size: 11px;">${fields.projectDrawings || ''}</div>`;
 
-    // Page 6: Signatures
-    const page6Content = [
+    // Page 7: Signatures
+    const page7Content = [
       `<div style="display: flex; gap: 40px; margin-top: 24px;">`,
       `<div style="flex: 1;"><p style="font-weight: 600;">CONTRACTOR</p><div style="border-bottom: 1px solid #999; height: 40px; margin-top: 20px;"></div><p style="font-size: 10px; color: #888;">Signature</p><p style="font-size: 11px; margin-top: 8px;"><strong>Name:</strong> ${fields.contractorSignerName || '_______________'}</p><p style="font-size: 11px;"><strong>Title:</strong> ${fields.contractorSignerTitle || '_______________'}</p></div>`,
       `<div style="flex: 1;"><p style="font-weight: 600;">SUBCONTRACTOR</p><div style="border-bottom: 1px solid #999; height: 40px; margin-top: 20px;"></div><p style="font-size: 10px; color: #888;">Signature</p><p style="font-size: 11px; margin-top: 8px;"><strong>Name:</strong> ${fields.subcontractorSignerName || '_______________'}</p><p style="font-size: 11px;"><strong>Title:</strong> ${fields.subcontractorSignerTitle || '_______________'}</p></div>`,
@@ -352,8 +366,9 @@ L. Retaining Walls
       makePage(2, "ARTICLES", page2Content),
       makePage(3, "ARTICLES (CONTINUED)", page3Content),
       makePage(4, "EXHIBIT A – SCOPE OF WORK", page4Content),
-      makePage(5, "EXHIBIT B – PROJECT DRAWINGS", page5Content),
-      makePage(6, "SIGNATURES", page6Content),
+      makePage(5, "EXHIBIT A – SCOPE OF WORK (CONTINUED)", page5Content),
+      makePage(6, "EXHIBIT B – PROJECT DRAWINGS", page6Content),
+      makePage(7, "SIGNATURES", page7Content),
       `</body></html>`
     ].join('\n');
 
