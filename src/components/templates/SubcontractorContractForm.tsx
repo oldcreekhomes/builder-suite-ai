@@ -280,25 +280,6 @@ L. Retaining Walls
     const now = new Date();
     const dateStr = now.toLocaleDateString('en-US', { month: '2-digit', day: '2-digit', year: '2-digit' });
     const timeStr = now.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true });
-    const totalPages = 7;
-
-    const makeFooter = (pageNum: number) => `
-      <div style="position: absolute; bottom: 0.5in; left: 0.75in; right: 0.75in; display: flex; justify-content: space-between; align-items: center; font-size: 8px; color: #000; padding: 4px 0 6px 0; border-top: 0.5px solid #ccc;">
-        <span>${dateStr}</span>
-        <span>${timeStr}</span>
-        <span>Page ${pageNum} of ${totalPages}</span>
-      </div>
-    `;
-
-    const makePage = (pageNum: number, subtitle: string, content: string) => `
-      <div style="min-height: 11in; position: relative; box-sizing: border-box; padding: 0.5in 0.75in; ${pageNum > 1 ? 'page-break-before: always;' : ''}">
-        ${generatePrintHeader(subtitle)}
-        <div style="margin-top: 12px;">
-          ${content}
-        </div>
-        ${makeFooter(pageNum)}
-      </div>
-    `;
 
     // Page 1: Contract Summary
     const page1Content = [
@@ -316,61 +297,149 @@ L. Retaining Walls
       fields.startDate ? `<p style="font-size: 11px; margin-top: 12px;"><strong>Start Date:</strong> ${fields.startDate}</p>` : '',
     ].join('');
 
-    // Page 2: Articles (1-9)
+    // Articles
     const enrichedArticles = getEnrichedArticles(articles);
     const articlesFirstHalf = enrichedArticles.filter(a => a.num <= 9);
     const articlesSecondHalf = enrichedArticles.filter(a => a.num > 9);
     const page2Content = generatePrintArticles(articlesFirstHalf);
-
-    // Page 3: Articles continued (10-15)
     const page3Content = generatePrintArticles(articlesSecondHalf);
 
-    // Page 4 & 5: Exhibit A split at section "I."
-    const scopeText = fields.scopeOfWork || '';
-    const scopeLines = scopeText.split('\n');
-    const splitIndex = scopeLines.findIndex(line => /^\s*I\.\s/.test(line));
-    let page4Scope: string;
-    let page5Scope: string;
-    if (splitIndex > 0) {
-      page4Scope = scopeLines.slice(0, splitIndex).join('\n');
-      page5Scope = scopeLines.slice(splitIndex).join('\n');
-    } else {
-      // If no split point found, put everything on page 4
-      page4Scope = scopeText;
-      page5Scope = '';
-    }
-    const page4Content = `<div style="font-size: 11px; white-space: pre-line;">${page4Scope}</div>`;
-    const page5Content = `<div style="font-size: 11px; white-space: pre-line;">${page5Scope}</div>`;
+    // Exhibit A — flows naturally, no split
+    const scopeContent = `<div style="font-size: 11px; white-space: pre-line;">${fields.scopeOfWork || ''}</div>`;
 
-    // Page 6: Exhibit B
-    const page6Content = `<div style="white-space: pre-line; font-size: 11px;">${fields.projectDrawings || ''}</div>`;
+    // Exhibit B
+    const exhibitBContent = `<div style="white-space: pre-line; font-size: 11px;">${fields.projectDrawings || ''}</div>`;
 
-    // Page 7: Signatures
-    const page7Content = [
+    // Signatures
+    const signaturesContent = [
       `<div style="display: flex; gap: 40px; margin-top: 24px;">`,
       `<div style="flex: 1;"><p style="font-weight: 600;">CONTRACTOR</p><div style="border-bottom: 1px solid #999; height: 40px; margin-top: 20px;"></div><p style="font-size: 10px; color: #888;">Signature</p><p style="font-size: 11px; margin-top: 8px;"><strong>Name:</strong> ${fields.contractorSignerName || '_______________'}</p><p style="font-size: 11px;"><strong>Title:</strong> ${fields.contractorSignerTitle || '_______________'}</p></div>`,
       `<div style="flex: 1;"><p style="font-weight: 600;">SUBCONTRACTOR</p><div style="border-bottom: 1px solid #999; height: 40px; margin-top: 20px;"></div><p style="font-size: 10px; color: #888;">Signature</p><p style="font-size: 11px; margin-top: 8px;"><strong>Name:</strong> ${fields.subcontractorSignerName || '_______________'}</p><p style="font-size: 11px;"><strong>Title:</strong> ${fields.subcontractorSignerTitle || '_______________'}</p></div>`,
       `</div>`,
     ].join('');
 
-    const htmlContent = [
-      `<!DOCTYPE html><html><head><title> </title>`,
-      `<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Montserrat:wght@300;400;500;600;700&display=swap">`,
-      `<style>`,
-      `* { box-sizing: border-box; }`,
-      `body { font-family: 'Montserrat', sans-serif; font-size: 11px; margin: 0; padding: 0; }`,
-      `table { border-collapse: collapse; width: 100%; }`,
-      `@media print { @page { margin: 0; size: letter; } }`,
-      `</style></head><body style="padding: 0; margin: 0;">`,
-      makePage(1, "CONTRACT SUMMARY", page1Content),
-      makePage(2, "ARTICLES", page2Content),
-      makePage(3, "ARTICLES (CONTINUED)", page3Content),
-      makePage(4, "EXHIBIT A – SCOPE OF WORK", page4Content),
-      makePage(5, "EXHIBIT A – SCOPE OF WORK (CONTINUED)", page5Content),
-      makePage(6, "EXHIBIT B – PROJECT DRAWINGS", page6Content),
-      makePage(7, "SIGNATURES", page7Content),
-      `</body></html>`
-    ].join('\n');
+    const sectionHeader = (subtitle: string) => `
+      <div style="text-align: center; border-bottom: 1px solid #000; padding-bottom: 8px; margin-bottom: 12px;">
+        <p style="font-size: 10px; color: #888; margin: 0;">${subtitle}</p>
+      </div>
+    `;
+
+    const htmlContent = `<!DOCTYPE html><html><head><title> </title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Montserrat:wght@300;400;500;600;700&display=swap">
+<style>
+  * { box-sizing: border-box; }
+  body { font-family: 'Montserrat', sans-serif; font-size: 11px; margin: 0; padding: 0; }
+  table { border-collapse: collapse; width: 100%; }
+
+  @media print {
+    @page {
+      size: letter;
+      margin: 0.9in 0.75in 0.8in 0.75in;
+    }
+  }
+
+  /* Fixed header repeats on every printed page */
+  .print-header {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    text-align: center;
+    padding-bottom: 6px;
+    border-bottom: 1px solid #000;
+    background: white;
+  }
+  .print-header h1 {
+    font-size: 16px;
+    font-weight: 700;
+    text-decoration: underline;
+    margin: 0;
+  }
+
+  /* Fixed footer repeats on every printed page */
+  .print-footer {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-size: 8px;
+    color: #000;
+    padding: 4px 0 0 0;
+    border-top: 0.5px solid #ccc;
+    background: white;
+  }
+  .print-footer .page-number::after {
+    content: "Page " counter(page) " of " counter(pages);
+  }
+
+  /* Spacers to push body content away from fixed header/footer */
+  .header-spacer {
+    height: 30px;
+  }
+  .footer-spacer {
+    height: 20px;
+  }
+
+  /* Section breaks */
+  .section-break {
+    page-break-before: always;
+  }
+</style></head><body>
+
+<!-- Fixed elements that repeat on every page -->
+<div class="print-header">
+  <h1>SUBCONTRACTOR AGREEMENT</h1>
+</div>
+<div class="print-footer">
+  <span>${dateStr}</span>
+  <span>${timeStr}</span>
+  <span class="page-number"></span>
+</div>
+
+<!-- Spacer for fixed header -->
+<div class="header-spacer"></div>
+
+<!-- Page 1: Contract Summary -->
+${sectionHeader("CONTRACT SUMMARY")}
+${page1Content}
+
+<!-- Page 2: Articles -->
+<div class="section-break">
+  ${sectionHeader("ARTICLES")}
+  ${page2Content}
+</div>
+
+<!-- Page 3: Articles Continued -->
+<div class="section-break">
+  ${sectionHeader("ARTICLES (CONTINUED)")}
+  ${page3Content}
+</div>
+
+<!-- Page 4+: Exhibit A — flows naturally -->
+<div class="section-break">
+  ${sectionHeader("EXHIBIT A – SCOPE OF WORK")}
+  ${scopeContent}
+</div>
+
+<!-- Exhibit B -->
+<div class="section-break">
+  ${sectionHeader("EXHIBIT B – PROJECT DRAWINGS")}
+  ${exhibitBContent}
+</div>
+
+<!-- Signatures -->
+<div class="section-break">
+  ${sectionHeader("SIGNATURES")}
+  ${signaturesContent}
+</div>
+
+<!-- Spacer for fixed footer -->
+<div class="footer-spacer"></div>
+
+</body></html>`;
 
     printWindow.document.write(htmlContent);
     printWindow.document.close();
