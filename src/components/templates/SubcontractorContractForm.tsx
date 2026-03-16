@@ -1,9 +1,10 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
-import { ChevronLeft, ChevronRight } from "lucide-react";
+import { ChevronLeft, ChevronRight, Check, Loader2 } from "lucide-react";
 import { useTemplateContent } from "@/hooks/useTemplateContent";
+import { useContractFormData } from "@/hooks/useContractFormData";
 
 interface LineItem {
   letter: string;
@@ -42,9 +43,12 @@ const formatCurrency = (amount: number) =>
 
 const SubcontractorContractForm = ({ onPrintReady }: { onPrintReady?: (printFn: () => void) => void }) => {
   const { articles, exhibits, isLoading } = useTemplateContent("subcontractor-contract");
+  const { savedData, isLoading: isLoadingFormData, save: saveFormData, isSaving } = useContractFormData();
   const [currentPage, setCurrentPage] = useState(1);
+  const isInitialLoad = useRef(true);
+  const [saveStatus, setSaveStatus] = useState<"idle" | "saving" | "saved">("idle");
 
-  const [lineItems, setLineItems] = useState<LineItem[]>([
+  const DEFAULT_LINE_ITEMS: LineItem[] = [
     { letter: "A", description: "General Conditions/Mobilization", amount: 19653 },
     { letter: "B", description: "Erosion Control", amount: 20382 },
     { letter: "C", description: "Site Demolition", amount: 18726 },
@@ -56,11 +60,9 @@ const SubcontractorContractForm = ({ onPrintReady }: { onPrintReady?: (printFn: 
     { letter: "I", description: "Water", amount: 86259 },
     { letter: "J", description: "Site Concrete", amount: 68423 },
     { letter: "K", description: "Asphalt and Paving", amount: 45569 },
-  ]);
+  ];
 
-  const contractTotal = lineItems.reduce((sum, item) => sum + item.amount, 0);
-
-  const [fields, setFields] = useState<ContractFields>({
+  const DEFAULT_FIELDS: ContractFields = {
     contractorName: "Old Creek Homes, LLC",
     contractorAddress: "228 S Washington St Suite B-30, Alexandria, VA 22314",
     contractorPhone: "(240)-418-2388",
@@ -155,7 +157,50 @@ K. Asphalt and Paving
    5. Speed bumps and signage`,
     projectDrawings: exhibits.projectDrawings,
     generalRequirements: exhibits.generalRequirements,
-  });
+  };
+
+  const [lineItems, setLineItems] = useState<LineItem[]>(DEFAULT_LINE_ITEMS);
+  const [fields, setFields] = useState<ContractFields>(DEFAULT_FIELDS);
+
+  // Load saved data once available
+  useEffect(() => {
+    if (savedData && isInitialLoad.current) {
+      if (savedData.fields) {
+        setFields(prev => ({ ...prev, ...savedData.fields }));
+      }
+      if (savedData.lineItems) {
+        setLineItems(savedData.lineItems);
+      }
+      isInitialLoad.current = false;
+    } else if (!isLoadingFormData && !savedData) {
+      isInitialLoad.current = false;
+    }
+  }, [savedData, isLoadingFormData]);
+
+  // Debounced autosave - 2 seconds after last change
+  useEffect(() => {
+    if (isInitialLoad.current || isLoadingFormData) return;
+
+    const timer = setTimeout(() => {
+      setSaveStatus("saving");
+      saveFormData(
+        { fields: fields as unknown as { [key: string]: string }, lineItems },
+        {
+          onSuccess: () => {
+            setSaveStatus("saved");
+            setTimeout(() => setSaveStatus("idle"), 2000);
+          },
+          onError: () => {
+            setSaveStatus("idle");
+          },
+        }
+      );
+    }, 2000);
+
+    return () => clearTimeout(timer);
+  }, [fields, lineItems]);
+
+  const contractTotal = lineItems.reduce((sum, item) => sum + item.amount, 0);
 
   const update = (key: keyof ContractFields, value: string) =>
     setFields((prev) => ({ ...prev, [key]: value }));
@@ -343,7 +388,7 @@ K. Asphalt and Paving
     }
   }, [onPrintReady, handlePrint]);
 
-  if (isLoading) {
+  if (isLoading || isLoadingFormData) {
     return (
       <div className="print-container bg-background text-foreground max-w-[8.5in] mx-auto p-12">
         <div className="animate-pulse space-y-4">
@@ -375,18 +420,32 @@ K. Asphalt and Paving
         <ChevronLeft className="h-4 w-4" />
         Previous
       </Button>
-      <div className="flex items-center gap-1">
-        {Array.from({ length: TOTAL_PAGES }, (_, i) => i + 1).map((page) => (
-          <Button
-            key={page}
-            variant={page === currentPage ? "default" : "outline"}
-            size="sm"
-            className="h-8 w-8 p-0"
-            onClick={() => setCurrentPage(page)}
-          >
-            {page}
-          </Button>
-        ))}
+      <div className="flex items-center gap-2">
+        <div className="flex items-center gap-1">
+          {Array.from({ length: TOTAL_PAGES }, (_, i) => i + 1).map((page) => (
+            <Button
+              key={page}
+              variant={page === currentPage ? "default" : "outline"}
+              size="sm"
+              className="h-8 w-8 p-0"
+              onClick={() => setCurrentPage(page)}
+            >
+              {page}
+            </Button>
+          ))}
+        </div>
+        {saveStatus === "saving" && (
+          <span className="flex items-center gap-1 text-xs text-muted-foreground animate-pulse">
+            <Loader2 className="h-3 w-3 animate-spin" />
+            Saving...
+          </span>
+        )}
+        {saveStatus === "saved" && (
+          <span className="flex items-center gap-1 text-xs text-muted-foreground">
+            <Check className="h-3 w-3 text-green-500" />
+            Saved
+          </span>
+        )}
       </div>
       <Button
         variant="ghost"
