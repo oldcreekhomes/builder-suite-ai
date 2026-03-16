@@ -420,7 +420,8 @@ L. Retaining Walls
     // Scope pages
     const scopePages = scopeChunks.map((chunk, i) => {
       const subtitle = i === 0 ? "EXHIBIT A – SCOPE OF WORK" : "EXHIBIT A – SCOPE OF WORK (CONTINUED)";
-      const content = `<div style="white-space: pre-line;">${chunk}</div>`;
+      const boldedChunk = chunk.replace(/^([A-Z]\.\s.+)$/gm, '<strong>$1</strong>');
+      const content = `<div style="white-space: pre-line;">${boldedChunk}</div>`;
       return makePage(4 + i, subtitle, content);
     }).join('');
 
