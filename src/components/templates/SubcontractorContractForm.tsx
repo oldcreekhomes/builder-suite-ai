@@ -388,7 +388,7 @@ K. Asphalt and Paving
     }
   }, [onPrintReady, handlePrint]);
 
-  if (isLoading) {
+  if (isLoading || isLoadingFormData) {
     return (
       <div className="print-container bg-background text-foreground max-w-[8.5in] mx-auto p-12">
         <div className="animate-pulse space-y-4">
