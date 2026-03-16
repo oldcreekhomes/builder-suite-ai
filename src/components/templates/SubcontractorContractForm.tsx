@@ -281,6 +281,34 @@ L. Retaining Walls
     const dateStr = now.toLocaleDateString('en-US', { month: '2-digit', day: '2-digit', year: '2-digit' });
     const timeStr = now.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true });
 
+    // Split scope of work into chunks of ~45 lines per page
+    const scopeLines = (fields.scopeOfWork || '').split('\n');
+    const LINES_PER_PAGE = 45;
+    const scopeChunks: string[][] = [];
+    for (let i = 0; i < scopeLines.length; i += LINES_PER_PAGE) {
+      scopeChunks.push(scopeLines.slice(i, i + LINES_PER_PAGE));
+    }
+    if (scopeChunks.length === 0) scopeChunks.push([]);
+
+    // totalPages = Contract Summary + Articles + Articles Cont + scope pages + Exhibit B + Signatures
+    const totalPages = 3 + scopeChunks.length + 2;
+
+    const makeFooter = (pageNum: number) => `
+      <div style="position: absolute; bottom: 0.4in; left: 0.75in; right: 0.75in; display: flex; justify-content: space-between; font-size: 8px; color: #000; border-top: 0.5px solid #ccc; padding-top: 4px;">
+        <span>${dateStr}</span>
+        <span>${timeStr}</span>
+        <span>Page ${pageNum} of ${totalPages}</span>
+      </div>
+    `;
+
+    const makePage = (pageNum: number, subtitle: string, content: string) => `
+      <div style="position: relative; width: 8.5in; height: 11in; padding: 0.6in 0.75in 0.8in 0.75in; page-break-after: always; box-sizing: border-box;">
+        ${generatePrintHeader(subtitle)}
+        <div style="font-size: 11px;">${content}</div>
+        ${makeFooter(pageNum)}
+      </div>
+    `;
+
     // Page 1: Contract Summary
     const page1Content = [
       `<p style="font-size: 10px; margin-bottom: 12px;">THIS AGREEMENT, made and entered into this <span style="border-bottom: 1px solid #000; padding: 0 4px;">${fields.contractDate || '_______________'}</span> ("Contract Date") by and between</p>`,
@@ -304,13 +332,19 @@ L. Retaining Walls
     const page2Content = generatePrintArticles(articlesFirstHalf);
     const page3Content = generatePrintArticles(articlesSecondHalf);
 
-    // Exhibit A — flows naturally, no split
-    const scopeContent = `<div style="font-size: 11px; white-space: pre-line;">${fields.scopeOfWork || ''}</div>`;
+    // Scope pages
+    const scopePages = scopeChunks.map((chunk, i) => {
+      const subtitle = i === 0 ? "EXHIBIT A – SCOPE OF WORK" : "EXHIBIT A – SCOPE OF WORK (CONTINUED)";
+      const content = `<div style="white-space: pre-line;">${chunk.join('\n')}</div>`;
+      return makePage(4 + i, subtitle, content);
+    }).join('');
 
     // Exhibit B
+    const exhibitBPageNum = 4 + scopeChunks.length;
     const exhibitBContent = `<div style="white-space: pre-line; font-size: 11px;">${fields.projectDrawings || ''}</div>`;
 
     // Signatures
+    const sigPageNum = exhibitBPageNum + 1;
     const signaturesContent = [
       `<div style="display: flex; gap: 40px; margin-top: 24px;">`,
       `<div style="flex: 1;"><p style="font-weight: 600;">CONTRACTOR</p><div style="border-bottom: 1px solid #999; height: 40px; margin-top: 20px;"></div><p style="font-size: 10px; color: #888;">Signature</p><p style="font-size: 11px; margin-top: 8px;"><strong>Name:</strong> ${fields.contractorSignerName || '_______________'}</p><p style="font-size: 11px;"><strong>Title:</strong> ${fields.contractorSignerTitle || '_______________'}</p></div>`,
@@ -318,127 +352,20 @@ L. Retaining Walls
       `</div>`,
     ].join('');
 
-    const sectionHeader = (subtitle: string) => `
-      <div style="text-align: center; border-bottom: 1px solid #000; padding-bottom: 8px; margin-bottom: 12px;">
-        <p style="font-size: 10px; color: #888; margin: 0;">${subtitle}</p>
-      </div>
-    `;
-
     const htmlContent = `<!DOCTYPE html><html><head><title> </title>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Montserrat:wght@300;400;500;600;700&display=swap">
 <style>
   * { box-sizing: border-box; }
   body { font-family: 'Montserrat', sans-serif; font-size: 11px; margin: 0; padding: 0; }
   table { border-collapse: collapse; width: 100%; }
-
-  @media print {
-    @page {
-      size: letter;
-      margin: 0.9in 0.75in 0.8in 0.75in;
-    }
-  }
-
-  /* Fixed header repeats on every printed page */
-  .print-header {
-    position: fixed;
-    top: 0;
-    left: 0;
-    right: 0;
-    text-align: center;
-    padding-bottom: 6px;
-    border-bottom: 1px solid #000;
-    background: white;
-  }
-  .print-header h1 {
-    font-size: 16px;
-    font-weight: 700;
-    text-decoration: underline;
-    margin: 0;
-  }
-
-  /* Fixed footer repeats on every printed page */
-  .print-footer {
-    position: fixed;
-    bottom: 0;
-    left: 0;
-    right: 0;
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    font-size: 8px;
-    color: #000;
-    padding: 4px 0 0 0;
-    border-top: 0.5px solid #ccc;
-    background: white;
-  }
-  .print-footer .page-number::after {
-    content: "Page " counter(page) " of " counter(pages);
-  }
-
-  /* Spacers to push body content away from fixed header/footer */
-  .header-spacer {
-    height: 30px;
-  }
-  .footer-spacer {
-    height: 20px;
-  }
-
-  /* Section breaks */
-  .section-break {
-    page-break-before: always;
-  }
+  @media print { body { -webkit-print-color-adjust: exact; } }
 </style></head><body>
-
-<!-- Fixed elements that repeat on every page -->
-<div class="print-header">
-  <h1>SUBCONTRACTOR AGREEMENT</h1>
-</div>
-<div class="print-footer">
-  <span>${dateStr}</span>
-  <span>${timeStr}</span>
-  <span class="page-number"></span>
-</div>
-
-<!-- Spacer for fixed header -->
-<div class="header-spacer"></div>
-
-<!-- Page 1: Contract Summary -->
-${sectionHeader("CONTRACT SUMMARY")}
-${page1Content}
-
-<!-- Page 2: Articles -->
-<div class="section-break">
-  ${sectionHeader("ARTICLES")}
-  ${page2Content}
-</div>
-
-<!-- Page 3: Articles Continued -->
-<div class="section-break">
-  ${sectionHeader("ARTICLES (CONTINUED)")}
-  ${page3Content}
-</div>
-
-<!-- Page 4+: Exhibit A — flows naturally -->
-<div class="section-break">
-  ${sectionHeader("EXHIBIT A – SCOPE OF WORK")}
-  ${scopeContent}
-</div>
-
-<!-- Exhibit B -->
-<div class="section-break">
-  ${sectionHeader("EXHIBIT B – PROJECT DRAWINGS")}
-  ${exhibitBContent}
-</div>
-
-<!-- Signatures -->
-<div class="section-break">
-  ${sectionHeader("SIGNATURES")}
-  ${signaturesContent}
-</div>
-
-<!-- Spacer for fixed footer -->
-<div class="footer-spacer"></div>
-
+${makePage(1, "CONTRACT SUMMARY", page1Content)}
+${makePage(2, "ARTICLES", page2Content)}
+${makePage(3, "ARTICLES (CONTINUED)", page3Content)}
+${scopePages}
+${makePage(exhibitBPageNum, "EXHIBIT B – PROJECT DRAWINGS", exhibitBContent)}
+${makePage(sigPageNum, "SIGNATURES", signaturesContent)}
 </body></html>`;
 
     printWindow.document.write(htmlContent);
