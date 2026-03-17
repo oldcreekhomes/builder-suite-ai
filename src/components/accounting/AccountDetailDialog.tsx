@@ -1016,17 +1016,36 @@ export function AccountDetailDialog({
     });
   };
 
-  // Filter transactions based on hidePaid toggle
+  // Filter transactions based on hidePaid toggle, date range, and search
   const displayedTransactions = transactions?.filter(txn => {
-    // If hidePaid is off, show all transactions
-    if (!hidePaid) return true;
-    
     // If hidePaid is on, filter out paid bill and bill_payment transactions
-    if (txn.source_type === 'bill' || txn.source_type === 'bill_payment' || txn.source_type === 'consolidated_bill_payment') {
-      return !txn.isPaid;
+    if (hidePaid && (txn.source_type === 'bill' || txn.source_type === 'bill_payment' || txn.source_type === 'consolidated_bill_payment')) {
+      if (txn.isPaid) return false;
     }
     
-    // Show all other transaction types
+    // Date range filter
+    if (dateFrom || dateTo) {
+      const txnDate = new Date(txn.date);
+      txnDate.setHours(0, 0, 0, 0);
+      if (dateFrom) {
+        const from = new Date(dateFrom);
+        from.setHours(0, 0, 0, 0);
+        if (txnDate < from) return false;
+      }
+      if (dateTo) {
+        const to = new Date(dateTo);
+        to.setHours(23, 59, 59, 999);
+        if (txnDate > to) return false;
+      }
+    }
+    
+    // Search filter
+    if (searchQuery.trim()) {
+      const q = searchQuery.toLowerCase();
+      const searchFields = [txn.reference, txn.accountDisplay, txn.description, txn.memo, txn.source_type];
+      if (!searchFields.some(val => val?.toLowerCase().includes(q))) return false;
+    }
+    
     return true;
   }) || [];
 
