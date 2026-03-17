@@ -62,6 +62,7 @@ export function BudgetTable({ projectId, projectAddress, onHeaderActionChange, o
   const [showVarianceAsPercentage, setShowVarianceAsPercentage] = useState(false);
   const [isExportingPdf, setIsExportingPdf] = useState(false);
   const [showExportDialog, setShowExportDialog] = useState(false);
+  const [showImportDialog, setShowImportDialog] = useState(false);
   const [showLockDialog, setShowLockDialog] = useState(false);
   const [lockAction, setLockAction] = useState<'lock' | 'unlock'>('lock');
   
