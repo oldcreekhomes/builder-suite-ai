@@ -1186,7 +1186,7 @@ export function AccountDetailDialog({
                   };
 
                   return (
-                    <TableRow key={txn.line_id} className="h-8">
+                    <TableRow key={txn.line_id} className="h-8 cursor-pointer hover:bg-muted/50" onClick={() => { setSelectedTransaction(txn); setSelectedTransactionBalance(balances[index]); }}>
               <TableCell className="px-2 py-1 whitespace-nowrap">
                 <span className="text-xs">{getTypeLabel(txn.source_type)}</span>
                       </TableCell>
