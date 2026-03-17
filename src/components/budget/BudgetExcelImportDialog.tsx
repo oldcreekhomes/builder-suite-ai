@@ -75,6 +75,7 @@ export function BudgetExcelImportDialog({
   const [parsedItems, setParsedItems] = useState<ParsedItem[]>([]);
   const [isImporting, setIsImporting] = useState(false);
   const [searchFilter, setSearchFilter] = useState('');
+  const [editingIndex, setEditingIndex] = useState<number | null>(null);
 
   // Fetch user's cost codes
   const { data: costCodes = [] } = useQuery({
@@ -218,7 +219,26 @@ export function BudgetExcelImportDialog({
         });
       }
 
-      setParsedItems(items);
+      // Merge rows that map to the same cost code
+      const mergedMap = new Map<string, ParsedItem>();
+      const unmatchedItems: ParsedItem[] = [];
+      items.forEach(item => {
+        if (!item.matchedCostCodeId) {
+          unmatchedItems.push(item);
+          return;
+        }
+        const existing = mergedMap.get(item.matchedCostCodeId);
+        if (existing) {
+          existing.amount += item.amount;
+          existing.description += `, ${item.description}`;
+          existing.excelCode += `, ${item.excelCode}`;
+        } else {
+          mergedMap.set(item.matchedCostCodeId, { ...item });
+        }
+      });
+      const mergedItems = [...mergedMap.values(), ...unmatchedItems];
+
+      setParsedItems(mergedItems);
       onOpenChange(false);
       setReviewOpen(true);
     } catch (err) {
@@ -465,21 +485,30 @@ export function BudgetExcelImportDialog({
                           )}
                         </TableCell>
                         <TableCell>
-                          <Select
-                            value={item.matchedCostCodeId || ''}
-                            onValueChange={(val) => handleMapChange(realIdx, val)}
-                          >
-                            <SelectTrigger className="h-8">
-                              <SelectValue placeholder="Select cost code..." />
-                            </SelectTrigger>
-                            <SelectContent>
-                              {costCodes.map(cc => (
-                                <SelectItem key={cc.id} value={cc.id}>
-                                  {cc.code} - {cc.name}
-                                </SelectItem>
-                              ))}
-                            </SelectContent>
-                          </Select>
+                          {editingIndex === realIdx ? (
+                            <Select
+                              value={item.matchedCostCodeId || ''}
+                              onValueChange={(val) => { handleMapChange(realIdx, val); setEditingIndex(null); }}
+                            >
+                              <SelectTrigger className="h-8">
+                                <SelectValue placeholder="Select cost code..." />
+                              </SelectTrigger>
+                              <SelectContent>
+                                {costCodes.map(cc => (
+                                  <SelectItem key={cc.id} value={cc.id}>
+                                    {cc.code} - {cc.name}
+                                  </SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
+                          ) : (
+                            <span
+                              onClick={() => setEditingIndex(realIdx)}
+                              className="cursor-pointer text-sm hover:underline text-muted-foreground"
+                            >
+                              {item.matchedCostCodeLabel || 'Click to map...'}
+                            </span>
+                          )}
                         </TableCell>
                       </TableRow>
                     );
