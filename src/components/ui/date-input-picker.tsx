@@ -89,7 +89,7 @@ export function DateInputPicker({
         onBlur={handleInputBlur}
         placeholder="MM/DD/YYYY"
         disabled={disabled}
-        className="h-10 w-32"
+        className="h-9 w-32"
       />
       <Popover open={isOpen} onOpenChange={setIsOpen}>
         <PopoverTrigger asChild>
