@@ -1066,13 +1066,11 @@ export function AccountDetailDialog({
               <DateInputPicker
                 date={dateFrom}
                 onDateChange={setDateFrom}
-                className="[&_input]:h-9 [&_button]:h-9"
               />
               <span className="text-sm text-muted-foreground">To</span>
               <DateInputPicker
                 date={dateTo}
                 onDateChange={setDateTo}
-                className="[&_input]:h-9 [&_button]:h-9"
               />
               {(dateFrom || dateTo) && (
                 <button
