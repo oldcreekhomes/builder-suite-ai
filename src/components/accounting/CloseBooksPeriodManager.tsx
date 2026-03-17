@@ -75,7 +75,7 @@ export function CloseBooksPeriodManager({ projectId }: CloseBooksPeriodManagerPr
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
-            <Lock className="h-5 w-5" />
+            <Lock className="h-5 w-5 text-red-600" />
             Close Accounting Period
           </CardTitle>
           <CardDescription>
