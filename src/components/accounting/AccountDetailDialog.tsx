@@ -35,6 +35,7 @@ import { EditDepositDialog } from "@/components/deposits/EditDepositDialog";
 import { EditCheckDialog } from "@/components/checks/EditCheckDialog";
 import { DateInputPicker } from "@/components/ui/date-input-picker";
 import { formatDateSafe } from "@/utils/dateOnly";
+import { TransactionDetailDialog } from "./TransactionDetailDialog";
 
 interface IncludedBillPayment {
   bill_id: string;
@@ -106,6 +107,8 @@ export function AccountDetailDialog({
     }
   }, [open, accountId, isAccountsPayable]);
   
+  const [selectedTransaction, setSelectedTransaction] = useState<Transaction | null>(null);
+  const [selectedTransactionBalance, setSelectedTransactionBalance] = useState(0);
   const [editingBillId, setEditingBillId] = useState<string | null>(null);
   const [editingDepositId, setEditingDepositId] = useState<string | null>(null);
   const [editingCheckId, setEditingCheckId] = useState<string | null>(null);
@@ -1183,7 +1186,7 @@ export function AccountDetailDialog({
                   };
 
                   return (
-                    <TableRow key={txn.line_id} className="h-8">
+                    <TableRow key={txn.line_id} className="h-8 cursor-pointer hover:bg-muted/50" onClick={() => { setSelectedTransaction(txn); setSelectedTransactionBalance(balances[index]); }}>
               <TableCell className="px-2 py-1 whitespace-nowrap">
                 <span className="text-xs">{getTypeLabel(txn.source_type)}</span>
                       </TableCell>
@@ -1354,6 +1357,15 @@ export function AccountDetailDialog({
         }
       }}
       checkId={editingCheckId || ''}
+    />
+
+    {/* Transaction Detail Dialog */}
+    <TransactionDetailDialog
+      transaction={selectedTransaction}
+      balance={selectedTransactionBalance}
+      accountType={accountType}
+      open={!!selectedTransaction}
+      onOpenChange={(open) => { if (!open) setSelectedTransaction(null); }}
     />
     </>
   );
