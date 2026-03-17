@@ -24,6 +24,18 @@ const KNOWN_MAPPINGS: Record<string, string> = {
 // Group header codes to skip
 const GROUP_HEADERS = new Set(['1000', '2000', '3000', '4000']);
 
+const GROUP_LABELS: Record<string, string> = {
+  '1000': 'LAND ACQUISITION COSTS',
+  '2000': 'SITE WORK',
+  '3000': 'CONSTRUCTION',
+  '4000': 'GENERAL & ADMIN',
+};
+
+const getParentGroup = (code: string): string => {
+  const base = parseInt(code);
+  return String(Math.floor(base / 1000) * 1000);
+};
+
 interface ParsedItem {
   excelCode: string;
   description: string;
