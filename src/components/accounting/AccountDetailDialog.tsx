@@ -1049,7 +1049,26 @@ export function AccountDetailDialog({
     return true;
   }) || [];
 
-  const balances = calculateRunningBalance(displayedTransactions);
+  // Compute opening balance from transactions before the dateFrom filter
+  let openingBalance = 0;
+  if (dateFrom && transactions) {
+    const fromDate = new Date(dateFrom);
+    fromDate.setHours(0, 0, 0, 0);
+    transactions.forEach(txn => {
+      const txnDate = new Date(txn.date);
+      txnDate.setHours(0, 0, 0, 0);
+      if (txnDate < fromDate) {
+        if (accountType === 'asset' || accountType === 'expense') {
+          openingBalance += txn.debit - txn.credit;
+        } else {
+          openingBalance += txn.credit - txn.debit;
+        }
+      }
+    });
+    openingBalance = Math.round(openingBalance * 100) / 100;
+  }
+
+  const balances = calculateRunningBalance(displayedTransactions, openingBalance);
 
   return (
     <>
