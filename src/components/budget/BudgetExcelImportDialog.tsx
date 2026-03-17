@@ -75,6 +75,7 @@ export function BudgetExcelImportDialog({
   const [parsedItems, setParsedItems] = useState<ParsedItem[]>([]);
   const [isImporting, setIsImporting] = useState(false);
   const [searchFilter, setSearchFilter] = useState('');
+  const [editingIndex, setEditingIndex] = useState<number | null>(null);
 
   // Fetch user's cost codes
   const { data: costCodes = [] } = useQuery({
