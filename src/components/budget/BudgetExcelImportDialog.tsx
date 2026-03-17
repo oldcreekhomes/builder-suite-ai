@@ -421,12 +421,14 @@ export function BudgetExcelImportDialog({
                         const isDuplicate = item.matchedCostCodeId && existingSet.has(item.matchedCostCodeId);
                         rows.push(
                           <TableRow key={realIdx} className={isDuplicate ? 'opacity-50' : ''}>
-                            <TableCell className="text-center align-middle">
-                              <Checkbox
-                                checked={item.included && !isDuplicate}
-                                disabled={!!isDuplicate || !item.matchedCostCodeId}
-                                onCheckedChange={() => handleToggleInclude(realIdx)}
-                              />
+                            <TableCell>
+                              <div className="flex items-center justify-center">
+                                <Checkbox
+                                  checked={item.included && !isDuplicate}
+                                  disabled={!!isDuplicate || !item.matchedCostCodeId}
+                                  onCheckedChange={() => handleToggleInclude(realIdx)}
+                                />
+                              </div>
                             </TableCell>
                             <TableCell>{item.excelCode}</TableCell>
                             <TableCell className="truncate" title={item.description}>
