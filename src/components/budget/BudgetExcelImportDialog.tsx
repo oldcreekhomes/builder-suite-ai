@@ -282,8 +282,12 @@ export function BudgetExcelImportDialog({
         ...(selectedLotId ? { lot_id: selectedLotId } : {}),
       }));
 
-      const { error } = await supabase.from('project_budgets').insert(inserts);
-      if (error) throw error;
+      const chunkSize = 20;
+      for (let i = 0; i < inserts.length; i += chunkSize) {
+        const chunk = inserts.slice(i, i + chunkSize);
+        const { error } = await supabase.from('project_budgets').insert(chunk);
+        if (error) throw error;
+      }
 
       toast({
         title: 'Import successful',
