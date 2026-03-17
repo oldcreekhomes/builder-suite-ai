@@ -392,29 +392,56 @@ export function BudgetDetailsModal({
                 <Table>
                   <TableHeader>
                     <TableRow>
-                      <TableHead>Cost Code</TableHead>
+                      <TableHead>Date</TableHead>
                       <TableHead>Description</TableHead>
-                      <TableHead className="text-right">Actual Cost</TableHead>
+                      <TableHead className="text-right">Amount</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    <TableRow>
-                      <TableCell className="text-sm">{costCode.code}</TableCell>
-                      <TableCell className="text-sm">{costCode.name}</TableCell>
-                      <TableCell className="text-sm text-right font-medium">
-                        {(budgetItem as any).actual_amount > 0
-                          ? formatCurrency((budgetItem as any).actual_amount)
-                          : <span className="text-muted-foreground">No costs to date</span>
-                        }
-                      </TableCell>
-                    </TableRow>
+                    {isActualLoading ? (
+                      <TableRow>
+                        <TableCell colSpan={3} className="text-center text-muted-foreground text-sm py-6">
+                          Loading costs...
+                        </TableCell>
+                      </TableRow>
+                    ) : !actualCostData?.lines?.length ? (
+                      <TableRow>
+                        <TableCell colSpan={3} className="text-center text-muted-foreground text-sm py-6">
+                          No costs to date
+                        </TableCell>
+                      </TableRow>
+                    ) : (
+                      [...actualCostData.lines]
+                        .sort((a, b) => {
+                          const dateA = (a.journal_entries as any)?.entry_date || '';
+                          const dateB = (b.journal_entries as any)?.entry_date || '';
+                          return dateA.localeCompare(dateB);
+                        })
+                        .map((line, idx) => {
+                          const je = line.journal_entries as any;
+                          const amount = (line.debit || 0) - (line.credit || 0);
+                          return (
+                            <TableRow key={idx}>
+                              <TableCell className="text-sm">
+                                {je?.entry_date ? format(new Date(je.entry_date + 'T00:00:00'), 'MM/dd/yyyy') : '—'}
+                              </TableCell>
+                              <TableCell className="text-sm">
+                                {line.memo || je?.description || '—'}
+                              </TableCell>
+                              <TableCell className="text-sm text-right font-medium">
+                                {formatCurrency(amount)}
+                              </TableCell>
+                            </TableRow>
+                          );
+                        })
+                    )}
                   </TableBody>
                 </Table>
               </div>
               <div className="flex justify-between items-center pt-2 border-t">
                 <span className="text-sm font-medium">Total Actual:</span>
                 <span className="text-sm font-semibold">
-                  {formatCurrency((budgetItem as any).actual_amount || 0)}
+                  {formatCurrency(actualCostData?.total || 0)}
                 </span>
               </div>
             </div>
