@@ -362,8 +362,8 @@ export function BudgetExcelImportDialog({
                 <span className="flex items-center gap-1 text-green-600">
                   <CheckCircle2 className="h-4 w-4" /> {directMatchCount} matched
                 </span>
-                <span className="flex items-center gap-1 text-blue-500">
-                  <CheckCircle2 className="h-4 w-4" /> {mappedCount} mapped
+                <span className="flex items-center gap-1 text-yellow-600">
+                  <CheckCircle2 className="h-4 w-4" /> {mappedCount} needs review
                 </span>
                 <span className="flex items-center gap-1 text-destructive">
                   <XCircle className="h-4 w-4" /> {unmatchedCount} unmatched
@@ -377,11 +377,6 @@ export function BudgetExcelImportDialog({
                   </span>
                 )}
               </div>
-              <div className="flex items-center gap-4 text-xs text-muted-foreground">
-                <span className="flex items-center gap-1"><CheckCircle2 className="w-3 h-3 text-green-600" /> Direct code match</span>
-                <span className="flex items-center gap-1"><CheckCircle2 className="w-3 h-3 text-blue-500" /> Mapped from sub-code</span>
-                <span className="flex items-center gap-1"><XCircle className="w-3 h-3 text-destructive" /> No match found</span>
-              </div>
             </div>
 
             {/* Search */}
@@ -394,7 +389,7 @@ export function BudgetExcelImportDialog({
 
             {/* Table */}
             <div className="flex-1 overflow-auto border rounded-md">
-              <Table containerClassName="relative w-full" className="table-fixed">
+              <Table className="table-fixed">
                 <TableHeader className="sticky top-0 bg-muted z-10">
                   <TableRow>
                     <TableHead className="w-[40px]"></TableHead>
@@ -447,7 +442,7 @@ export function BudgetExcelImportDialog({
                               ) : item.matchStatus === 'matched' ? (
                                 <CheckCircle2 className="h-4 w-4 text-green-600 mx-auto" />
                               ) : item.matchStatus === 'mapped' ? (
-                                <CheckCircle2 className="h-4 w-4 text-blue-500 mx-auto" />
+                                <CheckCircle2 className="h-4 w-4 text-yellow-600 mx-auto" />
                               ) : (
                                 <XCircle className="h-4 w-4 text-destructive mx-auto" />
                               )}
