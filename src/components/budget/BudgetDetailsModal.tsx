@@ -343,12 +343,48 @@ export function BudgetDetailsModal({
 
         <Tabs value={activeTab} onValueChange={setActiveTab} className="flex-1 flex flex-col overflow-hidden">
           <TabsList className="justify-start">
+            <TabsTrigger value="actual">Actual</TabsTrigger>
             <TabsTrigger value="estimate">Estimate</TabsTrigger>
-            <TabsTrigger value="vendor-bid">Vendor Bid</TabsTrigger>
+            <TabsTrigger value="historical">Historical</TabsTrigger>
             <TabsTrigger value="manual">Manual</TabsTrigger>
             <TabsTrigger value="purchase-orders">Purchase Orders</TabsTrigger>
-            <TabsTrigger value="historical">Historical</TabsTrigger>
+            <TabsTrigger value="vendor-bid">Vendor Bid</TabsTrigger>
           </TabsList>
+
+          {/* Actual Tab */}
+          <TabsContent value="actual" className="flex-1 overflow-auto mt-4">
+            <div className="space-y-4">
+              <div className="border rounded-lg overflow-hidden">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Cost Code</TableHead>
+                      <TableHead>Description</TableHead>
+                      <TableHead className="text-right">Actual Cost</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    <TableRow>
+                      <TableCell className="text-sm">{costCode.code}</TableCell>
+                      <TableCell className="text-sm">{costCode.name}</TableCell>
+                      <TableCell className="text-sm text-right font-medium">
+                        {(budgetItem as any).actual_amount > 0
+                          ? formatCurrency((budgetItem as any).actual_amount)
+                          : <span className="text-muted-foreground">No costs to date</span>
+                        }
+                      </TableCell>
+                    </TableRow>
+                  </TableBody>
+                </Table>
+              </div>
+              <div className="flex justify-between items-center pt-2 border-t">
+                <span className="text-sm font-medium">Total Actual:</span>
+                <span className="text-sm font-semibold">
+                  {formatCurrency((budgetItem as any).actual_amount || 0)}
+                </span>
+              </div>
+            </div>
+          </TabsContent>
 
           {/* Estimate Tab */}
           <TabsContent value="estimate" className="flex-1 overflow-auto mt-4">
