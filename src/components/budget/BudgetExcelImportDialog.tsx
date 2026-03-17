@@ -389,7 +389,7 @@ export function BudgetExcelImportDialog({
 
             {/* Table */}
             <div className="flex-1 overflow-auto border rounded-md">
-              <Table containerClassName="relative w-full" className="table-fixed">
+              <Table className="table-fixed">
                 <TableHeader className="sticky top-0 bg-muted z-10">
                   <TableRow>
                     <TableHead className="w-[40px]"></TableHead>
