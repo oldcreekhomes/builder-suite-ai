@@ -86,6 +86,9 @@ export function AccountDetailDialog({
   onOpenChange,
 }: AccountDetailDialogProps) {
   const [sortOrder] = useState<'asc' | 'desc'>('asc');
+  const [dateFrom, setDateFrom] = useState<Date | undefined>(undefined);
+  const [dateTo, setDateTo] = useState<Date | undefined>(undefined);
+  const [searchQuery, setSearchQuery] = useState("");
   
   // Detect if this is an Accounts Payable account
   const isAccountsPayable = accountCode === '2010' || accountName.toLowerCase().includes('accounts payable');
@@ -93,10 +96,13 @@ export function AccountDetailDialog({
   // Default hidePaid to ON for Accounts Payable
   const [hidePaid, setHidePaid] = useState(isAccountsPayable);
   
-  // Reset hidePaid to default when dialog opens or account changes
+  // Reset filters when dialog opens or account changes
   useEffect(() => {
     if (open) {
       setHidePaid(isAccountsPayable);
+      setDateFrom(undefined);
+      setDateTo(undefined);
+      setSearchQuery("");
     }
   }, [open, accountId, isAccountsPayable]);
   
