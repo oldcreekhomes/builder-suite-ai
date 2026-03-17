@@ -28,18 +28,15 @@ export const useProjectFiles = (projectId: string) => {
     queryFn: async () => {
       if (!user || !projectId) return [];
 
-      // First get the files
-      const { data: filesData, error } = await supabase
-        .from('project_files')
-        .select('*')
-        .eq('project_id', projectId)
-        .eq('is_deleted', false)
-        .order('filename', { ascending: true });
-
-      if (error) {
-        console.error('Error fetching project files:', error);
-        throw error;
-      }
+      // First get the files (paginated to handle >1000 rows)
+      const filesData = await fetchAllRows(() =>
+        supabase
+          .from('project_files')
+          .select('*')
+          .eq('project_id', projectId)
+          .eq('is_deleted', false)
+          .order('filename', { ascending: true })
+      );
 
       if (!filesData || filesData.length === 0) {
         return [];
