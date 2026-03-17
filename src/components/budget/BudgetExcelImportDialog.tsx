@@ -323,7 +323,7 @@ export function BudgetExcelImportDialog({
 
   return (
     <Dialog open={open} onOpenChange={handleClose}>
-      <DialogContent className={`${step === 'review' ? 'sm:max-w-4xl' : 'sm:max-w-md'} max-h-[90vh] flex flex-col`}>
+      <DialogContent className="sm:max-w-4xl max-h-[90vh] flex flex-col">
         <DialogHeader>
           <DialogTitle>
             {step === 'upload' ? 'Import Budget from Excel' : 'Review & Map Cost Codes'}
@@ -422,11 +422,14 @@ export function BudgetExcelImportDialog({
                         rows.push(
                           <TableRow key={realIdx} className={isDuplicate ? 'opacity-50' : ''}>
                             <TableCell>
+                              <div className="flex items-center justify-center">
                                 <Checkbox
+                                  className="h-4 w-4"
                                   checked={item.included && !isDuplicate}
                                   disabled={!!isDuplicate || !item.matchedCostCodeId}
                                   onCheckedChange={() => handleToggleInclude(realIdx)}
                                 />
+                              </div>
                             </TableCell>
                             <TableCell>{item.excelCode}</TableCell>
                             <TableCell className="truncate" title={item.description}>
