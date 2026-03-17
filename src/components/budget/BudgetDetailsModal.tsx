@@ -214,6 +214,11 @@ export function BudgetDetailsModal({
   const handleApply = async () => {
     if (isLocked) return;
     
+    if (activeTab === 'actual') {
+      onClose();
+      return;
+    }
+    
     const source = activeTab as 'estimate' | 'vendor-bid' | 'manual' | 'purchase-orders' | 'historical';
     
     if (source === 'vendor-bid') {
