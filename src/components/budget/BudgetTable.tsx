@@ -476,6 +476,7 @@ export function BudgetTable({ projectId, projectAddress, onHeaderActionChange, o
         onPrint={handlePrint}
         onExportPdf={() => setShowExportDialog(true)}
         onAddBudget={() => !isLocked && setShowAddBudgetModal(true)}
+        onImportExcel={() => !isLocked && setShowImportDialog(true)}
         onToggleExpandCollapse={handleToggleExpandCollapse}
         allExpanded={allGroupsExpanded}
         isExportingPdf={isExportingPdf}
