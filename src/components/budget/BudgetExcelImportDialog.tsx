@@ -301,11 +301,17 @@ export function BudgetExcelImportDialog({
   };
 
   const handleClose = () => {
-    setStep('upload');
     setFile(null);
     setParsedItems([]);
     setSearchFilter('');
     onOpenChange(false);
+    setReviewOpen(false);
+  };
+
+  const handleBackToUpload = () => {
+    setReviewOpen(false);
+    setParsedItems([]);
+    onOpenChange(true);
   };
 
   const directMatchCount = parsedItems.filter(i => i.matchStatus === 'matched').length;
