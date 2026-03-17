@@ -219,7 +219,26 @@ export function BudgetExcelImportDialog({
         });
       }
 
-      setParsedItems(items);
+      // Merge rows that map to the same cost code
+      const mergedMap = new Map<string, ParsedItem>();
+      const unmatchedItems: ParsedItem[] = [];
+      items.forEach(item => {
+        if (!item.matchedCostCodeId) {
+          unmatchedItems.push(item);
+          return;
+        }
+        const existing = mergedMap.get(item.matchedCostCodeId);
+        if (existing) {
+          existing.amount += item.amount;
+          existing.description += `, ${item.description}`;
+          existing.excelCode += `, ${item.excelCode}`;
+        } else {
+          mergedMap.set(item.matchedCostCodeId, { ...item });
+        }
+      });
+      const mergedItems = [...mergedMap.values(), ...unmatchedItems];
+
+      setParsedItems(mergedItems);
       onOpenChange(false);
       setReviewOpen(true);
     } catch (err) {
