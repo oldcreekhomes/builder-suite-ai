@@ -515,7 +515,7 @@ export const JournalEntryForm = ({ projectId, activeTab: parentActiveTab }: Jour
             <h1 className="text-3xl font-bold">JOURNAL ENTRY</h1>
             {isTransactionLocked && (
               <div className="flex items-center gap-2 px-3 py-1.5 bg-amber-50 border border-amber-200 rounded-md">
-                <Lock className="h-4 w-4 text-amber-600" />
+                <Lock className="h-4 w-4 text-red-600" />
                 <span className="text-sm font-medium text-amber-700">
                   {hasReconciledLines ? 'Reconciled' : 'Period Closed'}
                 </span>
@@ -949,7 +949,7 @@ export const JournalEntryForm = ({ projectId, activeTab: parentActiveTab }: Jour
               {/* Right side: Action buttons (or locked message) */}
               {isTransactionLocked ? (
                 <div className="flex items-center gap-2 text-amber-700">
-                  <Lock className="h-4 w-4" />
+                  <Lock className="h-4 w-4 text-red-600" />
                   <span className="text-sm font-medium">This entry cannot be edited</span>
                 </div>
               ) : (

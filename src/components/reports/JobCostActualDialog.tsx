@@ -429,7 +429,7 @@ const formatCurrency = (value: number) => {
                               <Tooltip>
                               <TooltipTrigger asChild>
                                   <div className="flex justify-center">
-                                    <Lock className="h-4 w-4 text-amber-600" />
+                                    <Lock className="h-4 w-4 text-red-600" />
                                   </div>
                                 </TooltipTrigger>
                                 <TooltipContent side="left" align="center">

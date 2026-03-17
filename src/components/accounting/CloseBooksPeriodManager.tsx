@@ -75,7 +75,7 @@ export function CloseBooksPeriodManager({ projectId }: CloseBooksPeriodManagerPr
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
-            <Lock className="h-5 w-5" />
+            <Lock className="h-5 w-5 text-red-600" />
             Close Accounting Period
           </CardTitle>
           <CardDescription>
@@ -125,7 +125,7 @@ export function CloseBooksPeriodManager({ projectId }: CloseBooksPeriodManagerPr
             disabled={!selectedDate || isClosing}
             className="w-full"
           >
-            <Lock className="mr-2 h-4 w-4" />
+            <Lock className="mr-2 h-4 w-4 text-red-600" />
             Close Books for This Period
           </Button>
         </CardContent>
