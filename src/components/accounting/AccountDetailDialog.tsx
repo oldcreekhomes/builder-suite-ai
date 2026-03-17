@@ -1055,7 +1055,7 @@ export function AccountDetailDialog({
     <>
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-5xl max-h-[85vh] overflow-hidden flex flex-col">
-        <DialogHeader>
+        <DialogHeader className="py-3">
           <div className="flex items-center justify-between">
             <DialogTitle className="text-base">
               {accountCode} - {accountName}
