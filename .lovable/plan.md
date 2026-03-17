@@ -1,9 +1,18 @@
 
-## ✅ COMPLETED: Fix Bill Payment — Credit Calculation + Data Repair + Consolidated Payment View
 
-All three fixes have been implemented:
+## Plan: Restore Conditional Dialog Width
 
-1. **Credit remaining balance formula** — Fixed in `useBills.ts` line 417 to use `total_amount + amount_paid` for credits
-2. **Proportional credit distribution** — Fixed in `BillsApprovalTable.tsx` to distribute credits proportionally based on each bill's share of positive allocations
-3. **Consolidated payment view** — Paid tab now groups multi-bill payments with expandable rows showing individual allocations (bills + credits)
-4. **Data repair** — Corrected over-allocated amounts for OCH-02302 via SQL migration
+The dialog was changed to always use `sm:max-w-4xl` to prevent a resize flash between steps. But this makes the upload step unnecessarily wide. The fix is to bring back the conditional sizing.
+
+### Change — `src/components/budget/BudgetExcelImportDialog.tsx`
+
+Line 326: Change the fixed width back to conditional:
+```tsx
+<DialogContent className={`${step === 'review' ? 'sm:max-w-4xl' : 'sm:max-w-md'} max-h-[90vh] flex flex-col`}>
+```
+
+This restores the compact upload dialog while keeping the wide review table. The original "glitch" concern is negligible since the steps are user-triggered (clicking "Parse & Match"), not an automatic transition.
+
+### Files to Edit
+- `src/components/budget/BudgetExcelImportDialog.tsx` (1 line)
+
