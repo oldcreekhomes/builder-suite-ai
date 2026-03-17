@@ -388,8 +388,8 @@ export function BudgetExcelImportDialog({
             />
 
             {/* Table */}
-              <Table containerClassName="flex-1 overflow-auto border rounded-md">
-                <TableHeader className="sticky top-0 bg-muted z-10">
+              <Table containerClassName="flex-1 overflow-auto">
+                <TableHeader>
                   <TableRow>
                     <TableHead></TableHead>
                     <TableHead>Excel Code</TableHead>
@@ -422,13 +422,11 @@ export function BudgetExcelImportDialog({
                         rows.push(
                           <TableRow key={realIdx} className={isDuplicate ? 'opacity-50' : ''}>
                             <TableCell>
-                              <div className="flex items-center justify-center">
                                 <Checkbox
                                   checked={item.included && !isDuplicate}
                                   disabled={!!isDuplicate || !item.matchedCostCodeId}
                                   onCheckedChange={() => handleToggleInclude(realIdx)}
                                 />
-                              </div>
                             </TableCell>
                             <TableCell>{item.excelCode}</TableCell>
                             <TableCell className="truncate" title={item.description}>
@@ -453,7 +451,7 @@ export function BudgetExcelImportDialog({
                                 value={item.matchedCostCodeId || ''}
                                 onValueChange={(val) => handleMapChange(realIdx, val)}
                               >
-                                <SelectTrigger>
+                                <SelectTrigger className="h-8">
                                   <SelectValue placeholder="Select cost code..." />
                                 </SelectTrigger>
                                 <SelectContent>

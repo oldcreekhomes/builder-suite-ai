@@ -1,20 +1,9 @@
 
+## ✅ COMPLETED: Fix Bill Payment — Credit Calculation + Data Repair + Consolidated Payment View
 
-## Plan: Match shadcn Default Table Exactly
+All three fixes have been implemented:
 
-### Root Cause
-The rows are tall because the `SelectTrigger` has a default `h-10` (40px) height, and the checkbox is wrapped in an extra flex div. The shadcn default table rows are compact because they only contain text. To match while keeping inline selects, we need to shrink the select trigger height to fit within the default row padding.
-
-### Changes — `src/components/budget/BudgetExcelImportDialog.tsx`
-
-1. **Compact Select triggers**: Add `className="h-8"` to each `SelectTrigger` so the dropdown fits within the natural row height instead of inflating it to 40px+.
-
-2. **Remove checkbox flex wrapper**: Replace the `<div className="flex items-center justify-center">` around the Checkbox with just the Checkbox itself. The `TableCell` already has `align-middle` from the base component (`p-2 align-middle`), which centers inline content. The Checkbox is an inline-block element and will center naturally without a wrapper.
-
-3. **Remove `sticky top-0 bg-muted z-10` from TableHeader**: The shadcn default table header has no sticky behavior or background color. It uses the default `[&_tr]:border-b` only. Remove these overrides to match.
-
-4. **Remove `border rounded-md` from container**: The shadcn default table has a clean bottom border on rows, no outer border or rounded corners on the container. Change `containerClassName` to just `"flex-1 overflow-auto"`.
-
-### Files to Edit
-- `src/components/budget/BudgetExcelImportDialog.tsx`
-
+1. **Credit remaining balance formula** — Fixed in `useBills.ts` line 417 to use `total_amount + amount_paid` for credits
+2. **Proportional credit distribution** — Fixed in `BillsApprovalTable.tsx` to distribute credits proportionally based on each bill's share of positive allocations
+3. **Consolidated payment view** — Paid tab now groups multi-bill payments with expandable rows showing individual allocations (bills + credits)
+4. **Data repair** — Corrected over-allocated amounts for OCH-02302 via SQL migration
