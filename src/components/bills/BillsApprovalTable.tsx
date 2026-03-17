@@ -999,6 +999,15 @@ export function BillsApprovalTable({ status, projectId, projectIds, showProjectC
             { label: "Approve", onClick: () => handleActionChange(bill.id, 'approve'), disabled: approveBill.isPending || rejectBill.isPending },
             { label: "Edit", onClick: () => handleActionChange(bill.id, 'edit'), disabled: approveBill.isPending || rejectBill.isPending },
             { label: "Reject", onClick: () => handleActionChange(bill.id, 'reject'), variant: 'destructive' as const, disabled: approveBill.isPending || rejectBill.isPending },
+            {
+              label: "Delete Bill",
+              onClick: () => deleteBill.mutate(bill.id),
+              variant: "destructive" as const,
+              requiresConfirmation: true,
+              confirmTitle: "Delete Bill",
+              confirmDescription: `Are you sure you want to delete this bill from ${bill.companies?.company_name} for ${formatCurrency(bill.total_amount)}? This action cannot be undone.`,
+              isLoading: deleteBill.isPending,
+            },
           ]} />
         ) : (
           bill.reconciled ? <Check className="h-4 w-4 text-green-600 mx-auto" /> : <span className="text-muted-foreground">-</span>
