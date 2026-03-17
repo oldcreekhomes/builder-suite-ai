@@ -70,8 +70,8 @@ export function BudgetExcelImportDialog({
 }: BudgetExcelImportDialogProps) {
   const { toast } = useToast();
   const queryClient = useQueryClient();
-  const [step, setStep] = useState<'upload' | 'review'>('upload');
   const [file, setFile] = useState<File | null>(null);
+  const [reviewOpen, setReviewOpen] = useState(false);
   const [parsedItems, setParsedItems] = useState<ParsedItem[]>([]);
   const [isImporting, setIsImporting] = useState(false);
   const [searchFilter, setSearchFilter] = useState('');
