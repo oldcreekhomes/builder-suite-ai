@@ -1055,7 +1055,7 @@ export function AccountDetailDialog({
     <>
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-5xl max-h-[85vh] overflow-hidden flex flex-col">
-        <DialogHeader>
+        <DialogHeader className="py-3">
           <div className="flex items-center justify-between">
             <DialogTitle className="text-base">
               {accountCode} - {accountName}
@@ -1066,13 +1066,11 @@ export function AccountDetailDialog({
               <DateInputPicker
                 date={dateFrom}
                 onDateChange={setDateFrom}
-                className="[&_input]:h-9 [&_button]:h-9"
               />
               <span className="text-sm text-muted-foreground">To</span>
               <DateInputPicker
                 date={dateTo}
                 onDateChange={setDateTo}
-                className="[&_input]:h-9 [&_button]:h-9"
               />
               {(dateFrom || dateTo) && (
                 <button
@@ -1107,7 +1105,7 @@ export function AccountDetailDialog({
           </div>
         </DialogHeader>
 
-        <div className="mt-2 flex-1 overflow-y-auto">
+        <div className="flex-1 overflow-y-auto">
           {isLoading ? (
             <div className="space-y-2">
               {[...Array(5)].map((_, i) => (

@@ -89,14 +89,14 @@ export function DateInputPicker({
         onBlur={handleInputBlur}
         placeholder="MM/DD/YYYY"
         disabled={disabled}
-        className="h-10 w-32"
+        className="h-9 w-32"
       />
       <Popover open={isOpen} onOpenChange={setIsOpen}>
         <PopoverTrigger asChild>
           <Button
             variant="outline"
             size="sm"
-            className="h-10 w-10 p-0"
+            className="h-9 w-9 p-0"
             disabled={disabled}
           >
             <CalendarIcon className="h-4 w-4" />
