@@ -394,56 +394,98 @@ export function BudgetExcelImportDialog({
                   </tr>
                 </thead>
                 <tbody>
-                  {filteredItems.map((item, idx) => {
-                    const realIdx = parsedItems.indexOf(item);
-                    const isDuplicate = item.matchedCostCodeId && existingSet.has(item.matchedCostCodeId);
-                    return (
-                      <tr key={realIdx} className={`border-t ${isDuplicate ? 'opacity-50' : ''}`}>
-                        <td className="p-2 text-center">
-                          <Checkbox
-                            checked={item.included && !isDuplicate}
-                            disabled={!!isDuplicate || !item.matchedCostCodeId}
-                            onCheckedChange={() => handleToggleInclude(realIdx)}
-                          />
-                        </td>
-                        <td className="p-2 font-mono">{item.excelCode}</td>
-                        <td className="p-2 truncate max-w-[200px]" title={item.description}>
-                          {item.description}
-                        </td>
+                  {(() => {
+                    const groups: { group: string; items: typeof filteredItems }[] = [];
+                    filteredItems.forEach(item => {
+                      const group = getParentGroup(item.excelCode);
+                      const existing = groups.find(g => g.group === group);
+                      if (existing) existing.items.push(item);
+                      else groups.push({ group, items: [item] });
+                    });
+
+                    const rows: React.ReactNode[] = [];
+                    let grandTotal = 0;
+
+                    groups.forEach(({ group, items }) => {
+                      const groupTotal = items.reduce((sum, i) => sum + i.amount, 0);
+                      grandTotal += groupTotal;
+
+                      items.forEach(item => {
+                        const realIdx = parsedItems.indexOf(item);
+                        const isDuplicate = item.matchedCostCodeId && existingSet.has(item.matchedCostCodeId);
+                        rows.push(
+                          <tr key={realIdx} className={`border-t ${isDuplicate ? 'opacity-50' : ''}`}>
+                            <td className="p-2 text-center">
+                              <Checkbox
+                                checked={item.included && !isDuplicate}
+                                disabled={!!isDuplicate || !item.matchedCostCodeId}
+                                onCheckedChange={() => handleToggleInclude(realIdx)}
+                              />
+                            </td>
+                            <td className="p-2 font-mono">{item.excelCode}</td>
+                            <td className="p-2 truncate max-w-[200px]" title={item.description}>
+                              {item.description}
+                            </td>
+                            <td className="p-2 text-right font-mono">
+                              ${item.amount.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                            </td>
+                            <td className="p-2 text-center">
+                              {isDuplicate ? (
+                                <span className="text-xs text-orange-500 font-medium">In Budget</span>
+                              ) : item.matchStatus === 'matched' ? (
+                                <CheckCircle2 className="h-4 w-4 text-green-600 mx-auto" />
+                              ) : item.matchStatus === 'mapped' ? (
+                                <CheckCircle2 className="h-4 w-4 text-blue-500 mx-auto" />
+                              ) : (
+                                <XCircle className="h-4 w-4 text-destructive mx-auto" />
+                              )}
+                            </td>
+                            <td className="p-2">
+                              <Select
+                                value={item.matchedCostCodeId || ''}
+                                onValueChange={(val) => handleMapChange(realIdx, val)}
+                              >
+                                <SelectTrigger className="h-8 text-xs">
+                                  <SelectValue placeholder="Select cost code..." />
+                                </SelectTrigger>
+                                <SelectContent>
+                                  {costCodes.map(cc => (
+                                    <SelectItem key={cc.id} value={cc.id} className="text-xs">
+                                      {cc.code} - {cc.name}
+                                    </SelectItem>
+                                  ))}
+                                </SelectContent>
+                              </Select>
+                            </td>
+                          </tr>
+                        );
+                      });
+
+                      rows.push(
+                        <tr key={`subtotal-${group}`} className="bg-muted/50 font-semibold border-t">
+                          <td colSpan={3} className="p-2 text-sm">
+                            Subtotal: {GROUP_LABELS[group] || `Group ${group}`}
+                          </td>
+                          <td className="p-2 text-right font-mono text-sm">
+                            ${groupTotal.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                          </td>
+                          <td colSpan={2}></td>
+                        </tr>
+                      );
+                    });
+
+                    rows.push(
+                      <tr key="grand-total" className="bg-muted font-bold border-t-2">
+                        <td colSpan={3} className="p-2">Grand Total</td>
                         <td className="p-2 text-right font-mono">
-                          ${item.amount.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                          ${grandTotal.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                         </td>
-                        <td className="p-2 text-center">
-                          {isDuplicate ? (
-                            <span className="text-xs text-orange-500 font-medium">In Budget</span>
-                          ) : item.matchStatus === 'matched' ? (
-                            <CheckCircle2 className="h-4 w-4 text-green-600 mx-auto" />
-                          ) : item.matchStatus === 'mapped' ? (
-                            <CheckCircle2 className="h-4 w-4 text-blue-500 mx-auto" />
-                          ) : (
-                            <XCircle className="h-4 w-4 text-destructive mx-auto" />
-                          )}
-                        </td>
-                        <td className="p-2">
-                          <Select
-                            value={item.matchedCostCodeId || ''}
-                            onValueChange={(val) => handleMapChange(realIdx, val)}
-                          >
-                            <SelectTrigger className="h-8 text-xs">
-                              <SelectValue placeholder="Select cost code..." />
-                            </SelectTrigger>
-                            <SelectContent>
-                              {costCodes.map(cc => (
-                                <SelectItem key={cc.id} value={cc.id} className="text-xs">
-                                  {cc.code} - {cc.name}
-                                </SelectItem>
-                              ))}
-                            </SelectContent>
-                          </Select>
-                        </td>
+                        <td colSpan={2}></td>
                       </tr>
                     );
-                  })}
+
+                    return rows;
+                  })()}
                 </tbody>
               </table>
             </div>
