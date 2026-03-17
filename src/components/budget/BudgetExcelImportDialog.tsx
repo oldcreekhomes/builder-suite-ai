@@ -84,6 +84,7 @@ export function BudgetExcelImportDialog({
       const { data, error } = await supabase
         .from('cost_codes')
         .select('id, code, name, parent_group')
+        .or('parent_group.in.(1000,2000,3000,4000),parent_group.is.null')
         .order('code');
       if (error) throw error;
       return data as CostCodeOption[];
