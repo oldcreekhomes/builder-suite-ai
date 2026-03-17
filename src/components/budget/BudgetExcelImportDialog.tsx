@@ -219,7 +219,8 @@ export function BudgetExcelImportDialog({
       }
 
       setParsedItems(items);
-      setStep('review');
+      onOpenChange(false);
+      setReviewOpen(true);
     } catch (err) {
       console.error('Parse error:', err);
       toast({ title: 'Error', description: 'Failed to parse Excel file.', variant: 'destructive' });
