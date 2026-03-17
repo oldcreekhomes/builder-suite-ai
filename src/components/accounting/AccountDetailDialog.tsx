@@ -107,6 +107,8 @@ export function AccountDetailDialog({
     }
   }, [open, accountId, isAccountsPayable]);
   
+  const [selectedTransaction, setSelectedTransaction] = useState<Transaction | null>(null);
+  const [selectedTransactionBalance, setSelectedTransactionBalance] = useState(0);
   const [editingBillId, setEditingBillId] = useState<string | null>(null);
   const [editingDepositId, setEditingDepositId] = useState<string | null>(null);
   const [editingCheckId, setEditingCheckId] = useState<string | null>(null);
