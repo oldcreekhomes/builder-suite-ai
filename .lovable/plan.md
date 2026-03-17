@@ -1,9 +1,20 @@
 
-## ✅ COMPLETED: Fix Bill Payment — Credit Calculation + Data Repair + Consolidated Payment View
 
-All three fixes have been implemented:
+## Plan: Fix LotSelector Width to Match Other Buttons
 
-1. **Credit remaining balance formula** — Fixed in `useBills.ts` line 417 to use `total_amount + amount_paid` for credits
-2. **Proportional credit distribution** — Fixed in `BillsApprovalTable.tsx` to distribute credits proportionally based on each bill's share of positive allocations
-3. **Consolidated payment view** — Paid tab now groups multi-bill payments with expandable rows showing individual allocations (bills + credits)
-4. **Data repair** — Corrected over-allocated amounts for OCH-02302 via SQL migration
+### Problem
+The LotSelector has a fixed `w-[120px]` width, which is too wide for short values like "Lot 1". This creates excessive internal padding / gap between the text and the dropdown arrow, making it look inconsistent with the adjacent buttons.
+
+### Fix
+**File: `src/components/budget/LotSelector.tsx`** (line 49)
+
+Change the SelectTrigger from a fixed width to auto-fitting:
+```
+w-[120px] → w-auto min-w-[80px]
+```
+
+This lets the trigger shrink to fit short lot names like "Lot 1" while maintaining a reasonable minimum, matching the compact feel of the other `size="sm"` buttons in the toolbar.
+
+### Files to Edit
+- `src/components/budget/LotSelector.tsx` — line 49, update className on SelectTrigger
+
