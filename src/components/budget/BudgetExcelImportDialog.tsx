@@ -70,8 +70,8 @@ export function BudgetExcelImportDialog({
 }: BudgetExcelImportDialogProps) {
   const { toast } = useToast();
   const queryClient = useQueryClient();
-  const [step, setStep] = useState<'upload' | 'review'>('upload');
   const [file, setFile] = useState<File | null>(null);
+  const [reviewOpen, setReviewOpen] = useState(false);
   const [parsedItems, setParsedItems] = useState<ParsedItem[]>([]);
   const [isImporting, setIsImporting] = useState(false);
   const [searchFilter, setSearchFilter] = useState('');
@@ -219,7 +219,8 @@ export function BudgetExcelImportDialog({
       }
 
       setParsedItems(items);
-      setStep('review');
+      onOpenChange(false);
+      setReviewOpen(true);
     } catch (err) {
       console.error('Parse error:', err);
       toast({ title: 'Error', description: 'Failed to parse Excel file.', variant: 'destructive' });
@@ -300,11 +301,17 @@ export function BudgetExcelImportDialog({
   };
 
   const handleClose = () => {
-    setStep('upload');
     setFile(null);
     setParsedItems([]);
     setSearchFilter('');
     onOpenChange(false);
+    setReviewOpen(false);
+  };
+
+  const handleBackToUpload = () => {
+    setReviewOpen(false);
+    setParsedItems([]);
+    onOpenChange(true);
   };
 
   const directMatchCount = parsedItems.filter(i => i.matchStatus === 'matched').length;
@@ -322,15 +329,13 @@ export function BudgetExcelImportDialog({
   }, [parsedItems, searchFilter]);
 
   return (
-    <Dialog open={open} onOpenChange={handleClose}>
-      <DialogContent className="max-h-[90vh] flex flex-col">
-        <DialogHeader>
-          <DialogTitle>
-            {step === 'upload' ? 'Import Budget from Excel' : 'Review & Map Cost Codes'}
-          </DialogTitle>
-        </DialogHeader>
-
-        {step === 'upload' && (
+    <>
+      {/* Upload Dialog — default small size */}
+      <Dialog open={open} onOpenChange={handleClose}>
+        <DialogContent className="max-h-[90vh] flex flex-col">
+          <DialogHeader>
+            <DialogTitle>Import Budget from Excel</DialogTitle>
+          </DialogHeader>
           <div className="space-y-4 py-4">
             <div className="space-y-2">
               <Label htmlFor="budget-excel-file">Excel File</Label>
@@ -352,163 +357,168 @@ export function BudgetExcelImportDialog({
               </Button>
             </DialogFooter>
           </div>
-        )}
+        </DialogContent>
+      </Dialog>
 
-        {step === 'review' && (
-          <>
-            {/* Summary bar */}
-            <div className="flex flex-col gap-1 border-b pb-3">
-              <div className="flex items-center gap-4 text-sm">
-                <span className="flex items-center gap-1 text-green-600">
-                  <CheckCircle2 className="h-4 w-4" /> {directMatchCount} matched
+      {/* Review Dialog — wide size */}
+      <Dialog open={reviewOpen} onOpenChange={(val) => { if (!val) handleClose(); }}>
+        <DialogContent className="sm:max-w-4xl max-h-[90vh] flex flex-col">
+          <DialogHeader>
+            <DialogTitle>Review & Map Cost Codes</DialogTitle>
+          </DialogHeader>
+
+          {/* Summary bar */}
+          <div className="flex flex-col gap-1 border-b pb-3">
+            <div className="flex items-center gap-4 text-sm">
+              <span className="flex items-center gap-1 text-green-600">
+                <CheckCircle2 className="h-4 w-4" /> {directMatchCount} matched
+              </span>
+              <span className="flex items-center gap-1 text-amber-500">
+                <CheckCircle2 className="h-4 w-4" /> {mappedCount} needs review
+              </span>
+              <span className="flex items-center gap-1 text-destructive">
+                <XCircle className="h-4 w-4" /> {unmatchedCount} unmatched
+              </span>
+              <span className="text-muted-foreground">
+                {importableItems.length} to import
+              </span>
+              {duplicateItems.length > 0 && (
+                <span className="text-orange-500 text-xs">
+                  {duplicateItems.length} already in budget (skipped)
                 </span>
-                <span className="flex items-center gap-1 text-amber-500">
-                  <CheckCircle2 className="h-4 w-4" /> {mappedCount} needs review
-                </span>
-                <span className="flex items-center gap-1 text-destructive">
-                  <XCircle className="h-4 w-4" /> {unmatchedCount} unmatched
-                </span>
-                <span className="text-muted-foreground">
-                  {importableItems.length} to import
-                </span>
-                {duplicateItems.length > 0 && (
-                  <span className="text-orange-500 text-xs">
-                    {duplicateItems.length} already in budget (skipped)
-                  </span>
-                )}
-              </div>
+              )}
             </div>
+          </div>
 
-            {/* Search */}
-            <Input
-              placeholder="Search by code or description..."
-              value={searchFilter}
-              onChange={e => setSearchFilter(e.target.value)}
-              className="mb-2"
-            />
+          {/* Search */}
+          <Input
+            placeholder="Search by code or description..."
+            value={searchFilter}
+            onChange={e => setSearchFilter(e.target.value)}
+            className="mb-2"
+          />
 
-            {/* Table */}
-              <Table containerClassName="flex-1 overflow-auto rounded-md border">
-                <TableHeader>
-                  <TableRow>
-                    <TableHead></TableHead>
-                    <TableHead>Excel Code</TableHead>
-                    <TableHead>Description</TableHead>
-                    <TableHead className="text-right">Amount</TableHead>
-                    <TableHead className="text-center">Status</TableHead>
-                    <TableHead>Mapped Cost Code</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {(() => {
-                    const groups: { group: string; items: typeof filteredItems }[] = [];
-                    filteredItems.forEach(item => {
-                      const group = getParentGroup(item.excelCode);
-                      const existing = groups.find(g => g.group === group);
-                      if (existing) existing.items.push(item);
-                      else groups.push({ group, items: [item] });
-                    });
+          {/* Table */}
+          <Table containerClassName="flex-1 overflow-auto rounded-md border">
+            <TableHeader>
+              <TableRow>
+                <TableHead></TableHead>
+                <TableHead>Excel Code</TableHead>
+                <TableHead>Description</TableHead>
+                <TableHead className="text-right">Amount</TableHead>
+                <TableHead className="text-center">Status</TableHead>
+                <TableHead>Mapped Cost Code</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {(() => {
+                const groups: { group: string; items: typeof filteredItems }[] = [];
+                filteredItems.forEach(item => {
+                  const group = getParentGroup(item.excelCode);
+                  const existing = groups.find(g => g.group === group);
+                  if (existing) existing.items.push(item);
+                  else groups.push({ group, items: [item] });
+                });
 
-                    const rows: React.ReactNode[] = [];
-                    let grandTotal = 0;
+                const rows: React.ReactNode[] = [];
+                let grandTotal = 0;
 
-                    groups.forEach(({ group, items }) => {
-                      const groupTotal = items.reduce((sum, i) => sum + i.amount, 0);
-                      grandTotal += groupTotal;
+                groups.forEach(({ group, items }) => {
+                  const groupTotal = items.reduce((sum, i) => sum + i.amount, 0);
+                  grandTotal += groupTotal;
 
-                      items.forEach(item => {
-                        const realIdx = parsedItems.indexOf(item);
-                        const isDuplicate = item.matchedCostCodeId && existingSet.has(item.matchedCostCodeId);
-                        rows.push(
-                          <TableRow key={realIdx} className={isDuplicate ? 'opacity-50' : ''}>
-                            <TableCell>
-                              <div className="flex items-center justify-center">
-                                <Checkbox
-                                  className="h-4 w-4"
-                                  checked={item.included && !isDuplicate}
-                                  disabled={!!isDuplicate || !item.matchedCostCodeId}
-                                  onCheckedChange={() => handleToggleInclude(realIdx)}
-                                />
-                              </div>
-                            </TableCell>
-                            <TableCell>{item.excelCode}</TableCell>
-                            <TableCell className="truncate" title={item.description}>
-                              {item.description}
-                            </TableCell>
-                            <TableCell className="text-right">
-                              ${item.amount.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                            </TableCell>
-                            <TableCell className="text-center">
-                              {isDuplicate ? (
-                                <span className="text-orange-500 font-medium">In Budget</span>
-                              ) : item.matchStatus === 'matched' ? (
-                                <CheckCircle2 className="h-4 w-4 text-green-600 mx-auto" />
-                              ) : item.matchStatus === 'mapped' ? (
-                                <CheckCircle2 className="h-4 w-4 text-amber-500 mx-auto" />
-                              ) : (
-                                <XCircle className="h-4 w-4 text-destructive mx-auto" />
-                              )}
-                            </TableCell>
-                            <TableCell>
-                              <Select
-                                value={item.matchedCostCodeId || ''}
-                                onValueChange={(val) => handleMapChange(realIdx, val)}
-                              >
-                                <SelectTrigger className="h-8">
-                                  <SelectValue placeholder="Select cost code..." />
-                                </SelectTrigger>
-                                <SelectContent>
-                                  {costCodes.map(cc => (
-                                    <SelectItem key={cc.id} value={cc.id}>
-                                      {cc.code} - {cc.name}
-                                    </SelectItem>
-                                  ))}
-                                </SelectContent>
-                              </Select>
-                            </TableCell>
-                          </TableRow>
-                        );
-                      });
-
-                      rows.push(
-                        <TableRow key={`subtotal-${group}`} className="bg-muted/50 font-semibold">
-                          <TableCell colSpan={3}>
-                            Subtotal: {GROUP_LABELS[group] || `Group ${group}`}
-                          </TableCell>
-                          <TableCell className="text-right">
-                            ${groupTotal.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                          </TableCell>
-                          <TableCell colSpan={2}></TableCell>
-                        </TableRow>
-                      );
-                    });
-
+                  items.forEach(item => {
+                    const realIdx = parsedItems.indexOf(item);
+                    const isDuplicate = item.matchedCostCodeId && existingSet.has(item.matchedCostCodeId);
                     rows.push(
-                      <TableRow key="grand-total" className="bg-muted font-bold border-t-2">
-                        <TableCell colSpan={3}>Grand Total</TableCell>
-                        <TableCell className="text-right">
-                          ${grandTotal.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                      <TableRow key={realIdx} className={isDuplicate ? 'opacity-50' : ''}>
+                        <TableCell>
+                          <div className="flex items-center justify-center">
+                            <Checkbox
+                              className="h-4 w-4"
+                              checked={item.included && !isDuplicate}
+                              disabled={!!isDuplicate || !item.matchedCostCodeId}
+                              onCheckedChange={() => handleToggleInclude(realIdx)}
+                            />
+                          </div>
                         </TableCell>
-                        <TableCell colSpan={2}></TableCell>
+                        <TableCell>{item.excelCode}</TableCell>
+                        <TableCell className="truncate" title={item.description}>
+                          {item.description}
+                        </TableCell>
+                        <TableCell className="text-right">
+                          ${item.amount.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                        </TableCell>
+                        <TableCell className="text-center">
+                          {isDuplicate ? (
+                            <span className="text-orange-500 font-medium">In Budget</span>
+                          ) : item.matchStatus === 'matched' ? (
+                            <CheckCircle2 className="h-4 w-4 text-green-600 mx-auto" />
+                          ) : item.matchStatus === 'mapped' ? (
+                            <CheckCircle2 className="h-4 w-4 text-amber-500 mx-auto" />
+                          ) : (
+                            <XCircle className="h-4 w-4 text-destructive mx-auto" />
+                          )}
+                        </TableCell>
+                        <TableCell>
+                          <Select
+                            value={item.matchedCostCodeId || ''}
+                            onValueChange={(val) => handleMapChange(realIdx, val)}
+                          >
+                            <SelectTrigger className="h-8">
+                              <SelectValue placeholder="Select cost code..." />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {costCodes.map(cc => (
+                                <SelectItem key={cc.id} value={cc.id}>
+                                  {cc.code} - {cc.name}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        </TableCell>
                       </TableRow>
                     );
+                  });
 
-                    return rows;
-                  })()}
-                </TableBody>
-              </Table>
+                  rows.push(
+                    <TableRow key={`subtotal-${group}`} className="bg-muted/50 font-semibold">
+                      <TableCell colSpan={3}>
+                        Subtotal: {GROUP_LABELS[group] || `Group ${group}`}
+                      </TableCell>
+                      <TableCell className="text-right">
+                        ${groupTotal.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                      </TableCell>
+                      <TableCell colSpan={2}></TableCell>
+                    </TableRow>
+                  );
+                });
 
-            <DialogFooter className="pt-3">
-              <Button variant="outline" onClick={() => { setStep('upload'); setParsedItems([]); }}>
-                Back
-              </Button>
-              <Button onClick={handleImport} disabled={importableItems.length === 0 || isImporting}>
-                {isImporting ? 'Importing...' : `Import ${importableItems.length} Items`}
-              </Button>
-            </DialogFooter>
-          </>
-        )}
-      </DialogContent>
-    </Dialog>
+                rows.push(
+                  <TableRow key="grand-total" className="bg-muted font-bold border-t-2">
+                    <TableCell colSpan={3}>Grand Total</TableCell>
+                    <TableCell className="text-right">
+                      ${grandTotal.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                    </TableCell>
+                    <TableCell colSpan={2}></TableCell>
+                  </TableRow>
+                );
+
+                return rows;
+              })()}
+            </TableBody>
+          </Table>
+
+          <DialogFooter className="pt-3">
+            <Button variant="outline" onClick={handleBackToUpload}>
+              Back
+            </Button>
+            <Button onClick={handleImport} disabled={importableItems.length === 0 || isImporting}>
+              {isImporting ? 'Importing...' : `Import ${importableItems.length} Items`}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    </>
   );
 }

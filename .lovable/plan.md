@@ -1,29 +1,9 @@
 
+## ✅ COMPLETED: Fix Bill Payment — Credit Calculation + Data Repair + Consolidated Payment View
 
-## Plan: Split Import into Two Separate Dialogs
+All three fixes have been implemented:
 
-The current single dialog tries to be both small (upload) and large (review table), causing the resize glitch. The fix is to use **two separate `Dialog` components** — one stays compact for upload, the other opens wide for review.
-
-### Approach
-
-Split the existing component so it renders **two `<Dialog>` elements**:
-
-1. **Upload Dialog** — standard default size (`max-w-lg`), contains file picker and "Parse & Match" button. When parsing completes, this dialog closes and the review dialog opens.
-
-2. **Review Dialog** — wide (`sm:max-w-4xl`), contains the summary bar, search, review table, and import button. "Back" closes this and reopens the upload dialog.
-
-### Changes — `src/components/budget/BudgetExcelImportDialog.tsx`
-
-- Add a second piece of state: `reviewOpen` (boolean).
-- When `handleParse` succeeds: call `onOpenChange(false)` to close the upload dialog, then set `reviewOpen = true`.
-- When "Back" is clicked in review: set `reviewOpen = false`, call `onOpenChange(true)` to reopen upload.
-- When review is closed or import succeeds: set `reviewOpen = false` and reset state.
-- Render two `<Dialog>` components side by side in the return:
-  - First `<Dialog open={open}>` with `<DialogContent>` containing only the upload step (default width).
-  - Second `<Dialog open={reviewOpen}>` with `<DialogContent className="sm:max-w-4xl max-h-[90vh] flex flex-col">` containing only the review step.
-
-### Files to Edit
-- `src/components/budget/BudgetExcelImportDialog.tsx`
-
-No other files change. The parent component's `open`/`onOpenChange` props continue to control the upload dialog as before.
-
+1. **Credit remaining balance formula** — Fixed in `useBills.ts` line 417 to use `total_amount + amount_paid` for credits
+2. **Proportional credit distribution** — Fixed in `BillsApprovalTable.tsx` to distribute credits proportionally based on each bill's share of positive allocations
+3. **Consolidated payment view** — Paid tab now groups multi-bill payments with expandable rows showing individual allocations (bills + credits)
+4. **Data repair** — Corrected over-allocated amounts for OCH-02302 via SQL migration
