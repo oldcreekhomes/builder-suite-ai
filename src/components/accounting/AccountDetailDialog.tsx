@@ -1358,6 +1358,15 @@ export function AccountDetailDialog({
       }}
       checkId={editingCheckId || ''}
     />
+
+    {/* Transaction Detail Dialog */}
+    <TransactionDetailDialog
+      transaction={selectedTransaction}
+      balance={selectedTransactionBalance}
+      accountType={accountType}
+      open={!!selectedTransaction}
+      onOpenChange={(open) => { if (!open) setSelectedTransaction(null); }}
+    />
     </>
   );
 }
