@@ -388,15 +388,15 @@ export function BudgetExcelImportDialog({
             />
 
             {/* Table */}
-              <Table className="table-fixed" containerClassName="flex-1 overflow-auto border rounded-md">
+              <Table containerClassName="flex-1 overflow-auto border rounded-md">
                 <TableHeader className="sticky top-0 bg-muted z-10">
                   <TableRow>
-                    <TableHead className="w-[40px]"></TableHead>
-                    <TableHead className="w-[90px]">Excel Code</TableHead>
-                    <TableHead className="w-[200px]">Description</TableHead>
-                    <TableHead className="w-[110px] text-right">Amount</TableHead>
-                    <TableHead className="w-[70px] text-center">Status</TableHead>
-                    <TableHead className="min-w-[220px]">Mapped Cost Code</TableHead>
+                    <TableHead></TableHead>
+                    <TableHead>Excel Code</TableHead>
+                    <TableHead>Description</TableHead>
+                    <TableHead className="text-right">Amount</TableHead>
+                    <TableHead className="text-center">Status</TableHead>
+                    <TableHead>Mapped Cost Code</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -428,16 +428,16 @@ export function BudgetExcelImportDialog({
                                 onCheckedChange={() => handleToggleInclude(realIdx)}
                               />
                             </TableCell>
-                            <TableCell className="font-mono">{item.excelCode}</TableCell>
+                            <TableCell>{item.excelCode}</TableCell>
                             <TableCell className="truncate" title={item.description}>
                               {item.description}
                             </TableCell>
-                            <TableCell className="text-right font-mono">
+                            <TableCell className="text-right">
                               ${item.amount.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                             </TableCell>
                             <TableCell className="text-center">
                               {isDuplicate ? (
-                                <span className="text-xs text-orange-500 font-medium">In Budget</span>
+                                <span className="text-orange-500 font-medium">In Budget</span>
                               ) : item.matchStatus === 'matched' ? (
                                 <CheckCircle2 className="h-4 w-4 text-green-600 mx-auto" />
                               ) : item.matchStatus === 'mapped' ? (
@@ -451,12 +451,12 @@ export function BudgetExcelImportDialog({
                                 value={item.matchedCostCodeId || ''}
                                 onValueChange={(val) => handleMapChange(realIdx, val)}
                               >
-                                <SelectTrigger className="h-8 text-xs">
+                                <SelectTrigger>
                                   <SelectValue placeholder="Select cost code..." />
                                 </SelectTrigger>
                                 <SelectContent>
                                   {costCodes.map(cc => (
-                                    <SelectItem key={cc.id} value={cc.id} className="text-xs">
+                                    <SelectItem key={cc.id} value={cc.id}>
                                       {cc.code} - {cc.name}
                                     </SelectItem>
                                   ))}
@@ -469,10 +469,10 @@ export function BudgetExcelImportDialog({
 
                       rows.push(
                         <TableRow key={`subtotal-${group}`} className="bg-muted/50 font-semibold">
-                          <TableCell colSpan={3} className="text-sm">
+                          <TableCell colSpan={3}>
                             Subtotal: {GROUP_LABELS[group] || `Group ${group}`}
                           </TableCell>
-                          <TableCell className="text-right font-mono text-sm">
+                          <TableCell className="text-right">
                             ${groupTotal.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                           </TableCell>
                           <TableCell colSpan={2}></TableCell>
@@ -483,7 +483,7 @@ export function BudgetExcelImportDialog({
                     rows.push(
                       <TableRow key="grand-total" className="bg-muted font-bold border-t-2">
                         <TableCell colSpan={3}>Grand Total</TableCell>
-                        <TableCell className="text-right font-mono">
+                        <TableCell className="text-right">
                           ${grandTotal.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                         </TableCell>
                         <TableCell colSpan={2}></TableCell>
