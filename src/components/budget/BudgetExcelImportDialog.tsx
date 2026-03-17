@@ -388,8 +388,7 @@ export function BudgetExcelImportDialog({
             />
 
             {/* Table */}
-            <div className="flex-1 overflow-auto border rounded-md">
-              <Table className="table-fixed">
+              <Table className="table-fixed" containerClassName="flex-1 overflow-auto border rounded-md">
                 <TableHeader className="sticky top-0 bg-muted z-10">
                   <TableRow>
                     <TableHead className="w-[40px]"></TableHead>
@@ -495,7 +494,6 @@ export function BudgetExcelImportDialog({
                   })()}
                 </TableBody>
               </Table>
-            </div>
 
             <DialogFooter className="pt-3">
               <Button variant="outline" onClick={() => { setStep('upload'); setParsedItems([]); }}>
