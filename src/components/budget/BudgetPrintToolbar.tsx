@@ -1,6 +1,6 @@
 import React from 'react';
 import { Button } from '@/components/ui/button';
-import { Printer, Plus as PlusIcon, ChevronsUpDown, ChevronsDownUp, FileDown } from 'lucide-react';
+import { Printer, Plus as PlusIcon, ChevronsUpDown, ChevronsDownUp, FileDown, Upload } from 'lucide-react';
 import { LotSelector } from './LotSelector';
 
 interface BudgetPrintToolbarProps {
@@ -10,6 +10,7 @@ interface BudgetPrintToolbarProps {
   onPrint: () => void;
   onExportPdf: () => void;
   onAddBudget: () => void;
+  onImportExcel?: () => void;
   onToggleExpandCollapse?: () => void;
   allExpanded?: boolean;
   isExportingPdf?: boolean;
