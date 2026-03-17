@@ -307,7 +307,8 @@ export function BudgetExcelImportDialog({
     onOpenChange(false);
   };
 
-  const matchedCount = parsedItems.filter(i => i.matchStatus === 'matched' || i.matchStatus === 'mapped').length;
+  const directMatchCount = parsedItems.filter(i => i.matchStatus === 'matched').length;
+  const mappedCount = parsedItems.filter(i => i.matchStatus === 'mapped').length;
   const unmatchedCount = parsedItems.filter(i => i.matchStatus === 'unmatched').length;
 
   const filteredItems = useMemo(() => {
