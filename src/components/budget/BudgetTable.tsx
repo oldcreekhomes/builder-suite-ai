@@ -15,6 +15,7 @@ import { BudgetPrintView } from './BudgetPrintView';
 import { BudgetPdfDocument } from './pdf/BudgetPdfDocument';
 import { HistoricalOnlyRow } from './HistoricalOnlyRow';
 import { BudgetExportPdfDialog, ExportPdfOptions } from './BudgetExportPdfDialog';
+import { BudgetExcelImportDialog } from './BudgetExcelImportDialog';
 import { pdf } from '@react-pdf/renderer';
 import { fetchHistoricalActualCosts } from '@/utils/fetchHistoricalActualCosts';
 import { useBudgetData } from '@/hooks/useBudgetData';
@@ -61,6 +62,7 @@ export function BudgetTable({ projectId, projectAddress, onHeaderActionChange, o
   const [showVarianceAsPercentage, setShowVarianceAsPercentage] = useState(false);
   const [isExportingPdf, setIsExportingPdf] = useState(false);
   const [showExportDialog, setShowExportDialog] = useState(false);
+  const [showImportDialog, setShowImportDialog] = useState(false);
   const [showLockDialog, setShowLockDialog] = useState(false);
   const [lockAction, setLockAction] = useState<'lock' | 'unlock'>('lock');
   
@@ -450,6 +452,7 @@ export function BudgetTable({ projectId, projectAddress, onHeaderActionChange, o
             onPrint={handlePrint}
             onExportPdf={() => setShowExportDialog(true)}
             onAddBudget={() => !isLocked && setShowAddBudgetModal(true)}
+            onImportExcel={() => !isLocked && setShowImportDialog(true)}
             onToggleExpandCollapse={handleToggleExpandCollapse}
             allExpanded={allGroupsExpanded}
             isExportingPdf={isExportingPdf}
@@ -473,6 +476,7 @@ export function BudgetTable({ projectId, projectAddress, onHeaderActionChange, o
         onPrint={handlePrint}
         onExportPdf={() => setShowExportDialog(true)}
         onAddBudget={() => !isLocked && setShowAddBudgetModal(true)}
+        onImportExcel={() => !isLocked && setShowImportDialog(true)}
         onToggleExpandCollapse={handleToggleExpandCollapse}
         allExpanded={allGroupsExpanded}
         isExportingPdf={isExportingPdf}
@@ -712,6 +716,14 @@ export function BudgetTable({ projectId, projectAddress, onHeaderActionChange, o
           selectedLotId={selectedLotId}
         />
       )}
+
+      <BudgetExcelImportDialog
+        open={showImportDialog}
+        onOpenChange={setShowImportDialog}
+        projectId={projectId}
+        selectedLotId={selectedLotId}
+        existingCostCodeIds={existingCostCodeIds}
+      />
     </div>
   );
 }
