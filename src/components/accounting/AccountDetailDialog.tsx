@@ -1061,56 +1061,51 @@ export function AccountDetailDialog({
               {accountCode} - {accountName}
             </DialogTitle>
             
-            {isAccountsPayable && (
-              <div className="flex items-center gap-2">
-                <Label htmlFor="hide-paid-toggle" className="text-sm text-muted-foreground cursor-pointer">
-                  Hide Paid
-                </Label>
-                <Switch
-                  id="hide-paid-toggle"
-                  checked={hidePaid}
-                  onCheckedChange={setHidePaid}
+            <div className="flex items-center gap-2">
+              <span className="text-sm text-muted-foreground">From</span>
+              <DateInputPicker
+                date={dateFrom}
+                onDateChange={setDateFrom}
+                className="[&_input]:h-9 [&_button]:h-9"
+              />
+              <span className="text-sm text-muted-foreground">To</span>
+              <DateInputPicker
+                date={dateTo}
+                onDateChange={setDateTo}
+                className="[&_input]:h-9 [&_button]:h-9"
+              />
+              {(dateFrom || dateTo) && (
+                <button
+                  onClick={() => { setDateFrom(undefined); setDateTo(undefined); }}
+                  className="text-xs text-muted-foreground hover:text-foreground underline"
+                >
+                  Clear
+                </button>
+              )}
+              <div className="relative">
+                <Search className="absolute left-2.5 top-2 h-4 w-4 text-muted-foreground" />
+                <Input
+                  placeholder="Search..."
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  className="h-9 w-52 pl-8"
                 />
               </div>
-            )}
+              {isAccountsPayable && (
+                <>
+                  <Label htmlFor="hide-paid-toggle" className="text-sm text-muted-foreground cursor-pointer">
+                    Hide Paid
+                  </Label>
+                  <Switch
+                    id="hide-paid-toggle"
+                    checked={hidePaid}
+                    onCheckedChange={setHidePaid}
+                  />
+                </>
+              )}
+            </div>
           </div>
         </DialogHeader>
-
-        <div className="flex items-center gap-2 flex-wrap">
-          <div className="flex items-center gap-1">
-            <span className="text-sm text-muted-foreground">From</span>
-            <DateInputPicker
-              date={dateFrom}
-              onDateChange={setDateFrom}
-              className=""
-            />
-          </div>
-          <div className="flex items-center gap-1">
-            <span className="text-sm text-muted-foreground">To</span>
-            <DateInputPicker
-              date={dateTo}
-              onDateChange={setDateTo}
-              className=""
-            />
-          </div>
-          {(dateFrom || dateTo) && (
-            <button
-              onClick={() => { setDateFrom(undefined); setDateTo(undefined); }}
-              className="text-xs text-muted-foreground hover:text-foreground underline"
-            >
-              Clear dates
-            </button>
-          )}
-          <div className="ml-auto relative">
-            <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
-            <Input
-              placeholder="Search..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="h-10 w-52 pl-8"
-            />
-          </div>
-        </div>
 
         <div className="mt-2 flex-1 overflow-y-auto">
           {isLoading ? (
