@@ -25,10 +25,10 @@ const KNOWN_MAPPINGS: Record<string, string> = {
 const GROUP_HEADERS = new Set(['1000', '2000', '3000', '4000']);
 
 const GROUP_LABELS: Record<string, string> = {
-  '1000': 'LAND ACQUISITION COSTS',
-  '2000': 'SITE WORK',
-  '3000': 'CONSTRUCTION',
-  '4000': 'GENERAL & ADMIN',
+  '1000': 'Land Acquisition Costs',
+  '2000': 'Soft Costs',
+  '3000': 'Site Development Costs',
+  '4000': 'Homebuilding Costs',
 };
 
 const getParentGroup = (code: string): string => {
