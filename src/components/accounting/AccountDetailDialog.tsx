@@ -23,15 +23,17 @@ import { useDeposits } from "@/hooks/useDeposits";
 import { useCreditCards } from "@/hooks/useCreditCards";
 import { useJournalEntries } from "@/hooks/useJournalEntries";
 import { useUserRole } from "@/hooks/useUserRole";
-import { Check, Lock } from "lucide-react";
+import { Check, Lock, Search } from "lucide-react";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { useClosedPeriodCheck } from "@/hooks/useClosedPeriodCheck";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
+import { Input } from "@/components/ui/input";
 import { TableRowActions } from "@/components/ui/table-row-actions";
 import { EditBillDialog } from "@/components/bills/EditBillDialog";
 import { EditDepositDialog } from "@/components/deposits/EditDepositDialog";
 import { EditCheckDialog } from "@/components/checks/EditCheckDialog";
+import { DateInputPicker } from "@/components/ui/date-input-picker";
 import { formatDateSafe } from "@/utils/dateOnly";
 
 interface IncludedBillPayment {
