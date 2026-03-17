@@ -15,6 +15,7 @@ import { BudgetPrintView } from './BudgetPrintView';
 import { BudgetPdfDocument } from './pdf/BudgetPdfDocument';
 import { HistoricalOnlyRow } from './HistoricalOnlyRow';
 import { BudgetExportPdfDialog, ExportPdfOptions } from './BudgetExportPdfDialog';
+import { BudgetExcelImportDialog } from './BudgetExcelImportDialog';
 import { pdf } from '@react-pdf/renderer';
 import { fetchHistoricalActualCosts } from '@/utils/fetchHistoricalActualCosts';
 import { useBudgetData } from '@/hooks/useBudgetData';
