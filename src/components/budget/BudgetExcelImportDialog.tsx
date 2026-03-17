@@ -362,8 +362,8 @@ export function BudgetExcelImportDialog({
                 <span className="flex items-center gap-1 text-green-600">
                   <CheckCircle2 className="h-4 w-4" /> {directMatchCount} matched
                 </span>
-                <span className="flex items-center gap-1 text-blue-500">
-                  <CheckCircle2 className="h-4 w-4" /> {mappedCount} mapped
+                <span className="flex items-center gap-1 text-yellow-600">
+                  <CheckCircle2 className="h-4 w-4" /> {mappedCount} needs review
                 </span>
                 <span className="flex items-center gap-1 text-destructive">
                   <XCircle className="h-4 w-4" /> {unmatchedCount} unmatched
