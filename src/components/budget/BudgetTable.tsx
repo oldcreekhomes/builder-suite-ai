@@ -716,6 +716,14 @@ export function BudgetTable({ projectId, projectAddress, onHeaderActionChange, o
           selectedLotId={selectedLotId}
         />
       )}
+
+      <BudgetExcelImportDialog
+        open={showImportDialog}
+        onOpenChange={setShowImportDialog}
+        projectId={projectId}
+        selectedLotId={selectedLotId}
+        existingCostCodeIds={existingCostCodeIds}
+      />
     </div>
   );
 }
