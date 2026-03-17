@@ -106,6 +106,7 @@ export function DateInputPicker({
           <Calendar
             mode="single"
             selected={date}
+            defaultMonth={date}
             onSelect={handleCalendarSelect}
             initialFocus
           />
