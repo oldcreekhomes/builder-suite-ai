@@ -1076,7 +1076,41 @@ export function AccountDetailDialog({
           </div>
         </DialogHeader>
 
-        <div className="mt-4 flex-1 overflow-y-auto">
+        <div className="flex items-center gap-2 flex-wrap">
+          <div className="flex items-center gap-1">
+            <span className="text-sm text-muted-foreground">From</span>
+            <DateInputPicker
+              date={dateFrom}
+              onDateChange={setDateFrom}
+              className=""
+            />
+          </div>
+          <div className="flex items-center gap-1">
+            <span className="text-sm text-muted-foreground">To</span>
+            <DateInputPicker
+              date={dateTo}
+              onDateChange={setDateTo}
+              className=""
+            />
+          </div>
+          {(dateFrom || dateTo) && (
+            <button
+              onClick={() => { setDateFrom(undefined); setDateTo(undefined); }}
+              className="text-xs text-muted-foreground hover:text-foreground underline"
+            >
+              Clear dates
+            </button>
+          )}
+          <div className="ml-auto relative">
+            <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+            <Input
+              placeholder="Search..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="h-10 w-52 pl-8"
+            />
+          </div>
+        </div>
           {isLoading ? (
             <div className="space-y-2">
               {[...Array(5)].map((_, i) => (
