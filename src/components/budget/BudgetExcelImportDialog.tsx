@@ -388,7 +388,7 @@ export function BudgetExcelImportDialog({
             />
 
             {/* Table */}
-              <Table containerClassName="flex-1 overflow-auto">
+              <Table containerClassName="flex-1 overflow-auto rounded-md border">
                 <TableHeader>
                   <TableRow>
                     <TableHead></TableHead>
