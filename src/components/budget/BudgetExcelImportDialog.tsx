@@ -5,6 +5,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Upload, CheckCircle2, XCircle, ArrowRight } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
@@ -306,7 +307,8 @@ export function BudgetExcelImportDialog({
     onOpenChange(false);
   };
 
-  const matchedCount = parsedItems.filter(i => i.matchStatus === 'matched' || i.matchStatus === 'mapped').length;
+  const directMatchCount = parsedItems.filter(i => i.matchStatus === 'matched').length;
+  const mappedCount = parsedItems.filter(i => i.matchStatus === 'mapped').length;
   const unmatchedCount = parsedItems.filter(i => i.matchStatus === 'unmatched').length;
 
   const filteredItems = useMemo(() => {
@@ -355,21 +357,31 @@ export function BudgetExcelImportDialog({
         {step === 'review' && (
           <>
             {/* Summary bar */}
-            <div className="flex items-center gap-4 text-sm border-b pb-3">
-              <span className="flex items-center gap-1 text-green-600">
-                <CheckCircle2 className="h-4 w-4" /> {matchedCount} matched
-              </span>
-              <span className="flex items-center gap-1 text-destructive">
-                <XCircle className="h-4 w-4" /> {unmatchedCount} unmatched
-              </span>
-              <span className="text-muted-foreground">
-                {importableItems.length} to import
-              </span>
-              {duplicateItems.length > 0 && (
-                <span className="text-orange-500 text-xs">
-                  {duplicateItems.length} already in budget (skipped)
+            <div className="flex flex-col gap-1 border-b pb-3">
+              <div className="flex items-center gap-4 text-sm">
+                <span className="flex items-center gap-1 text-green-600">
+                  <CheckCircle2 className="h-4 w-4" /> {directMatchCount} matched
                 </span>
-              )}
+                <span className="flex items-center gap-1 text-blue-500">
+                  <CheckCircle2 className="h-4 w-4" /> {mappedCount} mapped
+                </span>
+                <span className="flex items-center gap-1 text-destructive">
+                  <XCircle className="h-4 w-4" /> {unmatchedCount} unmatched
+                </span>
+                <span className="text-muted-foreground">
+                  {importableItems.length} to import
+                </span>
+                {duplicateItems.length > 0 && (
+                  <span className="text-orange-500 text-xs">
+                    {duplicateItems.length} already in budget (skipped)
+                  </span>
+                )}
+              </div>
+              <div className="flex items-center gap-4 text-xs text-muted-foreground">
+                <span className="flex items-center gap-1"><CheckCircle2 className="w-3 h-3 text-green-600" /> Direct code match</span>
+                <span className="flex items-center gap-1"><CheckCircle2 className="w-3 h-3 text-blue-500" /> Mapped from sub-code</span>
+                <span className="flex items-center gap-1"><XCircle className="w-3 h-3 text-destructive" /> No match found</span>
+              </div>
             </div>
 
             {/* Search */}
@@ -382,18 +394,18 @@ export function BudgetExcelImportDialog({
 
             {/* Table */}
             <div className="flex-1 overflow-auto border rounded-md">
-              <table className="w-full text-sm">
-                <thead className="sticky top-0 bg-muted z-10">
-                  <tr>
-                    <th className="w-10 p-2"></th>
-                    <th className="p-2 text-left font-medium">Excel Code</th>
-                    <th className="p-2 text-left font-medium">Description</th>
-                    <th className="p-2 text-right font-medium">Amount</th>
-                    <th className="p-2 text-center font-medium">Status</th>
-                    <th className="p-2 text-left font-medium min-w-[220px]">Mapped Cost Code</th>
-                  </tr>
-                </thead>
-                <tbody>
+              <Table containerClassName="relative w-full" className="table-fixed">
+                <TableHeader className="sticky top-0 bg-muted z-10">
+                  <TableRow>
+                    <TableHead className="w-[40px]"></TableHead>
+                    <TableHead className="w-[90px]">Excel Code</TableHead>
+                    <TableHead className="w-[200px]">Description</TableHead>
+                    <TableHead className="w-[110px] text-right">Amount</TableHead>
+                    <TableHead className="w-[70px] text-center">Status</TableHead>
+                    <TableHead className="min-w-[220px]">Mapped Cost Code</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
                   {(() => {
                     const groups: { group: string; items: typeof filteredItems }[] = [];
                     filteredItems.forEach(item => {
@@ -414,22 +426,22 @@ export function BudgetExcelImportDialog({
                         const realIdx = parsedItems.indexOf(item);
                         const isDuplicate = item.matchedCostCodeId && existingSet.has(item.matchedCostCodeId);
                         rows.push(
-                          <tr key={realIdx} className={`border-t ${isDuplicate ? 'opacity-50' : ''}`}>
-                            <td className="p-2 text-center">
+                          <TableRow key={realIdx} className={isDuplicate ? 'opacity-50' : ''}>
+                            <TableCell className="text-center">
                               <Checkbox
                                 checked={item.included && !isDuplicate}
                                 disabled={!!isDuplicate || !item.matchedCostCodeId}
                                 onCheckedChange={() => handleToggleInclude(realIdx)}
                               />
-                            </td>
-                            <td className="p-2 font-mono">{item.excelCode}</td>
-                            <td className="p-2 truncate max-w-[200px]" title={item.description}>
+                            </TableCell>
+                            <TableCell className="font-mono">{item.excelCode}</TableCell>
+                            <TableCell className="truncate" title={item.description}>
                               {item.description}
-                            </td>
-                            <td className="p-2 text-right font-mono">
+                            </TableCell>
+                            <TableCell className="text-right font-mono">
                               ${item.amount.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                            </td>
-                            <td className="p-2 text-center">
+                            </TableCell>
+                            <TableCell className="text-center">
                               {isDuplicate ? (
                                 <span className="text-xs text-orange-500 font-medium">In Budget</span>
                               ) : item.matchStatus === 'matched' ? (
@@ -439,8 +451,8 @@ export function BudgetExcelImportDialog({
                               ) : (
                                 <XCircle className="h-4 w-4 text-destructive mx-auto" />
                               )}
-                            </td>
-                            <td className="p-2">
+                            </TableCell>
+                            <TableCell>
                               <Select
                                 value={item.matchedCostCodeId || ''}
                                 onValueChange={(val) => handleMapChange(realIdx, val)}
@@ -456,38 +468,38 @@ export function BudgetExcelImportDialog({
                                   ))}
                                 </SelectContent>
                               </Select>
-                            </td>
-                          </tr>
+                            </TableCell>
+                          </TableRow>
                         );
                       });
 
                       rows.push(
-                        <tr key={`subtotal-${group}`} className="bg-muted/50 font-semibold border-t">
-                          <td colSpan={3} className="p-2 text-sm">
+                        <TableRow key={`subtotal-${group}`} className="bg-muted/50 font-semibold">
+                          <TableCell colSpan={3} className="text-sm">
                             Subtotal: {GROUP_LABELS[group] || `Group ${group}`}
-                          </td>
-                          <td className="p-2 text-right font-mono text-sm">
+                          </TableCell>
+                          <TableCell className="text-right font-mono text-sm">
                             ${groupTotal.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                          </td>
-                          <td colSpan={2}></td>
-                        </tr>
+                          </TableCell>
+                          <TableCell colSpan={2}></TableCell>
+                        </TableRow>
                       );
                     });
 
                     rows.push(
-                      <tr key="grand-total" className="bg-muted font-bold border-t-2">
-                        <td colSpan={3} className="p-2">Grand Total</td>
-                        <td className="p-2 text-right font-mono">
+                      <TableRow key="grand-total" className="bg-muted font-bold border-t-2">
+                        <TableCell colSpan={3}>Grand Total</TableCell>
+                        <TableCell className="text-right font-mono">
                           ${grandTotal.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                        </td>
-                        <td colSpan={2}></td>
-                      </tr>
+                        </TableCell>
+                        <TableCell colSpan={2}></TableCell>
+                      </TableRow>
                     );
 
                     return rows;
                   })()}
-                </tbody>
-              </table>
+                </TableBody>
+              </Table>
             </div>
 
             <DialogFooter className="pt-3">
