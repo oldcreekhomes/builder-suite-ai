@@ -93,7 +93,7 @@ export function BudgetDetailsModal({
   const getInitialTab = () => {
     if (budgetItem.budget_source) {
       const source = budgetItem.budget_source;
-      if (source === 'vendor-bid' || source === 'manual' || source === 'purchase-orders' || source === 'historical') {
+      if (source === 'actual' || source === 'vendor-bid' || source === 'manual' || source === 'purchase-orders' || source === 'historical') {
         return source;
       }
       if (source === 'estimate') {
