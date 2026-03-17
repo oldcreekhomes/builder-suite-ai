@@ -96,7 +96,7 @@ export function DateInputPicker({
           <Button
             variant="outline"
             size="sm"
-            className="h-10 w-10 p-0"
+            className="h-9 w-9 p-0"
             disabled={disabled}
           >
             <CalendarIcon className="h-4 w-4" />

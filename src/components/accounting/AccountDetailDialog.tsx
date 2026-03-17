@@ -1105,7 +1105,7 @@ export function AccountDetailDialog({
           </div>
         </DialogHeader>
 
-        <div className="mt-2 flex-1 overflow-y-auto">
+        <div className="flex-1 overflow-y-auto">
           {isLoading ? (
             <div className="space-y-2">
               {[...Array(5)].map((_, i) => (
