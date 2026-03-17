@@ -89,6 +89,35 @@ export function BudgetDetailsModal({
     enabled: !!projectId && !!costCode.id,
   });
 
+  // Actual tab - query real costs from journal entry lines (mirrors Job Costs logic)
+  const { data: actualCostData, isLoading: isActualLoading } = useQuery({
+    queryKey: ['budget-actual-costs', projectId, costCode.id],
+    queryFn: async () => {
+      const { data: settings } = await supabase
+        .from('accounting_settings')
+        .select('wip_account_id')
+        .single();
+
+      if (!settings?.wip_account_id) return { lines: [], total: 0 };
+
+      const { data: lines } = await supabase
+        .from('journal_entry_lines')
+        .select(`
+          debit, credit, memo,
+          journal_entries!inner(entry_date, description, reversed_by_id)
+        `)
+        .eq('account_id', settings.wip_account_id)
+        .eq('project_id', projectId)
+        .eq('cost_code_id', costCode.id)
+        .eq('is_reversal', false)
+        .is('journal_entries.reversed_by_id', null);
+
+      const total = (lines || []).reduce((sum, l) => sum + ((l.debit || 0) - (l.credit || 0)), 0);
+      return { lines: lines || [], total };
+    },
+    enabled: !!projectId && !!costCode.id && isOpen,
+  });
+
   // Determine initial tab based on budget_source
   const getInitialTab = () => {
     if (budgetItem.budget_source) {
