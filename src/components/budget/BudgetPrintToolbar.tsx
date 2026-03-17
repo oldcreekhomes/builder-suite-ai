@@ -40,6 +40,12 @@ export function BudgetPrintToolbar({
         </Button>
       )}
       <LotSelector projectId={projectId} selectedLotId={selectedLotId} onSelectLot={onSelectLot} />
+      {onImportExcel && (
+        <Button onClick={onImportExcel} variant="outline" size="sm">
+          <Upload className="h-4 w-4 mr-2" />
+          Import Excel
+        </Button>
+      )}
       <Button onClick={onAddBudget} variant="outline" size="sm">
         <PlusIcon className="h-4 w-4 mr-2" />
         Budget
