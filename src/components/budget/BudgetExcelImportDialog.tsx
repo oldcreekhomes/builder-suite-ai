@@ -97,7 +97,7 @@ export function BudgetExcelImportDialog({
       const sheet = workbook.Sheets[workbook.SheetNames[0]];
       const rows: any[] = XLSX.utils.sheet_to_json(sheet, { header: 1 });
 
-      // Find header row to locate columns
+      // Try header-based detection first
       let codeCol = -1;
       let descCol = -1;
       let amountCol = -1;
@@ -119,27 +119,61 @@ export function BudgetExcelImportDialog({
         }
       }
 
-      // Fallback: try first columns
-      if (codeCol === -1) codeCol = 0;
-      if (descCol === -1) descCol = 1;
-      if (amountCol === -1) amountCol = rows[0]?.length ? rows[0].length - 1 : 2;
-
       const items: ParsedItem[] = [];
+      const codePattern = /^(\d+(?:\.\d+)?)\s+(.+)$/;
+      const useHeaderMode = codeCol >= 0 && amountCol >= 0;
 
-      for (let i = (headerRowIdx >= 0 ? headerRowIdx + 1 : 1); i < rows.length; i++) {
+      for (let i = (useHeaderMode && headerRowIdx >= 0 ? headerRowIdx + 1 : 0); i < rows.length; i++) {
         const row = rows[i];
-        if (!row || !row[codeCol]) continue;
+        if (!row) continue;
 
-        const rawCode = String(row[codeCol]).trim();
-        // Skip if not a numeric code pattern
-        if (!/^\d+(\.\d+)?$/.test(rawCode)) continue;
+        let rawCode = '';
+        let desc = '';
+        let amount = 0;
+
+        if (useHeaderMode) {
+          // Standard header-based parsing
+          if (!row[codeCol]) continue;
+          rawCode = String(row[codeCol]).trim();
+          if (!/^\d+(\.\d+)?$/.test(rawCode)) continue;
+          desc = String(row[descCol >= 0 ? descCol : codeCol + 1] || '').trim();
+          amount = parseFloat(String(row[amountCol] || '0').replace(/[$,]/g, '')) || 0;
+        } else {
+          // Indented layout: scan columns for "CODE Description" pattern
+          let matched = false;
+          for (let j = 0; j < row.length; j++) {
+            const cellVal = row[j];
+            if (cellVal == null) continue;
+            const cellStr = String(cellVal).trim();
+            const m = cellStr.match(codePattern);
+            if (m) {
+              rawCode = m[1];
+              desc = m[2];
+              // Find amount: rightmost numeric value in the row after this column
+              for (let k = row.length - 1; k > j; k--) {
+                if (row[k] != null && typeof row[k] === 'number') {
+                  amount = row[k];
+                  break;
+                }
+                if (row[k] != null) {
+                  const parsed = parseFloat(String(row[k]).replace(/[$,]/g, ''));
+                  if (!isNaN(parsed)) {
+                    amount = parsed;
+                    break;
+                  }
+                }
+              }
+              matched = true;
+              break;
+            }
+          }
+          if (!matched) continue;
+        }
+
         // Skip group headers
         if (GROUP_HEADERS.has(rawCode)) continue;
         // Skip total/summary rows
-        const desc = String(row[descCol] || '').trim();
         if (desc.toLowerCase().includes('total') || desc.toLowerCase().includes('grand total')) continue;
-
-        const amount = parseFloat(String(row[amountCol] || '0').replace(/[$,]/g, '')) || 0;
 
         // Try matching
         let matchedId: string | null = null;
