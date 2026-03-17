@@ -1,9 +1,33 @@
 
-## ✅ COMPLETED: Fix Bill Payment — Credit Calculation + Data Repair + Consolidated Payment View
 
-All three fixes have been implemented:
+## Add Delete Action to Review Tab's Actions Dropdown
 
-1. **Credit remaining balance formula** — Fixed in `useBills.ts` line 417 to use `total_amount + amount_paid` for credits
-2. **Proportional credit distribution** — Fixed in `BillsApprovalTable.tsx` to distribute credits proportionally based on each bill's share of positive allocations
-3. **Consolidated payment view** — Paid tab now groups multi-bill payments with expandable rows showing individual allocations (bills + credits)
-4. **Data repair** — Corrected over-allocated amounts for OCH-02302 via SQL migration
+**Problem**: The Review tab (draft bills) has Approve/Edit/Reject in its actions dropdown but no Delete option. The `deleteBill` mutation is already available in the component.
+
+**Fix**: Add a "Delete Bill" destructive action to the existing `TableRowActions` array for draft bills (line 998-1002).
+
+### Changes
+
+**File: `src/components/bills/BillsApprovalTable.tsx`** (line ~998-1002)
+
+Add a Delete entry after Reject in the draft actions:
+
+```typescript
+<TableRowActions actions={[
+  { label: "Approve", onClick: () => handleActionChange(bill.id, 'approve'), disabled: approveBill.isPending || rejectBill.isPending },
+  { label: "Edit", onClick: () => handleActionChange(bill.id, 'edit'), disabled: approveBill.isPending || rejectBill.isPending },
+  { label: "Reject", onClick: () => handleActionChange(bill.id, 'reject'), variant: 'destructive' as const, disabled: approveBill.isPending || rejectBill.isPending },
+  {
+    label: "Delete Bill",
+    onClick: () => deleteBill.mutate(bill.id),
+    variant: "destructive" as const,
+    requiresConfirmation: true,
+    confirmTitle: "Delete Bill",
+    confirmDescription: `Are you sure you want to delete this bill from ${bill.companies?.company_name} for ${formatCurrency(bill.total_amount)}? This action cannot be undone.`,
+    isLoading: deleteBill.isPending,
+  },
+]} />
+```
+
+Single line-range edit. The `deleteBill` mutation and `formatCurrency` are already imported and available.
+
