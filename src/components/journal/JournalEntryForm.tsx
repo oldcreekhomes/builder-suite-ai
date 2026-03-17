@@ -949,7 +949,7 @@ export const JournalEntryForm = ({ projectId, activeTab: parentActiveTab }: Jour
               {/* Right side: Action buttons (or locked message) */}
               {isTransactionLocked ? (
                 <div className="flex items-center gap-2 text-amber-700">
-                  <Lock className="h-4 w-4" />
+                  <Lock className="h-4 w-4 text-red-600" />
                   <span className="text-sm font-medium">This entry cannot be edited</span>
                 </div>
               ) : (

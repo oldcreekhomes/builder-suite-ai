@@ -643,7 +643,7 @@ const BankReconciliation = () => {
                                 <td className="p-2 text-center">
                                   <div className="flex items-center justify-center gap-1">
                                     {rec.status === 'completed' && (
-                                      <Lock className="h-4 w-4 text-muted-foreground" />
+                                      <Lock className="h-4 w-4 text-red-600" />
                                     )}
                                     <Badge variant={rec.status === 'completed' ? 'default' : 'secondary'}>
                                       {rec.status === 'completed' ? 'Completed' : 'In Progress'}

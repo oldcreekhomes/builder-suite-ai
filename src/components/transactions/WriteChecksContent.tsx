@@ -1421,7 +1421,7 @@ export function WriteChecksContent({ projectId }: WriteChecksContentProps) {
                 </div>
                 {isTransactionLocked ? (
                   <div className="flex items-center gap-2 text-amber-700">
-                    <Lock className="h-4 w-4" />
+                    <Lock className="h-4 w-4 text-red-600" />
                     <span className="text-sm font-medium">This transaction cannot be edited</span>
                   </div>
                 ) : (

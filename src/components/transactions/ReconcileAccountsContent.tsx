@@ -1683,7 +1683,7 @@ export function ReconcileAccountsContent({ projectId }: ReconcileAccountsContent
                                           isLatestCompleted(rec) ? "text-red-600 hover:text-red-700" : "text-muted-foreground"
                                         )}
                                       >
-                                        <Lock className="h-4 w-4" />
+                                        <Lock className="h-4 w-4 text-red-600" />
                                       </Button>
                                     </TooltipTrigger>
                                     <TooltipContent>

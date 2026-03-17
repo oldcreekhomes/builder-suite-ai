@@ -58,7 +58,7 @@ export function UpgradeMarketplaceModal({
                 <Card key={area} className="mb-2">
                   <CardContent className="flex items-center justify-between p-3">
                     <div className="flex items-center gap-2">
-                      <Lock className="h-4 w-4 text-muted-foreground" />
+                      <Lock className="h-4 w-4 text-red-600" />
                       <span className="text-sm font-medium">{area}</span>
                     </div>
                     <Button size="sm" variant="outline" disabled>

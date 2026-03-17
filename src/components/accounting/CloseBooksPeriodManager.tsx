@@ -125,7 +125,7 @@ export function CloseBooksPeriodManager({ projectId }: CloseBooksPeriodManagerPr
             disabled={!selectedDate || isClosing}
             className="w-full"
           >
-            <Lock className="mr-2 h-4 w-4" />
+            <Lock className="mr-2 h-4 w-4 text-red-600" />
             Close Books for This Period
           </Button>
         </CardContent>
