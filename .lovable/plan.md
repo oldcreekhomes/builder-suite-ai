@@ -1,9 +1,26 @@
 
-## ✅ COMPLETED: Fix Bill Payment — Credit Calculation + Data Repair + Consolidated Payment View
 
-All three fixes have been implemented:
+## Plan: Fix Double-Glitch and Center Checkbox
 
-1. **Credit remaining balance formula** — Fixed in `useBills.ts` line 417 to use `total_amount + amount_paid` for credits
-2. **Proportional credit distribution** — Fixed in `BillsApprovalTable.tsx` to distribute credits proportionally based on each bill's share of positive allocations
-3. **Consolidated payment view** — Paid tab now groups multi-bill payments with expandable rows showing individual allocations (bills + credits)
-4. **Data repair** — Corrected over-allocated amounts for OCH-02302 via SQL migration
+### Problem 1: Double Glitch (Dialog Resize Flash)
+The dialog uses `sm:max-w-md` for upload step and `sm:max-w-4xl` for review step (line 326). When transitioning from upload → review, the dialog visibly resizes, causing a flash. The upload step also briefly appears before the review table renders.
+
+**Fix**: Always use the large dialog size (`sm:max-w-4xl`) regardless of step. This eliminates the resize animation between steps.
+
+### Problem 2: Checkbox Not Vertically Centered
+The `TableCell` has `text-center align-middle` but the checkbox still sits high because `align-middle` only works for inline content. The checkbox is a block-level element that needs flex centering.
+
+**Fix**: Wrap the checkbox cell content in a flex container with `items-center justify-center`, or change the TableCell to use flex layout for vertical centering:
+```tsx
+<TableCell>
+  <div className="flex items-center justify-center">
+    <Checkbox ... />
+  </div>
+</TableCell>
+```
+
+### Files to Edit
+- `src/components/budget/BudgetExcelImportDialog.tsx`
+  1. Line 326: Change conditional class to always use `sm:max-w-4xl max-h-[90vh] flex flex-col`
+  2. Lines 424-430: Wrap Checkbox in a `<div className="flex items-center justify-center">` for true vertical centering
+
