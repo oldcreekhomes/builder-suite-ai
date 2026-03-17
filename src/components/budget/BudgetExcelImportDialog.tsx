@@ -441,7 +441,7 @@ export function BudgetExcelImportDialog({
                               ) : item.matchStatus === 'matched' ? (
                                 <CheckCircle2 className="h-4 w-4 text-green-600 mx-auto" />
                               ) : item.matchStatus === 'mapped' ? (
-                                <CheckCircle2 className="h-4 w-4 text-yellow-600 mx-auto" />
+                                <CheckCircle2 className="h-4 w-4 text-amber-500 mx-auto" />
                               ) : (
                                 <XCircle className="h-4 w-4 text-destructive mx-auto" />
                               )}
