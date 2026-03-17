@@ -23,15 +23,17 @@ import { useDeposits } from "@/hooks/useDeposits";
 import { useCreditCards } from "@/hooks/useCreditCards";
 import { useJournalEntries } from "@/hooks/useJournalEntries";
 import { useUserRole } from "@/hooks/useUserRole";
-import { Check, Lock } from "lucide-react";
+import { Check, Lock, Search } from "lucide-react";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { useClosedPeriodCheck } from "@/hooks/useClosedPeriodCheck";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
+import { Input } from "@/components/ui/input";
 import { TableRowActions } from "@/components/ui/table-row-actions";
 import { EditBillDialog } from "@/components/bills/EditBillDialog";
 import { EditDepositDialog } from "@/components/deposits/EditDepositDialog";
 import { EditCheckDialog } from "@/components/checks/EditCheckDialog";
+import { DateInputPicker } from "@/components/ui/date-input-picker";
 import { formatDateSafe } from "@/utils/dateOnly";
 
 interface IncludedBillPayment {
@@ -84,6 +86,9 @@ export function AccountDetailDialog({
   onOpenChange,
 }: AccountDetailDialogProps) {
   const [sortOrder] = useState<'asc' | 'desc'>('asc');
+  const [dateFrom, setDateFrom] = useState<Date | undefined>(undefined);
+  const [dateTo, setDateTo] = useState<Date | undefined>(undefined);
+  const [searchQuery, setSearchQuery] = useState("");
   
   // Detect if this is an Accounts Payable account
   const isAccountsPayable = accountCode === '2010' || accountName.toLowerCase().includes('accounts payable');
@@ -91,10 +96,13 @@ export function AccountDetailDialog({
   // Default hidePaid to ON for Accounts Payable
   const [hidePaid, setHidePaid] = useState(isAccountsPayable);
   
-  // Reset hidePaid to default when dialog opens or account changes
+  // Reset filters when dialog opens or account changes
   useEffect(() => {
     if (open) {
       setHidePaid(isAccountsPayable);
+      setDateFrom(undefined);
+      setDateTo(undefined);
+      setSearchQuery("");
     }
   }, [open, accountId, isAccountsPayable]);
   
@@ -1008,17 +1016,36 @@ export function AccountDetailDialog({
     });
   };
 
-  // Filter transactions based on hidePaid toggle
+  // Filter transactions based on hidePaid toggle, date range, and search
   const displayedTransactions = transactions?.filter(txn => {
-    // If hidePaid is off, show all transactions
-    if (!hidePaid) return true;
-    
     // If hidePaid is on, filter out paid bill and bill_payment transactions
-    if (txn.source_type === 'bill' || txn.source_type === 'bill_payment' || txn.source_type === 'consolidated_bill_payment') {
-      return !txn.isPaid;
+    if (hidePaid && (txn.source_type === 'bill' || txn.source_type === 'bill_payment' || txn.source_type === 'consolidated_bill_payment')) {
+      if (txn.isPaid) return false;
     }
     
-    // Show all other transaction types
+    // Date range filter
+    if (dateFrom || dateTo) {
+      const txnDate = new Date(txn.date);
+      txnDate.setHours(0, 0, 0, 0);
+      if (dateFrom) {
+        const from = new Date(dateFrom);
+        from.setHours(0, 0, 0, 0);
+        if (txnDate < from) return false;
+      }
+      if (dateTo) {
+        const to = new Date(dateTo);
+        to.setHours(23, 59, 59, 999);
+        if (txnDate > to) return false;
+      }
+    }
+    
+    // Search filter
+    if (searchQuery.trim()) {
+      const q = searchQuery.toLowerCase();
+      const searchFields = [txn.reference, txn.accountDisplay, txn.description, txn.memo, txn.source_type];
+      if (!searchFields.some(val => val?.toLowerCase().includes(q))) return false;
+    }
+    
     return true;
   }) || [];
 
@@ -1049,7 +1076,43 @@ export function AccountDetailDialog({
           </div>
         </DialogHeader>
 
-        <div className="mt-4 flex-1 overflow-y-auto">
+        <div className="flex items-center gap-2 flex-wrap">
+          <div className="flex items-center gap-1">
+            <span className="text-sm text-muted-foreground">From</span>
+            <DateInputPicker
+              date={dateFrom}
+              onDateChange={setDateFrom}
+              className=""
+            />
+          </div>
+          <div className="flex items-center gap-1">
+            <span className="text-sm text-muted-foreground">To</span>
+            <DateInputPicker
+              date={dateTo}
+              onDateChange={setDateTo}
+              className=""
+            />
+          </div>
+          {(dateFrom || dateTo) && (
+            <button
+              onClick={() => { setDateFrom(undefined); setDateTo(undefined); }}
+              className="text-xs text-muted-foreground hover:text-foreground underline"
+            >
+              Clear dates
+            </button>
+          )}
+          <div className="ml-auto relative">
+            <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+            <Input
+              placeholder="Search..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="h-10 w-52 pl-8"
+            />
+          </div>
+        </div>
+
+        <div className="mt-2 flex-1 overflow-y-auto">
           {isLoading ? (
             <div className="space-y-2">
               {[...Array(5)].map((_, i) => (
