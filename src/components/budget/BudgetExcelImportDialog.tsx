@@ -494,7 +494,6 @@ export function BudgetExcelImportDialog({
                   })()}
                 </TableBody>
               </Table>
-            </div>
 
             <DialogFooter className="pt-3">
               <Button variant="outline" onClick={() => { setStep('upload'); setParsedItems([]); }}>
