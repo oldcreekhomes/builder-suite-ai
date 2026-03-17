@@ -377,11 +377,6 @@ export function BudgetExcelImportDialog({
                   </span>
                 )}
               </div>
-              <div className="flex items-center gap-4 text-xs text-muted-foreground">
-                <span className="flex items-center gap-1"><CheckCircle2 className="w-3 h-3 text-green-600" /> Direct code match</span>
-                <span className="flex items-center gap-1"><CheckCircle2 className="w-3 h-3 text-blue-500" /> Mapped from sub-code</span>
-                <span className="flex items-center gap-1"><XCircle className="w-3 h-3 text-destructive" /> No match found</span>
-              </div>
             </div>
 
             {/* Search */}
