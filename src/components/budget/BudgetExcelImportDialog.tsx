@@ -451,7 +451,7 @@ export function BudgetExcelImportDialog({
                                 value={item.matchedCostCodeId || ''}
                                 onValueChange={(val) => handleMapChange(realIdx, val)}
                               >
-                                <SelectTrigger>
+                                <SelectTrigger className="h-8">
                                   <SelectValue placeholder="Select cost code..." />
                                 </SelectTrigger>
                                 <SelectContent>
