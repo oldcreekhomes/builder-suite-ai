@@ -91,7 +91,7 @@ export function BudgetDetailsModal({
 
   // Actual tab - query real costs from journal entry lines (mirrors Job Costs logic)
   const { data: actualCostData, isLoading: isActualLoading } = useQuery({
-    queryKey: ['budget-actual-costs', projectId, costCode.id],
+    queryKey: ['budget-actual-costs', projectId, costCode.id, budgetItem.lot_id],
     queryFn: async () => {
       const { data: settings } = await supabase
         .from('accounting_settings')
@@ -100,7 +100,7 @@ export function BudgetDetailsModal({
 
       if (!settings?.wip_account_id) return { lines: [], total: 0 };
 
-      const { data: lines } = await supabase
+      let query = supabase
         .from('journal_entry_lines')
         .select(`
           debit, credit, memo,
@@ -111,6 +111,12 @@ export function BudgetDetailsModal({
         .eq('cost_code_id', costCode.id)
         .eq('is_reversal', false)
         .is('journal_entries.reversed_by_id', null);
+
+      if (budgetItem.lot_id) {
+        query = query.eq('lot_id', budgetItem.lot_id);
+      }
+
+      const { data: lines } = await query;
 
       const total = (lines || []).reduce((sum, l) => sum + ((l.debit || 0) - (l.credit || 0)), 0);
       return { lines: lines || [], total };
