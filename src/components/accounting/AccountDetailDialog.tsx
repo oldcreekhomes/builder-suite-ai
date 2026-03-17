@@ -35,6 +35,7 @@ import { EditDepositDialog } from "@/components/deposits/EditDepositDialog";
 import { EditCheckDialog } from "@/components/checks/EditCheckDialog";
 import { DateInputPicker } from "@/components/ui/date-input-picker";
 import { formatDateSafe } from "@/utils/dateOnly";
+import { TransactionDetailDialog } from "./TransactionDetailDialog";
 
 interface IncludedBillPayment {
   bill_id: string;
