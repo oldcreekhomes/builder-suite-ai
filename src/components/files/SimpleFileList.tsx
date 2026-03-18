@@ -449,10 +449,7 @@ export const SimpleFileList: React.FC<SimpleFileListProps> = ({
                   {
                     label: 'Delete',
                     onClick: () => setDeleteFolder(folder),
-                    variant: 'destructive',
-                    requiresConfirmation: true,
-                    confirmTitle: 'Delete Folder',
-                    confirmDescription: `Are you sure you want to delete the folder "${folder.name}" and all its contents? This action cannot be undone.`,
+                    variant: 'destructive' as const,
                   },
                 ]} />
               </TableCell>
@@ -504,10 +501,7 @@ export const SimpleFileList: React.FC<SimpleFileListProps> = ({
                   {
                     label: 'Delete',
                     onClick: () => setDeleteFile(file),
-                    variant: 'destructive',
-                    requiresConfirmation: true,
-                    confirmTitle: 'Delete File',
-                    confirmDescription: `Are you sure you want to delete "${file.displayName}"? This action cannot be undone.`,
+                    variant: 'destructive' as const,
                   },
                 ]} />
               </TableCell>
