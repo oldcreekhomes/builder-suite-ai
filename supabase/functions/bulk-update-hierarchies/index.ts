@@ -11,7 +11,6 @@ interface HierarchyUpdate {
 }
 
 Deno.serve(async (req) => {
-  // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
   }
@@ -36,7 +35,7 @@ Deno.serve(async (req) => {
       );
     }
 
-    console.log(`📦 Two-phase bulk update: ${updates.length} tasks for project ${projectId}`);
+    console.log(`📦 Atomic bulk update: ${updates.length} tasks for project ${projectId}`);
 
     const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
     const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
@@ -44,122 +43,28 @@ Deno.serve(async (req) => {
 
     const startTime = Date.now();
 
-    // ============================================
-    // STORE ORIGINAL VALUES FOR ROLLBACK
-    // ============================================
-    console.log('💾 Storing original hierarchy values for potential rollback...');
-    const { data: originalTasks, error: fetchError } = await supabase
-      .from('project_schedule_tasks')
-      .select('id, hierarchy_number')
-      .eq('project_id', projectId)
-      .in('id', updates.map(u => u.id));
+    // Use atomic RPC function — single transaction, automatic rollback on failure
+    const { data, error } = await supabase.rpc('bulk_update_hierarchy_numbers', {
+      updates: JSON.stringify(updates)
+    });
 
-    if (fetchError) {
-      console.error('❌ Failed to fetch original values:', fetchError);
-      throw fetchError;
+    if (error) {
+      console.error('❌ Atomic bulk update failed:', error);
+      throw error;
     }
 
-    const originalValues = new Map(originalTasks?.map(t => [t.id, t.hierarchy_number]) || []);
-    console.log(`💾 Stored ${originalValues.size} original values`);
+    const totalTime = Date.now() - startTime;
+    console.log(`✅ Atomic update completed: ${data}/${updates.length} tasks in ${totalTime}ms`);
 
-    // ============================================
-    // PHASE 1: Clear all to temporary unique values
-    // This frees up all real hierarchy numbers
-    // ============================================
-    console.log('🔄 Phase 1: Setting temporary hierarchy values...');
-    
-    const phase1Promises = updates.map((update, index) => 
-      supabase
-        .from('project_schedule_tasks')
-        .update({ hierarchy_number: `__TEMP_${index}__` })
-        .eq('id', update.id)
-        .eq('project_id', projectId)
+    return new Response(
+      JSON.stringify({ 
+        success: true, 
+        updated: data,
+        total: updates.length,
+        elapsed_ms: totalTime
+      }),
+      { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
-    
-    const phase1Results = await Promise.all(phase1Promises);
-    
-    // Check for Phase 1 errors
-    const phase1Error = phase1Results.find(r => r.error);
-    if (phase1Error?.error) {
-      console.error('❌ Phase 1 failed:', phase1Error.error);
-      throw phase1Error.error;
-    }
-    
-    const phase1Time = Date.now() - startTime;
-    console.log(`✅ Phase 1 completed in ${phase1Time}ms`);
-
-    // ============================================
-    // PHASE 2: Set final hierarchy values
-    // No conflicts since all real values are now free
-    // WITH ROLLBACK ON FAILURE
-    // ============================================
-    console.log('🔄 Phase 2: Setting final hierarchy values...');
-    
-    const phase2Start = Date.now();
-    
-    try {
-      const phase2Promises = updates.map(update => 
-        supabase
-          .from('project_schedule_tasks')
-          .update({ 
-            hierarchy_number: update.hierarchy_number,
-            updated_at: new Date().toISOString()
-          })
-          .eq('id', update.id)
-          .eq('project_id', projectId)
-          .select('id')
-      );
-      
-      const phase2Results = await Promise.all(phase2Promises);
-      
-      // Check for Phase 2 errors
-      const phase2Error = phase2Results.find(r => r.error);
-      if (phase2Error?.error) {
-        console.error('❌ Phase 2 failed:', phase2Error.error);
-        throw phase2Error.error;
-      }
-
-      const successCount = phase2Results.filter(r => r.data && r.data.length > 0).length;
-      const totalTime = Date.now() - startTime;
-      const phase2Time = Date.now() - phase2Start;
-      
-      console.log(`✅ Phase 2 completed in ${phase2Time}ms`);
-      console.log(`✅ Two-phase update completed: ${successCount}/${updates.length} tasks in ${totalTime}ms`);
-      
-      return new Response(
-        JSON.stringify({ 
-          success: true, 
-          updated: successCount,
-          total: updates.length,
-          elapsed_ms: totalTime,
-          phase1_ms: phase1Time,
-          phase2_ms: phase2Time
-        }),
-        { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
-    } catch (phase2Error) {
-      // ============================================
-      // ROLLBACK: Restore original hierarchy values
-      // ============================================
-      console.error('🔄 ROLLBACK: Phase 2 failed, restoring original hierarchy values...');
-      
-      const rollbackPromises = Array.from(originalValues.entries()).map(([id, hierarchyNumber]) => 
-        supabase
-          .from('project_schedule_tasks')
-          .update({ hierarchy_number: hierarchyNumber })
-          .eq('id', id)
-          .eq('project_id', projectId)
-      );
-      
-      try {
-        await Promise.all(rollbackPromises);
-        console.log('✅ ROLLBACK completed: Original hierarchy values restored');
-      } catch (rollbackError) {
-        console.error('❌ ROLLBACK FAILED - DATA MAY BE CORRUPTED:', rollbackError);
-      }
-      
-      throw phase2Error;
-    }
 
   } catch (error) {
     console.error('❌ Edge function error:', error);
