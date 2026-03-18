@@ -248,7 +248,7 @@ export function SendTestEmailModal({
           address: 'address' in senderCompanyData ? senderCompanyData.address : undefined
         } : undefined,
         companies: [{
-          id: companyData?.companies?.id || 'mock-company-id',
+          id: companyData?.companies?.id || '00000000-0000-0000-0000-000000000000',
           company_name: companyData?.companies?.company_name ? `${companyData.companies.company_name} (TEST EMAIL)` : 'Sample Company (TEST EMAIL)',
           address: companyData?.companies?.address || 'Sample Address',
           phone_number: companyData?.companies?.phone_number || 'Sample Phone',
