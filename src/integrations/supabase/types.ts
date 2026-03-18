@@ -4240,6 +4240,10 @@ export type Database = {
         }
         Returns: string
       }
+      bulk_update_hierarchy_numbers: {
+        Args: { updates: Json }
+        Returns: number
+      }
       calculate_distance_miles: {
         Args: { lat1: number; lat2: number; lng1: number; lng2: number }
         Returns: number

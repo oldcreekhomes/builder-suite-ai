@@ -92,90 +92,20 @@ export const useTaskBulkMutations = (projectId: string) => {
         }
       }
       
-      // Fallback: TWO-PHASE update to avoid unique constraint violations
-      // Phase 1: Set all to temporary values (frees up real hierarchy numbers)
-      // Phase 2: Set all to final values (no conflicts since all real values are free)
-      // WITH ROLLBACK PROTECTION: If Phase 2 fails, restore original values
-      console.log('📋 Using two-phase update fallback for hierarchy changes');
+      // Fallback: Use atomic RPC function for safe hierarchy updates
+      console.log('📋 Using atomic RPC fallback for hierarchy changes');
       
-      // STORE ORIGINAL VALUES for rollback (fetch current hierarchy_numbers)
-      const { data: currentTasks, error: fetchError } = await supabase
-        .from('project_schedule_tasks')
-        .select('id, hierarchy_number')
-        .in('id', updates.map(u => u.id));
+      const { data: rpcResult, error: rpcError } = await supabase.rpc('bulk_update_hierarchy_numbers', {
+        updates: JSON.stringify(updates)
+      });
       
-      if (fetchError) {
-        console.error('❌ Failed to fetch current values for rollback:', fetchError);
-        throw fetchError;
+      if (rpcError) {
+        console.error('❌ Atomic RPC update failed:', rpcError);
+        throw rpcError;
       }
       
-      const originalValues = new Map(currentTasks?.map(t => [t.id, t.hierarchy_number]) || []);
-      console.log('💾 Stored original values for potential rollback:', originalValues.size, 'tasks');
-      
-      // PHASE 1: Clear all hierarchies to temporary unique values
-      console.log('🔄 Phase 1: Setting temporary hierarchy values...');
-      const phase1Promises = updates.map((update, index) => 
-        supabase
-          .from('project_schedule_tasks')
-          .update({ hierarchy_number: `__TEMP_${index}__` })
-          .eq('id', update.id)
-      );
-      
-      const phase1Results = await Promise.all(phase1Promises);
-      const phase1Error = phase1Results.find(r => r.error);
-      if (phase1Error?.error) {
-        console.error('❌ Phase 1 failed:', phase1Error.error);
-        throw phase1Error.error;
-      }
-      console.log(`✅ Phase 1 completed in ~${Date.now() - timestamp}ms`);
-      
-      // PHASE 2: Set final hierarchy values (no conflicts now)
-      console.log('🔄 Phase 2: Setting final hierarchy values...');
-      const phase2Start = Date.now();
-      
-      try {
-        const phase2Promises = updates.map(update => 
-          supabase
-            .from('project_schedule_tasks')
-            .update({ 
-              hierarchy_number: update.hierarchy_number,
-              updated_at: new Date().toISOString()
-            })
-            .eq('id', update.id)
-            .select('id')
-        );
-        
-        const phase2Results = await Promise.all(phase2Promises);
-        const phase2Error = phase2Results.find(r => r.error);
-        if (phase2Error?.error) {
-          console.error('❌ Phase 2 failed:', phase2Error.error);
-          throw phase2Error.error;
-        }
-
-        const data = phase2Results.flatMap(r => r.data || []);
-        console.log(`✅ Two-phase update completed: ${updates.length} tasks in ~${Date.now() - timestamp}ms (Phase 2: ${Date.now() - phase2Start}ms)`);
-        return data;
-      } catch (phase2Error) {
-        // ROLLBACK: Phase 2 failed, restore original hierarchy values
-        console.error('🔄 ROLLBACK: Phase 2 failed, restoring original hierarchy values...');
-        
-        const rollbackPromises = Array.from(originalValues.entries()).map(([id, hierarchyNumber]) => 
-          supabase
-            .from('project_schedule_tasks')
-            .update({ hierarchy_number: hierarchyNumber })
-            .eq('id', id)
-        );
-        
-        try {
-          await Promise.all(rollbackPromises);
-          console.log('✅ ROLLBACK completed: Original hierarchy values restored');
-        } catch (rollbackError) {
-          console.error('❌ ROLLBACK FAILED:', rollbackError);
-          // Still throw the original error, but log the rollback failure
-        }
-        
-        throw phase2Error;
-      }
+      console.log(`✅ Atomic RPC update completed: ${rpcResult}/${updates.length} tasks in ~${Date.now() - timestamp}ms`);
+      return updates.map(u => ({ id: u.id }));
     },
     onSuccess: async (data, variables) => {
       // Simplified - no more echo prevention needed
