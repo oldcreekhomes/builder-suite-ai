@@ -102,22 +102,15 @@ const handler = async (req: Request): Promise<Response> => {
     }
 
     if (!updateData || updateData.length === 0) {
-      console.error('No rows were updated. Checking if bid record exists...');
+      console.log('No rows were updated (test email or already processed). Showing confirmation anyway.');
       
-      // Check if the row exists for debugging
-      const { data: existingBid } = await supabase
-        .from('project_bids')
-        .select('id, bid_status')
-        .eq('bid_package_id', bidPackageId)
-        .eq('company_id', companyId);
-      
-      console.log('Found bid records:', existingBid);
-      
-      const errorUrl = new URL('https://buildersuiteai.com/bid-response-confirmation');
-      errorUrl.searchParams.set('status', 'error');
+      // Gracefully redirect to confirmation instead of error
+      const confirmUrl = new URL('https://buildersuiteai.com/bid-response-confirmation');
+      confirmUrl.searchParams.set('response', response);
+      confirmUrl.searchParams.set('status', 'success');
       return new Response(null, {
         status: 302,
-        headers: { ...corsHeaders, 'Location': errorUrl.toString() },
+        headers: { ...corsHeaders, 'Location': confirmUrl.toString() },
       });
     }
 
