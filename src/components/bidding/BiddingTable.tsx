@@ -214,6 +214,26 @@ export function BiddingTable({ projectId, projectAddress, status, onHeaderAction
   const selectedCount = selectedItems.size;
   const isDeletingSelected = Array.from(selectedItems).some(id => deletingItems.has(id));
 
+  const historicalDropdown = (
+    <Select
+      value={selectedHistoricalProjectId || "none"}
+      onValueChange={(val) => onHistoricalProjectChange(val === "none" ? null : val)}
+    >
+      <SelectTrigger className="h-9 w-48">
+        <History className="mr-2 h-4 w-4 text-muted-foreground" />
+        <SelectValue placeholder="Historical" />
+      </SelectTrigger>
+      <SelectContent>
+        <SelectItem value="none">No Historical</SelectItem>
+        {historicalProjects?.map((project: any) => (
+          <SelectItem key={project.id} value={project.id}>
+            {project.address}
+          </SelectItem>
+        ))}
+      </SelectContent>
+    </Select>
+  );
+
   // Emit toolbar to header via bridge
   React.useEffect(() => {
     if (onHeaderActionChange) {
@@ -229,6 +249,7 @@ export function BiddingTable({ projectId, projectAddress, status, onHeaderAction
                 className="pl-9 h-9"
               />
             </div>
+            {historicalDropdown}
             <Button 
               variant="outline"
               size="sm"
@@ -245,20 +266,23 @@ export function BiddingTable({ projectId, projectAddress, status, onHeaderAction
         );
       } else {
         onHeaderActionChange(
-          <div className="relative w-64">
-            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
-            <Input
-              placeholder="Search bids..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="pl-9 h-9"
-            />
+          <div className="flex items-center gap-2">
+            <div className="relative w-64">
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
+              <Input
+                placeholder="Search bids..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="pl-9 h-9"
+              />
+            </div>
+            {historicalDropdown}
           </div>
         );
       }
       return () => onHeaderActionChange(null);
     }
-  }, [onHeaderActionChange, status, searchQuery, biddingItems.length]);
+  }, [onHeaderActionChange, status, searchQuery, biddingItems.length, selectedHistoricalProjectId, historicalProjects]);
 
   const toolbarInContent = !onHeaderActionChange ? (
     status === 'draft' ? (
