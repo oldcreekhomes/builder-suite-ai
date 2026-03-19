@@ -22,7 +22,9 @@ export function useHistoricalProjects() {
         if (!existingProject) {
           // Parse address to get just street address (remove city, state, zip)
           const fullAddress = item.projects.address;
-          const streetAddress = fullAddress.split(',')[0].trim(); // Take only the first part before comma
+          const prePart = fullAddress.split(',')[0].trim();
+          const words = prePart.split(/\s+/);
+          const streetAddress = words.length >= 4 ? words.slice(0, -1).join(' ') : prePart;
           
           acc.push({
             id: item.project_id,
