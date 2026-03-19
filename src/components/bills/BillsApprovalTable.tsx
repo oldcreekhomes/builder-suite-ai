@@ -1042,7 +1042,7 @@ export function BillsApprovalTable({ status, projectId, projectIds, showProjectC
                 confirmTitle: "Delete Bill",
                 confirmDescription: `Are you sure you want to delete this bill from ${bill.companies?.company_name} for ${formatCurrency(bill.total_amount)}? This will also delete all associated journal entries and attachments.`,
                 isLoading: deleteBill.isPending,
-                disabled: isDateLocked(bill.bill_date) || bill.reconciled,
+                disabled: bill.reconciled,
               },
             ]} />
           ) : (
