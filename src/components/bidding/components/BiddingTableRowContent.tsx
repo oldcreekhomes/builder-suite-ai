@@ -100,7 +100,7 @@ export function BiddingTableRowContent({
           onValueChange={handleStatusChange}
           disabled={isReadOnly}
         >
-          <SelectTrigger className="w-full h-8">
+          <SelectTrigger className="w-full h-9">
             <SelectValue />
           </SelectTrigger>
           <SelectContent className="bg-white border shadow-md z-50">

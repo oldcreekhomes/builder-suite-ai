@@ -221,7 +221,7 @@ export function BidPackageDetailsModal({
                       onValueChange={handleStatusChange}
                       disabled={isReadOnly}
                     >
-                      <SelectTrigger className="h-8 text-xs">
+                      <SelectTrigger className="h-9">
                         <SelectValue placeholder="Status" />
                       </SelectTrigger>
                       <SelectContent>

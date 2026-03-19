@@ -70,7 +70,6 @@ export function ProposalCell({
         <Button
           variant="outline"
           size="sm"
-          className="h-8 text-xs"
           onClick={() => onFileUpload(companyId)}
         >
           <Upload className="h-3 w-3 mr-1" />
