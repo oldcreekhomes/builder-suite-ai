@@ -1,30 +1,28 @@
 
 
-## Convert Info Cards to Standard Table Rows
+## Split Info Row into 3 Side-by-Side Tables
 
 ### What's Changing
 
-Replace the three Card components (Historical Pricing, Adjustment, Cost Code Breakdown) with a standard `<Table>` that matches the existing bid package management table above it. The section titles become `<TableHead>` cells in a header row, and the data sits in a body row — identical font, padding, and styling to the Status/Sent On/Due Date row.
+Replace the single `<Table>` (lines 309-370) with a `grid grid-cols-3 gap-4` containing three independent `<div className="border rounded-lg"><Table>` blocks — one per section. Each gets equal 1/3 width.
 
 ### Layout
 
 ```text
-┌──────────────────────┬──────────────────────┬──────────────────────┐
-│ Historical Pricing   │ Adjustment           │ Cost Code Breakdown  │  ← TableHead row
-├──────────────────────┼──────────────────────┼──────────────────────┤
-│ 415 E Nelson         │ [ 100 ] %            │ 4820.1 Gates  $450   │  ← TableBody row
-│ $5,620.00            │ $5,620.00            │ 4820.2 Fencing $27.50│
-└──────────────────────┴──────────────────────┴──────────────────────┘
+┌─ 1/3 ──────────────┐  ┌─ 1/3 ──────────────┐  ┌─ 1/3 ──────────────┐
+│ Historical Pricing  │  │ Adjustment          │  │ Cost Code Breakdown │
+├─────────────────────┤  ├─────────────────────┤  ├─────────────────────┤
+│ 415 E Nelson        │  │ [100] %  $5,620.00  │  │ 4820.1 Gates  $450  │
+│ $5,620.00           │  │                     │  │ 4820.2 Fence $27.50 │
+└─────────────────────┘  └─────────────────────┘  └─────────────────────┘
 ```
 
-### Technical Details
+### Changes (single file)
 
-**File**: `src/components/bidding/BidPackageDetailsModal.tsx`
+**`src/components/bidding/BidPackageDetailsModal.tsx`** lines 308-370:
 
-- Remove the `Card`/`CardHeader`/`CardContent` imports (if no longer used elsewhere in this file) and the `History`, `Percent`, `List` icon imports
-- Replace the `<div className="grid ...">` block (lines 308-389) with a `<div className="border rounded-lg"><Table>` structure:
-  - `<TableHeader>` with one `<TableRow>` containing 2 or 3 `<TableHead>` cells: "Historical Pricing" (conditional), "Adjustment", "Cost Code Breakdown"
-  - `<TableBody>` with one `<TableRow>` containing matching `<TableCell>` entries holding the same data content
-- The conditional logic for `historicalProjectAddress` remains — when absent, the table has 2 columns instead of 3
-- Input height stays `h-9` per project standard
+- Wrap in `<div className={cn("grid gap-4", historicalProjectAddress ? "grid-cols-3" : "grid-cols-2")}>`
+- Each section becomes its own `<div className="border rounded-lg"><Table>` with its own `TableHeader`/`TableBody`
+- **Adjustment cell**: move the `$` amount inline with the input (`flex items-center gap-2`) instead of below it — so `[100] % $5,620.00` all on one line
+- Historical table only rendered when `historicalProjectAddress` exists; grid shifts to `grid-cols-2` otherwise
 
