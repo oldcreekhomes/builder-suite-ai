@@ -29,9 +29,11 @@ interface BiddingTableProps {
   projectAddress?: string;
   status: 'draft' | 'sent' | 'closed';
   onHeaderActionChange?: (actions: React.ReactNode) => void;
+  selectedHistoricalProjectId: string | null;
+  onHistoricalProjectChange: (projectId: string | null) => void;
 }
 
-export function BiddingTable({ projectId, projectAddress, status, onHeaderActionChange }: BiddingTableProps) {
+export function BiddingTable({ projectId, projectAddress, status, onHeaderActionChange, selectedHistoricalProjectId, onHistoricalProjectChange }: BiddingTableProps) {
   const [showAddBiddingModal, setShowAddBiddingModal] = useState(false);
   const [showGlobalSettingsModal, setShowGlobalSettingsModal] = useState(false);
   const [selectedCompanies, setSelectedCompanies] = useState<Set<string>>(new Set());
