@@ -67,6 +67,7 @@ interface BillsApprovalTabsProps {
 }
 
 interface BatchBill extends PendingBill {
+  vendor_id?: string;
   vendor_name?: string;
   bill_date?: string;
   due_date?: string;
@@ -126,9 +127,9 @@ export function BillsApprovalTabs({ projectId, projectIds, reviewOnly = false, o
     
     const fetchAllLines = async () => {
       // First fetch all lines with lot info
-      const billsWithLines = await Promise.all(
+      const billsWithLines: BatchBill[] = await Promise.all(
         pendingBills.map(async (bill) => {
-          if (cancelled) return { ...bill, lines: [], attachments: [] };
+          if (cancelled) return { ...bill, lines: [] as PendingBillLine[], attachments: [] };
           
           const [linesResult, attachmentsResult] = await Promise.all([
             supabase
@@ -144,7 +145,7 @@ export function BillsApprovalTabs({ projectId, projectIds, reviewOnly = false, o
 
           if (linesResult.error) {
             console.error(`Error fetching lines for bill ${bill.id}:`, linesResult.error);
-            return { ...bill, lines: [], attachments: attachmentsResult.data || [] };
+            return { ...bill, lines: [] as PendingBillLine[], attachments: attachmentsResult.data || [] };
           }
 
           // Map lot_name from joined data
@@ -236,7 +237,7 @@ export function BillsApprovalTabs({ projectId, projectIds, reviewOnly = false, o
       // Collect unique vendor IDs from extracted data
       const vendorMap = new Map<string, BatchBill[]>();
       for (const bill of billsWithLines) {
-        const vendorId = bill.extracted_data?.vendor_id || bill.extracted_data?.vendorId;
+        const vendorId = bill.vendor_id || bill.extracted_data?.vendor_id || bill.extracted_data?.vendorId;
         if (vendorId) {
           const arr = vendorMap.get(vendorId) || [];
           arr.push(bill);
@@ -488,7 +489,7 @@ export function BillsApprovalTabs({ projectId, projectIds, reviewOnly = false, o
         const referenceNumber = bill.extracted_data?.reference_number || 
                                 bill.extracted_data?.referenceNumber || 
                                 bill.reference_number;
-        const billVendorId = bill.extracted_data?.vendor_id || bill.extracted_data?.vendorId;
+        const billVendorId = bill.vendor_id || bill.extracted_data?.vendor_id || bill.extracted_data?.vendorId;
         
         // Check for duplicate reference number (per-vendor uniqueness)
         if (referenceNumber?.trim() && billVendorId) {
@@ -566,7 +567,7 @@ export function BillsApprovalTabs({ projectId, projectIds, reviewOnly = false, o
       // Map validated bills to the format expected by batchApproveBills
       const billsToApprove = validatedBills.map(bill => {
         // Extract data from extracted_data with fallbacks to root properties
-        const vendorId = bill.extracted_data?.vendor_id || bill.extracted_data?.vendorId;
+        const vendorId = bill.vendor_id || bill.extracted_data?.vendor_id || bill.extracted_data?.vendorId;
         const billDate = bill.extracted_data?.bill_date || bill.extracted_data?.billDate || bill.bill_date;
         const referenceNumber = bill.extracted_data?.reference_number || bill.extracted_data?.referenceNumber || bill.reference_number;
         
