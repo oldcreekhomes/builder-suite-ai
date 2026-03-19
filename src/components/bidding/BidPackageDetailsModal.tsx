@@ -100,7 +100,11 @@ export function BidPackageDetailsModal({
   historicalCost
 }: BidPackageDetailsModalProps) {
   const [showCloseDialog, setShowCloseDialog] = useState(false);
+  const [adjustmentPercent, setAdjustmentPercent] = useState(100);
   const { awardedPOs } = useBidPackagePO(isReadOnly ? item?.id : null);
+  const { data: subcategories = [] } = useCostCodeSubcategories(costCode?.code);
+
+  const adjustedCost = historicalCost !== undefined ? historicalCost * (adjustmentPercent / 100) : undefined;
 
   const handleStatusChange = (value: string) => {
     if (value === 'closed') {
