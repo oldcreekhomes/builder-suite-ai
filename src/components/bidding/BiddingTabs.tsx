@@ -13,6 +13,7 @@ interface BiddingTabsProps {
 
 export function BiddingTabs({ projectId, projectAddress, onHeaderActionChange }: BiddingTabsProps) {
   const [active, setActive] = useState("draft");
+  const [selectedHistoricalProjectId, setSelectedHistoricalProjectId] = useState<string | null>(null);
   const { data: counts, isLoading } = useBiddingCounts(projectId);
 
   const getLabel = (status: string, count: number | undefined) => {
@@ -42,6 +43,8 @@ export function BiddingTabs({ projectId, projectAddress, onHeaderActionChange }:
           projectAddress={projectAddress}
           status={active as "draft" | "sent" | "closed"}
           onHeaderActionChange={onHeaderActionChange}
+          selectedHistoricalProjectId={selectedHistoricalProjectId}
+          onHistoricalProjectChange={setSelectedHistoricalProjectId}
         />
       </div>
     </div>

@@ -13,7 +13,7 @@ import { BiddingTableRowFiles } from './components/BiddingTableRowFiles';
 import { BiddingTableRowActions } from './components/BiddingTableRowActions';
 import { BulkActionBar } from '@/components/files/components/BulkActionBar';
 import { Badge } from '@/components/ui/badge';
-import { X, XCircle } from 'lucide-react';
+import { X, XCircle, History } from 'lucide-react';
 import { format } from 'date-fns';
 import { cn } from '@/lib/utils';
 import { useBidPackagePO } from '@/hooks/useBidPackagePO';
@@ -56,6 +56,8 @@ interface BidPackageDetailsModalProps {
   uploadingFiles?: any[];
   cancelUpload?: (uploadId: string) => void;
   removeUpload?: (uploadId: string) => void;
+  historicalProjectAddress?: string;
+  historicalCost?: number;
 }
 
 export function BidPackageDetailsModal({
@@ -91,7 +93,9 @@ export function BidPackageDetailsModal({
   isDeletingCompanies = false,
   uploadingFiles = [],
   cancelUpload,
-  removeUpload
+  removeUpload,
+  historicalProjectAddress,
+  historicalCost
 }: BidPackageDetailsModalProps) {
   const [showCloseDialog, setShowCloseDialog] = useState(false);
   const { awardedPOs } = useBidPackagePO(isReadOnly ? item?.id : null);
@@ -293,6 +297,20 @@ export function BidPackageDetailsModal({
               onBulkDelete={handleBulkDelete}
               isDeleting={isDeletingCompanies}
             />
+          )}
+
+          {/* Historical Pricing Banner */}
+          {historicalProjectAddress && (
+            <div className="flex items-center gap-2 px-4 py-3 bg-muted rounded-lg border">
+              <History className="h-4 w-4 text-muted-foreground shrink-0" />
+              <span className="text-sm font-medium">{historicalProjectAddress}</span>
+              <span className="text-sm text-muted-foreground">—</span>
+              <span className="text-sm font-semibold">
+                {historicalCost !== undefined
+                  ? `$${historicalCost.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
+                  : 'No historical data for this cost code'}
+              </span>
+            </div>
           )}
 
           {/* Companies Section */}

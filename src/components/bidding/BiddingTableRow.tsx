@@ -56,6 +56,8 @@ interface BiddingTableRowProps {
   uploadingFiles?: any[];
   cancelUpload?: (uploadId: string) => void;
   removeUpload?: (uploadId: string) => void;
+  historicalProjectAddress?: string;
+  historicalCost?: number;
 }
 
 export function BiddingTableRow({
@@ -89,7 +91,9 @@ export function BiddingTableRow({
   isDeletingCompanies = false,
   uploadingFiles = [],
   cancelUpload,
-  removeUpload
+  removeUpload,
+  historicalProjectAddress,
+  historicalCost
 }: BiddingTableRowProps) {
   const [showSendModal, setShowSendModal] = useState(false);
   const [filteredCompanyIds, setFilteredCompanyIds] = useState<string[]>([]);
@@ -206,6 +210,8 @@ export function BiddingTableRow({
         uploadingFiles={uploadingFiles}
         cancelUpload={cancelUpload}
         removeUpload={removeUpload}
+        historicalProjectAddress={historicalProjectAddress}
+        historicalCost={historicalCost}
       />
       
       <AddCompaniesToBidPackageModal
