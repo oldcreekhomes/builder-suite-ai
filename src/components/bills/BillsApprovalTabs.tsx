@@ -488,7 +488,7 @@ export function BillsApprovalTabs({ projectId, projectIds, reviewOnly = false, o
         const referenceNumber = bill.extracted_data?.reference_number || 
                                 bill.extracted_data?.referenceNumber || 
                                 bill.reference_number;
-        const billVendorId = bill.extracted_data?.vendor_id || bill.extracted_data?.vendorId;
+        const billVendorId = bill.vendor_id || bill.extracted_data?.vendor_id || bill.extracted_data?.vendorId;
         
         // Check for duplicate reference number (per-vendor uniqueness)
         if (referenceNumber?.trim() && billVendorId) {
