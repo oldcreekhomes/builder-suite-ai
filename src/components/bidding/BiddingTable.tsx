@@ -219,7 +219,7 @@ export function BiddingTable({ projectId, projectAddress, status, onHeaderAction
       value={selectedHistoricalProjectId || "none"}
       onValueChange={(val) => onHistoricalProjectChange(val === "none" ? null : val)}
     >
-      <SelectTrigger className="h-9 w-auto">
+      <SelectTrigger className="h-9 w-auto text-sm font-medium">
         <SelectValue placeholder="Historical" />
       </SelectTrigger>
       <SelectContent>
