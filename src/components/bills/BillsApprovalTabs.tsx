@@ -127,9 +127,9 @@ export function BillsApprovalTabs({ projectId, projectIds, reviewOnly = false, o
     
     const fetchAllLines = async () => {
       // First fetch all lines with lot info
-      const billsWithLines = await Promise.all(
+      const billsWithLines: BatchBill[] = await Promise.all(
         pendingBills.map(async (bill) => {
-          if (cancelled) return { ...bill, lines: [], attachments: [] };
+          if (cancelled) return { ...bill, lines: [] as PendingBillLine[], attachments: [] };
           
           const [linesResult, attachmentsResult] = await Promise.all([
             supabase
@@ -145,7 +145,7 @@ export function BillsApprovalTabs({ projectId, projectIds, reviewOnly = false, o
 
           if (linesResult.error) {
             console.error(`Error fetching lines for bill ${bill.id}:`, linesResult.error);
-            return { ...bill, lines: [], attachments: attachmentsResult.data || [] };
+            return { ...bill, lines: [] as PendingBillLine[], attachments: attachmentsResult.data || [] };
           }
 
           // Map lot_name from joined data
