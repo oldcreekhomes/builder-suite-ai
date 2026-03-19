@@ -598,7 +598,7 @@ export function EditCompanyDialog({ company, open, onOpenChange }: EditCompanyDi
                 )}
                 <InsuranceContent 
                   companyId={company.id}
-                  homeBuilder=""
+                  homeBuilder={company.home_builder_id}
                   showUploadUI={showInsuranceUpload}
                   onShowUploadChange={setShowInsuranceUpload}
                 />
