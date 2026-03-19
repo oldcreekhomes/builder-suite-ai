@@ -128,7 +128,7 @@ export function BiddingCompanyRow({
           onValueChange={(value) => onBidStatusChange(biddingCompany.id, value === "no_choice" ? null : value)}
           disabled={isReadOnly}
         >
-          <SelectTrigger className="w-20 h-8 text-sm">
+          <SelectTrigger className="w-20 h-9 text-sm">
             <SelectValue />
           </SelectTrigger>
           <SelectContent className="bg-white border shadow-md z-50">
