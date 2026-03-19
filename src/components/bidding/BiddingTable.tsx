@@ -6,7 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { X, XCircle, Settings, Search, History } from 'lucide-react';
+import { X, XCircle, Settings, Search, History, Package } from 'lucide-react';
 import { useHistoricalProjects } from '@/hooks/useHistoricalProjects';
 import { useHistoricalActualCosts } from '@/hooks/useHistoricalActualCosts';
 import { AddBiddingModal } from './AddBiddingModal';
@@ -219,7 +219,7 @@ export function BiddingTable({ projectId, projectAddress, status, onHeaderAction
       value={selectedHistoricalProjectId || "none"}
       onValueChange={(val) => onHistoricalProjectChange(val === "none" ? null : val)}
     >
-      <SelectTrigger className="h-9 w-auto">
+      <SelectTrigger className="h-9 w-auto text-sm font-medium">
         <SelectValue placeholder="Historical" />
       </SelectTrigger>
       <SelectContent>
@@ -259,6 +259,7 @@ export function BiddingTable({ projectId, projectAddress, status, onHeaderAction
               Global Settings
             </Button>
             <Button variant="outline" size="sm" onClick={() => setShowAddBiddingModal(true)}>
+              <Package className="mr-2 h-4 w-4" />
               {getLoadButtonText()}
             </Button>
           </div>
@@ -297,14 +298,16 @@ export function BiddingTable({ projectId, projectAddress, status, onHeaderAction
         </div>
         <div className="flex items-center space-x-2">
           <Button 
-            variant="outline" 
+            variant="outline"
+            size="sm"
             onClick={() => setShowGlobalSettingsModal(true)}
             disabled={biddingItems.length === 0}
           >
             <Settings className="mr-2 h-4 w-4" />
             Global Settings
           </Button>
-          <Button variant="outline" onClick={() => setShowAddBiddingModal(true)}>
+          <Button variant="outline" size="sm" onClick={() => setShowAddBiddingModal(true)}>
+            <Package className="mr-2 h-4 w-4" />
             {getLoadButtonText()}
           </Button>
         </div>

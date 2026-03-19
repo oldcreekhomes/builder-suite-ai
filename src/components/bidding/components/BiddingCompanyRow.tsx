@@ -128,7 +128,7 @@ export function BiddingCompanyRow({
           onValueChange={(value) => onBidStatusChange(biddingCompany.id, value === "no_choice" ? null : value)}
           disabled={isReadOnly}
         >
-          <SelectTrigger className="w-20 h-8 text-sm">
+          <SelectTrigger className="w-20 h-9 text-sm">
             <SelectValue />
           </SelectTrigger>
           <SelectContent className="bg-white border shadow-md z-50">
@@ -145,7 +145,7 @@ export function BiddingCompanyRow({
           value={localPrice}
           onChange={(e) => onPriceChange(biddingCompany.id, e.target.value)}
           onBlur={(e) => onPriceBlur(biddingCompany.id, e.target.value)}
-          className="w-24 h-8 text-sm"
+          className="w-24 h-9 text-sm"
           disabled={isReadOnly}
         />
       </TableCell>
