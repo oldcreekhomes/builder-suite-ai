@@ -299,6 +299,20 @@ export function BidPackageDetailsModal({
             />
           )}
 
+          {/* Historical Pricing Banner */}
+          {historicalProjectAddress && (
+            <div className="flex items-center gap-2 px-4 py-3 bg-muted rounded-lg border">
+              <History className="h-4 w-4 text-muted-foreground shrink-0" />
+              <span className="text-sm font-medium">{historicalProjectAddress}</span>
+              <span className="text-sm text-muted-foreground">—</span>
+              <span className="text-sm font-semibold">
+                {historicalCost !== undefined
+                  ? `$${historicalCost.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
+                  : 'No historical data for this cost code'}
+              </span>
+            </div>
+          )}
+
           {/* Companies Section */}
           <div className="border rounded-lg">
             <table className="w-full">
