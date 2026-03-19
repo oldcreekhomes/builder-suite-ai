@@ -33,9 +33,8 @@ export function BiddingTableRowSpecs({
               <TooltipTrigger asChild>
                 <Button
                   variant="ghost"
-                  size="sm"
+                  size="icon"
                   onClick={() => setShowSpecsModal(true)}
-                  className="h-8 w-8 p-0"
                 >
                   <Paperclip className="h-4 w-4 text-blue-600" />
                 </Button>
