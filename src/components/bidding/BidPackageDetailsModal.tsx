@@ -305,68 +305,96 @@ export function BidPackageDetailsModal({
             />
           )}
 
-          {/* Info Table: Historical Pricing / Adjustment / Cost Code Breakdown */}
-          <div className="border rounded-lg">
-            <Table containerClassName="relative w-full">
-              <TableHeader>
-                <TableRow>
-                  {historicalProjectAddress && <TableHead>Historical Pricing</TableHead>}
-                  <TableHead>Adjustment</TableHead>
-                  <TableHead>Cost Code Breakdown</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                <TableRow>
-                  {historicalProjectAddress && (
-                    <TableCell className="align-top">
-                      <p className="text-sm font-medium truncate">{historicalProjectAddress}</p>
-                      <p className="text-sm mt-1">
-                        {historicalCost !== undefined
-                          ? `$${historicalCost.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
-                          : 'No data'}
-                      </p>
-                    </TableCell>
-                  )}
-                  <TableCell className="align-top">
-                    <div className="flex items-center gap-2">
-                      <Input
-                        type="number"
-                        min={0}
-                        max={999}
-                        value={adjustmentPercent}
-                        onChange={(e) => setAdjustmentPercent(Number(e.target.value) || 0)}
-                        className="h-9 w-20"
-                      />
-                      <span className="text-sm text-muted-foreground">%</span>
-                    </div>
-                    <p className="text-sm mt-1">
-                      {adjustedCost !== undefined
-                        ? `$${adjustedCost.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
-                        : <span className="text-muted-foreground">$0.00</span>}
-                    </p>
-                  </TableCell>
-                  <TableCell className="align-top">
-                    {subcategories.length > 0 ? (
-                      <div className="space-y-1">
-                        {subcategories.map((sub) => (
-                          <div key={sub.id} className="flex items-center justify-between text-sm">
-                            <span>{sub.code} {sub.name}</span>
-                            <span className="text-muted-foreground whitespace-nowrap ml-2">
-                              {sub.price != null
-                                ? `$${sub.price.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
-                                : '—'}
-                              {sub.unit_of_measure ? ` ${sub.unit_of_measure}` : ''}
-                            </span>
-                          </div>
-                        ))}
+          {/* Info Tables: Historical Pricing / Adjustment / Cost Code Breakdown */}
+          <div className={cn("grid gap-4", historicalProjectAddress ? "grid-cols-3" : "grid-cols-2")}>
+            {historicalProjectAddress && (
+              <div className="border rounded-lg">
+                <Table containerClassName="relative w-full">
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Historical Pricing</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    <TableRow>
+                      <TableCell>
+                        <p className="text-sm font-medium truncate">{historicalProjectAddress}</p>
+                        <p className="text-sm mt-1">
+                          {historicalCost !== undefined
+                            ? `$${historicalCost.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
+                            : 'No data'}
+                        </p>
+                      </TableCell>
+                    </TableRow>
+                  </TableBody>
+                </Table>
+              </div>
+            )}
+
+            <div className="border rounded-lg">
+              <Table containerClassName="relative w-full">
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Adjustment</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  <TableRow>
+                    <TableCell>
+                      <div className="flex items-center gap-2">
+                        <Input
+                          type="number"
+                          min={0}
+                          max={999}
+                          value={adjustmentPercent}
+                          onChange={(e) => setAdjustmentPercent(Number(e.target.value) || 0)}
+                          className="h-9 w-20"
+                        />
+                        <span className="text-sm text-muted-foreground">%</span>
+                        <span className="text-sm font-medium ml-auto">
+                          {adjustedCost !== undefined
+                            ? `$${adjustedCost.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
+                            : <span className="text-muted-foreground">$0.00</span>}
+                        </span>
                       </div>
-                    ) : (
-                      <p className="text-sm text-muted-foreground">No subcategories</p>
-                    )}
-                  </TableCell>
-                </TableRow>
-              </TableBody>
-            </Table>
+                    </TableCell>
+                  </TableRow>
+                </TableBody>
+              </Table>
+            </div>
+
+            <div className="border rounded-lg">
+              <Table containerClassName="relative w-full">
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Cost Code Breakdown</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  <TableRow>
+                    <TableCell>
+                      {subcategories.length > 0 ? (
+                        <div className="space-y-1">
+                          {subcategories.map((sub) => (
+                            <div key={sub.id} className="flex items-center justify-between text-sm">
+                              <span>{sub.code} {sub.name}</span>
+                              <span className="text-muted-foreground whitespace-nowrap ml-2">
+                                {sub.price != null
+                                  ? `$${sub.price.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
+                                  : '—'}
+                                {sub.unit_of_measure ? ` ${sub.unit_of_measure}` : ''}
+                              </span>
+                            </div>
+                          ))}
+                        </div>
+                      ) : (
+                        <p className="text-sm text-muted-foreground">No subcategories</p>
+                      )}
+                    </TableCell>
+                  </TableRow>
+                </TableBody>
+              </Table>
+            </div>
           </div>
 
           {/* Companies Section */}
