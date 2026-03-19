@@ -6,7 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { X, XCircle, Settings, Search, History } from 'lucide-react';
+import { X, XCircle, Settings, Search, History, Package } from 'lucide-react';
 import { useHistoricalProjects } from '@/hooks/useHistoricalProjects';
 import { useHistoricalActualCosts } from '@/hooks/useHistoricalActualCosts';
 import { AddBiddingModal } from './AddBiddingModal';
