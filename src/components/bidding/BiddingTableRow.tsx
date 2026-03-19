@@ -91,7 +91,9 @@ export function BiddingTableRow({
   isDeletingCompanies = false,
   uploadingFiles = [],
   cancelUpload,
-  removeUpload
+  removeUpload,
+  historicalProjectAddress,
+  historicalCost
 }: BiddingTableRowProps) {
   const [showSendModal, setShowSendModal] = useState(false);
   const [filteredCompanyIds, setFilteredCompanyIds] = useState<string[]>([]);
