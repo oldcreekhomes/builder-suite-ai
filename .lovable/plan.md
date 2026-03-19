@@ -1,34 +1,52 @@
 
 
-## Fix: "Delete Bill" Disabled on Rejected Tab Despite Permission Being ON
+## Add Historical Pricing to Bidding Module
 
-### What's Actually Happening
+### Overview
 
-The "Delete Invoices" permission toggle IS working — Jole's `can_delete_bills` is `true`, which is why the "Delete Bill" option appears in the menu. However, it's **grayed out/disabled** because of a date-lock guard: `disabled: isDateLocked(bill.bill_date) || bill.reconciled`.
+Add a historical project dropdown to the main Bidding page header. When a historical project is selected, show historical actual costs inside each bid package's details modal — giving the PM a reference price for that cost code from a past job.
 
-The bill (Wire Gill, LLP, dated 12/08/25) falls within a closed accounting period, so `isDateLocked` returns `true`, making the button unclickable.
+### UX Flow
 
-This same guard was previously removed for Approved bills (per your earlier request), but it was never removed for Void/Rejected bills. The database function `delete_bill_with_journal_entries` already blocks deletion of reconciled bills as the final safety net, so the frontend date-lock guard is redundant.
+1. **Main Bidding page**: A "Historical" dropdown appears in the header area (next to "Global Settings" / "Load Bid Packages" buttons). It uses the same `useHistoricalProjects` hook and dropdown pattern as the Budget page — select a past project once, it persists across all bid packages.
 
-### Change
+2. **Bid Package Details Modal** (e.g. "4770 - Driveway"): When a historical project is selected, a small info card/banner appears below the bid package management table and above the companies list showing:
+   - The historical project name (street address)
+   - The historical actual cost for this specific cost code (e.g. "$12,500")
+   - If no historical cost exists for this cost code, show "No historical data for this cost code"
 
-**File: `src/components/bills/BillsApprovalTable.tsx`** (lines 1031-1066)
+This gives the PM instant context when reviewing vendor bids — they can see what they paid last time.
 
-Remove the `isDateLocked(bill.bill_date)` check from the `disabled` prop on both Delete Bill actions in the `canShowDeleteButton` column (the void/posted/paid section). Keep `bill.reconciled` as the only disable condition — matching what was already done for Approved bills.
+### Changes
 
-Before:
-```tsx
-disabled: isDateLocked(bill.bill_date) || bill.reconciled,
-```
+**1. `src/components/bidding/BiddingTabs.tsx`**
+- Add `selectedHistoricalProjectId` state, pass it down to `BiddingTable`.
 
-After:
-```tsx
-disabled: bill.reconciled,
-```
+**2. `src/components/bidding/BiddingTable.tsx`**
+- Accept `selectedHistoricalProjectId` and `onHistoricalProjectChange` props.
+- Render the historical project dropdown in the header actions area (alongside Global Settings / Load Bid Packages buttons).
+- Use `useHistoricalActualCosts(selectedHistoricalProjectId)` to fetch the cost map once.
+- Pass `historicalCost` (looked up by each bid package's cost code) into `BiddingTableRow` and through to the details modal.
 
-This applies to both the `showEditButton` path (line 1045) and the default path (line 1063).
+**3. `src/components/bidding/BiddingTableHeader.tsx`**
+- No changes needed — historical pricing shows inside the modal, not as a table column.
 
-### Why This Is Safe
+**4. `src/components/bidding/BidPackageDetailsModal.tsx`**
+- Accept optional `historicalProjectAddress` and `historicalCost` props.
+- When `historicalCost` is defined, render a compact info banner between the bid package table and the companies section:
+  ```
+  ┌─────────────────────────────────────────────┐
+  │ 📊 Historical: [Project Address] — $12,500  │
+  └─────────────────────────────────────────────┘
+  ```
+- Uses muted background styling consistent with existing cards.
 
-The database function `delete_bill_with_journal_entries` already refuses to delete reconciled bills. The `isDateLocked` guard was an extra frontend restriction that prevents legitimate corrections — exactly the scenario described in your approved pattern for Approved bills.
+### Existing hooks reused (no new queries)
+- `useHistoricalProjects()` — fetches project list for dropdown
+- `useHistoricalActualCosts(projectId)` — fetches cost-code-to-amount map for selected project
+
+### Files modified
+- `src/components/bidding/BiddingTabs.tsx` — add state
+- `src/components/bidding/BiddingTable.tsx` — add dropdown + pass data
+- `src/components/bidding/BidPackageDetailsModal.tsx` — show historical cost banner
 
