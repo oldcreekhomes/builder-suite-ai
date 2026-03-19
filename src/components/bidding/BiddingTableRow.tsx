@@ -56,6 +56,8 @@ interface BiddingTableRowProps {
   uploadingFiles?: any[];
   cancelUpload?: (uploadId: string) => void;
   removeUpload?: (uploadId: string) => void;
+  historicalProjectAddress?: string;
+  historicalCost?: number;
 }
 
 export function BiddingTableRow({
