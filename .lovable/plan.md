@@ -1,67 +1,66 @@
 
+Implement a tighter Step 1 fix that actually enforces one control standard in Bidding instead of only partially cleaning it up.
 
-## Standardize All Controls App-Wide (Two-Step Rollout)
+1. Define one Bidding control standard based on shadcn defaults
+- Buttons: `variant="outline" size="sm"` with no custom font/height classes
+- Selects: `SelectTrigger className="h-9"` so they visually match `Button size="sm"`
+- Inputs: `className="h-9"`
+- Header actions: same icon rule, same text weight, same padding, same height
+- Inline row controls: same height/typography as header controls unless truly icon-only
 
-### The Problem
+2. Fix the remaining Bidding controls that are still off-standard
+- `src/components/bidding/BiddingTable.tsx`
+  - Make the Historical select look like the adjacent header buttons
+  - Remove visual differences causing lighter-looking text
+  - Standardize icon treatment across header actions so “415 E Nelson”, “Global Settings”, and “Load Bid Packages” follow one pattern
+- `src/components/bidding/components/BiddingCompanyRow.tsx`
+  - Change the `will bid` select from `h-8` to `h-9`
+  - Change the price input from `h-8` to `h-9`
+- Re-check the already touched Bidding files for any remaining custom overrides that still create different font weight or padding
 
-Looking at the Bidding page screenshot, every control has different styling:
-- **"Draft" status select**: `h-8`, default `text-sm`
-- **Date pickers**: `h-8 text-sm font-normal` (overrides Button's default `font-medium`)
-- **"Add Files" button**: `h-8 text-xs` (smaller text than everything else)
-- **"No Historical" select**: `h-9 w-auto` (taller than row controls)
-- **"Global Settings" / "Load Bid Packages"**: `variant="outline" size="sm"` (h-9, `text-sm font-medium` — the correct shadcn default)
+3. Fix address shortening with a real formatter, not just “drop the last word”
+- Replace the current simplistic logic in `src/hooks/useHistoricalProjects.ts`
+- Add a normalization helper that:
+  - strips trailing city/state/ZIP
+  - keeps street number + directional + street name
+  - abbreviates street suffixes/directionals into a compact label
+- Target output style like:
+  - `895 Kentucky Street Arlington` → `895 Kentucky St`
+  - `895 N Kentucky Street Arlington` → `895 N Kentucky St`
+  - `1712 N. Quebec St. Arlington` → `1712 N Quebec St`
+- Use that formatted value everywhere the Historical dropdown renders labels
 
-The root cause: developers keep adding custom `className` overrides (`h-8`, `text-xs`, `font-normal`) that deviate from shadcn defaults. There is no enforced standard.
+4. Make the header controls truly uniform
+- Pick one consistent header treatment and apply it across the three controls:
+  - Historical select
+  - Global Settings
+  - Load Bid Packages
+- Recommended standard: keep shadcn default sizing and typography, and use either:
+  - no leading icons on any of them, or
+  - leading icons on all of them with identical spacing
+- The implementation should remove the current “one has icon / one does not / one looks lighter” mismatch
 
-### The Standard (shadcn defaults — no overrides)
+5. Broaden the audit for Step 2 readiness
+- Search the rest of the app for the same anti-patterns:
+  - `h-8`
+  - `text-xs` on action controls
+  - `font-normal` on button-like date pickers
+  - custom trigger/input heights that drift from `h-9`
+- Build a follow-up cleanup list by module so the same standard can be rolled out app-wide without changing behavior
 
-All interactive controls follow two tiers:
+Technical notes
+- The current root causes are visible in code:
+  - `SelectTrigger` default is `h-10`, while buttons use `size="sm"` = `h-9`
+  - `src/components/bidding/components/BiddingCompanyRow.tsx` still contains `h-8`
+  - `src/hooks/useHistoricalProjects.ts` still uses a weak “drop last word if 4+ words” rule, which is why addresses are not being shortened reliably
+- The correct approach is not to invent per-screen styling; it is to normalize all Bidding controls onto the same shadcn baseline and use one shared address formatter for historical project labels
 
-| Context | Button | Select | Input |
-|---------|--------|--------|-------|
-| **Header / toolbar** | `variant="outline" size="sm"` → h-9, text-sm, font-medium | `SelectTrigger` with `className="h-9"` | `className="h-9"` |
-| **Table row inline** | `variant="outline" size="sm"` → h-9, text-sm, font-medium | `SelectTrigger` with `className="h-9"` | `className="h-9"` |
+Files to update in the next implementation pass
+- `src/components/bidding/BiddingTable.tsx`
+- `src/components/bidding/components/BiddingCompanyRow.tsx`
+- `src/hooks/useHistoricalProjects.ts`
 
-**The rule**: No `h-8`, no `text-xs`, no `font-normal` on buttons. Use `size="sm"` (h-9) everywhere. shadcn Button `size="sm"` already gives `text-sm font-medium` — never override it.
-
-Date pickers that use `<Button variant="outline">` should use `size="sm"` and not override `font-normal` (the date text should look like any other button).
-
-### Step 1: Fix Bidding Now (this implementation)
-
-**Files to edit:**
-
-1. **`src/components/bidding/components/BiddingTableRowFiles.tsx`** (line 131-134)
-   - Remove `className="h-8 text-xs"` from "Add Files" button
-   - Just use `variant="outline" size="sm"` with no className override
-
-2. **`src/components/bidding/components/ProposalCell.tsx`** (line 70-73)
-   - Same fix: remove `className="h-8 text-xs"` from "Add Files" button
-
-3. **`src/components/bidding/components/BiddingTableRowSpecs.tsx`** (lines 38, 54)
-   - Icon button: change `className="h-8 w-8 p-0"` → use `size="icon"` with `className="h-9 w-9"`
-   - Text button: remove `className="h-8 text-xs px-2"`, use `size="sm"` only
-
-4. **`src/components/bidding/components/BiddingDatePicker.tsx`** (line 79-81)
-   - Change from `"w-full h-8 text-sm justify-start text-left font-normal max-w-[120px]"` to `size="sm"` + only layout overrides: `"w-full justify-start text-left max-w-[120px]"` with conditional `text-muted-foreground`
-
-5. **`src/components/bidding/components/BiddingTableRowContent.tsx`** (line 103)
-   - Status SelectTrigger: change `className="w-full h-8"` → `className="w-full h-9"`
-
-6. **`src/components/bidding/BidPackageDetailsModal.tsx`** (line 224)
-   - SelectTrigger inside modal: change `className="h-8 text-xs"` → `className="h-9"`
-
-7. **`src/components/bidding/BiddingTable.tsx`** (line 222)
-   - Historical SelectTrigger: already `h-9 w-auto` — correct, no change needed
-
-### Step 2: Broader Cleanup (future pass)
-
-After Bidding is standardized, do a sweep of the rest of the app using the same rules. This will be a separate task covering Budget, Bills, Settings, and other modules — applying the same "no custom height/font overrides" rule to every `<Button>`, `<SelectTrigger>`, and inline control.
-
-### Files modified (Step 1)
-- `src/components/bidding/components/BiddingTableRowFiles.tsx`
-- `src/components/bidding/components/ProposalCell.tsx`
-- `src/components/bidding/components/BiddingTableRowSpecs.tsx`
-- `src/components/bidding/components/BiddingDatePicker.tsx`
-- `src/components/bidding/components/BiddingTableRowContent.tsx`
-- `src/components/bidding/BidPackageDetailsModal.tsx`
-
+Expected result
+- “Draft”, calendar controls, Historical, Global Settings, and Load Bid Packages all share the same visual weight, height, padding, and typography
+- Historical project labels become compact street-style labels such as `895 N Kentucky St`
+- Bidding becomes the clean template for the broader app-wide control standardization pass
