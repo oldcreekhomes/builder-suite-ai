@@ -39,6 +39,10 @@ export function BiddingTable({ projectId, projectAddress, status, onHeaderAction
   const [selectedCompanies, setSelectedCompanies] = useState<Set<string>>(new Set());
   const [searchQuery, setSearchQuery] = useState("");
   
+  const { data: historicalProjects } = useHistoricalProjects();
+  const { data: historicalCosts } = useHistoricalActualCosts(selectedHistoricalProjectId);
+  const historicalProjectAddress = historicalProjects?.find((p: any) => p.id === selectedHistoricalProjectId)?.address;
+  
   
   const { biddingItems, groupedBiddingItems } = useBiddingData(projectId, status);
   const { data: allBiddingData } = useAllBiddingData(projectId);
