@@ -298,14 +298,16 @@ export function BiddingTable({ projectId, projectAddress, status, onHeaderAction
         </div>
         <div className="flex items-center space-x-2">
           <Button 
-            variant="outline" 
+            variant="outline"
+            size="sm"
             onClick={() => setShowGlobalSettingsModal(true)}
             disabled={biddingItems.length === 0}
           >
             <Settings className="mr-2 h-4 w-4" />
             Global Settings
           </Button>
-          <Button variant="outline" onClick={() => setShowAddBiddingModal(true)}>
+          <Button variant="outline" size="sm" onClick={() => setShowAddBiddingModal(true)}>
+            <Package className="mr-2 h-4 w-4" />
             {getLoadButtonText()}
           </Button>
         </div>

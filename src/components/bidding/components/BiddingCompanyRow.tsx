@@ -145,7 +145,7 @@ export function BiddingCompanyRow({
           value={localPrice}
           onChange={(e) => onPriceChange(biddingCompany.id, e.target.value)}
           onBlur={(e) => onPriceBlur(biddingCompany.id, e.target.value)}
-          className="w-24 h-8 text-sm"
+          className="w-24 h-9 text-sm"
           disabled={isReadOnly}
         />
       </TableCell>
