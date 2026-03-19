@@ -306,30 +306,34 @@ export function BidPackageDetailsModal({
           )}
 
           {/* Info Tables: Historical Pricing / Adjustment / Cost Code Breakdown */}
-          <div className={cn("grid gap-4", historicalProjectAddress ? "grid-cols-3" : "grid-cols-2")}>
-            {historicalProjectAddress && (
-              <div className="border rounded-lg">
-                <Table containerClassName="relative w-full">
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>Historical Pricing</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    <TableRow>
-                      <TableCell>
-                        <p className="text-sm font-medium truncate">{historicalProjectAddress}</p>
-                        <p className="text-sm mt-1">
-                          {historicalCost !== undefined
-                            ? `$${historicalCost.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
-                            : 'No data'}
-                        </p>
-                      </TableCell>
-                    </TableRow>
-                  </TableBody>
-                </Table>
-              </div>
-            )}
+          <div className="grid grid-cols-3 gap-4">
+            <div className="border rounded-lg">
+              <Table containerClassName="relative w-full">
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Historical Pricing</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  <TableRow>
+                    <TableCell>
+                      {historicalProjectAddress ? (
+                        <>
+                          <p className="text-sm font-medium truncate">{historicalProjectAddress}</p>
+                          <p className="text-sm mt-1">
+                            {historicalCost !== undefined
+                              ? `$${historicalCost.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
+                              : 'No data'}
+                          </p>
+                        </>
+                      ) : (
+                        <p className="text-sm text-muted-foreground">Select a historical project to populate this field</p>
+                      )}
+                    </TableCell>
+                  </TableRow>
+                </TableBody>
+              </Table>
+            </div>
 
             <div className="border rounded-lg">
               <Table containerClassName="relative w-full">
@@ -341,22 +345,26 @@ export function BidPackageDetailsModal({
                 <TableBody>
                   <TableRow>
                     <TableCell>
-                      <div className="flex items-center gap-2">
-                        <Input
-                          type="number"
-                          min={0}
-                          max={999}
-                          value={adjustmentPercent}
-                          onChange={(e) => setAdjustmentPercent(Number(e.target.value) || 0)}
-                          className="h-9 w-20"
-                        />
-                        <span className="text-sm text-muted-foreground">%</span>
-                        <span className="text-sm font-medium ml-auto">
-                          {adjustedCost !== undefined
-                            ? `$${adjustedCost.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
-                            : <span className="text-muted-foreground">$0.00</span>}
-                        </span>
-                      </div>
+                      {historicalProjectAddress ? (
+                        <div className="flex items-center gap-2">
+                          <Input
+                            type="number"
+                            min={0}
+                            max={999}
+                            value={adjustmentPercent}
+                            onChange={(e) => setAdjustmentPercent(Number(e.target.value) || 0)}
+                            className="h-9 w-20"
+                          />
+                          <span className="text-sm text-muted-foreground">%</span>
+                          <span className="text-sm font-medium ml-auto">
+                            {adjustedCost !== undefined
+                              ? `$${adjustedCost.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
+                              : '$0.00'}
+                          </span>
+                        </div>
+                      ) : (
+                        <p className="text-sm text-muted-foreground">Select a historical project to populate this field</p>
+                      )}
                     </TableCell>
                   </TableRow>
                 </TableBody>
