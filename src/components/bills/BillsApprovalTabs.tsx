@@ -67,6 +67,7 @@ interface BillsApprovalTabsProps {
 }
 
 interface BatchBill extends PendingBill {
+  vendor_id?: string;
   vendor_name?: string;
   bill_date?: string;
   due_date?: string;
