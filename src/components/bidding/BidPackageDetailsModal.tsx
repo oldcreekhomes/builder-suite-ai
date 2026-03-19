@@ -13,7 +13,7 @@ import { BiddingTableRowFiles } from './components/BiddingTableRowFiles';
 import { BiddingTableRowActions } from './components/BiddingTableRowActions';
 import { BulkActionBar } from '@/components/files/components/BulkActionBar';
 import { Badge } from '@/components/ui/badge';
-import { X, XCircle } from 'lucide-react';
+import { X, XCircle, History } from 'lucide-react';
 import { format } from 'date-fns';
 import { cn } from '@/lib/utils';
 import { useBidPackagePO } from '@/hooks/useBidPackagePO';
