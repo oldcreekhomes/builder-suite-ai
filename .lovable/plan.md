@@ -1,52 +1,30 @@
 
 
-## Enhanced Historical Pricing & Cost Code Breakdown in Bid Package Modal
+## Convert Info Cards to Standard Table Rows
 
-### What We're Building
+### What's Changing
 
-Replace the single-line historical banner with three distinct sections below the bid package header row:
-
-**Section 1 — Historical Pricing** (only shows when a historical project is selected)
-- Shows the historical project address and actual cost for this cost code
-- Same data as today, just in a proper card section
-
-**Section 2 — Percentage Adjuster** (always visible)
-- An input field for a % value (default 100%)
-- Displays the adjusted historical cost: `historicalCost × (percentage / 100)`
-- If no historical project selected, shows the adjustment UI but with no base cost to adjust (greyed out or $0.00)
-
-**Section 3 — Cost Code Breakdown** (always visible)
-- Fetches subcategories of the current cost code from `cost_codes` table (where `parent_group = costCode.code`)
-- Displays each subcategory: code, name, price, unit_of_measure (e.g., "4820.1 Gates — $450.00 Each", "4820.2 Fencing — $27.50 LF")
-- If no subcategories exist, shows "No subcategories" message
+Replace the three Card components (Historical Pricing, Adjustment, Cost Code Breakdown) with a standard `<Table>` that matches the existing bid package management table above it. The section titles become `<TableHead>` cells in a header row, and the data sits in a body row — identical font, padding, and styling to the Status/Sent On/Due Date row.
 
 ### Layout
 
-All three sections sit between the header controls row and the companies table, in a horizontal 3-column grid to "break up" the space:
-
 ```text
-┌─────────────────────┬──────────────────────┬──────────────────────┐
-│ § Historical        │ § % Adjuster         │ § Cost Code Breakdown│
-│ 415 E Nelson        │ [  66  ] %           │ 4820.1 Gates  $450   │
-│ $5,620.00           │ Adjusted: $3,709.20  │ 4820.2 Fencing $27.50│
-│ (only if selected)  │                      │              LF      │
-└─────────────────────┴──────────────────────┴──────────────────────┘
+┌──────────────────────┬──────────────────────┬──────────────────────┐
+│ Historical Pricing   │ Adjustment           │ Cost Code Breakdown  │  ← TableHead row
+├──────────────────────┼──────────────────────┼──────────────────────┤
+│ 415 E Nelson         │ [ 100 ] %            │ 4820.1 Gates  $450   │  ← TableBody row
+│ $5,620.00            │ $5,620.00            │ 4820.2 Fencing $27.50│
+└──────────────────────┴──────────────────────┴──────────────────────┘
 ```
 
-### Technical Approach
+### Technical Details
 
-1. **New hook: `useCostCodeSubcategories(parentCode: string)`**
-   - Queries `cost_codes` where `parent_group = parentCode`
-   - Returns subcategories with code, name, price, unit_of_measure
+**File**: `src/components/bidding/BidPackageDetailsModal.tsx`
 
-2. **Update `BidPackageDetailsModal.tsx`**
-   - Add `adjustmentPercent` state (default 100)
-   - Replace the single historical banner with a 3-column grid of card sections
-   - Section 1: conditional on `historicalProjectAddress`
-   - Section 2: always visible, input for %, computed adjusted value from `historicalCost * percent / 100`
-   - Section 3: always visible, uses `useCostCodeSubcategories(costCode.code)` to list subcategories
-
-### Files to create/edit
-- **Create** `src/hooks/useCostCodeSubcategories.ts` — new hook to fetch subcategories
-- **Edit** `src/components/bidding/BidPackageDetailsModal.tsx` — replace banner with 3-section layout
+- Remove the `Card`/`CardHeader`/`CardContent` imports (if no longer used elsewhere in this file) and the `History`, `Percent`, `List` icon imports
+- Replace the `<div className="grid ...">` block (lines 308-389) with a `<div className="border rounded-lg"><Table>` structure:
+  - `<TableHeader>` with one `<TableRow>` containing 2 or 3 `<TableHead>` cells: "Historical Pricing" (conditional), "Adjustment", "Cost Code Breakdown"
+  - `<TableBody>` with one `<TableRow>` containing matching `<TableCell>` entries holding the same data content
+- The conditional logic for `historicalProjectAddress` remains — when absent, the table has 2 columns instead of 3
+- Input height stays `h-9` per project standard
 
