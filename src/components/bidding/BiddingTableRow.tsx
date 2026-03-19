@@ -210,6 +210,8 @@ export function BiddingTableRow({
         uploadingFiles={uploadingFiles}
         cancelUpload={cancelUpload}
         removeUpload={removeUpload}
+        historicalProjectAddress={historicalProjectAddress}
+        historicalCost={historicalCost}
       />
       
       <AddCompaniesToBidPackageModal

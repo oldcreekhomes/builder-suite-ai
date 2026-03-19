@@ -459,6 +459,8 @@ export function BiddingTable({ projectId, projectAddress, status, onHeaderAction
                        uploadingFiles={uploadingFiles}
                        cancelUpload={cancelUpload}
                        removeUpload={removeUpload}
+                       historicalProjectAddress={historicalProjectAddress}
+                       historicalCost={historicalCosts?.mapByCode?.[item.cost_codes?.code] ?? undefined}
                      />
                    )) : [])
                 ]).flat()}
