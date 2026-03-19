@@ -6,6 +6,7 @@ import { Progress } from '@/components/ui/progress';
 import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { Input } from '@/components/ui/input';
 import { BiddingCompanyList } from './BiddingCompanyList';
 import { BiddingDatePicker } from './components/BiddingDatePicker';
 import { BiddingTableRowSpecs } from './components/BiddingTableRowSpecs';
@@ -13,10 +14,11 @@ import { BiddingTableRowFiles } from './components/BiddingTableRowFiles';
 import { BiddingTableRowActions } from './components/BiddingTableRowActions';
 import { BulkActionBar } from '@/components/files/components/BulkActionBar';
 import { Badge } from '@/components/ui/badge';
-import { X, XCircle, History } from 'lucide-react';
+import { X, XCircle, History, Percent, List } from 'lucide-react';
 import { format } from 'date-fns';
 import { cn } from '@/lib/utils';
 import { useBidPackagePO } from '@/hooks/useBidPackagePO';
+import { useCostCodeSubcategories } from '@/hooks/useCostCodeSubcategories';
 import { CloseBidPackageDialog } from './components/CloseBidPackageDialog';
 import type { Tables } from '@/integrations/supabase/types';
 
@@ -98,7 +100,11 @@ export function BidPackageDetailsModal({
   historicalCost
 }: BidPackageDetailsModalProps) {
   const [showCloseDialog, setShowCloseDialog] = useState(false);
+  const [adjustmentPercent, setAdjustmentPercent] = useState(100);
   const { awardedPOs } = useBidPackagePO(isReadOnly ? item?.id : null);
+  const { data: subcategories = [] } = useCostCodeSubcategories(costCode?.code);
+
+  const adjustedCost = historicalCost !== undefined ? historicalCost * (adjustmentPercent / 100) : undefined;
 
   const handleStatusChange = (value: string) => {
     if (value === 'closed') {
@@ -299,19 +305,88 @@ export function BidPackageDetailsModal({
             />
           )}
 
-          {/* Historical Pricing Banner */}
-          {historicalProjectAddress && (
-            <div className="flex items-center gap-2 px-4 py-3 bg-muted rounded-lg border">
-              <History className="h-4 w-4 text-muted-foreground shrink-0" />
-              <span className="text-sm font-medium">{historicalProjectAddress}</span>
-              <span className="text-sm text-muted-foreground">—</span>
-              <span className="text-sm font-semibold">
-                {historicalCost !== undefined
-                  ? `$${historicalCost.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
-                  : 'No historical data for this cost code'}
-              </span>
-            </div>
-          )}
+          {/* Three-Section Info Grid */}
+          <div className={cn(
+            "grid gap-4",
+            historicalProjectAddress ? "grid-cols-3" : "grid-cols-2"
+          )}>
+            {/* Section 1 — Historical Pricing (conditional) */}
+            {historicalProjectAddress && (
+              <Card>
+                <CardHeader className="pb-2 pt-3 px-4">
+                  <CardTitle className="text-xs font-medium text-muted-foreground flex items-center gap-1.5">
+                    <History className="h-3.5 w-3.5" />
+                    Historical Pricing
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="px-4 pb-3 pt-0">
+                  <p className="text-sm font-medium truncate">{historicalProjectAddress}</p>
+                  <p className="text-lg font-semibold mt-1">
+                    {historicalCost !== undefined
+                      ? `$${historicalCost.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
+                      : 'No data'}
+                  </p>
+                </CardContent>
+              </Card>
+            )}
+
+            {/* Section 2 — Percentage Adjuster (always visible) */}
+            <Card>
+              <CardHeader className="pb-2 pt-3 px-4">
+                <CardTitle className="text-xs font-medium text-muted-foreground flex items-center gap-1.5">
+                  <Percent className="h-3.5 w-3.5" />
+                  Adjustment
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="px-4 pb-3 pt-0">
+                <div className="flex items-center gap-2">
+                  <Input
+                    type="number"
+                    min={0}
+                    max={999}
+                    value={adjustmentPercent}
+                    onChange={(e) => setAdjustmentPercent(Number(e.target.value) || 0)}
+                    className="h-8 w-20 text-sm"
+                  />
+                  <span className="text-sm text-muted-foreground">%</span>
+                </div>
+                <p className="text-lg font-semibold mt-1">
+                  {adjustedCost !== undefined
+                    ? `$${adjustedCost.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
+                    : <span className="text-muted-foreground">$0.00</span>}
+                </p>
+              </CardContent>
+            </Card>
+
+            {/* Section 3 — Cost Code Breakdown (always visible) */}
+            <Card>
+              <CardHeader className="pb-2 pt-3 px-4">
+                <CardTitle className="text-xs font-medium text-muted-foreground flex items-center gap-1.5">
+                  <List className="h-3.5 w-3.5" />
+                  Cost Code Breakdown
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="px-4 pb-3 pt-0">
+                {subcategories.length > 0 ? (
+                  <div className="space-y-1.5">
+                    {subcategories.map((sub) => (
+                      <div key={sub.id} className="flex items-center justify-between text-sm">
+                        <span className="font-medium">{sub.code} {sub.name}</span>
+                        <span className="text-muted-foreground whitespace-nowrap ml-2">
+                          {sub.price != null
+                            ? `$${sub.price.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
+                            : '—'}
+                          {sub.unit_of_measure ? ` ${sub.unit_of_measure}` : ''}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <p className="text-sm text-muted-foreground">No subcategories</p>
+                )}
+              </CardContent>
+            </Card>
+          </div>
 
           {/* Companies Section */}
           <div className="border rounded-lg">
