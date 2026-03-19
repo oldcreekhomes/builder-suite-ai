@@ -566,7 +566,7 @@ export function BillsApprovalTabs({ projectId, projectIds, reviewOnly = false, o
       // Map validated bills to the format expected by batchApproveBills
       const billsToApprove = validatedBills.map(bill => {
         // Extract data from extracted_data with fallbacks to root properties
-        const vendorId = bill.extracted_data?.vendor_id || bill.extracted_data?.vendorId;
+        const vendorId = bill.vendor_id || bill.extracted_data?.vendor_id || bill.extracted_data?.vendorId;
         const billDate = bill.extracted_data?.bill_date || bill.extracted_data?.billDate || bill.bill_date;
         const referenceNumber = bill.extracted_data?.reference_number || bill.extracted_data?.referenceNumber || bill.reference_number;
         
