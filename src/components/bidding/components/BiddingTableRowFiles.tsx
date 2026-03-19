@@ -131,7 +131,6 @@ export function BiddingTableRowFiles({
               <Button
                 variant="outline"
                 size="sm"
-                className="h-8 text-xs"
               >
                 Add Files
               </Button>

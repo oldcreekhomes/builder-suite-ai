@@ -76,8 +76,9 @@ export function BiddingDatePicker({
       <PopoverTrigger asChild>
         <Button
           variant="outline"
+          size="sm"
           className={cn(
-            "w-full h-8 text-sm justify-start text-left font-normal max-w-[120px]",
+            "w-full justify-start text-left max-w-[120px]",
             !date && "text-muted-foreground"
           )}
           disabled={disabled}

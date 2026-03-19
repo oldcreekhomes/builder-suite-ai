@@ -50,7 +50,6 @@ export function BiddingTableRowSpecs({
                   variant="ghost"
                   size="sm"
                   onClick={() => setShowSpecsModal(true)}
-                  className="h-8 text-xs px-2"
                 >
                   {isReadOnly ? 'View Specs' : 'Add Specs'}
                 </Button>
