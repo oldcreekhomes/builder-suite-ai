@@ -1,28 +1,23 @@
 
 
-## Split Info Row into 3 Side-by-Side Tables
+## Always Show 3 Columns with Placeholder States
 
 ### What's Changing
 
-Replace the single `<Table>` (lines 309-370) with a `grid grid-cols-3 gap-4` containing three independent `<div className="border rounded-lg"><Table>` blocks — one per section. Each gets equal 1/3 width.
+**`src/components/bidding/BidPackageDetailsModal.tsx`** (lines 309-332):
 
-### Layout
+1. Change the grid from conditional `grid-cols-2`/`grid-cols-3` to always `grid-cols-3`
+2. Always render the Historical Pricing table — when no project is selected, show placeholder text like "Select a historical project to view pricing data"
+3. Always render the Adjustment table — when no historical project is selected, show the same placeholder message instead of the input (since there's nothing to adjust)
+4. Cost Code Breakdown stays as-is (always visible, independent of historical selection)
 
-```text
-┌─ 1/3 ──────────────┐  ┌─ 1/3 ──────────────┐  ┌─ 1/3 ──────────────┐
-│ Historical Pricing  │  │ Adjustment          │  │ Cost Code Breakdown │
-├─────────────────────┤  ├─────────────────────┤  ├─────────────────────┤
-│ 415 E Nelson        │  │ [100] %  $5,620.00  │  │ 4820.1 Gates  $450  │
-│ $5,620.00           │  │                     │  │ 4820.2 Fence $27.50 │
-└─────────────────────┘  └─────────────────────┘  └─────────────────────┘
-```
+### Placeholder behavior
 
-### Changes (single file)
+- **Historical Pricing** (no project selected): `"Select a historical project to populate this field"` in muted text
+- **Adjustment** (no project selected): Same message, since there's no base cost to adjust
+- When a project IS selected, both sections show their data/inputs as they do today
 
-**`src/components/bidding/BidPackageDetailsModal.tsx`** lines 308-370:
+### Single file edit
 
-- Wrap in `<div className={cn("grid gap-4", historicalProjectAddress ? "grid-cols-3" : "grid-cols-2")}>`
-- Each section becomes its own `<div className="border rounded-lg"><Table>` with its own `TableHeader`/`TableBody`
-- **Adjustment cell**: move the `$` amount inline with the input (`flex items-center gap-2`) instead of below it — so `[100] % $5,620.00` all on one line
-- Historical table only rendered when `historicalProjectAddress` exists; grid shifts to `grid-cols-2` otherwise
+Replace line 309's conditional class with `"grid grid-cols-3 gap-4"`, remove the `{historicalProjectAddress && (` conditional wrapper around the Historical table (lines 310/331), and add ternary content inside both the Historical and Adjustment cells.
 
