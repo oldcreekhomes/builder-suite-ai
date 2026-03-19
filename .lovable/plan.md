@@ -1,26 +1,52 @@
 
 
-## Fix Address Shortening (for real this time)
+## Enhanced Historical Pricing & Cost Code Breakdown in Bid Package Modal
 
-### Root Cause
+### What We're Building
 
-The database stores addresses like `895 Kentucky Street Arlington, VA 22205`. The current `formatAddress` splits on comma, yielding `895 Kentucky Street Arlington` — which strips the state/ZIP but **keeps the city name** because it sits before the comma.
+Replace the single-line historical banner with three distinct sections below the bid package header row:
 
-### The Fix
+**Section 1 — Historical Pricing** (only shows when a historical project is selected)
+- Shows the historical project address and actual cost for this cost code
+- Same data as today, just in a proper card section
 
-In `src/hooks/useHistoricalProjects.ts`, after abbreviating street suffixes, detect and remove trailing city words. The approach:
+**Section 2 — Percentage Adjuster** (always visible)
+- An input field for a % value (default 100%)
+- Displays the adjusted historical cost: `historicalCost × (percentage / 100)`
+- If no historical project selected, shows the adjustment UI but with no base cost to adjust (greyed out or $0.00)
 
-1. Split on comma → `"895 Kentucky Street Arlington"`
-2. Clean directional periods → `"895 Kentucky Street Arlington"`
-3. Abbreviate suffixes → `"895 Kentucky St Arlington"`
-4. **New step**: Find the last street suffix in the string and truncate everything after it. If no suffix is found, keep as-is.
+**Section 3 — Cost Code Breakdown** (always visible)
+- Fetches subcategories of the current cost code from `cost_codes` table (where `parent_group = costCode.code`)
+- Displays each subcategory: code, name, price, unit_of_measure (e.g., "4820.1 Gates — $450.00 Each", "4820.2 Fencing — $27.50 LF")
+- If no subcategories exist, shows "No subcategories" message
 
-This handles all real data patterns:
-- `895 Kentucky Street Arlington, VA 22205` → `895 Kentucky St`
-- `1712 N. Quebec St. Arlington, VA 22207` → `1712 N Quebec St`
-- `415 E Nelson, Alexandria, Virginia, 22314` → `415 E Nelson` (no suffix, comma already handles it)
-- `5617 23rd Street, Arlington, VA 22205` → `5617 23rd St` (comma already handles it)
+### Layout
 
-### File changed
-- `src/hooks/useHistoricalProjects.ts` — add post-suffix truncation step to `formatAddress`
+All three sections sit between the header controls row and the companies table, in a horizontal 3-column grid to "break up" the space:
+
+```text
+┌─────────────────────┬──────────────────────┬──────────────────────┐
+│ § Historical        │ § % Adjuster         │ § Cost Code Breakdown│
+│ 415 E Nelson        │ [  66  ] %           │ 4820.1 Gates  $450   │
+│ $5,620.00           │ Adjusted: $3,709.20  │ 4820.2 Fencing $27.50│
+│ (only if selected)  │                      │              LF      │
+└─────────────────────┴──────────────────────┴──────────────────────┘
+```
+
+### Technical Approach
+
+1. **New hook: `useCostCodeSubcategories(parentCode: string)`**
+   - Queries `cost_codes` where `parent_group = parentCode`
+   - Returns subcategories with code, name, price, unit_of_measure
+
+2. **Update `BidPackageDetailsModal.tsx`**
+   - Add `adjustmentPercent` state (default 100)
+   - Replace the single historical banner with a 3-column grid of card sections
+   - Section 1: conditional on `historicalProjectAddress`
+   - Section 2: always visible, input for %, computed adjusted value from `historicalCost * percent / 100`
+   - Section 3: always visible, uses `useCostCodeSubcategories(costCode.code)` to list subcategories
+
+### Files to create/edit
+- **Create** `src/hooks/useCostCodeSubcategories.ts` — new hook to fetch subcategories
+- **Edit** `src/components/bidding/BidPackageDetailsModal.tsx` — replace banner with 3-section layout
 
