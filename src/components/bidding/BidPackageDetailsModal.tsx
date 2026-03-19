@@ -93,7 +93,9 @@ export function BidPackageDetailsModal({
   isDeletingCompanies = false,
   uploadingFiles = [],
   cancelUpload,
-  removeUpload
+  removeUpload,
+  historicalProjectAddress,
+  historicalCost
 }: BidPackageDetailsModalProps) {
   const [showCloseDialog, setShowCloseDialog] = useState(false);
   const { awardedPOs } = useBidPackagePO(isReadOnly ? item?.id : null);
