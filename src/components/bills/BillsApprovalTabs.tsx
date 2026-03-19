@@ -236,7 +236,7 @@ export function BillsApprovalTabs({ projectId, projectIds, reviewOnly = false, o
       // Collect unique vendor IDs from extracted data
       const vendorMap = new Map<string, BatchBill[]>();
       for (const bill of billsWithLines) {
-        const vendorId = bill.extracted_data?.vendor_id || bill.extracted_data?.vendorId;
+        const vendorId = bill.vendor_id || bill.extracted_data?.vendor_id || bill.extracted_data?.vendorId;
         if (vendorId) {
           const arr = vendorMap.get(vendorId) || [];
           arr.push(bill);
