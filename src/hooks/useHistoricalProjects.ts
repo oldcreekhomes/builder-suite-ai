@@ -23,6 +23,7 @@ export function useHistoricalProjects() {
         place: 'Pl', way: 'Way', trail: 'Trl', terrace: 'Ter', parkway: 'Pkwy',
       };
       
+      const abbreviations = Object.values(suffixMap);
       const formatAddress = (full: string): string => {
         // Take only the part before the first comma (strip city/state/zip)
         let street = full.split(',')[0].trim();
@@ -30,6 +31,16 @@ export function useHistoricalProjects() {
         street = street.replace(/\b([NSEW])\./gi, '$1');
         // Abbreviate street suffixes
         street = street.replace(suffixes, (m) => suffixMap[m.replace('.', '').toLowerCase()] || m);
+        // Truncate anything after the last recognized (abbreviated) suffix to drop city names
+        for (let i = abbreviations.length - 1; i >= 0; i--) {
+          const abbr = abbreviations[i];
+          const re = new RegExp(`\\b(${abbr})\\b(.*)$`, 'i');
+          const match = street.match(re);
+          if (match) {
+            street = street.substring(0, match.index! + match[1].length);
+            break;
+          }
+        }
         return street;
       };
 
