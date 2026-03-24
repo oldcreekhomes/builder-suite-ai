@@ -18,6 +18,81 @@ const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
 const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
 const supabase = createClient(supabaseUrl, supabaseKey);
 
+// Stamp a PDF with green "APPROVED" stamp on every page
+async function stampProposalPDF(
+  pdfBytes: Uint8Array,
+  managerName: string,
+  approvalDate: string
+): Promise<Uint8Array> {
+  const pdfDoc = await PDFDocument.load(pdfBytes);
+  const boldFont = await pdfDoc.embedFont(StandardFonts.HelveticaBold);
+  const font = await pdfDoc.embedFont(StandardFonts.Helvetica);
+
+  const greenColor = rgb(0.13, 0.55, 0.13);
+  const darkGreen = rgb(0.08, 0.45, 0.08);
+  const grayColor = rgb(0.3, 0.3, 0.3);
+
+  for (const page of pdfDoc.getPages()) {
+    const { width, height } = page.getSize();
+
+    const stampWidth = 200;
+    const stampHeight = 90;
+    const margin = 30;
+    const stampX = width - stampWidth - margin;
+    const stampY = height - stampHeight - margin;
+
+    // Green border (top, bottom, left, right)
+    const bw = 3;
+    page.drawRectangle({ x: stampX, y: stampY + stampHeight - bw, width: stampWidth, height: bw, color: greenColor });
+    page.drawRectangle({ x: stampX, y: stampY, width: stampWidth, height: bw, color: greenColor });
+    page.drawRectangle({ x: stampX, y: stampY, width: bw, height: stampHeight, color: greenColor });
+    page.drawRectangle({ x: stampX + stampWidth - bw, y: stampY, width: bw, height: stampHeight, color: greenColor });
+
+    // White background
+    page.drawRectangle({
+      x: stampX + bw, y: stampY + bw,
+      width: stampWidth - 2 * bw, height: stampHeight - 2 * bw,
+      color: rgb(1, 1, 1), opacity: 0.95,
+    });
+
+    // "APPROVED" text
+    const approvedText = 'APPROVED';
+    const approvedSize = 22;
+    const approvedW = boldFont.widthOfTextAtSize(approvedText, approvedSize);
+    page.drawText(approvedText, {
+      x: stampX + (stampWidth - approvedW) / 2,
+      y: stampY + stampHeight - 30,
+      size: approvedSize, font: boldFont, color: darkGreen,
+    });
+
+    // Divider line
+    page.drawRectangle({
+      x: stampX + 15, y: stampY + stampHeight - 38,
+      width: stampWidth - 30, height: 1.5, color: greenColor,
+    });
+
+    // Manager name
+    const nameSize = 11;
+    const nameW = font.widthOfTextAtSize(managerName, nameSize);
+    page.drawText(managerName, {
+      x: stampX + (stampWidth - nameW) / 2,
+      y: stampY + stampHeight - 55,
+      size: nameSize, font, color: grayColor,
+    });
+
+    // Date
+    const dateSize = 9;
+    const dateW = font.widthOfTextAtSize(approvalDate, dateSize);
+    page.drawText(approvalDate, {
+      x: stampX + (stampWidth - dateW) / 2,
+      y: stampY + stampHeight - 70,
+      size: dateSize, font, color: rgb(0.4, 0.4, 0.4),
+    });
+  }
+
+  return pdfDoc.save();
+}
+
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers":
