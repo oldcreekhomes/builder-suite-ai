@@ -406,16 +406,19 @@ export const useBankReconciliation = () => {
         if (consolidatedPayments && consolidatedPayments.length > 0) {
           // Fetch all allocations for these consolidated payments
           const consolidatedPaymentIds = consolidatedPayments.map(cp => cp.id);
-          const { data: billPaymentAllocations } = await supabase
-            .from('bill_payment_allocations')
-            .select(`
-              id,
-              bill_payment_id,
-              bill_id,
-              amount_allocated,
-              bills:bill_id (reference_number)
-            `)
-            .in('bill_payment_id', consolidatedPaymentIds);
+          const billPaymentAllocations = await batchedIn<any>(
+            (ids) => supabase
+              .from('bill_payment_allocations')
+              .select(`
+                id,
+                bill_payment_id,
+                bill_id,
+                amount_allocated,
+                bills:bill_id (reference_number)
+              `)
+              .in('bill_payment_id', ids),
+            consolidatedPaymentIds
+          );
 
           // Group allocations by payment id
           const allocationsByPayment = new Map<string, BillPaymentAllocationSummary[]>();
