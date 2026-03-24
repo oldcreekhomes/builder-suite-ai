@@ -146,7 +146,8 @@ const handler = async (req: Request): Promise<Response> => {
     let updateData: any = {
       price: price,
       bid_status: 'submitted',
-      bid_acknowledged_by: null, // Reset so PM sees the new/updated submission
+      bid_acknowledged_by: null,
+      submitted_late: isLate,
       updated_at: new Date().toISOString()
     };
 
