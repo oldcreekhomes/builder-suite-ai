@@ -9,6 +9,27 @@ const PAGE_SIZE = 1000;
  *                     (must be callable multiple times since .range() mutates the builder).
  * @returns All rows concatenated.
  */
+/**
+ * Batches a Supabase `.in()` filter into chunks to avoid URL length overflow.
+ * When passing hundreds of UUIDs into `.in()`, the GET URL can exceed the ~8KB
+ * limit, causing a 400 Bad Request. This splits the IDs into smaller batches.
+ */
+export async function batchedIn<T = any>(
+  buildQuery: (ids: string[]) => any,
+  allIds: string[],
+  batchSize = 200
+): Promise<T[]> {
+  if (allIds.length === 0) return [];
+  const results: T[] = [];
+  for (let i = 0; i < allIds.length; i += batchSize) {
+    const chunk = allIds.slice(i, i + batchSize);
+    const { data, error } = await buildQuery(chunk);
+    if (error) throw error;
+    if (data) results.push(...data);
+  }
+  return results;
+}
+
 export async function fetchAllRows<T = any>(
   buildQuery: () => any
 ): Promise<T[]> {
