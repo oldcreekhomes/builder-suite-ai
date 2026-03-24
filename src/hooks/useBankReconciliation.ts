@@ -140,11 +140,14 @@ export const useBankReconciliation = () => {
 
           // Get checks that have lines matching the project
           const checkIds = allChecks.map(c => c.id);
-          const { data: checkLines } = await supabase
-            .from('check_lines')
-            .select('check_id')
-            .in('check_id', checkIds)
-            .eq('project_id', projectId);
+          const checkLines = await batchedIn<{ check_id: string }>(
+            (ids) => supabase
+              .from('check_lines')
+              .select('check_id')
+              .in('check_id', ids)
+              .eq('project_id', projectId),
+            checkIds
+          );
 
           const lineMatchIds = [...new Set((checkLines || []).map(l => l.check_id))];
 
@@ -264,18 +267,27 @@ export const useBankReconciliation = () => {
             const billIds = [...new Set(journalEntries.map(je => je.source_id))];
 
             // Step 3: Fetch bills with project filter (including orphaned ones)
-            let billsQuery = supabase
-              .from('bills')
-              .select('id, reference_number, status, reconciled, reconciliation_date, reconciliation_id, vendor_id, project_id')
-              .in('id', billIds);
-
-            if (projectId) {
-              billsQuery = billsQuery.eq('project_id', projectId);
-            } else {
-              billsQuery = billsQuery.is('project_id', null);
+            let allBillsRaw: any[] = [];
+            let billsError: any = null;
+            try {
+              allBillsRaw = await batchedIn<any>(
+                (ids) => {
+                  let q = supabase
+                    .from('bills')
+                    .select('id, reference_number, status, reconciled, reconciliation_date, reconciliation_id, vendor_id, project_id')
+                    .in('id', ids);
+                  if (projectId) {
+                    q = q.eq('project_id', projectId);
+                  } else {
+                    q = q.is('project_id', null);
+                  }
+                  return q;
+                },
+                billIds
+              );
+            } catch (e) {
+              billsError = e;
             }
-
-            const { data: allBillsRaw, error: billsError } = await billsQuery;
 
             if (billsError) {
               console.error('[Reconciliation] Bills query failed:', billsError);
@@ -394,16 +406,19 @@ export const useBankReconciliation = () => {
         if (consolidatedPayments && consolidatedPayments.length > 0) {
           // Fetch all allocations for these consolidated payments
           const consolidatedPaymentIds = consolidatedPayments.map(cp => cp.id);
-          const { data: billPaymentAllocations } = await supabase
-            .from('bill_payment_allocations')
-            .select(`
-              id,
-              bill_payment_id,
-              bill_id,
-              amount_allocated,
-              bills:bill_id (reference_number)
-            `)
-            .in('bill_payment_id', consolidatedPaymentIds);
+          const billPaymentAllocations = await batchedIn<any>(
+            (ids) => supabase
+              .from('bill_payment_allocations')
+              .select(`
+                id,
+                bill_payment_id,
+                bill_id,
+                amount_allocated,
+                bills:bill_id (reference_number)
+              `)
+              .in('bill_payment_id', ids),
+            consolidatedPaymentIds
+          );
 
           // Group allocations by payment id
           const allocationsByPayment = new Map<string, BillPaymentAllocationSummary[]>();
@@ -460,17 +475,20 @@ export const useBankReconciliation = () => {
           // Get all bill IDs from allocations
           const allBillIdsForCostCodes = [...billIdsInConsolidatedPayments];
           if (allBillIdsForCostCodes.length > 0) {
-            const { data: billLinesForConsolidated } = await supabase
-              .from('bill_lines')
-              .select(`
-                bill_id,
-                amount,
-                cost_code_id,
-                lot_id,
-                cost_codes:cost_code_id (code, name),
-                project_lots:lot_id (lot_number)
-              `)
-              .in('bill_id', allBillIdsForCostCodes);
+            const billLinesForConsolidated = await batchedIn<any>(
+              (ids) => supabase
+                .from('bill_lines')
+                .select(`
+                  bill_id,
+                  amount,
+                  cost_code_id,
+                  lot_id,
+                  cost_codes:cost_code_id (code, name),
+                  project_lots:lot_id (lot_number)
+                `)
+                .in('bill_id', ids),
+              allBillIdsForCostCodes
+            );
 
             if (billLinesForConsolidated) {
               // Group by bill_id first
@@ -659,18 +677,21 @@ export const useBankReconciliation = () => {
         // For journal entries, fetch the account info for each line
         const allJELineIds = [...manualJournalCredits, ...manualJournalDebits].map(je => je.id);
         if (allJELineIds.length > 0) {
-          const { data: jeLinesWithAccounts } = await supabase
-            .from('journal_entry_lines')
-            .select(`
-              id,
-              account_id,
-              debit,
-              credit,
-              lot_id,
-              accounts:account_id (code, name),
-              project_lots:lot_id (lot_number)
-            `)
-            .in('id', allJELineIds);
+          const jeLinesWithAccounts = await batchedIn<any>(
+            (ids) => supabase
+              .from('journal_entry_lines')
+              .select(`
+                id,
+                account_id,
+                debit,
+                credit,
+                lot_id,
+                accounts:account_id (code, name),
+                project_lots:lot_id (lot_number)
+              `)
+              .in('id', ids),
+            allJELineIds
+          );
 
           if (jeLinesWithAccounts) {
             jeLinesWithAccounts.forEach(line => {
@@ -706,17 +727,20 @@ export const useBankReconciliation = () => {
         let checkAllocationsMap: Map<string, AllocationBreakdown[]> = new Map();
         if (checksToUse.length > 0) {
           const checkIdsForAllocations = checksToUse.map(c => c.id);
-          const { data: checkLinesWithCostCodes } = await supabase
-            .from('check_lines')
-            .select(`
-              check_id,
-              amount,
-              cost_code_id,
-              lot_id,
-              cost_codes:cost_code_id (code, name),
-              project_lots:lot_id (lot_number)
-            `)
-            .in('check_id', checkIdsForAllocations);
+          const checkLinesWithCostCodes = await batchedIn<any>(
+            (ids) => supabase
+              .from('check_lines')
+              .select(`
+                check_id,
+                amount,
+                cost_code_id,
+                lot_id,
+                cost_codes:cost_code_id (code, name),
+                project_lots:lot_id (lot_number)
+              `)
+              .in('check_id', ids),
+            checkIdsForAllocations
+          );
 
           if (checkLinesWithCostCodes) {
             // Group by check_id, then by cost_code
@@ -763,17 +787,20 @@ export const useBankReconciliation = () => {
         let checkAccountAllocationsMap: Map<string, AllocationBreakdown[]> = new Map();
         if (checksToUse.length > 0) {
           const checkIdsForAccountAllocations = checksToUse.map(c => c.id);
-          const { data: checkLinesWithAccounts } = await supabase
-            .from('check_lines')
-            .select(`
-              check_id,
-              amount,
-              account_id,
-              lot_id,
-              accounts:account_id (code, name),
-              project_lots:lot_id (lot_number)
-            `)
-            .in('check_id', checkIdsForAccountAllocations);
+          const checkLinesWithAccounts = await batchedIn<any>(
+            (ids) => supabase
+              .from('check_lines')
+              .select(`
+                check_id,
+                amount,
+                account_id,
+                lot_id,
+                accounts:account_id (code, name),
+                project_lots:lot_id (lot_number)
+              `)
+              .in('check_id', ids),
+            checkIdsForAccountAllocations
+          );
 
           if (checkLinesWithAccounts) {
             // Group by check_id, then by account
@@ -820,17 +847,20 @@ export const useBankReconciliation = () => {
         let depositAllocationsMap: Map<string, AllocationBreakdown[]> = new Map();
         const depositIds = (deposits || []).map(d => d.id);
         if (depositIds.length > 0) {
-          const { data: depositLinesWithAccounts } = await supabase
-            .from('deposit_lines')
-            .select(`
-              deposit_id,
-              amount,
-              account_id,
-              lot_id,
-              accounts:account_id (code, name),
-              project_lots:lot_id (lot_number)
-            `)
-            .in('deposit_id', depositIds);
+          const depositLinesWithAccounts = await batchedIn<any>(
+            (ids) => supabase
+              .from('deposit_lines')
+              .select(`
+                deposit_id,
+                amount,
+                account_id,
+                lot_id,
+                accounts:account_id (code, name),
+                project_lots:lot_id (lot_number)
+              `)
+              .in('deposit_id', ids),
+            depositIds
+          );
 
           if (depositLinesWithAccounts) {
             // Group by deposit_id, then by account
@@ -877,17 +907,20 @@ export const useBankReconciliation = () => {
         let billAllocationsMap: Map<string, AllocationBreakdown[]> = new Map();
         const billPaymentIds = billPaymentTransactions.map(bp => bp.id);
         if (billPaymentIds.length > 0) {
-          const { data: billLinesWithCostCodes } = await supabase
-            .from('bill_lines')
-            .select(`
-              bill_id,
-              amount,
-              cost_code_id,
-              lot_id,
-              cost_codes:cost_code_id (code, name),
-              project_lots:lot_id (lot_number)
-            `)
-            .in('bill_id', billPaymentIds);
+          const billLinesWithCostCodes = await batchedIn<any>(
+            (ids) => supabase
+              .from('bill_lines')
+              .select(`
+                bill_id,
+                amount,
+                cost_code_id,
+                lot_id,
+                cost_codes:cost_code_id (code, name),
+                project_lots:lot_id (lot_number)
+              `)
+              .in('bill_id', ids),
+            billPaymentIds
+          );
 
           if (billLinesWithCostCodes) {
             // Group by bill_id, then by cost_code
