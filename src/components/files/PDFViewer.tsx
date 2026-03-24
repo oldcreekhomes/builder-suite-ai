@@ -4,6 +4,7 @@ import 'react-pdf/dist/Page/AnnotationLayer.css';
 import 'react-pdf/dist/Page/TextLayer.css';
 import { Button } from '@/components/ui/button';
 import { Download } from 'lucide-react';
+import { StampInfo } from './FilePreviewModal';
 
 // PDF.js worker is configured globally in src/lib/pdfConfig.ts
 
@@ -13,9 +14,10 @@ interface PDFViewerProps {
   onDownload: () => void;
   onZoomChange?: (zoom: number, canZoomIn: boolean, canZoomOut: boolean) => void;
   onPageCountChange?: (count: number, isLoading: boolean) => void;
+  stampInfo?: StampInfo;
 }
 
-export function PDFViewer({ fileUrl, fileName, onDownload, onZoomChange, onPageCountChange }: PDFViewerProps) {
+export function PDFViewer({ fileUrl, fileName, onDownload, onZoomChange, onPageCountChange, stampInfo }: PDFViewerProps) {
   const [numPages, setNumPages] = useState<number>(0);
   const [baseScale, setBaseScale] = useState<number | null>(null);
   const [zoomMultiplier, setZoomMultiplier] = useState<number>(1.0);
