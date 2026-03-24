@@ -847,17 +847,20 @@ export const useBankReconciliation = () => {
         let depositAllocationsMap: Map<string, AllocationBreakdown[]> = new Map();
         const depositIds = (deposits || []).map(d => d.id);
         if (depositIds.length > 0) {
-          const { data: depositLinesWithAccounts } = await supabase
-            .from('deposit_lines')
-            .select(`
-              deposit_id,
-              amount,
-              account_id,
-              lot_id,
-              accounts:account_id (code, name),
-              project_lots:lot_id (lot_number)
-            `)
-            .in('deposit_id', depositIds);
+          const depositLinesWithAccounts = await batchedIn<any>(
+            (ids) => supabase
+              .from('deposit_lines')
+              .select(`
+                deposit_id,
+                amount,
+                account_id,
+                lot_id,
+                accounts:account_id (code, name),
+                project_lots:lot_id (lot_number)
+              `)
+              .in('deposit_id', ids),
+            depositIds
+          );
 
           if (depositLinesWithAccounts) {
             // Group by deposit_id, then by account
