@@ -20,7 +20,7 @@ interface BulkDeleteOptions {
 
 interface BulkUpdateOptions {
   suppressInvalidate?: boolean;
-  skipValidation?: boolean; // Skip validation for internal system operations (e.g., delete cascades)
+  skipValidation?: boolean;
 }
 
 export const useTaskBulkMutations = (projectId: string) => {
@@ -32,21 +32,13 @@ export const useTaskBulkMutations = (projectId: string) => {
     mutationFn: async ({ taskIds, options }: { taskIds: string[], options?: BulkDeleteOptions }) => {
       if (!user || taskIds.length === 0) return [];
 
-      console.log('🗑️ Performing bulk delete for', taskIds.length, 'tasks');
-      
-      // Use a single delete operation with IN clause
       const { data, error } = await supabase
         .from('project_schedule_tasks')
         .delete()
         .in('id', taskIds)
         .select('id');
 
-      if (error) {
-        console.error('Bulk delete error:', error);
-        throw error;
-      }
-
-      console.log('✅ Bulk delete completed for', data?.length || 0, 'tasks');
+      if (error) throw error;
       return data || [];
     },
     onSuccess: (data, variables) => {
@@ -69,32 +61,8 @@ export const useTaskBulkMutations = (projectId: string) => {
       if (!user || updates.length === 0) return [];
 
       const timestamp = Date.now();
-      console.log('🚀 Performing SINGLE-BATCH hierarchy update for', updates.length, 'tasks');
       
-      // For large updates (>10), try the edge function first for atomic execution
-      if (updates.length > 10) {
-        try {
-          console.log('📦 Using edge function for atomic batch update...');
-          const { data: edgeResult, error: edgeError } = await supabase.functions.invoke('bulk-update-hierarchies', {
-            body: { updates, projectId }
-          });
-          
-          if (!edgeError && edgeResult?.success) {
-            console.log(`✅ Edge function batch update completed: ${updates.length} tasks in ~${Date.now() - timestamp}ms`);
-            return updates.map(u => ({ id: u.id }));
-          }
-          
-          if (edgeError) {
-            console.warn('⚠️ Edge function failed, falling back to parallel updates:', edgeError);
-          }
-        } catch (err) {
-          console.warn('⚠️ Edge function unavailable, using parallel update fallback:', err);
-        }
-      }
-      
-      // Fallback: Use atomic RPC function for safe hierarchy updates
-      console.log('📋 Using atomic RPC fallback for hierarchy changes');
-      
+      // Always use the atomic RPC function (collision-safe two-phase update)
       const { data: rpcResult, error: rpcError } = await supabase.rpc('bulk_update_hierarchy_numbers', {
         updates: updates as any
       });
@@ -108,8 +76,6 @@ export const useTaskBulkMutations = (projectId: string) => {
       return updates.map(u => ({ id: u.id }));
     },
     onSuccess: async (data, variables) => {
-      // Simplified - no more echo prevention needed
-      
       if (!variables.options?.suppressInvalidate) {
         queryClient.invalidateQueries({ queryKey: ['project-tasks', projectId, user?.id] });
       }
@@ -125,9 +91,7 @@ export const useTaskBulkMutations = (projectId: string) => {
     mutationFn: async ({ updates, options }: { updates: BulkPredecessorUpdate[], options?: BulkUpdateOptions }) => {
       if (!user || updates.length === 0) return [];
 
-      console.log('🔄 Performing bulk predecessor update for', updates.length, 'tasks', options?.skipValidation ? '(validation skipped)' : '');
-
-      // ALWAYS fetch tasks - needed for self-reference filter even when skipping validation
+      // Fetch tasks for self-reference filtering
       const { data: allTasksData, error: fetchError } = await supabase
         .from('project_schedule_tasks')
         .select('id, hierarchy_number')
@@ -136,7 +100,7 @@ export const useTaskBulkMutations = (projectId: string) => {
       if (fetchError) throw fetchError;
       const allTasks = allTasksData || [];
 
-      // ALWAYS filter out self-references - this is a safety net that runs even with skipValidation
+      // Filter out self-references
       const { parsePredecessorString } = await import('@/utils/predecessorValidation');
       const sanitizedUpdates = updates.map(update => {
         const task = allTasks.find(t => t.id === update.id);
@@ -148,15 +112,10 @@ export const useTaskBulkMutations = (projectId: string) => {
           ? update.predecessor 
           : [update.predecessor];
         
-        // Filter out any self-references
         const filteredPredecessors = predecessorArray.filter(pred => {
           const parsed = parsePredecessorString(pred);
           return parsed?.taskId !== taskHierarchy;
         });
-        
-        if (filteredPredecessors.length !== predecessorArray.length) {
-          console.warn(`🛡️ Filtered self-reference for task ${taskHierarchy}`);
-        }
         
         return { ...update, predecessor: filteredPredecessors.length > 0 ? filteredPredecessors : null };
       });
@@ -184,32 +143,27 @@ export const useTaskBulkMutations = (projectId: string) => {
         }
       }
       
-      // Use batch updates for better performance (use sanitizedUpdates which has self-refs filtered)
+      // Batch updates
       const results = [];
-      const batchSize = 10; // Process in batches to avoid overwhelming the database
+      const batchSize = 10;
       
       for (let i = 0; i < sanitizedUpdates.length; i += batchSize) {
         const batch = sanitizedUpdates.slice(i, i + batchSize);
-        const batchPromises = batch.map(update => {
-          // Always store predecessor as JSON array for consistency
-          return supabase
+        const batchPromises = batch.map(update =>
+          supabase
             .from('project_schedule_tasks')
             .update({ predecessor: update.predecessor })
             .eq('id', update.id)
-            .select('id');
-        });
+            .select('id')
+        );
         
         const batchResults = await Promise.all(batchPromises);
         for (const result of batchResults) {
-          if (result.error) {
-            console.error('Bulk predecessor update error:', result.error);
-            throw result.error;
-          }
+          if (result.error) throw result.error;
           if (result.data) results.push(...result.data);
         }
       }
 
-      console.log('✅ Bulk predecessor update completed for', results.length, 'tasks');
       return results;
     },
     onSuccess: (data, variables) => {

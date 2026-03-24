@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef, useMemo } from "react";
 import { ProjectTask } from "@/hooks/useProjectTasks";
-import { useScheduleRowHeight } from "@/hooks/useScheduleRowHeight";
+const ROW_HEIGHT = 40; // Fixed row height for schedule
 import { canIndent } from "@/utils/hierarchyUtils";
 import { canDropAt, computeDragDropUpdates, getDescendantIds } from "@/utils/dragDropLogic";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -80,7 +80,6 @@ export function UnifiedScheduleTable({
   isLoadingResources
 }: UnifiedScheduleTableProps) {
   const { toast } = useToast();
-  const ROW_HEIGHT = useScheduleRowHeight();
   const timelineScrollRef = useRef<HTMLDivElement>(null);
   const leftPanelRef = useRef<HTMLDivElement>(null);
 

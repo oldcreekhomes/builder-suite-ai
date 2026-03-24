@@ -25,7 +25,6 @@ import { useTaskDelete } from "@/hooks/useTaskDelete";
 import { useTaskAdd } from "@/hooks/useTaskAdd";
 import { useTaskHierarchy } from "@/hooks/useTaskHierarchy";
 import { usePublishSchedule } from "@/hooks/usePublishSchedule";
-import { recalculateAllTaskDates } from "@/utils/scheduleRecalculation";
 import { useProjectResources } from "@/hooks/useProjectResources";
 
 interface CustomGanttChartProps {
@@ -45,55 +44,18 @@ export function CustomGanttChart({ projectId, onHeaderActionChange }: CustomGant
   const { publishSchedule, isLoading: isPublishing } = usePublishSchedule(projectId);
   const { resources: projectResources, isLoading: isLoadingResources } = useProjectResources(projectId);
   
-  // Parent recalculation is now handled directly in useTaskMutations.tsx
-  // This eliminates the 3-second cooldown and 1.5-second debounce that caused lag
-  // AUTO-NORMALIZE ON LOAD REMOVED - was causing hierarchy corruption by collapsing all children under one parent
   const [showPublishDialog, setShowPublishDialog] = useState(false);
   const [showAddTaskDialog, setShowAddTaskDialog] = useState(false);
   const [showCopyScheduleDialog, setShowCopyScheduleDialog] = useState(false);
-  
-  // Zoom state for timeline
-  const [dayWidth, setDayWidth] = useState(40); // pixels per day
-  
-  // Debug: Force rebuild to clear any cache issues  
-  console.log('CustomGanttChart component loaded and race condition fixes applied');
+  const [dayWidth, setDayWidth] = useState(40);
   
   const [selectedTasks, setSelectedTasks] = useState<Set<string>>(new Set());
   const [expandAllTasks, setExpandAllTasks] = useState(false);
   const [collapseAllTasks, setCollapseAllTasks] = useState(false);
   const [expandedTasks, setExpandedTasks] = useState<Set<string>>(new Set());
   
-  
-  // Performance optimization states
   const [isCalculating, setIsCalculating] = useState(false);
   const [calculatingTasks, setCalculatingTasks] = useState<Set<string>>(new Set());
-
-  // Auto-fix schedule on load - ensures no gaps or violations exist
-  const hasRunAutoFix = useRef(false);
-  
-  // Reset auto-fix ref when project changes
-  useEffect(() => {
-    hasRunAutoFix.current = false;
-  }, [projectId]);
-  
-  // Run recalculation on page load to fix any date mismatches
-  useEffect(() => {
-    if (!isLoading && tasks.length > 0 && user && !hasRunAutoFix.current) {
-      hasRunAutoFix.current = true;
-      
-      // Run recalculation silently on load
-      (async () => {
-        console.log('🔄 Auto-fixing schedule on page load...');
-        const result = await recalculateAllTaskDates(projectId, tasks);
-        if (result.updatedCount > 0) {
-          console.log(`✅ Auto-fixed ${result.updatedCount} tasks on load`);
-          queryClient.invalidateQueries({ queryKey: ['project-tasks', projectId, user.id] });
-        } else {
-          console.log('✅ No schedule fixes needed on load');
-        }
-      })();
-    }
-  }, [isLoading, tasks.length, user, projectId, queryClient]);
 
   // Real-time updates now handled in useProjectTasks (simplified)
 
@@ -499,7 +461,6 @@ export function CustomGanttChart({ projectId, onHeaderActionChange }: CustomGant
   const {
     handleIndent,
     handleOutdent,
-    recalculateParentHierarchy,
   } = useTaskHierarchy({
     projectId,
     tasks,
@@ -530,7 +491,6 @@ export function CustomGanttChart({ projectId, onHeaderActionChange }: CustomGant
     selectedTasks,
     setSelectedTasks,
     hasChildren,
-    recalculateParentHierarchy,
     captureState,
     bulkDeleteTasks,
     bulkUpdateHierarchies,
