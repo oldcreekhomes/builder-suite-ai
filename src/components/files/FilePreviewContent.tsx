@@ -124,10 +124,11 @@ export function FilePreviewContent({
       <PDFViewer
         fileUrl={fileUrl}
         fileName={file.name}
-          onDownload={onDownload}
-          onZoomChange={onZoomChange}
-          onPageCountChange={onPageCountChange}
-        />
+        onDownload={onDownload}
+        onZoomChange={onZoomChange}
+        onPageCountChange={onPageCountChange}
+        stampInfo={file.stampInfo}
+      />
     );
   }
 

@@ -300,6 +300,26 @@ export function PDFViewer({ fileUrl, fileName, onDownload, onZoomChange, onPageC
                         </div>
                       }
                     />
+                    {stampInfo && (
+                      <div 
+                        className="absolute bottom-5 right-5 pointer-events-none z-10"
+                        style={{ transform: 'rotate(-5deg)' }}
+                      >
+                        <div className="border-2 border-dashed border-red-500 bg-white/90 px-4 py-3 rounded-sm">
+                          <div className="text-red-600 font-bold text-sm tracking-widest leading-tight text-center">
+                            APPROVED
+                          </div>
+                          <div className="border-t border-red-300 my-1.5" />
+                          <div className="text-gray-800 italic text-xs text-center leading-tight">
+                            {stampInfo.managerName}
+                          </div>
+                          <div className="text-gray-500 text-[10px] text-center mt-0.5">
+                            {stampInfo.date}
+                          </div>
+                        </div>
+                      </div>
+                    )}
+                    </>
                   ) : (
                     <div className="h-[1100px] bg-muted/50 border shadow-lg flex items-center justify-center">
                       <p className="text-muted-foreground text-sm">Loading page {pageNum}...</p>

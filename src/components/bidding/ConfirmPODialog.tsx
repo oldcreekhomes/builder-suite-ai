@@ -133,7 +133,13 @@ export function ConfirmPODialog({
   };
 
   const handleFilePreview = (fileName: string) => {
-    openProposalFile(fileName);
+    const today = new Date().toLocaleDateString('en-US', { month: '2-digit', day: '2-digit', year: 'numeric' });
+    openFile({
+      name: fileName,
+      bucket: 'project-files',
+      path: `proposals/${fileName}`,
+      stampInfo: managerName ? { managerName, date: today } : undefined,
+    });
   };
 
   if (!biddingCompany) return null;

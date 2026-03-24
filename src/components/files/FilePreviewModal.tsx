@@ -5,6 +5,11 @@ import { FilePreviewContent } from "./FilePreviewContent";
 import { useFilePreview } from "./hooks/useFilePreview";
 import { getFileType, FileType } from "./utils/fileTypeUtils";
 
+export interface StampInfo {
+  managerName: string;
+  date: string;
+}
+
 export interface UniversalFile {
   id?: string;
   name: string;
@@ -16,6 +21,7 @@ export interface UniversalFile {
   uploadedAt?: string;
   uploadedBy?: string;
   description?: string;
+  stampInfo?: StampInfo;
 }
 
 interface FilePreviewModalProps {
