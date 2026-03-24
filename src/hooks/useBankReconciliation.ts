@@ -232,12 +232,17 @@ export const useBankReconciliation = () => {
           const jeIds = journalEntries.map(je => je.id);
 
           // Step 2: Get journal entry lines that credit this bank account
-          const { data: journalLines, error: jlError } = await supabase
-            .from('journal_entry_lines')
-            .select('journal_entry_id, credit')
-            .in('journal_entry_id', jeIds)
-            .eq('account_id', bankAccountId)
-            .gt('credit', 0);
+          const journalLines = await batchedIn<{ journal_entry_id: string; credit: number }>(
+            (ids) => supabase
+              .from('journal_entry_lines')
+              .select('journal_entry_id, credit')
+              .in('journal_entry_id', ids)
+              .eq('account_id', bankAccountId)
+              .gt('credit', 0),
+            jeIds
+          );
+
+          const jlError = null;
 
           if (jlError) {
             console.error('[Reconciliation] Journal lines query failed:', jlError);
