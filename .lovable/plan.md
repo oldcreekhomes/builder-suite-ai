@@ -1,73 +1,31 @@
 
 
-## Fix: Reconciliation Missing Transactions — URL Length Overflow
+## Fix: Bills Query Also Overflows URL Limit
 
-### What's Happening
+### What's Still Broken
 
-The reconciliation page for 103 E Oxford is showing only 1 transaction (a deposit) instead of many. Nothing was changed in the code — this is a **data scale issue**. As more bills and journal entries have been entered over time, the queries have crossed a critical threshold.
+The previous fix batched the `journal_entry_lines` queries, which now return 200 OK. However, the **bills query** at line 268-270 also passes hundreds of bill IDs via `.in('id', billIds)` and is hitting the same URL length overflow (400 Bad Request visible in network requests). This means bill payment transactions still don't appear in the reconciliation view.
 
-The console shows: `[Reconciliation] Journal lines query failed: {"message": "Bad Request"}`
-
-### Root Cause
-
-The reconciliation hook (`useBankReconciliation.ts`) fetches **all** bill payment journal entries (500+), collects their IDs, then passes them into a `.in('journal_entry_id', [...hundreds of UUIDs...])` filter. This creates a GET request URL that exceeds the HTTP URL length limit (~8KB), causing Supabase/PostgREST to return a 400 Bad Request.
-
-When this query fails, the bill payment transactions silently return empty — and the same pattern affects manual journal entries. The result: only checks and deposits appear.
+The same risk exists for several other `.in()` calls in the file that could overflow as data grows.
 
 ### Fix
 
-**File: `src/hooks/useBankReconciliation.ts`** — Add a batched `.in()` helper and apply it to the two failing queries.
+**File: `src/hooks/useBankReconciliation.ts`** — Apply `batchedIn` to all large `.in()` queries:
 
-1. **Create a batch helper** (either inline or in `supabasePaginate.ts`) that splits large ID arrays into chunks of ~200 and runs parallel queries, then merges results:
+1. **Bills query (~line 267-278)**: The `billIds` array (derived from all bill_payment journal entries) has 400+ IDs. Replace the single query with `batchedIn`, preserving the project filter logic by building it into the query function.
 
-```typescript
-async function batchedIn<T>(
-  buildQuery: (ids: string[]) => any,
-  allIds: string[],
-  batchSize = 200
-): Promise<T[]> {
-  if (allIds.length === 0) return [];
-  const results: T[] = [];
-  for (let i = 0; i < allIds.length; i += batchSize) {
-    const chunk = allIds.slice(i, i + batchSize);
-    const { data, error } = await buildQuery(chunk);
-    if (error) throw error;
-    if (data) results.push(...data);
-  }
-  return results;
-}
-```
+2. **Other at-risk queries to batch** (same pattern, apply `batchedIn`):
+   - `check_lines` query (~line 143-147) — `checkIds` from all checks
+   - `bill_lines` for cost codes (~line 463-473) — `allBillIdsForCostCodes`
+   - `bill_lines` for bill payment allocations (~line 888-890) — `billPaymentIds`
+   - `check_lines` for allocations (~line 709-719) — `checkIdsForAllocations`
+   - `check_lines` for account allocations (~line 766-776) — same
+   - `deposit_lines` (~line 831-833) — `depositIds`
+   - `journal_entry_lines` for JE allocations (~line 662-673) — `allJELineIds`
 
-2. **Apply to bill payment journal lines query** (~line 234): Replace the single `.in()` call with the batched version.
+Each will use the existing `batchedIn` helper from `supabasePaginate.ts`.
 
-3. **Apply to manual journal lines query** (~line 564): Same fix for the manual journal entries query.
+### Why This Is Still Breaking
 
-Both queries currently look like:
-```typescript
-const { data, error } = await supabase
-  .from('journal_entry_lines')
-  .select(...)
-  .in('journal_entry_id', jeIds)  // jeIds can be 500+ UUIDs
-  .eq('account_id', bankAccountId);
-```
-
-They will become:
-```typescript
-const journalLines = await batchedIn(
-  (ids) => supabase
-    .from('journal_entry_lines')
-    .select(...)
-    .in('journal_entry_id', ids)
-    .eq('account_id', bankAccountId),
-  jeIds
-);
-```
-
-### Why This Wasn't Broken Before
-
-The system worked fine when there were fewer bill payments. As data grew past ~300-400 journal entries, the URL exceeded the limit. No code change caused this — it's purely a function of data volume.
-
-### Files Modified
-
-- `src/hooks/useBankReconciliation.ts` — batch the two `.in()` queries that pass large ID arrays
+The first fix only batched 2 of ~12 large `.in()` calls. The bills query is the immediate blocker — it's returning 400 right now. The others are preventative fixes for the same pattern.
 
