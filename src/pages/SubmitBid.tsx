@@ -265,6 +265,17 @@ export default function SubmitBid() {
               </div>
             )}
 
+            {/* Late Warning Banner */}
+            {isPastDue && (
+              <div className="mb-6 flex items-start gap-3 bg-yellow-50 border border-yellow-300 rounded-lg p-4">
+                <AlertTriangle className="h-5 w-5 text-yellow-600 mt-0.5 flex-shrink-0" />
+                <div>
+                  <p className="text-sm font-semibold text-yellow-800">This bid is past the due date.</p>
+                  <p className="text-sm text-yellow-700">Your submission will be marked as late.</p>
+                </div>
+              </div>
+            )}
+
             {/* Bid Submission Form */}
             <div>
               <h3 className="text-lg font-semibold mb-4 bg-black text-white p-3">

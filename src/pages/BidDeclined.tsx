@@ -40,13 +40,15 @@ export default function BidDeclined() {
               <XCircle className="h-8 w-8 text-red-600" />
             </div>
             <CardTitle className="text-xl font-semibold text-gray-900">
-              Declined
+              {reason === 'closed' ? 'Bid Package Closed' : 'Declined'}
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="text-center">
               <p className="text-gray-600 mb-6">
-                The due date has passed. If you would like to still submit a bid please email the contact.
+                {reason === 'closed' 
+                  ? 'This bid package has been closed and is no longer accepting submissions.'
+                  : 'The due date has passed. If you would like to still submit a bid please email the contact.'}
               </p>
             </div>
 

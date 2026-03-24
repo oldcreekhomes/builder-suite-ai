@@ -191,7 +191,8 @@ const handler = async (req: Request): Promise<Response> => {
       JSON.stringify({ 
         success: true,
         message: 'Bid submitted successfully',
-        filesUploaded: uploadedFileNames.length
+        filesUploaded: uploadedFileNames.length,
+        submitted_late: isLate
       }),
       {
         status: 200,
