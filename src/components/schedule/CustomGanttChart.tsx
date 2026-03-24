@@ -25,7 +25,6 @@ import { useTaskDelete } from "@/hooks/useTaskDelete";
 import { useTaskAdd } from "@/hooks/useTaskAdd";
 import { useTaskHierarchy } from "@/hooks/useTaskHierarchy";
 import { usePublishSchedule } from "@/hooks/usePublishSchedule";
-import { recalculateAllTaskDates } from "@/utils/scheduleRecalculation";
 import { useProjectResources } from "@/hooks/useProjectResources";
 
 interface CustomGanttChartProps {
