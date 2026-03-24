@@ -9,6 +9,7 @@ export default function BidDeclined() {
   const [isLoading, setIsLoading] = useState(true);
 
   const dueDate = searchParams.get("due_date");
+  const reason = searchParams.get("reason");
 
   useEffect(() => {
     console.log("BidDeclined loaded");
