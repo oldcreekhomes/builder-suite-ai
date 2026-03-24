@@ -45,6 +45,17 @@ export function CustomGanttChart({ projectId, onHeaderActionChange }: CustomGant
   const { resources: projectResources, isLoading: isLoadingResources } = useProjectResources(projectId);
   
   const [showPublishDialog, setShowPublishDialog] = useState(false);
+  const [showAddTaskDialog, setShowAddTaskDialog] = useState(false);
+  const [showCopyScheduleDialog, setShowCopyScheduleDialog] = useState(false);
+  const [dayWidth, setDayWidth] = useState(40);
+  
+  const [selectedTasks, setSelectedTasks] = useState<Set<string>>(new Set());
+  const [expandAllTasks, setExpandAllTasks] = useState(false);
+  const [collapseAllTasks, setCollapseAllTasks] = useState(false);
+  const [expandedTasks, setExpandedTasks] = useState<Set<string>>(new Set());
+  
+  const [isCalculating, setIsCalculating] = useState(false);
+  const [calculatingTasks, setCalculatingTasks] = useState<Set<string>>(new Set());
 
   // Real-time updates now handled in useProjectTasks (simplified)
 
