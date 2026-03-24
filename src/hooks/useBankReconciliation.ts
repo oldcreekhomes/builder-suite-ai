@@ -267,18 +267,27 @@ export const useBankReconciliation = () => {
             const billIds = [...new Set(journalEntries.map(je => je.source_id))];
 
             // Step 3: Fetch bills with project filter (including orphaned ones)
-            let billsQuery = supabase
-              .from('bills')
-              .select('id, reference_number, status, reconciled, reconciliation_date, reconciliation_id, vendor_id, project_id')
-              .in('id', billIds);
-
-            if (projectId) {
-              billsQuery = billsQuery.eq('project_id', projectId);
-            } else {
-              billsQuery = billsQuery.is('project_id', null);
+            let allBillsRaw: any[] = [];
+            let billsError: any = null;
+            try {
+              allBillsRaw = await batchedIn<any>(
+                (ids) => {
+                  let q = supabase
+                    .from('bills')
+                    .select('id, reference_number, status, reconciled, reconciliation_date, reconciliation_id, vendor_id, project_id')
+                    .in('id', ids);
+                  if (projectId) {
+                    q = q.eq('project_id', projectId);
+                  } else {
+                    q = q.is('project_id', null);
+                  }
+                  return q;
+                },
+                billIds
+              );
+            } catch (e) {
+              billsError = e;
             }
-
-            const { data: allBillsRaw, error: billsError } = await billsQuery;
 
             if (billsError) {
               console.error('[Reconciliation] Bills query failed:', billsError);
