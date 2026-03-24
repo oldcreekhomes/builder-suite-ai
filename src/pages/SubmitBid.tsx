@@ -132,9 +132,9 @@ export default function SubmitBid() {
       if (!response.ok) {
         const errorData = await response.json();
         
-        // Handle due date passed error specifically
-        if (errorData.error === 'due_date_passed') {
-          window.location.href = `/bid-declined?due_date=${encodeURIComponent(errorData.due_date || '')}`;
+        // Handle bid package closed error
+        if (errorData.error === 'bid_package_closed') {
+          window.location.href = `/bid-declined?reason=closed`;
           return;
         }
         
