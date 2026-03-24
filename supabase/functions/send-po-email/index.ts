@@ -689,6 +689,58 @@ const handler = async (req: Request): Promise<Response> => {
             }));
             
             console.log('📋 Proposal files prepared:', proposalFiles);
+
+            // Stamp proposal PDFs with APPROVED stamp (skip for cancellations)
+            const isCancellationCheck = requestData.isCancellation || false;
+            if (!isCancellationCheck && projectManager?.name && proposalFiles.length > 0) {
+              const approvalDate = new Date().toLocaleDateString('en-US', { month: '2-digit', day: '2-digit', year: 'numeric' });
+              console.log('🔖 Stamping proposal PDFs with APPROVED stamp...');
+              
+              for (let i = 0; i < proposalFiles.length; i++) {
+                const file = proposalFiles[i];
+                const fileName = file.name;
+                // Only stamp PDFs
+                if (!fileName.toLowerCase().endsWith('.pdf')) continue;
+                
+                try {
+                  // Download the original PDF
+                  const { data: fileData, error: downloadError } = await supabase.storage
+                    .from('project-files')
+                    .download(`proposals/${fileName}`);
+                  
+                  if (downloadError || !fileData) {
+                    console.error(`❌ Error downloading proposal ${fileName}:`, downloadError);
+                    continue;
+                  }
+
+                  const pdfBytes = new Uint8Array(await fileData.arrayBuffer());
+                  const stampedBytes = await stampProposalPDF(pdfBytes, projectManager.name, approvalDate);
+
+                  // Upload stamped version
+                  const approvedPath = `proposals/approved/${fileName}`;
+                  const { error: uploadError } = await supabase.storage
+                    .from('project-files')
+                    .upload(approvedPath, stampedBytes, {
+                      contentType: 'application/pdf',
+                      upsert: true,
+                    });
+
+                  if (uploadError) {
+                    console.error(`❌ Error uploading stamped PDF ${fileName}:`, uploadError);
+                    continue;
+                  }
+
+                  // Update URL to point to stamped version
+                  proposalFiles[i] = {
+                    name: fileName,
+                    url: `https://nlmnwlvmmkngrgatnzkj.supabase.co/storage/v1/object/public/project-files/${encodeURIComponent(approvedPath)}`
+                  };
+                  console.log(`✅ Stamped proposal: ${fileName}`);
+                } catch (stampErr) {
+                  console.error(`❌ Error stamping ${fileName}:`, stampErr);
+                }
+              }
+            }
           }
         }
       }
