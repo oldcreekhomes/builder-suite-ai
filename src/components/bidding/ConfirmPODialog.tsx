@@ -51,30 +51,48 @@ export function ConfirmPODialog({
 }: ConfirmPODialogProps) {
   const { createPOSendEmailAndUpdateStatus, resendPOEmail, isLoading } = usePOMutations(projectId);
   const { profile } = useUserProfile();
-  const { openProposalFile } = useUniversalFilePreviewContext();
+  const { openFile } = useUniversalFilePreviewContext();
   const { deleteIndividualProposal } = useBiddingCompanyMutations(projectId);
   const [customMessage, setCustomMessage] = useState('');
   const [costCodeData, setCostCodeData] = useState<{code: string, name: string} | null>(null);
   const [fileToDelete, setFileToDelete] = useState<string | null>(null);
+  const [managerName, setManagerName] = useState<string>('');
 
-  // Fetch cost code data when dialog opens
+  // Fetch cost code data and project manager name when dialog opens
   useEffect(() => {
-    if (isOpen && costCodeId) {
-      const fetchCostCode = async () => {
-        const { data, error } = await supabase
-          .from('cost_codes')
-          .select('code, name')
-          .eq('id', costCodeId)
-          .single();
-        
-        if (!error && data) {
-          setCostCodeData(data);
-        }
-      };
-      
-      fetchCostCode();
+    if (!isOpen) return;
+
+    if (costCodeId) {
+      supabase
+        .from('cost_codes')
+        .select('code, name')
+        .eq('id', costCodeId)
+        .single()
+        .then(({ data }) => { if (data) setCostCodeData(data); });
     }
-  }, [isOpen, costCodeId]);
+
+    if (projectId) {
+      supabase
+        .from('projects')
+        .select('construction_manager')
+        .eq('id', projectId)
+        .single()
+        .then(({ data: project }) => {
+          if (project?.construction_manager) {
+            supabase
+              .from('users')
+              .select('first_name, last_name')
+              .eq('id', project.construction_manager)
+              .single()
+              .then(({ data: user }) => {
+                if (user) {
+                  setManagerName(`${user.first_name || ''} ${user.last_name || ''}`.trim());
+                }
+              });
+          }
+        });
+    }
+  }, [isOpen, costCodeId, projectId]);
 
   const handleConfirm = async () => {
     if (!biddingCompany) return;
