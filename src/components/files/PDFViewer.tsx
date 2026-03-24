@@ -268,9 +268,10 @@ export function PDFViewer({ fileUrl, fileName, onDownload, onZoomChange, onPageC
                   key={`page_${pageNum}`}
                   data-page={pageNum}
                   ref={el => el && pageRefs.current.set(pageNum, el)}
-                  className="mb-2"
+                  className="mb-2 relative"
                 >
                   {isVisible ? (
+                    <>
                     <Page
                       pageNumber={pageNum}
                       scale={scale}
