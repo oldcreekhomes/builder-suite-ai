@@ -175,6 +175,50 @@ export default function SubmitBid() {
     );
   }
 
+  // Computed checks
+  const isClosed = bidPackage?.status === 'closed';
+  const isPastDue = bidPackage?.due_date ? (() => {
+    const dueDate = new Date(bidPackage.due_date);
+    dueDate.setHours(23, 59, 59, 999);
+    return new Date() > dueDate;
+  })() : false;
+
+  if (isClosed) {
+    return (
+      <div className="fixed inset-0 bg-white overflow-auto">
+        <div className="min-h-screen w-full flex items-center justify-center p-4">
+          <div className="w-full max-w-md">
+            <Card>
+              <CardHeader className="text-center">
+                <div className="mx-auto flex items-center justify-center h-12 w-12 rounded-full mb-4">
+                  <XCircle className="h-8 w-8 text-red-600" />
+                </div>
+                <CardTitle className="text-xl font-semibold text-gray-900">
+                  Bid Package Closed
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="text-center space-y-4">
+                <p className="text-gray-600">
+                  This bid package has been closed and is no longer accepting submissions.
+                </p>
+                <div>
+                  <a 
+                    href="https://www.buildersuiteai.com" 
+                    target="_blank" 
+                    rel="noopener noreferrer"
+                    className="text-sm text-black no-underline hover:text-gray-700 transition-colors"
+                  >
+                    www.buildersuiteai.com
+                  </a>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="fixed inset-0 bg-white overflow-auto">
       <div className="min-h-screen w-full flex items-center justify-center p-4">
