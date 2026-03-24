@@ -302,18 +302,18 @@ export function PDFViewer({ fileUrl, fileName, onDownload, onZoomChange, onPageC
                     />
                     {stampInfo && (
                       <div 
-                        className="absolute bottom-5 right-5 pointer-events-none z-10"
+                        className="absolute top-5 right-5 pointer-events-none z-10"
                         style={{ transform: 'rotate(-5deg)' }}
                       >
-                        <div className="border-2 border-dashed border-red-500 bg-white/90 px-4 py-3 rounded-sm">
-                          <div className="text-red-600 font-bold text-sm tracking-widest leading-tight text-center">
+                        <div className="border-4 border-dashed border-green-600 bg-white/95 px-8 py-6 rounded-sm">
+                          <div className="text-green-700 font-bold text-2xl tracking-widest leading-tight text-center">
                             APPROVED
                           </div>
-                          <div className="border-t border-red-300 my-1.5" />
-                          <div className="text-gray-800 italic text-xs text-center leading-tight">
+                          <div className="border-t-2 border-green-400 my-3" />
+                          <div className="text-gray-900 italic text-base text-center leading-tight">
                             {stampInfo.managerName}
                           </div>
-                          <div className="text-gray-500 text-[10px] text-center mt-0.5">
+                          <div className="text-gray-600 text-sm text-center mt-1">
                             {stampInfo.date}
                           </div>
                         </div>
