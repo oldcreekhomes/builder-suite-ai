@@ -7,7 +7,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { toast } from '@/components/ui/use-toast';
-import { Upload, DollarSign } from 'lucide-react';
+import { Upload, DollarSign, AlertTriangle, XCircle } from 'lucide-react';
 import { useDropzone } from 'react-dropzone';
 
 export default function SubmitBid() {
@@ -132,9 +132,9 @@ export default function SubmitBid() {
       if (!response.ok) {
         const errorData = await response.json();
         
-        // Handle due date passed error specifically
-        if (errorData.error === 'due_date_passed') {
-          window.location.href = `/bid-declined?due_date=${encodeURIComponent(errorData.due_date || '')}`;
+        // Handle bid package closed error
+        if (errorData.error === 'bid_package_closed') {
+          window.location.href = `/bid-declined?reason=closed`;
           return;
         }
         
@@ -169,6 +169,50 @@ export default function SubmitBid() {
               <p className="text-center text-red-600">Invalid bid submission link.</p>
             </CardContent>
           </Card>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // Computed checks
+  const isClosed = bidPackage?.status === 'closed';
+  const isPastDue = bidPackage?.due_date ? (() => {
+    const dueDate = new Date(bidPackage.due_date);
+    dueDate.setHours(23, 59, 59, 999);
+    return new Date() > dueDate;
+  })() : false;
+
+  if (isClosed) {
+    return (
+      <div className="fixed inset-0 bg-white overflow-auto">
+        <div className="min-h-screen w-full flex items-center justify-center p-4">
+          <div className="w-full max-w-md">
+            <Card>
+              <CardHeader className="text-center">
+                <div className="mx-auto flex items-center justify-center h-12 w-12 rounded-full mb-4">
+                  <XCircle className="h-8 w-8 text-red-600" />
+                </div>
+                <CardTitle className="text-xl font-semibold text-gray-900">
+                  Bid Package Closed
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="text-center space-y-4">
+                <p className="text-gray-600">
+                  This bid package has been closed and is no longer accepting submissions.
+                </p>
+                <div>
+                  <a 
+                    href="https://www.buildersuiteai.com" 
+                    target="_blank" 
+                    rel="noopener noreferrer"
+                    className="text-sm text-black no-underline hover:text-gray-700 transition-colors"
+                  >
+                    www.buildersuiteai.com
+                  </a>
+                </div>
+              </CardContent>
+            </Card>
           </div>
         </div>
       </div>
@@ -217,6 +261,17 @@ export default function SubmitBid() {
                       <span className="font-semibold">{company.company_name}</span>
                     </div>
                   )}
+                </div>
+              </div>
+            )}
+
+            {/* Late Warning Banner */}
+            {isPastDue && (
+              <div className="mb-6 flex items-start gap-3 bg-yellow-50 border border-yellow-300 rounded-lg p-4">
+                <AlertTriangle className="h-5 w-5 text-yellow-600 mt-0.5 flex-shrink-0" />
+                <div>
+                  <p className="text-sm font-semibold text-yellow-800">This bid is past the due date.</p>
+                  <p className="text-sm text-yellow-700">Your submission will be marked as late.</p>
                 </div>
               </div>
             )}

@@ -3030,6 +3030,7 @@ export type Database = {
           proposals: string[] | null
           reminder_date: string | null
           reminder_sent_at: string | null
+          submitted_late: boolean | null
           updated_at: string
           will_bid_acknowledged_by: string | null
           will_bid_at: string | null
@@ -3046,6 +3047,7 @@ export type Database = {
           proposals?: string[] | null
           reminder_date?: string | null
           reminder_sent_at?: string | null
+          submitted_late?: boolean | null
           updated_at?: string
           will_bid_acknowledged_by?: string | null
           will_bid_at?: string | null
@@ -3062,6 +3064,7 @@ export type Database = {
           proposals?: string[] | null
           reminder_date?: string | null
           reminder_sent_at?: string | null
+          submitted_late?: boolean | null
           updated_at?: string
           will_bid_acknowledged_by?: string | null
           will_bid_at?: string | null

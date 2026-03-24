@@ -48,11 +48,11 @@ const handler = async (req: Request): Promise<Response> => {
       );
     }
 
-    // Check bid package due date before processing
-    console.log('Checking bid package due date...');
+    // Check bid package status and due date
+    console.log('Checking bid package status and due date...');
     const { data: bidPackageData, error: bidPackageError } = await supabase
       .from('project_bid_packages')
-      .select('due_date')
+      .select('due_date, status')
       .eq('id', bidPackageId)
       .single();
 
@@ -67,34 +67,35 @@ const handler = async (req: Request): Promise<Response> => {
       );
     }
 
-    // Validate due date
+    // Hard block if bid package is closed
+    if (bidPackageData?.status === 'closed') {
+      console.log('❌ Bid submission rejected - bid package is closed');
+      return new Response(
+        JSON.stringify({ 
+          error: 'bid_package_closed',
+          message: 'This bid package has been closed and is no longer accepting submissions'
+        }),
+        { 
+          status: 400,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+        }
+      );
+    }
+
+    // Soft check: determine if submission is late
+    let isLate = false;
     if (bidPackageData?.due_date) {
       const dueDate = new Date(bidPackageData.due_date);
-      // Set due date to end of day (23:59:59.999) to allow submissions all day
       dueDate.setHours(23, 59, 59, 999);
       const now = new Date();
+      isLate = now > dueDate;
       
       console.log('Due date check:', {
         originalDueDate: bidPackageData.due_date,
         dueDateEndOfDay: dueDate.toISOString(),
         now: now.toISOString(),
-        isPastDue: now > dueDate
+        isLate
       });
-
-      if (now > dueDate) {
-        console.log('❌ Bid submission rejected - past due date');
-        return new Response(
-          JSON.stringify({ 
-            error: 'due_date_passed',
-            due_date: bidPackageData.due_date,
-            message: 'The due date has passed for this bid package'
-          }),
-          { 
-            status: 400,
-            headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-          }
-        );
-      }
     }
 
     // Process uploaded files
@@ -145,7 +146,8 @@ const handler = async (req: Request): Promise<Response> => {
     let updateData: any = {
       price: price,
       bid_status: 'submitted',
-      bid_acknowledged_by: null, // Reset so PM sees the new/updated submission
+      bid_acknowledged_by: null,
+      submitted_late: isLate,
       updated_at: new Date().toISOString()
     };
 
@@ -189,7 +191,8 @@ const handler = async (req: Request): Promise<Response> => {
       JSON.stringify({ 
         success: true,
         message: 'Bid submitted successfully',
-        filesUploaded: uploadedFileNames.length
+        filesUploaded: uploadedFileNames.length,
+        submitted_late: isLate
       }),
       {
         status: 200,

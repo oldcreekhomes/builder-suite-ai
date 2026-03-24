@@ -1,0 +1,1 @@
+ALTER TABLE project_bids ADD COLUMN submitted_late boolean DEFAULT false;
