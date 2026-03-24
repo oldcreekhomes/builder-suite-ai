@@ -907,17 +907,20 @@ export const useBankReconciliation = () => {
         let billAllocationsMap: Map<string, AllocationBreakdown[]> = new Map();
         const billPaymentIds = billPaymentTransactions.map(bp => bp.id);
         if (billPaymentIds.length > 0) {
-          const { data: billLinesWithCostCodes } = await supabase
-            .from('bill_lines')
-            .select(`
-              bill_id,
-              amount,
-              cost_code_id,
-              lot_id,
-              cost_codes:cost_code_id (code, name),
-              project_lots:lot_id (lot_number)
-            `)
-            .in('bill_id', billPaymentIds);
+          const billLinesWithCostCodes = await batchedIn<any>(
+            (ids) => supabase
+              .from('bill_lines')
+              .select(`
+                bill_id,
+                amount,
+                cost_code_id,
+                lot_id,
+                cost_codes:cost_code_id (code, name),
+                project_lots:lot_id (lot_number)
+              `)
+              .in('bill_id', ids),
+            billPaymentIds
+          );
 
           if (billLinesWithCostCodes) {
             // Group by bill_id, then by cost_code
