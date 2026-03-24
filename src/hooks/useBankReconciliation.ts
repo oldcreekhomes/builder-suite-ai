@@ -140,11 +140,14 @@ export const useBankReconciliation = () => {
 
           // Get checks that have lines matching the project
           const checkIds = allChecks.map(c => c.id);
-          const { data: checkLines } = await supabase
-            .from('check_lines')
-            .select('check_id')
-            .in('check_id', checkIds)
-            .eq('project_id', projectId);
+          const checkLines = await batchedIn<{ check_id: string }>(
+            (ids) => supabase
+              .from('check_lines')
+              .select('check_id')
+              .in('check_id', ids)
+              .eq('project_id', projectId),
+            checkIds
+          );
 
           const lineMatchIds = [...new Set((checkLines || []).map(l => l.check_id))];
 
