@@ -1,7 +1,7 @@
 import React, { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Download, FileText, AlertCircle, ZoomIn, ZoomOut } from "lucide-react";
-import { UniversalFile } from "./FilePreviewModal";
+import { UniversalFile, StampInfo } from "./FilePreviewModal";
 import { getFileType, FileType } from "./utils/fileTypeUtils";
 import { PDFViewer } from "./PDFViewer";
 
@@ -124,10 +124,11 @@ export function FilePreviewContent({
       <PDFViewer
         fileUrl={fileUrl}
         fileName={file.name}
-          onDownload={onDownload}
-          onZoomChange={onZoomChange}
-          onPageCountChange={onPageCountChange}
-        />
+        onDownload={onDownload}
+        onZoomChange={onZoomChange}
+        onPageCountChange={onPageCountChange}
+        stampInfo={file.stampInfo}
+      />
     );
   }
 

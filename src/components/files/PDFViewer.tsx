@@ -4,6 +4,7 @@ import 'react-pdf/dist/Page/AnnotationLayer.css';
 import 'react-pdf/dist/Page/TextLayer.css';
 import { Button } from '@/components/ui/button';
 import { Download } from 'lucide-react';
+import { StampInfo } from './FilePreviewModal';
 
 // PDF.js worker is configured globally in src/lib/pdfConfig.ts
 
@@ -13,9 +14,10 @@ interface PDFViewerProps {
   onDownload: () => void;
   onZoomChange?: (zoom: number, canZoomIn: boolean, canZoomOut: boolean) => void;
   onPageCountChange?: (count: number, isLoading: boolean) => void;
+  stampInfo?: StampInfo;
 }
 
-export function PDFViewer({ fileUrl, fileName, onDownload, onZoomChange, onPageCountChange }: PDFViewerProps) {
+export function PDFViewer({ fileUrl, fileName, onDownload, onZoomChange, onPageCountChange, stampInfo }: PDFViewerProps) {
   const [numPages, setNumPages] = useState<number>(0);
   const [baseScale, setBaseScale] = useState<number | null>(null);
   const [zoomMultiplier, setZoomMultiplier] = useState<number>(1.0);
@@ -266,9 +268,10 @@ export function PDFViewer({ fileUrl, fileName, onDownload, onZoomChange, onPageC
                   key={`page_${pageNum}`}
                   data-page={pageNum}
                   ref={el => el && pageRefs.current.set(pageNum, el)}
-                  className="mb-2"
+                  className="mb-2 relative"
                 >
                   {isVisible ? (
+                    <>
                     <Page
                       pageNumber={pageNum}
                       scale={scale}
@@ -297,6 +300,26 @@ export function PDFViewer({ fileUrl, fileName, onDownload, onZoomChange, onPageC
                         </div>
                       }
                     />
+                    {stampInfo && (
+                      <div 
+                        className="absolute bottom-5 right-5 pointer-events-none z-10"
+                        style={{ transform: 'rotate(-5deg)' }}
+                      >
+                        <div className="border-2 border-dashed border-red-500 bg-white/90 px-4 py-3 rounded-sm">
+                          <div className="text-red-600 font-bold text-sm tracking-widest leading-tight text-center">
+                            APPROVED
+                          </div>
+                          <div className="border-t border-red-300 my-1.5" />
+                          <div className="text-gray-800 italic text-xs text-center leading-tight">
+                            {stampInfo.managerName}
+                          </div>
+                          <div className="text-gray-500 text-[10px] text-center mt-0.5">
+                            {stampInfo.date}
+                          </div>
+                        </div>
+                      </div>
+                    )}
+                    </>
                   ) : (
                     <div className="h-[1100px] bg-muted/50 border shadow-lg flex items-center justify-center">
                       <p className="text-muted-foreground text-sm">Loading page {pageNum}...</p>
