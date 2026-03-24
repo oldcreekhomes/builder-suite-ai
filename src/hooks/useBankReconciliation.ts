@@ -1,5 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import { batchedIn } from "@/lib/supabasePaginate";
 import { useToast } from "@/hooks/use-toast";
 import { toDateLocal } from "@/utils/dateOnly";
 
@@ -231,12 +232,17 @@ export const useBankReconciliation = () => {
           const jeIds = journalEntries.map(je => je.id);
 
           // Step 2: Get journal entry lines that credit this bank account
-          const { data: journalLines, error: jlError } = await supabase
-            .from('journal_entry_lines')
-            .select('journal_entry_id, credit')
-            .in('journal_entry_id', jeIds)
-            .eq('account_id', bankAccountId)
-            .gt('credit', 0);
+          const journalLines = await batchedIn<{ journal_entry_id: string; credit: number }>(
+            (ids) => supabase
+              .from('journal_entry_lines')
+              .select('journal_entry_id, credit')
+              .in('journal_entry_id', ids)
+              .eq('account_id', bankAccountId)
+              .gt('credit', 0),
+            jeIds
+          );
+
+          const jlError = null;
 
           if (jlError) {
             console.error('[Reconciliation] Journal lines query failed:', jlError);
@@ -561,11 +567,16 @@ export const useBankReconciliation = () => {
           const mjeIds = manualJournalEntries.map(je => je.id);
 
           // Get journal entry lines that affect this bank account (both debits and credits, including orphaned)
-          const { data: allManualLinesRaw, error: mlError } = await supabase
-            .from('journal_entry_lines')
-            .select('id, journal_entry_id, debit, credit, project_id, reconciled, reconciliation_id, reconciliation_date')
-            .in('journal_entry_id', mjeIds)
-            .eq('account_id', bankAccountId);
+          const allManualLinesRaw = await batchedIn<{ id: string; journal_entry_id: string; debit: number; credit: number; project_id: string | null; reconciled: boolean; reconciliation_id: string | null; reconciliation_date: string | null }>(
+            (ids) => supabase
+              .from('journal_entry_lines')
+              .select('id, journal_entry_id, debit, credit, project_id, reconciled, reconciliation_id, reconciliation_date')
+              .in('journal_entry_id', ids)
+              .eq('account_id', bankAccountId),
+            mjeIds
+          );
+
+          const mlError = null;
 
           if (mlError) {
             console.error('[Reconciliation] Manual journal lines query failed:', mlError);
