@@ -6,7 +6,7 @@ export interface HierarchyUpdate {
   hierarchy_number: string;
 }
 
-export { PredecessorUpdate };
+export type { PredecessorUpdate };
 
 export interface AddAboveResult {
   newTaskHierarchy: string;
