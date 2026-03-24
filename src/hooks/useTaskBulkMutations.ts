@@ -114,9 +114,10 @@ export const useTaskBulkMutations = (projectId: string) => {
         queryClient.invalidateQueries({ queryKey: ['project-tasks', projectId, user?.id] });
       }
     },
-    onError: (error) => {
+    onError: (error: any) => {
       console.error('Bulk hierarchy update failed:', error);
-      toast({ title: "Error", description: 'Failed to update task positions', variant: "destructive" });
+      const message = error?.message || 'Failed to update task positions';
+      toast({ title: "Error", description: message, variant: "destructive" });
     },
   });
 
