@@ -96,7 +96,7 @@ export const useTaskBulkMutations = (projectId: string) => {
       console.log('📋 Using atomic RPC fallback for hierarchy changes');
       
       const { data: rpcResult, error: rpcError } = await supabase.rpc('bulk_update_hierarchy_numbers', {
-        updates: JSON.stringify(updates)
+        updates: updates as unknown as Record<string, unknown>[]
       });
       
       if (rpcError) {
