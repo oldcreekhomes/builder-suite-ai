@@ -450,7 +450,6 @@ export function CustomGanttChart({ projectId, onHeaderActionChange }: CustomGant
   const {
     handleIndent,
     handleOutdent,
-    recalculateParentHierarchy,
   } = useTaskHierarchy({
     projectId,
     tasks,
