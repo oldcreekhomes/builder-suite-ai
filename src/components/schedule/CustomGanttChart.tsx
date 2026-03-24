@@ -480,7 +480,6 @@ export function CustomGanttChart({ projectId, onHeaderActionChange }: CustomGant
     selectedTasks,
     setSelectedTasks,
     hasChildren,
-    recalculateParentHierarchy,
     captureState,
     bulkDeleteTasks,
     bulkUpdateHierarchies,
