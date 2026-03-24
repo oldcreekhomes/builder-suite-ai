@@ -7,7 +7,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { toast } from '@/components/ui/use-toast';
-import { Upload, DollarSign } from 'lucide-react';
+import { Upload, DollarSign, AlertTriangle, XCircle } from 'lucide-react';
 import { useDropzone } from 'react-dropzone';
 
 export default function SubmitBid() {
