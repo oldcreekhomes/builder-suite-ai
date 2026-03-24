@@ -727,17 +727,20 @@ export const useBankReconciliation = () => {
         let checkAllocationsMap: Map<string, AllocationBreakdown[]> = new Map();
         if (checksToUse.length > 0) {
           const checkIdsForAllocations = checksToUse.map(c => c.id);
-          const { data: checkLinesWithCostCodes } = await supabase
-            .from('check_lines')
-            .select(`
-              check_id,
-              amount,
-              cost_code_id,
-              lot_id,
-              cost_codes:cost_code_id (code, name),
-              project_lots:lot_id (lot_number)
-            `)
-            .in('check_id', checkIdsForAllocations);
+          const checkLinesWithCostCodes = await batchedIn<any>(
+            (ids) => supabase
+              .from('check_lines')
+              .select(`
+                check_id,
+                amount,
+                cost_code_id,
+                lot_id,
+                cost_codes:cost_code_id (code, name),
+                project_lots:lot_id (lot_number)
+              `)
+              .in('check_id', ids),
+            checkIdsForAllocations
+          );
 
           if (checkLinesWithCostCodes) {
             // Group by check_id, then by cost_code
