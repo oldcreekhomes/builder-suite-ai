@@ -475,17 +475,20 @@ export const useBankReconciliation = () => {
           // Get all bill IDs from allocations
           const allBillIdsForCostCodes = [...billIdsInConsolidatedPayments];
           if (allBillIdsForCostCodes.length > 0) {
-            const { data: billLinesForConsolidated } = await supabase
-              .from('bill_lines')
-              .select(`
-                bill_id,
-                amount,
-                cost_code_id,
-                lot_id,
-                cost_codes:cost_code_id (code, name),
-                project_lots:lot_id (lot_number)
-              `)
-              .in('bill_id', allBillIdsForCostCodes);
+            const billLinesForConsolidated = await batchedIn<any>(
+              (ids) => supabase
+                .from('bill_lines')
+                .select(`
+                  bill_id,
+                  amount,
+                  cost_code_id,
+                  lot_id,
+                  cost_codes:cost_code_id (code, name),
+                  project_lots:lot_id (lot_number)
+                `)
+                .in('bill_id', ids),
+              allBillIdsForCostCodes
+            );
 
             if (billLinesForConsolidated) {
               // Group by bill_id first
