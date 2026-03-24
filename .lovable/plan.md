@@ -1,81 +1,72 @@
 
 
-## Fix: "Add Task Above" Failing — RPC Parameter Serialization Bug
+## Fix: Collision-Safe Hierarchy Reordering
 
-### What's Happening
+### Problem
+The `bulk_update_hierarchy_numbers` function updates rows sequentially. When reordering (e.g., moving 8.20 after 8.24), the first row update creates a duplicate hierarchy number before the original is moved, violating the `unique_hierarchy_per_project` constraint.
 
-The error in the network tab is clear:
+### Solution
+Replace the SQL function with a two-phase approach inside the same transaction:
 
-```
-POST /rpc/bulk_update_hierarchy_numbers → 400
-Response: {"code":"22023","message":"cannot extract elements from a scalar"}
-```
+1. **Phase 1**: Set all affected rows to temporary unique placeholders (`__temp__` + UUID)
+2. **Phase 2**: Apply the final hierarchy numbers
 
-The `bulk_update_hierarchy_numbers` RPC expects a `jsonb` array, but the client passes `JSON.stringify(updates)` — a **string**. PostgREST wraps it as a JSON string scalar (`"[{...}]"`) instead of a JSON array (`[{...}]`), so `jsonb_array_elements()` fails.
+This avoids any moment where two rows share the same hierarchy number.
 
-The edge function fallback has the same bug (line 48 of the edge function also uses `JSON.stringify`).
+### Changes
 
-This likely broke when the Supabase JS client or PostgREST was updated — the behavior of how stringified JSON is coerced into `jsonb` parameters changed.
+**1. New migration — replace `bulk_update_hierarchy_numbers`**
 
-### Root Cause
-
-**File: `src/hooks/useTaskBulkMutations.ts`, line 98-99:**
-```typescript
-await supabase.rpc('bulk_update_hierarchy_numbers', {
-  updates: JSON.stringify(updates)  // ← Bug: sends string, not jsonb array
-});
-```
-
-**File: `supabase/functions/bulk-update-hierarchies/index.ts`, line 47-48:**
-```typescript
-await supabase.rpc('bulk_update_hierarchy_numbers', {
-  updates: JSON.stringify(updates)  // ← Same bug in edge function
-});
-```
-
-### Fix
-
-Three changes, all small:
-
-1. **`src/hooks/useTaskBulkMutations.ts` (~line 98):** Pass `updates` directly without `JSON.stringify`. PostgREST natively serializes JS arrays/objects to `jsonb`.
-
-2. **`supabase/functions/bulk-update-hierarchies/index.ts` (~line 47):** Same fix — remove `JSON.stringify`, pass `updates` directly.
-
-3. **Defensive SQL fix (migration):** Update the `bulk_update_hierarchy_numbers` function to handle both cases — if it receives a string, cast it to jsonb first. This prevents future breakage:
 ```sql
 CREATE OR REPLACE FUNCTION public.bulk_update_hierarchy_numbers(updates jsonb)
-RETURNS integer AS $$
+RETURNS integer
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path TO 'public'
+AS $$
 DECLARE
   update_record jsonb;
   updated_count integer := 0;
   parsed_updates jsonb;
 BEGIN
-  -- Handle case where updates is a JSON string (double-encoded)
+  -- Handle double-encoded JSON string
   IF jsonb_typeof(updates) = 'string' THEN
     parsed_updates := updates::text::jsonb;
   ELSE
     parsed_updates := updates;
   END IF;
 
+  -- Phase 1: Move all affected rows to temporary placeholders
+  FOR update_record IN SELECT * FROM jsonb_array_elements(parsed_updates)
+  LOOP
+    UPDATE project_schedule_tasks
+    SET hierarchy_number = '__temp__' || (update_record->>'id'),
+        updated_at = NOW()
+    WHERE id = (update_record->>'id')::uuid;
+  END LOOP;
+
+  -- Phase 2: Apply final hierarchy numbers
   FOR update_record IN SELECT * FROM jsonb_array_elements(parsed_updates)
   LOOP
     UPDATE project_schedule_tasks
     SET hierarchy_number = update_record->>'hierarchy_number',
         updated_at = NOW()
     WHERE id = (update_record->>'id')::uuid;
-    IF FOUND THEN updated_count := updated_count + 1; END IF;
+
+    IF FOUND THEN
+      updated_count := updated_count + 1;
+    END IF;
   END LOOP;
+
   RETURN updated_count;
 END;
-$$ LANGUAGE plpgsql SECURITY DEFINER SET search_path TO 'public';
+$$;
 ```
 
-### Why This Keeps Breaking
+**2. `src/hooks/useTaskBulkMutations.ts` — improve error message**
 
-This is the same pattern as the reconciliation issue — nothing changed in your code, but the Supabase client library or PostgREST version was updated, changing how parameters are serialized. The defensive SQL fix ensures this particular function works regardless of how the parameter arrives.
+In the `onError` handler for `bulkUpdateHierarchies`, surface the actual database error message in the toast instead of a generic "Failed to update task positions".
 
-### Files Modified
-- `src/hooks/useTaskBulkMutations.ts` — remove `JSON.stringify` wrapper
-- `supabase/functions/bulk-update-hierarchies/index.ts` — remove `JSON.stringify` wrapper
-- New migration — make the SQL function handle both string and array input
+### No other files change
+The client code and edge function already pass updates correctly after the previous fix. This is purely a database function update.
 
