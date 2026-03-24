@@ -677,18 +677,21 @@ export const useBankReconciliation = () => {
         // For journal entries, fetch the account info for each line
         const allJELineIds = [...manualJournalCredits, ...manualJournalDebits].map(je => je.id);
         if (allJELineIds.length > 0) {
-          const { data: jeLinesWithAccounts } = await supabase
-            .from('journal_entry_lines')
-            .select(`
-              id,
-              account_id,
-              debit,
-              credit,
-              lot_id,
-              accounts:account_id (code, name),
-              project_lots:lot_id (lot_number)
-            `)
-            .in('id', allJELineIds);
+          const jeLinesWithAccounts = await batchedIn<any>(
+            (ids) => supabase
+              .from('journal_entry_lines')
+              .select(`
+                id,
+                account_id,
+                debit,
+                credit,
+                lot_id,
+                accounts:account_id (code, name),
+                project_lots:lot_id (lot_number)
+              `)
+              .in('id', ids),
+            allJELineIds
+          );
 
           if (jeLinesWithAccounts) {
             jeLinesWithAccounts.forEach(line => {
