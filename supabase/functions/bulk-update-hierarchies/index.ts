@@ -45,7 +45,7 @@ Deno.serve(async (req) => {
 
     // Use atomic RPC function — single transaction, automatic rollback on failure
     const { data, error } = await supabase.rpc('bulk_update_hierarchy_numbers', {
-      updates: JSON.stringify(updates)
+      updates: updates as unknown
     });
 
     if (error) {
