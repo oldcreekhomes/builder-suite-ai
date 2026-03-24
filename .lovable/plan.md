@@ -1,31 +1,81 @@
 
 
-## Fix: Bills Query Also Overflows URL Limit
+## Fix: "Add Task Above" Failing — RPC Parameter Serialization Bug
 
-### What's Still Broken
+### What's Happening
 
-The previous fix batched the `journal_entry_lines` queries, which now return 200 OK. However, the **bills query** at line 268-270 also passes hundreds of bill IDs via `.in('id', billIds)` and is hitting the same URL length overflow (400 Bad Request visible in network requests). This means bill payment transactions still don't appear in the reconciliation view.
+The error in the network tab is clear:
 
-The same risk exists for several other `.in()` calls in the file that could overflow as data grows.
+```
+POST /rpc/bulk_update_hierarchy_numbers → 400
+Response: {"code":"22023","message":"cannot extract elements from a scalar"}
+```
+
+The `bulk_update_hierarchy_numbers` RPC expects a `jsonb` array, but the client passes `JSON.stringify(updates)` — a **string**. PostgREST wraps it as a JSON string scalar (`"[{...}]"`) instead of a JSON array (`[{...}]`), so `jsonb_array_elements()` fails.
+
+The edge function fallback has the same bug (line 48 of the edge function also uses `JSON.stringify`).
+
+This likely broke when the Supabase JS client or PostgREST was updated — the behavior of how stringified JSON is coerced into `jsonb` parameters changed.
+
+### Root Cause
+
+**File: `src/hooks/useTaskBulkMutations.ts`, line 98-99:**
+```typescript
+await supabase.rpc('bulk_update_hierarchy_numbers', {
+  updates: JSON.stringify(updates)  // ← Bug: sends string, not jsonb array
+});
+```
+
+**File: `supabase/functions/bulk-update-hierarchies/index.ts`, line 47-48:**
+```typescript
+await supabase.rpc('bulk_update_hierarchy_numbers', {
+  updates: JSON.stringify(updates)  // ← Same bug in edge function
+});
+```
 
 ### Fix
 
-**File: `src/hooks/useBankReconciliation.ts`** — Apply `batchedIn` to all large `.in()` queries:
+Three changes, all small:
 
-1. **Bills query (~line 267-278)**: The `billIds` array (derived from all bill_payment journal entries) has 400+ IDs. Replace the single query with `batchedIn`, preserving the project filter logic by building it into the query function.
+1. **`src/hooks/useTaskBulkMutations.ts` (~line 98):** Pass `updates` directly without `JSON.stringify`. PostgREST natively serializes JS arrays/objects to `jsonb`.
 
-2. **Other at-risk queries to batch** (same pattern, apply `batchedIn`):
-   - `check_lines` query (~line 143-147) — `checkIds` from all checks
-   - `bill_lines` for cost codes (~line 463-473) — `allBillIdsForCostCodes`
-   - `bill_lines` for bill payment allocations (~line 888-890) — `billPaymentIds`
-   - `check_lines` for allocations (~line 709-719) — `checkIdsForAllocations`
-   - `check_lines` for account allocations (~line 766-776) — same
-   - `deposit_lines` (~line 831-833) — `depositIds`
-   - `journal_entry_lines` for JE allocations (~line 662-673) — `allJELineIds`
+2. **`supabase/functions/bulk-update-hierarchies/index.ts` (~line 47):** Same fix — remove `JSON.stringify`, pass `updates` directly.
 
-Each will use the existing `batchedIn` helper from `supabasePaginate.ts`.
+3. **Defensive SQL fix (migration):** Update the `bulk_update_hierarchy_numbers` function to handle both cases — if it receives a string, cast it to jsonb first. This prevents future breakage:
+```sql
+CREATE OR REPLACE FUNCTION public.bulk_update_hierarchy_numbers(updates jsonb)
+RETURNS integer AS $$
+DECLARE
+  update_record jsonb;
+  updated_count integer := 0;
+  parsed_updates jsonb;
+BEGIN
+  -- Handle case where updates is a JSON string (double-encoded)
+  IF jsonb_typeof(updates) = 'string' THEN
+    parsed_updates := updates::text::jsonb;
+  ELSE
+    parsed_updates := updates;
+  END IF;
 
-### Why This Is Still Breaking
+  FOR update_record IN SELECT * FROM jsonb_array_elements(parsed_updates)
+  LOOP
+    UPDATE project_schedule_tasks
+    SET hierarchy_number = update_record->>'hierarchy_number',
+        updated_at = NOW()
+    WHERE id = (update_record->>'id')::uuid;
+    IF FOUND THEN updated_count := updated_count + 1; END IF;
+  END LOOP;
+  RETURN updated_count;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER SET search_path TO 'public';
+```
 
-The first fix only batched 2 of ~12 large `.in()` calls. The bills query is the immediate blocker — it's returning 400 right now. The others are preventative fixes for the same pattern.
+### Why This Keeps Breaking
+
+This is the same pattern as the reconciliation issue — nothing changed in your code, but the Supabase client library or PostgREST version was updated, changing how parameters are serialized. The defensive SQL fix ensures this particular function works regardless of how the parameter arrives.
+
+### Files Modified
+- `src/hooks/useTaskBulkMutations.ts` — remove `JSON.stringify` wrapper
+- `supabase/functions/bulk-update-hierarchies/index.ts` — remove `JSON.stringify` wrapper
+- New migration — make the SQL function handle both string and array input
 
