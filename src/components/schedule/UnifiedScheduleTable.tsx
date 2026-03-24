@@ -80,7 +80,6 @@ export function UnifiedScheduleTable({
   isLoadingResources
 }: UnifiedScheduleTableProps) {
   const { toast } = useToast();
-  const ROW_HEIGHT = useScheduleRowHeight();
   const timelineScrollRef = useRef<HTMLDivElement>(null);
   const leftPanelRef = useRef<HTMLDivElement>(null);
 
