@@ -108,16 +108,13 @@ export function FolderAccessModal({
               return (
                 <label
                   key={emp.id}
-                  className="flex items-center gap-3 p-2 rounded-md hover:bg-accent cursor-pointer transition-colors"
+                  className="flex items-center gap-2 p-1.5 rounded-md hover:bg-accent cursor-pointer transition-colors"
                 >
                   <Checkbox
                     checked={isGranted}
                     onCheckedChange={() => handleToggle(emp.id, isGranted)}
                   />
-                  <div className="flex-1 min-w-0">
-                    <p className="text-sm font-medium truncate">{displayName}</p>
-                    <p className="text-xs text-muted-foreground truncate">{emp.email}</p>
-                  </div>
+                  <span className="text-sm truncate">{displayName}</span>
                 </label>
               );
             })
