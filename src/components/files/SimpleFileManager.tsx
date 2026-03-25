@@ -7,6 +7,8 @@ import { Card } from '@/components/ui/card';
 import { useProjectFiles } from '@/hooks/useProjectFiles';
 import { useProjectFolders } from '@/hooks/useProjectFolders';
 import { useAuth } from '@/hooks/useAuth';
+import { useUserRole } from '@/hooks/useUserRole';
+import { useProjectFolderLocks, useLockFolder, useUnlockFolder } from '@/hooks/useProjectFolderLocks';
 import { UniversalFilePreviewProvider } from '@/components/files/UniversalFilePreviewProvider';
 import { SimpleFileList } from './SimpleFileList';
 import { SimpleBreadcrumb } from './SimpleBreadcrumb';
