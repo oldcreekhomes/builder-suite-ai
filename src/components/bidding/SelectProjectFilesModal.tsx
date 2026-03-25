@@ -172,11 +172,24 @@ export function SelectProjectFilesModal({
       a.displayName.toLowerCase().localeCompare(b.displayName.toLowerCase())
     );
 
+    // Filter locked folders/files for non-owner users
+    const userId = user?.id || '';
+    const filteredFolders = sortedFolders.filter(folder =>
+      canAccessFolder(folder.path, userId, isOwner)
+    );
+    const filteredFiles = sortedFiles.filter(file => {
+      const fileFolderPath = file.original_filename?.includes('/')
+        ? file.original_filename.substring(0, file.original_filename.lastIndexOf('/'))
+        : '';
+      if (!fileFolderPath) return true;
+      return canAccessFolder(fileFolderPath, userId, isOwner);
+    });
+
     return {
-      folders: sortedFolders,
-      files: sortedFiles
+      folders: filteredFolders,
+      files: filteredFiles
     };
-  }, [allFiles, folderRows, currentPath, existingFiles]);
+  }, [allFiles, folderRows, currentPath, existingFiles, user?.id, isOwner, canAccessFolder]);
 
 
   // Get all files in a folder (recursively)
