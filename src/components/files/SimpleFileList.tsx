@@ -452,6 +452,9 @@ export const SimpleFileList: React.FC<SimpleFileListProps> = ({
                 >
                   <Folder className="h-4 w-4 text-primary shrink-0" />
                   <span className="font-medium">{folder.name}</span>
+                  {isFolderDirectlyLocked(folder.path) && (
+                    <Lock className="h-3.5 w-3.5 text-red-600 shrink-0" />
+                  )}
                 </button>
               </TableCell>
               <TableCell className="text-muted-foreground">—</TableCell>
@@ -463,6 +466,14 @@ export const SimpleFileList: React.FC<SimpleFileListProps> = ({
                   { label: 'Rename', onClick: () => handleFolderRename(folder) },
                   { label: 'Download as Zip', onClick: () => handleFolderDownload(folder) },
                   { label: 'Move', onClick: () => handleMoveFiles([], [folder.path]) },
+                  ...(isOwner ? [
+                    isFolderDirectlyLocked(folder.path)
+                      ? { label: 'Unlock Folder', onClick: () => onUnlockFolder?.(folder.path) }
+                      : { label: 'Lock Folder', onClick: () => onLockFolder?.(folder.path) },
+                    ...(isFolderDirectlyLocked(folder.path)
+                      ? [{ label: 'Manage Access', onClick: () => setManageAccessFolder(folder.path) }]
+                      : []),
+                  ] : []),
                   {
                     label: 'Delete',
                     onClick: () => setDeleteFolder(folder),
