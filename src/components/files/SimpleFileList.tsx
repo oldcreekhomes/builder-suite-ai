@@ -94,8 +94,12 @@ export const SimpleFileList: React.FC<SimpleFileListProps> = ({
   const [isDeleting, setIsDeleting] = useState(false);
   const [showBulkDeleteConfirm, setShowBulkDeleteConfirm] = useState(false);
   const [shareFile, setShareFile] = useState<SimpleFile | null>(null);
+  const [manageAccessFolder, setManageAccessFolder] = useState<string | null>(null);
   const { openProjectFile } = useUniversalFilePreviewContext();
   const { toast } = useToast();
+
+  const isFolderDirectlyLocked = (folderPath: string) =>
+    lockedFolders.some(l => l.folder_path === folderPath);
 
   const handleFileView = (file: SimpleFile) => {
     openProjectFile(file.storage_path, file.displayName);
