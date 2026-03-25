@@ -8,9 +8,12 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
-import { Folder, Loader2, CheckSquare, Square } from 'lucide-react';
+import { Folder, Loader2, CheckSquare, Square, Lock } from 'lucide-react';
 import { useProjectFiles } from '@/hooks/useProjectFiles';
 import { useProjectFolders } from '@/hooks/useProjectFolders';
+import { useProjectFolderLocks } from '@/hooks/useProjectFolderLocks';
+import { useUserRole } from '@/hooks/useUserRole';
+import { useAuth } from '@/hooks/useAuth';
 import { SimpleBreadcrumb } from '@/components/files/SimpleBreadcrumb';
 
 interface SelectProjectFilesModalProps {
