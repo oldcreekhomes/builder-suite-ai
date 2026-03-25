@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { FileText, Folder, Download, Trash2, Edit3, Share2, MoveRight } from 'lucide-react';
+import { FileText, Folder, Download, Trash2, Edit3, Share2, MoveRight, Lock, LockOpen, Users } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Checkbox } from '@/components/ui/checkbox';
@@ -11,10 +11,12 @@ import { NewFolderModal } from './NewFolderModal';
 import { MoveFilesModal } from './MoveFilesModal';
 
 import { FileShareModal } from './components/FileShareModal';
+import { FolderAccessModal } from './FolderAccessModal';
 import { formatFileSize } from './utils/simplifiedFileUtils';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { useUniversalFilePreviewContext } from '@/components/files/UniversalFilePreviewProvider';
+import type { FolderLock, FolderAccessGrant } from '@/hooks/useProjectFolderLocks';
 
 interface SimpleFolder {
   name: string;
@@ -44,6 +46,12 @@ interface SimpleFileListProps {
   projectId: string;
   currentPath: string;
   onCreateFolder: (folderName: string) => void;
+  // Folder lock props
+  lockedFolders?: FolderLock[];
+  folderGrants?: FolderAccessGrant[];
+  isOwner?: boolean;
+  onLockFolder?: (folderPath: string) => void;
+  onUnlockFolder?: (folderPath: string) => void;
 }
 
 const getFileTypeLabel = (mimeType: string): string => {
@@ -64,7 +72,12 @@ export const SimpleFileList: React.FC<SimpleFileListProps> = ({
   onRefresh,
   projectId,
   currentPath,
-  onCreateFolder
+  onCreateFolder,
+  lockedFolders = [],
+  folderGrants = [],
+  isOwner = false,
+  onLockFolder,
+  onUnlockFolder,
 }) => {
   const [deleteFile, setDeleteFile] = useState<SimpleFile | null>(null);
   const [renameFile, setRenameFile] = useState<SimpleFile | null>(null);
