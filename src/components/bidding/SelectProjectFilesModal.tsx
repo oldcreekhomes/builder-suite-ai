@@ -58,8 +58,11 @@ export function SelectProjectFilesModal({
   const [currentPath, setCurrentPath] = useState('');
   const [selectedPaths, setSelectedPaths] = useState<Set<string>>(new Set());
   
+  const { user } = useAuth();
+  const { isOwner } = useUserRole();
   const { data: allFiles = [], isLoading: filesLoading } = useProjectFiles(projectId);
   const { data: folderRows = [], isLoading: foldersLoading } = useProjectFolders(projectId);
+  const { canAccessFolder } = useProjectFolderLocks(projectId);
   
   const isLoading = filesLoading || foldersLoading;
 
