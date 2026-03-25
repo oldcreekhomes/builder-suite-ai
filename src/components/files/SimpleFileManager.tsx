@@ -182,9 +182,23 @@ export const SimpleFileManager = forwardRef<SimpleFileManagerHandle, SimpleFileM
     console.log('files found:', sortedFiles.map(f => f.displayName).slice(0, 25));
     console.groupEnd();
 
+    // Filter locked folders/files for non-owner users
+    const userId = user?.id || '';
+    const filteredFolders = sortedFolders.filter(folder =>
+      canAccessFolder(folder.path, userId, isOwner)
+    );
+    const filteredFiles = sortedFiles.filter(file => {
+      // Check if file is in a locked folder
+      const fileFolderPath = file.original_filename?.includes('/')
+        ? file.original_filename.substring(0, file.original_filename.lastIndexOf('/'))
+        : '';
+      if (!fileFolderPath) return true; // root files are always visible
+      return canAccessFolder(fileFolderPath, userId, isOwner);
+    });
+
     return {
-      folders: sortedFolders,
-      files: sortedFiles
+      folders: filteredFolders,
+      files: filteredFiles
     };
   };
 
