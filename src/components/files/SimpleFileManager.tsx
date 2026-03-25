@@ -900,6 +900,11 @@ export const SimpleFileManager = forwardRef<SimpleFileManagerHandle, SimpleFileM
             projectId={projectId}
             currentPath={currentPath}
             onCreateFolder={handleCreateFolder}
+            lockedFolders={locks}
+            folderGrants={grants}
+            isOwner={isOwner}
+            onLockFolder={(folderPath) => lockFolder.mutate({ projectId, folderPath })}
+            onUnlockFolder={(folderPath) => unlockFolder.mutate({ projectId, folderPath })}
           />
         </div>
       </div>
