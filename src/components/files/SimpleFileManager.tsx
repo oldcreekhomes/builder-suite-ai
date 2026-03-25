@@ -48,6 +48,10 @@ export const SimpleFileManager = forwardRef<SimpleFileManagerHandle, SimpleFileM
     xhr?: XMLHttpRequest;
   }>>([]);
   const { user } = useAuth();
+  const { isOwner } = useUserRole();
+  const { locks, grants, canAccessFolder } = useProjectFolderLocks(projectId);
+  const lockFolder = useLockFolder();
+  const unlockFolder = useUnlockFolder();
   const { toast: useToastHook } = useToast();
   const { data: allFiles = [], refetch } = useProjectFiles(projectId);
   const { data: folderRows = [], refetch: refetchFolders } = useProjectFolders(projectId);
