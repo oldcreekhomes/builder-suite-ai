@@ -634,6 +634,16 @@ export const SimpleFileList: React.FC<SimpleFileListProps> = ({
         onClose={() => setShareFile(null)}
         file={getShareableFile(shareFile)}
       />
+
+      {isOwner && manageAccessFolder && (
+        <FolderAccessModal
+          open={!!manageAccessFolder}
+          onOpenChange={(open) => !open && setManageAccessFolder(null)}
+          projectId={projectId}
+          folderPath={manageAccessFolder}
+          grants={folderGrants}
+        />
+      )}
     </div>
   );
 };
