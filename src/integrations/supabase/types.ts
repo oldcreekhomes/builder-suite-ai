@@ -3270,6 +3270,73 @@ export type Database = {
           },
         ]
       }
+      project_folder_access_grants: {
+        Row: {
+          created_at: string
+          folder_path: string
+          granted_by: string
+          id: string
+          project_id: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          folder_path: string
+          granted_by: string
+          id?: string
+          project_id: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          folder_path?: string
+          granted_by?: string
+          id?: string
+          project_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "project_folder_access_grants_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      project_folder_locks: {
+        Row: {
+          created_at: string
+          folder_path: string
+          id: string
+          locked_by: string
+          project_id: string
+        }
+        Insert: {
+          created_at?: string
+          folder_path: string
+          id?: string
+          locked_by: string
+          project_id: string
+        }
+        Update: {
+          created_at?: string
+          folder_path?: string
+          id?: string
+          locked_by?: string
+          project_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "project_folder_locks_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       project_folders: {
         Row: {
           created_at: string

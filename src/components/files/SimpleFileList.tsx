@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { FileText, Folder, Download, Trash2, Edit3, Share2, MoveRight } from 'lucide-react';
+import { FileText, Folder, Download, Trash2, Edit3, Share2, MoveRight, Lock, LockOpen, Users } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Checkbox } from '@/components/ui/checkbox';
@@ -11,10 +11,12 @@ import { NewFolderModal } from './NewFolderModal';
 import { MoveFilesModal } from './MoveFilesModal';
 
 import { FileShareModal } from './components/FileShareModal';
+import { FolderAccessModal } from './FolderAccessModal';
 import { formatFileSize } from './utils/simplifiedFileUtils';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { useUniversalFilePreviewContext } from '@/components/files/UniversalFilePreviewProvider';
+import type { FolderLock, FolderAccessGrant } from '@/hooks/useProjectFolderLocks';
 
 interface SimpleFolder {
   name: string;
@@ -44,6 +46,12 @@ interface SimpleFileListProps {
   projectId: string;
   currentPath: string;
   onCreateFolder: (folderName: string) => void;
+  // Folder lock props
+  lockedFolders?: FolderLock[];
+  folderGrants?: FolderAccessGrant[];
+  isOwner?: boolean;
+  onLockFolder?: (folderPath: string) => void;
+  onUnlockFolder?: (folderPath: string) => void;
 }
 
 const getFileTypeLabel = (mimeType: string): string => {
@@ -64,7 +72,12 @@ export const SimpleFileList: React.FC<SimpleFileListProps> = ({
   onRefresh,
   projectId,
   currentPath,
-  onCreateFolder
+  onCreateFolder,
+  lockedFolders = [],
+  folderGrants = [],
+  isOwner = false,
+  onLockFolder,
+  onUnlockFolder,
 }) => {
   const [deleteFile, setDeleteFile] = useState<SimpleFile | null>(null);
   const [renameFile, setRenameFile] = useState<SimpleFile | null>(null);
@@ -81,8 +94,12 @@ export const SimpleFileList: React.FC<SimpleFileListProps> = ({
   const [isDeleting, setIsDeleting] = useState(false);
   const [showBulkDeleteConfirm, setShowBulkDeleteConfirm] = useState(false);
   const [shareFile, setShareFile] = useState<SimpleFile | null>(null);
+  const [manageAccessFolder, setManageAccessFolder] = useState<string | null>(null);
   const { openProjectFile } = useUniversalFilePreviewContext();
   const { toast } = useToast();
+
+  const isFolderDirectlyLocked = (folderPath: string) =>
+    lockedFolders.some(l => l.folder_path === folderPath);
 
   const handleFileView = (file: SimpleFile) => {
     openProjectFile(file.storage_path, file.displayName);
@@ -435,6 +452,9 @@ export const SimpleFileList: React.FC<SimpleFileListProps> = ({
                 >
                   <Folder className="h-4 w-4 text-primary shrink-0" />
                   <span className="font-medium">{folder.name}</span>
+                  {isFolderDirectlyLocked(folder.path) && (
+                    <Lock className="h-3.5 w-3.5 text-red-600 shrink-0" />
+                  )}
                 </button>
               </TableCell>
               <TableCell className="text-muted-foreground">—</TableCell>
@@ -446,6 +466,14 @@ export const SimpleFileList: React.FC<SimpleFileListProps> = ({
                   { label: 'Rename', onClick: () => handleFolderRename(folder) },
                   { label: 'Download as Zip', onClick: () => handleFolderDownload(folder) },
                   { label: 'Move', onClick: () => handleMoveFiles([], [folder.path]) },
+                  ...(isOwner ? [
+                    isFolderDirectlyLocked(folder.path)
+                      ? { label: 'Unlock Folder', onClick: () => onUnlockFolder?.(folder.path) }
+                      : { label: 'Lock Folder', onClick: () => onLockFolder?.(folder.path) },
+                    ...(isFolderDirectlyLocked(folder.path)
+                      ? [{ label: 'Manage Access', onClick: () => setManageAccessFolder(folder.path) }]
+                      : []),
+                  ] : []),
                   {
                     label: 'Delete',
                     onClick: () => setDeleteFolder(folder),
@@ -606,6 +634,16 @@ export const SimpleFileList: React.FC<SimpleFileListProps> = ({
         onClose={() => setShareFile(null)}
         file={getShareableFile(shareFile)}
       />
+
+      {isOwner && manageAccessFolder && (
+        <FolderAccessModal
+          open={!!manageAccessFolder}
+          onOpenChange={(open) => !open && setManageAccessFolder(null)}
+          projectId={projectId}
+          folderPath={manageAccessFolder}
+          grants={folderGrants}
+        />
+      )}
     </div>
   );
 };

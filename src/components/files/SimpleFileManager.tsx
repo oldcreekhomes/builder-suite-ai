@@ -7,6 +7,8 @@ import { Card } from '@/components/ui/card';
 import { useProjectFiles } from '@/hooks/useProjectFiles';
 import { useProjectFolders } from '@/hooks/useProjectFolders';
 import { useAuth } from '@/hooks/useAuth';
+import { useUserRole } from '@/hooks/useUserRole';
+import { useProjectFolderLocks, useLockFolder, useUnlockFolder } from '@/hooks/useProjectFolderLocks';
 import { UniversalFilePreviewProvider } from '@/components/files/UniversalFilePreviewProvider';
 import { SimpleFileList } from './SimpleFileList';
 import { SimpleBreadcrumb } from './SimpleBreadcrumb';
@@ -46,6 +48,10 @@ export const SimpleFileManager = forwardRef<SimpleFileManagerHandle, SimpleFileM
     xhr?: XMLHttpRequest;
   }>>([]);
   const { user } = useAuth();
+  const { isOwner } = useUserRole();
+  const { locks, grants, canAccessFolder } = useProjectFolderLocks(projectId);
+  const lockFolder = useLockFolder();
+  const unlockFolder = useUnlockFolder();
   const { toast: useToastHook } = useToast();
   const { data: allFiles = [], refetch } = useProjectFiles(projectId);
   const { data: folderRows = [], refetch: refetchFolders } = useProjectFolders(projectId);
@@ -176,9 +182,23 @@ export const SimpleFileManager = forwardRef<SimpleFileManagerHandle, SimpleFileM
     console.log('files found:', sortedFiles.map(f => f.displayName).slice(0, 25));
     console.groupEnd();
 
+    // Filter locked folders/files for non-owner users
+    const userId = user?.id || '';
+    const filteredFolders = sortedFolders.filter(folder =>
+      canAccessFolder(folder.path, userId, isOwner)
+    );
+    const filteredFiles = sortedFiles.filter(file => {
+      // Check if file is in a locked folder
+      const fileFolderPath = file.original_filename?.includes('/')
+        ? file.original_filename.substring(0, file.original_filename.lastIndexOf('/'))
+        : '';
+      if (!fileFolderPath) return true; // root files are always visible
+      return canAccessFolder(fileFolderPath, userId, isOwner);
+    });
+
     return {
-      folders: sortedFolders,
-      files: sortedFiles
+      folders: filteredFolders,
+      files: filteredFiles
     };
   };
 
@@ -880,6 +900,11 @@ export const SimpleFileManager = forwardRef<SimpleFileManagerHandle, SimpleFileM
             projectId={projectId}
             currentPath={currentPath}
             onCreateFolder={handleCreateFolder}
+            lockedFolders={locks}
+            folderGrants={grants}
+            isOwner={isOwner}
+            onLockFolder={(folderPath) => lockFolder.mutate({ projectId, folderPath })}
+            onUnlockFolder={(folderPath) => unlockFolder.mutate({ projectId, folderPath })}
           />
         </div>
       </div>

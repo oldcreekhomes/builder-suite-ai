@@ -8,9 +8,12 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
-import { Folder, Loader2, CheckSquare, Square } from 'lucide-react';
+import { Folder, Loader2, CheckSquare, Square, Lock } from 'lucide-react';
 import { useProjectFiles } from '@/hooks/useProjectFiles';
 import { useProjectFolders } from '@/hooks/useProjectFolders';
+import { useProjectFolderLocks } from '@/hooks/useProjectFolderLocks';
+import { useUserRole } from '@/hooks/useUserRole';
+import { useAuth } from '@/hooks/useAuth';
 import { SimpleBreadcrumb } from '@/components/files/SimpleBreadcrumb';
 
 interface SelectProjectFilesModalProps {
@@ -55,8 +58,11 @@ export function SelectProjectFilesModal({
   const [currentPath, setCurrentPath] = useState('');
   const [selectedPaths, setSelectedPaths] = useState<Set<string>>(new Set());
   
+  const { user } = useAuth();
+  const { isOwner } = useUserRole();
   const { data: allFiles = [], isLoading: filesLoading } = useProjectFiles(projectId);
   const { data: folderRows = [], isLoading: foldersLoading } = useProjectFolders(projectId);
+  const { canAccessFolder } = useProjectFolderLocks(projectId);
   
   const isLoading = filesLoading || foldersLoading;
 
@@ -166,11 +172,24 @@ export function SelectProjectFilesModal({
       a.displayName.toLowerCase().localeCompare(b.displayName.toLowerCase())
     );
 
+    // Filter locked folders/files for non-owner users
+    const userId = user?.id || '';
+    const filteredFolders = sortedFolders.filter(folder =>
+      canAccessFolder(folder.path, userId, isOwner)
+    );
+    const filteredFiles = sortedFiles.filter(file => {
+      const fileFolderPath = file.original_filename?.includes('/')
+        ? file.original_filename.substring(0, file.original_filename.lastIndexOf('/'))
+        : '';
+      if (!fileFolderPath) return true;
+      return canAccessFolder(fileFolderPath, userId, isOwner);
+    });
+
     return {
-      folders: sortedFolders,
-      files: sortedFiles
+      folders: filteredFolders,
+      files: filteredFiles
     };
-  }, [allFiles, folderRows, currentPath, existingFiles]);
+  }, [allFiles, folderRows, currentPath, existingFiles, user?.id, isOwner, canAccessFolder]);
 
 
   // Get all files in a folder (recursively)
