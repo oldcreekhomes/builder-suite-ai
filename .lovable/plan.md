@@ -1,15 +1,13 @@
 
 
-## Compact Folder Access Modal
+## Copy Task Notes When Copying Schedule
 
-Simplify the `FolderAccessModal` to show only checkboxes and names (no emails), with tighter spacing.
+### Problem
+When copying a schedule from the TEMPLATE project to another project, the `notes` field is omitted from the task insert object, so all notes are lost.
 
-### Changes: `src/components/files/FolderAccessModal.tsx`
+### Fix: `src/hooks/useCopySchedule.ts`
 
-- Remove the email `<p>` element from each employee row
-- Remove the nested `<div>` wrapper — just render checkbox + name inline
-- Reduce padding from `p-2` to `p-1.5` and gap from `gap-3` to `gap-2`
-- Keep the name as a single `<span className="text-sm">` instead of the current two-line layout
+Add `notes: task.notes` to the task object returned on ~line 74-87, alongside the other fields like `task_name`, `duration`, etc.
 
-Result: each row becomes a single compact line with checkbox and name only.
+Single line addition -- no other files change.
 
