@@ -80,6 +80,7 @@ export function useCopySchedule() {
           progress: 0,
           predecessor: task.predecessor,
           resources: removeAllResources ? null : task.resources,
+          notes: task.notes || null,
           hierarchy_number: task.hierarchy_number,
           confirmed: null
         };
