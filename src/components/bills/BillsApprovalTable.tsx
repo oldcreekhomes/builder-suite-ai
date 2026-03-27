@@ -836,11 +836,12 @@ export function BillsApprovalTable({ status, projectId, projectIds, showProjectC
       </TableCell>
       <TableCell className="w-20">
         {(() => {
-          if (!isPaidStatus || bill.total_amount < 0) {
+          const displayAmount = getBillDisplayAmount(bill);
+          if (!isPaidStatus || displayAmount < 0) {
             return (
               <div className="flex items-center gap-1">
-                {formatCurrency(bill.total_amount)}
-                {bill.total_amount < 0 && (
+                {formatCurrency(displayAmount)}
+                {displayAmount < 0 && (
                   <Badge variant="outline" className="text-green-600 border-green-600 text-[10px] px-1">
                     CR
                   </Badge>
@@ -850,7 +851,8 @@ export function BillsApprovalTable({ status, projectId, projectIds, showProjectC
           }
           const breakdown = paymentBreakdowns?.get(bill.id);
           if (!breakdown || breakdown.credits.length === 0) {
-            return formatCurrency(bill.total_amount);
+            return formatCurrency(displayAmount);
+          }
           }
           return (
             <TooltipProvider>
