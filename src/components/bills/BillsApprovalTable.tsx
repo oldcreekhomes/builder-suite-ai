@@ -578,6 +578,17 @@ export function BillsApprovalTable({ status, projectId, projectIds, showProjectC
     return formatted;
   };
 
+  // Compute bill total from lines with cent-precise rounding (matches EditBillDialog)
+  const getBillDisplayAmount = (bill: BillForApproval): number => {
+    if (bill.bill_lines && bill.bill_lines.length > 0) {
+      return bill.bill_lines.reduce((sum, line) => {
+        const lineAmount = Math.round((line.amount || 0) * 100) / 100;
+        return sum + lineAmount;
+      }, 0);
+    }
+    return bill.total_amount;
+  };
+
   const formatTerms = (terms: string | null | undefined) => {
     if (!terms) return '-';
     
