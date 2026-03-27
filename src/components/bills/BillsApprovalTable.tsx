@@ -865,7 +865,7 @@ export function BillsApprovalTable({ status, projectId, projectIds, showProjectC
                   <div className="space-y-1 text-xs">
                     <div className="flex justify-between gap-4">
                       <span>Bill Amount:</span>
-                      <span>${Math.abs(bill.total_amount).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+                      <span>${Math.abs(displayAmount).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
                     </div>
                     {breakdown.credits.map((cr, i) => (
                       <div key={i} className="flex justify-between gap-4 text-green-600">
