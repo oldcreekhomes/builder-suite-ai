@@ -578,6 +578,17 @@ export function BillsApprovalTable({ status, projectId, projectIds, showProjectC
     return formatted;
   };
 
+  // Compute bill total from lines with cent-precise rounding (matches EditBillDialog)
+  const getBillDisplayAmount = (bill: BillForApproval): number => {
+    if (bill.bill_lines && bill.bill_lines.length > 0) {
+      return bill.bill_lines.reduce((sum, line) => {
+        const lineAmount = Math.round((line.amount || 0) * 100) / 100;
+        return sum + lineAmount;
+      }, 0);
+    }
+    return bill.total_amount;
+  };
+
   const formatTerms = (terms: string | null | undefined) => {
     if (!terms) return '-';
     
@@ -825,11 +836,12 @@ export function BillsApprovalTable({ status, projectId, projectIds, showProjectC
       </TableCell>
       <TableCell className="w-20">
         {(() => {
-          if (!isPaidStatus || bill.total_amount < 0) {
+          const displayAmount = getBillDisplayAmount(bill);
+          if (!isPaidStatus || displayAmount < 0) {
             return (
               <div className="flex items-center gap-1">
-                {formatCurrency(bill.total_amount)}
-                {bill.total_amount < 0 && (
+                {formatCurrency(displayAmount)}
+                {displayAmount < 0 && (
                   <Badge variant="outline" className="text-green-600 border-green-600 text-[10px] px-1">
                     CR
                   </Badge>
@@ -839,7 +851,6 @@ export function BillsApprovalTable({ status, projectId, projectIds, showProjectC
           }
           const breakdown = paymentBreakdowns?.get(bill.id);
           if (!breakdown || breakdown.credits.length === 0) {
-            return formatCurrency(bill.total_amount);
           }
           return (
             <TooltipProvider>
@@ -854,7 +865,7 @@ export function BillsApprovalTable({ status, projectId, projectIds, showProjectC
                   <div className="space-y-1 text-xs">
                     <div className="flex justify-between gap-4">
                       <span>Bill Amount:</span>
-                      <span>${Math.abs(bill.total_amount).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+                      <span>${Math.abs(displayAmount).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
                     </div>
                     {breakdown.credits.map((cr, i) => (
                       <div key={i} className="flex justify-between gap-4 text-green-600">
