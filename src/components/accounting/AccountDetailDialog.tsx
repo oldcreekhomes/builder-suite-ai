@@ -36,6 +36,8 @@ import { EditCheckDialog } from "@/components/checks/EditCheckDialog";
 import { DateInputPicker } from "@/components/ui/date-input-picker";
 import { formatDateSafe } from "@/utils/dateOnly";
 import { TransactionDetailDialog } from "./TransactionDetailDialog";
+import { EditDescriptionDialog } from "./EditDescriptionDialog";
+import { Edit3 } from "lucide-react";
 
 interface IncludedBillPayment {
   bill_id: string;
@@ -112,6 +114,7 @@ export function AccountDetailDialog({
   const [editingBillId, setEditingBillId] = useState<string | null>(null);
   const [editingDepositId, setEditingDepositId] = useState<string | null>(null);
   const [editingCheckId, setEditingCheckId] = useState<string | null>(null);
+  const [editDescriptionTxn, setEditDescriptionTxn] = useState<Transaction | null>(null);
   const { deleteCheck } = useChecks();
   const { deleteDeposit } = useDeposits();
   const { deleteCreditCard } = useCreditCards();
@@ -1258,42 +1261,61 @@ export function AccountDetailDialog({
                       <TableCell className="px-2 py-1">
                         <div className="flex items-center justify-center">
                           {txn.reconciled || isDateLocked(txn.date) || isConsolidated ? (
-                            <Tooltip>
-                              <TooltipTrigger asChild>
-                                <div className="flex justify-center">
-                                  <Lock className="h-4 w-4 text-red-600" />
-                                </div>
-                              </TooltipTrigger>
-                              <TooltipContent side="left" align="center">
-                                {isConsolidated ? (
-                                  <>
-                                    <p className="font-medium">Consolidated Payment</p>
-                                    <p className="text-xs text-muted-foreground">Cannot be edited individually</p>
-                                  </>
-                                ) : txn.reconciled && isDateLocked(txn.date) ? (
-                                  <>
-                                    <p className="font-medium">Reconciled and Books Closed</p>
-                                    <p className="text-xs text-muted-foreground">Cannot be edited or deleted</p>
-                                  </>
-                                ) : txn.reconciled ? (
-                                  <>
-                                    <p className="font-medium">Reconciled</p>
-                                    <p className="text-xs text-muted-foreground">Cannot be edited or deleted</p>
-                                  </>
-                                ) : (
-                                  <>
-                                    <p className="font-medium">Books Closed</p>
-                                    <p className="text-xs text-muted-foreground">Cannot be edited or deleted</p>
-                                  </>
-                                )}
-                              </TooltipContent>
-                            </Tooltip>
+                            <div className="flex items-center gap-1 justify-center">
+                              <Tooltip>
+                                <TooltipTrigger asChild>
+                                  <div className="flex justify-center">
+                                    <Lock className="h-4 w-4 text-red-600" />
+                                  </div>
+                                </TooltipTrigger>
+                                <TooltipContent side="left" align="center">
+                                  {isConsolidated ? (
+                                    <>
+                                      <p className="font-medium">Consolidated Payment</p>
+                                      <p className="text-xs text-muted-foreground">Cannot be edited individually</p>
+                                    </>
+                                  ) : txn.reconciled && isDateLocked(txn.date) ? (
+                                    <>
+                                      <p className="font-medium">Reconciled and Books Closed</p>
+                                      <p className="text-xs text-muted-foreground">Cannot be edited or deleted</p>
+                                    </>
+                                  ) : txn.reconciled ? (
+                                    <>
+                                      <p className="font-medium">Reconciled</p>
+                                      <p className="text-xs text-muted-foreground">Cannot be edited or deleted</p>
+                                    </>
+                                  ) : (
+                                    <>
+                                      <p className="font-medium">Books Closed</p>
+                                      <p className="text-xs text-muted-foreground">Cannot be edited or deleted</p>
+                                    </>
+                                  )}
+                                </TooltipContent>
+                              </Tooltip>
+                              {!isConsolidated && (
+                                <Tooltip>
+                                  <TooltipTrigger asChild>
+                                    <button
+                                      onClick={(e) => { e.stopPropagation(); setEditDescriptionTxn(txn); }}
+                                      className="p-0.5 rounded hover:bg-muted"
+                                    >
+                                      <Edit3 className="h-3.5 w-3.5 text-muted-foreground hover:text-foreground" />
+                                    </button>
+                                  </TooltipTrigger>
+                                  <TooltipContent>Edit Description</TooltipContent>
+                                </Tooltip>
+                              )}
+                            </div>
                           ) : canDeleteBills ? (
                             <TableRowActions actions={[
                               ...(['bill', 'deposit', 'check'].includes(txn.source_type) ? [{
                                 label: txn.source_type === 'bill' ? 'Edit Bill' : txn.source_type === 'deposit' ? 'Edit Deposit' : 'Edit Check',
                                 onClick: () => handleEditTransaction(txn),
                               }] : []),
+                              {
+                                label: 'Edit Description',
+                                onClick: () => setEditDescriptionTxn(txn),
+                              },
                               {
                                 label: 'Delete',
                                 onClick: () => handleDelete(txn),
