@@ -1,26 +1,25 @@
 
 
-## Move Edit Description to Transaction Detail Dialog
+## Fix: Edit Description Not Persisting for Bill Payment Transactions
 
-### Summary
-Remove the "Edit Description" option from the Actions column in the register table. Instead, add a 3-dot (MoreHorizontal) menu next to the Description value inside the Transaction Details dialog, allowing users to edit the description from there.
+### Problem
+Two issues prevent the edited description from showing:
 
-### Changes
+1. **Display logic overrides memo**: In `AccountDetailDialog.tsx` line ~704, for `bill_payment` transactions, the description is set to `bill.reference_number || description`. So even though `journal_entry_lines.memo` gets updated in the DB, when the register re-renders it overwrites the description with the bill's reference number ("58202").
+
+2. **Missing source type handling**: `EditDescriptionDialog.tsx` doesn't handle `bill_payment` or `consolidated_bill_payment` in `getLineTable()`/`getParentColumn()`, so the source table update is skipped (though the JE lines update does run).
+
+### Fix (2 changes in 2 files)
 
 **1. `src/components/accounting/AccountDetailDialog.tsx`**
-- Remove the `Edit3` import and the pencil button for locked rows (lines ~1295-1307)
-- Remove the `"Edit Description"` action from the `TableRowActions` menu for unlocked rows (lines ~1315-1318)
-- Keep the `editDescriptionTxn` state and `EditDescriptionDialog` render — but move the trigger to TransactionDetailDialog via a callback
-- Pass an `onEditDescription` callback prop to `TransactionDetailDialog` that sets `editDescriptionTxn`
+- For `bill` and `bill_payment` source types (~line 704), change the description priority: use `line.memo` first (the JE line memo), fall back to `bill.reference_number`, then fall back to default. This way, when a user edits the description (which updates `journal_entry_lines.memo`), it takes priority over the bill's reference number.
+- Same change for `consolidated_bill_payment` (~line 772): prefer the JE line memo or consolidated payment memo that was edited.
 
-**2. `src/components/accounting/TransactionDetailDialog.tsx`**
-- Accept a new prop: `onEditDescription?: () => void`
-- For the Description row, instead of rendering it as a plain `details` array item, render it specially: show the description text followed by a `MoreHorizontal` (3-dot) icon button
-- Clicking the 3-dot button calls `onEditDescription`, which triggers the edit dialog back in the parent
-- The 3-dot button uses the standard `TableRowActions` dropdown with a single "Edit Description" action, consistent with the app's pattern
+**2. `src/components/accounting/EditDescriptionDialog.tsx`**
+- Add `bill_payment` and `consolidated_bill_payment` cases to `getLineTable()` — both map to `'journal_entry_lines'` since bill payments don't have their own line tables.
+- Add corresponding cases to `getParentColumn()` — both map to `'journal_entry_id'`.
+- Add error logging on the supabase update calls to catch silent failures.
 
 ### Result
-- The Actions column in the register stays clean (lock icon only for locked rows, no extra pencil)
-- Users click a transaction row to open the detail dialog, then use the familiar 3-dot menu next to Description to edit it
-- Works for both locked and unlocked transactions
+After saving a new description, the `journal_entry_lines.memo` is updated. When the register re-renders, it now prefers that memo over the bill's reference number, so the edited description persists and displays correctly.
 
