@@ -701,7 +701,7 @@ export function AccountDetailDialog({
           const bill = billsMap.get(line.journal_entries.source_id);
           if (bill) {
             reference = bill.vendor_name;
-            description = bill.reference_number || description;
+            description = line.memo || bill.reference_number || description;
             reconciled = bill.reconciled || !!bill.reconciliation_id || !!bill.reconciliation_date;
             reconciliation_date = bill.reconciliation_date;
             isPaid = bill.isPaid;
@@ -769,7 +769,7 @@ export function AccountDetailDialog({
             journal_entry_id: `consolidated:${cp.id}`,
             date: cp.payment_date,
             memo: cp.memo,
-            description: cp.check_number || cp.memo || null,
+            description: cp.memo || cp.check_number || null,
             reference: vendorName,
             accountDisplay: accountDisplay,
             source_type: 'consolidated_bill_payment',

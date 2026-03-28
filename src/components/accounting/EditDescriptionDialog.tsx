@@ -117,6 +117,8 @@ function getLineTable(sourceType: string): string | null {
     case 'deposit': return 'deposit_lines';
     case 'credit_card': return 'credit_card_lines';
     case 'manual': return 'journal_entry_lines';
+    case 'bill_payment': return 'journal_entry_lines';
+    case 'consolidated_bill_payment': return 'journal_entry_lines';
     default: return null;
   }
 }
@@ -128,6 +130,8 @@ function getParentColumn(sourceType: string): string | null {
     case 'deposit': return 'deposit_id';
     case 'credit_card': return 'credit_card_id';
     case 'manual': return 'journal_entry_id';
+    case 'bill_payment': return 'journal_entry_id';
+    case 'consolidated_bill_payment': return 'journal_entry_id';
     default: return null;
   }
 }
