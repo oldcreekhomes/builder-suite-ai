@@ -1387,6 +1387,9 @@ export function AccountDetailDialog({
         sourceId={editDescriptionTxn.source_id}
         journalEntryId={editDescriptionTxn.journal_entry_id}
         currentDescription={editDescriptionTxn.description || editDescriptionTxn.memo || ''}
+        onSaved={(newDescription) => {
+          setSelectedTransaction(prev => prev ? { ...prev, description: newDescription } : null);
+        }}
       />
     )}
     </>

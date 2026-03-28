@@ -19,6 +19,7 @@ interface EditDescriptionDialogProps {
   sourceId: string;
   journalEntryId: string;
   currentDescription: string;
+  onSaved?: (newDescription: string) => void;
 }
 
 export function EditDescriptionDialog({
@@ -28,6 +29,7 @@ export function EditDescriptionDialog({
   sourceId,
   journalEntryId,
   currentDescription,
+  onSaved,
 }: EditDescriptionDialogProps) {
   const [description, setDescription] = useState(currentDescription);
   const [saving, setSaving] = useState(false);
@@ -76,6 +78,7 @@ export function EditDescriptionDialog({
       await queryClient.invalidateQueries({ queryKey: ['account-transactions'] });
 
       toast({ title: "Description Updated", description: "The transaction description has been updated." });
+      onSaved?.(description);
       onOpenChange(false);
     } catch (error) {
       console.error('Error updating description:', error);
