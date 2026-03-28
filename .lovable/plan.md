@@ -1,35 +1,26 @@
 
 
-## Allow Editing Descriptions on Locked/Reconciled Transactions
+## Move Edit Description to Transaction Detail Dialog
 
-### Problem
-When a transaction is reconciled or in a closed period, the entire row is locked with no edit actions. The user needs to correct descriptions (memos) on these transactions — a non-financial field that doesn't affect accounting balances.
-
-### Approach
-Add an "Edit Description" action that is always available, even on locked rows. This opens a small inline dialog to update the memo/description on the source transaction's first line. The lock icon and tooltip remain, but instead of showing only the lock, locked rows will show the lock icon plus a small "Edit Description" option.
+### Summary
+Remove the "Edit Description" option from the Actions column in the register table. Instead, add a 3-dot (MoreHorizontal) menu next to the Description value inside the Transaction Details dialog, allowing users to edit the description from there.
 
 ### Changes
 
-**1. New component: `src/components/accounting/EditDescriptionDialog.tsx`**
-- Simple dialog with a textarea for the description and Save/Cancel buttons
-- Accepts `sourceType`, `sourceId`, `journalEntryId`, and current description
-- On save, updates the appropriate source table's first line memo:
-  - `bill` → `bill_lines.memo` (first line by line_number)
-  - `check` → `check_lines.memo` (first line)
-  - `deposit` → `deposit_lines.memo` (first line)
-  - `credit_card` → `credit_card_lines.memo` (first line)
-  - `manual` → `journal_entry_lines.memo`
-- Also updates the corresponding `journal_entry_lines.memo` to keep ledger description in sync
-- Invalidates the account-transactions query on success
+**1. `src/components/accounting/AccountDetailDialog.tsx`**
+- Remove the `Edit3` import and the pencil button for locked rows (lines ~1295-1307)
+- Remove the `"Edit Description"` action from the `TableRowActions` menu for unlocked rows (lines ~1315-1318)
+- Keep the `editDescriptionTxn` state and `EditDescriptionDialog` render — but move the trigger to TransactionDetailDialog via a callback
+- Pass an `onEditDescription` callback prop to `TransactionDetailDialog` that sets `editDescriptionTxn`
 
-**2. Update: `src/components/accounting/AccountDetailDialog.tsx`**
-- For locked rows (reconciled or date-locked), replace the lock-icon-only display with a layout that shows both the lock icon and a small "Edit Description" button (pencil icon or text link)
-- For unlocked rows, add "Edit Description" as an additional action in the existing `TableRowActions` menu
-- Add state for the edit description dialog (`editDescriptionTxn`)
-- Render the new `EditDescriptionDialog` component
+**2. `src/components/accounting/TransactionDetailDialog.tsx`**
+- Accept a new prop: `onEditDescription?: () => void`
+- For the Description row, instead of rendering it as a plain `details` array item, render it specially: show the description text followed by a `MoreHorizontal` (3-dot) icon button
+- Clicking the 3-dot button calls `onEditDescription`, which triggers the edit dialog back in the parent
+- The 3-dot button uses the standard `TableRowActions` dropdown with a single "Edit Description" action, consistent with the app's pattern
 
-### What stays the same
-- Lock icon still shows on reconciled/closed rows
-- Full edit (Edit Bill, Edit Deposit, etc.) and Delete remain blocked on locked rows
-- No financial data is modified — only memo/description text
+### Result
+- The Actions column in the register stays clean (lock icon only for locked rows, no extra pencil)
+- Users click a transaction row to open the detail dialog, then use the familiar 3-dot menu next to Description to edit it
+- Works for both locked and unlocked transactions
 
