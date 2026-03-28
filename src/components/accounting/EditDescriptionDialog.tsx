@@ -1,0 +1,133 @@
+import { useState } from "react";
+import { supabase } from "@/integrations/supabase/client";
+import { useQueryClient } from "@tanstack/react-query";
+import { useToast } from "@/hooks/use-toast";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+} from "@/components/ui/dialog";
+import { Button } from "@/components/ui/button";
+import { Textarea } from "@/components/ui/textarea";
+
+interface EditDescriptionDialogProps {
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  sourceType: string;
+  sourceId: string;
+  journalEntryId: string;
+  currentDescription: string;
+}
+
+export function EditDescriptionDialog({
+  open,
+  onOpenChange,
+  sourceType,
+  sourceId,
+  journalEntryId,
+  currentDescription,
+}: EditDescriptionDialogProps) {
+  const [description, setDescription] = useState(currentDescription);
+  const [saving, setSaving] = useState(false);
+  const queryClient = useQueryClient();
+  const { toast } = useToast();
+
+  const handleSave = async () => {
+    setSaving(true);
+    try {
+      // Update the source table's first line memo
+      const lineTable = getLineTable(sourceType);
+      const parentColumn = getParentColumn(sourceType);
+
+      if (lineTable && parentColumn) {
+        // Get the first line by line_number
+        const { data: lines } = await supabase
+          .from(lineTable as any)
+          .select('id, line_number')
+          .eq(parentColumn, sourceId)
+          .order('line_number', { ascending: true })
+          .limit(1);
+
+        if (lines && lines.length > 0) {
+          await supabase
+            .from(lineTable as any)
+            .update({ memo: description } as any)
+            .eq('id', (lines[0] as any).id);
+        }
+      }
+
+      // Also update journal_entry_lines memo to keep ledger in sync
+      const { data: jeLines } = await supabase
+        .from('journal_entry_lines')
+        .select('id')
+        .eq('journal_entry_id', journalEntryId)
+        .limit(1);
+
+      if (jeLines && jeLines.length > 0) {
+        // Update all lines for this journal entry with the new memo
+        await supabase
+          .from('journal_entry_lines')
+          .update({ memo: description })
+          .eq('journal_entry_id', journalEntryId);
+      }
+
+      await queryClient.invalidateQueries({ queryKey: ['account-transactions'] });
+
+      toast({ title: "Description Updated", description: "The transaction description has been updated." });
+      onOpenChange(false);
+    } catch (error) {
+      console.error('Error updating description:', error);
+      toast({ title: "Error", description: "Failed to update description.", variant: "destructive" });
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="max-w-md">
+        <DialogHeader>
+          <DialogTitle>Edit Description</DialogTitle>
+        </DialogHeader>
+        <Textarea
+          value={description}
+          onChange={(e) => setDescription(e.target.value)}
+          placeholder="Enter description..."
+          rows={3}
+        />
+        <DialogFooter>
+          <Button variant="outline" onClick={() => onOpenChange(false)} disabled={saving}>
+            Cancel
+          </Button>
+          <Button onClick={handleSave} disabled={saving}>
+            {saving ? "Saving..." : "Save"}
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+function getLineTable(sourceType: string): string | null {
+  switch (sourceType) {
+    case 'bill': return 'bill_lines';
+    case 'check': return 'check_lines';
+    case 'deposit': return 'deposit_lines';
+    case 'credit_card': return 'credit_card_lines';
+    case 'manual': return 'journal_entry_lines';
+    default: return null;
+  }
+}
+
+function getParentColumn(sourceType: string): string | null {
+  switch (sourceType) {
+    case 'bill': return 'bill_id';
+    case 'check': return 'check_id';
+    case 'deposit': return 'deposit_id';
+    case 'credit_card': return 'credit_card_id';
+    case 'manual': return 'journal_entry_id';
+    default: return null;
+  }
+}
