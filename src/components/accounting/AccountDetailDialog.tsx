@@ -1389,6 +1389,18 @@ export function AccountDetailDialog({
       open={!!selectedTransaction}
       onOpenChange={(open) => { if (!open) setSelectedTransaction(null); }}
     />
+
+    {/* Edit Description Dialog */}
+    {editDescriptionTxn && (
+      <EditDescriptionDialog
+        open={!!editDescriptionTxn}
+        onOpenChange={(open) => { if (!open) setEditDescriptionTxn(null); }}
+        sourceType={editDescriptionTxn.source_type}
+        sourceId={editDescriptionTxn.source_id}
+        journalEntryId={editDescriptionTxn.journal_entry_id}
+        currentDescription={editDescriptionTxn.description || editDescriptionTxn.memo || ''}
+      />
+    )}
     </>
   );
 }
