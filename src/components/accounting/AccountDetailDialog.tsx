@@ -37,7 +37,7 @@ import { DateInputPicker } from "@/components/ui/date-input-picker";
 import { formatDateSafe } from "@/utils/dateOnly";
 import { TransactionDetailDialog } from "./TransactionDetailDialog";
 import { EditDescriptionDialog } from "./EditDescriptionDialog";
-import { Edit3 } from "lucide-react";
+
 
 interface IncludedBillPayment {
   bill_id: string;
@@ -1292,19 +1292,6 @@ export function AccountDetailDialog({
                                   )}
                                 </TooltipContent>
                               </Tooltip>
-                              {!isConsolidated && (
-                                <Tooltip>
-                                  <TooltipTrigger asChild>
-                                    <button
-                                      onClick={(e) => { e.stopPropagation(); setEditDescriptionTxn(txn); }}
-                                      className="p-0.5 rounded hover:bg-muted"
-                                    >
-                                      <Edit3 className="h-3.5 w-3.5 text-muted-foreground hover:text-foreground" />
-                                    </button>
-                                  </TooltipTrigger>
-                                  <TooltipContent>Edit Description</TooltipContent>
-                                </Tooltip>
-                              )}
                             </div>
                           ) : canDeleteBills ? (
                             <TableRowActions actions={[
@@ -1312,10 +1299,6 @@ export function AccountDetailDialog({
                                 label: txn.source_type === 'bill' ? 'Edit Bill' : txn.source_type === 'deposit' ? 'Edit Deposit' : 'Edit Check',
                                 onClick: () => handleEditTransaction(txn),
                               }] : []),
-                              {
-                                label: 'Edit Description',
-                                onClick: () => setEditDescriptionTxn(txn),
-                              },
                               {
                                 label: 'Delete',
                                 onClick: () => handleDelete(txn),
@@ -1388,6 +1371,11 @@ export function AccountDetailDialog({
       accountType={accountType}
       open={!!selectedTransaction}
       onOpenChange={(open) => { if (!open) setSelectedTransaction(null); }}
+      onEditDescription={() => {
+        if (selectedTransaction) {
+          setEditDescriptionTxn(selectedTransaction);
+        }
+      }}
     />
 
     {/* Edit Description Dialog */}

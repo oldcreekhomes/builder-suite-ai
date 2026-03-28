@@ -7,7 +7,13 @@ import {
   DialogDescription,
 } from "@/components/ui/dialog";
 import { supabase } from "@/integrations/supabase/client";
-import { Check, FileText, Loader2 } from "lucide-react";
+import { Check, FileText, Loader2, MoreHorizontal } from "lucide-react";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { formatDateSafe } from "@/utils/dateOnly";
 import { useUniversalFilePreviewContext } from "@/components/files/UniversalFilePreviewProvider";
 
@@ -45,6 +51,7 @@ interface TransactionDetailDialogProps {
   accountType: 'asset' | 'liability' | 'equity' | 'revenue' | 'expense';
   open: boolean;
   onOpenChange: (open: boolean) => void;
+  onEditDescription?: () => void;
 }
 
 const getTypeLabel = (sourceType: string) => {
@@ -66,6 +73,7 @@ export function TransactionDetailDialog({
   accountType,
   open,
   onOpenChange,
+  onEditDescription,
 }: TransactionDetailDialogProps) {
   const [attachments, setAttachments] = useState<Attachment[]>([]);
   const [loadingAttachments, setLoadingAttachments] = useState(false);
@@ -181,7 +189,7 @@ export function TransactionDetailDialog({
     { label: 'Date', value: formatDateSafe(transaction.date, 'MM/dd/yyyy') },
     { label: 'Name', value: transaction.reference || '-' },
     { label: 'Account', value: transaction.accountDisplay || '-' },
-    { label: 'Description', value: transaction.description || '-' },
+    { label: 'Description', value: transaction.description || '-', isDescription: true },
     { label: 'Debit', value: transaction.debit > 0 ? formatCurrency(transaction.debit) : '-' },
     { label: 'Credit', value: transaction.credit > 0 ? formatCurrency(transaction.credit) : '-' },
     { label: 'Amount', value: formatCurrency(netAmount) },
@@ -204,7 +212,25 @@ export function TransactionDetailDialog({
             {details.map((item) => (
               <div key={item.label} className="contents">
                 <span className="text-muted-foreground font-medium">{item.label}</span>
-                <span className="break-words">{item.value}</span>
+                {(item as any).isDescription && onEditDescription ? (
+                  <span className="break-words flex items-center gap-1">
+                    {item.value}
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <button className="p-0.5 rounded hover:bg-muted ml-1 shrink-0">
+                          <MoreHorizontal className="h-4 w-4 text-muted-foreground" />
+                        </button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="start">
+                        <DropdownMenuItem onClick={onEditDescription}>
+                          Edit Description
+                        </DropdownMenuItem>
+                      </DropdownMenuContent>
+                    </DropdownMenu>
+                  </span>
+                ) : (
+                  <span className="break-words">{item.value}</span>
+                )}
               </div>
             ))}
             <span className="text-muted-foreground font-medium">Cleared</span>
