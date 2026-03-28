@@ -1,35 +1,35 @@
 
 
-## Fix Bill Total Amount Rounding Discrepancy
+## Allow Editing Descriptions on Locked/Reconciled Transactions
 
 ### Problem
-The `approve_pending_bill` database function stores line amounts as raw `quantity * unit_cost` without cent-rounding. The Edit Bill dialog rounds each line (`Math.round(q * c * 100) / 100`) before summing, producing $98.53. The DB `total_amount` (sum of unrounded amounts) shows $98.56 in the table.
+When a transaction is reconciled or in a closed period, the entire row is locked with no edit actions. The user needs to correct descriptions (memos) on these transactions — a non-financial field that doesn't affect accounting balances.
 
-### Root Cause
-Per the project's cent-precise rounding standard, every line contribution should be rounded to the nearest cent before aggregation. This isn't happening in the DB function.
+### Approach
+Add an "Edit Description" action that is always available, even on locked rows. This opens a small inline dialog to update the memo/description on the source transaction's first line. The lock icon and tooltip remain, but instead of showing only the lock, locked rows will show the lock icon plus a small "Edit Description" option.
 
-### Fix (2 changes)
+### Changes
 
-**1. Database migration — round amounts in `approve_pending_bill`**
+**1. New component: `src/components/accounting/EditDescriptionDialog.tsx`**
+- Simple dialog with a textarea for the description and Save/Cancel buttons
+- Accepts `sourceType`, `sourceId`, `journalEntryId`, and current description
+- On save, updates the appropriate source table's first line memo:
+  - `bill` → `bill_lines.memo` (first line by line_number)
+  - `check` → `check_lines.memo` (first line)
+  - `deposit` → `deposit_lines.memo` (first line)
+  - `credit_card` → `credit_card_lines.memo` (first line)
+  - `manual` → `journal_entry_lines.memo`
+- Also updates the corresponding `journal_entry_lines.memo` to keep ledger description in sync
+- Invalidates the account-transactions query on success
 
-Update the function so each line's `amount` is stored as `ROUND(amount, 2)` and `total_amt` is computed as `SUM(ROUND(amount, 2))`:
+**2. Update: `src/components/accounting/AccountDetailDialog.tsx`**
+- For locked rows (reconciled or date-locked), replace the lock-icon-only display with a layout that shows both the lock icon and a small "Edit Description" button (pencil icon or text link)
+- For unlocked rows, add "Edit Description" as an additional action in the existing `TableRowActions` menu
+- Add state for the edit description dialog (`editDescriptionTxn`)
+- Render the new `EditDescriptionDialog` component
 
-```sql
-SELECT COALESCE(SUM(ROUND(amount, 2)), 0) INTO total_amt
-FROM pending_bill_lines 
-WHERE pending_upload_id = pending_upload_id_param
-  AND amount IS NOT NULL AND amount != 0;
-```
-
-And in the line insert loop, use `ROUND(line_record.amount, 2)` for the `amount` column.
-
-**2. Frontend fallback — `BillsApprovalTable.tsx`**
-
-For existing bills already in the DB with unrounded totals, compute the displayed amount from bill_lines when available (matching how the Edit Bill dialog works):
-
-In `renderBillRow`, replace `bill.total_amount` usage in the Amount cell with a helper that sums `Math.round(line.amount * 100) / 100` from `bill.bill_lines` when lines exist, falling back to `bill.total_amount` otherwise. This ensures the table and Edit Bill dialog always show the same number.
-
-### Files modified
-- New migration SQL (update `approve_pending_bill` function)
-- `src/components/bills/BillsApprovalTable.tsx` (display fallback)
+### What stays the same
+- Lock icon still shows on reconciled/closed rows
+- Full edit (Edit Bill, Edit Deposit, etc.) and Delete remain blocked on locked rows
+- No financial data is modified — only memo/description text
 
