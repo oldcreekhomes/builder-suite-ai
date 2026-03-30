@@ -1,19 +1,27 @@
 
 
-## Fix: Paid Tab Crash — Missing Guard for Undefined Breakdown
+## Update Bill 14601 Cost Code from 1020: Deposits → 4040: Office Supplies
 
-### Problem
-On line 852-854 of `BillsApprovalTable.tsx`, when a paid bill has no payment breakdown data (or no credits), the guard block is empty — it has no `return` statement. Execution falls through to line 860 which accesses `breakdown.cashPaid`, crashing with "Cannot read properties of undefined (reading 'cashPaid')".
+### What needs updating
 
-### Fix: `src/components/bills/BillsApprovalTable.tsx`
+Three records need direct data updates (no schema changes, no reversal):
 
-On lines 853-854, add a return statement inside the empty guard block so that when `breakdown` is undefined or has no credits, it renders the plain amount without the tooltip:
+**1. `bill_lines`** — line `a4f7a8ba-3c74-496b-ad59-be9139b64b06`
+- Set `cost_code_id` to `846f4d07-3d11-487e-a030-8df25bc8f747` (4040: Office Supplies)
+- Clear `account_id` to NULL (consistent with how other cost-code-based bill lines work)
 
-```tsx
-if (!breakdown || breakdown.credits.length === 0) {
-  return formatCurrency(displayAmount);
-}
-```
+**2. `journal_entry_lines`** — debit line `e8cc9132-4bd8-4eff-a58a-e3ff368bdf96`
+- Change `account_id` from `6959b39e` (1020: Deposits) to `c9a35605` (1430: WIP - Direct Construction Costs) — this is the standard debit account used for cost-code-based bill lines
+- Set `cost_code_id` to `846f4d07` (4040: Office Supplies)
 
-Single line change — no other files affected.
+**3. No changes to the A/P credit line** — it stays on the A/P account as-is.
+
+### What stays the same
+- No reversal entries created
+- Bill amount ($316.57) unchanged
+- A/P credit journal entry line unchanged
+- Reconciliation status unchanged
+
+### Technical note
+These are data updates (UPDATE statements) executed via the insert/update tool, not schema migrations.
 
