@@ -7,7 +7,7 @@ import { Progress } from '@/components/ui/progress';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { X, XCircle, Settings, Search, History, Package } from 'lucide-react';
-import { useHistoricalProjects } from '@/hooks/useHistoricalProjects';
+import { useHistoricalProjects, parseHistoricalKey } from '@/hooks/useHistoricalProjects';
 import { useHistoricalActualCosts } from '@/hooks/useHistoricalActualCosts';
 import { AddBiddingModal } from './AddBiddingModal';
 import { GlobalBiddingSettingsModal } from './GlobalBiddingSettingsModal';
