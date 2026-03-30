@@ -18,6 +18,7 @@ import { BudgetExportPdfDialog, ExportPdfOptions } from './BudgetExportPdfDialog
 import { BudgetExcelImportDialog } from './BudgetExcelImportDialog';
 import { pdf } from '@react-pdf/renderer';
 import { fetchHistoricalActualCosts } from '@/utils/fetchHistoricalActualCosts';
+import { parseHistoricalKey } from '@/hooks/useHistoricalProjects';
 import { useBudgetData } from '@/hooks/useBudgetData';
 import { useBudgetGroups } from '@/hooks/useBudgetGroups';
 import { useBudgetMutations } from '@/hooks/useBudgetMutations';
