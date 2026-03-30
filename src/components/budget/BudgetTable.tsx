@@ -83,7 +83,8 @@ export function BudgetTable({ projectId, projectAddress, onHeaderActionChange, o
   const headerRef = useRef<HTMLTableSectionElement | null>(null);
   
   const { budgetItems, groupedBudgetItems, existingCostCodeIds, parentCodeNames } = useBudgetData(projectId, selectedLotId);
-  const { data: historicalData } = useHistoricalActualCosts(selectedHistoricalProject || null);
+  const parsedHistorical = selectedHistoricalProject ? parseHistoricalKey(selectedHistoricalProject) : null;
+  const { data: historicalData } = useHistoricalActualCosts(parsedHistorical?.projectId || null, parsedHistorical?.lotId);
   
   const historicalActualCosts = historicalData?.mapByCode || {};
   const historicalTotal = historicalData?.total || 0;
