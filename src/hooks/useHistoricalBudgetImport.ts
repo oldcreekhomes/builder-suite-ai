@@ -1,31 +1,41 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
+import { parseHistoricalKey } from '@/hooks/useHistoricalProjects';
 
-export function useHistoricalBudgetImport(projectId: string, historicalProjectId?: string) {
+export function useHistoricalBudgetImport(projectId: string, historicalKey?: string) {
   const queryClient = useQueryClient();
   const { toast } = useToast();
 
+  const parsed = historicalKey ? parseHistoricalKey(historicalKey) : null;
+
   // Fetch historical project's budget items with actual costs
   const { data: historicalBudgetItems = [], isLoading } = useQuery({
-    queryKey: ['historical-budget-items', historicalProjectId],
+    queryKey: ['historical-budget-items', historicalKey],
     queryFn: async () => {
-      if (!historicalProjectId) return [];
+      if (!parsed) return [];
       
-      const { data, error } = await supabase
+      let query = supabase
         .from('project_budgets')
         .select(`
           *,
           cost_codes (*)
         `)
-        .eq('project_id', historicalProjectId)
+        .eq('project_id', parsed.projectId)
         .not('actual_amount', 'is', null)
         .neq('actual_amount', 0);
+
+      if (parsed.lotId) {
+        query = query.eq('lot_id', parsed.lotId);
+      } else {
+        query = query.is('lot_id', null);
+      }
       
+      const { data, error } = await query;
       if (error) throw error;
       return data;
     },
-    enabled: !!historicalProjectId,
+    enabled: !!historicalKey,
   });
 
   // Import selected items with optional percentage adjustment
