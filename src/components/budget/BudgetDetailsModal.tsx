@@ -70,7 +70,8 @@ export function BudgetDetailsModal({
   const [selectedHistoricalProjectId, setSelectedHistoricalProjectId] = useState<string | null>(
     budgetItem.budget_source === 'historical' ? (budgetItem as any).historical_project_id || null : null
   );
-  const { data: historicalCosts } = useHistoricalActualCosts(selectedHistoricalProjectId);
+  const parsedHistorical = selectedHistoricalProjectId ? parseHistoricalKey(selectedHistoricalProjectId) : null;
+  const { data: historicalCosts } = useHistoricalActualCosts(parsedHistorical?.projectId || null, parsedHistorical?.lotId);
 
   // PO tab - query PO count/total for this cost code
   const { data: poData } = useQuery({

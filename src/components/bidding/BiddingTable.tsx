@@ -40,7 +40,8 @@ export function BiddingTable({ projectId, projectAddress, status, onHeaderAction
   const [searchQuery, setSearchQuery] = useState("");
   
   const { data: historicalProjects } = useHistoricalProjects();
-  const { data: historicalCosts } = useHistoricalActualCosts(selectedHistoricalProjectId);
+  const parsedHistorical = selectedHistoricalProjectId ? parseHistoricalKey(selectedHistoricalProjectId) : null;
+  const { data: historicalCosts } = useHistoricalActualCosts(parsedHistorical?.projectId || null, parsedHistorical?.lotId);
   const historicalProjectAddress = historicalProjects?.find((p: any) => p.id === selectedHistoricalProjectId)?.address;
   
   
