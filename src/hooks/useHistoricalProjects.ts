@@ -88,7 +88,12 @@ export function useHistoricalProjects() {
         });
       });
       
-      return Array.from(seen.values());
+      return Array.from(seen.values()).sort((a, b) => {
+        const numA = parseInt(a.address.match(/^\d+/)?.[0] || '0', 10);
+        const numB = parseInt(b.address.match(/^\d+/)?.[0] || '0', 10);
+        if (numA !== numB) return numA - numB;
+        return a.address.localeCompare(b.address);
+      });
     },
   });
 }
