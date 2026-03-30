@@ -1,27 +1,50 @@
 
 
-## Update Bill 14601 Cost Code from 1020: Deposits → 4040: Office Supplies
+## Hard-code Historical Actual Costs for Stevenson Ave Lot 507
 
-### What needs updating
+### Summary
+Insert ~80 `project_budgets` rows for project `d9e400a0-f9b9-40c6-8b8e-183341e508f3` (6330 Stevenson Ave), lot `8ae0a660-59f6-4289-9943-e7fcc0107548` (Lot 507), setting `actual_amount` from the uploaded spreadsheet. The Historical dropdown on the Budget page will then show "6330 Stevenson Ave - Lot 507" (after address formatting).
 
-Three records need direct data updates (no schema changes, no reversal):
+### Mapping decisions
+The spreadsheet uses a different numbering scheme than the database for the 4000-series. Mapping is **by name**:
 
-**1. `bill_lines`** — line `a4f7a8ba-3c74-496b-ad59-be9139b64b06`
-- Set `cost_code_id` to `846f4d07-3d11-487e-a030-8df25bc8f747` (4040: Office Supplies)
-- Clear `account_id` to NULL (consistent with how other cost-code-based bill lines work)
+| Spreadsheet | DB Code | DB Name |
+|---|---|---|
+| 4005.1 Foundation Issues | → roll into **4005** General Conditions | $845.37 |
+| 4005.2 Hold Down Issue | → roll into **4005** General Conditions | $2,697.06 |
+| 4005 Back Charges Other | → roll into **4005** General Conditions | $163.92 |
+| 4010.1 Parking | → **4010** Parking | $92.43 |
+| 4010.2 Office Supplies | → **4040** Office Supplies | $95.36 |
+| 4010.3 Office | → **4015** Office | $4.29 |
+| 4010.4 Project Manager | → **4020** Project Manager | $6,130.73 |
+| 4010.5 Accounting | → **4025** Accounting | $97.56 |
+| 4010.6 Other | → **4030** Other | $8.34 |
+| 4020 Drawings | → **4050** Drawings | $68.19 |
+| 4030 Signage | → **4060** Signage | $115.99 |
+| 4040 Temporary Toilets | → **4070** Temporary Toilets | $319.60 |
+| 4110 Pest Control | → **4300** Termite Treatment | $275.14 |
+| 4855 Warranty Purchase | → **2540** Warranty Purchase | $882.15 |
+| 2130 Affordable Housing | → **2480** Miscellaneous Costs (added to $14.84) | $6,475.29 |
+| Remaining codes (1010-1040, 2050-2620, 3180-3620, 4100-4980) | → same code number in DB | direct match |
 
-**2. `journal_entry_lines`** — debit line `e8cc9132-4bd8-4eff-a58a-e3ff368bdf96`
-- Change `account_id` from `6959b39e` (1020: Deposits) to `c9a35605` (1430: WIP - Direct Construction Costs) — this is the standard debit account used for cost-code-based bill lines
-- Set `cost_code_id` to `846f4d07` (4040: Office Supplies)
+### Implementation
+One database insert operation (using the insert tool, not a migration) with ~80 INSERT statements into `project_budgets`:
 
-**3. No changes to the A/P credit line** — it stays on the A/P account as-is.
+```sql
+INSERT INTO project_budgets (project_id, lot_id, cost_code_id, actual_amount, budget_source, quantity, unit_price)
+VALUES
+  ('d9e400a0-...', '8ae0a660-...', '<cost_code_id>', <amount>, 'manual', 1, 0),
+  ...
+```
 
-### What stays the same
-- No reversal entries created
-- Bill amount ($316.57) unchanged
-- A/P credit journal entry line unchanged
-- Reconciliation status unchanged
+Each row gets:
+- `project_id` = `d9e400a0-f9b9-40c6-8b8e-183341e508f3`
+- `lot_id` = `8ae0a660-59f6-4289-9943-e7fcc0107548`
+- `actual_amount` = value from spreadsheet
+- `budget_source` = `'manual'`, `quantity` = 1, `unit_price` = 0 (so budget shows $0, only actual is populated)
 
-### Technical note
-These are data updates (UPDATE statements) executed via the insert/update tool, not schema migrations.
+### Result
+- The Historical dropdown on Budget pages will show **6330 Stevenson Ave** as a fourth historical project
+- Selecting it will display actual costs per cost code in the Historical column
+- Total historical actual: **$745,290.10**
 
