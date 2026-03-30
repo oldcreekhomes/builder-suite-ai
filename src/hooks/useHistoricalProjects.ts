@@ -1,15 +1,25 @@
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 
+export interface HistoricalProject {
+  /** Composite key: "projectId" or "projectId::lotId" */
+  id: string;
+  projectId: string;
+  lotId: string | null;
+  address: string;
+}
+
 export function useHistoricalProjects() {
   return useQuery({
     queryKey: ['historical-projects'],
-    queryFn: async () => {
+    queryFn: async (): Promise<HistoricalProject[]> => {
       const { data, error } = await supabase
         .from('project_budgets')
         .select(`
           project_id,
-          projects!project_budgets_project_id_fkey(id, address)
+          lot_id,
+          projects!project_budgets_project_id_fkey(id, address),
+          project_lots!project_budgets_lot_id_fkey(id, lot_name, lot_number)
         `)
         .not('actual_amount', 'is', null)
         .neq('actual_amount', 0);
@@ -25,13 +35,9 @@ export function useHistoricalProjects() {
       
       const abbreviations = Object.values(suffixMap);
       const formatAddress = (full: string): string => {
-        // Take only the part before the first comma (strip city/state/zip)
         let street = full.split(',')[0].trim();
-        // Remove periods from directionals like "N." → "N"
         street = street.replace(/\b([NSEW])\./gi, '$1');
-        // Abbreviate street suffixes
         street = street.replace(suffixes, (m) => suffixMap[m.replace('.', '').toLowerCase()] || m);
-        // Truncate anything after the last recognized (abbreviated) suffix to drop city names
         for (let i = abbreviations.length - 1; i >= 0; i--) {
           const abbr = abbreviations[i];
           const re = new RegExp(`\\b(${abbr})\\b(.*)$`, 'i');
@@ -44,19 +50,51 @@ export function useHistoricalProjects() {
         return street;
       };
 
-      // Get unique projects that have actual costs
-      const uniqueProjects = data.reduce((acc: any[], item) => {
-        const existingProject = acc.find(p => p.id === item.project_id);
-        if (!existingProject) {
-          acc.push({
-            id: item.project_id,
-            address: formatAddress(item.projects.address || '')
-          });
+      // Group by project_id + lot_id
+      const seen = new Map<string, HistoricalProject>();
+      const projectLotCounts = new Map<string, Set<string | null>>();
+
+      // First pass: count distinct lots per project
+      data.forEach((item) => {
+        const pid = item.project_id;
+        if (!projectLotCounts.has(pid)) {
+          projectLotCounts.set(pid, new Set());
         }
-        return acc;
-      }, []);
+        projectLotCounts.get(pid)!.add(item.lot_id);
+      });
+
+      // Second pass: build entries
+      data.forEach((item) => {
+        const pid = item.project_id;
+        const lid = item.lot_id;
+        const compositeKey = lid ? `${pid}::${lid}` : pid;
+
+        if (seen.has(compositeKey)) return;
+
+        const shortAddress = formatAddress((item.projects as any)?.address || '');
+        const lotInfo = item.project_lots as any;
+        const lotCount = projectLotCounts.get(pid)?.size || 1;
+        // Only append lot name if the project has multiple lot entries or a named lot
+        const hasMultipleLots = lotCount > 1 || (lotCount === 1 && lid != null);
+        const lotLabel = hasMultipleLots && lotInfo
+          ? ` - ${lotInfo.lot_name || `Lot ${lotInfo.lot_number}`}`
+          : '';
+
+        seen.set(compositeKey, {
+          id: compositeKey,
+          projectId: pid,
+          lotId: lid,
+          address: `${shortAddress}${lotLabel}`,
+        });
+      });
       
-      return uniqueProjects;
+      return Array.from(seen.values());
     },
   });
+}
+
+/** Parse a composite historical project key back into projectId and lotId */
+export function parseHistoricalKey(key: string): { projectId: string; lotId: string | null } {
+  const parts = key.split('::');
+  return { projectId: parts[0], lotId: parts[1] || null };
 }
