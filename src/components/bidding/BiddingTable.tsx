@@ -7,7 +7,7 @@ import { Progress } from '@/components/ui/progress';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { X, XCircle, Settings, Search, History, Package } from 'lucide-react';
-import { useHistoricalProjects } from '@/hooks/useHistoricalProjects';
+import { useHistoricalProjects, parseHistoricalKey } from '@/hooks/useHistoricalProjects';
 import { useHistoricalActualCosts } from '@/hooks/useHistoricalActualCosts';
 import { AddBiddingModal } from './AddBiddingModal';
 import { GlobalBiddingSettingsModal } from './GlobalBiddingSettingsModal';
@@ -40,7 +40,8 @@ export function BiddingTable({ projectId, projectAddress, status, onHeaderAction
   const [searchQuery, setSearchQuery] = useState("");
   
   const { data: historicalProjects } = useHistoricalProjects();
-  const { data: historicalCosts } = useHistoricalActualCosts(selectedHistoricalProjectId);
+  const parsedHistorical = selectedHistoricalProjectId ? parseHistoricalKey(selectedHistoricalProjectId) : null;
+  const { data: historicalCosts } = useHistoricalActualCosts(parsedHistorical?.projectId || null, parsedHistorical?.lotId);
   const historicalProjectAddress = historicalProjects?.find((p: any) => p.id === selectedHistoricalProjectId)?.address;
   
   

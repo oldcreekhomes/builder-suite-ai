@@ -9,16 +9,12 @@ export interface HistoricalActualCostsData {
   costCodes: CostCode[];
 }
 
-export async function fetchHistoricalActualCosts(projectId: string | null): Promise<HistoricalActualCostsData> {
+export async function fetchHistoricalActualCosts(projectId: string | null, lotId?: string | null): Promise<HistoricalActualCostsData> {
   if (!projectId) {
-    return {
-      mapByCode: {},
-      total: 0,
-      costCodes: []
-    };
+    return { mapByCode: {}, total: 0, costCodes: [] };
   }
   
-  const { data, error } = await supabase
+  let query = supabase
     .from('project_budgets')
     .select(`
       cost_code_id,
@@ -28,10 +24,16 @@ export async function fetchHistoricalActualCosts(projectId: string | null): Prom
     .eq('project_id', projectId)
     .not('actual_amount', 'is', null)
     .neq('actual_amount', 0);
+
+  if (lotId) {
+    query = query.eq('lot_id', lotId);
+  } else {
+    query = query.is('lot_id', null);
+  }
   
+  const { data, error } = await query;
   if (error) throw error;
   
-  // Build map by cost code string (e.g., "4010")
   const mapByCode: Record<string, number> = {};
   const costCodeSet = new Map<string, CostCode>();
   let total = 0;
@@ -46,9 +48,5 @@ export async function fetchHistoricalActualCosts(projectId: string | null): Prom
     total += item.actual_amount || 0;
   });
   
-  return {
-    mapByCode,
-    total,
-    costCodes: Array.from(costCodeSet.values())
-  };
+  return { mapByCode, total, costCodes: Array.from(costCodeSet.values()) };
 }

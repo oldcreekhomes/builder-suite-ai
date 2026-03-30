@@ -18,6 +18,7 @@ import { BudgetExportPdfDialog, ExportPdfOptions } from './BudgetExportPdfDialog
 import { BudgetExcelImportDialog } from './BudgetExcelImportDialog';
 import { pdf } from '@react-pdf/renderer';
 import { fetchHistoricalActualCosts } from '@/utils/fetchHistoricalActualCosts';
+import { parseHistoricalKey } from '@/hooks/useHistoricalProjects';
 import { useBudgetData } from '@/hooks/useBudgetData';
 import { useBudgetGroups } from '@/hooks/useBudgetGroups';
 import { useBudgetMutations } from '@/hooks/useBudgetMutations';
@@ -82,7 +83,8 @@ export function BudgetTable({ projectId, projectAddress, onHeaderActionChange, o
   const headerRef = useRef<HTMLTableSectionElement | null>(null);
   
   const { budgetItems, groupedBudgetItems, existingCostCodeIds, parentCodeNames } = useBudgetData(projectId, selectedLotId);
-  const { data: historicalData } = useHistoricalActualCosts(selectedHistoricalProject || null);
+  const parsedHistorical = selectedHistoricalProject ? parseHistoricalKey(selectedHistoricalProject) : null;
+  const { data: historicalData } = useHistoricalActualCosts(parsedHistorical?.projectId || null, parsedHistorical?.lotId);
   
   const historicalActualCosts = historicalData?.mapByCode || {};
   const historicalTotal = historicalData?.total || 0;
@@ -367,7 +369,8 @@ export function BudgetTable({ projectId, projectAddress, onHeaderActionChange, o
       let pdfHistoricalData = null;
       if (options.includeHistorical && options.historicalProjectId) {
         console.log('Fetching historical data for project:', options.historicalProjectId);
-        pdfHistoricalData = await fetchHistoricalActualCosts(options.historicalProjectId);
+        const parsedKey = parseHistoricalKey(options.historicalProjectId);
+        pdfHistoricalData = await fetchHistoricalActualCosts(parsedKey.projectId, parsedKey.lotId);
         console.log('Historical data fetched:', pdfHistoricalData);
       }
 
