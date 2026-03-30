@@ -369,7 +369,8 @@ export function BudgetTable({ projectId, projectAddress, onHeaderActionChange, o
       let pdfHistoricalData = null;
       if (options.includeHistorical && options.historicalProjectId) {
         console.log('Fetching historical data for project:', options.historicalProjectId);
-        pdfHistoricalData = await fetchHistoricalActualCosts(options.historicalProjectId);
+        const parsedKey = parseHistoricalKey(options.historicalProjectId);
+        pdfHistoricalData = await fetchHistoricalActualCosts(parsedKey.projectId, parsedKey.lotId);
         console.log('Historical data fetched:', pdfHistoricalData);
       }
 
