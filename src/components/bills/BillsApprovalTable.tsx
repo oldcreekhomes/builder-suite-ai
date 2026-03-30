@@ -851,6 +851,7 @@ export function BillsApprovalTable({ status, projectId, projectIds, showProjectC
           }
           const breakdown = paymentBreakdowns?.get(bill.id);
           if (!breakdown || breakdown.credits.length === 0) {
+            return formatCurrency(displayAmount);
           }
           return (
             <TooltipProvider>
