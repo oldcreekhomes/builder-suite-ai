@@ -1,28 +1,19 @@
 
 
-## Fix: Update Transaction Details After Description Save
+## Fix: Paid Tab Crash — Missing Guard for Undefined Breakdown
 
 ### Problem
-After saving a new description, the register table data refreshes (via query invalidation), but the `TransactionDetailDialog` still shows the old description because it reads from a stale `selectedTransaction` state object that was set when the row was clicked.
+On line 852-854 of `BillsApprovalTable.tsx`, when a paid bill has no payment breakdown data (or no credits), the guard block is empty — it has no `return` statement. Execution falls through to line 860 which accesses `breakdown.cashPaid`, crashing with "Cannot read properties of undefined (reading 'cashPaid')".
 
-### Fix: `src/components/accounting/AccountDetailDialog.tsx`
+### Fix: `src/components/bills/BillsApprovalTable.tsx`
 
-Add an `onDescriptionSaved` callback to `EditDescriptionDialog` that updates `selectedTransaction` in place with the new description text. After the save succeeds:
+On lines 853-854, add a return statement inside the empty guard block so that when `breakdown` is undefined or has no credits, it renders the plain amount without the tooltip:
 
-1. Update `selectedTransaction` state: `setSelectedTransaction(prev => prev ? { ...prev, description: newDescription } : null)`
-2. Also update `editDescriptionTxn` to null (close the edit dialog)
+```tsx
+if (!breakdown || breakdown.credits.length === 0) {
+  return formatCurrency(displayAmount);
+}
+```
 
-This requires:
-- Adding an `onSaved?: (newDescription: string) => void` prop to `EditDescriptionDialog`
-- Calling it after successful save in `EditDescriptionDialog.tsx`
-- Wiring it in `AccountDetailDialog.tsx` to update `selectedTransaction`
-
-### Changes
-
-**`src/components/accounting/EditDescriptionDialog.tsx`**
-- Add `onSaved?: (newDescription: string) => void` to props
-- After successful save (after `queryClient.invalidateQueries`), call `onSaved?.(description)`
-
-**`src/components/accounting/AccountDetailDialog.tsx`**
-- Pass `onSaved` to `EditDescriptionDialog` that updates `selectedTransaction` with the new description
+Single line change — no other files affected.
 
