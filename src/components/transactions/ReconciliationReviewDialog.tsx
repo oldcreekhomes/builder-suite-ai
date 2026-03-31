@@ -62,36 +62,88 @@ export function ReconciliationReviewDialog({
         .select('id, deposit_date, memo, amount, company_name')
         .eq('reconciliation_id', reconciliationId);
 
-      // Fetch bills (bill payments)
-      const { data: bills } = await supabase
+      // Fetch bill payments via journal_entry_lines reconciled to this reconciliation
+      // (Each partial payment is tracked at the JE line level)
+      let billPayments: ClearedTransaction[] = [];
+      
+      const { data: reconciledBillPaymentLines } = await supabase
+        .from('journal_entry_lines')
+        .select(`
+          id,
+          credit,
+          journal_entry_id,
+          journal_entries!inner (
+            id,
+            entry_date,
+            source_type,
+            source_id
+          )
+        `)
+        .eq('reconciliation_id', reconciliationId)
+        .eq('account_id', bankAccountId)
+        .gt('credit', 0);
+
+      // Filter to only bill_payment source types
+      const bpLines = (reconciledBillPaymentLines || []).filter(
+        (line: any) => line.journal_entries?.source_type === 'bill_payment'
+      );
+
+      if (bpLines.length > 0) {
+        // Get bill IDs from journal entries
+        const billIds = [...new Set(bpLines.map((l: any) => l.journal_entries.source_id))];
+        
+        // Fetch bills for reference numbers and vendor IDs
+        const { data: bills } = await supabase
+          .from('bills')
+          .select('id, reference_number, vendor_id')
+          .in('id', billIds);
+
+        const billMap = new Map((bills || []).map(b => [b.id, b]));
+        
+        // Get vendor names
+        const vendorIds = [...new Set((bills || []).map(b => b.vendor_id))];
+        const { data: vendors } = await supabase
+          .from('companies')
+          .select('id, company_name')
+          .in('id', vendorIds.length > 0 ? vendorIds : ['__none__']);
+        const vendorMap = new Map((vendors || []).map(v => [v.id, v.company_name]));
+
+        billPayments = bpLines.map((line: any) => {
+          const bill = billMap.get(line.journal_entries.source_id);
+          return {
+            id: line.id,
+            date: line.journal_entries.entry_date || '',
+            payee: bill ? (vendorMap.get(bill.vendor_id) || 'Unknown Vendor') : 'Unknown Vendor',
+            reference: bill?.reference_number || undefined,
+            amount: Number(line.credit),
+            type: 'bill_payment' as const,
+          };
+        }).filter((bp: ClearedTransaction) => bp.amount > 0);
+      }
+
+      // Also check legacy: bills directly reconciled (for older reconciliations)
+      const { data: legacyBills } = await supabase
         .from('bills')
         .select('id, reference_number, vendor_id, reconciliation_date')
         .eq('reconciliation_id', reconciliationId);
 
-      // For bill payments, get the journal entries to find the payment amounts
-      let billPayments: ClearedTransaction[] = [];
-      if (bills && bills.length > 0) {
-        const billIds = bills.map(b => b.id);
-        
-        // Get vendor names
-        const vendorIds = [...new Set(bills.map(b => b.vendor_id))];
+      if (legacyBills && legacyBills.length > 0) {
+        const legacyBillIds = legacyBills.map(b => b.id);
+        const vendorIds = [...new Set(legacyBills.map(b => b.vendor_id))];
         const { data: vendors } = await supabase
           .from('companies')
           .select('id, company_name')
           .in('id', vendorIds);
         const vendorMap = new Map((vendors || []).map(v => [v.id, v.company_name]));
 
-        // Get journal entries for these bills to find payment amounts
         const { data: journalEntries } = await supabase
           .from('journal_entries')
           .select('id, entry_date, source_id')
           .eq('source_type', 'bill_payment')
-          .in('source_id', billIds);
+          .in('source_id', legacyBillIds);
 
         if (journalEntries && journalEntries.length > 0) {
           const jeIds = journalEntries.map(je => je.id);
-          
-          // Get the credit amounts from journal lines for the bank account
           const { data: journalLines } = await supabase
             .from('journal_entry_lines')
             .select('journal_entry_id, credit')
@@ -99,23 +151,19 @@ export function ReconciliationReviewDialog({
             .eq('account_id', bankAccountId)
             .gt('credit', 0);
 
-          // Aggregate amounts per bill
           const billToAmount = new Map<string, number>();
           const billToDate = new Map<string, string>();
-          
           journalEntries.forEach(je => {
             const lines = (journalLines || []).filter(l => l.journal_entry_id === je.id);
             const total = lines.reduce((sum, l) => sum + Number(l.credit), 0);
-            const existing = billToAmount.get(je.source_id) || 0;
-            billToAmount.set(je.source_id, existing + total);
-            
+            billToAmount.set(je.source_id, (billToAmount.get(je.source_id) || 0) + total);
             const existingDate = billToDate.get(je.source_id);
             if (!existingDate || je.entry_date > existingDate) {
               billToDate.set(je.source_id, je.entry_date);
             }
           });
 
-          billPayments = bills.map(bill => ({
+          const legacyPayments = legacyBills.map(bill => ({
             id: bill.id,
             date: billToDate.get(bill.id) || '',
             payee: vendorMap.get(bill.vendor_id) || 'Unknown Vendor',
@@ -123,6 +171,12 @@ export function ReconciliationReviewDialog({
             amount: billToAmount.get(bill.id) || 0,
             type: 'bill_payment' as const,
           })).filter(bp => bp.amount > 0);
+
+          // Only add legacy ones not already covered by JE line approach
+          const existingIds = new Set(billPayments.map(bp => bp.id));
+          legacyPayments.forEach(lp => {
+            if (!existingIds.has(lp.id)) billPayments.push(lp);
+          });
         }
       }
 

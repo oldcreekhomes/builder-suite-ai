@@ -42,6 +42,8 @@ interface ReconciliationTransaction {
   accountAllocations?: AllocationBreakdown[];
   // For consolidated bill payments - list of bills included in this payment
   billPaymentAllocations?: BillPaymentAllocationSummary[];
+  // For legacy bill payments - track the source bill ID for exclusion filtering
+  sourceBillId?: string;
 }
 
 interface BankReconciliation {
@@ -235,10 +237,10 @@ export const useBankReconciliation = () => {
           const jeIds = journalEntries.map(je => je.id);
 
           // Step 2: Get journal entry lines that credit this bank account
-          const journalLines = await batchedIn<{ journal_entry_id: string; credit: number }>(
+          const journalLines = await batchedIn<{ id: string; journal_entry_id: string; credit: number; reconciled: boolean; reconciliation_id: string | null; reconciliation_date: string | null }>(
             (ids) => supabase
               .from('journal_entry_lines')
-              .select('journal_entry_id, credit')
+              .select('id, journal_entry_id, credit, reconciled, reconciliation_id, reconciliation_date')
               .in('journal_entry_id', ids)
               .eq('account_id', bankAccountId)
               .gt('credit', 0),
@@ -252,15 +254,12 @@ export const useBankReconciliation = () => {
           }
 
           if (journalLines && journalLines.length > 0) {
-            // Map journal entry to credit amount
-            const jeToCredit = new Map();
-            const jeToDate = new Map();
+            // Build a map from journal_entry_id to its journal lines (with line id, credit, reconciliation info)
+            const jeToLines = new Map<string, typeof journalLines>();
             journalLines.forEach(jl => {
-              const existing = jeToCredit.get(jl.journal_entry_id) || 0;
-              jeToCredit.set(jl.journal_entry_id, existing + Number(jl.credit));
-            });
-            journalEntries.forEach(je => {
-              jeToDate.set(je.id, je.entry_date);
+              const existing = jeToLines.get(jl.journal_entry_id) || [];
+              existing.push(jl);
+              jeToLines.set(jl.journal_entry_id, existing);
             });
 
             // Get bill IDs from journal entries
@@ -274,7 +273,7 @@ export const useBankReconciliation = () => {
                 (ids) => {
                   let q = supabase
                     .from('bills')
-                    .select('id, reference_number, status, reconciled, reconciliation_date, reconciliation_id, vendor_id, project_id')
+                    .select('id, reference_number, status, vendor_id, project_id')
                     .in('id', ids);
                   if (projectId) {
                     q = q.eq('project_id', projectId);
@@ -293,19 +292,11 @@ export const useBankReconciliation = () => {
               console.error('[Reconciliation] Bills query failed:', billsError);
             }
 
-            // Filter bills: show unreconciled (or orphaned treated as unreconciled)
-            // We need to check the JE entry_date for cutoff since that's the payment date
-            const bills = (allBillsRaw || []).filter(b => {
-              // Skip reversed bills entirely - they're not real transactions anymore
-              if (b.status === 'reversed') return false;
-              // Properly reconciled for THIS project - skip
-              const effectivelyReconciled = b.reconciled && b.reconciliation_id && validReconciliationIds.has(b.reconciliation_id);
-              if (effectivelyReconciled) return false;
-              // For unreconciled (or orphaned), we'll apply cutoff later when we have the JE date
-              return true;
-            });
+            // Filter out reversed bills
+            const bills = (allBillsRaw || []).filter(b => b.status !== 'reversed');
+            const billMap = new Map(bills.map(b => [b.id, b]));
 
-            if (bills && bills.length > 0) {
+            if (bills.length > 0) {
               // Step 4: Fetch vendor names
               const vendorIds = [...new Set(bills.map(b => b.vendor_id))];
               const { data: vendors } = await supabase
@@ -315,50 +306,39 @@ export const useBankReconciliation = () => {
 
               const vendorMap = new Map((vendors || []).map(v => [v.id, v.company_name]));
 
-              // Step 5: Build transactions
-              // For each bill, aggregate total credits from ALL related journal entries
-              const billToTotalCredit = new Map<string, number>();
-              const billToLatestDate = new Map<string, string>();
-
+              // Step 5: Build transactions — one per journal entry (not per bill)
+              // Each journal entry represents a distinct payment event
               journalEntries.forEach(je => {
-                const jeCredit = jeToCredit.get(je.id) || 0;
-                if (jeCredit > 0) {
-                  const existingTotal = billToTotalCredit.get(je.source_id) || 0;
-                  billToTotalCredit.set(je.source_id, existingTotal + jeCredit);
-                  
-                  // Keep the latest entry date for the transaction
-                  const existingDate = billToLatestDate.get(je.source_id);
-                  if (!existingDate || je.entry_date > existingDate) {
-                    billToLatestDate.set(je.source_id, je.entry_date);
-                  }
-                }
-              });
+                const bill = billMap.get(je.source_id);
+                if (!bill) return;
 
-              billPaymentTransactions = bills
-                .filter(bill => billToTotalCredit.has(bill.id))
-                .map(bill => {
-                  const entryDate = billToLatestDate.get(bill.id) || '';
-                  // Treat orphaned as effectively unreconciled for this project
-                  const effectivelyReconciled = bill.reconciled && bill.reconciliation_id && 
-                    validReconciliationIds.has(bill.reconciliation_id);
-                  return {
-                    id: bill.id,
-                    date: entryDate,
+                const lines = jeToLines.get(je.id) || [];
+                // Each JE line crediting the bank account is a separate reconcilable unit
+                lines.forEach(line => {
+                  const credit = Number(line.credit);
+                  if (credit <= 0) return;
+
+                  const effectivelyReconciled = line.reconciled && line.reconciliation_id && 
+                    validReconciliationIds.has(line.reconciliation_id);
+                  if (effectivelyReconciled) return; // Hide properly reconciled
+
+                  // Apply cutoff filter
+                  if (cutoffDate && je.entry_date <= cutoffDate) return;
+
+                  billPaymentTransactions.push({
+                    id: line.id, // Use JE line ID so each partial payment is independently reconcilable
+                    date: je.entry_date,
                     type: 'bill_payment' as const,
                     payee: vendorMap.get(bill.vendor_id) || 'Unknown Vendor',
                     reference_number: bill.reference_number || undefined,
-                    amount: billToTotalCredit.get(bill.id) || 0,
-                    reconciled: effectivelyReconciled, // Report as unreconciled if orphaned
-                    reconciliation_date: effectivelyReconciled ? bill.reconciliation_date || undefined : undefined,
-                    reconciliation_id: effectivelyReconciled ? bill.reconciliation_id || undefined : undefined,
-                  };
-                })
-                // Apply cutoff filter for unreconciled bill payments
-                .filter(bp => {
-                  if (bp.reconciled) return false; // Hide properly reconciled
-                  if (cutoffDate && bp.date <= cutoffDate) return false; // Hide old unreconciled
-                  return true;
+                    amount: credit,
+                    reconciled: false,
+                    reconciliation_date: undefined,
+                    reconciliation_id: undefined,
+                    sourceBillId: bill.id, // Track the bill ID for exclusion filtering
+                  });
                 });
+              });
 
               console.log('[Reconciliation] Bill payments processed:', { 
                 count: billPaymentTransactions.length,
@@ -552,7 +532,7 @@ export const useBankReconciliation = () => {
 
         // Filter legacy bill payments to exclude those in consolidated payments
         billPaymentTransactions = billPaymentTransactions.filter(bp => 
-          !billIdsInConsolidatedPayments.has(bp.id)
+          !billIdsInConsolidatedPayments.has((bp as any).sourceBillId || bp.id)
         );
 
         console.log('[Reconciliation] Legacy bill payments after filtering:', { 
@@ -1132,8 +1112,9 @@ export const useBankReconciliation = () => {
           .eq('id', id);
         if (error) throw error;
       } else if (type === 'bill_payment') {
+        // Bill payments now use journal_entry_lines for reconciliation tracking (per-payment granularity)
         const { error } = await supabase
-          .from('bills')
+          .from('journal_entry_lines')
           .update({
             reconciled,
             reconciliation_id: reconciliationId || null,
