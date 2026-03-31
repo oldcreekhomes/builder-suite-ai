@@ -1,55 +1,54 @@
 
 
-## Fix: Slow Search Input on Bidding Page
+## Fix: Partial Bill Payments Showing as Single Entry in Reconciliation
+
+### Problem
+When a bill has multiple partial payments (e.g., $300 on 2/23 and $1,012.57 on 3/18), the reconciliation view aggregates them into **one row** showing the total ($1,312.57) with only the latest date (3/18). This makes it impossible to reconcile the February statement because the $300 payment doesn't appear as a separate line.
 
 ### Root Cause
-
-The search input is inside a `React.useEffect` (line 238-286) that calls `onHeaderActionChange(...)` to render the toolbar into the parent header. The effect's dependency array includes `searchQuery`:
+In `useBankReconciliation.ts` (lines 318-361), the code groups journal entries by `bill.id` (source_id):
 
 ```js
-}, [onHeaderActionChange, status, searchQuery, biddingItems.length, ...]);
+// Aggregates ALL payments for the same bill into one total
+billToTotalCredit.set(je.source_id, existingTotal + jeCredit);
+// Keeps only the LATEST date
+billToLatestDate.set(je.source_id, je.entry_date);
 ```
 
-Every keystroke updates `searchQuery` → triggers the effect → calls `onHeaderActionChange` with a brand new JSX tree → parent re-renders → this component re-renders → the input is **unmounted and remounted** on every keystroke. This causes extreme lag and potentially loses cursor position.
+This means 2 separate journal entries (partial payments) for the same bill get merged into 1 reconciliation row.
 
 ### Fix
+Instead of grouping by bill ID, create **one reconciliation transaction per journal entry**. Each journal entry represents a distinct payment event with its own date and amount — exactly what the bank statement shows.
 
-**File: `src/components/bidding/BiddingTable.tsx`**
+**File: `src/hooks/useBankReconciliation.ts`**
 
-1. **Remove `searchQuery` from the `useEffect` dependency array** — the search input doesn't need to re-emit the entire toolbar on every keystroke since it's a controlled input that re-renders naturally.
+1. **Replace the bill-grouped aggregation** (lines 318-361) with a per-journal-entry approach:
+   - Iterate over `journalEntries` that have credits to the bank account
+   - For each journal entry, look up the bill it belongs to (via `source_id`)
+   - Create one `ReconciliationTransaction` per journal entry, using:
+     - `id`: the journal entry ID (not the bill ID) — so each payment can be independently checked/reconciled
+     - `date`: the journal entry's `entry_date` (the actual payment date)
+     - `amount`: the credit from that specific journal entry
+     - `payee`: vendor name from the bill
 
-2. **Use a ref to keep the search value current inside the effect's JSX** — replace the inline `value={searchQuery}` / `onChange` pattern inside the effect with a small uncontrolled search component that syncs back to the parent via callback. Or simpler: extract the search `<Input>` into a tiny `SearchInput` component that manages its own local state and debounces updates to the parent `setSearchQuery`.
+2. **Update the reconciliation marking logic** for `bill_payment` type (lines 1134-1143):
+   - Currently updates the `bills` table by `id` — but now the `id` will be a journal entry ID
+   - Change to update `journal_entry_lines` with reconciliation metadata (matching the `journal_entry` type pattern), since each partial payment's journal entry line is the actual unit being reconciled
+   - Also need to add a new type like `'bill_payment_je'` or reuse the existing logic by storing the journal_entry_line_id
 
-**Concrete approach — local search component:**
+3. **Exclude bill IDs already handled by consolidated payments** — the existing `billIdsInConsolidatedPayments` exclusion filter (line 404) needs to apply against the bill IDs linked to journal entries, not the transaction IDs themselves.
 
-Create a small inline component (or extract to a file) like:
-```tsx
-function DebouncedSearchInput({ onSearch }: { onSearch: (q: string) => void }) {
-  const [local, setLocal] = useState("");
-  useEffect(() => {
-    const t = setTimeout(() => onSearch(local), 200);
-    return () => clearTimeout(t);
-  }, [local, onSearch]);
-  return (
-    <div className="relative w-64">
-      <Search className="absolute left-3 top-1/2 ..." />
-      <Input value={local} onChange={e => setLocal(e.target.value)} ... />
-    </div>
-  );
-}
-```
+4. **Update the undo reconciliation logic** to clear reconciliation data from journal_entry_lines for these per-JE bill payment rows (around line 1440+).
 
-Then inside the `useEffect`, render `<DebouncedSearchInput onSearch={setSearchQuery} />` instead of the raw `<Input>`. Since `setSearchQuery` is a stable React setter, the effect won't re-fire on every keystroke.
+### Key consideration
+The `markTransactionReconciled` mutation for `bill_payment` currently writes to the `bills` table. With per-JE rows, we need to track reconciliation at the journal entry line level instead. This aligns with how `journal_entry` type already works and is more accurate — each payment event is independently reconcilable.
 
-Remove `searchQuery` from the dependency array since the search component manages its own state internally.
-
-This fixes all 4 places the search input appears in the effect (draft toolbar, sent/closed toolbar, and the two fallback `toolbarInContent` variants).
-
-### Result
-- Typing in the search bar will be instant — no re-mounting on every keystroke
-- Filtering applies after a 200ms debounce, which also improves performance for large lists
-- No behavior changes otherwise
+### Implementation detail
+- Use `journal_entry_line_id` as the transaction ID (fetch it alongside journal_entry_id and credit)
+- Set `type: 'bill_payment'` still for display purposes
+- Mark reconciliation on `journal_entry_lines` table (same as manual JE type)
+- The bill's own `reconciled` flag becomes irrelevant for partial payments — what matters is each payment's JE line being reconciled
 
 ### Files Changed
-- `src/components/bidding/BiddingTable.tsx`
+- `src/hooks/useBankReconciliation.ts` — per-journal-entry bill payment rows + updated reconciliation marking
 
