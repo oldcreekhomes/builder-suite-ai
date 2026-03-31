@@ -1110,8 +1110,9 @@ export const useBankReconciliation = () => {
           .eq('id', id);
         if (error) throw error;
       } else if (type === 'bill_payment') {
+        // Bill payments now use journal_entry_lines for reconciliation tracking (per-payment granularity)
         const { error } = await supabase
-          .from('bills')
+          .from('journal_entry_lines')
           .update({
             reconciled,
             reconciliation_id: reconciliationId || null,
