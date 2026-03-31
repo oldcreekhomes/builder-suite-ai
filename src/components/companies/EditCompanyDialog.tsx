@@ -181,6 +181,7 @@ export function EditCompanyDialog({ company, open, onOpenChange }: EditCompanyDi
   const [activeTab, setActiveTab] = useState<'company-info' | 'representatives' | 'insurance'>('company-info');
   const [showInsuranceUpload, setShowInsuranceUpload] = useState(false);
   const initializationDone = useRef(false);
+  const costCodesInitialized = useRef(false);
 
   // Stable company ID for preventing unnecessary re-renders
   const stableCompanyId = useMemo(() => company?.id, [company?.id]);
