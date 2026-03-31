@@ -366,6 +366,7 @@ export function EditCompanyDialog({ company, open, onOpenChange }: EditCompanyDi
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['edit-company-cost-codes', company?.id] });
       queryClient.invalidateQueries({ queryKey: ['view-company-cost-codes', company?.id] });
+      queryClient.invalidateQueries({ queryKey: ['company-cost-codes-details', company?.id] });
       queryClient.invalidateQueries({ queryKey: ['companies'] });
     },
     onError: (error) => {
