@@ -474,9 +474,9 @@ export function SendBidPackageModal({ open, onOpenChange, bidPackage, filteredCo
                         <h5 className="font-medium text-sm flex-1">{company.companies?.company_name}</h5>
                       </div>
 
-                      {alreadySent && (
+                      {alreadySent && sentDate && (
                         <p className="text-[10px] text-muted-foreground ml-6">
-                          Already sent on {format(new Date(company.email_sent_at), 'MMM dd, yyyy')}
+                          Already sent on {format(new Date(sentDate), 'MMM dd, yyyy')}
                         </p>
                       )}
 
