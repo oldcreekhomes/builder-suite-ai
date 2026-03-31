@@ -209,14 +209,13 @@ export function BidPackageDetailsModal({
           <div className="border rounded-lg">
             <Table containerClassName="relative w-full">
               <TableHeader>
-                <TableRow>
-                  <TableHead>Status</TableHead>
-                  
-                  <TableHead>Due Date</TableHead>
-                  <TableHead>Reminder</TableHead>
-                  <TableHead className="text-center">Specifications</TableHead>
-                  <TableHead>Files</TableHead>
-                  <TableHead className="text-center">Actions</TableHead>
+              <TableRow>
+                  <TableHead className="w-32">Status</TableHead>
+                  <TableHead className="w-36">Due Date</TableHead>
+                  <TableHead className="w-36">Reminder</TableHead>
+                  <TableHead className="w-32 text-center">Specifications</TableHead>
+                  <TableHead className="w-40">Files</TableHead>
+                  <TableHead className="w-20 text-center">Actions</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
