@@ -163,20 +163,31 @@ export const useBiddingMutations = (projectId: string) => {
 
       if (error) throw error;
     },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['project-bidding', projectId] });
-      toast({
-        title: "Success",
-        description: "Due date updated successfully",
+    onMutate: async ({ itemId, dueDate }) => {
+      await queryClient.cancelQueries({ queryKey: ['project-bidding', projectId] });
+      const previousQueries: [any, any][] = [];
+      queryClient.getQueriesData({ queryKey: ['project-bidding', projectId] }).forEach(([key, data]) => {
+        previousQueries.push([key, data]);
       });
+      queryClient.setQueriesData({ queryKey: ['project-bidding', projectId] }, (old: any) => {
+        if (!Array.isArray(old)) return old;
+        return old.map((item: any) => item.id === itemId ? { ...item, due_date: dueDate } : item);
+      });
+      return { previousQueries };
     },
-    onError: (error) => {
+    onError: (error, _vars, context) => {
       console.error('Error updating due date:', error);
+      context?.previousQueries?.forEach(([key, data]: [any, any]) => {
+        queryClient.setQueryData(key, data);
+      });
       toast({
         title: "Error",
         description: "Failed to update due date",
         variant: "destructive",
       });
+    },
+    onSettled: () => {
+      queryClient.invalidateQueries({ queryKey: ['project-bidding', projectId] });
     },
   });
 
