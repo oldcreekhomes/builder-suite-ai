@@ -1,61 +1,43 @@
 
 
-## Fix: All Companies Checked Despite Being Already Sent
+## Fix Send Bid Package Modal — Readability, Colors, and Selection Logic
 
-### Root Cause
+### Problems Identified
 
-The `email_sent_at` column was just added to `project_bids` — all existing records have `NULL`. The initialization logic treats `email_sent_at IS NULL` as "never sent," so every company gets checked even if the bid package was already sent (`sent_on` is set on the package).
+1. **All companies show as "Already sent"** — The fallback logic `|| !!bidPackage?.sent_on` treats every company (including newly added ones like City Concrete and LCS) as already sent. Since the backfill migration already set `email_sent_at` on genuinely-sent rows, this fallback is now counterproductive.
+
+2. **Company cards are too cramped** — The `max-h-48` on the grid and small text/padding make the recipients section unreadable.
+
+3. **No color distinction** — "Already sent" is plain muted text; needs red for sent, green for not-yet-sent.
+
+4. **No companies are checked** — Because the fallback marks everything as sent, nothing gets auto-selected.
 
 ### Fix
 
-**1. Backfill existing data** (migration)
+**File: `src/components/bidding/SendBidPackageModal.tsx`**
 
-Set `email_sent_at = sent_on` for all `project_bids` rows whose parent `project_bid_packages` already has a `sent_on` date:
+1. **Remove `bidPackage?.sent_on` fallback** everywhere — only use `company.email_sent_at` to determine sent status. The backfill already populated this field for all pre-existing sent rows.
 
-```sql
-UPDATE project_bids pb
-SET email_sent_at = pbp.sent_on
-FROM project_bid_packages pbp
-WHERE pb.bid_package_id = pbp.id
-  AND pbp.sent_on IS NOT NULL
-  AND pb.email_sent_at IS NULL;
-```
+   Lines affected:
+   - Line 88: `const wasSent = company.email_sent_at;` (remove `|| packageAlreadySent`)
+   - Line 84: Remove `const packageAlreadySent = ...`
+   - Line 182: `if (company.email_sent_at) {` (remove `|| bidPackage?.sent_on`)
+   - Line 451: `const alreadySent = !!company.email_sent_at;`
+   - Line 452: `const sentDate = company.email_sent_at;`
 
-**2. Add fallback logic in the initialization** (`src/components/bidding/SendBidPackageModal.tsx`)
+2. **Increase readability of company cards**:
+   - Change `max-h-48` to `max-h-64` on the grid container (line 441)
+   - Increase card padding from `p-2` to `p-3`
 
-In the `useEffect` that sets `selectedCompanyIds`, also check the package-level `sent_on` as a fallback. If the package has `sent_on` and the company has no `email_sent_at`, treat it as already sent (uncheck it):
+3. **Color the sent status labels**:
+   - Already sent: red text (`text-red-600 font-medium`)
+   - Not yet sent: green text (`text-green-600 font-medium`) showing "Not yet sent"
 
-```ts
-useEffect(() => {
-  if (!companiesData) return;
-  const packageAlreadySent = !!bidPackage?.sent_on;
-  const newSelected = new Set<string>();
-  companiesData.forEach((company: any) => {
-    const wasSent = company.email_sent_at || packageAlreadySent;
-    if (!wasSent) {
-      newSelected.add(company.company_id);
-    }
-  });
-  setSelectedCompanyIds(newSelected);
-}, [companiesData, bidPackage?.sent_on]);
-```
-
-**3. Show "Already sent" label using fallback date**
-
-For the `alreadySent` flag and display date, fall back to the package's `sent_on` when `email_sent_at` is null:
-
-```ts
-const alreadySent = !!company.email_sent_at || !!bidPackage?.sent_on;
-const sentDate = company.email_sent_at || bidPackage?.sent_on;
-```
-
-### Files Changed
-- **Migration** — backfill `email_sent_at` from `project_bid_packages.sent_on`
-- `src/components/bidding/SendBidPackageModal.tsx` — fallback logic for initialization and display
+4. **Auto-check companies that have NOT been sent** — this already works correctly once the fallback is removed. Companies with `email_sent_at = NULL` get checked.
 
 ### Result
-- Previously-sent companies are correctly unchecked by default
-- The "Already sent on..." label shows the correct date
-- Only newly added companies are auto-checked
-- Users must explicitly re-check to resend
+- Newly added companies (no `email_sent_at`) are auto-checked and show green "Not yet sent"
+- Previously sent companies are unchecked and show red "Already sent on {date}"
+- Cards are more readable with more space
+- The "Already sent on" dates are real (from the backfill)
 
