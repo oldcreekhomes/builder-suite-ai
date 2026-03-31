@@ -1,37 +1,43 @@
 
 
-## Fix Header Spacing in Bid Package Details Modal
+## Options for Specifications & Files in the Management Table
 
-### Problem
-The 6 columns (Status, Due Date, Reminder, Specifications, Files, Actions) have uneven widths creating an awkward, cramped layout. The left 3 controls are squeezed while Specs/Files have wasted space.
+### The Problem
+Specifications (a single paperclip icon) and Files (file icons + "Add Files" button) are squeezed into narrow table columns that look awkward — the icon sits alone in a cramped cell, and the files spill out unevenly.
 
-### Solution
+### Recommended Option: Move Specs & Files Below the Table as an Inline Toolbar
 
-**File: `src/components/bidding/BidPackageDetailsModal.tsx` (lines 212-219)**
+Instead of cramming these into table columns, pull them out of the 6-column table entirely and render them as a clean horizontal toolbar row just below the table:
 
-1. **Make Status, Due Date, Reminder equal width** — all three get `w-36` so the form controls align cleanly.
+```text
+┌──────────────────────────────────────────────────────────┐
+│ Status      Due Date      Reminder               Actions │  ← 4-column table (clean, spacious)
+│ [Sent ▾]   [04/16/2026]  [04/14/2026]              ···  │
+└──────────────────────────────────────────────────────────┘
+  📎 Specifications: View/Edit    📄 Files: plan.pdf  erosion.xlsx  [Add Files ▾]
+```
 
-2. **Merge Specifications and Files into a single "Specs & Files" column** — these are both compact icon-based cells. Combining them into one wider column (no explicit width, just flex to fill remaining space) eliminates the awkward gap and groups related content together. The cell would show the spec icon followed by the file icons inline.
+- The table drops from 6 columns to 4 (Status, Due Date, Reminder, Actions) — all evenly spaced
+- Specs and Files become a simple flex row underneath with proper breathing room
+- The specs icon + label and file icons + "Add Files" button sit side by side naturally
 
-Actually, merging cells requires changing the row components too. Let me propose a simpler approach:
+### Implementation
 
-**Simpler approach — just rebalance widths:**
+**File: `src/components/bidding/BidPackageDetailsModal.tsx`**
 
-| Column | Current | New |
-|--------|---------|-----|
-| Status | `w-32` | `w-36` |
-| Due Date | `w-36` | `w-36` |
-| Reminder | `w-36` | `w-36` |
-| Specifications | `w-32 text-center` | `w-24 text-center` |
-| Files | `w-40` | `w-auto` (fills remaining) |
-| Actions | `w-20 text-center` | `w-16 text-center` |
+1. Remove `Specifications` and `Files` `<TableHead>` entries (lines 216-217) — table becomes 4 columns
+2. Remove `<BiddingTableRowSpecs>` and `<BiddingTableRowFiles>` from the `<TableRow>` (lines 262-275)
+3. Add a new `<div>` right after the closing `</div>` of the table border container (after line 292), containing:
+   - A flex row with the specs button/icon (extracted from BiddingTableRowSpecs logic) and the files section (extracted from BiddingTableRowFiles logic)
+   - Both rendered as regular div children instead of TableCells
+   - Styled with `flex items-center gap-6 px-4 py-2 border rounded-lg mt-2`
 
-This makes the left 3 columns equal, shrinks Specifications (it's just a single icon), lets Files expand naturally to use available space, and tightens Actions (just a 3-dot menu).
+**Files: `BiddingTableRowSpecs.tsx` and `BiddingTableRowFiles.tsx`**
 
-### Technical Details
+4. Add an optional `asDiv` prop (or create wrapper variants) that renders the content without `<TableCell>` wrapping, so they can be used outside a table context
 
-Single edit to lines 212-219 of `BidPackageDetailsModal.tsx` — update the 6 `className` width values on the `<TableHead>` elements.
-
-### Files Changed
-- `src/components/bidding/BidPackageDetailsModal.tsx` — rebalance header column widths
+### Result
+- The top management table is clean with 4 evenly-spaced columns
+- Specs and Files have proper room to breathe in their own row below
+- File icons, delete buttons, and "Add Files" dropdown display without cramping
 
