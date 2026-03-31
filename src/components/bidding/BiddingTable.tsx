@@ -1,5 +1,5 @@
 
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useCallback, useEffect } from 'react';
 import { Table, TableBody, TableCell, TableRow } from '@/components/ui/table';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -7,6 +7,25 @@ import { Progress } from '@/components/ui/progress';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { X, XCircle, Settings, Search, History, Package } from 'lucide-react';
+
+function DebouncedSearchInput({ onSearch }: { onSearch: (q: string) => void }) {
+  const [local, setLocal] = useState("");
+  useEffect(() => {
+    const t = setTimeout(() => onSearch(local), 200);
+    return () => clearTimeout(t);
+  }, [local, onSearch]);
+  return (
+    <div className="relative w-64">
+      <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
+      <Input
+        placeholder="Search bids..."
+        value={local}
+        onChange={(e) => setLocal(e.target.value)}
+        className="pl-9 h-9"
+      />
+    </div>
+  );
+}
 import { useHistoricalProjects, parseHistoricalKey } from '@/hooks/useHistoricalProjects';
 import { useHistoricalActualCosts } from '@/hooks/useHistoricalActualCosts';
 import { AddBiddingModal } from './AddBiddingModal';
@@ -240,15 +259,7 @@ export function BiddingTable({ projectId, projectAddress, status, onHeaderAction
       if (status === 'draft') {
         onHeaderActionChange(
           <div className="flex items-center gap-2">
-            <div className="relative w-64">
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
-              <Input
-                placeholder="Search bids..."
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                className="pl-9 h-9"
-              />
-            </div>
+            <DebouncedSearchInput onSearch={setSearchQuery} />
             {historicalDropdown}
             <Button 
               variant="outline"
@@ -268,35 +279,19 @@ export function BiddingTable({ projectId, projectAddress, status, onHeaderAction
       } else {
         onHeaderActionChange(
           <div className="flex items-center gap-2">
-            <div className="relative w-64">
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
-              <Input
-                placeholder="Search bids..."
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                className="pl-9 h-9"
-              />
-            </div>
+            <DebouncedSearchInput onSearch={setSearchQuery} />
             {historicalDropdown}
           </div>
         );
       }
       return () => onHeaderActionChange(null);
     }
-  }, [onHeaderActionChange, status, searchQuery, biddingItems.length, selectedHistoricalProjectId, historicalProjects]);
+  }, [onHeaderActionChange, status, biddingItems.length, selectedHistoricalProjectId, historicalProjects]);
 
   const toolbarInContent = !onHeaderActionChange ? (
     status === 'draft' ? (
       <div className="flex items-center justify-between">
-        <div className="relative max-w-sm">
-          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
-          <Input
-            placeholder="Search bids..."
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            className="pl-9"
-          />
-        </div>
+        <DebouncedSearchInput onSearch={setSearchQuery} />
         <div className="flex items-center space-x-2">
           <Button 
             variant="outline"
@@ -314,15 +309,7 @@ export function BiddingTable({ projectId, projectAddress, status, onHeaderAction
         </div>
       </div>
     ) : (
-      <div className="relative max-w-sm">
-        <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
-        <Input
-          placeholder="Search bids..."
-          value={searchQuery}
-          onChange={(e) => setSearchQuery(e.target.value)}
-          className="pl-9"
-        />
-      </div>
+      <DebouncedSearchInput onSearch={setSearchQuery} />
     )
   ) : null;
 
