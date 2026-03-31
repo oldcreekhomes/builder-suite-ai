@@ -88,8 +88,10 @@ export function BiddingTableRowFiles({
   // Get existing file paths to exclude from project files modal
   const existingFilePaths = (item.files || []).map((f: string) => getProjectFileStoragePath(f));
 
+  const Wrapper = asDiv ? 'div' : TableCell;
+
   return (
-    <TableCell className={cellClassName} onClick={onCellClick}>
+    <Wrapper className={cellClassName} onClick={onCellClick}>
       <div className="flex items-center space-x-2">
         {/* Show specification files if they exist */}
         {item.files && item.files.length > 0 && (
