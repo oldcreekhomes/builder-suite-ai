@@ -42,6 +42,12 @@ export function BudgetSourceBadge({ item }: BudgetSourceBadgeProps) {
             className: 'bg-orange-100 text-orange-700 border-orange-200',
             tooltip: 'From default cost code settings'
           };
+        case 'actual':
+          return {
+            label: 'Actual',
+            className: 'bg-teal-100 text-teal-700 border-teal-200',
+            tooltip: 'From actual costs'
+          };
         case 'manual':
           return {
             label: 'Manual',
