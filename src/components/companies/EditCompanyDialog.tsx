@@ -306,6 +306,7 @@ export function EditCompanyDialog({ company, open, onOpenChange }: EditCompanyDi
       setActiveTab('company-info');
       setShowInsuranceUpload(false);
       initializationDone.current = false;
+      costCodesInitialized.current = false;
       form.reset();
     }
   }, [open, form]);
