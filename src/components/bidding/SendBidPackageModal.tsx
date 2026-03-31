@@ -81,17 +81,14 @@ export function SendBidPackageModal({ open, onOpenChange, bidPackage, filteredCo
   // Initialize selectedCompanyIds when data loads
   useEffect(() => {
     if (!companiesData) return;
-    const packageAlreadySent = !!bidPackage?.sent_on;
     const newSelected = new Set<string>();
     companiesData.forEach((company: any) => {
-      // Auto-select companies that have NOT been sent yet
-      const wasSent = company.email_sent_at || packageAlreadySent;
-      if (!wasSent) {
+      if (!company.email_sent_at) {
         newSelected.add(company.company_id);
       }
     });
     setSelectedCompanyIds(newSelected);
-  }, [companiesData, bidPackage?.sent_on]);
+  }, [companiesData]);
 
   // Fetch project information
   const { data: projectData } = useQuery({
