@@ -445,13 +445,13 @@ export function SendBidPackageModal({ open, onOpenChange, bidPackage, filteredCo
                   if (notificationReps.length === 0) return null;
 
                   const isSelected = selectedCompanyIds.has(company.company_id);
-                  const alreadySent = !!company.email_sent_at || !!bidPackage?.sent_on;
-                  const sentDate = company.email_sent_at || bidPackage?.sent_on;
+                  const alreadySent = !!company.email_sent_at;
+                  const sentDate = company.email_sent_at;
 
                   return (
                     <div
                       key={company.id}
-                      className={`border rounded-lg p-2 space-y-1 cursor-pointer transition-colors ${
+                      className={`border rounded-lg p-3 space-y-1 cursor-pointer transition-colors ${
                         isSelected
                           ? 'border-primary bg-primary/5'
                           : alreadySent
@@ -471,9 +471,13 @@ export function SendBidPackageModal({ open, onOpenChange, bidPackage, filteredCo
                         <h5 className="font-medium text-sm flex-1">{company.companies?.company_name}</h5>
                       </div>
 
-                      {alreadySent && sentDate && (
-                        <p className="text-[10px] text-muted-foreground ml-6">
+                      {alreadySent && sentDate ? (
+                        <p className="text-[10px] text-red-600 font-medium ml-6">
                           Already sent on {format(new Date(sentDate), 'MMM dd, yyyy')}
+                        </p>
+                      ) : (
+                        <p className="text-[10px] text-green-600 font-medium ml-6">
+                          Not yet sent
                         </p>
                       )}
 
