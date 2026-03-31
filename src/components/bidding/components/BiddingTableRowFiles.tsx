@@ -173,6 +173,6 @@ export function BiddingTableRowFiles({
           existingFiles={existingFilePaths}
         />
       )}
-    </TableCell>
+    </Wrapper>
   );
 }
