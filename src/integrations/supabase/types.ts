@@ -3092,6 +3092,7 @@ export type Database = {
           budget_source: string | null
           cost_code_id: string
           created_at: string
+          historical_lot_id: string | null
           historical_project_id: string | null
           id: string
           lot_id: string | null
@@ -3106,6 +3107,7 @@ export type Database = {
           budget_source?: string | null
           cost_code_id: string
           created_at?: string
+          historical_lot_id?: string | null
           historical_project_id?: string | null
           id?: string
           lot_id?: string | null
@@ -3120,6 +3122,7 @@ export type Database = {
           budget_source?: string | null
           cost_code_id?: string
           created_at?: string
+          historical_lot_id?: string | null
           historical_project_id?: string | null
           id?: string
           lot_id?: string | null
@@ -3135,6 +3138,13 @@ export type Database = {
             columns: ["cost_code_id"]
             isOneToOne: false
             referencedRelation: "cost_codes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "project_budgets_historical_lot_id_fkey"
+            columns: ["historical_lot_id"]
+            isOneToOne: false
+            referencedRelation: "project_lots"
             referencedColumns: ["id"]
           },
           {
