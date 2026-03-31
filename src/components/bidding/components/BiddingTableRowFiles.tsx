@@ -28,6 +28,7 @@ interface BiddingTableRowFilesProps {
   onLinkProjectFiles?: (itemId: string, storagePaths: string[]) => void;
   onCellClick?: (e: React.MouseEvent) => void;
   cellClassName?: string;
+  asDiv?: boolean;
 }
 
 export function BiddingTableRowFiles({ 
