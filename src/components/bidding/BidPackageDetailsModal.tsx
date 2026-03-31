@@ -211,7 +211,7 @@ export function BidPackageDetailsModal({
               <TableHeader>
                 <TableRow>
                   <TableHead>Status</TableHead>
-                  <TableHead>Sent On</TableHead>
+                  
                   <TableHead>Due Date</TableHead>
                   <TableHead>Reminder</TableHead>
                   <TableHead className="text-center">Specifications</TableHead>
@@ -236,9 +236,6 @@ export function BidPackageDetailsModal({
                         <SelectItem value="closed">Closed</SelectItem>
                       </SelectContent>
                     </Select>
-                  </TableCell>
-                  <TableCell className={cn("text-sm", !item.sent_on && "text-muted-foreground")}>
-                    {item.sent_on ? format(new Date(item.sent_on), 'MM/dd/yyyy') : 'mm/dd/yyyy'}
                   </TableCell>
                   <TableCell>
                     <BiddingDatePicker

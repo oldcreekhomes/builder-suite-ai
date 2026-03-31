@@ -8,6 +8,7 @@ import { ConfirmPODialog } from '../ConfirmPODialog';
 import { usePOStatus } from '@/hooks/usePOStatus';
 import { TableRowActions } from '@/components/ui/table-row-actions';
 import { Badge } from '@/components/ui/badge';
+import { format } from 'date-fns';
 import type { AwardedPO } from '@/hooks/useBidPackagePO';
 
 interface Company {
@@ -23,6 +24,7 @@ interface BiddingCompany {
   bid_status: 'will_bid' | 'will_not_bid' | null;
   price: number | null;
   proposals: string[] | null;
+  email_sent_at: string | null;
   companies: Company;
 }
 
@@ -123,8 +125,19 @@ export function BiddingCompanyRow({
         )}
       </TableCell>
       <TableCell>
+        {biddingCompany.email_sent_at ? (
+          <span className="text-xs text-red-600 font-medium whitespace-nowrap">
+            {format(new Date(biddingCompany.email_sent_at), 'MMM dd, yyyy')}
+          </span>
+        ) : (
+          <span className="text-xs text-green-600 font-medium whitespace-nowrap">
+            Not sent
+          </span>
+        )}
+      </TableCell>
+      <TableCell>
         <Select 
-          value={biddingCompany.bid_status || "no_choice"} 
+          value={biddingCompany.bid_status || "no_choice"}
           onValueChange={(value) => onBidStatusChange(biddingCompany.id, value === "no_choice" ? null : value)}
           disabled={isReadOnly}
         >
