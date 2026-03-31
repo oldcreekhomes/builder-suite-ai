@@ -28,6 +28,7 @@ interface BiddingTableRowFilesProps {
   onLinkProjectFiles?: (itemId: string, storagePaths: string[]) => void;
   onCellClick?: (e: React.MouseEvent) => void;
   cellClassName?: string;
+  asDiv?: boolean;
 }
 
 export function BiddingTableRowFiles({ 
@@ -38,7 +39,8 @@ export function BiddingTableRowFiles({
   onDeleteIndividualFile,
   onLinkProjectFiles,
   onCellClick,
-  cellClassName
+  cellClassName,
+  asDiv = false
 }: BiddingTableRowFilesProps) {
   const [fileToDelete, setFileToDelete] = useState<string | null>(null);
   const [showProjectFilesModal, setShowProjectFilesModal] = useState(false);
@@ -86,8 +88,10 @@ export function BiddingTableRowFiles({
   // Get existing file paths to exclude from project files modal
   const existingFilePaths = (item.files || []).map((f: string) => getProjectFileStoragePath(f));
 
+  const Wrapper = asDiv ? 'div' : TableCell;
+
   return (
-    <TableCell className={cellClassName} onClick={onCellClick}>
+    <Wrapper className={cellClassName} onClick={onCellClick}>
       <div className="flex items-center space-x-2">
         {/* Show specification files if they exist */}
         {item.files && item.files.length > 0 && (
@@ -169,6 +173,6 @@ export function BiddingTableRowFiles({
           existingFiles={existingFilePaths}
         />
       )}
-    </TableCell>
+    </Wrapper>
   );
 }

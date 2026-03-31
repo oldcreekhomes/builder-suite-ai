@@ -210,11 +210,9 @@ export function BidPackageDetailsModal({
             <Table containerClassName="relative w-full">
               <TableHeader>
               <TableRow>
-                  <TableHead className="w-36">Status</TableHead>
-                  <TableHead className="w-36">Due Date</TableHead>
-                  <TableHead className="w-36">Reminder</TableHead>
-                  <TableHead className="w-24 text-center">Specifications</TableHead>
-                  <TableHead className="w-auto">Files</TableHead>
+                  <TableHead className="w-1/3">Status</TableHead>
+                  <TableHead className="w-1/3">Due Date</TableHead>
+                  <TableHead className="w-1/3">Reminder</TableHead>
                   <TableHead className="w-16 text-center">Actions</TableHead>
                 </TableRow>
               </TableHeader>
@@ -259,20 +257,6 @@ export function BidPackageDetailsModal({
                       dueDate={item.due_date}
                     />
                   </TableCell>
-                  <BiddingTableRowSpecs
-                    item={item}
-                    costCode={costCode}
-                    onUpdateSpecifications={(itemId, specs) => onUpdateSpecifications?.(itemId, specs)}
-                    isReadOnly={isReadOnly}
-                  />
-                  <BiddingTableRowFiles
-                    item={item}
-                    projectId={item.project_id}
-                    onFileUpload={(itemId, files) => onFileUpload?.(itemId, files)}
-                    onDeleteIndividualFile={(itemId, fileName) => onDeleteIndividualFile?.(itemId, fileName)}
-                    onLinkProjectFiles={onLinkProjectFiles}
-                    isReadOnly={isReadOnly}
-                  />
                   <BiddingTableRowActions
                     item={item}
                     costCode={costCode}
@@ -289,6 +273,33 @@ export function BidPackageDetailsModal({
                 </TableRow>
               </TableBody>
             </Table>
+          </div>
+
+          {/* Specifications & Files Toolbar */}
+          <div className="flex items-center gap-6 px-4 py-3 border rounded-lg mt-2">
+            <div className="flex items-center gap-2">
+              <span className="text-sm font-medium text-muted-foreground">Specifications:</span>
+              <BiddingTableRowSpecs
+                item={item}
+                costCode={costCode}
+                onUpdateSpecifications={(itemId, specs) => onUpdateSpecifications?.(itemId, specs)}
+                isReadOnly={isReadOnly}
+                asDiv
+              />
+            </div>
+            <div className="h-6 w-px bg-border" />
+            <div className="flex items-center gap-2">
+              <span className="text-sm font-medium text-muted-foreground">Files:</span>
+              <BiddingTableRowFiles
+                item={item}
+                projectId={item.project_id}
+                onFileUpload={(itemId, files) => onFileUpload?.(itemId, files)}
+                onDeleteIndividualFile={(itemId, fileName) => onDeleteIndividualFile?.(itemId, fileName)}
+                onLinkProjectFiles={onLinkProjectFiles}
+                isReadOnly={isReadOnly}
+                asDiv
+              />
+            </div>
           </div>
 
           {/* Bulk Action Bar for Selected Companies */}

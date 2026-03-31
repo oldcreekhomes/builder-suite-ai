@@ -12,6 +12,7 @@ interface BiddingTableRowSpecsProps {
   isReadOnly?: boolean;
   cellClassName?: string;
   onCellClick?: (e: React.MouseEvent) => void;
+  asDiv?: boolean;
 }
 
 export function BiddingTableRowSpecs({ 
@@ -20,47 +21,54 @@ export function BiddingTableRowSpecs({
   onUpdateSpecifications,
   isReadOnly = false,
   cellClassName,
-  onCellClick
+  onCellClick,
+  asDiv = false
 }: BiddingTableRowSpecsProps) {
   const [showSpecsModal, setShowSpecsModal] = useState(false);
 
+  const content = (
+    <div className="flex items-center justify-center">
+      {item.specifications && item.specifications.trim() !== '' ? (
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={() => setShowSpecsModal(true)}
+            >
+              <Paperclip className="h-4 w-4 text-blue-600" />
+            </Button>
+          </TooltipTrigger>
+          <TooltipContent>
+            <p>{isReadOnly ? "View Specifications" : "View/Edit Specifications"}</p>
+          </TooltipContent>
+        </Tooltip>
+      ) : (
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => setShowSpecsModal(true)}
+            >
+              {isReadOnly ? 'View Specs' : 'Add Specs'}
+            </Button>
+          </TooltipTrigger>
+          <TooltipContent>
+            <p>{isReadOnly ? "View Specifications" : "Add Specifications"}</p>
+          </TooltipContent>
+        </Tooltip>
+      )}
+    </div>
+  );
+
+  const Wrapper = asDiv ? 'div' : TableCell;
+
   return (
     <>
-      <TableCell className={cellClassName} onClick={onCellClick}>
-        <div className="flex items-center justify-center">
-          {item.specifications && item.specifications.trim() !== '' ? (
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  onClick={() => setShowSpecsModal(true)}
-                >
-                  <Paperclip className="h-4 w-4 text-blue-600" />
-                </Button>
-              </TooltipTrigger>
-              <TooltipContent>
-                <p>{isReadOnly ? "View Specifications" : "View/Edit Specifications"}</p>
-              </TooltipContent>
-            </Tooltip>
-          ) : (
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => setShowSpecsModal(true)}
-                >
-                  {isReadOnly ? 'View Specs' : 'Add Specs'}
-                </Button>
-              </TooltipTrigger>
-              <TooltipContent>
-                <p>{isReadOnly ? "View Specifications" : "Add Specifications"}</p>
-              </TooltipContent>
-            </Tooltip>
-          )}
-        </div>
-      </TableCell>
+      <Wrapper className={cellClassName} onClick={onCellClick}>
+        {content}
+      </Wrapper>
 
       <EditBiddingSpecificationsModal
         open={showSpecsModal}
