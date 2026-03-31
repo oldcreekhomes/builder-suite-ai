@@ -33,7 +33,7 @@ export function CompanyCostCodesModal({
   onOpenChange,
 }: CompanyCostCodesModalProps) {
   const { data: costCodes = [], isLoading } = useQuery({
-    queryKey: ['company-cost-codes', company?.id],
+    queryKey: ['view-company-cost-codes', company?.id],
     queryFn: async () => {
       if (!company?.id) return [];
       

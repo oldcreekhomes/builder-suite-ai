@@ -185,6 +185,9 @@ export function EditCompanyDialog({ company, open, onOpenChange }: EditCompanyDi
 
   // Stable company ID for preventing unnecessary re-renders
   const stableCompanyId = useMemo(() => company?.id, [company?.id]);
+  
+  // Track original cost codes loaded from DB to enable diff-based saves
+  const originalCostCodesRef = useRef<string[]>([]);
 
   const form = useForm<CompanyFormData>({
     resolver: zodResolver(companySchema),
