@@ -81,15 +81,17 @@ export function SendBidPackageModal({ open, onOpenChange, bidPackage, filteredCo
   // Initialize selectedCompanyIds when data loads
   useEffect(() => {
     if (!companiesData) return;
+    const packageAlreadySent = !!bidPackage?.sent_on;
     const newSelected = new Set<string>();
     companiesData.forEach((company: any) => {
       // Auto-select companies that have NOT been sent yet
-      if (!company.email_sent_at) {
+      const wasSent = company.email_sent_at || packageAlreadySent;
+      if (!wasSent) {
         newSelected.add(company.company_id);
       }
     });
     setSelectedCompanyIds(newSelected);
-  }, [companiesData]);
+  }, [companiesData, bidPackage?.sent_on]);
 
   // Fetch project information
   const { data: projectData } = useQuery({
@@ -177,7 +179,7 @@ export function SendBidPackageModal({ open, onOpenChange, bidPackage, filteredCo
       ) || [];
       if (reps.length > 0) {
         total += reps.length;
-        if (company.email_sent_at) {
+        if (company.email_sent_at || bidPackage?.sent_on) {
           resendC++;
         } else {
           newC++;
@@ -446,7 +448,8 @@ export function SendBidPackageModal({ open, onOpenChange, bidPackage, filteredCo
                   if (notificationReps.length === 0) return null;
 
                   const isSelected = selectedCompanyIds.has(company.company_id);
-                  const alreadySent = !!company.email_sent_at;
+                  const alreadySent = !!company.email_sent_at || !!bidPackage?.sent_on;
+                  const sentDate = company.email_sent_at || bidPackage?.sent_on;
 
                   return (
                     <div
@@ -471,9 +474,9 @@ export function SendBidPackageModal({ open, onOpenChange, bidPackage, filteredCo
                         <h5 className="font-medium text-sm flex-1">{company.companies?.company_name}</h5>
                       </div>
 
-                      {alreadySent && (
+                      {alreadySent && sentDate && (
                         <p className="text-[10px] text-muted-foreground ml-6">
-                          Already sent on {format(new Date(company.email_sent_at), 'MMM dd, yyyy')}
+                          Already sent on {format(new Date(sentDate), 'MMM dd, yyyy')}
                         </p>
                       )}
 
