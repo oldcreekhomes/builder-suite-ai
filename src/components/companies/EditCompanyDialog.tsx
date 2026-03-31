@@ -298,6 +298,7 @@ export function EditCompanyDialog({ company, open, onOpenChange }: EditCompanyDi
     if (open && !costCodesInitialized.current && !isFetchingCostCodes) {
       console.log('Setting cost codes:', companyCostCodes);
       setSelectedCostCodes([...companyCostCodes]);
+      originalCostCodesRef.current = [...companyCostCodes];
       costCodesInitialized.current = true;
     }
   }, [open, companyCostCodes, isFetchingCostCodes]);
