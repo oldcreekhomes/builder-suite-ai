@@ -206,8 +206,8 @@ export function BidPackageDetailsModal({
           )}
 
           {/* Bid Package Management Section */}
-          <div className="grid grid-cols-[1fr_1fr_1fr_auto_auto_auto] gap-4 items-end border rounded-lg p-4">
-            <div>
+          <div className="grid grid-cols-6 gap-4 items-end border rounded-lg p-4">
+            <div className="min-w-0">
               <label className="text-xs font-medium text-muted-foreground mb-1 block">Status</label>
               <Select
                 value={item.status || 'draft'}
@@ -224,7 +224,7 @@ export function BidPackageDetailsModal({
                 </SelectContent>
               </Select>
             </div>
-            <div>
+            <div className="min-w-0">
               <label className="text-xs font-medium text-muted-foreground mb-1 block">Due Date</label>
               <BiddingDatePicker
                 value={item.due_date}
@@ -236,7 +236,7 @@ export function BidPackageDetailsModal({
                 field="due_date"
               />
             </div>
-            <div>
+            <div className="min-w-0">
               <label className="text-xs font-medium text-muted-foreground mb-1 block">Reminder</label>
               <BiddingDatePicker
                 value={item.reminder_date}
@@ -249,44 +249,50 @@ export function BidPackageDetailsModal({
                 dueDate={item.due_date}
               />
             </div>
-            <div className="flex flex-col items-center">
+            <div className="min-w-0">
               <label className="text-xs font-medium text-muted-foreground mb-1 block">Specs</label>
-              <BiddingTableRowSpecs
-                item={item}
-                costCode={costCode}
-                onUpdateSpecifications={(itemId, specs) => onUpdateSpecifications?.(itemId, specs)}
-                isReadOnly={isReadOnly}
-                asDiv
-              />
+              <div className="h-9 flex items-center">
+                <BiddingTableRowSpecs
+                  item={item}
+                  costCode={costCode}
+                  onUpdateSpecifications={(itemId, specs) => onUpdateSpecifications?.(itemId, specs)}
+                  isReadOnly={isReadOnly}
+                  asDiv
+                />
+              </div>
             </div>
-            <div>
+            <div className="min-w-0">
               <label className="text-xs font-medium text-muted-foreground mb-1 block">Files</label>
-              <BiddingTableRowFiles
-                item={item}
-                projectId={item.project_id}
-                onFileUpload={(itemId, files) => onFileUpload?.(itemId, files)}
-                onDeleteIndividualFile={(itemId, fileName) => onDeleteIndividualFile?.(itemId, fileName)}
-                onLinkProjectFiles={onLinkProjectFiles}
-                isReadOnly={isReadOnly}
-                asDiv
-              />
+              <div className="h-9 flex items-center">
+                <BiddingTableRowFiles
+                  item={item}
+                  projectId={item.project_id}
+                  onFileUpload={(itemId, files) => onFileUpload?.(itemId, files)}
+                  onDeleteIndividualFile={(itemId, fileName) => onDeleteIndividualFile?.(itemId, fileName)}
+                  onLinkProjectFiles={onLinkProjectFiles}
+                  isReadOnly={isReadOnly}
+                  asDiv
+                />
+              </div>
             </div>
-            <div className="flex flex-col items-center">
+            <div className="min-w-0">
               <label className="text-xs font-medium text-muted-foreground mb-1 block">Actions</label>
-              <BiddingTableRowActions
-                item={item}
-                costCode={costCode}
-                onDelete={(itemId) => onDelete?.(itemId)}
-                onSendClick={() => {
-                  const ids = (item.project_bids || []).map((c: any) => c.company_id);
-                  onSendClick?.(ids);
-                }}
-                onTestEmailClick={() => onTestEmailClick?.()}
-                onAddCompaniesClick={() => onAddCompaniesClick?.()}
-                isDeleting={false}
-                isReadOnly={isReadOnly}
-                asDiv
-              />
+              <div className="h-9 flex items-center">
+                <BiddingTableRowActions
+                  item={item}
+                  costCode={costCode}
+                  onDelete={(itemId) => onDelete?.(itemId)}
+                  onSendClick={() => {
+                    const ids = (item.project_bids || []).map((c: any) => c.company_id);
+                    onSendClick?.(ids);
+                  }}
+                  onTestEmailClick={() => onTestEmailClick?.()}
+                  onAddCompaniesClick={() => onAddCompaniesClick?.()}
+                  isDeleting={false}
+                  isReadOnly={isReadOnly}
+                  asDiv
+                />
+              </div>
             </div>
           </div>
 
