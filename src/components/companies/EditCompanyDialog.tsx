@@ -312,6 +312,7 @@ export function EditCompanyDialog({ company, open, onOpenChange }: EditCompanyDi
       setShowInsuranceUpload(false);
       initializationDone.current = false;
       costCodesInitialized.current = false;
+      originalCostCodesRef.current = [];
       form.reset();
     }
   }, [open, form]);
