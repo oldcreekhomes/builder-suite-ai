@@ -369,7 +369,7 @@ export function SendBidPackageModal({ open, onOpenChange, bidPackage, filteredCo
                   </div>
                   {bidPackage.specifications ? (
                     <div 
-                      className="bg-muted p-3 rounded-lg max-h-32 overflow-y-auto text-xs prose prose-sm max-w-none"
+                      className="bg-muted p-3 rounded-lg max-h-48 overflow-y-auto text-sm prose prose-sm max-w-none [&_ol]:list-decimal [&_ul]:list-disc [&_ol]:pl-6 [&_ul]:pl-6 [&_li]:my-0.5"
                       dangerouslySetInnerHTML={{ __html: bidPackage.specifications }}
                     />
                   ) : (
