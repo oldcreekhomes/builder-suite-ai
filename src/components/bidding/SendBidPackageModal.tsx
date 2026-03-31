@@ -435,7 +435,7 @@ export function SendBidPackageModal({ open, onOpenChange, bidPackage, filteredCo
             {isLoading ? (
               <div className="text-center py-2 text-muted-foreground text-sm">Loading recipients...</div>
             ) : (
-              <div className="grid grid-cols-2 gap-3 max-h-48 overflow-y-auto">
+              <div className="grid grid-cols-2 gap-3 max-h-64 overflow-y-auto">
                 {companiesData?.map((company) => {
                   const notificationReps = company.companies?.company_representatives?.filter(
                     (rep: any) => rep.receive_bid_notifications && rep.email &&
