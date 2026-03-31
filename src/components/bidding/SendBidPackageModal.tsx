@@ -448,7 +448,8 @@ export function SendBidPackageModal({ open, onOpenChange, bidPackage, filteredCo
                   if (notificationReps.length === 0) return null;
 
                   const isSelected = selectedCompanyIds.has(company.company_id);
-                  const alreadySent = !!company.email_sent_at;
+                  const alreadySent = !!company.email_sent_at || !!bidPackage?.sent_on;
+                  const sentDate = company.email_sent_at || bidPackage?.sent_on;
 
                   return (
                     <div
