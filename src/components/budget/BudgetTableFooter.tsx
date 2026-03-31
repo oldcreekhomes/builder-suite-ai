@@ -10,29 +10,33 @@ interface BudgetTableFooterProps {
 export function BudgetTableFooter({ budgetItems, subcategoryTotals }: BudgetTableFooterProps) {
   if (budgetItems.length === 0) return null;
 
-  // Collect all unique historical project IDs
-  const historicalProjectIds = useMemo(() => {
-    const ids = new Set<string>();
+  // Build composite keys from historical_project_id + historical_lot_id
+  const historicalCompositeKeys = useMemo(() => {
+    const keys = new Set<string>();
     budgetItems.forEach(item => {
       if (item.budget_source === 'historical' && item.historical_project_id) {
-        ids.add(item.historical_project_id);
+        const lotId = item.historical_lot_id;
+        const key = lotId ? `${item.historical_project_id}::${lotId}` : item.historical_project_id;
+        keys.add(key);
       }
     });
-    return Array.from(ids);
+    return Array.from(keys);
   }, [budgetItems]);
 
-  // Fetch historical costs for all historical projects
-  const { data: historicalCostsMap = {} } = useMultipleHistoricalCosts(historicalProjectIds);
+  // Fetch historical costs using composite keys (lot-aware)
+  const { data: historicalCostsMap = {} } = useMultipleHistoricalCosts(historicalCompositeKeys);
 
   const totalBudget = useMemo(() => {
     return budgetItems.reduce((sum, item) => {
       const costCode = item.cost_codes;
       const subcategoryTotal = costCode?.code ? subcategoryTotals?.[costCode.code] : undefined;
       
-      // Get historical cost for this item if it uses historical source
+      // Get historical cost using composite key
       let historicalActualCost: number | undefined = undefined;
       if (item.budget_source === 'historical' && item.historical_project_id && costCode?.code) {
-        const projectMap = historicalCostsMap[item.historical_project_id];
+        const lotId = item.historical_lot_id;
+        const key = lotId ? `${item.historical_project_id}::${lotId}` : item.historical_project_id;
+        const projectMap = historicalCostsMap[key];
         if (projectMap) {
           historicalActualCost = projectMap[costCode.code];
         }

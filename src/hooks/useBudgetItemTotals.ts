@@ -10,19 +10,21 @@ export function useBudgetItemTotals(
   budgetItems: any[],
   subcategoryTotals: Record<string, number> = {}
 ) {
-  // Collect all unique historical project IDs from budget items
-  const historicalProjectIds = useMemo(() => {
-    const ids = new Set<string>();
+  // Build composite keys from historical_project_id + historical_lot_id
+  const historicalCompositeKeys = useMemo(() => {
+    const keys = new Set<string>();
     budgetItems.forEach(item => {
       if (item.budget_source === 'historical' && item.historical_project_id) {
-        ids.add(item.historical_project_id);
+        const lotId = item.historical_lot_id;
+        const key = lotId ? `${item.historical_project_id}::${lotId}` : item.historical_project_id;
+        keys.add(key);
       }
     });
-    return Array.from(ids);
+    return Array.from(keys);
   }, [budgetItems]);
   
-  // Fetch historical costs for all historical projects
-  const { data: historicalCostsMap = {} } = useMultipleHistoricalCosts(historicalProjectIds);
+  // Fetch historical costs using composite keys (lot-aware)
+  const { data: historicalCostsMap = {} } = useMultipleHistoricalCosts(historicalCompositeKeys);
 
   // Calculate totals once for all items
   const itemTotalsMap = useMemo(() => {
@@ -32,10 +34,12 @@ export function useBudgetItemTotals(
       const subcategoryTotal = subcategoryTotals[item.id];
       const costCode = item.cost_codes as any;
       
-      // Get historical cost if this item uses historical source
+      // Get historical cost using composite key
       let historicalCostForItem: number | undefined = undefined;
       if (item.budget_source === 'historical' && item.historical_project_id && costCode?.code) {
-        const projectHistoricalCosts = historicalCostsMap[item.historical_project_id];
+        const lotId = item.historical_lot_id;
+        const key = lotId ? `${item.historical_project_id}::${lotId}` : item.historical_project_id;
+        const projectHistoricalCosts = historicalCostsMap[key];
         historicalCostForItem = projectHistoricalCosts?.[costCode.code] || 0;
       }
       

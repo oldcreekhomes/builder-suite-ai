@@ -1,49 +1,73 @@
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 
-export function useMultipleHistoricalCosts(projectIds: string[]) {
-  // Create sorted array without mutating the original
-  const sortedIds = [...projectIds].sort();
+/**
+ * Accepts composite keys like "projectId::lotId" or plain "projectId".
+ * Returns a map keyed by the same composite key => (costCode => actualAmount).
+ */
+export function useMultipleHistoricalCosts(compositeKeys: string[]) {
+  const sortedKeys = [...compositeKeys].sort();
 
-  // Fetch historical costs for all project IDs
   const queries = useQuery({
-    queryKey: ['multiple-historical-costs', ...sortedIds],
+    queryKey: ['multiple-historical-costs', ...sortedKeys],
     queryFn: async () => {
-      if (sortedIds.length === 0) {
+      if (sortedKeys.length === 0) {
         return {};
       }
+
+      // Parse composite keys into groups
+      const parsed = sortedKeys.map(key => {
+        const parts = key.split('::');
+        return { key, projectId: parts[0], lotId: parts[1] || null };
+      });
+
+      // Get unique project IDs
+      const projectIds = [...new Set(parsed.map(p => p.projectId))];
 
       const { data, error } = await supabase
         .from('project_budgets')
         .select(`
           project_id,
+          lot_id,
           cost_code_id,
           actual_amount,
           cost_codes (*)
         `)
-        .in('project_id', sortedIds)
+        .in('project_id', projectIds)
         .not('actual_amount', 'is', null)
         .neq('actual_amount', 0);
 
       if (error) throw error;
 
-      // Build map: projectId -> (costCode -> actualAmount)
+      // Build map: compositeKey -> (costCode -> actualAmount)
       const map: Record<string, Record<string, number>> = {};
 
-      data.forEach((item) => {
-        const costCode = item.cost_codes as any;
-        if (costCode?.code && item.project_id) {
-          if (!map[item.project_id]) {
-            map[item.project_id] = {};
+      // For each parsed key, filter data to matching rows
+      parsed.forEach(({ key, projectId, lotId }) => {
+        if (!map[key]) map[key] = {};
+
+        data.forEach((item) => {
+          if (item.project_id !== projectId) return;
+          
+          // Lot filtering: if lotId specified, only match that lot
+          if (lotId) {
+            if (item.lot_id !== lotId) return;
+          } else {
+            // No lot specified: only match rows with no lot
+            if (item.lot_id !== null) return;
           }
-          const code = costCode.code;
-          map[item.project_id][code] = (map[item.project_id][code] || 0) + (item.actual_amount || 0);
-        }
+
+          const costCode = item.cost_codes as any;
+          if (costCode?.code) {
+            const code = costCode.code;
+            map[key][code] = (map[key][code] || 0) + (item.actual_amount || 0);
+          }
+        });
       });
 
       return map;
     },
-    enabled: sortedIds.length > 0,
+    enabled: sortedKeys.length > 0,
     placeholderData: (prev) => prev,
     staleTime: 60000,
     refetchOnWindowFocus: false,

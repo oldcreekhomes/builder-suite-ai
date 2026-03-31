@@ -43,6 +43,7 @@ export function useBudgetSourceUpdate(projectId: string) {
       } else if (params.source === 'settings' || params.source === 'estimate') {
         updateData.selected_bid_id = null;
         updateData.historical_project_id = null;
+        updateData.historical_lot_id = null;
       }
 
       const { error } = await supabase
