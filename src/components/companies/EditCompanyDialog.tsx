@@ -238,7 +238,7 @@ export function EditCompanyDialog({ company, open, onOpenChange }: EditCompanyDi
 
   // Fetch company's current cost codes
   const { data: companyCostCodes = [], isFetching: isFetchingCostCodes } = useQuery({
-    queryKey: ['company-cost-codes', stableCompanyId],
+    queryKey: ['edit-company-cost-codes', stableCompanyId],
     queryFn: async () => {
       if (!stableCompanyId) return [];
       const { data, error } = await supabase
@@ -247,7 +247,8 @@ export function EditCompanyDialog({ company, open, onOpenChange }: EditCompanyDi
         .eq('company_id', stableCompanyId);
       
       if (error) throw error;
-      return data.map(item => item.cost_code_id);
+      // Normalize to UUID strings only
+      return data.map(item => item.cost_code_id).filter((id): id is string => typeof id === 'string' && id.length > 0);
     },
     enabled: !!stableCompanyId && open,
   });
