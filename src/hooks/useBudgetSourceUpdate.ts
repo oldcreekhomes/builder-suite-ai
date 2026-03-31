@@ -8,6 +8,7 @@ interface UpdateBudgetSourceParams {
   budgetItemId: string;
   source: BudgetSource;
   historicalProjectId?: string | null;
+  historicalLotId?: string | null;
   manualQuantity?: number | null;
   manualUnitPrice?: number | null;
 }
@@ -25,12 +26,14 @@ export function useBudgetSourceUpdate(projectId: string) {
       // Clear conflicting data based on source
       if (params.source === 'historical') {
         updateData.historical_project_id = params.historicalProjectId;
+        updateData.historical_lot_id = params.historicalLotId || null;
         updateData.selected_bid_id = null;
       } else if (params.source === 'vendor-bid') {
         updateData.historical_project_id = null;
       } else if (params.source === 'manual') {
         updateData.selected_bid_id = null;
         updateData.historical_project_id = null;
+        updateData.historical_lot_id = null;
         if (params.manualQuantity !== undefined) {
           updateData.quantity = params.manualQuantity;
         }
@@ -40,6 +43,7 @@ export function useBudgetSourceUpdate(projectId: string) {
       } else if (params.source === 'settings' || params.source === 'estimate') {
         updateData.selected_bid_id = null;
         updateData.historical_project_id = null;
+        updateData.historical_lot_id = null;
       }
 
       const { error } = await supabase

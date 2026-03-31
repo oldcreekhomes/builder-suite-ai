@@ -69,10 +69,11 @@ export function BudgetTableRow({
   
   const costCode = item.cost_codes as CostCode;
   
-  // Fetch historical costs if this item uses historical source
+  // Fetch historical costs if this item uses historical source (lot-aware)
   const shouldFetchHistorical = item.budget_source === 'historical' && !!item.historical_project_id;
   const { data: historicalData } = useHistoricalActualCosts(
-    shouldFetchHistorical ? item.historical_project_id : null
+    shouldFetchHistorical ? item.historical_project_id : null,
+    shouldFetchHistorical ? item.historical_lot_id : null
   );
   
   // Extract historical cost for this specific cost code

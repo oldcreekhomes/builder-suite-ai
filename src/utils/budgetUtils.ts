@@ -44,6 +44,10 @@ export const calculateBudgetItemTotal = (
         break;
       
       case 'historical':
+        // Prefer explicitly set unit_price (lot-specific override baked into DB)
+        if (item.unit_price > 0 && item.quantity > 0) {
+          return item.quantity * item.unit_price;
+        }
         if (historicalActualCost !== undefined && historicalActualCost !== null) {
           return historicalActualCost;
         }

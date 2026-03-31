@@ -67,9 +67,13 @@ export function BudgetDetailsModal({
   
   // Historical tab state and hooks
   const { data: historicalProjects = [] } = useHistoricalProjects();
-  const [selectedHistoricalProjectId, setSelectedHistoricalProjectId] = useState<string | null>(
-    budgetItem.budget_source === 'historical' ? (budgetItem as any).historical_project_id || null : null
-  );
+  const [selectedHistoricalProjectId, setSelectedHistoricalProjectId] = useState<string | null>(() => {
+    if (budgetItem.budget_source !== 'historical') return null;
+    const pid = (budgetItem as any).historical_project_id;
+    const lid = (budgetItem as any).historical_lot_id;
+    if (!pid) return null;
+    return lid ? `${pid}::${lid}` : pid;
+  });
   const parsedHistorical = selectedHistoricalProjectId ? parseHistoricalKey(selectedHistoricalProjectId) : null;
   const { data: historicalCosts } = useHistoricalActualCosts(parsedHistorical?.projectId || null, parsedHistorical?.lotId);
 
@@ -294,10 +298,12 @@ export function BudgetDetailsModal({
       onClose();
     } else if (source === 'historical') {
       if (selectedHistoricalProjectId && historicalCostForCode > 0) {
+        const parsed = parseHistoricalKey(selectedHistoricalProjectId);
         updateSource({
           budgetItemId: budgetItem.id,
           source: 'historical',
-          historicalProjectId: selectedHistoricalProjectId,
+          historicalProjectId: parsed.projectId,
+          historicalLotId: parsed.lotId,
           manualUnitPrice: historicalCostForCode,
           manualQuantity: 1,
         });
