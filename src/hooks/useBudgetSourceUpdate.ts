@@ -58,7 +58,8 @@ export function useBudgetSourceUpdate(projectId: string) {
         'vendor-bid': 'Vendor Bid',
         'manual': 'Manual',
         'historical': 'Historical',
-        'settings': 'Settings'
+        'settings': 'Settings',
+        'actual': 'Actual'
       };
 
       toast({
