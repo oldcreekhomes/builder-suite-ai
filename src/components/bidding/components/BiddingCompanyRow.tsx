@@ -24,6 +24,7 @@ interface BiddingCompany {
   bid_status: 'will_bid' | 'will_not_bid' | null;
   price: number | null;
   proposals: string[] | null;
+  email_sent_at: string | null;
   companies: Company;
 }
 
