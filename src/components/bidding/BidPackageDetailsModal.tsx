@@ -206,79 +206,51 @@ export function BidPackageDetailsModal({
           )}
 
           {/* Bid Package Management Section */}
-          <div className="border rounded-lg">
-            <Table containerClassName="relative w-full">
-              <TableHeader>
-              <TableRow>
-                  <TableHead className="w-1/3">Status</TableHead>
-                  <TableHead className="w-1/3">Due Date</TableHead>
-                  <TableHead className="w-1/3">Reminder</TableHead>
-                  <TableHead className="w-16 text-center">Actions</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                <TableRow>
-                  <TableCell>
-                    <Select
-                      value={item.status || 'draft'}
-                      onValueChange={handleStatusChange}
-                      disabled={isReadOnly}
-                    >
-                      <SelectTrigger className="h-9">
-                        <SelectValue placeholder="Status" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="draft">Draft</SelectItem>
-                        <SelectItem value="sent">Sent</SelectItem>
-                        <SelectItem value="closed">Closed</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </TableCell>
-                  <TableCell>
-                    <BiddingDatePicker
-                      value={item.due_date}
-                      onChange={(biddingItemId, companyId, date) => onUpdateDueDate?.(biddingItemId, date)}
-                      placeholder="Due Date"
-                      disabled={isReadOnly}
-                      companyId=""
-                      biddingItemId={item.id}
-                      field="due_date"
-                    />
-                  </TableCell>
-                  <TableCell>
-                    <BiddingDatePicker
-                      value={item.reminder_date}
-                      onChange={(biddingItemId, companyId, date) => onUpdateReminderDate?.(biddingItemId, date)}
-                      placeholder="Reminder"
-                      disabled={isReadOnly}
-                      companyId=""
-                      biddingItemId={item.id}
-                      field="reminder_date"
-                      dueDate={item.due_date}
-                    />
-                  </TableCell>
-                  <BiddingTableRowActions
-                    item={item}
-                    costCode={costCode}
-                    onDelete={(itemId) => onDelete?.(itemId)}
-                    onSendClick={() => {
-                      const ids = (item.project_bids || []).map((c: any) => c.company_id);
-                      onSendClick?.(ids);
-                    }}
-                    onTestEmailClick={() => onTestEmailClick?.()}
-                    onAddCompaniesClick={() => onAddCompaniesClick?.()}
-                    isDeleting={false}
-                    isReadOnly={isReadOnly}
-                  />
-                </TableRow>
-              </TableBody>
-            </Table>
-          </div>
-
-          {/* Specifications & Files Toolbar */}
-          <div className="flex items-center gap-6 px-4 py-3 border rounded-lg mt-2">
-            <div className="flex items-center gap-2">
-              <span className="text-sm font-medium text-muted-foreground">Specifications:</span>
+          <div className="grid grid-cols-[1fr_1fr_1fr_auto_auto_auto] gap-4 items-end border rounded-lg p-4">
+            <div>
+              <label className="text-xs font-medium text-muted-foreground mb-1 block">Status</label>
+              <Select
+                value={item.status || 'draft'}
+                onValueChange={handleStatusChange}
+                disabled={isReadOnly}
+              >
+                <SelectTrigger className="h-9">
+                  <SelectValue placeholder="Status" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="draft">Draft</SelectItem>
+                  <SelectItem value="sent">Sent</SelectItem>
+                  <SelectItem value="closed">Closed</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div>
+              <label className="text-xs font-medium text-muted-foreground mb-1 block">Due Date</label>
+              <BiddingDatePicker
+                value={item.due_date}
+                onChange={(biddingItemId, companyId, date) => onUpdateDueDate?.(biddingItemId, date)}
+                placeholder="Due Date"
+                disabled={isReadOnly}
+                companyId=""
+                biddingItemId={item.id}
+                field="due_date"
+              />
+            </div>
+            <div>
+              <label className="text-xs font-medium text-muted-foreground mb-1 block">Reminder</label>
+              <BiddingDatePicker
+                value={item.reminder_date}
+                onChange={(biddingItemId, companyId, date) => onUpdateReminderDate?.(biddingItemId, date)}
+                placeholder="Reminder"
+                disabled={isReadOnly}
+                companyId=""
+                biddingItemId={item.id}
+                field="reminder_date"
+                dueDate={item.due_date}
+              />
+            </div>
+            <div className="flex flex-col items-center">
+              <label className="text-xs font-medium text-muted-foreground mb-1 block">Specs</label>
               <BiddingTableRowSpecs
                 item={item}
                 costCode={costCode}
@@ -287,15 +259,31 @@ export function BidPackageDetailsModal({
                 asDiv
               />
             </div>
-            <div className="h-6 w-px bg-border" />
-            <div className="flex items-center gap-2">
-              <span className="text-sm font-medium text-muted-foreground">Files:</span>
+            <div>
+              <label className="text-xs font-medium text-muted-foreground mb-1 block">Files</label>
               <BiddingTableRowFiles
                 item={item}
                 projectId={item.project_id}
                 onFileUpload={(itemId, files) => onFileUpload?.(itemId, files)}
                 onDeleteIndividualFile={(itemId, fileName) => onDeleteIndividualFile?.(itemId, fileName)}
                 onLinkProjectFiles={onLinkProjectFiles}
+                isReadOnly={isReadOnly}
+                asDiv
+              />
+            </div>
+            <div className="flex flex-col items-center">
+              <label className="text-xs font-medium text-muted-foreground mb-1 block">Actions</label>
+              <BiddingTableRowActions
+                item={item}
+                costCode={costCode}
+                onDelete={(itemId) => onDelete?.(itemId)}
+                onSendClick={() => {
+                  const ids = (item.project_bids || []).map((c: any) => c.company_id);
+                  onSendClick?.(ids);
+                }}
+                onTestEmailClick={() => onTestEmailClick?.()}
+                onAddCompaniesClick={() => onAddCompaniesClick?.()}
+                isDeleting={false}
                 isReadOnly={isReadOnly}
                 asDiv
               />
