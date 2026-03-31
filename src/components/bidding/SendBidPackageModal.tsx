@@ -1,7 +1,6 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
 import { Calendar, FileText, Building2, Users, Send } from 'lucide-react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
@@ -9,6 +8,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { format } from 'date-fns';
 import { getFileIcon, getFileIconColor } from './utils/fileIconUtils';
 import { useToast } from '@/hooks/use-toast';
+import { Checkbox } from '@/components/ui/checkbox';
 
 import { useUniversalFilePreviewContext } from '@/components/files/UniversalFilePreviewProvider';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
@@ -28,6 +28,7 @@ interface SendBidPackageModalProps {
 
 export function SendBidPackageModal({ open, onOpenChange, bidPackage, filteredCompanyIds }: SendBidPackageModalProps) {
   const [isSending, setIsSending] = useState(false);
+  const [selectedCompanyIds, setSelectedCompanyIds] = useState<Set<string>>(new Set());
   const { toast } = useToast();
   const queryClient = useQueryClient();
   
@@ -76,6 +77,19 @@ export function SendBidPackageModal({ open, onOpenChange, bidPackage, filteredCo
     },
     enabled: !!bidPackage?.id && open,
   });
+
+  // Initialize selectedCompanyIds when data loads
+  useEffect(() => {
+    if (!companiesData) return;
+    const newSelected = new Set<string>();
+    companiesData.forEach((company: any) => {
+      // Auto-select companies that have NOT been sent yet
+      if (!company.email_sent_at) {
+        newSelected.add(company.company_id);
+      }
+    });
+    setSelectedCompanyIds(newSelected);
+  }, [companiesData]);
 
   // Fetch project information
   const { data: projectData } = useQuery({
@@ -127,7 +141,6 @@ export function SendBidPackageModal({ open, onOpenChange, bidPackage, filteredCo
 
       if (companyError) {
         console.error('Error fetching company details:', companyError);
-        // Return basic info even if company details aren't found
         return { company_name: userData.company_name };
       }
 
@@ -136,18 +149,50 @@ export function SendBidPackageModal({ open, onOpenChange, bidPackage, filteredCo
     enabled: open,
   });
 
-  const handleSendEmail = async () => {
-    console.log('🚀 handleSendEmail called', { bidPackage, companiesData });
-    
-    if (!bidPackage || !companiesData) {
-      console.log('❌ Missing data:', { bidPackage: !!bidPackage, companiesData: !!companiesData });
-      return;
-    }
+  const toggleCompany = (companyId: string) => {
+    setSelectedCompanyIds(prev => {
+      const next = new Set(prev);
+      if (next.has(companyId)) {
+        next.delete(companyId);
+      } else {
+        next.add(companyId);
+      }
+      return next;
+    });
+  };
 
-    console.log('📧 Starting email send process...');
+  const projectRegion = projectData?.region;
+
+  // Compute recipient counts based on selected companies only
+  const { selectedRecipients, newCount, resendCount } = useMemo(() => {
+    if (!companiesData) return { selectedRecipients: 0, newCount: 0, resendCount: 0 };
+    let total = 0;
+    let newC = 0;
+    let resendC = 0;
+    companiesData.forEach((company: any) => {
+      if (!selectedCompanyIds.has(company.company_id)) return;
+      const reps = company.companies?.company_representatives?.filter(
+        (rep: any) => rep.receive_bid_notifications && rep.email &&
+          (!projectRegion || (rep.service_areas || []).includes(projectRegion))
+      ) || [];
+      if (reps.length > 0) {
+        total += reps.length;
+        if (company.email_sent_at) {
+          resendC++;
+        } else {
+          newC++;
+        }
+      }
+    });
+    return { selectedRecipients: total, newCount: newC, resendCount: resendC };
+  }, [companiesData, selectedCompanyIds, projectRegion]);
+
+  const handleSendEmail = async () => {
+    if (!bidPackage || !companiesData) return;
+
     setIsSending(true);
     try {
-      // Get project manager's details directly from users table
+      // Get project manager's details
       let managerEmail = undefined;
       let managerPhone = undefined;
       let managerFullName = 'Not assigned';
@@ -166,7 +211,9 @@ export function SendBidPackageModal({ open, onOpenChange, bidPackage, filteredCo
         }
       }
 
-      // Prepare email data
+      // Only include selected companies
+      const sentCompanyIds: string[] = [];
+
       const emailData = {
         bidPackage: {
           id: bidPackage.id,
@@ -187,74 +234,65 @@ export function SendBidPackageModal({ open, onOpenChange, bidPackage, filteredCo
           company_name: senderCompanyData.company_name,
           address: 'address' in senderCompanyData ? senderCompanyData.address : undefined
         } : undefined,
-        companies: companiesData.map(company => {
-          const projectRegion = projectData?.region;
-          return {
-            id: company.companies.id,
-            company_name: company.companies.company_name,
-            address: company.companies.address,
-            phone_number: company.companies.phone_number,
-            representatives: company.companies.company_representatives?.filter(
+        companies: companiesData
+          .filter(company => selectedCompanyIds.has(company.company_id))
+          .map(company => {
+            const reps = company.companies.company_representatives?.filter(
               (rep: any) => rep.receive_bid_notifications && rep.email &&
                 (!projectRegion || (rep.service_areas || []).includes(projectRegion))
-            ) || []
-          };
-        }).filter(company => company.representatives.length > 0)
+            ) || [];
+            if (reps.length > 0) {
+              sentCompanyIds.push(company.companies.id);
+            }
+            return {
+              id: company.companies.id,
+              company_name: company.companies.company_name,
+              address: company.companies.address,
+              phone_number: company.companies.phone_number,
+              representatives: reps
+            };
+          }).filter(company => company.representatives.length > 0)
       };
 
-      console.log('📋 Prepared email data:', JSON.stringify(emailData, null, 2));
-      console.log('🎯 Companies with recipients:', emailData.companies.length);
-
-      console.log('🔄 About to invoke edge function...');
-      console.log('🔍 Supabase client check:', !!supabase);
-      console.log('🔍 Functions available:', !!supabase.functions);
-      
       const { data: emailResult, error } = await supabase.functions.invoke('send-bid-package-email', {
         body: emailData
       });
 
-      console.log('📬 Edge function result:', { emailResult, error });
-      console.log('📧 Email result details:', JSON.stringify(emailResult, null, 2));
-      console.log('🔍 Error details:', JSON.stringify(error, null, 2));
-      
       if (error) {
-        console.error('❌ Edge function invocation error:', error);
-        console.error('❌ Error details:', JSON.stringify(error, null, 2));
-      }
-
-      if (error) {
-        console.error('Edge function error:', error);
         throw new Error(`Failed to send email: ${error.message}`);
       }
 
-      // Only update status to 'sent' if email was successfully sent
       if (emailResult?.success) {
-        // Update status and set sent_on if not already set (preserve first send date)
+        // Update bid package status
         const updateData: { status: string; sent_on?: string } = { status: 'sent' };
         if (!bidPackage.sent_on) {
           updateData.sent_on = new Date().toISOString();
         }
         
-        const { error: updateError } = await supabase
+        await supabase
           .from('project_bid_packages')
           .update(updateData)
           .eq('id', bidPackage.id);
 
-        if (updateError) {
-          console.error('Error updating bid package status:', updateError);
-          // Don't throw here as email was sent, just log the issue
+        // Update email_sent_at for each sent company
+        if (sentCompanyIds.length > 0) {
+          await supabase
+            .from('project_bids')
+            .update({ email_sent_at: new Date().toISOString() } as any)
+            .eq('bid_package_id', bidPackage.id)
+            .in('company_id', sentCompanyIds);
         }
       } else {
         throw new Error('Email was not sent successfully');
       }
 
-      // Invalidate bidding queries to refresh the table
       queryClient.invalidateQueries({ queryKey: ['project-bidding'] });
       queryClient.invalidateQueries({ queryKey: ['bidding-counts', bidPackage.project_id] });
+      queryClient.invalidateQueries({ queryKey: ['bid-package-companies', bidPackage.id] });
 
       toast({
         title: "Bid Package Sent",
-        description: "The bid package has been sent successfully to all recipients.",
+        description: `Sent to ${sentCompanyIds.length} companies successfully.`,
       });
 
       onOpenChange(false);
@@ -273,14 +311,23 @@ export function SendBidPackageModal({ open, onOpenChange, bidPackage, filteredCo
   if (!bidPackage) return null;
 
   const costCode = bidPackage.cost_codes;
-  const projectRegion = projectData?.region;
-  const recipients = companiesData?.reduce((acc, company) => {
+
+  // Total recipients across ALL companies (for display)
+  const totalRecipients = companiesData?.reduce((acc, company) => {
     const reps = company.companies?.company_representatives?.filter(
       (rep: any) => rep.receive_bid_notifications && rep.email &&
         (!projectRegion || (rep.service_areas || []).includes(projectRegion))
     ) || [];
     return acc + reps.length;
   }, 0) || 0;
+
+  // Build send button label
+  let sendButtonLabel = `Send to ${selectedRecipients} Recipients`;
+  if (resendCount > 0 && newCount > 0) {
+    sendButtonLabel = `Send to ${newCount} New, ${resendCount} Resend`;
+  } else if (resendCount > 0) {
+    sendButtonLabel = `Resend to ${resendCount} Companies`;
+  }
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -352,7 +399,6 @@ export function SendBidPackageModal({ open, onOpenChange, bidPackage, filteredCo
                               <TooltipTrigger asChild>
                                 <button
                                   onClick={() => {
-                                  console.log('📁 SendBidPackageModal: Opening file', fileName, 'as', displayName);
                                     const storagePath = getProjectFileStoragePath(fileName);
                                     openSpecificationFile(storagePath, displayName);
                                   }}
@@ -380,11 +426,11 @@ export function SendBidPackageModal({ open, onOpenChange, bidPackage, filteredCo
             </div>
           )}
 
-          {/* Companies and Representatives */}
+          {/* Companies and Recipients */}
           <div className="space-y-2">
             <div className="flex items-center gap-2">
               <Building2 className="h-3 w-3" />
-              <h4 className="font-medium text-sm">Recipients ({recipients} total)</h4>
+              <h4 className="font-medium text-sm">Recipients ({totalRecipients} total across {companiesData?.length || 0} companies)</h4>
             </div>
 
             {isLoading ? (
@@ -399,33 +445,58 @@ export function SendBidPackageModal({ open, onOpenChange, bidPackage, filteredCo
 
                   if (notificationReps.length === 0) return null;
 
-                  return (
-                    <div key={company.id} className="border rounded-lg p-2 space-y-1">
-                       <div className="flex items-center gap-2">
-                         <Building2 className="h-3 w-3 text-muted-foreground" />
-                         <h5 className="font-medium text-sm">{company.companies?.company_name}</h5>
-                       </div>
+                  const isSelected = selectedCompanyIds.has(company.company_id);
+                  const alreadySent = !!company.email_sent_at;
 
-                       <div className="space-y-1">
-                         <div className="flex items-center gap-2">
-                           <Users className="h-3 w-3 text-muted-foreground" />
-                           <span className="text-xs font-medium">Recipients:</span>
-                         </div>
-                         <div className="flex flex-wrap gap-1">
-                           {notificationReps.map((rep: any) => (
-                             <div key={rep.id} className="inline-flex items-center text-xs bg-muted px-2 py-1 rounded">
-                               <span className="font-medium">{rep.first_name} {rep.last_name}</span>
-                             </div>
-                           ))}
-                         </div>
-                       </div>
+                  return (
+                    <div
+                      key={company.id}
+                      className={`border rounded-lg p-2 space-y-1 cursor-pointer transition-colors ${
+                        isSelected
+                          ? 'border-primary bg-primary/5'
+                          : alreadySent
+                            ? 'border-muted bg-muted/30 opacity-70'
+                            : 'border-border'
+                      }`}
+                      onClick={() => toggleCompany(company.company_id)}
+                    >
+                      <div className="flex items-center gap-2">
+                        <Checkbox
+                          checked={isSelected}
+                          onCheckedChange={() => toggleCompany(company.company_id)}
+                          onClick={(e) => e.stopPropagation()}
+                          className="h-3.5 w-3.5"
+                        />
+                        <Building2 className="h-3 w-3 text-muted-foreground" />
+                        <h5 className="font-medium text-sm flex-1">{company.companies?.company_name}</h5>
+                      </div>
+
+                      {alreadySent && (
+                        <p className="text-[10px] text-muted-foreground ml-6">
+                          Already sent on {format(new Date(company.email_sent_at), 'MMM dd, yyyy')}
+                        </p>
+                      )}
+
+                      <div className="space-y-1 ml-6">
+                        <div className="flex items-center gap-2">
+                          <Users className="h-3 w-3 text-muted-foreground" />
+                          <span className="text-xs font-medium">Recipients:</span>
+                        </div>
+                        <div className="flex flex-wrap gap-1">
+                          {notificationReps.map((rep: any) => (
+                            <div key={rep.id} className="inline-flex items-center text-xs bg-muted px-2 py-1 rounded">
+                              <span className="font-medium">{rep.first_name} {rep.last_name}</span>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
                     </div>
                   );
                 })}
               </div>
             )}
 
-            {recipients === 0 && !isLoading && (
+            {totalRecipients === 0 && !isLoading && (
               <div className="text-center py-2 text-muted-foreground text-sm">
                 No recipients found with bid notifications enabled.
               </div>
@@ -439,7 +510,7 @@ export function SendBidPackageModal({ open, onOpenChange, bidPackage, filteredCo
           </Button>
           <Button 
             onClick={handleSendEmail}
-            disabled={isSending || recipients === 0}
+            disabled={isSending || selectedRecipients === 0}
             className="flex items-center gap-2"
           >
             {isSending ? (
@@ -447,7 +518,7 @@ export function SendBidPackageModal({ open, onOpenChange, bidPackage, filteredCo
             ) : (
               <>
                 <Send className="h-4 w-4" />
-                Send to {recipients} Recipients
+                {sendButtonLabel}
               </>
             )}
           </Button>

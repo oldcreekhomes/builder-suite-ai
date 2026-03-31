@@ -1,0 +1,1 @@
+ALTER TABLE project_bids ADD COLUMN email_sent_at timestamptz DEFAULT NULL;
