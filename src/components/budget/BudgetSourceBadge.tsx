@@ -45,7 +45,7 @@ export function BudgetSourceBadge({ item }: BudgetSourceBadgeProps) {
         case 'actual':
           return {
             label: 'Actual',
-            className: 'bg-teal-100 text-teal-700 border-teal-200',
+            className: 'bg-green-100 text-green-700 border-green-200',
             tooltip: 'From actual costs'
           };
         case 'manual':
