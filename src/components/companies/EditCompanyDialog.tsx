@@ -631,7 +631,7 @@ export function EditCompanyDialog({ company, open, onOpenChange }: EditCompanyDi
                 </Button>
                 <Button 
                   type="submit"
-                  disabled={updateCompanyMutation.isPending}
+                  disabled={updateCompanyMutation.isPending || isFetchingCostCodes}
                 >
                   {updateCompanyMutation.isPending ? "Updating..." : "Update Company"}
                 </Button>
