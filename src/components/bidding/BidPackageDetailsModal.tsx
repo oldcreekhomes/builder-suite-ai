@@ -237,9 +237,6 @@ export function BidPackageDetailsModal({
                       </SelectContent>
                     </Select>
                   </TableCell>
-                  <TableCell className={cn("text-sm", !item.sent_on && "text-muted-foreground")}>
-                    {item.sent_on ? format(new Date(item.sent_on), 'MM/dd/yyyy') : 'mm/dd/yyyy'}
-                  </TableCell>
                   <TableCell>
                     <BiddingDatePicker
                       value={item.due_date}

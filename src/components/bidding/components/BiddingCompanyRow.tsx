@@ -125,8 +125,19 @@ export function BiddingCompanyRow({
         )}
       </TableCell>
       <TableCell>
+        {biddingCompany.email_sent_at ? (
+          <span className="text-xs text-red-600 font-medium whitespace-nowrap">
+            {format(new Date(biddingCompany.email_sent_at), 'MMM dd, yyyy')}
+          </span>
+        ) : (
+          <span className="text-xs text-green-600 font-medium whitespace-nowrap">
+            Not sent
+          </span>
+        )}
+      </TableCell>
+      <TableCell>
         <Select 
-          value={biddingCompany.bid_status || "no_choice"} 
+          value={biddingCompany.bid_status || "no_choice"}
           onValueChange={(value) => onBidStatusChange(biddingCompany.id, value === "no_choice" ? null : value)}
           disabled={isReadOnly}
         >

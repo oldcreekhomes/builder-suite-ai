@@ -147,6 +147,7 @@ export function BiddingCompanyList({
         </TableCell>
         <TableCell className="font-medium text-muted-foreground">Company</TableCell>
         <TableCell className="font-medium text-muted-foreground">PO Status</TableCell>
+        <TableCell className="font-medium text-muted-foreground">Sent On</TableCell>
         <TableCell className="font-medium text-muted-foreground">Will Bid</TableCell>
         <TableCell className="font-medium text-muted-foreground">Price</TableCell>
         <TableCell className="font-medium text-muted-foreground">Proposals</TableCell>
