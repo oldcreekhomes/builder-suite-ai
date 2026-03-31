@@ -259,15 +259,7 @@ export function BiddingTable({ projectId, projectAddress, status, onHeaderAction
       if (status === 'draft') {
         onHeaderActionChange(
           <div className="flex items-center gap-2">
-            <div className="relative w-64">
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
-              <Input
-                placeholder="Search bids..."
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                className="pl-9 h-9"
-              />
-            </div>
+            <DebouncedSearchInput onSearch={setSearchQuery} />
             {historicalDropdown}
             <Button 
               variant="outline"
@@ -287,22 +279,14 @@ export function BiddingTable({ projectId, projectAddress, status, onHeaderAction
       } else {
         onHeaderActionChange(
           <div className="flex items-center gap-2">
-            <div className="relative w-64">
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
-              <Input
-                placeholder="Search bids..."
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                className="pl-9 h-9"
-              />
-            </div>
+            <DebouncedSearchInput onSearch={setSearchQuery} />
             {historicalDropdown}
           </div>
         );
       }
       return () => onHeaderActionChange(null);
     }
-  }, [onHeaderActionChange, status, searchQuery, biddingItems.length, selectedHistoricalProjectId, historicalProjects]);
+  }, [onHeaderActionChange, status, biddingItems.length, selectedHistoricalProjectId, historicalProjects]);
 
   const toolbarInContent = !onHeaderActionChange ? (
     status === 'draft' ? (
