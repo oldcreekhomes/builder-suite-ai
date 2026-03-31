@@ -81,17 +81,14 @@ export function SendBidPackageModal({ open, onOpenChange, bidPackage, filteredCo
   // Initialize selectedCompanyIds when data loads
   useEffect(() => {
     if (!companiesData) return;
-    const packageAlreadySent = !!bidPackage?.sent_on;
     const newSelected = new Set<string>();
     companiesData.forEach((company: any) => {
-      // Auto-select companies that have NOT been sent yet
-      const wasSent = company.email_sent_at || packageAlreadySent;
-      if (!wasSent) {
+      if (!company.email_sent_at) {
         newSelected.add(company.company_id);
       }
     });
     setSelectedCompanyIds(newSelected);
-  }, [companiesData, bidPackage?.sent_on]);
+  }, [companiesData]);
 
   // Fetch project information
   const { data: projectData } = useQuery({
@@ -179,7 +176,7 @@ export function SendBidPackageModal({ open, onOpenChange, bidPackage, filteredCo
       ) || [];
       if (reps.length > 0) {
         total += reps.length;
-        if (company.email_sent_at || bidPackage?.sent_on) {
+        if (company.email_sent_at) {
           resendC++;
         } else {
           newC++;
@@ -438,7 +435,7 @@ export function SendBidPackageModal({ open, onOpenChange, bidPackage, filteredCo
             {isLoading ? (
               <div className="text-center py-2 text-muted-foreground text-sm">Loading recipients...</div>
             ) : (
-              <div className="grid grid-cols-2 gap-3 max-h-48 overflow-y-auto">
+              <div className="grid grid-cols-2 gap-3 max-h-64 overflow-y-auto">
                 {companiesData?.map((company) => {
                   const notificationReps = company.companies?.company_representatives?.filter(
                     (rep: any) => rep.receive_bid_notifications && rep.email &&
@@ -448,13 +445,13 @@ export function SendBidPackageModal({ open, onOpenChange, bidPackage, filteredCo
                   if (notificationReps.length === 0) return null;
 
                   const isSelected = selectedCompanyIds.has(company.company_id);
-                  const alreadySent = !!company.email_sent_at || !!bidPackage?.sent_on;
-                  const sentDate = company.email_sent_at || bidPackage?.sent_on;
+                  const alreadySent = !!company.email_sent_at;
+                  const sentDate = company.email_sent_at;
 
                   return (
                     <div
                       key={company.id}
-                      className={`border rounded-lg p-2 space-y-1 cursor-pointer transition-colors ${
+                      className={`border rounded-lg p-3 space-y-1 cursor-pointer transition-colors ${
                         isSelected
                           ? 'border-primary bg-primary/5'
                           : alreadySent
@@ -474,9 +471,13 @@ export function SendBidPackageModal({ open, onOpenChange, bidPackage, filteredCo
                         <h5 className="font-medium text-sm flex-1">{company.companies?.company_name}</h5>
                       </div>
 
-                      {alreadySent && sentDate && (
-                        <p className="text-[10px] text-muted-foreground ml-6">
+                      {alreadySent && sentDate ? (
+                        <p className="text-[10px] text-red-600 font-medium ml-6">
                           Already sent on {format(new Date(sentDate), 'MMM dd, yyyy')}
+                        </p>
+                      ) : (
+                        <p className="text-[10px] text-green-600 font-medium ml-6">
+                          Not yet sent
                         </p>
                       )}
 
