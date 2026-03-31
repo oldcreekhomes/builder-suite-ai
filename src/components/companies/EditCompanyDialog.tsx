@@ -291,11 +291,12 @@ export function EditCompanyDialog({ company, open, onOpenChange }: EditCompanyDi
 
   // Initialize cost codes when dialog opens and data is available
   useEffect(() => {
-    if (open && companyCostCodes.length > 0 && selectedCostCodes.length === 0) {
+    if (open && !costCodesInitialized.current && !isFetchingCostCodes) {
       console.log('Setting cost codes:', companyCostCodes);
       setSelectedCostCodes([...companyCostCodes]);
+      costCodesInitialized.current = true;
     }
-  }, [open, companyCostCodes]);
+  }, [open, companyCostCodes, isFetchingCostCodes]);
 
   // Reset state when dialog closes
   useEffect(() => {
