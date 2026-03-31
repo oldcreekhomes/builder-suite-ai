@@ -57,6 +57,8 @@ export function BudgetTableFooter({ budgetItems, subcategoryTotals }: BudgetTabl
     return amount.toLocaleString('en-US', { style: 'currency', currency: 'USD' });
   };
 
+  if (budgetItems.length === 0) return null;
+
   return (
     <div className="flex justify-end">
       <div className="text-lg font-semibold">
