@@ -26,6 +26,7 @@ export function useBudgetSourceUpdate(projectId: string) {
       // Clear conflicting data based on source
       if (params.source === 'historical') {
         updateData.historical_project_id = params.historicalProjectId;
+        updateData.historical_lot_id = params.historicalLotId || null;
         updateData.selected_bid_id = null;
       } else if (params.source === 'vendor-bid') {
         updateData.historical_project_id = null;
