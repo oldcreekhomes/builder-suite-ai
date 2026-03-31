@@ -317,31 +317,46 @@ export function EditCompanyDialog({ company, open, onOpenChange }: EditCompanyDi
     }
   }, [open, form]);
 
-  // Save cost code associations mutation
+  // Diff-based cost code save — only insert additions and delete removals
   const saveCostCodesMutation = useMutation({
     mutationFn: async (costCodeIds: string[]) => {
       if (!company?.id) return;
       
-      console.log('Saving cost codes for company:', company.id, costCodeIds);
+      // Safety: if cost codes weren't initialized, skip saving to avoid wiping
+      if (!costCodesInitialized.current) {
+        console.warn('Cost codes not initialized — skipping save to prevent data loss');
+        return;
+      }
+
+      const original = new Set(originalCostCodesRef.current);
+      const current = new Set(costCodeIds);
       
-      // First, remove all existing associations
-      const { error: deleteError } = await supabase
-        .from('company_cost_codes')
-        .delete()
-        .eq('company_id', company.id);
+      const toAdd = costCodeIds.filter(id => !original.has(id));
+      const toRemove = originalCostCodesRef.current.filter(id => !current.has(id));
+      
+      console.log('Cost code diff — adding:', toAdd, 'removing:', toRemove);
 
-      if (deleteError) throw deleteError;
+      // Delete only removed associations
+      if (toRemove.length > 0) {
+        const { error: deleteError } = await supabase
+          .from('company_cost_codes')
+          .delete()
+          .eq('company_id', company.id)
+          .in('cost_code_id', toRemove);
 
-      // Then add the new associations
-      if (costCodeIds.length > 0) {
-        const costCodeAssociations = costCodeIds.map(costCodeId => ({
+        if (deleteError) throw deleteError;
+      }
+
+      // Insert only new associations
+      if (toAdd.length > 0) {
+        const newAssociations = toAdd.map(costCodeId => ({
           company_id: company.id,
           cost_code_id: costCodeId,
         }));
 
         const { error: insertError } = await supabase
           .from('company_cost_codes')
-          .insert(costCodeAssociations);
+          .insert(newAssociations);
 
         if (insertError) throw insertError;
       }
@@ -349,14 +364,9 @@ export function EditCompanyDialog({ company, open, onOpenChange }: EditCompanyDi
       return costCodeIds;
     },
     onSuccess: () => {
-      // Invalidate and refetch the company cost codes
-      queryClient.invalidateQueries({ queryKey: ['company-cost-codes', company?.id] });
+      queryClient.invalidateQueries({ queryKey: ['edit-company-cost-codes', company?.id] });
+      queryClient.invalidateQueries({ queryKey: ['view-company-cost-codes', company?.id] });
       queryClient.invalidateQueries({ queryKey: ['companies'] });
-      
-      toast({
-        title: "Success",
-        description: "Cost code associations updated successfully",
-      });
     },
     onError: (error) => {
       console.error('Error updating cost codes:', error);
