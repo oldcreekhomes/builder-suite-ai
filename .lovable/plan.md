@@ -1,59 +1,61 @@
 
 
-## Add Per-Company Send Tracking + Checkboxes to Send Bid Package Modal
+## Fix: All Companies Checked Despite Being Already Sent
 
-### What Changes
+### Root Cause
 
-When opening "Send Bid Package," each company gets a checkbox. Companies that have already been sent the bid package are **unchecked by default** with a label like "Already sent on Mar 31". New companies are **checked by default**. The user can re-check previously-sent companies to resend.
+The `email_sent_at` column was just added to `project_bids` — all existing records have `NULL`. The initialization logic treats `email_sent_at IS NULL` as "never sent," so every company gets checked even if the bid package was already sent (`sent_on` is set on the package).
 
-Only checked companies are included in the email send.
+### Fix
 
-### Database Change
+**1. Backfill existing data** (migration)
 
-Add an `email_sent_at` column to `project_bids`:
+Set `email_sent_at = sent_on` for all `project_bids` rows whose parent `project_bid_packages` already has a `sent_on` date:
 
 ```sql
-ALTER TABLE project_bids ADD COLUMN email_sent_at timestamptz DEFAULT NULL;
+UPDATE project_bids pb
+SET email_sent_at = pbp.sent_on
+FROM project_bid_packages pbp
+WHERE pb.bid_package_id = pbp.id
+  AND pbp.sent_on IS NOT NULL
+  AND pb.email_sent_at IS NULL;
 ```
 
-After a successful send, update `email_sent_at = NOW()` for each company that was included.
+**2. Add fallback logic in the initialization** (`src/components/bidding/SendBidPackageModal.tsx`)
 
-### UI Changes — `src/components/bidding/SendBidPackageModal.tsx`
+In the `useEffect` that sets `selectedCompanyIds`, also check the package-level `sent_on` as a fallback. If the package has `sent_on` and the company has no `email_sent_at`, treat it as already sent (uncheck it):
 
-1. **Add `selectedCompanyIds` state** — initialized from loaded data:
-   - Companies where `email_sent_at IS NULL` → checked (selected)
-   - Companies where `email_sent_at IS NOT NULL` → unchecked
+```ts
+useEffect(() => {
+  if (!companiesData) return;
+  const packageAlreadySent = !!bidPackage?.sent_on;
+  const newSelected = new Set<string>();
+  companiesData.forEach((company: any) => {
+    const wasSent = company.email_sent_at || packageAlreadySent;
+    if (!wasSent) {
+      newSelected.add(company.company_id);
+    }
+  });
+  setSelectedCompanyIds(newSelected);
+}, [companiesData, bidPackage?.sent_on]);
+```
 
-2. **Add checkboxes to each company card** in the recipients grid:
-   - Checkbox toggles company in/out of `selectedCompanyIds`
-   - For already-sent companies, show a small muted label: "Sent on {date}"
-   - Visual distinction: already-sent cards have a subtle border/background difference
+**3. Show "Already sent" label using fallback date**
 
-3. **Filter `emailData.companies`** to only include companies in `selectedCompanyIds`
+For the `alreadySent` flag and display date, fall back to the package's `sent_on` when `email_sent_at` is null:
 
-4. **Update recipient count** to reflect only checked companies' reps
-
-5. **After successful send**, update `email_sent_at` on each sent company's `project_bids` row:
-   ```ts
-   await supabase.from('project_bids')
-     .update({ email_sent_at: new Date().toISOString() })
-     .eq('bid_package_id', bidPackage.id)
-     .in('company_id', sentCompanyIds);
-   ```
-
-6. **Send button label** updates dynamically: "Send to 3 companies" or "Send to 2 new, 1 resend"
-
-### Type Update — `src/integrations/supabase/types.ts`
-
-Add `email_sent_at` to `project_bids` Row/Insert/Update types.
+```ts
+const alreadySent = !!company.email_sent_at || !!bidPackage?.sent_on;
+const sentDate = company.email_sent_at || bidPackage?.sent_on;
+```
 
 ### Files Changed
-- **Migration** — add `email_sent_at` column to `project_bids`
-- `src/components/bidding/SendBidPackageModal.tsx` — checkboxes, filtering, post-send update
-- `src/integrations/supabase/types.ts` — add `email_sent_at` field
+- **Migration** — backfill `email_sent_at` from `project_bid_packages.sent_on`
+- `src/components/bidding/SendBidPackageModal.tsx` — fallback logic for initialization and display
 
 ### Result
-- New companies auto-checked, already-sent ones unchecked with sent date shown
-- User must explicitly re-check to resend, preventing accidental duplicate emails
-- Per-company send history persisted in the database
+- Previously-sent companies are correctly unchecked by default
+- The "Already sent on..." label shows the correct date
+- Only newly added companies are auto-checked
+- Users must explicitly re-check to resend
 
