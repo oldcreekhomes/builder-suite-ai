@@ -1,43 +1,29 @@
 
 
-## Fix Send Bid Package Modal — Readability, Colors, and Selection Logic
+## Reorganize Bid Package Details Modal: Remove "Sent On" from Header, Add Per-Company "Sent On" Column
 
-### Problems Identified
+### What Changes
 
-1. **All companies show as "Already sent"** — The fallback logic `|| !!bidPackage?.sent_on` treats every company (including newly added ones like City Concrete and LCS) as already sent. Since the backfill migration already set `email_sent_at` on genuinely-sent rows, this fallback is now counterproductive.
+1. **Remove "Sent On" from the top management table** — the package-level `sent_on` date is redundant now that we track per-company send dates. Remove both the header column and the data cell. Redistribute spacing across the remaining columns (Status, Due Date, Reminder, Specifications, Files, Actions).
 
-2. **Company cards are too cramped** — The `max-h-48` on the grid and small text/padding make the recipients section unreadable.
+2. **Add "Sent On" column to the company table** — insert a new column between "PO Status" and "Will Bid" showing each company's `email_sent_at` date. This gives per-company visibility into when the bid was actually sent.
 
-3. **No color distinction** — "Already sent" is plain muted text; needs red for sent, green for not-yet-sent.
+### Files Changed
 
-4. **No companies are checked** — Because the fallback marks everything as sent, nothing gets auto-selected.
+**`src/components/bidding/BidPackageDetailsModal.tsx`**
+- Remove `<TableHead>Sent On</TableHead>` (line 214) and the corresponding `<TableCell>` (lines 240-242) from the top management table
+- The remaining 6 columns (Status, Due Date, Reminder, Specifications, Files, Actions) will naturally fill the space
 
-### Fix
+**`src/components/bidding/BiddingCompanyList.tsx`**
+- Add `<TableCell className="font-medium text-muted-foreground">Sent On</TableCell>` between "PO Status" and "Will Bid" in the header row (after line 149)
 
-**File: `src/components/bidding/SendBidPackageModal.tsx`**
-
-1. **Remove `bidPackage?.sent_on` fallback** everywhere — only use `company.email_sent_at` to determine sent status. The backfill already populated this field for all pre-existing sent rows.
-
-   Lines affected:
-   - Line 88: `const wasSent = company.email_sent_at;` (remove `|| packageAlreadySent`)
-   - Line 84: Remove `const packageAlreadySent = ...`
-   - Line 182: `if (company.email_sent_at) {` (remove `|| bidPackage?.sent_on`)
-   - Line 451: `const alreadySent = !!company.email_sent_at;`
-   - Line 452: `const sentDate = company.email_sent_at;`
-
-2. **Increase readability of company cards**:
-   - Change `max-h-48` to `max-h-64` on the grid container (line 441)
-   - Increase card padding from `p-2` to `p-3`
-
-3. **Color the sent status labels**:
-   - Already sent: red text (`text-red-600 font-medium`)
-   - Not yet sent: green text (`text-green-600 font-medium`) showing "Not yet sent"
-
-4. **Auto-check companies that have NOT been sent** — this already works correctly once the fallback is removed. Companies with `email_sent_at = NULL` get checked.
+**`src/components/bidding/components/BiddingCompanyRow.tsx`**
+- Add `email_sent_at` to the `BiddingCompany` interface
+- Add a new `<TableCell>` between PO Status (line 118-124) and Will Bid (line 125-140) showing the formatted `email_sent_at` date, or "—" if null
+- Color: green "Not sent" if null, red date text if sent (matching the Send modal pattern)
 
 ### Result
-- Newly added companies (no `email_sent_at`) are auto-checked and show green "Not yet sent"
-- Previously sent companies are unchecked and show red "Already sent on {date}"
-- Cards are more readable with more space
-- The "Already sent on" dates are real (from the backfill)
+- Top header is cleaner — no misleading package-level "Sent On"
+- Each company row shows its own actual sent date
+- Clear red/green visual indicators per company
 
