@@ -235,10 +235,10 @@ export const useBankReconciliation = () => {
           const jeIds = journalEntries.map(je => je.id);
 
           // Step 2: Get journal entry lines that credit this bank account
-          const journalLines = await batchedIn<{ journal_entry_id: string; credit: number }>(
+          const journalLines = await batchedIn<{ id: string; journal_entry_id: string; credit: number; reconciled: boolean; reconciliation_id: string | null; reconciliation_date: string | null }>(
             (ids) => supabase
               .from('journal_entry_lines')
-              .select('journal_entry_id, credit')
+              .select('id, journal_entry_id, credit, reconciled, reconciliation_id, reconciliation_date')
               .in('journal_entry_id', ids)
               .eq('account_id', bankAccountId)
               .gt('credit', 0),
