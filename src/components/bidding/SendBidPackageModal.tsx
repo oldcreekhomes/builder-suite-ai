@@ -435,7 +435,7 @@ export function SendBidPackageModal({ open, onOpenChange, bidPackage, filteredCo
             {isLoading ? (
               <div className="text-center py-2 text-muted-foreground text-sm">Loading recipients...</div>
             ) : (
-              <div className="grid grid-cols-2 gap-3 max-h-64 overflow-y-auto">
+              <div className="grid grid-cols-2 gap-2 max-h-64 overflow-y-auto">
                 {companiesData?.map((company) => {
                   const notificationReps = company.companies?.company_representatives?.filter(
                     (rep: any) => rep.receive_bid_notifications && rep.email &&
@@ -451,7 +451,7 @@ export function SendBidPackageModal({ open, onOpenChange, bidPackage, filteredCo
                   return (
                     <div
                       key={company.id}
-                      className={`border rounded-lg p-3 space-y-1 cursor-pointer transition-colors ${
+                      className={`border rounded-lg p-2 cursor-pointer transition-colors ${
                         isSelected
                           ? 'border-primary bg-primary/5'
                           : alreadySent
@@ -469,30 +469,25 @@ export function SendBidPackageModal({ open, onOpenChange, bidPackage, filteredCo
                         />
                         <Building2 className="h-3 w-3 text-muted-foreground" />
                         <h5 className="font-medium text-sm flex-1">{company.companies?.company_name}</h5>
+                        {alreadySent && sentDate ? (
+                          <span className="text-[10px] text-red-600 font-medium whitespace-nowrap">
+                            Sent {format(new Date(sentDate), 'MMM dd, yyyy')}
+                          </span>
+                        ) : (
+                          <span className="text-[10px] text-green-600 font-medium whitespace-nowrap">
+                            Not yet sent
+                          </span>
+                        )}
                       </div>
 
-                      {alreadySent && sentDate ? (
-                        <p className="text-[10px] text-red-600 font-medium ml-6">
-                          Already sent on {format(new Date(sentDate), 'MMM dd, yyyy')}
-                        </p>
-                      ) : (
-                        <p className="text-[10px] text-green-600 font-medium ml-6">
-                          Not yet sent
-                        </p>
-                      )}
-
-                      <div className="space-y-1 ml-6">
-                        <div className="flex items-center gap-2">
-                          <Users className="h-3 w-3 text-muted-foreground" />
-                          <span className="text-xs font-medium">Recipients:</span>
-                        </div>
-                        <div className="flex flex-wrap gap-1">
-                          {notificationReps.map((rep: any) => (
-                            <div key={rep.id} className="inline-flex items-center text-xs bg-muted px-2 py-1 rounded">
-                              <span className="font-medium">{rep.first_name} {rep.last_name}</span>
-                            </div>
-                          ))}
-                        </div>
+                      <div className="flex items-center gap-1.5 ml-6 mt-1 flex-wrap">
+                        <Users className="h-3 w-3 text-muted-foreground" />
+                        <span className="text-xs font-medium text-muted-foreground">Recipients:</span>
+                        {notificationReps.map((rep: any) => (
+                          <div key={rep.id} className="inline-flex items-center text-xs bg-muted px-1.5 py-0.5 rounded">
+                            <span className="font-medium">{rep.first_name} {rep.last_name}</span>
+                          </div>
+                        ))}
                       </div>
                     </div>
                   );
