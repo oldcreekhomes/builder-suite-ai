@@ -1,38 +1,50 @@
 
 
-## Verified: All 4 Companies Were Sent
+## Make Send Bid Package Modal More Compact
 
-Database confirms all 4 companies on this bid package have `email_sent_at = 2026-03-31 13:37:33`:
-- **City Concrete** — sent Mar 31, 2026
-- **DeMarr Construction, LLC** — sent Mar 31, 2026
-- **LCS Site Services** — sent Mar 31, 2026
-- **Rock Hard Excavating** — sent Mar 31, 2026
+### Changes — `src/components/bidding/SendBidPackageModal.tsx`
 
-These dates are real — they were set when you sent the bid package earlier today. The data is correct.
+**1. Move sent status inline with company name**
 
----
+Instead of a separate line for "Not yet sent" / "Already sent on...", place it as a badge/tag to the right of the company name in the same row. This saves a full line per company card.
 
-## Fix: Space Out the Top Header Columns
+```
+[✓] 🏢 LCS Site Services          Not yet sent
+    👥 Ron Patrick  Doug Scott  Kevin Birrell
+```
 
-The top management table header (Status, Due Date, Reminder, Specifications, Files, Actions) is cramped because no explicit column widths are set — they all auto-size.
+**2. Put recipients inline with the "Recipients:" label**
 
-### Change
+Instead of "Recipients:" on its own line with names below, combine them into one row:
 
-**File: `src/components/bidding/BidPackageDetailsModal.tsx`**
+```
+    👥 Recipients: Ron Patrick  Doug Scott  Kevin Birrell
+```
 
-Add explicit widths to each `<TableHead>` in the management table (lines 212-220):
+This removes the `space-y-1` wrapper and the separate `flex items-center` div for the label, putting everything in a single flex-wrap row.
 
-| Column | Width |
-|--------|-------|
-| Status | `w-32` |
-| Due Date | `w-36` |
-| Reminder | `w-36` |
-| Specifications | `w-32` |
-| Files | `w-40` |
-| Actions | `w-20` |
+**3. Reduce card padding and spacing**
 
-This distributes the columns evenly across the modal width and matches the spacing pattern used elsewhere in the app.
+- Card padding from `p-3` to `p-2`
+- Grid gap from `gap-3` to `gap-2`
+- Remove `space-y-1` inside cards since rows are consolidated
+
+### Summary of layout per card (before → after)
+
+Before (4 lines):
+```
+[✓] 🏢 Company Name
+    Not yet sent
+    👥 Recipients:
+    Name1  Name2  Name3
+```
+
+After (2 lines):
+```
+[✓] 🏢 Company Name              Not yet sent
+    👥 Recipients: Name1  Name2  Name3
+```
 
 ### Files Changed
-- `src/components/bidding/BidPackageDetailsModal.tsx` — add width classes to the 6 header columns
+- `src/components/bidding/SendBidPackageModal.tsx` — restructure company cards for compactness
 
