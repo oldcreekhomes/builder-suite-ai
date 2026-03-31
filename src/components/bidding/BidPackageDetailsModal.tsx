@@ -257,20 +257,6 @@ export function BidPackageDetailsModal({
                       dueDate={item.due_date}
                     />
                   </TableCell>
-                  <BiddingTableRowSpecs
-                    item={item}
-                    costCode={costCode}
-                    onUpdateSpecifications={(itemId, specs) => onUpdateSpecifications?.(itemId, specs)}
-                    isReadOnly={isReadOnly}
-                  />
-                  <BiddingTableRowFiles
-                    item={item}
-                    projectId={item.project_id}
-                    onFileUpload={(itemId, files) => onFileUpload?.(itemId, files)}
-                    onDeleteIndividualFile={(itemId, fileName) => onDeleteIndividualFile?.(itemId, fileName)}
-                    onLinkProjectFiles={onLinkProjectFiles}
-                    isReadOnly={isReadOnly}
-                  />
                   <BiddingTableRowActions
                     item={item}
                     costCode={costCode}
