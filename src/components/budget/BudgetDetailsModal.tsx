@@ -294,10 +294,12 @@ export function BudgetDetailsModal({
       onClose();
     } else if (source === 'historical') {
       if (selectedHistoricalProjectId && historicalCostForCode > 0) {
+        const parsed = parseHistoricalKey(selectedHistoricalProjectId);
         updateSource({
           budgetItemId: budgetItem.id,
           source: 'historical',
-          historicalProjectId: selectedHistoricalProjectId,
+          historicalProjectId: parsed.projectId,
+          historicalLotId: parsed.lotId,
           manualUnitPrice: historicalCostForCode,
           manualQuantity: 1,
         });

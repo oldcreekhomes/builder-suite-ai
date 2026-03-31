@@ -8,6 +8,22 @@ interface BudgetTableFooterProps {
 }
 
 export function BudgetTableFooter({ budgetItems, subcategoryTotals }: BudgetTableFooterProps) {
+  // Build composite keys from historical_project_id + historical_lot_id
+  const historicalCompositeKeys = useMemo(() => {
+    const keys = new Set<string>();
+    budgetItems.forEach(item => {
+      if (item.budget_source === 'historical' && item.historical_project_id) {
+        const lotId = item.historical_lot_id;
+        const key = lotId ? `${item.historical_project_id}::${lotId}` : item.historical_project_id;
+        keys.add(key);
+      }
+    });
+    return Array.from(keys);
+  }, [budgetItems]);
+
+  // Fetch historical costs using composite keys (lot-aware)
+  const { data: historicalCostsMap = {} } = useMultipleHistoricalCosts(historicalCompositeKeys);
+
   if (budgetItems.length === 0) return null;
 
   // Build composite keys from historical_project_id + historical_lot_id
