@@ -24,12 +24,9 @@ export function BudgetTableFooter({ budgetItems, subcategoryTotals }: BudgetTabl
   // Fetch historical costs using composite keys (lot-aware)
   const { data: historicalCostsMap = {} } = useMultipleHistoricalCosts(historicalCompositeKeys);
 
-  if (budgetItems.length === 0) return null;
-
-
-
 
   const totalBudget = useMemo(() => {
+    if (budgetItems.length === 0) return 0;
     return budgetItems.reduce((sum, item) => {
       const costCode = item.cost_codes;
       const subcategoryTotal = costCode?.code ? subcategoryTotals?.[costCode.code] : undefined;
