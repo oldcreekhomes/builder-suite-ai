@@ -55,6 +55,7 @@ export const calculateBudgetItemTotal = (
         }
         break;
       
+      case 'actual':
       case 'manual':
         return (item.quantity || 0) * (item.unit_price || 0);
     }
