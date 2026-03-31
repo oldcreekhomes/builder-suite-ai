@@ -39,7 +39,8 @@ export function BiddingTableRowFiles({
   onDeleteIndividualFile,
   onLinkProjectFiles,
   onCellClick,
-  cellClassName
+  cellClassName,
+  asDiv = false
 }: BiddingTableRowFilesProps) {
   const [fileToDelete, setFileToDelete] = useState<string | null>(null);
   const [showProjectFilesModal, setShowProjectFilesModal] = useState(false);
