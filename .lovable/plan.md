@@ -1,40 +1,47 @@
 
 
-## Fix: Historical Source Should Pull Lot-Specific Costs
+## Fix: Edit Company Dialog Wipes Cost Codes on Save
 
-### Problem
-When you select "6330 Stevenson Ave - Lot 507" as the historical source, only the project UUID gets saved to `historical_project_id` (FK constraint prevents storing the composite `projectId::lotId` key). The lookup hooks (`useMultipleHistoricalCosts`, `useHistoricalActualCosts` in `BudgetTableRow`) then query **all lots** for that project, summing costs across every lot — producing inflated/doubled values.
+### Root Cause
+The Edit Company dialog has a race condition that silently deletes all cost code associations when saving:
 
-### Solution — 3 Parts
+1. Dialog opens → `selectedCostCodes` is initialized to `[]`
+2. `companyCostCodes` query starts fetching from DB
+3. **If the user saves before the query completes**, or if the initialization effect doesn't trigger (e.g., cost codes load but `selectedCostCodes.length` is already > 0 from a previous open), `selectedCostCodes` remains `[]`
+4. The save mutation calls `delete().eq('company_id', ...)` then inserts **nothing** — wiping all associations
 
-**1. Database: Add `historical_lot_id` column**
+The initialization guard on line 293 (`selectedCostCodes.length === 0`) also prevents re-initialization if the dialog is reopened for a different company without fully resetting.
 
-New nullable UUID column on `project_budgets` referencing `project_lots.id`. This stores which specific lot's actuals to use.
+### Fix — Two Changes in `src/components/companies/EditCompanyDialog.tsx`
 
-Migration also updates the existing Nob Hill 4000-series rows to set `historical_lot_id = '8ae0a660-...'` (Lot 507).
+**1. Track whether cost codes have been initialized separately**
 
-**2. Code: Make historical lookups lot-aware**
+Add a `costCodesInitialized` ref (similar to the existing `initializationDone` ref) so we don't rely on the fragile `selectedCostCodes.length === 0` check:
 
-Files changed:
+```ts
+const costCodesInitialized = useRef(false);
+```
 
-- **`src/hooks/useMultipleHistoricalCosts.ts`** — Accept composite keys (`projectId::lotId`) instead of plain UUIDs. Parse them, add `lot_id` filter to the query when a lot is specified. Key the result map by composite key.
+Reset it when dialog closes (alongside `initializationDone.current = false`).
 
-- **`src/hooks/useBudgetItemTotals.ts`** — Build composite keys from `historical_project_id` + `historical_lot_id` when constructing the lookup set and reading results.
+Update the initialization effect:
+```ts
+useEffect(() => {
+  if (open && companyCostCodes.length >= 0 && !costCodesInitialized.current && companyCostCodes !== undefined) {
+    setSelectedCostCodes([...companyCostCodes]);
+    costCodesInitialized.current = true;
+  }
+}, [open, companyCostCodes]);
+```
 
-- **`src/components/budget/BudgetTableRow.tsx`** — Pass `item.historical_lot_id` to `useHistoricalActualCosts` so the per-row fetch is also lot-filtered.
+**2. Block save while cost codes are still loading**
 
-- **`src/components/budget/BudgetTableFooter.tsx`** — Same composite key pattern as `useBudgetItemTotals`.
+Disable the save button until the `companyCostCodes` query has resolved, so the user can never accidentally submit with an empty array before data loads. Add `isFetching` from the query and pass it to the submit button's `disabled` prop.
 
-- **`src/utils/budgetUtils.ts`** — For the `'historical'` case, prefer `quantity * unit_price` when explicitly set (so the baked-in DB values work as a fallback even if the lookup misses).
-
-**3. Code: Save lot ID when setting historical source**
-
-- **`src/hooks/useBudgetSourceUpdate.ts`** — Add `historicalLotId` param. Save to `historical_lot_id` column when source is `'historical'`; clear it for other sources.
-
-- **`src/components/budget/BudgetDetailsModal.tsx`** — Extract lotId from the composite key via `parseHistoricalKey` and pass it to `updateSource`.
+### Files Changed
+- `src/components/companies/EditCompanyDialog.tsx` — initialization logic fix + save button guard
 
 ### Result
-- Historical items tied to a specific lot will only pull that lot's actual costs
-- The 4000-series on Nob Hill will show the correct Lot 507 values (not doubled)
-- No impact on historical items without a lot (they continue to query all records with `lot_id IS NULL`)
+- Cost codes will no longer be wiped when editing a company
+- Existing companies that already lost their cost codes will need to be re-associated manually (or via a DB restore if you have the data)
 
