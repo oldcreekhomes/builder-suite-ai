@@ -13,6 +13,7 @@ interface BiddingTableRowActionsProps {
   isReadOnly?: boolean;
   onCellClick?: (e: React.MouseEvent) => void;
   cellClassName?: string;
+  asDiv?: boolean;
 }
 
 export function BiddingTableRowActions({ 
@@ -25,16 +26,18 @@ export function BiddingTableRowActions({
   isDeleting = false,
   isReadOnly = false,
   onCellClick,
-  cellClassName
+  cellClassName,
+  asDiv = false
 }: BiddingTableRowActionsProps) {
+  const Wrapper = asDiv ? 'div' : TableCell;
   return (
-    <TableCell className={`text-center ${cellClassName || ''}`} onClick={onCellClick}>
+    <Wrapper className={`text-center ${cellClassName || ''}`} onClick={onCellClick}>
       <TableRowActions actions={[
         { label: "Send Bid Package", onClick: onSendClick, hidden: isReadOnly },
         { label: "Send Test Email", onClick: onTestEmailClick || (() => {}), hidden: isReadOnly || !onTestEmailClick },
         { label: "Add Companies", onClick: onAddCompaniesClick || (() => {}), hidden: isReadOnly || !onAddCompaniesClick },
         { label: "Delete", onClick: () => onDelete(item.id), variant: "destructive", requiresConfirmation: true, confirmTitle: "Delete Bidding Item", confirmDescription: `Are you sure you want to delete the bidding item "${costCode?.code} - ${costCode?.name}"? This action cannot be undone.`, isLoading: isDeleting },
       ]} />
-    </TableCell>
+    </Wrapper>
   );
 }
