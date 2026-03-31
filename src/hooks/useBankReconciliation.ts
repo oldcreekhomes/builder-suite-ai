@@ -530,7 +530,7 @@ export const useBankReconciliation = () => {
 
         // Filter legacy bill payments to exclude those in consolidated payments
         billPaymentTransactions = billPaymentTransactions.filter(bp => 
-          !billIdsInConsolidatedPayments.has(bp.id)
+          !billIdsInConsolidatedPayments.has((bp as any).sourceBillId || bp.id)
         );
 
         console.log('[Reconciliation] Legacy bill payments after filtering:', { 
