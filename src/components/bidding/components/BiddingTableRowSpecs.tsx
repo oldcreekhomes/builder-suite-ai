@@ -12,6 +12,7 @@ interface BiddingTableRowSpecsProps {
   isReadOnly?: boolean;
   cellClassName?: string;
   onCellClick?: (e: React.MouseEvent) => void;
+  asDiv?: boolean;
 }
 
 export function BiddingTableRowSpecs({ 
