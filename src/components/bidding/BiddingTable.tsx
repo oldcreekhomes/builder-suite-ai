@@ -291,15 +291,7 @@ export function BiddingTable({ projectId, projectAddress, status, onHeaderAction
   const toolbarInContent = !onHeaderActionChange ? (
     status === 'draft' ? (
       <div className="flex items-center justify-between">
-        <div className="relative max-w-sm">
-          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
-          <Input
-            placeholder="Search bids..."
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            className="pl-9"
-          />
-        </div>
+        <DebouncedSearchInput onSearch={setSearchQuery} />
         <div className="flex items-center space-x-2">
           <Button 
             variant="outline"
@@ -317,15 +309,7 @@ export function BiddingTable({ projectId, projectAddress, status, onHeaderAction
         </div>
       </div>
     ) : (
-      <div className="relative max-w-sm">
-        <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
-        <Input
-          placeholder="Search bids..."
-          value={searchQuery}
-          onChange={(e) => setSearchQuery(e.target.value)}
-          className="pl-9"
-        />
-      </div>
+      <DebouncedSearchInput onSearch={setSearchQuery} />
     )
   ) : null;
 
