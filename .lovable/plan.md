@@ -1,50 +1,27 @@
 
 
-## Make Send Bid Package Modal More Compact
+## Fix Specifications Formatting in Send Bid Package Modal
 
-### Changes — `src/components/bidding/SendBidPackageModal.tsx`
+### Problem
+The specifications in the Send Bid Package modal render as a single flat line, despite the HTML containing proper list/indent markup from the rich text editor. The `text-xs` class overrides prose typography, and `max-h-32` makes the box too small to see formatting.
 
-**1. Move sent status inline with company name**
+### Change
 
-Instead of a separate line for "Not yet sent" / "Already sent on...", place it as a badge/tag to the right of the company name in the same row. This saves a full line per company card.
+**File: `src/components/bidding/SendBidPackageModal.tsx` (line 372)**
 
+Update the specifications container class from:
 ```
-[✓] 🏢 LCS Site Services          Not yet sent
-    👥 Ron Patrick  Doug Scott  Kevin Birrell
+bg-muted p-3 rounded-lg max-h-32 overflow-y-auto text-xs prose prose-sm max-w-none
 ```
-
-**2. Put recipients inline with the "Recipients:" label**
-
-Instead of "Recipients:" on its own line with names below, combine them into one row:
-
+To:
 ```
-    👥 Recipients: Ron Patrick  Doug Scott  Kevin Birrell
+bg-muted p-3 rounded-lg max-h-48 overflow-y-auto text-sm prose prose-sm max-w-none [&_ol]:list-decimal [&_ul]:list-disc [&_ol]:pl-6 [&_ul]:pl-6 [&_li]:my-0.5
 ```
 
-This removes the `space-y-1` wrapper and the separate `flex items-center` div for the label, putting everything in a single flex-wrap row.
+- Remove `text-xs` (conflicts with prose sizing)
+- Increase `max-h-32` → `max-h-48` for more visible content
+- Add explicit list styling overrides to ensure numbered/bulleted lists render with proper indentation
 
-**3. Reduce card padding and spacing**
-
-- Card padding from `p-3` to `p-2`
-- Grid gap from `gap-3` to `gap-2`
-- Remove `space-y-1` inside cards since rows are consolidated
-
-### Summary of layout per card (before → after)
-
-Before (4 lines):
-```
-[✓] 🏢 Company Name
-    Not yet sent
-    👥 Recipients:
-    Name1  Name2  Name3
-```
-
-After (2 lines):
-```
-[✓] 🏢 Company Name              Not yet sent
-    👥 Recipients: Name1  Name2  Name3
-```
-
-### Files Changed
-- `src/components/bidding/SendBidPackageModal.tsx` — restructure company cards for compactness
+### Result
+Specifications will display with the same numbered list formatting, indentation, and line breaks as the Edit Specifications modal.
 
