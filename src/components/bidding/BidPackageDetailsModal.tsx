@@ -275,6 +275,33 @@ export function BidPackageDetailsModal({
             </Table>
           </div>
 
+          {/* Specifications & Files Toolbar */}
+          <div className="flex items-center gap-6 px-4 py-3 border rounded-lg mt-2">
+            <div className="flex items-center gap-2">
+              <span className="text-sm font-medium text-muted-foreground">Specifications:</span>
+              <BiddingTableRowSpecs
+                item={item}
+                costCode={costCode}
+                onUpdateSpecifications={(itemId, specs) => onUpdateSpecifications?.(itemId, specs)}
+                isReadOnly={isReadOnly}
+                asDiv
+              />
+            </div>
+            <div className="h-6 w-px bg-border" />
+            <div className="flex items-center gap-2">
+              <span className="text-sm font-medium text-muted-foreground">Files:</span>
+              <BiddingTableRowFiles
+                item={item}
+                projectId={item.project_id}
+                onFileUpload={(itemId, files) => onFileUpload?.(itemId, files)}
+                onDeleteIndividualFile={(itemId, fileName) => onDeleteIndividualFile?.(itemId, fileName)}
+                onLinkProjectFiles={onLinkProjectFiles}
+                isReadOnly={isReadOnly}
+                asDiv
+              />
+            </div>
+          </div>
+
           {/* Bulk Action Bar for Selected Companies */}
           {selectedCompanies && selectedCompanies.size > 0 && (
             <BulkActionBar
