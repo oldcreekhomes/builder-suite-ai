@@ -1,43 +1,44 @@
 
+## Make the bid package header 6 equal columns
 
-## Options for Specifications & Files in the Management Table
-
-### The Problem
-Specifications (a single paperclip icon) and Files (file icons + "Add Files" button) are squeezed into narrow table columns that look awkward — the icon sits alone in a cramped cell, and the files spill out unevenly.
-
-### Recommended Option: Move Specs & Files Below the Table as an Inline Toolbar
-
-Instead of cramming these into table columns, pull them out of the 6-column table entirely and render them as a clean horizontal toolbar row just below the table:
-
-```text
-┌──────────────────────────────────────────────────────────┐
-│ Status      Due Date      Reminder               Actions │  ← 4-column table (clean, spacious)
-│ [Sent ▾]   [04/16/2026]  [04/14/2026]              ···  │
-└──────────────────────────────────────────────────────────┘
-  📎 Specifications: View/Edit    📄 Files: plan.pdf  erosion.xlsx  [Add Files ▾]
-```
-
-- The table drops from 6 columns to 4 (Status, Due Date, Reminder, Actions) — all evenly spaced
-- Specs and Files become a simple flex row underneath with proper breathing room
-- The specs icon + label and file icons + "Add Files" button sit side by side naturally
+### What I’ll change
+Reset the top management header in `BidPackageDetailsModal` to a simple 6-column equal grid so these all get the same width:
+- Status
+- Due Date
+- Reminder
+- Specs
+- Files
+- Actions
 
 ### Implementation
-
 **File: `src/components/bidding/BidPackageDetailsModal.tsx`**
 
-1. Remove `Specifications` and `Files` `<TableHead>` entries (lines 216-217) — table becomes 4 columns
-2. Remove `<BiddingTableRowSpecs>` and `<BiddingTableRowFiles>` from the `<TableRow>` (lines 262-275)
-3. Add a new `<div>` right after the closing `</div>` of the table border container (after line 292), containing:
-   - A flex row with the specs button/icon (extracted from BiddingTableRowSpecs logic) and the files section (extracted from BiddingTableRowFiles logic)
-   - Both rendered as regular div children instead of TableCells
-   - Styled with `flex items-center gap-6 px-4 py-2 border rounded-lg mt-2`
+1. Replace the current uneven grid:
+   `grid-cols-[1fr_1fr_1fr_auto_auto_auto]`
+   with a true equal-width layout:
+   `grid-cols-6`
 
-**Files: `BiddingTableRowSpecs.tsx` and `BiddingTableRowFiles.tsx`**
+2. Standardize all 6 column wrappers so they use the same structure:
+   - label on top
+   - control area below
+   - `min-w-0` on each column so nothing pushes the layout unevenly
 
-4. Add an optional `asDiv` prop (or create wrapper variants) that renders the content without `<TableCell>` wrapping, so they can be used outside a table context
+3. Remove the special outer centering treatment on `Specs` and `Actions` so they follow the same spacing pattern as the first 3 fields.
 
-### Result
-- The top management table is clean with 4 evenly-spaced columns
-- Specs and Files have proper room to breathe in their own row below
-- File icons, delete buttons, and "Add Files" dropdown display without cramping
+4. Wrap `Specs`, `Files`, and `Actions` in the same control-height container used visually by the other fields (`h-9 flex items-center ...`) so they align cleanly and stop looking bolted onto the right side.
 
+5. Keep all existing behavior exactly the same:
+   - specs modal still opens the same way
+   - files still upload/link/delete the same way
+   - actions menu still works the same way
+
+### Technical details
+- Layout-only change
+- No bidding logic changes
+- No company table changes
+- No send-date/status changes
+- No separate toolbar / custom grid experiments
+- Goal: a clean, even 6-column header with no “special” right-side columns
+
+### Files affected
+- `src/components/bidding/BidPackageDetailsModal.tsx`
