@@ -3025,6 +3025,7 @@ export type Database = {
           company_id: string
           created_at: string
           due_date: string | null
+          email_sent_at: string | null
           id: string
           price: number | null
           proposals: string[] | null
@@ -3042,6 +3043,7 @@ export type Database = {
           company_id: string
           created_at?: string
           due_date?: string | null
+          email_sent_at?: string | null
           id?: string
           price?: number | null
           proposals?: string[] | null
@@ -3059,6 +3061,7 @@ export type Database = {
           company_id?: string
           created_at?: string
           due_date?: string | null
+          email_sent_at?: string | null
           id?: string
           price?: number | null
           proposals?: string[] | null
