@@ -33,6 +33,7 @@ export function useBudgetSourceUpdate(projectId: string) {
       } else if (params.source === 'manual') {
         updateData.selected_bid_id = null;
         updateData.historical_project_id = null;
+        updateData.historical_lot_id = null;
         if (params.manualQuantity !== undefined) {
           updateData.quantity = params.manualQuantity;
         }
