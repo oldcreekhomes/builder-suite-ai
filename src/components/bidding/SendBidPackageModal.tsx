@@ -179,7 +179,7 @@ export function SendBidPackageModal({ open, onOpenChange, bidPackage, filteredCo
       ) || [];
       if (reps.length > 0) {
         total += reps.length;
-        if (company.email_sent_at) {
+        if (company.email_sent_at || bidPackage?.sent_on) {
           resendC++;
         } else {
           newC++;
