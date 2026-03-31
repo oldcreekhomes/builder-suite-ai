@@ -1,55 +1,42 @@
 
 
-## Hard-code Historical Actual Costs for Stevenson Ave Lot 501
+## Update 1000-Series Source to "Actual" for Nob Hill Court
 
-### Data
-- **Project:** `d9e400a0-f9b9-40c6-8b8e-183341e508f3` (6330 Stevenson Ave)
-- **Lot:** `628440ae-79c9-4c7f-a067-d278ee45ebf9` (Lot 501)
-- **Grand total:** $734,986.14
+### The Ask
+Change the Source badge from "Manual" to "Actual" for all 1000-series budget items on the 100 Nob Hill Court project (id: `691271e6-e46f-4745-8efb-200500e819f0`).
 
-### Category subtotals (must match exactly)
-| Category | Target |
-|---|---|
-| 1000 | $190,664.99 |
-| 2000 | $156,054.55 |
-| 3000 | $61,772.22 |
-| 4000 | $326,494.38 |
+### Small Catch
+The current code only recognizes these budget_source values: `manual`, `estimate`, `vendor-bid`, `historical`, `settings`. There is no `actual` type yet. If I only update the database, the badge will **still show "Manual"** because the UI doesn't know how to display "Actual."
 
-### Mapping (same rules as Lot 507)
+This requires **one tiny code change** (3 lines) in `BudgetSourceBadge.tsx` to add an `'actual'` case, plus the database update.
 
-**Unmapped 4000s → 4005 General Conditions:**
-- 4005.1 Foundation Issues ($845.36) + 4005 Back Charges Other ($163.93) + 4855 Warranty Purchase ($882.14) = **$1,891.43** → 4005
+### Plan
 
-**4010 sub-codes by name:**
-- 4010.1 Parking ($92.33) → 4010
-- 4010.2 Office Supplies ($117.86) → 4040 Office Supplies
-- 4010.3 Office ($4.28) → 4015 Office
-- 4010.4 Project Manager ($11,521.52) → 4020 Project Manager
-- 4010.5 Accounting ($97.58) → 4025 Accounting
-- 4010.6 Other ($8.33) → 4030 Other
+**1. Code change — BudgetSourceBadge.tsx**
+Add a new case in the `budget_source` switch:
+```ts
+case 'actual':
+  return {
+    label: 'Actual',
+    className: 'bg-teal-100 text-teal-700 border-teal-200',
+    tooltip: 'From actual costs'
+  };
+```
 
-**Renumbered codes:**
-- 4020 Drawings ($68.20) → 4050
-- 4030 Signage ($114.97) → 4060
-- 4040 Temporary Toilets ($319.52) → 4070
-- 4110 Pest Control ($275.14) → 4300 Termite Treatment
+**2. Database migration**
+```sql
+UPDATE project_budgets
+SET budget_source = 'actual'
+WHERE project_id = '691271e6-e46f-4745-8efb-200500e819f0'
+  AND cost_code_id IN (
+    SELECT id FROM cost_codes WHERE code LIKE '1%' AND parent_group = '1000'
+  );
+```
 
-**2000s unmapped → 2480 Misc Costs:**
-- 2130 Affordable Housing ($6,475.28) + 2480 Misc ($14.86) = **$6,490.14** → 2480
-
-**Skipped (zero actual):** 4590 Interior Trim Labor ($0.00), 4805 Curb & Gutter ($0.00)
-
-**All remaining codes** map directly by number.
-
-### Implementation
-One database insert operation: ~80 INSERT rows into `project_budgets` with:
-- `project_id = d9e400a0-...`
-- `lot_id = 628440ae-...`
-- `actual_amount` from spreadsheet Act. Cost column
-- `budget_source = 'manual'`, `quantity = 1`, `unit_price = 0`
+This targets only the 1000-series items (1010, 1020, 1040) for Nob Hill Court, changing their source from `manual` to `actual`.
 
 ### Result
-- Historical dropdown will show **6330 Stevenson Ave - Lot 501**
-- Category subtotals will match spreadsheet exactly
-- Grand total: **$734,986.14**
+- Source badge for 1010, 1020, 1040 will display **"Actual"** in teal
+- Budget calculation for `'actual'` source will fall through to `quantity * unit_price` (same as manual), so dollar amounts stay unchanged
+- No other projects affected
 
