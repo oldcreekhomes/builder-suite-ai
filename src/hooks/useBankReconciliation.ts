@@ -42,6 +42,8 @@ interface ReconciliationTransaction {
   accountAllocations?: AllocationBreakdown[];
   // For consolidated bill payments - list of bills included in this payment
   billPaymentAllocations?: BillPaymentAllocationSummary[];
+  // For legacy bill payments - track the source bill ID for exclusion filtering
+  sourceBillId?: string;
 }
 
 interface BankReconciliation {
