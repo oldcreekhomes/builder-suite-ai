@@ -1,57 +1,59 @@
 
-Problem confirmed:
-- LCS Site Services’ cost codes are not just hidden in the UI right now — the current `company_cost_codes` fetch for that company returns an empty array.
-- The edit dialog also logged `Setting cost codes: []`, so it is initializing from empty data.
-- This is not a general Companies-page failure; the batch company query is still returning cost codes for many other companies.
 
-Why this is still happening:
-1. `EditCompanyDialog` still uses the same React Query key as the view modal: `['company-cost-codes', companyId]`.
-2. Those two places return different shapes:
-   - edit dialog: array of `cost_code_id` strings
-   - modal: array of full `cost_codes` objects
-3. The save path is still destructive: it deletes all `company_cost_codes` rows first, then reinserts from current state. If current state is bad/empty, the associations are wiped.
+## Fix: Slow Date Updates in Bidding
 
-Implementation plan:
-1. Isolate the edit query cache
-   - Change `EditCompanyDialog` to use a dedicated key like `['edit-company-cost-codes', companyId]`.
-   - Keep the modal/view query keys separate.
-   - Normalize fetched values before storing them in `selectedCostCodes` so only UUID strings are ever saved.
+### Root Cause
 
-2. Make cost-code saving non-destructive
-   - Capture the original loaded cost-code IDs when the dialog opens.
-   - On save, compute:
-     - added IDs
-     - removed IDs
-   - Insert only additions and delete only explicit removals.
-   - Remove the current “delete all then insert all” pattern.
+Every time you pick a due date or reminder date, the mutation's `onSuccess` calls:
+```ts
+queryClient.invalidateQueries({ queryKey: ['project-bidding', projectId] });
+```
 
-3. Add stronger safety guards
-   - Block submit until the edit-specific cost-code query has fully loaded.
-   - Abort save if loaded data is invalid or does not match the expected UUID list shape.
-   - If the dialog opens in a suspicious empty state, show a warning instead of allowing a destructive save.
+This triggers a **full refetch** of ALL bidding packages with all their nested `project_bids` and `companies` joins. With 57+ draft packages, each containing multiple companies, this is a heavy query that takes several seconds to complete. The calendar popover stays open / freezes while waiting.
 
-4. Restore the missing LCS associations
-   - After the code fix, restore LCS Site Services’ missing associated cost codes from the best source of truth:
-     - backup / prior DB state if available, or
-     - reconstruct from existing project usage history and recent vendor activity, then confirm before saving.
-   - Apply the same recovery to any other impacted subs.
+Additionally, there's **no optimistic update** — the UI waits for the round trip before reflecting the change.
 
-5. Verify end to end
-   - Open LCS Site Services and confirm:
-     - Companies table count
-     - edit dialog chips
-     - cost-code modal list
-     all match.
-   - Save without changing cost codes and confirm nothing disappears.
-   - Add/remove one cost code and confirm only that one change is applied.
-   - Repeat on at least one other subcontractor and one vendor.
+### Fix
 
-Files to update:
-- `src/components/companies/EditCompanyDialog.tsx`
-- `src/components/companies/CompanyCostCodesModal.tsx`
-- optionally `src/components/companies/CompaniesTable.tsx` for mismatch warning support
+**1. Add optimistic updates to date mutations** (`src/hooks/useBiddingMutations.ts`)
 
-Technical details:
-- Current regression: shared query key with mismatched data shapes.
-- Current risk: destructive `delete().eq('company_id', company.id)` save strategy.
-- The previous fix reduced one loading race, but it did not eliminate the shared-cache bug or the destructive mutation path, which is why this can still happen.
+For `updateBiddingDueDate` and `updateBiddingReminderDate`:
+- Use `onMutate` to immediately update the cached bidding data with the new date value
+- Store previous data for rollback on error
+- Cancel any in-flight queries before mutating the cache
+- On error, roll back to the previous cache state
+- On success, do a background invalidation (no toast-blocking refetch)
+
+```ts
+// Pattern for both due_date and reminder_date mutations:
+onMutate: async ({ itemId, dueDate }) => {
+  await queryClient.cancelQueries({ queryKey: ['project-bidding', projectId] });
+  const previous = queryClient.getQueryData(['project-bidding', projectId, status]);
+  // Update cache in-place
+  queryClient.setQueriesData({ queryKey: ['project-bidding', projectId] }, (old) => {
+    return old?.map(item => item.id === itemId ? { ...item, due_date: dueDate } : item);
+  });
+  return { previous };
+},
+onError: (err, vars, context) => {
+  // Rollback
+  queryClient.setQueriesData({ queryKey: ['project-bidding', projectId] }, context.previous);
+},
+onSettled: () => {
+  // Background refetch to sync
+  queryClient.invalidateQueries({ queryKey: ['project-bidding', projectId] });
+},
+```
+
+**2. Apply the same pattern to `updateBiddingStatus`** — since status changes also trigger a full refetch.
+
+**3. Keep the toast but make it non-blocking** — toast fires in `onMutate` (optimistically) or stays in `onSuccess` but the UI update doesn't wait for it.
+
+### Files Changed
+- `src/hooks/useBiddingMutations.ts` — Add optimistic cache updates to `updateBiddingDueDate`, `updateBiddingReminderDate`, and optionally `updateBiddingStatus`
+
+### Result
+- Date picks will feel instant (< 100ms UI response)
+- Data stays consistent via background refetch
+- Errors roll back gracefully with an error toast
+
