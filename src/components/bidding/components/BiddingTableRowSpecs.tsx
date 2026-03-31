@@ -21,7 +21,8 @@ export function BiddingTableRowSpecs({
   onUpdateSpecifications,
   isReadOnly = false,
   cellClassName,
-  onCellClick
+  onCellClick,
+  asDiv = false
 }: BiddingTableRowSpecsProps) {
   const [showSpecsModal, setShowSpecsModal] = useState(false);
 
