@@ -234,7 +234,7 @@ export function EditCompanyDialog({ company, open, onOpenChange }: EditCompanyDi
   const { companyNameRef, isGoogleLoaded, isLoadingGoogleData } = useGooglePlaces(open, handlePlaceSelected);
 
   // Fetch company's current cost codes
-  const { data: companyCostCodes = [] } = useQuery({
+  const { data: companyCostCodes = [], isFetching: isFetchingCostCodes } = useQuery({
     queryKey: ['company-cost-codes', stableCompanyId],
     queryFn: async () => {
       if (!stableCompanyId) return [];
