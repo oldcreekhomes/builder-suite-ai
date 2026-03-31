@@ -8,6 +8,7 @@ interface UpdateBudgetSourceParams {
   budgetItemId: string;
   source: BudgetSource;
   historicalProjectId?: string | null;
+  historicalLotId?: string | null;
   manualQuantity?: number | null;
   manualUnitPrice?: number | null;
 }
