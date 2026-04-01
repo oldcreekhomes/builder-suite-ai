@@ -1,38 +1,31 @@
 
 
-## Fix: Account Column Not Populating for Bill Payments in Reconciliation
+## Fix: Account Column Not Showing for Bill Payments in Reconciliation
 
 ### Problem
-The Account column in the reconciliation table shows "-" for both **legacy bill payments** (per-JE-line) and **consolidated bill payments**. Only checks properly populate this column because they fetch both `allocations` (cost codes) and `accountAllocations` (chart of accounts) from their respective line items.
+The Account column shows "-" for most bill payments. The allocation data is being fetched from `bill_lines`, but the `AllocationCell` at line 1311-1314 uses a check-specific fallback pattern:
+```tsx
+allocations={check.accountAllocations?.length ? check.accountAllocations : check.allocations}
+```
+This works for checks but bill payments may have neither populated if the fetch isn't matching correctly. The likely issue is that `bill_lines` may have lines where **neither** `cost_code_id` nor `account_id` is set, or the bill payment's `sourceBillId` isn't being preserved on the final transaction object after mapping.
 
-### Root Cause
-In `useBankReconciliation.ts`:
-- **Legacy bill payments** (lines 328-339): No allocation data is fetched at all — the transaction is built with no `allocations` or `accountAllocations` fields
-- **Consolidated bill payments** (lines 454-522): Fetch cost code allocations but NOT account (chart of accounts) allocations from `bill_lines`
+### Root Cause Investigation Needed
+In the legacy bill payment mapping (line 371-406), the code maps over `billPaymentTransactions` and looks up lines by `(bp as any).sourceBillId`. Two potential issues:
+1. The `sourceBillId` property may not survive if earlier code strips unknown properties
+2. Some `bill_lines` may use a direct GL account on the `bills` table (`account_id`) rather than line-level allocations — these wouldn't be captured by querying `bill_lines`
 
 ### Fix
-
 **File: `src/hooks/useBankReconciliation.ts`**
 
-#### 1. Add account allocations for legacy bill payments (per-JE-line)
-After building `billPaymentTransactions` (around line 341), add a new section that:
-- Collects all `sourceBillId` values from `billPaymentTransactions`
-- Fetches `bill_lines` for those bills with both `cost_codes` and `accounts` joins (same pattern as consolidated payments at line 458)
-- Groups by bill_id, then maps allocations onto each transaction using `sourceBillId`
-- Sets both `allocations` (cost codes) and `accountAllocations` (chart of accounts) on each bill payment transaction
+1. After building bill payment allocations from `bill_lines`, add a **fallback** for bill payments that still have no allocations: query the `bills` table's own `account_id` field (if it exists) or the journal entry lines' account to get the GL account
+2. For any bill payment transaction where both `allocations` and `accountAllocations` are empty after the `bill_lines` lookup, fetch the account from the corresponding `journal_entry_lines` debit side (the expense account), which always exists since every bill payment creates a JE with a debit to an expense/cost account and credit to the bank
 
-#### 2. Add account allocations for consolidated bill payments
-After the existing cost code allocation fetch (around line 524), add a similar fetch for account-based allocations:
-- Query `bill_lines` for the same bill IDs but join on `accounts:account_id (code, name)` instead of `cost_codes`
-- Group by consolidated payment and set `accountAllocations` on each transaction
-
-This mirrors exactly how checks fetch both `checkAllocationsMap` (cost codes, line 707) and `checkAccountAllocationsMap` (accounts, line 767).
-
-### Technical Details
-- `bill_lines` table has both `cost_code_id` and `account_id` columns
-- The `AllocationCell` component in ReconcileAccountsContent.tsx already handles the display logic: it prefers `accountAllocations` over `allocations`, falling back to cost codes
-- No UI changes needed — the Account column rendering already works correctly, it just needs the data
+**Concrete approach — use journal entry lines as fallback:**
+- The JE for a bill payment has lines: debit to expense account, credit to bank account
+- We already have the JE line IDs (they're used as transaction IDs)
+- Fetch the **debit** lines from the same journal entries to get the expense accounts
+- Map those accounts as `accountAllocations` for any bill payment that still shows "-"
 
 ### Files Changed
-- `src/hooks/useBankReconciliation.ts` — fetch and attach allocations for both bill payment types
+- `src/hooks/useBankReconciliation.ts` — add JE-line-based account fallback for bill payments with empty allocations
 
