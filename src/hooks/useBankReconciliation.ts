@@ -407,6 +407,84 @@ export const useBankReconciliation = () => {
                 }
               }
 
+              // JE-line fallback: for bill payments still missing allocations,
+              // fetch the debit side of their journal entries to get expense accounts
+              const bpsMissingAllocations = billPaymentTransactions.filter(bp => {
+                const hasAlloc = (bp as any).allocations?.length > 0;
+                const hasAcctAlloc = (bp as any).accountAllocations?.length > 0;
+                return !hasAlloc && !hasAcctAlloc;
+              });
+
+              if (bpsMissingAllocations.length > 0) {
+                // Collect journal_entry_ids for these transactions
+                // The transaction id is the JE line id; we need to find the parent JE
+                const missingLineIds = bpsMissingAllocations.map(bp => bp.id);
+                const missingJeIds = new Set<string>();
+                const lineIdToJeId = new Map<string, string>();
+                journalLines.forEach(jl => {
+                  if (missingLineIds.includes(jl.id)) {
+                    missingJeIds.add(jl.journal_entry_id);
+                    lineIdToJeId.set(jl.id, jl.journal_entry_id);
+                  }
+                });
+
+                if (missingJeIds.size > 0) {
+                  // Fetch debit lines (expense side) from these JEs, excluding the bank account
+                  const debitLines = await batchedIn<any>(
+                    (ids) => supabase
+                      .from('journal_entry_lines')
+                      .select(`
+                        journal_entry_id,
+                        debit,
+                        account_id,
+                        accounts:account_id (code, name)
+                      `)
+                      .in('journal_entry_id', ids)
+                      .neq('account_id', bankAccountId)
+                      .gt('debit', 0),
+                    [...missingJeIds]
+                  );
+
+                  if (debitLines && debitLines.length > 0) {
+                    // Group by journal_entry_id
+                    const debitByJe = new Map<string, typeof debitLines>();
+                    debitLines.forEach(dl => {
+                      const existing = debitByJe.get(dl.journal_entry_id) || [];
+                      existing.push(dl);
+                      debitByJe.set(dl.journal_entry_id, existing);
+                    });
+
+                    billPaymentTransactions = billPaymentTransactions.map(bp => {
+                      const hasAlloc = (bp as any).allocations?.length > 0;
+                      const hasAcctAlloc = (bp as any).accountAllocations?.length > 0;
+                      if (hasAlloc || hasAcctAlloc) return bp;
+
+                      const jeId = lineIdToJeId.get(bp.id);
+                      if (!jeId) return bp;
+
+                      const debits = debitByJe.get(jeId) || [];
+                      const byAccount = new Map<string, { code: string; name: string; total: number }>();
+                      debits.forEach(dl => {
+                        if (!dl.account_id || !dl.accounts) return;
+                        const account = dl.accounts as unknown as { code: string; name: string };
+                        const existing = byAccount.get(dl.account_id);
+                        if (existing) {
+                          existing.total += Number(dl.debit);
+                        } else {
+                          byAccount.set(dl.account_id, { code: account.code, name: account.name, total: Number(dl.debit) });
+                        }
+                      });
+
+                      const accountAllocations: AllocationBreakdown[] = Array.from(byAccount.values()).map(acc => ({
+                        code: acc.code, name: acc.name, lots: [{ name: 'No Lot', amount: acc.total }], total: acc.total
+                      }));
+
+                      return { ...bp, accountAllocations };
+                    });
+                  }
+                }
+              }
+
               console.log('[Reconciliation] Bill payments processed:', { 
                 count: billPaymentTransactions.length,
                 journalEntries: journalEntries.length,
@@ -639,6 +717,100 @@ export const useBankReconciliation = () => {
 
                 return { ...cp, accountAllocations };
               });
+            }
+          }
+
+          // JE-line fallback for consolidated bill payments missing allocations
+          const consolidatedMissing = consolidatedBillPaymentTransactions.filter(cp => {
+            const hasAlloc = (cp as any).allocations?.length > 0;
+            const hasAcctAlloc = (cp as any).accountAllocations?.length > 0;
+            return !hasAlloc && !hasAcctAlloc;
+          });
+
+          if (consolidatedMissing.length > 0) {
+            // Fetch JEs for these consolidated payments
+            const missingCpIds = consolidatedMissing.map(cp => cp.id);
+            const cpJournalEntries = await batchedIn<any>(
+              (ids) => supabase
+                .from('journal_entries')
+                .select('id, source_id')
+                .eq('source_type', 'bill_payment')
+                .in('source_id', ids)
+                .eq('is_reversal', false)
+                .is('reversed_at', null),
+              missingCpIds
+            );
+
+            if (cpJournalEntries && cpJournalEntries.length > 0) {
+              const cpJeIds = cpJournalEntries.map((je: any) => je.id);
+              const cpSourceToJeIds = new Map<string, string[]>();
+              cpJournalEntries.forEach((je: any) => {
+                const existing = cpSourceToJeIds.get(je.source_id) || [];
+                existing.push(je.id);
+                cpSourceToJeIds.set(je.source_id, existing);
+              });
+
+              const cpDebitLines = await batchedIn<any>(
+                (ids) => supabase
+                  .from('journal_entry_lines')
+                  .select(`
+                    journal_entry_id,
+                    debit,
+                    account_id,
+                    accounts:account_id (code, name)
+                  `)
+                  .in('journal_entry_id', ids)
+                  .neq('account_id', bankAccountId)
+                  .gt('debit', 0),
+                cpJeIds
+              );
+
+              if (cpDebitLines && cpDebitLines.length > 0) {
+                const debitByJe = new Map<string, typeof cpDebitLines>();
+                cpDebitLines.forEach(dl => {
+                  const existing = debitByJe.get(dl.journal_entry_id) || [];
+                  existing.push(dl);
+                  debitByJe.set(dl.journal_entry_id, existing);
+                });
+
+                consolidatedBillPaymentTransactions = consolidatedBillPaymentTransactions.map(cp => {
+                  const hasAlloc = (cp as any).allocations?.length > 0;
+                  const hasAcctAlloc = (cp as any).accountAllocations?.length > 0;
+                  if (hasAlloc || hasAcctAlloc) return cp;
+
+                  // For consolidated payments, source_id in JE is the bill_id, not payment_id
+                  // We need to find JEs via bill_payment_allocations
+                  const paymentBillAllocations = (cp as any).billPaymentAllocations || [];
+                  const relatedBillIds = paymentBillAllocations.map((a: any) => a.bill_id);
+                  
+                  const byAccount = new Map<string, { code: string; name: string; total: number }>();
+                  relatedBillIds.forEach((billId: string) => {
+                    const jeIds = cpSourceToJeIds.get(billId) || [];
+                    jeIds.forEach(jeId => {
+                      const debits = debitByJe.get(jeId) || [];
+                      debits.forEach(dl => {
+                        if (!dl.account_id || !dl.accounts) return;
+                        const account = dl.accounts as unknown as { code: string; name: string };
+                        const existing = byAccount.get(dl.account_id);
+                        if (existing) {
+                          existing.total += Number(dl.debit);
+                        } else {
+                          byAccount.set(dl.account_id, { code: account.code, name: account.name, total: Number(dl.debit) });
+                        }
+                      });
+                    });
+                  });
+
+                  const accountAllocations: AllocationBreakdown[] = Array.from(byAccount.values()).map(acc => ({
+                    code: acc.code, name: acc.name, lots: [{ name: 'No Lot', amount: acc.total }], total: acc.total
+                  }));
+
+                  if (accountAllocations.length > 0) {
+                    return { ...cp, accountAllocations };
+                  }
+                  return cp;
+                });
+              }
             }
           }
 
