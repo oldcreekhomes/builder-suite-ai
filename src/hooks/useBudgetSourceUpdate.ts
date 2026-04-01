@@ -63,7 +63,8 @@ export function useBudgetSourceUpdate(projectId: string) {
         'manual': 'Manual',
         'historical': 'Historical',
         'settings': 'Settings',
-        'actual': 'Actual'
+        'actual': 'Actual',
+        'purchase-orders': 'Purchase Orders'
       };
 
       toast({
