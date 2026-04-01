@@ -1,3 +1,4 @@
+import { useState, useEffect } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import type { PurchaseOrder } from '@/hooks/usePurchaseOrders';
@@ -6,14 +7,28 @@ import { Badge } from '@/components/ui/badge';
 import { ExternalLink } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '@/components/ui/table';
+import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
+import { Label } from '@/components/ui/label';
 
 interface BudgetDetailsPurchaseOrderTabProps {
   projectId: string;
   costCodeId: string;
+  lotCount?: number;
+  isLocked?: boolean;
+  budgetItemUnitPrice?: number;
+  onAllocationChange?: (mode: 'full' | 'per-lot', amount: number) => void;
 }
 
-export function BudgetDetailsPurchaseOrderTab({ projectId, costCodeId }: BudgetDetailsPurchaseOrderTabProps) {
+export function BudgetDetailsPurchaseOrderTab({ 
+  projectId, 
+  costCodeId, 
+  lotCount = 1,
+  isLocked = false,
+  budgetItemUnitPrice,
+  onAllocationChange,
+}: BudgetDetailsPurchaseOrderTabProps) {
   const navigate = useNavigate();
+  const [allocationMode, setAllocationMode] = useState<'full' | 'per-lot'>('full');
 
   const { data: purchaseOrders = [], isLoading } = useQuery({
     queryKey: ['budget-purchase-orders', projectId, costCodeId],
@@ -56,6 +71,35 @@ export function BudgetDetailsPurchaseOrderTab({ projectId, costCodeId }: BudgetD
     enabled: !!projectId && !!costCodeId,
   });
 
+  const totalAmount = purchaseOrders.reduce((sum, po) => sum + (po.total_amount || 0), 0);
+  const hasMultipleLots = lotCount > 1;
+  const perLotAmount = hasMultipleLots && totalAmount > 0
+    ? Math.floor((totalAmount / lotCount) * 100) / 100
+    : totalAmount;
+  const displayAmount = hasMultipleLots && allocationMode === 'per-lot' ? perLotAmount : totalAmount;
+
+  // Infer allocation mode from saved data
+  useEffect(() => {
+    if (hasMultipleLots && budgetItemUnitPrice && budgetItemUnitPrice > 0 && totalAmount > 0) {
+      const isNear = (a: number, b: number, epsilon = 0.02) => Math.abs(a - b) < epsilon;
+      const basePerLot = Math.floor((totalAmount / lotCount) * 100) / 100;
+      const remainderPerLot = Number((totalAmount - basePerLot * (lotCount - 1)).toFixed(2));
+
+      if (isNear(budgetItemUnitPrice, basePerLot) || isNear(budgetItemUnitPrice, remainderPerLot)) {
+        setAllocationMode('per-lot');
+      } else {
+        setAllocationMode('full');
+      }
+    }
+  }, [hasMultipleLots, budgetItemUnitPrice, totalAmount, lotCount]);
+
+  // Notify parent of allocation changes
+  useEffect(() => {
+    if (onAllocationChange && totalAmount > 0) {
+      onAllocationChange(allocationMode, displayAmount);
+    }
+  }, [allocationMode, displayAmount, totalAmount]);
+
   const formatCurrency = (value: number | null | undefined) => {
     if (!value) return '$0.00';
     return value.toLocaleString('en-US', { style: 'currency', currency: 'USD' });
@@ -77,8 +121,6 @@ export function BudgetDetailsPurchaseOrderTab({ projectId, costCodeId }: BudgetD
   const handleViewPO = (poId: string) => {
     navigate(`/project/${projectId}/purchase-orders`);
   };
-
-  const totalAmount = purchaseOrders.reduce((sum, po) => sum + (po.total_amount || 0), 0);
 
   if (isLoading) {
     return (
@@ -153,11 +195,50 @@ export function BudgetDetailsPurchaseOrderTab({ projectId, costCodeId }: BudgetD
           </TableBody>
         </Table>
       </div>
+
+      {hasMultipleLots && purchaseOrders.length > 0 && (
+        <div className="space-y-2">
+          <Label className="text-sm font-medium">Allocation Mode</Label>
+          <RadioGroup
+            value={allocationMode}
+            onValueChange={(val) => setAllocationMode(val as 'full' | 'per-lot')}
+            className="grid grid-cols-2 gap-3"
+            disabled={isLocked}
+          >
+            <Label
+              htmlFor="po-alloc-full"
+              className={`flex items-center gap-2 border rounded-lg px-3 py-2 cursor-pointer transition-colors ${
+                allocationMode === 'full' ? 'border-primary bg-primary/5' : 'border-border'
+              } ${isLocked ? 'opacity-50 cursor-not-allowed' : ''}`}
+            >
+              <RadioGroupItem value="full" id="po-alloc-full" />
+              <div>
+                <span className="text-sm font-medium">Full Amount</span>
+                <p className="text-xs text-muted-foreground">{formatCurrency(totalAmount)}</p>
+              </div>
+            </Label>
+            <Label
+              htmlFor="po-alloc-per-lot"
+              className={`flex items-center gap-2 border rounded-lg px-3 py-2 cursor-pointer transition-colors ${
+                allocationMode === 'per-lot' ? 'border-primary bg-primary/5' : 'border-border'
+              } ${isLocked ? 'opacity-50 cursor-not-allowed' : ''}`}
+            >
+              <RadioGroupItem value="per-lot" id="po-alloc-per-lot" />
+              <div>
+                <span className="text-sm font-medium">Divide by {lotCount} lots</span>
+                <p className="text-xs text-muted-foreground">{formatCurrency(perLotAmount)} per lot</p>
+              </div>
+            </Label>
+          </RadioGroup>
+        </div>
+      )}
       
       <div className="flex justify-between items-center pt-2 border-t">
-        <span className="text-sm font-medium">Total Budget:</span>
+        <span className="text-sm font-medium">
+          Total Budget{hasMultipleLots && allocationMode === 'per-lot' ? ' (per lot)' : ''}:
+        </span>
         <span className="text-sm font-semibold">
-          {formatCurrency(totalAmount)}
+          {formatCurrency(displayAmount)}
         </span>
       </div>
     </div>
