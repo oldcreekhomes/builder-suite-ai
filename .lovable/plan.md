@@ -1,13 +1,18 @@
 
 
-## Fix: Purchase Orders Badge Showing as "Estimate"
+## Fix: Add Cents to Budget PDF Print
 
 ### Problem
-The `BudgetSourceBadge` component's switch statement has no `case 'purchase-orders'`. When `budget_source = 'purchase-orders'`, it falls through the switch without matching, then the legacy logic sees `has_subcategories` on the cost code and displays "Estimate".
+The Budget PDF export rounds all currency values to whole dollars (e.g., `$62,500` instead of `$62,500.00`), causing a mismatch with the budget table UI which displays cents.
 
 ### Fix
-Add a `case 'purchase-orders'` to the switch in `src/components/budget/BudgetSourceBadge.tsx` that returns a distinct badge (e.g., teal/cyan styling with label "Purchase Order").
+In `src/components/budget/pdf/BudgetPdfDocument.tsx`, update the `formatCurrency` function:
+- Change `minimumFractionDigits: 0` → `minimumFractionDigits: 2`
+- Change `maximumFractionDigits: 0` → `maximumFractionDigits: 2`
+- Remove `Math.round()` wrapper
 
-### Files Changed
-- `src/components/budget/BudgetSourceBadge.tsx` — add missing case
+This matches the currency formatting standard used throughout the budget table UI.
+
+### Files changed
+- `src/components/budget/pdf/BudgetPdfDocument.tsx` — update `formatCurrency` to show 2 decimal places
 
