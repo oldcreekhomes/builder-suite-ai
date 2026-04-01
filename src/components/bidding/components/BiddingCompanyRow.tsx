@@ -138,20 +138,25 @@ export function BiddingCompanyRow({
         )}
       </TableCell>
       <TableCell>
-        <Select 
-          value={biddingCompany.bid_status || "no_choice"}
-          onValueChange={(value) => onBidStatusChange(biddingCompany.id, value === "no_choice" ? null : value)}
-          disabled={isReadOnly}
-        >
-          <SelectTrigger className="w-20 h-9 text-sm">
-            <SelectValue />
-          </SelectTrigger>
-          <SelectContent className="bg-white border shadow-md z-50">
-            <SelectItem value="no_choice">---</SelectItem>
-            <SelectItem value="will_bid">Yes</SelectItem>
-            <SelectItem value="will_not_bid">No</SelectItem>
-          </SelectContent>
-        </Select>
+        <div className="flex items-center gap-1">
+          <Select 
+            value={biddingCompany.will_bid_at ? "will_bid" : (biddingCompany.bid_status || "no_choice")}
+            onValueChange={(value) => onBidStatusChange(biddingCompany.id, value === "no_choice" ? null : value)}
+            disabled={isReadOnly}
+          >
+            <SelectTrigger className="w-20 h-9 text-sm">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent className="bg-white border shadow-md z-50">
+              <SelectItem value="no_choice">---</SelectItem>
+              <SelectItem value="will_bid">Yes</SelectItem>
+              <SelectItem value="will_not_bid">No</SelectItem>
+            </SelectContent>
+          </Select>
+          {biddingCompany.bid_status === 'submitted' && (
+            <CheckCircle className="h-4 w-4 text-green-600 shrink-0" />
+          )}
+        </div>
       </TableCell>
       <TableCell>
         <Input
