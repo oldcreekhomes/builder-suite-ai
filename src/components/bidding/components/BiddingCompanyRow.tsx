@@ -9,6 +9,7 @@ import { usePOStatus } from '@/hooks/usePOStatus';
 import { TableRowActions } from '@/components/ui/table-row-actions';
 import { Badge } from '@/components/ui/badge';
 import { format } from 'date-fns';
+import { CheckCircle } from 'lucide-react';
 import type { AwardedPO } from '@/hooks/useBidPackagePO';
 
 interface Company {

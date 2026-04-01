@@ -18,6 +18,7 @@ interface BiddingCompany {
   price: number | null;
   proposals: string[] | null;
   email_sent_at: string | null;
+  will_bid_at: string | null;
   companies: Company & { address?: string };
 }
 
