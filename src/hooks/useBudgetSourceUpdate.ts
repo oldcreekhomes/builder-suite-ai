@@ -40,6 +40,16 @@ export function useBudgetSourceUpdate(projectId: string) {
         if (params.manualUnitPrice !== undefined) {
           updateData.unit_price = params.manualUnitPrice;
         }
+      } else if (params.source === 'purchase-orders') {
+        updateData.selected_bid_id = null;
+        updateData.historical_project_id = null;
+        updateData.historical_lot_id = null;
+        if (params.manualQuantity !== undefined) {
+          updateData.quantity = params.manualQuantity;
+        }
+        if (params.manualUnitPrice !== undefined) {
+          updateData.unit_price = params.manualUnitPrice;
+        }
       } else if (params.source === 'settings' || params.source === 'estimate') {
         updateData.selected_bid_id = null;
         updateData.historical_project_id = null;
