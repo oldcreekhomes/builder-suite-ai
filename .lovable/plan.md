@@ -1,25 +1,20 @@
 
 
-## Fix: Show "Will Bid" intent + Submitted indicator
+## Fix: Allow Quantity Field to Be Cleared in Make Deposits
 
 ### Problem
-When a subcontractor confirms "Will Bid" and later submits their bid, the `bid_status` changes to `submitted`, causing the "Will Bid" dropdown to show `---`. This makes it look like they never responded.
+In the "Make Deposits" form, the quantity input uses `value={row.quantity || "1"}` (line 1003 of `MakeDepositsContent.tsx`). The `|| "1"` fallback means that when you delete the "1", the empty string is falsy, so it immediately snaps back to "1". You can never clear the field to type a new value like "0.5".
 
-### Solution
-1. Include `will_bid_at` in the data flow to the company row
-2. Derive the dropdown value from `will_bid_at` (not just `bid_status`) — if set, show "Yes"
-3. Add a small green checkmark icon next to the dropdown when `bid_status === 'submitted'` to indicate the bid was received
+The same pattern exists in the revenue rows section of the same file (need to check exact line).
+
+### Fix
+In `src/components/transactions/MakeDepositsContent.tsx`:
+
+1. **Change the `value` binding** from `row.quantity || "1"` to just `row.quantity ?? ""` — this allows the field to be empty while typing
+2. **Apply the same fix** to both the "other" rows and the "revenue" rows quantity inputs
+3. The `placeholder="1"` already exists, so users will still see "1" as a hint when the field is empty
+4. The calculation logic already handles empty/zero gracefully via `parseFloat(row.quantity || "0") || 0`
 
 ### Files changed
-
-**`src/components/bidding/components/BiddingCompanyRow.tsx`**
-- Add `will_bid_at: string | null` to the `BiddingCompany` interface
-- Change Select value logic: if `will_bid_at` is set → `"will_bid"`, else use `bid_status`
-- Add a `CheckCircle` icon (green, small) next to the Select when `bid_status === 'submitted'`
-
-**`src/components/bidding/BiddingCompanyList.tsx`**
-- Add `will_bid_at: string | null` to the `BiddingCompany` interface
-
-**`src/hooks/useBiddingData.ts`**
-- Verify `will_bid_at` is included in the `project_bids` select (it uses `*` so it should already be included, just needs the TypeScript interface updated)
+- `src/components/transactions/MakeDepositsContent.tsx` — change quantity input `value` prop in both row renderers
 
