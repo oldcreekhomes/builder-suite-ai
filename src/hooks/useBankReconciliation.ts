@@ -407,6 +407,84 @@ export const useBankReconciliation = () => {
                 }
               }
 
+              // JE-line fallback: for bill payments still missing allocations,
+              // fetch the debit side of their journal entries to get expense accounts
+              const bpsMissingAllocations = billPaymentTransactions.filter(bp => {
+                const hasAlloc = (bp as any).allocations?.length > 0;
+                const hasAcctAlloc = (bp as any).accountAllocations?.length > 0;
+                return !hasAlloc && !hasAcctAlloc;
+              });
+
+              if (bpsMissingAllocations.length > 0) {
+                // Collect journal_entry_ids for these transactions
+                // The transaction id is the JE line id; we need to find the parent JE
+                const missingLineIds = bpsMissingAllocations.map(bp => bp.id);
+                const missingJeIds = new Set<string>();
+                const lineIdToJeId = new Map<string, string>();
+                journalLines.forEach(jl => {
+                  if (missingLineIds.includes(jl.id)) {
+                    missingJeIds.add(jl.journal_entry_id);
+                    lineIdToJeId.set(jl.id, jl.journal_entry_id);
+                  }
+                });
+
+                if (missingJeIds.size > 0) {
+                  // Fetch debit lines (expense side) from these JEs, excluding the bank account
+                  const debitLines = await batchedIn<any>(
+                    (ids) => supabase
+                      .from('journal_entry_lines')
+                      .select(`
+                        journal_entry_id,
+                        debit,
+                        account_id,
+                        accounts:account_id (code, name)
+                      `)
+                      .in('journal_entry_id', ids)
+                      .neq('account_id', bankAccountId)
+                      .gt('debit', 0),
+                    [...missingJeIds]
+                  );
+
+                  if (debitLines && debitLines.length > 0) {
+                    // Group by journal_entry_id
+                    const debitByJe = new Map<string, typeof debitLines>();
+                    debitLines.forEach(dl => {
+                      const existing = debitByJe.get(dl.journal_entry_id) || [];
+                      existing.push(dl);
+                      debitByJe.set(dl.journal_entry_id, existing);
+                    });
+
+                    billPaymentTransactions = billPaymentTransactions.map(bp => {
+                      const hasAlloc = (bp as any).allocations?.length > 0;
+                      const hasAcctAlloc = (bp as any).accountAllocations?.length > 0;
+                      if (hasAlloc || hasAcctAlloc) return bp;
+
+                      const jeId = lineIdToJeId.get(bp.id);
+                      if (!jeId) return bp;
+
+                      const debits = debitByJe.get(jeId) || [];
+                      const byAccount = new Map<string, { code: string; name: string; total: number }>();
+                      debits.forEach(dl => {
+                        if (!dl.account_id || !dl.accounts) return;
+                        const account = dl.accounts as unknown as { code: string; name: string };
+                        const existing = byAccount.get(dl.account_id);
+                        if (existing) {
+                          existing.total += Number(dl.debit);
+                        } else {
+                          byAccount.set(dl.account_id, { code: account.code, name: account.name, total: Number(dl.debit) });
+                        }
+                      });
+
+                      const accountAllocations: AllocationBreakdown[] = Array.from(byAccount.values()).map(acc => ({
+                        code: acc.code, name: acc.name, lots: [{ name: 'No Lot', amount: acc.total }], total: acc.total
+                      }));
+
+                      return { ...bp, accountAllocations };
+                    });
+                  }
+                }
+              }
+
               console.log('[Reconciliation] Bill payments processed:', { 
                 count: billPaymentTransactions.length,
                 journalEntries: journalEntries.length,
