@@ -11,6 +11,7 @@ export interface BiddingCompany {
   due_date: string | null;
   reminder_date: string | null;
   proposals: string[] | null;
+  will_bid_at: string | null;
   created_at: string;
   updated_at: string;
   companies: {

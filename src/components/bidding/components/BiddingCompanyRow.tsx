@@ -9,6 +9,7 @@ import { usePOStatus } from '@/hooks/usePOStatus';
 import { TableRowActions } from '@/components/ui/table-row-actions';
 import { Badge } from '@/components/ui/badge';
 import { format } from 'date-fns';
+import { CheckCircle } from 'lucide-react';
 import type { AwardedPO } from '@/hooks/useBidPackagePO';
 
 interface Company {
@@ -21,10 +22,11 @@ interface Company {
 interface BiddingCompany {
   id: string;
   company_id: string;
-  bid_status: 'will_bid' | 'will_not_bid' | null;
+  bid_status: 'will_bid' | 'will_not_bid' | 'submitted' | null;
   price: number | null;
   proposals: string[] | null;
   email_sent_at: string | null;
+  will_bid_at: string | null;
   companies: Company;
 }
 
@@ -136,20 +138,25 @@ export function BiddingCompanyRow({
         )}
       </TableCell>
       <TableCell>
-        <Select 
-          value={biddingCompany.bid_status || "no_choice"}
-          onValueChange={(value) => onBidStatusChange(biddingCompany.id, value === "no_choice" ? null : value)}
-          disabled={isReadOnly}
-        >
-          <SelectTrigger className="w-20 h-9 text-sm">
-            <SelectValue />
-          </SelectTrigger>
-          <SelectContent className="bg-white border shadow-md z-50">
-            <SelectItem value="no_choice">---</SelectItem>
-            <SelectItem value="will_bid">Yes</SelectItem>
-            <SelectItem value="will_not_bid">No</SelectItem>
-          </SelectContent>
-        </Select>
+        <div className="flex items-center gap-1">
+          <Select 
+            value={biddingCompany.will_bid_at ? "will_bid" : (biddingCompany.bid_status || "no_choice")}
+            onValueChange={(value) => onBidStatusChange(biddingCompany.id, value === "no_choice" ? null : value)}
+            disabled={isReadOnly}
+          >
+            <SelectTrigger className="w-20 h-9 text-sm">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent className="bg-white border shadow-md z-50">
+              <SelectItem value="no_choice">---</SelectItem>
+              <SelectItem value="will_bid">Yes</SelectItem>
+              <SelectItem value="will_not_bid">No</SelectItem>
+            </SelectContent>
+          </Select>
+          {biddingCompany.bid_status === 'submitted' && (
+            <CheckCircle className="h-4 w-4 text-green-600 shrink-0" />
+          )}
+        </div>
       </TableCell>
       <TableCell>
         <Input

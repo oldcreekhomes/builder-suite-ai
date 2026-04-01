@@ -14,10 +14,11 @@ interface Company {
 interface BiddingCompany {
   id: string;
   company_id: string;
-  bid_status: 'will_bid' | 'will_not_bid' | null;
+  bid_status: 'will_bid' | 'will_not_bid' | 'submitted' | null;
   price: number | null;
   proposals: string[] | null;
   email_sent_at: string | null;
+  will_bid_at: string | null;
   companies: Company & { address?: string };
 }
 
