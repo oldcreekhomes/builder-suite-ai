@@ -353,7 +353,7 @@ export function EditDepositDialog({ open, onOpenChange, depositId }: EditDeposit
               </div>
               <div className="col-span-2">
                 <Input
-                  value={row.quantity}
+                  value={row.quantity ?? ""}
                   onChange={(e) => updateRow(type, row.id, 'quantity', e.target.value)}
                   placeholder="1"
                   className="h-8 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
