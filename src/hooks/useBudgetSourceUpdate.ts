@@ -2,7 +2,7 @@ import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 
-type BudgetSource = 'estimate' | 'vendor-bid' | 'manual' | 'historical' | 'settings' | 'actual';
+type BudgetSource = 'estimate' | 'vendor-bid' | 'manual' | 'historical' | 'settings' | 'actual' | 'purchase-orders';
 
 interface UpdateBudgetSourceParams {
   budgetItemId: string;
@@ -63,7 +63,8 @@ export function useBudgetSourceUpdate(projectId: string) {
         'manual': 'Manual',
         'historical': 'Historical',
         'settings': 'Settings',
-        'actual': 'Actual'
+        'actual': 'Actual',
+        'purchase-orders': 'Purchase Orders'
       };
 
       toast({

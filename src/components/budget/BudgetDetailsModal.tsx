@@ -156,6 +156,8 @@ export function BudgetDetailsModal({
   const [manualQuantityInput, setManualQuantityInput] = useState<string>(budgetItem.quantity?.toString() || '');
   const [manualUnitPriceInput, setManualUnitPriceInput] = useState<string>(budgetItem.unit_price?.toString() || '');
   const [allocationMode, setAllocationMode] = useState<'full' | 'per-lot'>('full');
+  const [poAllocationMode, setPoAllocationMode] = useState<'full' | 'per-lot'>('full');
+  const [poAllocationAmount, setPoAllocationAmount] = useState<number>(0);
 
   // Budget source update hook
   const { updateSource, isUpdating } = useBudgetSourceUpdate(projectId);
@@ -291,9 +293,12 @@ export function BudgetDetailsModal({
       });
       onClose();
     } else if (source === 'purchase-orders') {
+      const shouldDivide = hasMultipleLots && poAllocationMode === 'per-lot';
       updateSource({
         budgetItemId: budgetItem.id,
-        source: 'vendor-bid',
+        source: 'purchase-orders',
+        manualQuantity: 1,
+        manualUnitPrice: shouldDivide ? poAllocationAmount : (poData?.total || 0),
       });
       onClose();
     } else if (source === 'historical') {
@@ -750,7 +755,17 @@ export function BudgetDetailsModal({
 
           {/* Purchase Orders Tab */}
           <TabsContent value="purchase-orders" className="flex-1 overflow-auto mt-4">
-            <BudgetDetailsPurchaseOrderTab projectId={projectId} costCodeId={costCode.id} />
+            <BudgetDetailsPurchaseOrderTab 
+              projectId={projectId} 
+              costCodeId={costCode.id} 
+              lotCount={lotCount}
+              isLocked={isLocked}
+              budgetItemUnitPrice={budgetItem.unit_price}
+              onAllocationChange={(mode, amount) => {
+                setPoAllocationMode(mode);
+                setPoAllocationAmount(amount);
+              }}
+            />
           </TabsContent>
 
           {/* Historical Tab */}
