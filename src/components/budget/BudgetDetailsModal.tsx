@@ -293,9 +293,12 @@ export function BudgetDetailsModal({
       });
       onClose();
     } else if (source === 'purchase-orders') {
+      const shouldDivide = hasMultipleLots && poAllocationMode === 'per-lot';
       updateSource({
         budgetItemId: budgetItem.id,
-        source: 'vendor-bid',
+        source: 'purchase-orders',
+        manualQuantity: 1,
+        manualUnitPrice: shouldDivide ? poAllocationAmount : (poData?.total || 0),
       });
       onClose();
     } else if (source === 'historical') {
