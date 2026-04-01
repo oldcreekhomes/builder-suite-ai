@@ -1000,7 +1000,7 @@ export function MakeDepositsContent({ projectId, activeTab: parentActiveTab }: M
                       <Input
                         type="number"
                         step="0.01"
-                        value={row.quantity || "1"}
+                        value={row.quantity ?? ""}
                         onChange={(e) => updateOtherRow(row.id, "quantity", e.target.value)}
                         placeholder="1"
                         className="h-10 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
