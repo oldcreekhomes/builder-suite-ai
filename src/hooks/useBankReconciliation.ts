@@ -590,6 +590,58 @@ export const useBankReconciliation = () => {
             }
           }
 
+          // Fetch account allocations for consolidated bill payments
+          if (allBillIdsForCostCodes.length > 0) {
+            const billLinesForConsolidatedAccounts = await batchedIn<any>(
+              (ids) => supabase
+                .from('bill_lines')
+                .select(`
+                  bill_id,
+                  amount,
+                  account_id,
+                  lot_id,
+                  accounts:account_id (code, name),
+                  project_lots:lot_id (lot_number)
+                `)
+                .in('bill_id', ids),
+              allBillIdsForCostCodes
+            );
+
+            if (billLinesForConsolidatedAccounts) {
+              const linesByBillAcct = new Map<string, typeof billLinesForConsolidatedAccounts>();
+              billLinesForConsolidatedAccounts.forEach(line => {
+                const existing = linesByBillAcct.get(line.bill_id) || [];
+                existing.push(line);
+                linesByBillAcct.set(line.bill_id, existing);
+              });
+
+              consolidatedBillPaymentTransactions = consolidatedBillPaymentTransactions.map(cp => {
+                const paymentAllocations = allocationsByPayment.get(cp.id) || [];
+                const byAccount = new Map<string, { code: string; name: string; lots: AllocationLot[] }>();
+
+                paymentAllocations.forEach(pa => {
+                  const linesForBill = linesByBillAcct.get(pa.bill_id) || [];
+                  linesForBill.forEach(line => {
+                    if (!line.account_id || !line.accounts) return;
+                    const account = line.accounts as unknown as { code: string; name: string };
+                    const key = line.account_id;
+                    if (!byAccount.has(key)) {
+                      byAccount.set(key, { code: account.code, name: account.name, lots: [] });
+                    }
+                    const lot = line.project_lots as unknown as { lot_number: string } | null;
+                    byAccount.get(key)!.lots.push({ name: lot?.lot_number || 'No Lot', amount: Number(line.amount) });
+                  });
+                });
+
+                const accountAllocations: AllocationBreakdown[] = Array.from(byAccount.values()).map(acc => ({
+                  code: acc.code, name: acc.name, lots: acc.lots, total: acc.lots.reduce((sum, l) => sum + l.amount, 0)
+                }));
+
+                return { ...cp, accountAllocations };
+              });
+            }
+          }
+
           console.log('[Reconciliation] Consolidated bill payments processed:', { 
             count: consolidatedBillPaymentTransactions.length,
             totalConsolidated: consolidatedPayments.length,
