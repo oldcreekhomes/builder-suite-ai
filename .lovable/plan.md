@@ -1,33 +1,28 @@
 
-Fix the reconciliation “Account” column by correcting the legacy bill-payment data mapping in `src/hooks/useBankReconciliation.ts`.
 
-What’s actually broken
-- The newer partial-payment logic is already creating bill-payment rows correctly from `journal_entry_lines`, using the JE line id as the transaction id.
-- But later in the same hook there is an older leftover block (around lines 1177-1241) that still treats `bp.id` like a `bill_id`.
-- That stale block queries `bill_lines` with JE line ids, gets no matches, then overwrites previously-built `allocations` with `[]`.
-- That explains the screenshot: some rows still show an account if `accountAllocations` survived, but many rows fall back to `-` because their cost-code data got wiped out.
+## Add Allocation Mode to Purchase Orders Tab
 
-Plan
-1. Remove or rewrite the stale post-processing block so legacy bill payments are never re-keyed by `bp.id`.
-2. Keep the earlier legacy bill-payment enrichment as the source of truth:
-   - `allocations` from `bill_lines.cost_code_id`
-   - `accountAllocations` from `bill_lines.account_id`
-   - JE debit-line fallback for missing account data
-3. Strengthen the fallback so it can backfill `accountAllocations` when the account side is missing, without erasing existing cost-code allocations.
-4. Leave `ReconcileAccountsContent.tsx` alone unless a tiny safety tweak is needed, because the renderer is already correct:
-   - show `accountAllocations` first
-   - otherwise show `allocations`
-5. Regression-check the affected cases:
-   - partial bill payments still appear as separate rows
-   - rows with only cost codes show the cost code instead of `-`
-   - rows with GL accounts show the account
-   - consolidated bill payments still behave the same
+### What changes
+Copy the "Allocation Mode" toggle (Full Amount vs Divide by N lots) from the Vendor Bid tab to the Purchase Orders tab, so multi-lot projects can divide PO amounts per lot.
 
-Technical details
-- Main file: `src/hooks/useBankReconciliation.ts`
-- Primary fix area: legacy bill-payment enrichment and the stale overwrite block near lines 1177-1241
-- No database changes
-- No UI redesign needed
+### Implementation
 
-Expected result
-- The reconciliation Account column will consistently show either the GL account or the cost code for bill payments, instead of intermittently rendering `-`.
+**File: `src/components/budget/BudgetDetailsPurchaseOrderTab.tsx`**
+
+1. Accept new props: `lotCount`, `isLocked`, and a callback `onAllocationChange` to pass the selected mode and computed amount back to the parent
+2. Add `allocationMode` state (`'full' | 'per-lot'`), defaulting based on the current `budgetItem.unit_price` (same inference logic as Vendor Bid)
+3. Compute `perLotAmount = Math.floor((totalAmount / lotCount) * 100) / 100` and `displayAmount` based on mode
+4. Render the same Allocation Mode radio group (2-column grid with "Full amount" and "Divide by N lots") below the PO table when `lotCount > 1` and there are approved POs
+5. Update the "Total Budget" footer to show "(per lot):" label when in per-lot mode, and show `displayAmount`
+
+**File: `src/components/budget/BudgetDetailsModal.tsx`**
+
+1. Pass `lotCount` and `isLocked` to `BudgetDetailsPurchaseOrderTab`
+2. Add state for PO allocation mode and amount (via callback from the tab)
+3. Update the `purchase-orders` case in `handleApply` to save `unit_price` and `quantity` based on the allocation mode — same pattern as vendor-bid: full amount sets `quantity=1, unit_price=totalPOAmount`; per-lot sets `quantity=1, unit_price=perLotAmount`
+4. Pass `budgetItem` to the PO tab so it can infer the initial allocation mode from saved data
+
+### Files changed
+- `src/components/budget/BudgetDetailsPurchaseOrderTab.tsx`
+- `src/components/budget/BudgetDetailsModal.tsx`
+
