@@ -54,6 +54,12 @@ export function BudgetSourceBadge({ item }: BudgetSourceBadgeProps) {
             className: 'bg-gray-100 text-gray-700 border-gray-200',
             tooltip: 'Manual entry'
           };
+        case 'purchase-orders':
+          return {
+            label: 'Purchase Order',
+            className: 'bg-teal-100 text-teal-700 border-teal-200',
+            tooltip: 'From purchase order'
+          };
       }
     }
 
