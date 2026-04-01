@@ -1174,71 +1174,9 @@ export const useBankReconciliation = () => {
           }
         }
 
-        // ========== FETCH COST CODE ALLOCATIONS FOR BILL PAYMENTS ==========
-        let billAllocationsMap: Map<string, AllocationBreakdown[]> = new Map();
-        const billPaymentIds = billPaymentTransactions.map(bp => bp.id);
-        if (billPaymentIds.length > 0) {
-          const billLinesWithCostCodes = await batchedIn<any>(
-            (ids) => supabase
-              .from('bill_lines')
-              .select(`
-                bill_id,
-                amount,
-                cost_code_id,
-                lot_id,
-                cost_codes:cost_code_id (code, name),
-                project_lots:lot_id (lot_number)
-              `)
-              .in('bill_id', ids),
-            billPaymentIds
-          );
-
-          if (billLinesWithCostCodes) {
-            // Group by bill_id, then by cost_code
-            const billLinesByBill = new Map<string, typeof billLinesWithCostCodes>();
-            billLinesWithCostCodes.forEach(line => {
-              const existing = billLinesByBill.get(line.bill_id) || [];
-              existing.push(line);
-              billLinesByBill.set(line.bill_id, existing);
-            });
-
-            billLinesByBill.forEach((lines, billId) => {
-              // Group by cost code
-              const byCostCode = new Map<string, { code: string; name: string; lots: AllocationLot[] }>();
-              lines.forEach(line => {
-                if (!line.cost_code_id || !line.cost_codes) return;
-                const costCode = line.cost_codes as unknown as { code: string; name: string };
-                const key = line.cost_code_id;
-                if (!byCostCode.has(key)) {
-                  byCostCode.set(key, { 
-                    code: costCode.code, 
-                    name: costCode.name, 
-                    lots: [] 
-                  });
-                }
-                const lot = line.project_lots as unknown as { lot_number: string } | null;
-                byCostCode.get(key)!.lots.push({
-                  name: lot?.lot_number || 'No Lot',
-                  amount: Number(line.amount)
-                });
-              });
-
-              const allocations: AllocationBreakdown[] = Array.from(byCostCode.values()).map(cc => ({
-                code: cc.code,
-                name: cc.name,
-                lots: cc.lots,
-                total: cc.lots.reduce((sum, l) => sum + l.amount, 0)
-              }));
-              billAllocationsMap.set(billId, allocations);
-            });
-          }
-        }
-
-        // Add allocations to bill payment transactions
-        billPaymentTransactions = billPaymentTransactions.map(bp => ({
-          ...bp,
-          allocations: billAllocationsMap.get(bp.id) || []
-        }));
+        // NOTE: Bill payment allocations (cost codes + accounts) are already enriched
+        // earlier in the legacy bill payment processing block (using sourceBillId → bill_lines)
+        // and the JE debit-line fallback. No additional overwrite needed here.
 
         // Transform checks into transactions
         // Treat orphaned (reconciled to another project) as effectively unreconciled
