@@ -1,19 +1,19 @@
 
 
-## Speed Up Reconciliation Optimistic Updates
+## Fix: Sort Reconciliation Transactions by Date by Default
 
 ### Problem
-The optimistic update patches the cache instantly, but `onSettled` immediately fires `invalidateQueries`, triggering a full data refetch. This large query takes 3-5 seconds, and when it completes the UI re-renders with server data, causing the visible "jump." The optimistic update is being undone and redone by the refetch.
+After the optimistic update patches the date, the transactions don't reorder because the sort only activates when the user clicks a column header. By default, `checksSortColumn` and `depositsSortColumn` are `null`, so `.sort()` returns `0` (original fetch order). The updated date stays visually out of order.
 
 ### Fix
-In `src/hooks/useBankReconciliation.ts`, for all three mutations (`updateCheckTransaction`, `updateDepositTransaction`, `updateBillPaymentTransaction`):
+In `src/components/transactions/ReconcileAccountsContent.tsx`:
 
-1. **Remove `invalidateQueries` from `onSettled`** — the optimistic cache is already correct after a successful save
-2. **Move `invalidateQueries` into `onError` only** — so a failed save triggers a refetch to restore correct state
-3. Keep the `onMutate` optimistic patching and `rollbackOptimistic` as-is
+1. Change the default sort state from `null` to `'date'`:
+   - `checksSortColumn` initial value: `null` → `'date'`
+   - `depositsSortColumn` initial value: `null` → `'date'`
 
-This eliminates the redundant 3-5 second refetch after every edit, making updates feel instant.
+This ensures transactions are always sorted by date ascending, and after an optimistic date edit the row immediately moves to its correct position.
 
 ### Files changed
-- `src/hooks/useBankReconciliation.ts` — remove `onSettled` from all three update mutations, add invalidation to `onError` block only
+- `src/components/transactions/ReconcileAccountsContent.tsx` — change two `useState` initializers
 
