@@ -52,7 +52,7 @@ export function BudgetGroupHeader({
 
   return (
     <TableRow className={baseClassName} style={style}>
-      <TableCell className="w-12 py-1" onClick={(e) => e.stopPropagation()}>
+      <TableCell className="w-8 px-1 py-1" onClick={(e) => e.stopPropagation()}>
         <Checkbox
           checked={isSelected}
           disabled={isLocked}
@@ -60,7 +60,7 @@ export function BudgetGroupHeader({
         />
       </TableCell>
       <TableCell 
-        className="w-32 font-bold text-sm py-3 pl-2"
+        className="w-28 font-bold text-sm py-3 pl-2 px-1"
       >
         <div className="flex items-center gap-1">
           <button
@@ -78,13 +78,13 @@ export function BudgetGroupHeader({
           {group}
         </div>
       </TableCell>
-      <TableCell className="w-[280px] py-3 px-3 font-bold text-sm">{groupName}</TableCell>
-      <TableCell className="w-28 py-1"></TableCell>
-      <TableCell className="w-10 px-0 py-1"></TableCell>
-      <TableCell className="w-40 pr-3 py-1"></TableCell>
-      <TableCell className="w-48 py-1"></TableCell>
-      {visibleColumns.historicalCosts && <TableCell className="w-40 pl-3 py-1"></TableCell>}
-      {visibleColumns.variance && <TableCell className="w-36 py-1"></TableCell>}
+      <TableCell className="w-[240px] py-3 px-1 font-bold text-sm">{groupName}</TableCell>
+      <TableCell className="w-20 px-1 py-1"></TableCell>
+      <TableCell className="w-6 px-0 py-1"></TableCell>
+      <TableCell className="w-32 px-1 py-1"></TableCell>
+      <TableCell className="w-44 px-1 py-1"></TableCell>
+      {visibleColumns.historicalCosts && <TableCell className="w-32 px-1 py-1"></TableCell>}
+      {visibleColumns.variance && <TableCell className="w-28 px-1 py-1"></TableCell>}
     </TableRow>
   );
 }

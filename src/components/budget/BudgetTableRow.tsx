@@ -246,23 +246,23 @@ export function BudgetTableRow({
         className={`h-10 hover:bg-muted/50 border-b cursor-pointer transition-colors ${isSelected ? 'bg-primary/5' : ''}`}
         onClick={() => setShowDetailsModal(true)}
       >
-      <TableCell className="w-12 py-1" onClick={(e) => e.stopPropagation()}>
+      <TableCell className="w-8 px-1 py-1" onClick={(e) => e.stopPropagation()}>
         <Checkbox
           checked={isSelected}
           disabled={isLocked}
           onCheckedChange={(checked) => !isLocked && onCheckboxChange(item.id, checked as boolean)}
         />
       </TableCell>
-        <TableCell className="w-32 py-1 text-sm font-medium pl-8">
+        <TableCell className="w-28 py-1 text-sm font-medium pl-4 px-1">
           {costCode?.code || '-'}
         </TableCell>
-        <TableCell className="w-[280px] py-1 text-sm">
+        <TableCell className="w-[240px] py-1 text-sm px-1">
           {costCode?.name || '-'}
         </TableCell>
-        <TableCell className="w-28 py-1 text-sm">
+        <TableCell className="w-20 py-1 text-sm px-1">
           <BudgetSourceBadge item={item} />
         </TableCell>
-        <TableCell className="w-10 px-0 py-1" onClick={(e) => e.stopPropagation()}>
+        <TableCell className="w-6 px-0 py-1" onClick={(e) => e.stopPropagation()}>
           {warnings.length > 0 && (
             <TooltipProvider>
               <Tooltip>
@@ -283,10 +283,10 @@ export function BudgetTableRow({
             </TooltipProvider>
           )}
         </TableCell>
-        <TableCell className="w-40 pl-3 pr-3 py-1 text-sm text-left">
+        <TableCell className="w-32 px-1 py-1 text-sm text-left">
           {formatCurrency(total)}
         </TableCell>
-        <TableCell className="w-48 py-1 text-sm" onClick={(e) => e.stopPropagation()}>
+        <TableCell className="w-44 px-1 py-1 text-sm" onClick={(e) => e.stopPropagation()}>
           <BudgetCommentBadge
             value={(item.comment as BudgetComment) || null}
             onChange={(val) => onUpdateComment(item.id, val)}
@@ -294,7 +294,7 @@ export function BudgetTableRow({
           />
         </TableCell>
         {visibleColumns.historicalCosts && (
-          <TableCell className="w-40 pl-3 py-1 text-sm">
+          <TableCell className="w-32 px-1 py-1 text-sm">
             {historicalActual !== null && historicalActual !== undefined 
               ? formatCurrency(historicalActual)
               : '-'
@@ -302,7 +302,7 @@ export function BudgetTableRow({
           </TableCell>
         )}
         {visibleColumns.variance && (
-          <TableCell className="w-36 py-1 text-sm">
+          <TableCell className="w-28 px-1 py-1 text-sm">
             <span className={getVarianceColor(variance)}>
               {formatVariance(variance)}
             </span>
