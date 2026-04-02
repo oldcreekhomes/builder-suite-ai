@@ -259,7 +259,7 @@ export function BudgetTableRow({
         <TableCell className="w-[280px] py-1 text-sm">
           {costCode?.name || '-'}
         </TableCell>
-        <TableCell className="w-36 py-1 text-sm">
+        <TableCell className="w-28 py-1 text-sm">
           <BudgetSourceBadge item={item} />
         </TableCell>
         <TableCell className="w-10 px-0 py-1" onClick={(e) => e.stopPropagation()}>
