@@ -47,6 +47,7 @@ export function BudgetTableRow({
   item, 
   onUpdate, 
   onUpdateUnit,
+  onUpdateComment,
   onDelete,
   formatUnitOfMeasure,
   isSelected,
