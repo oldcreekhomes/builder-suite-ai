@@ -294,7 +294,7 @@ export function BudgetTableRow({
           />
         </TableCell>
         {visibleColumns.historicalCosts && (
-          <TableCell className="w-52 pl-3 py-1 text-sm">
+          <TableCell className="w-40 pl-3 py-1 text-sm">
             {historicalActual !== null && historicalActual !== undefined 
               ? formatCurrency(historicalActual)
               : '-'
