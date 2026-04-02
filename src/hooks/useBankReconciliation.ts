@@ -1699,11 +1699,8 @@ export const useBankReconciliation = () => {
       queryClient.invalidateQueries({ queryKey: ['reconciliation-transactions'] });
     },
   });
-    mutationFn: async ({ id, field, value }: { id: string; field: string; value: any }) => {
-      const updates: any = {};
-      
-      if (field === 'date') {
-        updates.check_date = value;
+
+
       } else if (field === 'reference_number') {
         updates.check_number = value;
       } else if (field === 'amount') {
