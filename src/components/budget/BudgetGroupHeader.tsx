@@ -60,7 +60,7 @@ export function BudgetGroupHeader({
         />
       </TableCell>
       <TableCell 
-        className="w-40 font-bold text-sm py-3 pl-2"
+        className="w-32 font-bold text-sm py-3 pl-2"
       >
         <div className="flex items-center gap-1">
           <button

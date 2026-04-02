@@ -62,7 +62,7 @@ export function BudgetTableHeader({
           </TableHead>
         )}
         {visibleColumns.variance && (
-          <TableHead className="w-48">
+          <TableHead className="w-36">
             <button
               onClick={onToggleVarianceMode}
               className="rounded px-1 py-0.5 whitespace-nowrap hover:bg-muted"
