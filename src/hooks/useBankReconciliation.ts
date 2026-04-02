@@ -1534,48 +1534,125 @@ export const useBankReconciliation = () => {
     },
   });
 
-  // Update bill payment transaction (date via journal_entries, ref # via bills, amount via journal_entry_lines)
+  // Update bill payment transaction - handles both legacy (journal_entry_lines.id) and consolidated (bill_payments.id)
   const updateBillPaymentTransaction = useMutation({
-    mutationFn: async ({ id, field, value, bankAccountId }: { id: string; field: string; value: any; bankAccountId: string }) => {
-      if (field === 'date') {
-        // Update journal_entries.entry_date
-        const { error } = await supabase
-          .from('journal_entries')
-          .update({ entry_date: value })
-          .eq('source_type', 'bill_payment')
-          .eq('source_id', id);
-        
-        if (error) throw error;
-      } else if (field === 'reference_number') {
-        // Update bills.reference_number
-        const { error } = await supabase
-          .from('bills')
-          .update({ reference_number: value })
-          .eq('id', id);
-        
-        if (error) throw error;
-      } else if (field === 'amount') {
-        // Update journal_entry_lines.credit for the bank account line
-        const { data: journalEntry } = await supabase
-          .from('journal_entries')
-          .select('id')
-          .eq('source_type', 'bill_payment')
-          .eq('source_id', id)
-          .single();
-        
-        if (journalEntry) {
+    mutationFn: async ({ id, field, value, bankAccountId, type }: { id: string; field: string; value: any; bankAccountId: string; type: 'bill_payment' | 'consolidated_bill_payment' }) => {
+      if (type === 'consolidated_bill_payment') {
+        // Consolidated bill payments: ID is bill_payments.id
+        if (field === 'date') {
+          const { data, error } = await supabase
+            .from('bill_payments')
+            .update({ payment_date: value })
+            .eq('id', id)
+            .select('id')
+            .single();
+          if (error) throw error;
+          if (!data) throw new Error('No matching bill payment found to update');
+        } else if (field === 'reference_number') {
+          const { data, error } = await supabase
+            .from('bill_payments')
+            .update({ check_number: value })
+            .eq('id', id)
+            .select('id')
+            .single();
+          if (error) throw error;
+          if (!data) throw new Error('No matching bill payment found to update');
+        } else if (field === 'amount') {
+          const { data, error } = await supabase
+            .from('bill_payments')
+            .update({ total_amount: parseFloat(value) })
+            .eq('id', id)
+            .select('id')
+            .single();
+          if (error) throw error;
+          if (!data) throw new Error('No matching bill payment found to update');
+        }
+      } else {
+        // Legacy bill payments: ID is journal_entry_lines.id — resolve parent journal_entry_id first
+        if (field === 'date') {
+          // Get the parent journal_entry_id from the line
+          const { data: line, error: lineError } = await supabase
+            .from('journal_entry_lines')
+            .select('journal_entry_id')
+            .eq('id', id)
+            .single();
+          if (lineError) throw lineError;
+          if (!line) throw new Error('No matching journal entry line found');
+
+          const { data, error } = await supabase
+            .from('journal_entries')
+            .update({ entry_date: value })
+            .eq('id', line.journal_entry_id)
+            .select('id')
+            .single();
+          if (error) throw error;
+          if (!data) throw new Error('No matching journal entry found to update');
+        } else if (field === 'reference_number') {
+          // Get the source bill ID from the journal entry via the line
+          const { data: line, error: lineError } = await supabase
+            .from('journal_entry_lines')
+            .select('journal_entry_id')
+            .eq('id', id)
+            .single();
+          if (lineError) throw lineError;
+          if (!line) throw new Error('No matching journal entry line found');
+
+          const { data: je, error: jeError } = await supabase
+            .from('journal_entries')
+            .select('source_id')
+            .eq('id', line.journal_entry_id)
+            .single();
+          if (jeError) throw jeError;
+          if (!je?.source_id) throw new Error('No source bill found for this payment');
+
+          const { data, error } = await supabase
+            .from('bills')
+            .update({ reference_number: value })
+            .eq('id', je.source_id)
+            .select('id')
+            .single();
+          if (error) throw error;
+          if (!data) throw new Error('No matching bill found to update');
+        } else if (field === 'amount') {
+          // Update the credit on the bank account line
+          const { data: line, error: lineError } = await supabase
+            .from('journal_entry_lines')
+            .select('journal_entry_id')
+            .eq('id', id)
+            .single();
+          if (lineError) throw lineError;
+          if (!line) throw new Error('No matching journal entry line found');
+
           const { error } = await supabase
             .from('journal_entry_lines')
             .update({ credit: parseFloat(value) })
-            .eq('journal_entry_id', journalEntry.id)
+            .eq('journal_entry_id', line.journal_entry_id)
             .eq('account_id', bankAccountId)
             .gt('credit', 0);
-          
           if (error) throw error;
         }
       }
     },
-    onSuccess: () => {
+    onSuccess: (_data, variables) => {
+      // Immediately patch the cache for instant UI update, then invalidate for fresh data
+      queryClient.setQueriesData(
+        { queryKey: ['reconciliation-transactions'] },
+        (old: any) => {
+          if (!old) return old;
+          const patchTransaction = (tx: ReconciliationTransaction) => {
+            if (tx.id !== variables.id) return tx;
+            if (variables.field === 'date') return { ...tx, date: variables.value };
+            if (variables.field === 'reference_number') return { ...tx, reference_number: variables.value };
+            if (variables.field === 'amount') return { ...tx, amount: parseFloat(variables.value) };
+            return tx;
+          };
+          return {
+            ...old,
+            checks: (old.checks || []).map(patchTransaction),
+            deposits: (old.deposits || []).map(patchTransaction),
+          };
+        }
+      );
       queryClient.invalidateQueries({ queryKey: ['reconciliation-transactions'] });
       toast({
         title: "Bill payment updated",
