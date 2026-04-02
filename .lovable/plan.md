@@ -1,19 +1,29 @@
 
 
-## Fix: Sort Reconciliation Transactions by Date by Default
+## Fix: Make "Additional Costs Expected" Badge Single Line
 
 ### Problem
-After the optimistic update patches the date, the transactions don't reorder because the sort only activates when the user clicks a column header. By default, `checksSortColumn` and `depositsSortColumn` are `null`, so `.sort()` returns `0` (original fetch order). The updated date stays visually out of order.
+The Comment column (`w-48` = 192px) is too narrow for the "Additional Costs Expected" badge text, causing it to wrap to two lines.
 
 ### Fix
-In `src/components/transactions/ReconcileAccountsContent.tsx`:
+Adjust column widths — shrink Name and Source columns slightly, widen Comment column, and add `whitespace-nowrap` to the badge.
 
-1. Change the default sort state from `null` to `'date'`:
-   - `checksSortColumn` initial value: `null` → `'date'`
-   - `depositsSortColumn` initial value: `null` → `'date'`
+### Changes
 
-This ensures transactions are always sorted by date ascending, and after an optimistic date edit the row immediately moves to its correct position.
+**`src/components/budget/BudgetTableHeader.tsx`**
+- Name: `w-[380px]` → `w-[340px]`
+- Source: `w-48` → `w-36`
+- Comment: `w-48` → `w-56`
 
-### Files changed
-- `src/components/transactions/ReconcileAccountsContent.tsx` — change two `useState` initializers
+**`src/components/budget/BudgetTableRow.tsx`**
+- Same width changes on the matching `<TableCell>` elements:
+  - Name: `w-[380px]` → `w-[340px]`
+  - Source: `w-48` → `w-36`
+  - Comment: `w-48` → `w-56`
+
+**`src/components/budget/BudgetCommentBadge.tsx`**
+- Add `whitespace-nowrap` to the Badge className in the SelectTrigger so the text never wraps
+
+**Other files with matching column cells** (BudgetGroupHeader, BudgetGroupTotalRow, BudgetProjectTotalRow, HistoricalOnlyRow):
+- Update Name and Source cell widths to match
 
