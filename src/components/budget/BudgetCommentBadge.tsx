@@ -40,7 +40,7 @@ export function BudgetCommentBadge({ value, onChange, disabled = false }: Budget
     >
       <SelectTrigger className="h-6 border-0 shadow-none bg-transparent p-0 w-auto min-w-0 gap-0 [&>svg]:h-3 [&>svg]:w-3 [&>svg]:ml-0.5">
         {selected ? (
-          <Badge variant="outline" className={`${selected.className} text-xs cursor-pointer`}>
+          <Badge variant="outline" className={`${selected.className} text-xs cursor-pointer whitespace-nowrap`}>
             {selected.label}
           </Badge>
         ) : (

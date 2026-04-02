@@ -56,7 +56,7 @@ export function HistoricalOnlyRow({
       <TableCell className="w-52 text-left text-red-600 font-medium">
         $0
       </TableCell>
-      <TableCell className="w-48 py-1"></TableCell>
+      <TableCell className="w-56 py-1"></TableCell>
       <TableCell className="w-32 text-muted-foreground">
         -
       </TableCell>
