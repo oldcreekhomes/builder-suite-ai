@@ -4,8 +4,8 @@ import { supabase } from '@/integrations/supabase/client';
 import type { PurchaseOrder } from '@/hooks/usePurchaseOrders';
 import { FilesCell } from '@/components/purchaseOrders/components/FilesCell';
 import { Badge } from '@/components/ui/badge';
-import { ExternalLink } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
+import { TableRowActions } from '@/components/ui/table-row-actions';
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '@/components/ui/table';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Label } from '@/components/ui/label';
@@ -157,16 +157,12 @@ export function BudgetDetailsPurchaseOrderTab({
               <TableHead className="text-center">Status</TableHead>
               <TableHead className="text-right">Amount</TableHead>
               <TableHead className="text-center">Files</TableHead>
-              <TableHead className="text-center w-12"></TableHead>
+              <TableHead className="text-center w-16">Actions</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
             {purchaseOrders.map((po) => (
-              <TableRow 
-                key={po.id} 
-                className="cursor-pointer"
-                onClick={() => handleViewPO(po.id)}
-              >
+              <TableRow key={po.id}>
                 <TableCell className="text-sm font-medium">
                   {po.po_number || `PO-${po.id.slice(0, 8)}`}
                 </TableCell>
@@ -188,7 +184,7 @@ export function BudgetDetailsPurchaseOrderTab({
                   <FilesCell files={po.files} projectId={projectId} />
                 </TableCell>
                 <TableCell className="text-center">
-                  <ExternalLink className="h-4 w-4 text-muted-foreground" />
+                  <TableRowActions actions={[{ label: "View PO", onClick: () => handleViewPO(po.id) }]} />
                 </TableCell>
               </TableRow>
             ))}
