@@ -286,6 +286,13 @@ export function BudgetTableRow({
         <TableCell className="w-60 pl-3 pr-3 py-1 text-sm text-left">
           {formatCurrency(total)}
         </TableCell>
+        <TableCell className="w-48 py-1 text-sm" onClick={(e) => e.stopPropagation()}>
+          <BudgetCommentBadge
+            value={(item.comment as BudgetComment) || null}
+            onChange={(val) => onUpdateComment(item.id, val)}
+            disabled={isLocked}
+          />
+        </TableCell>
         {visibleColumns.historicalCosts && (
           <TableCell className="w-52 pl-3 py-1 text-sm">
             {historicalActual !== null && historicalActual !== undefined 
