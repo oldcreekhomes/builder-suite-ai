@@ -1,35 +1,29 @@
 
 
-## Compact Budget Table: Reduce Column Gaps
+## Reallocate PO 2026-100N-0014 from 4200 to 3340
 
-### Problem
-Despite previous width reductions, the screenshot shows excessive white space between columns — particularly between Source → Total Budget and Comment → Historical. The default shadcn table cell padding (`p-2` = 8px each side) adds 16px per cell, compounding across 8+ columns.
+### What's changing
+PO for LCS Site Services ($284,543.30) is currently on cost code **4200** (Excavation, Backfill & Grading). It needs to move to **3340** (Earthwork).
 
-### Fix
-Reduce horizontal padding on all cells to `px-1` (4px each side) and tighten several column widths further:
+### Data updates (5 database operations)
 
-| Column | Current | New |
-|--------|---------|-----|
-| Checkbox | `w-12` | `w-8` |
-| Cost Code | `w-32 pl-8` | `w-28 pl-4` |
-| Name | `w-[280px]` | `w-[240px]` |
-| Source | `w-28` | `w-20` |
-| Warning | `w-10 px-0` | `w-6 px-0` |
-| Total Budget | `w-40 pl-3 pr-3` | `w-32 px-1` |
-| Comment | `w-48` | `w-44` |
-| Historical | `w-40 pl-3` | `w-32 px-1` |
-| Variance | `w-36` | `w-28 px-1` |
+1. **Purchase Order** (`project_purchase_orders`): Update `cost_code_id` from 4200 → 3340
+2. **PO Line Item** (`purchase_order_lines`): Update the single line's `cost_code_id` from 4200 → 3340
+3. **Bid Package** (`project_bid_packages`): Update the linked bid package's `cost_code_id` from 4200 → 3340
+4. **Budget for 3340**: Update existing row to `budget_source: 'purchase-orders'` and `unit_price: 14975.96` (matching the PO allocation)
+5. **Budget for 4200**: Reset to `budget_source: 'manual'` and `unit_price: 0` since the PO is being removed from this code
 
-Additionally, add `px-1` to all header and body cells that don't already have custom padding, reducing the default 8px per-side to 4px.
+### What's NOT affected
+- No bills are linked to this PO, so no bill line or journal entry changes needed
+- The PO number stays the same — no vendor notification triggered
 
-### Savings
-~120px from width reductions + ~128px from padding reduction = ~248px total saved.
-
-### Files changed (6 files, consistent widths + padding in each)
-- `BudgetTableHeader.tsx` — header cell widths and padding
-- `BudgetTableRow.tsx` — body cell widths and padding
-- `BudgetGroupHeader.tsx` — group header cells
-- `BudgetGroupTotalRow.tsx` — subtotal row cells
-- `BudgetProjectTotalRow.tsx` — project total row cells
-- `HistoricalOnlyRow.tsx` — historical-only row cells
+### IDs reference
+- Project: `691271e6-e46f-4745-8efb-200500e819f0`
+- PO: `f2110af9-eb0a-4f02-bbe8-2d9f798ab8b6`
+- PO Line: `834733b4-dca9-4183-af83-ad4a7a17b7dc`
+- Bid Package: `e1ebf73b-ba72-42df-91ac-64bbbdf97fae`
+- Cost code 3340 (Earthwork): `5aef3665-9d65-4402-893c-1e0a1ac9f15c`
+- Cost code 4200 (Excavation): `3461c8ce-6ec5-4466-a164-1640e042efb7`
+- Budget 4200: `c686175a-bded-4318-9405-dd88af103c4c`
+- Budget 3340: `8aa7b3e6-8c45-4c43-b799-4162be1e3545`
 
