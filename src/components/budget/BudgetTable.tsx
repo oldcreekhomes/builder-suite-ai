@@ -521,9 +521,10 @@ export function BudgetTable({ projectId, projectAddress, onHeaderActionChange, o
             <col style={{ width: '380px' }} />
             <col style={{ width: '192px' }} />
             <col style={{ width: '48px' }} />
+            <col style={{ width: '208px' }} />
+            <col style={{ width: '192px' }} />
             {visibleColumns.historicalCosts && <col style={{ width: '208px' }} />}
             {visibleColumns.variance && <col style={{ width: '192px' }} />}
-            <col style={{ width: '208px' }} />
           </colgroup>
           <BudgetTableHeader 
             headerRef={headerRef}
