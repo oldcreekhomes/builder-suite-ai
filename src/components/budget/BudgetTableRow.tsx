@@ -256,10 +256,10 @@ export function BudgetTableRow({
         <TableCell className="w-40 py-1 text-sm font-medium pl-12">
           {costCode?.code || '-'}
         </TableCell>
-        <TableCell className="w-[380px] py-1 text-sm">
+        <TableCell className="w-[340px] py-1 text-sm">
           {costCode?.name || '-'}
         </TableCell>
-        <TableCell className="w-48 py-1 text-sm">
+        <TableCell className="w-36 py-1 text-sm">
           <BudgetSourceBadge item={item} />
         </TableCell>
         <TableCell className="w-10 px-0 py-1" onClick={(e) => e.stopPropagation()}>
@@ -286,7 +286,7 @@ export function BudgetTableRow({
         <TableCell className="w-60 pl-3 pr-3 py-1 text-sm text-left">
           {formatCurrency(total)}
         </TableCell>
-        <TableCell className="w-48 py-1 text-sm" onClick={(e) => e.stopPropagation()}>
+        <TableCell className="w-56 py-1 text-sm" onClick={(e) => e.stopPropagation()}>
           <BudgetCommentBadge
             value={(item.comment as BudgetComment) || null}
             onChange={(val) => onUpdateComment(item.id, val)}

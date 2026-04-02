@@ -78,11 +78,11 @@ export function BudgetGroupHeader({
           {group}
         </div>
       </TableCell>
-      <TableCell className="w-[380px] py-3 px-3 font-bold text-sm">{groupName}</TableCell>
-      <TableCell className="w-48 py-1"></TableCell>
+      <TableCell className="w-[340px] py-3 px-3 font-bold text-sm">{groupName}</TableCell>
+      <TableCell className="w-36 py-1"></TableCell>
       <TableCell className="w-10 px-0 py-1"></TableCell>
       <TableCell className="w-60 pr-3 py-1"></TableCell>
-      <TableCell className="w-48 py-1"></TableCell>
+      <TableCell className="w-56 py-1"></TableCell>
       {visibleColumns.historicalCosts && <TableCell className="w-52 pl-3 py-1"></TableCell>}
       {visibleColumns.variance && <TableCell className="w-48 py-1"></TableCell>}
     </TableRow>

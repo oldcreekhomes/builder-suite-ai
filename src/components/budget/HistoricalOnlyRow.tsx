@@ -42,10 +42,10 @@ export function HistoricalOnlyRow({
       <TableCell className="w-40 font-medium pl-12">
         {costCode.code}
       </TableCell>
-      <TableCell className="w-[320px]">
+      <TableCell className="w-[340px]">
         {costCode.name}
       </TableCell>
-      <TableCell className="w-48">
+      <TableCell className="w-36">
         <Badge variant="outline" className="bg-red-100 text-red-700 border-red-200 text-xs">
           Missing
         </Badge>
@@ -56,7 +56,7 @@ export function HistoricalOnlyRow({
       <TableCell className="w-52 text-left text-red-600 font-medium">
         $0
       </TableCell>
-      <TableCell className="w-48 py-1"></TableCell>
+      <TableCell className="w-56 py-1"></TableCell>
       <TableCell className="w-32 text-muted-foreground">
         -
       </TableCell>
