@@ -1464,6 +1464,44 @@ export const useBankReconciliation = () => {
     });
   };
 
+  // Helper: optimistically patch a transaction in cache
+  const patchTransactionInCache = (id: string, field: string, value: any) => {
+    const patchTransaction = (tx: ReconciliationTransaction) => {
+      if (tx.id !== id) return tx;
+      if (field === 'date') return { ...tx, date: value };
+      if (field === 'reference_number') return { ...tx, reference_number: value };
+      if (field === 'amount') return { ...tx, amount: parseFloat(value) };
+      return tx;
+    };
+    queryClient.setQueriesData(
+      { queryKey: ['reconciliation-transactions'] },
+      (old: any) => {
+        if (!old) return old;
+        return {
+          ...old,
+          checks: (old.checks || []).map(patchTransaction),
+          deposits: (old.deposits || []).map(patchTransaction),
+        };
+      }
+    );
+  };
+
+  // Helper: snapshot + cancel for optimistic updates
+  const prepareOptimistic = async (id: string, field: string, value: any) => {
+    await queryClient.cancelQueries({ queryKey: ['reconciliation-transactions'] });
+    const snapshot = queryClient.getQueriesData({ queryKey: ['reconciliation-transactions'] });
+    patchTransactionInCache(id, field, value);
+    return { snapshot };
+  };
+
+  const rollbackOptimistic = (context: { snapshot: [any, any][] } | undefined) => {
+    if (context?.snapshot) {
+      context.snapshot.forEach(([key, data]: [any, any]) => {
+        queryClient.setQueryData(key, data);
+      });
+    }
+  };
+
   // Update check transaction (date, ref #, amount)
   const updateCheckTransaction = useMutation({
     mutationFn: async ({ id, field, value }: { id: string; field: string; value: any }) => {
@@ -1484,19 +1522,25 @@ export const useBankReconciliation = () => {
 
       if (error) throw error;
     },
+    onMutate: async (variables) => {
+      return prepareOptimistic(variables.id, variables.field, variables.value);
+    },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['reconciliation-transactions'] });
       toast({
         title: "Check updated",
         description: "The check has been updated successfully.",
       });
     },
-    onError: (error: Error) => {
+    onError: (error: Error, _variables, context) => {
+      rollbackOptimistic(context);
       toast({
         title: "Error",
         description: error.message,
         variant: "destructive",
       });
+    },
+    onSettled: () => {
+      queryClient.invalidateQueries({ queryKey: ['reconciliation-transactions'] });
     },
   });
 
@@ -1518,19 +1562,25 @@ export const useBankReconciliation = () => {
 
       if (error) throw error;
     },
+    onMutate: async (variables) => {
+      return prepareOptimistic(variables.id, variables.field, variables.value);
+    },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['reconciliation-transactions'] });
       toast({
         title: "Deposit updated",
         description: "The deposit has been updated successfully.",
       });
     },
-    onError: (error: Error) => {
+    onError: (error: Error, _variables, context) => {
+      rollbackOptimistic(context);
       toast({
         title: "Error",
         description: error.message,
         variant: "destructive",
       });
+    },
+    onSettled: () => {
+      queryClient.invalidateQueries({ queryKey: ['reconciliation-transactions'] });
     },
   });
 
@@ -1538,7 +1588,6 @@ export const useBankReconciliation = () => {
   const updateBillPaymentTransaction = useMutation({
     mutationFn: async ({ id, field, value, bankAccountId, type }: { id: string; field: string; value: any; bankAccountId: string; type: 'bill_payment' | 'consolidated_bill_payment' }) => {
       if (type === 'consolidated_bill_payment') {
-        // Consolidated bill payments: ID is bill_payments.id
         if (field === 'date') {
           const { data, error } = await supabase
             .from('bill_payments')
@@ -1568,9 +1617,7 @@ export const useBankReconciliation = () => {
           if (!data) throw new Error('No matching bill payment found to update');
         }
       } else {
-        // Legacy bill payments: ID is journal_entry_lines.id — resolve parent journal_entry_id first
         if (field === 'date') {
-          // Get the parent journal_entry_id from the line
           const { data: line, error: lineError } = await supabase
             .from('journal_entry_lines')
             .select('journal_entry_id')
@@ -1588,7 +1635,6 @@ export const useBankReconciliation = () => {
           if (error) throw error;
           if (!data) throw new Error('No matching journal entry found to update');
         } else if (field === 'reference_number') {
-          // Get the source bill ID from the journal entry via the line
           const { data: line, error: lineError } = await supabase
             .from('journal_entry_lines')
             .select('journal_entry_id')
@@ -1614,7 +1660,6 @@ export const useBankReconciliation = () => {
           if (error) throw error;
           if (!data) throw new Error('No matching bill found to update');
         } else if (field === 'amount') {
-          // Update the credit on the bank account line
           const { data: line, error: lineError } = await supabase
             .from('journal_entry_lines')
             .select('journal_entry_id')
@@ -1633,38 +1678,25 @@ export const useBankReconciliation = () => {
         }
       }
     },
-    onSuccess: (_data, variables) => {
-      // Immediately patch the cache for instant UI update, then invalidate for fresh data
-      queryClient.setQueriesData(
-        { queryKey: ['reconciliation-transactions'] },
-        (old: any) => {
-          if (!old) return old;
-          const patchTransaction = (tx: ReconciliationTransaction) => {
-            if (tx.id !== variables.id) return tx;
-            if (variables.field === 'date') return { ...tx, date: variables.value };
-            if (variables.field === 'reference_number') return { ...tx, reference_number: variables.value };
-            if (variables.field === 'amount') return { ...tx, amount: parseFloat(variables.value) };
-            return tx;
-          };
-          return {
-            ...old,
-            checks: (old.checks || []).map(patchTransaction),
-            deposits: (old.deposits || []).map(patchTransaction),
-          };
-        }
-      );
-      queryClient.invalidateQueries({ queryKey: ['reconciliation-transactions'] });
+    onMutate: async (variables) => {
+      return prepareOptimistic(variables.id, variables.field, variables.value);
+    },
+    onSuccess: () => {
       toast({
         title: "Bill payment updated",
         description: "The bill payment has been updated successfully.",
       });
     },
-    onError: (error: Error) => {
+    onError: (error: Error, _variables, context) => {
+      rollbackOptimistic(context);
       toast({
         title: "Error",
         description: error.message,
         variant: "destructive",
       });
+    },
+    onSettled: () => {
+      queryClient.invalidateQueries({ queryKey: ['reconciliation-transactions'] });
     },
   });
 
