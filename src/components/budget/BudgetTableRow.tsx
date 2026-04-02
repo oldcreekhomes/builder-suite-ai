@@ -302,7 +302,7 @@ export function BudgetTableRow({
           </TableCell>
         )}
         {visibleColumns.variance && (
-          <TableCell className="w-48 py-1 text-sm">
+          <TableCell className="w-36 py-1 text-sm">
             <span className={getVarianceColor(variance)}>
               {formatVariance(variance)}
             </span>
