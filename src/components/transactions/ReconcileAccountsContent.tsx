@@ -155,11 +155,11 @@ export function ReconcileAccountsContent({ projectId }: ReconcileAccountsContent
   const [hasLoadedFromDatabase, setHasLoadedFromDatabase] = useState(false);
   
   // Sorting state for Outstanding Checks & Bill Payments
-  const [checksSortColumn, setChecksSortColumn] = useState<'date' | 'amount' | null>(null);
+  const [checksSortColumn, setChecksSortColumn] = useState<'date' | 'amount' | null>('date');
   const [checksSortDirection, setChecksSortDirection] = useState<'asc' | 'desc'>('asc');
   
   // Sorting state for Outstanding Deposits
-  const [depositsSortColumn, setDepositsSortColumn] = useState<'date' | 'amount' | null>(null);
+  const [depositsSortColumn, setDepositsSortColumn] = useState<'date' | 'amount' | null>('date');
   const [depositsSortDirection, setDepositsSortDirection] = useState<'asc' | 'desc'>('asc');
   
   // Notes dialog state
