@@ -1685,14 +1685,12 @@ export const useBankReconciliation = () => {
     },
     onError: (error: Error, _variables, context) => {
       rollbackOptimistic(context);
+      queryClient.invalidateQueries({ queryKey: ['reconciliation-transactions'] });
       toast({
         title: "Error",
         description: error.message,
         variant: "destructive",
       });
-    },
-    onSettled: () => {
-      queryClient.invalidateQueries({ queryKey: ['reconciliation-transactions'] });
     },
   });
 
