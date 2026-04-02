@@ -35,6 +35,7 @@ export function BudgetTableHeader({
           <span className="sr-only">Warnings</span>
         </TableHead>
         <TableHead className="w-60">Total Budget</TableHead>
+        <TableHead className="w-48">Comment</TableHead>
         {visibleColumns.historicalCosts && (
           <TableHead className="w-52">
             {historicalProjects.length > 0 ? (

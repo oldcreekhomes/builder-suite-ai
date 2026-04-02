@@ -13,6 +13,7 @@ import type { Tables } from '@/integrations/supabase/types';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { Badge } from '@/components/ui/badge';
 import { VisibleColumns } from './BudgetColumnVisibilityDropdown';
+import { BudgetCommentBadge, BudgetComment } from './BudgetCommentBadge';
 import {
   Select,
   SelectContent,
