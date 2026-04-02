@@ -54,7 +54,7 @@ export function BudgetGroupTotalRow({
   return (
     <TableRow className="font-semibold bg-gray-100 h-10 border-t-2">
       <TableCell colSpan={3} className="py-1 text-sm">Subtotal for {group}</TableCell>
-      <TableCell className="w-48 py-1"></TableCell>
+      <TableCell className="w-36 py-1"></TableCell>
       <TableCell className="w-10 px-0 py-1"></TableCell>
       <TableCell className="w-60 pl-3 pr-3 py-1 text-sm text-left">
         {formatCurrency(groupTotal)}
