@@ -605,7 +605,8 @@ export function ReconcileAccountsContent({ projectId }: ReconcileAccountsContent
           id, 
           field, 
           value,
-          bankAccountId: selectedBankAccountId!
+          bankAccountId: selectedBankAccountId!,
+          type: type as 'bill_payment' | 'consolidated_bill_payment',
         });
       }
       // Journal entries are read-only in reconciliation view - no update handler needed
