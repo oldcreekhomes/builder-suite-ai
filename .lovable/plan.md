@@ -1,28 +1,19 @@
 
 
-## Speed Up Reconciliation Transaction Updates
+## Speed Up Reconciliation Optimistic Updates
 
 ### Problem
-All three update mutations (`updateCheckTransaction`, `updateDepositTransaction`, `updateBillPaymentTransaction`) wait for the database round-trip to complete before updating the UI. The cache patch for bill payments happens in `onSuccess` (after the DB call), and for checks/deposits there's no cache patch at all — they only invalidate, triggering a full refetch. This causes a 3-4 second delay before the user sees changes.
+The optimistic update patches the cache instantly, but `onSettled` immediately fires `invalidateQueries`, triggering a full data refetch. This large query takes 3-5 seconds, and when it completes the UI re-renders with server data, causing the visible "jump." The optimistic update is being undone and redone by the refetch.
 
-### Fix: Optimistic Updates
-Move the cache patch to `onMutate` (before the DB call) so the UI updates instantly, and revert on error.
+### Fix
+In `src/hooks/useBankReconciliation.ts`, for all three mutations (`updateCheckTransaction`, `updateDepositTransaction`, `updateBillPaymentTransaction`):
 
-### Changes in `src/hooks/useBankReconciliation.ts`
+1. **Remove `invalidateQueries` from `onSettled`** — the optimistic cache is already correct after a successful save
+2. **Move `invalidateQueries` into `onError` only** — so a failed save triggers a refetch to restore correct state
+3. Keep the `onMutate` optimistic patching and `rollbackOptimistic` as-is
 
-**All three mutations** (`updateCheckTransaction`, `updateDepositTransaction`, `updateBillPaymentTransaction`):
+This eliminates the redundant 3-5 second refetch after every edit, making updates feel instant.
 
-1. Add `onMutate` handler that:
-   - Cancels any in-flight `reconciliation-transactions` queries
-   - Snapshots the current cache
-   - Patches the cache immediately with the new value
-   - Returns the snapshot for rollback
-
-2. Add/update `onError` to restore the snapshot on failure
-
-3. Move `invalidateQueries` to `onSettled` (runs after success or error) so we always re-sync with the server in the background
-
-4. For bill payments, remove the duplicate cache patch from `onSuccess` (it will already be done in `onMutate`)
-
-This means the UI updates in ~0ms instead of waiting 1-4 seconds for the DB round-trip.
+### Files changed
+- `src/hooks/useBankReconciliation.ts` — remove `onSettled` from all three update mutations, add invalidation to `onError` block only
 
