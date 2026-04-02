@@ -154,7 +154,7 @@ export function BudgetTable({ projectId, projectAddress, onHeaderActionChange, o
     collapseAllGroups
   } = useBudgetGroups(groupedBudgetItems);
   
-  const { deletingGroups, deletingItems, handleUpdateItem, handleUpdateUnit, handleUpdateActual, handleDeleteItem, handleDeleteGroup } = useBudgetMutations(projectId);
+  const { deletingGroups, deletingItems, handleUpdateItem, handleUpdateUnit, handleUpdateActual, handleDeleteItem, handleDeleteGroup, handleUpdateComment } = useBudgetMutations(projectId);
 
   const handleLockToggle = () => {
     if (isLocked) {
@@ -521,9 +521,10 @@ export function BudgetTable({ projectId, projectAddress, onHeaderActionChange, o
             <col style={{ width: '380px' }} />
             <col style={{ width: '192px' }} />
             <col style={{ width: '48px' }} />
+            <col style={{ width: '208px' }} />
+            <col style={{ width: '192px' }} />
             {visibleColumns.historicalCosts && <col style={{ width: '208px' }} />}
             {visibleColumns.variance && <col style={{ width: '192px' }} />}
-            <col style={{ width: '208px' }} />
           </colgroup>
           <BudgetTableHeader 
             headerRef={headerRef}
@@ -594,6 +595,7 @@ export function BudgetTable({ projectId, projectAddress, onHeaderActionChange, o
                               itemTotal={itemTotalsMap[row.item.id]}
                               onUpdate={handleUpdateItem}
                               onUpdateUnit={handleUpdateUnit}
+                              onUpdateComment={handleUpdateComment}
                               onDelete={onDeleteItem}
                               formatUnitOfMeasure={formatUnitOfMeasure}
                               isSelected={selectedItems.has(row.item.id)}

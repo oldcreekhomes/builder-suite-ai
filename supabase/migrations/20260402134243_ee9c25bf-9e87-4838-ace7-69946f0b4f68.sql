@@ -1,0 +1,1 @@
+ALTER TABLE public.project_budgets ADD COLUMN comment text DEFAULT NULL;

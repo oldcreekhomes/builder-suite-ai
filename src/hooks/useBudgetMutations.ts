@@ -193,6 +193,36 @@ export function useBudgetMutations(projectId: string) {
     updateActualMutation.mutate({ id, actual_amount });
   };
 
+  // Update comment mutation
+  const updateCommentMutation = useMutation({
+    mutationFn: async ({ id, comment }: { id: string; comment: string | null }) => {
+      const { data, error } = await supabase
+        .from('project_budgets')
+        .update({ comment } as any)
+        .eq('id', id)
+        .select()
+        .single();
+      
+      if (error) throw error;
+      return data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['project-budgets', projectId] });
+    },
+    onError: (error) => {
+      console.error('Error updating comment:', error);
+      toast({
+        title: "Error",
+        description: "Failed to update comment",
+        variant: "destructive",
+      });
+    },
+  });
+
+  const handleUpdateComment = (id: string, comment: string | null) => {
+    updateCommentMutation.mutate({ id, comment });
+  };
+
   return {
     deletingGroups,
     deletingItems,
@@ -200,6 +230,7 @@ export function useBudgetMutations(projectId: string) {
     handleUpdateUnit,
     handleDeleteItem,
     handleDeleteGroup,
-    handleUpdateActual
+    handleUpdateActual,
+    handleUpdateComment
   };
 }

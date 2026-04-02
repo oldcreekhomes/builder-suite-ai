@@ -13,6 +13,7 @@ import type { Tables } from '@/integrations/supabase/types';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { Badge } from '@/components/ui/badge';
 import { VisibleColumns } from './BudgetColumnVisibilityDropdown';
+import { BudgetCommentBadge, BudgetComment } from './BudgetCommentBadge';
 import {
   Select,
   SelectContent,
@@ -27,6 +28,7 @@ interface BudgetTableRowProps {
   item: any; // Project budget item with cost_codes relation
   onUpdate: (id: string, quantity: number, unit_price: number) => void;
   onUpdateUnit: (costCodeId: string, unit_of_measure: string) => void;
+  onUpdateComment: (itemId: string, comment: BudgetComment) => void;
   onDelete: (itemId: string) => void;
   formatUnitOfMeasure: (unit: string | null) => string;
   isSelected: boolean;
@@ -45,6 +47,7 @@ export function BudgetTableRow({
   item, 
   onUpdate, 
   onUpdateUnit,
+  onUpdateComment,
   onDelete,
   formatUnitOfMeasure,
   isSelected,
@@ -282,6 +285,13 @@ export function BudgetTableRow({
         </TableCell>
         <TableCell className="w-60 pl-3 pr-3 py-1 text-sm text-left">
           {formatCurrency(total)}
+        </TableCell>
+        <TableCell className="w-48 py-1 text-sm" onClick={(e) => e.stopPropagation()}>
+          <BudgetCommentBadge
+            value={(item.comment as BudgetComment) || null}
+            onChange={(val) => onUpdateComment(item.id, val)}
+            disabled={isLocked}
+          />
         </TableCell>
         {visibleColumns.historicalCosts && (
           <TableCell className="w-52 pl-3 py-1 text-sm">

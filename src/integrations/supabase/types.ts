@@ -3093,6 +3093,7 @@ export type Database = {
         Row: {
           actual_amount: number | null
           budget_source: string | null
+          comment: string | null
           cost_code_id: string
           created_at: string
           historical_lot_id: string | null
@@ -3108,6 +3109,7 @@ export type Database = {
         Insert: {
           actual_amount?: number | null
           budget_source?: string | null
+          comment?: string | null
           cost_code_id: string
           created_at?: string
           historical_lot_id?: string | null
@@ -3123,6 +3125,7 @@ export type Database = {
         Update: {
           actual_amount?: number | null
           budget_source?: string | null
+          comment?: string | null
           cost_code_id?: string
           created_at?: string
           historical_lot_id?: string | null
