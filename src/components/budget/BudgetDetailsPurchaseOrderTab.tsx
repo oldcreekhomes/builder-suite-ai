@@ -184,7 +184,7 @@ export function BudgetDetailsPurchaseOrderTab({
                   <FilesCell files={po.files} projectId={projectId} />
                 </TableCell>
                 <TableCell className="text-center">
-                  <ExternalLink className="h-4 w-4 text-muted-foreground" />
+                  <TableRowActions actions={[{ label: "View PO", onClick: () => handleViewPO(po.id) }]} />
                 </TableCell>
               </TableRow>
             ))}
