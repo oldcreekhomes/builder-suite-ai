@@ -470,10 +470,30 @@ export const useBills = () => {
 
       const { formatBillNote, appendBillNote } = await import('@/lib/billNoteUtils');
 
+      // Calculate per-bill credit allocation proportionally
+      const totalPositiveBillAmount = regularBills.reduce((sum, b) => sum + b.remainingBalance, 0);
+      const creditAllocationMap = new Map<string, number>();
+      if (creditToApply > 0 && totalPositiveBillAmount > 0) {
+        let allocatedSoFar = 0;
+        regularBills.forEach((bill, index) => {
+          if (index === regularBills.length - 1) {
+            // Last bill gets remainder to avoid rounding issues
+            creditAllocationMap.set(bill.id, Math.round((creditToApply - allocatedSoFar) * 100) / 100);
+          } else {
+            const proportion = bill.remainingBalance / totalPositiveBillAmount;
+            const allocated = Math.round(creditToApply * proportion * 100) / 100;
+            creditAllocationMap.set(bill.id, allocated);
+            allocatedSoFar += allocated;
+          }
+        });
+      }
+
       // Process regular bills (full remaining balance)
       for (const bill of regularBills) {
         try {
           const paymentAmount = bill.remainingBalance;
+          const creditPortion = creditAllocationMap.get(bill.id) || 0;
+          const cashPortion = Math.round((paymentAmount - creditPortion) * 100) / 100;
 
           // Create journal entry for payment
           const { data: journalEntry, error: jeError } = await supabase
@@ -490,7 +510,8 @@ export const useBills = () => {
 
           if (jeError) throw jeError;
 
-          const journalLines = [
+          const journalLines: any[] = [
+            // Line 1: Debit A/P for full bill amount (settle the bill)
             {
               journal_entry_id: journalEntry.id,
               line_number: 1,
@@ -501,17 +522,35 @@ export const useBills = () => {
               owner_id: bill.owner_id,
               project_id: bill.project_id || null,
             },
-            {
+          ];
+
+          // Line 2: Credit Cash for net cash portion only (if > 0)
+          if (cashPortion > 0) {
+            journalLines.push({
               journal_entry_id: journalEntry.id,
               line_number: 2,
               account_id: paymentAccountId,
               debit: 0,
-              credit: paymentAmount,
+              credit: cashPortion,
               memo: memo || `Payment for bill ${bill.reference_number || ''}`,
               owner_id: bill.owner_id,
               project_id: bill.project_id || null,
-            }
-          ];
+            });
+          }
+
+          // Line 3: Credit A/P for credit portion (applies vendor credit)
+          if (creditPortion > 0) {
+            journalLines.push({
+              journal_entry_id: journalEntry.id,
+              line_number: journalLines.length + 1,
+              account_id: settings.ap_account_id,
+              debit: 0,
+              credit: creditPortion,
+              memo: `Credit applied - ${bill.reference_number || 'Bill'}`,
+              owner_id: bill.owner_id,
+              project_id: bill.project_id || null,
+            });
+          }
 
           const { error: linesError } = await supabase
             .from('journal_entry_lines')
