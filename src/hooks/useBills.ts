@@ -605,51 +605,9 @@ export const useBills = () => {
           const creditAmountToApply = Math.round(proportionalUsage * 100) / 100;
 
           if (creditAmountToApply > 0) {
-            // Create journal entry for credit application
-            const { data: journalEntry, error: jeError } = await supabase
-              .from('journal_entries')
-              .insert({
-                owner_id: credit.owner_id,
-                source_type: 'bill_payment',
-                source_id: credit.id,
-                entry_date: paymentDate,
-                description: `Credit applied - Ref: ${credit.reference_number || 'N/A'}${memo ? ` - ${memo}` : ''}`
-              })
-              .select()
-              .single();
-
-            if (jeError) throw jeError;
-
-            const journalLines = [
-              // Credit AP (applying credit reduces our credit balance)
-              {
-                journal_entry_id: journalEntry.id,
-                line_number: 1,
-                account_id: settings.ap_account_id,
-                debit: 0,
-                credit: creditAmountToApply,
-                memo: `Credit applied - ${credit.reference_number || 'Credit'}`,
-                owner_id: credit.owner_id,
-                project_id: credit.project_id || null,
-              },
-              // Debit payment account (we're "receiving" value from the credit)
-              {
-                journal_entry_id: journalEntry.id,
-                line_number: 2,
-                account_id: paymentAccountId,
-                debit: creditAmountToApply,
-                credit: 0,
-                memo: memo || `Credit applied ${credit.reference_number || ''}`,
-                owner_id: credit.owner_id,
-                project_id: credit.project_id || null,
-              }
-            ];
-
-            const { error: linesError } = await supabase
-              .from('journal_entry_lines')
-              .insert(journalLines);
-
-            if (linesError) throw linesError;
+            // No separate JE for credit application — the credit offset is handled
+            // in the regular bill's JE (Credit A/P line). We only update the credit
+            // bill's amount_paid and status below.
           }
 
           // Update credit bill - only increment amount_paid by the amount actually applied
