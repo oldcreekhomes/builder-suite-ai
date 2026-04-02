@@ -53,20 +53,20 @@ export function BudgetProjectTotalRow({
 
   return (
     <TableRow className="font-bold bg-primary/10 border-t-4 border-primary">
-      <TableCell colSpan={3}>Total Project Budget</TableCell>
-      <TableCell className="w-28"></TableCell>
-      <TableCell className="w-10 px-0"></TableCell>
-      <TableCell className="w-40 text-left">
+      <TableCell colSpan={3} className="px-1">Total Project Budget</TableCell>
+      <TableCell className="w-20 px-1"></TableCell>
+      <TableCell className="w-6 px-0"></TableCell>
+      <TableCell className="w-32 px-1 text-left">
         {formatCurrency(totalBudget)}
       </TableCell>
-      <TableCell className="w-48"></TableCell>
+      <TableCell className="w-44 px-1"></TableCell>
       {visibleColumns.historicalCosts && (
-        <TableCell className="w-40">
+        <TableCell className="w-32 px-1">
           {totalHistorical > 0 ? formatCurrency(totalHistorical) : '-'}
         </TableCell>
       )}
       {visibleColumns.variance && (
-        <TableCell className="w-36">
+        <TableCell className="w-28 px-1">
           {totalHistorical > 0 ? (
             <span className={getVarianceColor(variance)}>
               {formatVariance(variance)}
