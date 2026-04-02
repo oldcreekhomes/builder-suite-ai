@@ -185,7 +185,7 @@ export function BudgetDetailsPurchaseOrderTab({
                   {formatCurrency(po.total_amount)}
                 </TableCell>
                 <TableCell className="text-sm text-center">
-                  {format(new Date(po.created_at), 'MM/dd/yyyy')}
+                  <FilesCell files={po.files} projectId={projectId} />
                 </TableCell>
                 <TableCell className="text-center">
                   <ExternalLink className="h-4 w-4 text-muted-foreground" />
