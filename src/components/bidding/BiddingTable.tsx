@@ -119,6 +119,14 @@ export function BiddingTable({ projectId, projectAddress, status, onHeaderAction
       }
       grouped[group].push(item);
     });
+    // Sort items within each group by cost code
+    Object.values(grouped).forEach(items => {
+      items.sort((a, b) => {
+        const numA = parseFloat(a.cost_codes?.code || '0');
+        const numB = parseFloat(b.cost_codes?.code || '0');
+        return numA - numB;
+      });
+    });
     // Sort groups numerically
     return Object.fromEntries(
       Object.entries(grouped).sort(([a], [b]) => {
