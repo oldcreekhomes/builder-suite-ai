@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import type { PurchaseOrder } from '@/hooks/usePurchaseOrders';
-import { format } from 'date-fns';
+import { FilesCell } from '@/components/purchaseOrders/components/FilesCell';
 import { Badge } from '@/components/ui/badge';
 import { ExternalLink } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
@@ -156,7 +156,7 @@ export function BudgetDetailsPurchaseOrderTab({
               <TableHead>Vendor</TableHead>
               <TableHead className="text-center">Status</TableHead>
               <TableHead className="text-right">Amount</TableHead>
-              <TableHead className="text-center">Date</TableHead>
+              <TableHead className="text-center">Files</TableHead>
               <TableHead className="text-center w-12"></TableHead>
             </TableRow>
           </TableHeader>
@@ -185,7 +185,7 @@ export function BudgetDetailsPurchaseOrderTab({
                   {formatCurrency(po.total_amount)}
                 </TableCell>
                 <TableCell className="text-sm text-center">
-                  {format(new Date(po.created_at), 'MM/dd/yyyy')}
+                  <FilesCell files={po.files} projectId={projectId} />
                 </TableCell>
                 <TableCell className="text-center">
                   <ExternalLink className="h-4 w-4 text-muted-foreground" />
