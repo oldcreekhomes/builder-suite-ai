@@ -28,6 +28,7 @@ interface BudgetTableRowProps {
   item: any; // Project budget item with cost_codes relation
   onUpdate: (id: string, quantity: number, unit_price: number) => void;
   onUpdateUnit: (costCodeId: string, unit_of_measure: string) => void;
+  onUpdateComment: (itemId: string, comment: BudgetComment) => void;
   onDelete: (itemId: string) => void;
   formatUnitOfMeasure: (unit: string | null) => string;
   isSelected: boolean;
