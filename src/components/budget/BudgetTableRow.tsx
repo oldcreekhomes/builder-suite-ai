@@ -256,7 +256,7 @@ export function BudgetTableRow({
         <TableCell className="w-32 py-1 text-sm font-medium pl-8">
           {costCode?.code || '-'}
         </TableCell>
-        <TableCell className="w-[340px] py-1 text-sm">
+        <TableCell className="w-[280px] py-1 text-sm">
           {costCode?.name || '-'}
         </TableCell>
         <TableCell className="w-36 py-1 text-sm">
