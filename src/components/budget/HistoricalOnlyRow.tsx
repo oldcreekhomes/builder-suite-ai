@@ -39,13 +39,13 @@ export function HistoricalOnlyRow({
       <TableCell className="w-12">
         <Checkbox disabled checked={false} />
       </TableCell>
-      <TableCell className="w-40 font-medium pl-12">
+      <TableCell className="w-32 font-medium pl-8">
         {costCode.code}
       </TableCell>
-      <TableCell className="w-[340px]">
+      <TableCell className="w-[280px]">
         {costCode.name}
       </TableCell>
-      <TableCell className="w-36">
+      <TableCell className="w-28">
         <Badge variant="outline" className="bg-red-100 text-red-700 border-red-200 text-xs">
           Missing
         </Badge>
