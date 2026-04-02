@@ -154,7 +154,7 @@ export function BudgetTable({ projectId, projectAddress, onHeaderActionChange, o
     collapseAllGroups
   } = useBudgetGroups(groupedBudgetItems);
   
-  const { deletingGroups, deletingItems, handleUpdateItem, handleUpdateUnit, handleUpdateActual, handleDeleteItem, handleDeleteGroup } = useBudgetMutations(projectId);
+  const { deletingGroups, deletingItems, handleUpdateItem, handleUpdateUnit, handleUpdateActual, handleDeleteItem, handleDeleteGroup, handleUpdateComment } = useBudgetMutations(projectId);
 
   const handleLockToggle = () => {
     if (isLocked) {
