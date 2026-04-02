@@ -162,11 +162,7 @@ export function BudgetDetailsPurchaseOrderTab({
           </TableHeader>
           <TableBody>
             {purchaseOrders.map((po) => (
-              <TableRow 
-                key={po.id} 
-                className="cursor-pointer"
-                onClick={() => handleViewPO(po.id)}
-              >
+              <TableRow key={po.id}>
                 <TableCell className="text-sm font-medium">
                   {po.po_number || `PO-${po.id.slice(0, 8)}`}
                 </TableCell>
