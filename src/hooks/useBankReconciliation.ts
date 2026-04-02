@@ -1464,8 +1464,241 @@ export const useBankReconciliation = () => {
     });
   };
 
+  // Helper: optimistically patch a transaction in cache
+  const patchTransactionInCache = (id: string, field: string, value: any) => {
+    const patchTransaction = (tx: ReconciliationTransaction) => {
+      if (tx.id !== id) return tx;
+      if (field === 'date') return { ...tx, date: value };
+      if (field === 'reference_number') return { ...tx, reference_number: value };
+      if (field === 'amount') return { ...tx, amount: parseFloat(value) };
+      return tx;
+    };
+    queryClient.setQueriesData(
+      { queryKey: ['reconciliation-transactions'] },
+      (old: any) => {
+        if (!old) return old;
+        return {
+          ...old,
+          checks: (old.checks || []).map(patchTransaction),
+          deposits: (old.deposits || []).map(patchTransaction),
+        };
+      }
+    );
+  };
+
+  // Helper: snapshot + cancel for optimistic updates
+  const prepareOptimistic = async (id: string, field: string, value: any) => {
+    await queryClient.cancelQueries({ queryKey: ['reconciliation-transactions'] });
+    const snapshot = queryClient.getQueriesData({ queryKey: ['reconciliation-transactions'] });
+    patchTransactionInCache(id, field, value);
+    return { snapshot };
+  };
+
+  const rollbackOptimistic = (context: { snapshot: [any, any][] } | undefined) => {
+    if (context?.snapshot) {
+      context.snapshot.forEach(([key, data]: [any, any]) => {
+        queryClient.setQueryData(key, data);
+      });
+    }
+  };
+
   // Update check transaction (date, ref #, amount)
   const updateCheckTransaction = useMutation({
+    mutationFn: async ({ id, field, value }: { id: string; field: string; value: any }) => {
+      const updates: any = {};
+      
+      if (field === 'date') {
+        updates.check_date = value;
+      } else if (field === 'reference_number') {
+        updates.check_number = value;
+      } else if (field === 'amount') {
+        updates.amount = parseFloat(value);
+      }
+
+      const { error } = await supabase
+        .from('checks')
+        .update(updates)
+        .eq('id', id);
+
+      if (error) throw error;
+    },
+    onMutate: async (variables) => {
+      return prepareOptimistic(variables.id, variables.field, variables.value);
+    },
+    onSuccess: () => {
+      toast({
+        title: "Check updated",
+        description: "The check has been updated successfully.",
+      });
+    },
+    onError: (error: Error, _variables, context) => {
+      rollbackOptimistic(context);
+      toast({
+        title: "Error",
+        description: error.message,
+        variant: "destructive",
+      });
+    },
+    onSettled: () => {
+      queryClient.invalidateQueries({ queryKey: ['reconciliation-transactions'] });
+    },
+  });
+
+  // Update deposit transaction (date, amount)
+  const updateDepositTransaction = useMutation({
+    mutationFn: async ({ id, field, value }: { id: string; field: string; value: any }) => {
+      const updates: any = {};
+      
+      if (field === 'date') {
+        updates.deposit_date = value;
+      } else if (field === 'amount') {
+        updates.amount = parseFloat(value);
+      }
+
+      const { error } = await supabase
+        .from('deposits')
+        .update(updates)
+        .eq('id', id);
+
+      if (error) throw error;
+    },
+    onMutate: async (variables) => {
+      return prepareOptimistic(variables.id, variables.field, variables.value);
+    },
+    onSuccess: () => {
+      toast({
+        title: "Deposit updated",
+        description: "The deposit has been updated successfully.",
+      });
+    },
+    onError: (error: Error, _variables, context) => {
+      rollbackOptimistic(context);
+      toast({
+        title: "Error",
+        description: error.message,
+        variant: "destructive",
+      });
+    },
+    onSettled: () => {
+      queryClient.invalidateQueries({ queryKey: ['reconciliation-transactions'] });
+    },
+  });
+
+  // Update bill payment transaction - handles both legacy (journal_entry_lines.id) and consolidated (bill_payments.id)
+  const updateBillPaymentTransaction = useMutation({
+    mutationFn: async ({ id, field, value, bankAccountId, type }: { id: string; field: string; value: any; bankAccountId: string; type: 'bill_payment' | 'consolidated_bill_payment' }) => {
+      if (type === 'consolidated_bill_payment') {
+        if (field === 'date') {
+          const { data, error } = await supabase
+            .from('bill_payments')
+            .update({ payment_date: value })
+            .eq('id', id)
+            .select('id')
+            .single();
+          if (error) throw error;
+          if (!data) throw new Error('No matching bill payment found to update');
+        } else if (field === 'reference_number') {
+          const { data, error } = await supabase
+            .from('bill_payments')
+            .update({ check_number: value })
+            .eq('id', id)
+            .select('id')
+            .single();
+          if (error) throw error;
+          if (!data) throw new Error('No matching bill payment found to update');
+        } else if (field === 'amount') {
+          const { data, error } = await supabase
+            .from('bill_payments')
+            .update({ total_amount: parseFloat(value) })
+            .eq('id', id)
+            .select('id')
+            .single();
+          if (error) throw error;
+          if (!data) throw new Error('No matching bill payment found to update');
+        }
+      } else {
+        if (field === 'date') {
+          const { data: line, error: lineError } = await supabase
+            .from('journal_entry_lines')
+            .select('journal_entry_id')
+            .eq('id', id)
+            .single();
+          if (lineError) throw lineError;
+          if (!line) throw new Error('No matching journal entry line found');
+
+          const { data, error } = await supabase
+            .from('journal_entries')
+            .update({ entry_date: value })
+            .eq('id', line.journal_entry_id)
+            .select('id')
+            .single();
+          if (error) throw error;
+          if (!data) throw new Error('No matching journal entry found to update');
+        } else if (field === 'reference_number') {
+          const { data: line, error: lineError } = await supabase
+            .from('journal_entry_lines')
+            .select('journal_entry_id')
+            .eq('id', id)
+            .single();
+          if (lineError) throw lineError;
+          if (!line) throw new Error('No matching journal entry line found');
+
+          const { data: je, error: jeError } = await supabase
+            .from('journal_entries')
+            .select('source_id')
+            .eq('id', line.journal_entry_id)
+            .single();
+          if (jeError) throw jeError;
+          if (!je?.source_id) throw new Error('No source bill found for this payment');
+
+          const { data, error } = await supabase
+            .from('bills')
+            .update({ reference_number: value })
+            .eq('id', je.source_id)
+            .select('id')
+            .single();
+          if (error) throw error;
+          if (!data) throw new Error('No matching bill found to update');
+        } else if (field === 'amount') {
+          const { data: line, error: lineError } = await supabase
+            .from('journal_entry_lines')
+            .select('journal_entry_id')
+            .eq('id', id)
+            .single();
+          if (lineError) throw lineError;
+          if (!line) throw new Error('No matching journal entry line found');
+
+          const { error } = await supabase
+            .from('journal_entry_lines')
+            .update({ credit: parseFloat(value) })
+            .eq('journal_entry_id', line.journal_entry_id)
+            .eq('account_id', bankAccountId)
+            .gt('credit', 0);
+          if (error) throw error;
+        }
+      }
+    },
+    onMutate: async (variables) => {
+      return prepareOptimistic(variables.id, variables.field, variables.value);
+    },
+    onSuccess: () => {
+      toast({
+        title: "Bill payment updated",
+        description: "The bill payment has been updated successfully.",
+      });
+    },
+    onError: (error: Error, _variables, context) => {
+      rollbackOptimistic(context);
+      toast({
+        title: "Error",
+        description: error.message,
+        variant: "destructive",
+      });
+    },
+    onSettled: () => {
+      queryClient.invalidateQueries({ queryKey: ['reconciliation-transactions'] });
+    },
+  });
     mutationFn: async ({ id, field, value }: { id: string; field: string; value: any }) => {
       const updates: any = {};
       
