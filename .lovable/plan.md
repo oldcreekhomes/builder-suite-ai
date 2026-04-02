@@ -1,29 +1,30 @@
 
 
-## Fix: Make "Additional Costs Expected" Badge Single Line
+## Compact Budget Table Layout
 
 ### Problem
-The Comment column (`w-48` = 192px) is too narrow for the "Additional Costs Expected" badge text, causing it to wrap to two lines.
+The budget table's combined column widths (~1596px) plus the sidebar push content off-screen on a 24" monitor.
 
 ### Fix
-Adjust column widths — shrink Name and Source columns slightly, widen Comment column, and add `whitespace-nowrap` to the badge.
+Reduce column widths across all budget table components. Key reductions:
 
-### Changes
+| Column | Current | New |
+|--------|---------|-----|
+| Cost Code | w-40 + pl-12 | w-32 + pl-8 |
+| Name | w-[340px] | w-[280px] |
+| Source | w-36 | w-28 |
+| Total Budget | w-60 | w-40 |
+| Comment | w-56 | w-48 |
+| Historical | w-52 | w-40 |
+| Variance | w-48 | w-36 |
 
-**`src/components/budget/BudgetTableHeader.tsx`**
-- Name: `w-[380px]` → `w-[340px]`
-- Source: `w-48` → `w-36`
-- Comment: `w-48` → `w-56`
+This saves ~280px total, fitting comfortably on a 1920px screen with sidebar.
 
-**`src/components/budget/BudgetTableRow.tsx`**
-- Same width changes on the matching `<TableCell>` elements:
-  - Name: `w-[380px]` → `w-[340px]`
-  - Source: `w-48` → `w-36`
-  - Comment: `w-48` → `w-56`
-
-**`src/components/budget/BudgetCommentBadge.tsx`**
-- Add `whitespace-nowrap` to the Badge className in the SelectTrigger so the text never wraps
-
-**Other files with matching column cells** (BudgetGroupHeader, BudgetGroupTotalRow, BudgetProjectTotalRow, HistoricalOnlyRow):
-- Update Name and Source cell widths to match
+### Files changed (6 files, same width adjustments in each)
+- `BudgetTableHeader.tsx`
+- `BudgetTableRow.tsx`
+- `BudgetGroupHeader.tsx`
+- `BudgetGroupTotalRow.tsx`
+- `BudgetProjectTotalRow.tsx`
+- `HistoricalOnlyRow.tsx`
 
