@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import type { PurchaseOrder } from '@/hooks/usePurchaseOrders';
-import { format } from 'date-fns';
+import { FilesCell } from '@/components/purchaseOrders/components/FilesCell';
 import { Badge } from '@/components/ui/badge';
 import { ExternalLink } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
