@@ -157,7 +157,7 @@ export function BudgetDetailsPurchaseOrderTab({
               <TableHead className="text-center">Status</TableHead>
               <TableHead className="text-right">Amount</TableHead>
               <TableHead className="text-center">Files</TableHead>
-              <TableHead className="text-center w-12"></TableHead>
+              <TableHead className="text-center w-16">Actions</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
