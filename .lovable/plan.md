@@ -1,22 +1,18 @@
 
 
-## Add Files to Budget Details PO Tab
+## Replace ExternalLink Icon with Standardized Actions Dropdown
 
 ### Problem
-The Budget Details dialog's Purchase Orders tab shows a Date column that isn't needed. The PO table elsewhere shows file icons for attached documents — these should appear in the Budget Details dialog too.
+The PO table in the Budget Details dialog uses a grey `ExternalLink` icon with no header label. This is inconsistent with the rest of the app, which uses a centered 3-dot `TableRowActions` dropdown under an "Actions" header.
 
 ### Fix
-Replace the "Date" column with a "Files" column in `BudgetDetailsPurchaseOrderTab.tsx`, reusing the existing `FilesCell` component.
+In `BudgetDetailsPurchaseOrderTab.tsx`:
 
-### Changes
-
-**`src/components/budget/BudgetDetailsPurchaseOrderTab.tsx`**
-1. Import `FilesCell` from `@/components/purchaseOrders/components/FilesCell`
-2. Remove the `date-fns` import (no longer needed)
-3. In the table header: replace `<TableHead>Date</TableHead>` with `<TableHead>Files</TableHead>`
-4. In the table body: replace the Date `<TableCell>` (showing `format(...)`) with a `<TableCell>` rendering `<FilesCell files={po.files} projectId={projectId} />`
-
-No query changes needed — the `select('*')` already includes the `files` column.
+1. Replace `ExternalLink` import with `TableRowActions` import from `@/components/ui/table-row-actions`
+2. Change the last `<TableHead>` from empty to `Actions` with `text-center` and `w-16`
+3. Replace the `<TableCell>` containing `<ExternalLink>` with a `<TableCell className="text-center">` containing `<TableRowActions>` with a single action: `{ label: "View PO", onClick: () => handleViewPO(po.id) }`
+4. Remove the row-level `onClick` and `cursor-pointer` from `<TableRow>` since the action is now in the dropdown
+5. Remove unused `ExternalLink` import from lucide-react
 
 ### Files changed
 - `src/components/budget/BudgetDetailsPurchaseOrderTab.tsx`
