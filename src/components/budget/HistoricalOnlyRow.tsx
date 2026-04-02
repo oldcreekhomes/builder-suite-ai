@@ -39,13 +39,13 @@ export function HistoricalOnlyRow({
       <TableCell className="w-12">
         <Checkbox disabled checked={false} />
       </TableCell>
-      <TableCell className="w-40 font-medium pl-12">
+      <TableCell className="w-32 font-medium pl-8">
         {costCode.code}
       </TableCell>
-      <TableCell className="w-[340px]">
+      <TableCell className="w-[280px]">
         {costCode.name}
       </TableCell>
-      <TableCell className="w-36">
+      <TableCell className="w-28">
         <Badge variant="outline" className="bg-red-100 text-red-700 border-red-200 text-xs">
           Missing
         </Badge>
@@ -53,20 +53,20 @@ export function HistoricalOnlyRow({
       <TableCell className="w-10 px-0">
         {/* No warnings column */}
       </TableCell>
-      <TableCell className="w-52 text-left text-red-600 font-medium">
+      <TableCell className="w-40 text-left text-red-600 font-medium">
         $0
       </TableCell>
-      <TableCell className="w-56 py-1"></TableCell>
+      <TableCell className="w-48 py-1"></TableCell>
       <TableCell className="w-32 text-muted-foreground">
         -
       </TableCell>
       {visibleColumns.historicalCosts && (
-        <TableCell className="w-52 font-medium">
+        <TableCell className="w-40 font-medium">
           {formatCurrency(historicalAmount)}
         </TableCell>
       )}
       {visibleColumns.variance && (
-        <TableCell className="w-48">
+        <TableCell className="w-36">
           <span className="text-red-600">
             {formatVariance(variance)}
           </span>

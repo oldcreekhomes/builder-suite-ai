@@ -28,16 +28,16 @@ export function BudgetTableHeader({
     <TableHeader ref={headerRef}>
       <TableRow className="border-b-2">
         <TableHead className="w-12"></TableHead>
-        <TableHead className="pl-12 w-40">Cost Code</TableHead>
-        <TableHead className="w-[340px]">Name</TableHead>
-        <TableHead className="w-36">Source</TableHead>
+        <TableHead className="pl-8 w-32">Cost Code</TableHead>
+        <TableHead className="w-[280px]">Name</TableHead>
+        <TableHead className="w-28">Source</TableHead>
         <TableHead className="w-10 text-center px-0">
           <span className="sr-only">Warnings</span>
         </TableHead>
-        <TableHead className="w-60">Total Budget</TableHead>
-        <TableHead className="w-56">Comment</TableHead>
+        <TableHead className="w-40">Total Budget</TableHead>
+        <TableHead className="w-48">Comment</TableHead>
         {visibleColumns.historicalCosts && (
-          <TableHead className="w-52">
+          <TableHead className="w-40">
             {historicalProjects.length > 0 ? (
               <Select value={selectedHistoricalProject || "none"} onValueChange={(value) => onHistoricalProjectChange(value === "none" ? "" : value)}>
                 <SelectTrigger className="h-6 text-sm font-medium border-0 shadow-none bg-transparent hover:bg-muted w-auto justify-start p-0 gap-1">
@@ -62,7 +62,7 @@ export function BudgetTableHeader({
           </TableHead>
         )}
         {visibleColumns.variance && (
-          <TableHead className="w-48">
+          <TableHead className="w-36">
             <button
               onClick={onToggleVarianceMode}
               className="rounded px-1 py-0.5 whitespace-nowrap hover:bg-muted"

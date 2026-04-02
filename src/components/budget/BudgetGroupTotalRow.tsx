@@ -54,19 +54,19 @@ export function BudgetGroupTotalRow({
   return (
     <TableRow className="font-semibold bg-gray-100 h-10 border-t-2">
       <TableCell colSpan={3} className="py-1 text-sm">Subtotal for {group}</TableCell>
-      <TableCell className="w-36 py-1"></TableCell>
+      <TableCell className="w-28 py-1"></TableCell>
       <TableCell className="w-10 px-0 py-1"></TableCell>
-      <TableCell className="w-60 pl-3 pr-3 py-1 text-sm text-left">
+      <TableCell className="w-40 pl-3 pr-3 py-1 text-sm text-left">
         {formatCurrency(groupTotal)}
       </TableCell>
-      <TableCell className="w-56 py-1"></TableCell>
+      <TableCell className="w-48 py-1"></TableCell>
       {visibleColumns.historicalCosts && (
-        <TableCell className="w-52 pl-3 py-1 text-sm">
+        <TableCell className="w-40 pl-3 py-1 text-sm">
           {historicalTotal > 0 ? formatCurrency(historicalTotal) : '-'}
         </TableCell>
       )}
       {visibleColumns.variance && (
-        <TableCell className="w-48 py-1 text-sm">
+        <TableCell className="w-36 py-1 text-sm">
           {historicalTotal > 0 ? (
             <span className={getVarianceColor(variance)}>
               {formatVariance(variance)}

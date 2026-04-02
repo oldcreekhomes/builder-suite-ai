@@ -253,13 +253,13 @@ export function BudgetTableRow({
           onCheckedChange={(checked) => !isLocked && onCheckboxChange(item.id, checked as boolean)}
         />
       </TableCell>
-        <TableCell className="w-40 py-1 text-sm font-medium pl-12">
+        <TableCell className="w-32 py-1 text-sm font-medium pl-8">
           {costCode?.code || '-'}
         </TableCell>
-        <TableCell className="w-[340px] py-1 text-sm">
+        <TableCell className="w-[280px] py-1 text-sm">
           {costCode?.name || '-'}
         </TableCell>
-        <TableCell className="w-36 py-1 text-sm">
+        <TableCell className="w-28 py-1 text-sm">
           <BudgetSourceBadge item={item} />
         </TableCell>
         <TableCell className="w-10 px-0 py-1" onClick={(e) => e.stopPropagation()}>
@@ -283,10 +283,10 @@ export function BudgetTableRow({
             </TooltipProvider>
           )}
         </TableCell>
-        <TableCell className="w-60 pl-3 pr-3 py-1 text-sm text-left">
+        <TableCell className="w-40 pl-3 pr-3 py-1 text-sm text-left">
           {formatCurrency(total)}
         </TableCell>
-        <TableCell className="w-56 py-1 text-sm" onClick={(e) => e.stopPropagation()}>
+        <TableCell className="w-48 py-1 text-sm" onClick={(e) => e.stopPropagation()}>
           <BudgetCommentBadge
             value={(item.comment as BudgetComment) || null}
             onChange={(val) => onUpdateComment(item.id, val)}
@@ -294,7 +294,7 @@ export function BudgetTableRow({
           />
         </TableCell>
         {visibleColumns.historicalCosts && (
-          <TableCell className="w-52 pl-3 py-1 text-sm">
+          <TableCell className="w-40 pl-3 py-1 text-sm">
             {historicalActual !== null && historicalActual !== undefined 
               ? formatCurrency(historicalActual)
               : '-'
@@ -302,7 +302,7 @@ export function BudgetTableRow({
           </TableCell>
         )}
         {visibleColumns.variance && (
-          <TableCell className="w-48 py-1 text-sm">
+          <TableCell className="w-36 py-1 text-sm">
             <span className={getVarianceColor(variance)}>
               {formatVariance(variance)}
             </span>
