@@ -5,6 +5,16 @@ import { DEFAULT_INPUTS, ApartmentInputs } from "@/lib/apartmentCalculations";
 import ApartmentsList from "@/components/apartments/ApartmentsList";
 import ApartmentDetail from "@/components/apartments/ApartmentDetail";
 import { useQuery } from "@tanstack/react-query";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 
 interface ProFormaRow {
   id: string;
@@ -39,6 +49,9 @@ export default function Apartments() {
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [createDialogOpen, setCreateDialogOpen] = useState(false);
+  const [newProFormaName, setNewProFormaName] = useState("");
+  const [creating, setCreating] = useState(false);
 
   const fetchItems = async () => {
     if (!effectiveOwnerId) return;
@@ -69,10 +82,19 @@ export default function Apartments() {
     }
   }, [effectiveOwnerId, ownerLoading]);
 
-  const handleCreate = async () => {
+  const handleCreate = () => {
     if (!effectiveOwnerId) return;
-    const name = prompt("Enter a name for the new pro forma:");
+    setNewProFormaName("");
+    setCreateDialogOpen(true);
+  };
+
+  const handleCreateSubmit = async () => {
+    if (!effectiveOwnerId) return;
+
+    const name = newProFormaName.trim();
     if (!name) return;
+
+    setCreating(true);
 
     const { data, error } = await supabase
       .from("apartment_pro_formas" as any)
@@ -83,9 +105,12 @@ export default function Apartments() {
     if (error) {
       toast({ title: "Error", description: error.message, variant: "destructive" });
     } else {
+      setCreateDialogOpen(false);
+      setNewProFormaName("");
       await fetchItems();
       setSelectedId((data as any).id);
     }
+    setCreating(false);
   };
 
   const handleSave = async (inputs: ApartmentInputs) => {
@@ -141,13 +166,58 @@ export default function Apartments() {
   }
 
   return (
-    <div className="p-6">
-      <ApartmentsList
-        items={items}
-        onSelect={setSelectedId}
-        onCreate={handleCreate}
-        onDelete={handleDelete}
-      />
-    </div>
+    <>
+      <div className="p-6">
+        <ApartmentsList
+          items={items}
+          onSelect={setSelectedId}
+          onCreate={handleCreate}
+          onDelete={handleDelete}
+        />
+      </div>
+
+      <Dialog
+        open={createDialogOpen}
+        onOpenChange={(open) => {
+          setCreateDialogOpen(open);
+          if (!open) {
+            setNewProFormaName("");
+          }
+        }}
+      >
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Create new pro forma</DialogTitle>
+            <DialogDescription>
+              Enter a name to save and organize this apartment analysis.
+            </DialogDescription>
+          </DialogHeader>
+
+          <form
+            className="space-y-4"
+            onSubmit={(event) => {
+              event.preventDefault();
+              void handleCreateSubmit();
+            }}
+          >
+            <Input
+              autoFocus
+              placeholder="e.g. 923 17th Street South"
+              value={newProFormaName}
+              onChange={(event) => setNewProFormaName(event.target.value)}
+            />
+
+            <DialogFooter>
+              <Button type="button" variant="outline" onClick={() => setCreateDialogOpen(false)}>
+                Cancel
+              </Button>
+              <Button type="submit" disabled={creating || !newProFormaName.trim()}>
+                {creating ? "Creating..." : "Create pro forma"}
+              </Button>
+            </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
+    </>
   );
 }
