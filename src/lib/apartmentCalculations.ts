@@ -187,14 +187,15 @@ export function calculateMetrics(inputs: ApartmentInputs, income: IncomeResults)
 }
 
 export function calculateAmortization(inputs: ApartmentInputs): AmortRow[] {
+  const safe = { ...DEFAULT_INPUTS, ...inputs };
   const rows: AmortRow[] = [];
-  let balance = inputs.loanAmount;
-  const monthlyPI = calcMonthlyPayment(inputs.loanAmount, inputs.interestRate, inputs.amortYears);
-  const monthlyRate = inputs.interestRate / 12;
+  let balance = safe.loanAmount;
+  const monthlyPI = calcMonthlyPayment(safe.loanAmount, safe.interestRate, safe.amortYears);
+  const monthlyRate = safe.interestRate / 12;
 
-  for (let year = 1; year <= inputs.loanTermYears; year++) {
+  for (let year = 1; year <= safe.loanTermYears; year++) {
     if (balance <= 0) break;
-    const isIO = year <= inputs.interestOnlyYears;
+    const isIO = year <= safe.interestOnlyYears;
     let annualPrincipal = 0;
     let annualInterest = 0;
     const beginBalance = balance;
