@@ -4,7 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { AppSidebar } from "@/components/AppSidebar";
 import { SidebarProvider, SidebarInset } from "@/components/ui/sidebar";
 import { DashboardHeader } from "@/components/DashboardHeader";
-import { useApartmentInputs, fmt } from "@/hooks/useApartmentInputs";
+import { useApartmentInputs, fmt, fmtPct } from "@/hooks/useApartmentInputs";
 import { Loader2 } from "lucide-react";
 
 function generateAmortization(principal: number, annualRate: number, years: number) {
