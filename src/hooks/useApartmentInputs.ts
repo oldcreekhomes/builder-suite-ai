@@ -41,6 +41,7 @@ const DEFAULT_INPUTS: ApartmentInputs = {
   vacancy_rate: 5,
   purchase_price: 25000000,
   construction_costs: 0,
+  loan_amount: 0,
   ltv: 75,
   interest_rate: 6.5,
   amortization_years: 30,
