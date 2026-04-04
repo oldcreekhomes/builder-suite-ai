@@ -63,7 +63,8 @@ const ApartmentIncomeStatement = () => {
                       <StatementRow label="Insurance" annual={fmt(inputs.insurance)} perUnit={perUnit(inputs.insurance)} pct={pctEgi(inputs.insurance)} />
                       <StatementRow label="Utilities" annual={fmt(inputs.utilities)} perUnit={perUnit(inputs.utilities)} pct={pctEgi(inputs.utilities)} />
                       <StatementRow label="Repairs & Maintenance" annual={fmt(inputs.repairs_maintenance)} perUnit={perUnit(inputs.repairs_maintenance)} pct={pctEgi(inputs.repairs_maintenance)} />
-                      <StatementRow label="Landscaping / Snow Removal" annual={fmt(inputs.landscaping)} perUnit={perUnit(inputs.landscaping)} pct={pctEgi(inputs.landscaping)} />
+                      <StatementRow label="Landscaping" annual={fmt(inputs.landscaping)} perUnit={perUnit(inputs.landscaping)} pct={pctEgi(inputs.landscaping)} />
+                      <StatementRow label="Snow Removal" annual={fmt(inputs.snow_removal)} perUnit={perUnit(inputs.snow_removal)} pct={pctEgi(inputs.snow_removal)} />
                       <StatementRow label="Trash Removal" annual={fmt(inputs.trash_removal)} perUnit={perUnit(inputs.trash_removal)} pct={pctEgi(inputs.trash_removal)} />
                       <StatementRow label="Pest Control" annual={fmt(inputs.pest_control)} perUnit={perUnit(inputs.pest_control)} pct={pctEgi(inputs.pest_control)} />
                       <StatementRow label={`Management (${fmtPct(inputs.management_fee_percent)})`} annual={fmt(computed.managementFee)} perUnit={perUnit(computed.managementFee)} pct={pctEgi(computed.managementFee)} />
