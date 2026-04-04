@@ -1,0 +1,153 @@
+import { useState, useEffect } from "react";
+import { supabase } from "@/integrations/supabase/client";
+import { useToast } from "@/hooks/use-toast";
+import { DEFAULT_INPUTS, ApartmentInputs } from "@/lib/apartmentCalculations";
+import ApartmentsList from "@/components/apartments/ApartmentsList";
+import ApartmentDetail from "@/components/apartments/ApartmentDetail";
+import { useQuery } from "@tanstack/react-query";
+
+interface ProFormaRow {
+  id: string;
+  name: string;
+  inputs: ApartmentInputs;
+  created_at: string;
+  updated_at: string;
+}
+
+function useEffectiveOwnerId() {
+  const { data, isLoading } = useQuery({
+    queryKey: ["effective-owner-id"],
+    queryFn: async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return null;
+      const { data: profile } = await supabase
+        .from("users")
+        .select("role, home_builder_id")
+        .eq("id", user.id)
+        .single();
+      if (!profile) return user.id;
+      return profile.role === "owner" ? user.id : (profile.home_builder_id ?? user.id);
+    },
+  });
+  return { effectiveOwnerId: data ?? null, isLoading };
+}
+
+export default function Apartments() {
+  const { toast } = useToast();
+  const { effectiveOwnerId, isLoading: ownerLoading } = useEffectiveOwnerId();
+  const [items, setItems] = useState<ProFormaRow[]>([]);
+  const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+
+  const fetchItems = async () => {
+    if (!effectiveOwnerId) return;
+    setLoading(true);
+    const { data, error } = await supabase
+      .from("apartment_pro_formas" as any)
+      .select("*")
+      .eq("owner_id", effectiveOwnerId)
+      .order("updated_at", { ascending: false });
+
+    if (error) {
+      console.error("Error fetching pro formas:", error);
+    } else {
+      setItems((data || []).map((d: any) => ({
+        id: d.id,
+        name: d.name,
+        inputs: d.inputs as ApartmentInputs,
+        created_at: d.created_at,
+        updated_at: d.updated_at,
+      })));
+    }
+    setLoading(false);
+  };
+
+  useEffect(() => {
+    if (!ownerLoading && effectiveOwnerId) {
+      fetchItems();
+    }
+  }, [effectiveOwnerId, ownerLoading]);
+
+  const handleCreate = async () => {
+    if (!effectiveOwnerId) return;
+    const name = prompt("Enter a name for the new pro forma:");
+    if (!name) return;
+
+    const { data, error } = await supabase
+      .from("apartment_pro_formas" as any)
+      .insert({ owner_id: effectiveOwnerId, name, inputs: DEFAULT_INPUTS as any })
+      .select()
+      .single();
+
+    if (error) {
+      toast({ title: "Error", description: error.message, variant: "destructive" });
+    } else {
+      await fetchItems();
+      setSelectedId((data as any).id);
+    }
+  };
+
+  const handleSave = async (inputs: ApartmentInputs) => {
+    if (!selectedId) return;
+    setSaving(true);
+    const { error } = await supabase
+      .from("apartment_pro_formas" as any)
+      .update({ inputs: inputs as any })
+      .eq("id", selectedId);
+
+    if (error) {
+      toast({ title: "Error", description: error.message, variant: "destructive" });
+    } else {
+      toast({ title: "Saved", description: "Pro forma saved successfully." });
+      await fetchItems();
+    }
+    setSaving(false);
+  };
+
+  const handleDelete = async (id: string) => {
+    if (!confirm("Delete this pro forma?")) return;
+    const { error } = await supabase
+      .from("apartment_pro_formas" as any)
+      .delete()
+      .eq("id", id);
+
+    if (error) {
+      toast({ title: "Error", description: error.message, variant: "destructive" });
+    } else {
+      if (selectedId === id) setSelectedId(null);
+      await fetchItems();
+    }
+  };
+
+  if (ownerLoading || loading) {
+    return <div className="p-6">Loading...</div>;
+  }
+
+  const selected = items.find(i => i.id === selectedId);
+
+  if (selected) {
+    return (
+      <div className="p-6">
+        <ApartmentDetail
+          name={selected.name}
+          inputs={selected.inputs}
+          onSave={handleSave}
+          onBack={() => setSelectedId(null)}
+          saving={saving}
+        />
+      </div>
+    );
+  }
+
+  return (
+    <div className="p-6">
+      <ApartmentsList
+        items={items}
+        onSelect={setSelectedId}
+        onCreate={handleCreate}
+        onDelete={handleDelete}
+      />
+    </div>
+  );
+}
