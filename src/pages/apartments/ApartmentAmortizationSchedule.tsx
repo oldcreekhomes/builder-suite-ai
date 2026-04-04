@@ -98,6 +98,10 @@ const ApartmentAmortizationSchedule = () => {
                     <span className="text-muted-foreground">Loan Term</span>
                     <p className="font-semibold">{inputs.loan_term_years} years</p>
                   </div>
+                  <div>
+                    <span className="text-muted-foreground">Monthly Payment</span>
+                    <p className="font-semibold">{fmt(monthlyPayment)}</p>
+                  </div>
                 </div>
               </CardContent>
             </Card>
