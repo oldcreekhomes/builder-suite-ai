@@ -22,96 +22,168 @@ export function EmployeeAccessPreferences({ employeeId }: EmployeeAccessPreferen
 
   return (
     <div className="space-y-6 py-4">
-      {/* Dashboards Section */}
+      {/* Accounting Section */}
       <div className="space-y-4">
         <div>
-          <h3 className="text-sm font-medium">Dashboards</h3>
+          <h3 className="text-sm font-medium">Accounting</h3>
           <p className="text-xs text-muted-foreground mt-1">
-            Control which dashboard views this employee can access
+            Manage accounting-related alerts and permissions
           </p>
         </div>
         
         <div className="space-y-3 pl-6">
           <div className="flex items-center justify-between gap-4">
             <div className="space-y-0.5 flex-1">
-              <Label htmlFor="pm-dashboard" className="text-sm font-normal cursor-pointer">
-                PM Dashboard
+              <Label htmlFor="access-accounting" className="text-sm font-normal cursor-pointer">
+                Access Accounting Menu
               </Label>
               <p className="text-xs text-muted-foreground">
-                Access to the Project Manager dashboard view
+                View and access the main accounting dashboard
               </p>
             </div>
             <Switch
-              id="pm-dashboard"
-              checked={preferences.can_access_pm_dashboard}
+              id="access-accounting"
+              checked={preferences.can_access_accounting}
               onCheckedChange={(checked) => 
-                updatePreferences({ can_access_pm_dashboard: checked })
+                updatePreferences({ can_access_accounting: checked })
               }
             />
           </div>
-          
+
           <div className="flex items-center justify-between gap-4">
             <div className="space-y-0.5 flex-1">
-              <Label htmlFor="owner-dashboard" className="text-sm font-normal cursor-pointer">
-                Owner Dashboard
+              <Label htmlFor="access-manage-bills" className="text-sm font-normal cursor-pointer">
+                Access Manage Bills
               </Label>
               <p className="text-xs text-muted-foreground">
-                Access to the Owner dashboard view with job overview and financials
+                Review, approve, and manage bills
               </p>
             </div>
             <Switch
-              id="owner-dashboard"
-              checked={preferences.can_access_owner_dashboard}
+              id="access-manage-bills"
+              checked={preferences.can_access_manage_bills}
               onCheckedChange={(checked) => 
-                updatePreferences({ can_access_owner_dashboard: checked })
+                updatePreferences({ can_access_manage_bills: checked })
               }
             />
           </div>
-          
+
           <div className="flex items-center justify-between gap-4">
             <div className="space-y-0.5 flex-1">
-              <Label htmlFor="accountant-dashboard" className="text-sm font-normal cursor-pointer">
-                Accountant Dashboard
+              <Label htmlFor="access-reports" className="text-sm font-normal cursor-pointer">
+                Access Reports
               </Label>
               <p className="text-xs text-muted-foreground">
-                Access to the Accountant dashboard view for financial oversight
+                View and generate financial reports
               </p>
             </div>
             <Switch
-              id="accountant-dashboard"
-              checked={preferences.can_access_accountant_dashboard}
+              id="access-reports"
+              checked={preferences.can_access_reports}
               onCheckedChange={(checked) => 
-                updatePreferences({ can_access_accountant_dashboard: checked })
+                updatePreferences({ can_access_reports: checked })
+              }
+            />
+          </div>
+
+          <div className="flex items-center justify-between gap-4">
+            <div className="space-y-0.5 flex-1">
+              <Label htmlFor="access-transactions" className="text-sm font-normal cursor-pointer">
+                Access Transactions
+              </Label>
+              <p className="text-xs text-muted-foreground">
+                Create journal entries, write checks, make deposits, and reconcile accounts
+              </p>
+            </div>
+            <Switch
+              id="access-transactions"
+              checked={preferences.can_access_transactions}
+              onCheckedChange={(checked) => 
+                updatePreferences({ can_access_transactions: checked })
+              }
+            />
+          </div>
+
+          <div className="flex items-center justify-between gap-4">
+            <div className="space-y-0.5 flex-1">
+              <Label htmlFor="can-close-books" className="text-sm font-normal cursor-pointer">
+                Close the Books
+              </Label>
+              <p className="text-xs text-muted-foreground">
+                Ability to close and reopen accounting periods for projects
+              </p>
+            </div>
+            <Switch
+              id="can-close-books"
+              checked={preferences.can_close_books}
+              onCheckedChange={(checked) => 
+                updatePreferences({ can_close_books: checked })
+              }
+            />
+          </div>
+
+          <div className="flex items-center justify-between gap-4">
+            <div className="space-y-0.5 flex-1">
+              <Label htmlFor="can-delete-bills" className="text-sm font-normal cursor-pointer">
+                Delete Invoices
+              </Label>
+              <p className="text-xs text-muted-foreground">
+                Ability to delete paid invoices that have not been cleared or locked
+              </p>
+            </div>
+            <Switch
+              id="can-delete-bills"
+              checked={preferences.can_delete_bills}
+              onCheckedChange={(checked) => 
+                updatePreferences({ can_delete_bills: checked })
+              }
+            />
+          </div>
+
+          <div className="flex items-center justify-between gap-4">
+            <div className="space-y-0.5 flex-1">
+              <Label htmlFor="can-undo-reconciliation" className="text-sm font-normal cursor-pointer">
+                Undo Reconciliation
+              </Label>
+              <p className="text-xs text-muted-foreground">
+                Ability to reverse completed bank reconciliations and make transactions editable again
+              </p>
+            </div>
+            <Switch
+              id="can-undo-reconciliation"
+              checked={preferences.can_undo_reconciliation}
+              onCheckedChange={(checked) => 
+                updatePreferences({ can_undo_reconciliation: checked })
               }
             />
           </div>
         </div>
       </div>
 
-      {/* Estimating Section */}
+      {/* Apartments Section */}
       <div className="space-y-4">
         <div>
-          <h3 className="text-sm font-medium">Estimating</h3>
+          <h3 className="text-sm font-medium">Apartments</h3>
           <p className="text-xs text-muted-foreground mt-1">
-            Manage access to project estimates
+            Control access to apartment pro forma analysis tools
           </p>
         </div>
         
         <div className="space-y-3 pl-6">
           <div className="flex items-center justify-between gap-4">
             <div className="space-y-0.5 flex-1">
-              <Label htmlFor="access-estimate" className="text-sm font-normal cursor-pointer">
-                Access Estimate
+              <Label htmlFor="access-apartments" className="text-sm font-normal cursor-pointer">
+                Access Apartments
               </Label>
               <p className="text-xs text-muted-foreground">
-                View and access the project estimate page
+                View and use apartment pro forma dashboard, inputs, income statement, and amortization schedule
               </p>
             </div>
             <Switch
-              id="access-estimate"
-              checked={preferences.can_access_estimate}
+              id="access-apartments"
+              checked={(preferences as any).can_access_apartments ?? false}
               onCheckedChange={(checked) => 
-                updatePreferences({ can_access_estimate: checked })
+                updatePreferences({ can_access_apartments: checked } as any)
               }
             />
           </div>
@@ -178,142 +250,69 @@ export function EmployeeAccessPreferences({ employeeId }: EmployeeAccessPreferen
         </div>
       </div>
 
-      {/* Accounting Section */}
+      {/* Dashboards Section */}
       <div className="space-y-4">
         <div>
-          <h3 className="text-sm font-medium">Accounting</h3>
+          <h3 className="text-sm font-medium">Dashboards</h3>
           <p className="text-xs text-muted-foreground mt-1">
-            Manage accounting-related alerts and permissions
+            Control which dashboard views this employee can access
           </p>
         </div>
         
         <div className="space-y-3 pl-6">
           <div className="flex items-center justify-between gap-4">
             <div className="space-y-0.5 flex-1">
-              <Label htmlFor="access-accounting" className="text-sm font-normal cursor-pointer">
-                Access Accounting Menu
+              <Label htmlFor="accountant-dashboard" className="text-sm font-normal cursor-pointer">
+                Accountant Dashboard
               </Label>
               <p className="text-xs text-muted-foreground">
-                View and access the main accounting dashboard
+                Access to the Accountant dashboard view for financial oversight
               </p>
             </div>
             <Switch
-              id="access-accounting"
-              checked={preferences.can_access_accounting}
+              id="accountant-dashboard"
+              checked={preferences.can_access_accountant_dashboard}
               onCheckedChange={(checked) => 
-                updatePreferences({ can_access_accounting: checked })
+                updatePreferences({ can_access_accountant_dashboard: checked })
               }
             />
           </div>
 
           <div className="flex items-center justify-between gap-4">
             <div className="space-y-0.5 flex-1">
-              <Label htmlFor="access-manage-bills" className="text-sm font-normal cursor-pointer">
-                Access Manage Bills
+              <Label htmlFor="owner-dashboard" className="text-sm font-normal cursor-pointer">
+                Owner Dashboard
               </Label>
               <p className="text-xs text-muted-foreground">
-                Review, approve, and manage bills
+                Access to the Owner dashboard view with job overview and financials
               </p>
             </div>
             <Switch
-              id="access-manage-bills"
-              checked={preferences.can_access_manage_bills}
+              id="owner-dashboard"
+              checked={preferences.can_access_owner_dashboard}
               onCheckedChange={(checked) => 
-                updatePreferences({ can_access_manage_bills: checked })
+                updatePreferences({ can_access_owner_dashboard: checked })
               }
             />
           </div>
 
           <div className="flex items-center justify-between gap-4">
             <div className="space-y-0.5 flex-1">
-              <Label htmlFor="access-transactions" className="text-sm font-normal cursor-pointer">
-                Access Transactions
+              <Label htmlFor="pm-dashboard" className="text-sm font-normal cursor-pointer">
+                PM Dashboard
               </Label>
               <p className="text-xs text-muted-foreground">
-                Create journal entries, write checks, make deposits, and reconcile accounts
+                Access to the Project Manager dashboard view
               </p>
             </div>
             <Switch
-              id="access-transactions"
-              checked={preferences.can_access_transactions}
+              id="pm-dashboard"
+              checked={preferences.can_access_pm_dashboard}
               onCheckedChange={(checked) => 
-                updatePreferences({ can_access_transactions: checked })
+                updatePreferences({ can_access_pm_dashboard: checked })
               }
             />
           </div>
-
-          <div className="flex items-center justify-between gap-4">
-            <div className="space-y-0.5 flex-1">
-              <Label htmlFor="access-reports" className="text-sm font-normal cursor-pointer">
-                Access Reports
-              </Label>
-              <p className="text-xs text-muted-foreground">
-                View and generate financial reports
-              </p>
-            </div>
-            <Switch
-              id="access-reports"
-              checked={preferences.can_access_reports}
-              onCheckedChange={(checked) => 
-                updatePreferences({ can_access_reports: checked })
-              }
-            />
-          </div>
-
-          <div className="flex items-center justify-between gap-4">
-            <div className="space-y-0.5 flex-1">
-              <Label htmlFor="can-close-books" className="text-sm font-normal cursor-pointer">
-                Close the Books
-              </Label>
-              <p className="text-xs text-muted-foreground">
-                Ability to close and reopen accounting periods for projects
-              </p>
-            </div>
-            <Switch
-              id="can-close-books"
-              checked={preferences.can_close_books}
-              onCheckedChange={(checked) => 
-                updatePreferences({ can_close_books: checked })
-              }
-            />
-          </div>
-
-          <div className="flex items-center justify-between gap-4">
-            <div className="space-y-0.5 flex-1">
-              <Label htmlFor="can-undo-reconciliation" className="text-sm font-normal cursor-pointer">
-                Undo Reconciliation
-              </Label>
-              <p className="text-xs text-muted-foreground">
-                Ability to reverse completed bank reconciliations and make transactions editable again
-              </p>
-            </div>
-            <Switch
-              id="can-undo-reconciliation"
-              checked={preferences.can_undo_reconciliation}
-              onCheckedChange={(checked) => 
-                updatePreferences({ can_undo_reconciliation: checked })
-              }
-            />
-          </div>
-
-          <div className="flex items-center justify-between gap-4">
-            <div className="space-y-0.5 flex-1">
-              <Label htmlFor="can-delete-bills" className="text-sm font-normal cursor-pointer">
-                Delete Invoices
-              </Label>
-              <p className="text-xs text-muted-foreground">
-                Ability to delete paid invoices that have not been cleared or locked
-              </p>
-            </div>
-            <Switch
-              id="can-delete-bills"
-              checked={preferences.can_delete_bills}
-              onCheckedChange={(checked) => 
-                updatePreferences({ can_delete_bills: checked })
-              }
-            />
-          </div>
-
         </div>
       </div>
 
@@ -341,6 +340,66 @@ export function EmployeeAccessPreferences({ employeeId }: EmployeeAccessPreferen
               checked={preferences.can_access_employees}
               onCheckedChange={(checked) => 
                 updatePreferences({ can_access_employees: checked })
+              }
+            />
+          </div>
+        </div>
+      </div>
+
+      {/* Estimating Section */}
+      <div className="space-y-4">
+        <div>
+          <h3 className="text-sm font-medium">Estimating</h3>
+          <p className="text-xs text-muted-foreground mt-1">
+            Manage access to project estimates
+          </p>
+        </div>
+        
+        <div className="space-y-3 pl-6">
+          <div className="flex items-center justify-between gap-4">
+            <div className="space-y-0.5 flex-1">
+              <Label htmlFor="access-estimate" className="text-sm font-normal cursor-pointer">
+                Access Estimate
+              </Label>
+              <p className="text-xs text-muted-foreground">
+                View and access the project estimate page
+              </p>
+            </div>
+            <Switch
+              id="access-estimate"
+              checked={preferences.can_access_estimate}
+              onCheckedChange={(checked) => 
+                updatePreferences({ can_access_estimate: checked })
+              }
+            />
+          </div>
+        </div>
+      </div>
+
+      {/* Marketplace Section */}
+      <div className="space-y-4">
+        <div>
+          <h3 className="text-sm font-medium">Marketplace</h3>
+          <p className="text-xs text-muted-foreground mt-1">
+            Control access to the vendor marketplace
+          </p>
+        </div>
+        
+        <div className="space-y-3 pl-6">
+          <div className="flex items-center justify-between gap-4">
+            <div className="space-y-0.5 flex-1">
+              <Label htmlFor="access-marketplace" className="text-sm font-normal cursor-pointer">
+                Access Marketplace
+              </Label>
+              <p className="text-xs text-muted-foreground">
+                View and search the vendor marketplace to find contractors and suppliers
+              </p>
+            </div>
+            <Switch
+              id="access-marketplace"
+              checked={preferences.can_access_marketplace}
+              onCheckedChange={(checked) => 
+                updatePreferences({ can_access_marketplace: checked })
               }
             />
           </div>
@@ -419,66 +478,6 @@ export function EmployeeAccessPreferences({ employeeId }: EmployeeAccessPreferen
               checked={preferences.can_edit_templates}
               onCheckedChange={(checked) => 
                 updatePreferences({ can_edit_templates: checked })
-              }
-            />
-          </div>
-        </div>
-      </div>
-
-      {/* Marketplace Section */}
-      <div className="space-y-4">
-        <div>
-          <h3 className="text-sm font-medium">Marketplace</h3>
-          <p className="text-xs text-muted-foreground mt-1">
-            Control access to the vendor marketplace
-          </p>
-        </div>
-        
-        <div className="space-y-3 pl-6">
-          <div className="flex items-center justify-between gap-4">
-            <div className="space-y-0.5 flex-1">
-              <Label htmlFor="access-marketplace" className="text-sm font-normal cursor-pointer">
-                Access Marketplace
-              </Label>
-              <p className="text-xs text-muted-foreground">
-                View and search the vendor marketplace to find contractors and suppliers
-              </p>
-            </div>
-            <Switch
-              id="access-marketplace"
-              checked={preferences.can_access_marketplace}
-              onCheckedChange={(checked) => 
-                updatePreferences({ can_access_marketplace: checked })
-              }
-            />
-          </div>
-        </div>
-      </div>
-
-      {/* Apartments Section */}
-      <div className="space-y-4">
-        <div>
-          <h3 className="text-sm font-medium">Apartments</h3>
-          <p className="text-xs text-muted-foreground mt-1">
-            Control access to apartment pro forma analysis tools
-          </p>
-        </div>
-        
-        <div className="space-y-3 pl-6">
-          <div className="flex items-center justify-between gap-4">
-            <div className="space-y-0.5 flex-1">
-              <Label htmlFor="access-apartments" className="text-sm font-normal cursor-pointer">
-                Access Apartments
-              </Label>
-              <p className="text-xs text-muted-foreground">
-                View and use apartment pro forma dashboard, inputs, income statement, and amortization schedule
-              </p>
-            </div>
-            <Switch
-              id="access-apartments"
-              checked={(preferences as any).can_access_apartments ?? false}
-              onCheckedChange={(checked) => 
-                updatePreferences({ can_access_apartments: checked } as any)
               }
             />
           </div>
