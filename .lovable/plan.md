@@ -1,40 +1,80 @@
 
 
-## Rename "Memo" to "Description" and Fix A/P Report Description Column
+## New "Apartments" Pro Forma Tool (with Database Persistence)
 
-### Problem
-1. The A/P detail report's Description column shows reference numbers (e.g., "AP - 70200008360") instead of the actual bill line description that the user enters
-2. The word "Memo" is used throughout the bill entry/edit UI — the user wants it renamed to "Description" for clarity
+### Overview
+Add a new global menu item "Apartments" below Marketplace. The page has 4 tabs: **Inputs**, **Dashboard**, **Income Statement**, and **Amortization Schedule**. Users can create, save, and load multiple pro forma analyses. All calculations happen client-side in real-time; the database stores the inputs.
 
-### Root Cause
-In `AccountDetailDialog.tsx` line 704, for bill transactions the description is set to `line.memo || bill.reference_number`. The `line.memo` is the journal entry line memo (often empty), and the fallback is the reference number. The actual bill line memo (what the user types in the description field) is fetched but never extracted — unlike checks/deposits which extract `firstLineMemo`, the bills map omits it.
+### Database
 
-### Fix
+**New table: `apartment_pro_formas`**
+- `id` (uuid, PK)
+- `owner_id` (uuid, references auth.users, NOT NULL) — for multi-tenant RLS
+- `name` (text, NOT NULL) — user-given name for the analysis
+- `inputs` (jsonb, NOT NULL) — all form inputs stored as a single JSON object
+- `created_at`, `updated_at` (timestamptz)
 
-**Part 1: Fix the A/P description to show the bill line memo**
+RLS policies: owner can CRUD their own rows. Employees can access their home_builder's rows (matching existing pattern).
 
-In `AccountDetailDialog.tsx`:
-- Extract `firstLineMemo` from the bills map (same pattern as checks/deposits — get the first bill line's memo)
-- On line 704, change the description priority to: `bill.firstLineMemo || line.memo || bill.reference_number || description`
+This keeps the schema simple — one row per pro forma, with all inputs in a JSONB column. No need for dozens of columns since the inputs are always read/written as a unit.
 
-**Part 2: Rename "Memo" to "Description" in bill-related UI**
+### Inputs State Model (stored as JSONB)
 
-Update column headers and placeholder text in these files:
-- `src/components/bills/ManualBillEntry.tsx` — header labels "Memo" → "Description", placeholder "Job cost memo" → "Description", "Expense memo" → "Description"
-- `src/components/bills/EditBillDialog.tsx` — same pattern: headers and placeholders
-- `src/components/bills/EditExtractedBillDialog.tsx` — table headers
-- `src/components/bills/BatchBillLineItems.tsx` — column headers
-- `src/components/bills/BatchBillReviewTable.tsx` — table headers
-- `src/components/bills/BillsApprovalTable.tsx` — table header
+```text
+{
+  // Property & Revenue
+  totalUnits, avgMonthlyRent, otherIncomePerUnit,
+  vacancyRate, creditLossRate,
 
-Note: Checks, deposits, and journal entries also use "Memo" but the user specifically asked about bills. The internal data field name (`memo`) stays the same — only UI labels change.
+  // Operating Expenses ($/unit/yr)
+  propertyMgmtFee (% of EGI), realEstateTaxes, insurance,
+  repairsMaint, landscaping, utilities, trash, pestControl,
+  security, payroll, marketing, professionalFees, admin,
+  reserveForReplacement, capexReserve, other,
+
+  // Loan
+  totalProjectCost, appraisedValue, loanAmount,
+  interestRate, loanTermYears, amortYears, interestOnlyYears
+}
+```
+
+### UI Flow
+- `/apartments` page shows a list of saved pro formas (name, date, key metrics) with a "New Pro Forma" button
+- Clicking one opens the 4-tab view
+- **Inputs tab** has a Save button; auto-saves on tab switch or navigation away (using existing UnsavedChangesProvider pattern)
+- Dashboard, Income Statement, and Amortization tabs are read-only calculated outputs
+
+### Calculation Engine (`src/lib/apartmentCalculations.ts`)
+Pure functions replicating the Excel exactly:
+- GPR = units × rent × 12
+- EGI = GPR + otherIncome − vacancy − creditLoss
+- NOI = EGI − total operating expenses
+- Monthly P&I via standard amortization formula
+- Key metrics: DSCR, Cap Rate, Cash-on-Cash, LTV, LTC, Break-Even Occupancy
+
+### Navigation
+- Add "Apartments" link with Building icon below Marketplace in both `CompanyDashboardNav.tsx` and `SidebarNavigation.tsx`
+- Add `/apartments` route in `App.tsx` (protected)
+
+### File Structure
+
+```text
+src/pages/Apartments.tsx                             — List + detail view
+src/components/apartments/ApartmentsList.tsx          — Saved pro formas list
+src/components/apartments/ApartmentDetail.tsx         — 4-tab container
+src/components/apartments/ApartmentInputsTab.tsx      — Editable form
+src/components/apartments/ApartmentDashboardTab.tsx   — Executive dashboard
+src/components/apartments/ApartmentIncomeTab.tsx      — Income statement table
+src/components/apartments/ApartmentAmortizationTab.tsx — Amortization schedule
+src/lib/apartmentCalculations.ts                     — All formulas
+```
 
 ### Files changed
-- `src/components/accounting/AccountDetailDialog.tsx` — fix description sourcing for bills
-- `src/components/bills/ManualBillEntry.tsx` — rename labels
-- `src/components/bills/EditBillDialog.tsx` — rename labels
-- `src/components/bills/EditExtractedBillDialog.tsx` — rename labels
-- `src/components/bills/BatchBillLineItems.tsx` — rename labels
-- `src/components/bills/BatchBillReviewTable.tsx` — rename labels
-- `src/components/bills/BillsApprovalTable.tsx` — rename labels
+- New migration: create `apartment_pro_formas` table with RLS
+- `src/pages/Apartments.tsx` (new)
+- `src/components/apartments/*` (new, 6 files)
+- `src/lib/apartmentCalculations.ts` (new)
+- `src/App.tsx` — add route
+- `src/components/sidebar/CompanyDashboardNav.tsx` — add nav link
+- `src/components/sidebar/SidebarNavigation.tsx` — add nav link
 
