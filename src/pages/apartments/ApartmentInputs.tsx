@@ -71,6 +71,9 @@ const ApartmentInputsPage = () => {
                     <EditableRow label="Insurance" field="insurance" value={inputs.insurance} onChange={updateInput} format="currency" />
                     <EditableRow label="Utilities" field="utilities" value={inputs.utilities} onChange={updateInput} format="currency" />
                     <EditableRow label="Repairs & Maintenance" field="repairs_maintenance" value={inputs.repairs_maintenance} onChange={updateInput} format="currency" />
+                    <EditableRow label="Landscaping / Snow Removal" field="landscaping" value={inputs.landscaping} onChange={updateInput} format="currency" />
+                    <EditableRow label="Trash Removal" field="trash_removal" value={inputs.trash_removal} onChange={updateInput} format="currency" />
+                    <EditableRow label="Pest Control" field="pest_control" value={inputs.pest_control} onChange={updateInput} format="currency" />
                   </div>
                 </CardContent>
               </Card>
