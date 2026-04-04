@@ -274,6 +274,15 @@ export function SidebarNavigation({ unreadCounts }: SidebarNavigationProps) {
                 <span className="flex-1">Marketplace</span>
               </Link>
             )}
+
+            {/* Apartments - Global link */}
+            <Link
+              to="/apartments"
+              className="flex items-center space-x-2 px-2 py-1.5 rounded-lg w-full hover:bg-gray-100 text-gray-700 hover:text-black transition-colors text-sm"
+            >
+              <Building className="h-4 w-4" />
+              <span className="flex-1">Apartments</span>
+            </Link>
           </div>
 
         </div>

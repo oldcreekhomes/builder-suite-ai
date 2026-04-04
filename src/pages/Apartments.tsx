@@ -4,7 +4,7 @@ import { useToast } from "@/hooks/use-toast";
 import { DEFAULT_INPUTS, ApartmentInputs } from "@/lib/apartmentCalculations";
 import ApartmentsList from "@/components/apartments/ApartmentsList";
 import ApartmentDetail from "@/components/apartments/ApartmentDetail";
-import { useEffectiveOwnerId } from "@/hooks/useEffectiveOwnerId";
+import { useQuery } from "@tanstack/react-query";
 
 interface ProFormaRow {
   id: string;
@@ -12,6 +12,24 @@ interface ProFormaRow {
   inputs: ApartmentInputs;
   created_at: string;
   updated_at: string;
+}
+
+function useEffectiveOwnerId() {
+  const { data, isLoading } = useQuery({
+    queryKey: ["effective-owner-id"],
+    queryFn: async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return null;
+      const { data: profile } = await supabase
+        .from("users")
+        .select("role, home_builder_id")
+        .eq("id", user.id)
+        .single();
+      if (!profile) return user.id;
+      return profile.role === "owner" ? user.id : (profile.home_builder_id ?? user.id);
+    },
+  });
+  return { effectiveOwnerId: data ?? null, isLoading };
 }
 
 export default function Apartments() {
