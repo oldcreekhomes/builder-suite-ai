@@ -24,6 +24,7 @@ export interface ApartmentInputs {
   marketing: number;
   reserves_per_unit: number;
   landscaping: number;
+  snow_removal: number;
   trash_removal: number;
   pest_control: number;
   security: number;
@@ -53,6 +54,7 @@ const DEFAULT_INPUTS: ApartmentInputs = {
   marketing: 50000,
   reserves_per_unit: 295,
   landscaping: 0,
+  snow_removal: 0,
   trash_removal: 0,
   pest_control: 0,
   security: 0,
@@ -79,10 +81,10 @@ function computeFinancials(inputs: ApartmentInputs) {
     inputs.utilities +
     inputs.repairs_maintenance +
     inputs.landscaping +
+    inputs.snow_removal +
     inputs.trash_removal +
     inputs.pest_control +
     managementFee +
-    inputs.payroll +
     inputs.general_admin +
     inputs.marketing +
     inputs.security +

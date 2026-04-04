@@ -71,7 +71,8 @@ const ApartmentInputsPage = () => {
                     <EditableRow label="Insurance" field="insurance" value={inputs.insurance} onChange={updateInput} format="currency" />
                     <EditableRow label="Utilities" field="utilities" value={inputs.utilities} onChange={updateInput} format="currency" />
                     <EditableRow label="Repairs & Maintenance" field="repairs_maintenance" value={inputs.repairs_maintenance} onChange={updateInput} format="currency" />
-                    <EditableRow label="Landscaping / Snow Removal" field="landscaping" value={inputs.landscaping} onChange={updateInput} format="currency" />
+                    <EditableRow label="Landscaping" field="landscaping" value={inputs.landscaping} onChange={updateInput} format="currency" />
+                    <EditableRow label="Snow Removal" field="snow_removal" value={inputs.snow_removal} onChange={updateInput} format="currency" />
                     <EditableRow label="Trash Removal" field="trash_removal" value={inputs.trash_removal} onChange={updateInput} format="currency" />
                     <EditableRow label="Pest Control" field="pest_control" value={inputs.pest_control} onChange={updateInput} format="currency" />
                   </div>
@@ -82,11 +83,10 @@ const ApartmentInputsPage = () => {
                 <CardContent>
                   <div className="space-y-2 text-sm">
                     <EditableRow label="Management Fee" field="management_fee_percent" value={inputs.management_fee_percent} onChange={updateInput} format="percent" />
-                    <EditableRow label="Payroll" field="payroll" value={inputs.payroll} onChange={updateInput} format="currency" />
                     <EditableRow label="General & Administrative" field="general_admin" value={inputs.general_admin} onChange={updateInput} format="currency" />
                     <EditableRow label="Marketing" field="marketing" value={inputs.marketing} onChange={updateInput} format="currency" />
                     <EditableRow label="Reserves per Unit" field="reserves_per_unit" value={inputs.reserves_per_unit} onChange={updateInput} format="currency" />
-                    <EditableRow label="Security / Access Control" field="security" value={inputs.security} onChange={updateInput} format="currency" />
+                    <EditableRow label="Security" field="security" value={inputs.security} onChange={updateInput} format="currency" />
                     <EditableRow label="Professional Fees" field="professional_fees" value={inputs.professional_fees} onChange={updateInput} format="currency" />
                     <EditableRow label="CapEx Reserve" field="capex_reserve" value={inputs.capex_reserve} onChange={updateInput} format="currency" />
                     <EditableRow label="Other / Miscellaneous" field="other_misc" value={inputs.other_misc} onChange={updateInput} format="currency" />

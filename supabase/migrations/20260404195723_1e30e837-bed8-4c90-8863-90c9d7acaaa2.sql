@@ -1,0 +1,1 @@
+ALTER TABLE public.apartment_inputs ADD COLUMN snow_removal numeric NOT NULL DEFAULT 0;
