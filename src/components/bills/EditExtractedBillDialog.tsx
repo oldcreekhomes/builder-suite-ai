@@ -1035,7 +1035,7 @@ export function EditExtractedBillDialog({
                   <TableHeader>
                     <TableRow>
                       <TableHead className="w-[220px]">Cost Code</TableHead>
-                      <TableHead className="w-[220px]">Memo</TableHead>
+                      <TableHead className="w-[220px]">Description</TableHead>
                       <TableHead className="w-[70px]">Quantity</TableHead>
                       <TableHead className="w-[120px]">Unit Cost</TableHead>
                       <TableHead className="w-[80px]">Total</TableHead>
