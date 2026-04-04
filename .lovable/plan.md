@@ -1,49 +1,50 @@
 
 
-## Add Apartments Section to Sidebar with Permission-Gated Access
+## Alphabetize Employee Access Preferences Sections
 
-### Overview
-Add an "Apartments" menu item to the sidebar (below Marketplace) with four sub-pages: Dashboard, Inputs, Income Statement, and Amortization Schedule. Access is off by default for all users and controlled via the existing Employee Access preferences system.
+### Problem
+The heading sections in the Employee Access preferences panel are not in alphabetical order, and neither are the sub-items within each section.
 
-### Database Migration
-Add a `can_access_apartments` boolean column to `user_notification_preferences`, defaulting to `false`:
+### Current order of sections
+1. Dashboards
+2. Estimating
+3. Budgets
+4. Cost Codes
+5. Accounting
+6. Employees
+7. Projects
+8. Templates
+9. Marketplace
+10. Apartments
 
-```sql
-ALTER TABLE public.user_notification_preferences 
-ADD COLUMN can_access_apartments boolean NOT NULL DEFAULT false;
-```
+### New alphabetical order of sections
+1. Accounting
+2. Apartments
+3. Budgets
+4. Cost Codes
+5. Dashboards
+6. Employees
+7. Estimating
+8. Marketplace
+9. Projects
+10. Templates
 
-### New Files
+### Sub-items alphabetized within sections
 
-1. **`src/hooks/useApartmentPermissions.ts`** — follows the same pattern as `useMarketplacePermissions.ts`. Reads `can_access_apartments` from notification preferences.
+**Accounting** (currently: Access Accounting Menu, Access Manage Bills, Access Transactions, Access Reports, Close the Books, Undo Reconciliation, Delete Invoices):
+→ Access Accounting Menu, Access Manage Bills, Access Reports, Access Transactions, Close the Books, Delete Invoices, Undo Reconciliation
 
-2. **`src/components/guards/ApartmentGuard.tsx`** — follows the `MarketplaceGuard` pattern. Redirects unauthorized users with a toast.
+**Dashboards** (currently: PM Dashboard, Owner Dashboard, Accountant Dashboard):
+→ Accountant Dashboard, Owner Dashboard, PM Dashboard
 
-3. **Four apartment page components** (project-scoped, at `/project/:projectId/apartments/...`):
-   - `src/pages/apartments/ApartmentDashboard.tsx` — Executive dashboard replicating the layout from screenshot 1 (Income Summary, Loan Summary, Expense & NOI Summary, Property Assumptions, Key Performance Metrics)
-   - `src/pages/apartments/ApartmentInputs.tsx` — Editable inputs page (Property & Revenue, Operating Expenses, Loan Inputs) matching screenshot 2
-   - `src/pages/apartments/ApartmentIncomeStatement.tsx` — Pro forma income statement (Revenue, Operating Expenses, Debt Service, CFADS) matching screenshot 3
-   - `src/pages/apartments/ApartmentAmortizationSchedule.tsx` — Loan amortization table matching screenshot 4
+**Templates** (currently: Access Templates, Edit Templates):
+→ Already alphabetical, no change needed.
 
-   All four pages will initially be static UI scaffolds with the correct layout, sections, and labels from the screenshots. Data will be hardcoded/placeholder for now — the user can request database-backed persistence later.
+All other sections have only one sub-item — no reordering needed.
 
-### Modified Files
+### Fix
+Reorder the JSX blocks in `src/components/employees/EmployeeAccessPreferences.tsx` to match the alphabetical order above, and reorder switch items within multi-item sections.
 
-4. **`src/components/sidebar/SidebarNavigation.tsx`**:
-   - Import `useApartmentPermissions` and a `Building` icon
-   - After the Marketplace block (~line 275), add the Apartments section with four indented sub-links, gated by `canAccessApartments` (same pattern as Accounting's sub-menu)
-   - Sub-links: Dashboard, Inputs, Income Statement, Amortization Schedule
-
-5. **`src/components/employees/EmployeeAccessPreferences.tsx`**:
-   - Add an "Apartments" toggle section after the Marketplace section, controlling `can_access_apartments`
-
-6. **`src/App.tsx`**:
-   - Add lazy imports for the four apartment pages
-   - Add four routes under `/project/:projectId/apartments/...`, wrapped in `ProtectedRoute` and `ApartmentGuard`
-
-### Technical Details
-- The permission column defaults to `false`, so no existing user gains access automatically
-- The sidebar menu item and sub-links only render when `canAccessApartments` is true and permissions are loaded
-- Routes are protected by both `ProtectedRoute` (auth) and `ApartmentGuard` (permission)
-- Pages are project-scoped (under `/project/:projectId/apartments/...`) consistent with how Accounting works
+### Files changed
+- `src/components/employees/EmployeeAccessPreferences.tsx`
 
