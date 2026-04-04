@@ -8,12 +8,15 @@ import { useApartmentInputs, ApartmentInputs as ApartmentInputsType, fmt, fmtPct
 import { Loader2, X, Plus } from "lucide-react";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Button } from "@/components/ui/button";
+import { Tooltip, TooltipTrigger, TooltipContent, TooltipProvider } from "@/components/ui/tooltip";
+import { DeleteConfirmationDialog } from "@/components/ui/delete-confirmation-dialog";
 
 type OptionalExpense = {
   label: string;
   field: keyof ApartmentInputsType;
   format: "currency" | "percent" | "number";
   decimals?: number;
+  special?: "taxes";
 };
 
 const OPTIONAL_EXPENSES: OptionalExpense[] = [
@@ -30,6 +33,7 @@ const OPTIONAL_EXPENSES: OptionalExpense[] = [
   { label: "Reserves per Unit", field: "reserves_per_unit", format: "currency" },
   { label: "Security", field: "security", format: "currency" },
   { label: "Snow Removal", field: "snow_removal", format: "currency" },
+  { label: "Taxes", field: "taxes", format: "currency", special: "taxes" },
   { label: "Trash Removal", field: "trash_removal", format: "currency" },
   { label: "Utilities", field: "utilities", format: "currency" },
 ];
@@ -50,11 +54,16 @@ function saveVisibleExpenses(projectId: string | undefined, fields: string[]) {
   localStorage.setItem(getStorageKey(projectId), JSON.stringify(fields));
 }
 
+function rowCount(item: OptionalExpense): number {
+  return item.special === "taxes" ? 3 : 1;
+}
+
 const ApartmentInputsPage = () => {
   const { projectId } = useParams();
   const { inputs, computed, isLoading, updateInput } = useApartmentInputs(projectId);
   const [visibleFields, setVisibleFields] = useState<string[]>(() => loadVisibleExpenses(projectId));
   const [addOpen, setAddOpen] = useState(false);
+  const [deleteTarget, setDeleteTarget] = useState<{ field: string; label: string } | null>(null);
 
   useEffect(() => {
     saveVisibleExpenses(projectId, visibleFields);
@@ -70,14 +79,39 @@ const ApartmentInputsPage = () => {
     [visibleFields]
   );
 
-  const fixedRowCount = 3; // Tax Rate, Estimated Value, Taxes
-  const leftOptionalCount = Math.max(0, Math.ceil((visibleOptional.length - fixedRowCount) / 2));
-  const leftItems = visibleOptional.slice(0, leftOptionalCount);
-  const rightItems = visibleOptional.slice(leftOptionalCount);
+  // Balance columns: split so both sides have equal row counts (taxes = 3 rows)
+  const { leftItems, rightItems } = useMemo(() => {
+    const totalRows = visibleOptional.reduce((acc, item) => acc + rowCount(item), 0);
+    const targetLeft = Math.ceil(totalRows / 2);
+    let leftCount = 0;
+    let splitIndex = 0;
+    for (let i = 0; i < visibleOptional.length; i++) {
+      const next = leftCount + rowCount(visibleOptional[i]);
+      if (next > targetLeft) break;
+      leftCount = next;
+      splitIndex = i + 1;
+    }
+    return {
+      leftItems: visibleOptional.slice(0, splitIndex),
+      rightItems: visibleOptional.slice(splitIndex),
+    };
+  }, [visibleOptional]);
 
-  const removeExpense = (field: string) => {
+  const confirmRemove = () => {
+    if (!deleteTarget) return;
+    const { field } = deleteTarget;
     setVisibleFields((prev) => prev.filter((f) => f !== field));
-    updateInput(field as keyof ApartmentInputsType, "0");
+    if (field === "taxes") {
+      updateInput("tax_rate", "0");
+      updateInput("estimated_value", "0");
+    } else {
+      updateInput(field as keyof ApartmentInputsType, "0");
+    }
+    setDeleteTarget(null);
+  };
+
+  const removeExpense = (field: string, label: string) => {
+    setDeleteTarget({ field, label });
   };
 
   const addExpense = (field: string) => {
@@ -100,6 +134,36 @@ const ApartmentInputsPage = () => {
       </SidebarProvider>
     );
   }
+
+  const renderExpenseItem = (item: OptionalExpense) => {
+    if (item.special === "taxes") {
+      return (
+        <div key={item.field} className="space-y-2">
+          <RemovableRow
+            label="Taxes"
+            value={fmt(computed.taxes)}
+            onRemove={() => removeExpense(item.field, item.label)}
+          />
+          <div className="pl-4 space-y-2">
+            <EditableRow label="Tax Rate" field="tax_rate" value={inputs.tax_rate} onChange={updateInput} format="number" />
+            <EditableRow label="Estimated Value" field="estimated_value" value={inputs.estimated_value} onChange={updateInput} format="currency" />
+          </div>
+        </div>
+      );
+    }
+    return (
+      <RemovableEditableRow
+        key={item.field}
+        label={item.label}
+        field={item.field}
+        value={inputs[item.field] as number}
+        onChange={updateInput}
+        format={item.format}
+        decimals={item.decimals}
+        onRemove={() => removeExpense(item.field, item.label)}
+      />
+    );
+  };
 
   return (
     <SidebarProvider>
@@ -139,21 +203,10 @@ const ApartmentInputsPage = () => {
                 <CardHeader><CardTitle className="text-sm font-medium">Operating Expenses</CardTitle></CardHeader>
                 <CardContent>
                   <div className="space-y-2 text-sm">
-                    <EditableRow label="Tax Rate" field="tax_rate" value={inputs.tax_rate} onChange={updateInput} format="number" />
-                    <EditableRow label="Estimated Value" field="estimated_value" value={inputs.estimated_value} onChange={updateInput} format="currency" />
-                    <Row label="Taxes" value={fmt(computed.taxes)} />
-                    {leftItems.map((item) => (
-                      <RemovableEditableRow
-                        key={item.field}
-                        label={item.label}
-                        field={item.field}
-                        value={inputs[item.field] as number}
-                        onChange={updateInput}
-                        format={item.format}
-                        decimals={item.decimals}
-                        onRemove={() => removeExpense(item.field)}
-                      />
-                    ))}
+                    {leftItems.map(renderExpenseItem)}
+                    {leftItems.length === 0 && (
+                      <span className="text-muted-foreground text-xs italic">No items</span>
+                    )}
                   </div>
                 </CardContent>
               </Card>
@@ -161,18 +214,7 @@ const ApartmentInputsPage = () => {
                 <CardHeader><CardTitle className="text-sm font-medium">Operating Expenses (cont.)</CardTitle></CardHeader>
                 <CardContent>
                   <div className="space-y-2 text-sm">
-                    {rightItems.map((item) => (
-                      <RemovableEditableRow
-                        key={item.field}
-                        label={item.label}
-                        field={item.field}
-                        value={inputs[item.field] as number}
-                        onChange={updateInput}
-                        format={item.format}
-                        decimals={item.decimals}
-                        onRemove={() => removeExpense(item.field)}
-                      />
-                    ))}
+                    {rightItems.map(renderExpenseItem)}
                     {rightItems.length === 0 && (
                       <span className="text-muted-foreground text-xs italic">No items</span>
                     )}
@@ -209,6 +251,14 @@ const ApartmentInputsPage = () => {
           </div>
         </SidebarInset>
       </div>
+
+      <DeleteConfirmationDialog
+        open={!!deleteTarget}
+        onOpenChange={(open) => { if (!open) setDeleteTarget(null); }}
+        title={`Remove ${deleteTarget?.label || ""}?`}
+        description={`Are you sure you want to remove ${deleteTarget?.label || "this expense"}? Its value will be reset to zero.`}
+        onConfirm={confirmRemove}
+      />
     </SidebarProvider>
   );
 };
@@ -226,6 +276,32 @@ function formatDisplay(value: number, format: string, decimals?: number): string
   if (format === "currency") return fmt(value);
   if (format === "percent") return fmtPct(value, decimals ?? 1);
   return String(value);
+}
+
+function RemovableRow({ label, value, onRemove }: {
+  label: string;
+  value: string;
+  onRemove: () => void;
+}) {
+  return (
+    <div className="flex justify-between group relative">
+      <TooltipProvider>
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <button
+              onClick={onRemove}
+              className="absolute -left-5 top-1/2 -translate-y-1/2 opacity-0 group-hover:opacity-100 transition-opacity text-muted-foreground/50 hover:text-destructive"
+            >
+              <X className="h-3 w-3" />
+            </button>
+          </TooltipTrigger>
+          <TooltipContent side="left"><p>Remove</p></TooltipContent>
+        </Tooltip>
+      </TooltipProvider>
+      <span className="text-muted-foreground">{label}</span>
+      <span>{value}</span>
+    </div>
+  );
 }
 
 function RemovableEditableRow({ label, field, value, onChange, format, decimals, onRemove }: {
@@ -254,13 +330,19 @@ function RemovableEditableRow({ label, field, value, onChange, format, decimals,
 
   return (
     <div className="flex justify-between group relative">
-      <button
-        onClick={onRemove}
-        className="absolute -left-5 top-1/2 -translate-y-1/2 opacity-0 group-hover:opacity-100 transition-opacity text-muted-foreground/50 hover:text-destructive"
-        title="Remove"
-      >
-        <X className="h-3 w-3" />
-      </button>
+      <TooltipProvider>
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <button
+              onClick={onRemove}
+              className="absolute -left-5 top-1/2 -translate-y-1/2 opacity-0 group-hover:opacity-100 transition-opacity text-muted-foreground/50 hover:text-destructive"
+            >
+              <X className="h-3 w-3" />
+            </button>
+          </TooltipTrigger>
+          <TooltipContent side="left"><p>Remove</p></TooltipContent>
+        </Tooltip>
+      </TooltipProvider>
       <span className="text-muted-foreground">
         {label}
       </span>
