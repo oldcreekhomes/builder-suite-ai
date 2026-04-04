@@ -148,6 +148,89 @@ export type Database = {
           },
         ]
       }
+      apartment_inputs: {
+        Row: {
+          amortization_years: number
+          avg_rent_per_unit: number
+          created_at: string | null
+          general_admin: number
+          id: string
+          insurance: number
+          interest_rate: number
+          loan_term_years: number
+          ltv: number
+          management_fee_percent: number
+          marketing: number
+          number_of_units: number
+          owner_id: string
+          payroll: number
+          project_id: string
+          purchase_price: number
+          repairs_maintenance: number
+          reserves_per_unit: number
+          taxes: number
+          updated_at: string | null
+          utilities: number
+          vacancy_rate: number
+        }
+        Insert: {
+          amortization_years?: number
+          avg_rent_per_unit?: number
+          created_at?: string | null
+          general_admin?: number
+          id?: string
+          insurance?: number
+          interest_rate?: number
+          loan_term_years?: number
+          ltv?: number
+          management_fee_percent?: number
+          marketing?: number
+          number_of_units?: number
+          owner_id: string
+          payroll?: number
+          project_id: string
+          purchase_price?: number
+          repairs_maintenance?: number
+          reserves_per_unit?: number
+          taxes?: number
+          updated_at?: string | null
+          utilities?: number
+          vacancy_rate?: number
+        }
+        Update: {
+          amortization_years?: number
+          avg_rent_per_unit?: number
+          created_at?: string | null
+          general_admin?: number
+          id?: string
+          insurance?: number
+          interest_rate?: number
+          loan_term_years?: number
+          ltv?: number
+          management_fee_percent?: number
+          marketing?: number
+          number_of_units?: number
+          owner_id?: string
+          payroll?: number
+          project_id?: string
+          purchase_price?: number
+          repairs_maintenance?: number
+          reserves_per_unit?: number
+          taxes?: number
+          updated_at?: string | null
+          utilities?: number
+          vacancy_rate?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "apartment_inputs_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: true
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       apartment_pro_formas: {
         Row: {
           created_at: string
