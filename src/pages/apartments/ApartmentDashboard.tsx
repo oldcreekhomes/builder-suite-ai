@@ -73,7 +73,7 @@ const ApartmentDashboard = () => {
                     <Row label="Average Rent per Unit" value={`${fmt(inputs.avg_rent_per_unit)}/mo`} />
                     <Row label="Vacancy Rate" value={fmtPct(inputs.vacancy_rate)} />
                     <Row label="Operating Expense Ratio" value={fmtPct(computed.expenseRatio)} />
-                    <Row label="Cap Rate" value={fmtPct(computed.capRate, 2)} />
+                    <Row label="Target Cap Rate" value={inputs.target_cap_rate > 0 ? fmtPct(inputs.target_cap_rate, 2) : "—"} />
                   </div>
                 </CardContent>
               </Card>
