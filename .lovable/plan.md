@@ -1,30 +1,18 @@
 
 
-## Align Operating Expenses Columns on Inputs Page
+## Align Operating Expenses Columns with Cards Above
 
 ### Problem
-The Operating Expenses section uses a 3-column grid, but column 1 has 6 rows, column 2 has 4 rows, and column 3 has only 1 row ("Reserves per Unit"). This creates misaligned, uneven columns. The values and labels don't stack neatly under the two-column cards above.
+The top row uses two separate `Card` components inside a `grid-cols-2 gap-6` grid. The bottom Operating Expenses is a single `Card` with an internal `grid-cols-2 gap-6`. Because the single card has its own padding (from `CardContent`), the internal two columns don't align horizontally with the two separate cards above -- the columns are shifted inward and closer together.
 
 ### Solution
-Restructure Operating Expenses from a 3-column to a **2-column grid** that aligns with the Property & Revenue and Loan Terms cards above:
+Split the Operating Expenses section into **two separate cards** (just like Property & Revenue and Loan Terms above), placed inside the same `grid-cols-2 gap-6` grid. This guarantees the left and right columns align perfectly with the cards above.
 
-**Left column** (stacks under Property & Revenue):
-- Tax Rate
-- Estimated Value
-- Taxes (computed, read-only)
-- Insurance
-- Utilities
-- Repairs & Maintenance
+- **Left card** titled "Operating Expenses": Tax Rate, Estimated Value, Taxes, Insurance, Utilities, Repairs & Maintenance
+- **Right card** titled "Operating Expenses (cont.)": Management Fee, Payroll, General & Administrative, Marketing, Reserves per Unit
 
-**Right column** (stacks under Loan Terms):
-- Management Fee
-- Payroll
-- General & Administrative
-- Marketing
-- Reserves per Unit
-
-This ensures labels and values in each column line up vertically with the cards above, and "Reserves per Unit" moves below Marketing instead of sitting alone in a third column.
+Alternatively, the right card can share the same title or have no title -- matching whichever looks cleaner. Both cards will use the same `CardHeader`/`CardContent` structure and spacing as the cards above.
 
 ### Files Changed
-- `src/pages/apartments/ApartmentInputs.tsx` — Change Operating Expenses from `md:grid-cols-3` to `lg:grid-cols-2`, move Reserves per Unit into column 2 below Marketing
+- `src/pages/apartments/ApartmentInputs.tsx` -- Replace the single Operating Expenses `Card` with two separate cards in the same grid as the top row (or a second `grid-cols-2 gap-6` row)
 
