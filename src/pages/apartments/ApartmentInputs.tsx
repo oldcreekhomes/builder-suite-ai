@@ -9,7 +9,7 @@ import { Loader2 } from "lucide-react";
 
 const ApartmentInputsPage = () => {
   const { projectId } = useParams();
-  const { inputs, isLoading, updateInput } = useApartmentInputs(projectId);
+  const { inputs, computed, isLoading, updateInput } = useApartmentInputs(projectId);
 
   if (isLoading) {
     return (
