@@ -161,6 +161,7 @@ export type Database = {
           insurance: number
           interest_rate: number
           landscaping: number
+          loan_amount: number
           loan_term_years: number
           ltv: number
           management_fee_percent: number
@@ -196,6 +197,7 @@ export type Database = {
           insurance?: number
           interest_rate?: number
           landscaping?: number
+          loan_amount?: number
           loan_term_years?: number
           ltv?: number
           management_fee_percent?: number
@@ -231,6 +233,7 @@ export type Database = {
           insurance?: number
           interest_rate?: number
           landscaping?: number
+          loan_amount?: number
           loan_term_years?: number
           ltv?: number
           management_fee_percent?: number
