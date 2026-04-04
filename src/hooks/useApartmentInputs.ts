@@ -57,9 +57,10 @@ function computeFinancials(inputs: ApartmentInputs) {
 
   const managementFee = egi * (inputs.management_fee_percent / 100);
   const reserves = units * inputs.reserves_per_unit;
+  const taxes = inputs.estimated_value * (inputs.tax_rate / 100);
 
   const totalOpEx =
-    inputs.taxes +
+    taxes +
     inputs.insurance +
     inputs.utilities +
     inputs.repairs_maintenance +
