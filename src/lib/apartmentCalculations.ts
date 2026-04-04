@@ -110,7 +110,8 @@ export function calcMonthlyPayment(principal: number, annualRate: number, amortY
 }
 
 export function calculateIncome(inputs: ApartmentInputs): IncomeResults {
-  const { totalUnits: u } = inputs;
+  const safe = { ...DEFAULT_INPUTS, ...inputs };
+  const u = safe.totalUnits || 0;
   const gpr = u * inputs.avgMonthlyRent * 12;
   const otherIncome = u * inputs.otherIncomePerUnit * 12;
   const vacancyLoss = gpr * inputs.vacancyRate;
