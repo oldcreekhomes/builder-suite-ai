@@ -153,6 +153,7 @@ export type Database = {
           amortization_years: number
           avg_rent_per_unit: number
           created_at: string | null
+          estimated_value: number
           general_admin: number
           id: string
           insurance: number
@@ -168,6 +169,7 @@ export type Database = {
           purchase_price: number
           repairs_maintenance: number
           reserves_per_unit: number
+          tax_rate: number
           taxes: number
           updated_at: string | null
           utilities: number
@@ -177,6 +179,7 @@ export type Database = {
           amortization_years?: number
           avg_rent_per_unit?: number
           created_at?: string | null
+          estimated_value?: number
           general_admin?: number
           id?: string
           insurance?: number
@@ -192,6 +195,7 @@ export type Database = {
           purchase_price?: number
           repairs_maintenance?: number
           reserves_per_unit?: number
+          tax_rate?: number
           taxes?: number
           updated_at?: string | null
           utilities?: number
@@ -201,6 +205,7 @@ export type Database = {
           amortization_years?: number
           avg_rent_per_unit?: number
           created_at?: string | null
+          estimated_value?: number
           general_admin?: number
           id?: string
           insurance?: number
@@ -216,6 +221,7 @@ export type Database = {
           purchase_price?: number
           repairs_maintenance?: number
           reserves_per_unit?: number
+          tax_rate?: number
           taxes?: number
           updated_at?: string | null
           utilities?: number

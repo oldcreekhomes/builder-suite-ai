@@ -65,7 +65,12 @@ const ApartmentInputsPage = () => {
               <CardContent>
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-6 text-sm">
                   <div className="space-y-2">
-                    <EditableRow label="Real Estate Taxes ($)" field="taxes" value={inputs.taxes} onChange={updateInput} prefix="$" />
+                    <EditableRow label="Tax Rate (%)" field="tax_rate" value={inputs.tax_rate} onChange={updateInput} suffix="%" />
+                    <EditableRow label="Estimated Value ($)" field="estimated_value" value={inputs.estimated_value} onChange={updateInput} prefix="$" />
+                    <div className="flex justify-between items-center">
+                      <span className="text-muted-foreground">Total Taxes ($)</span>
+                      <span className="text-sm font-medium">{fmt(computed.taxes)}</span>
+                    </div>
                     <EditableRow label="Insurance ($)" field="insurance" value={inputs.insurance} onChange={updateInput} prefix="$" />
                     <EditableRow label="Utilities ($)" field="utilities" value={inputs.utilities} onChange={updateInput} prefix="$" />
                     <EditableRow label="Repairs & Maintenance ($)" field="repairs_maintenance" value={inputs.repairs_maintenance} onChange={updateInput} prefix="$" />

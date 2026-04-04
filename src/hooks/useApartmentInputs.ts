@@ -98,6 +98,7 @@ function computeFinancials(inputs: ApartmentInputs) {
     egi,
     managementFee,
     reserves,
+    taxes,
     totalOpEx,
     noi,
     loanAmount,
