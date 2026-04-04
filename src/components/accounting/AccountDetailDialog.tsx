@@ -392,6 +392,7 @@ export function AccountDetailDialog({
             vendor_name: bill.companies?.company_name || 'Unknown Vendor',
             firstLineAccountId: firstLine?.account_id || null,
             firstLineCostCodeId: firstLine?.cost_code_id || null,
+            firstLineMemo: firstLine?.memo || null,
             isPaid
           });
         });
