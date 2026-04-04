@@ -254,7 +254,7 @@ export function AccountsPayableContent({ projectId, onHeaderActionChange, asOfDa
 
     // Sort each bucket by bill date
     Object.values(buckets).forEach(bucket => {
-      bucket.sort((a, b) => a.billDate.localeCompare(b.billDate));
+      bucket.sort((a, b) => a.aging - b.aging);
     });
 
     return buckets;
