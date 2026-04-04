@@ -81,7 +81,7 @@ const ApartmentAmortizationSchedule = () => {
             <Card>
               <CardHeader><CardTitle className="text-sm font-medium">Loan Summary</CardTitle></CardHeader>
               <CardContent>
-                <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 text-sm">
+                <div className="grid grid-cols-5 gap-4 text-sm">
                   <div>
                     <span className="text-muted-foreground">Loan Amount</span>
                     <p className="font-semibold">{fmt(computed.loanAmount)}</p>
