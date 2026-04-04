@@ -91,6 +91,26 @@ const ApartmentDashboard = () => {
                 </CardContent>
               </Card>
             </div>
+
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              <Card>
+                <CardHeader><CardTitle className="text-sm font-medium">Asset Valuation</CardTitle></CardHeader>
+                <CardContent>
+                  <div className="space-y-3 text-sm">
+                    <Row label="Net Operating Income (NOI)" value={fmt(computed.noi)} bold />
+                    <Row label="Cap Rate" value={inputs.target_cap_rate > 0 ? fmtPct(inputs.target_cap_rate, 2) : "—"} />
+                    <div className="border-t border-border" />
+                    <Row label="Asset Value (NOI ÷ Cap Rate)" value={computed.assetValue > 0 ? fmt(computed.assetValue) : "—"} bold />
+                    <Row label="Loan Amount" value={`(${fmt(computed.loanAmount)})`} className="text-destructive" />
+                    <div className="border-t border-border" />
+                    <Row label="Equity Created" value={computed.assetValue > 0 ? fmt(computed.equityCreated) : "—"} bold />
+                    {inputs.target_cap_rate === 0 && (
+                      <p className="text-xs text-muted-foreground italic">Set a Target Cap Rate in the Key Metrics tab to calculate asset value.</p>
+                    )}
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
           </div>
         </SidebarInset>
       </div>

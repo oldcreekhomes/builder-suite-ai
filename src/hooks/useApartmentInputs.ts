@@ -141,6 +141,9 @@ function computeFinancials(inputs: ApartmentInputs) {
   const grm = grossPotentialRent > 0 ? inputs.purchase_price / grossPotentialRent : 0;
   const expenseRatio = egi > 0 ? (totalOpEx / egi) * 100 : 0;
 
+  const assetValue = inputs.target_cap_rate > 0 ? noi / (inputs.target_cap_rate / 100) : 0;
+  const equityCreated = assetValue - loanAmount;
+
   return {
     grossPotentialRent,
     vacancyLoss,
@@ -160,6 +163,8 @@ function computeFinancials(inputs: ApartmentInputs) {
     grm,
     expenseRatio,
     equityInvested,
+    assetValue,
+    equityCreated,
   };
 }
 
