@@ -60,7 +60,6 @@ import CloseBooks from "./pages/accounting/CloseBooks";
 import OutboundRedirect from "./pages/OutboundRedirect";
 import Marketplace from "./pages/Marketplace";
 import Apartments from "./pages/Apartments";
-import Apartments from "./pages/Apartments";
 import Templates from "./pages/Templates";
 import SubcontractorContract from "./pages/templates/SubcontractorContract";
 import SubcontractorContractEdit from "./pages/templates/SubcontractorContractEdit";
