@@ -12,6 +12,8 @@ export interface ApartmentInputs {
   interest_rate: number;
   amortization_years: number;
   loan_term_years: number;
+  tax_rate: number;
+  estimated_value: number;
   taxes: number;
   insurance: number;
   utilities: number;
