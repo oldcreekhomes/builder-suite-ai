@@ -17,21 +17,21 @@ type OptionalExpense = {
 };
 
 const OPTIONAL_EXPENSES: OptionalExpense[] = [
-  { label: "Insurance", field: "insurance", format: "currency" },
-  { label: "Utilities", field: "utilities", format: "currency" },
-  { label: "Repairs & Maintenance", field: "repairs_maintenance", format: "currency" },
-  { label: "Landscaping", field: "landscaping", format: "currency" },
-  { label: "Snow Removal", field: "snow_removal", format: "currency" },
-  { label: "Trash Removal", field: "trash_removal", format: "currency" },
-  { label: "Pest Control", field: "pest_control", format: "currency" },
-  { label: "Management Fee", field: "management_fee_percent", format: "percent" },
+  { label: "CapEx Reserve", field: "capex_reserve", format: "currency" },
   { label: "General & Administrative", field: "general_admin", format: "currency" },
+  { label: "Insurance", field: "insurance", format: "currency" },
+  { label: "Landscaping", field: "landscaping", format: "currency" },
+  { label: "Management Fee", field: "management_fee_percent", format: "percent" },
   { label: "Marketing", field: "marketing", format: "currency" },
+  { label: "Other / Miscellaneous", field: "other_misc", format: "currency" },
+  { label: "Pest Control", field: "pest_control", format: "currency" },
+  { label: "Professional Fees", field: "professional_fees", format: "currency" },
+  { label: "Repairs & Maintenance", field: "repairs_maintenance", format: "currency" },
   { label: "Reserves per Unit", field: "reserves_per_unit", format: "currency" },
   { label: "Security", field: "security", format: "currency" },
-  { label: "Professional Fees", field: "professional_fees", format: "currency" },
-  { label: "CapEx Reserve", field: "capex_reserve", format: "currency" },
-  { label: "Other / Miscellaneous", field: "other_misc", format: "currency" },
+  { label: "Snow Removal", field: "snow_removal", format: "currency" },
+  { label: "Trash Removal", field: "trash_removal", format: "currency" },
+  { label: "Utilities", field: "utilities", format: "currency" },
 ];
 
 function getStorageKey(projectId?: string) {
