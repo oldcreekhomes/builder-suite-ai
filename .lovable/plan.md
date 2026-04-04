@@ -1,26 +1,38 @@
 
 
-## Restructure Taxes as Removable Item with Sub-fields, Fix Tooltip & Add Confirmation
+## Add Construction Costs, Loan Amount Input, and Amortization Summary
 
-### Changes to `src/pages/apartments/ApartmentInputs.tsx`
+### Overview
+Add a `construction_costs` field to Property & Revenue, add a `loan_amount` field to Loan Terms (replacing the computed LTV-based calculation), and add a loan summary header to the Amortization Schedule page.
 
-**1. Make "Taxes" a removable optional expense**
-- Add a `Taxes` entry to the `OPTIONAL_EXPENSES` array (alphabetically, between "Trash Removal" and "Utilities"). It will be a special computed (non-editable) row displaying `computed.taxes`.
-- Remove the current fixed Tax Rate, Estimated Value, and Taxes rows from the left card top.
-- When Taxes is visible, render it as a non-editable removable row followed by two indented sub-rows: "Tax Rate" (editable, format number) and "Estimated Value" (editable, format currency). These sub-rows get `pl-4` indent.
-- When Taxes is removed, Tax Rate and Estimated Value also hide, and both values reset to 0.
+### Changes
 
-**2. Update column balancing**
-- Remove the `fixedRowCount = 3` adjustment since there are no more fixed rows. Revert to simple `Math.ceil(n/2)` split. Each "Taxes" group counts as 3 rows (Taxes + Tax Rate + Estimated Value) for balancing purposes.
+**1. New database column**
+- Migration: add `construction_costs` numeric default 0 to `apartment_inputs`.
 
-**3. Replace `title="Remove"` with standard Tooltip**
-- Import `Tooltip, TooltipTrigger, TooltipContent, TooltipProvider` from `@/components/ui/tooltip`.
-- Wrap the X button in `RemovableEditableRow` with a Tooltip displaying "Remove" instead of using the HTML `title` attribute.
+**2. `src/hooks/useApartmentInputs.ts`**
+- Add `construction_costs: number` to `ApartmentInputs` interface and `DEFAULT_INPUTS` (default 0).
+- Change `loanAmount` calculation: currently `purchase_price * (ltv / 100)`. The user wants a direct `loan_amount` input field instead. However, we also still have LTV — so the loan amount will be computed as `(purchase_price + construction_costs) * (ltv / 100)`. This way the user sees it as a read-only computed row in Loan Terms, derived from purchase price + construction costs and LTV. 
 
-**4. Add delete confirmation dialog**
-- Import `DeleteConfirmationDialog` from `@/components/ui/delete-confirmation-dialog`.
-- When the X button is clicked, show a confirmation dialog ("Are you sure you want to remove {label}?") before actually removing the expense.
+Actually, re-reading the request: "we need another line item for loan amount" and "the total loan amount, which should automatically update the loan amortization schedule." This suggests loan amount should be a **computed, non-editable** display row showing `(purchase_price + construction_costs) * ltv / 100`, so the amortization schedule uses the correct principal.
 
-### File Changed
+**3. `src/pages/apartments/ApartmentInputs.tsx`**
+- Property & Revenue: add `EditableRow` for "Construction Costs" below Purchase Price (format currency).
+- Loan Terms: add a read-only `Row` for "Loan Amount" showing `computed.loanAmount` (formatted as currency). This is not editable — it's derived from purchase price + construction costs × LTV.
+
+**4. `src/hooks/useApartmentInputs.ts` — update loanAmount calculation**
+- Change: `const loanAmount = (inputs.purchase_price + inputs.construction_costs) * (inputs.ltv / 100);`
+
+**5. `src/pages/apartments/ApartmentAmortizationSchedule.tsx`**
+- Add a summary card above the table showing key loan inputs: Loan Amount, Interest Rate, Amortization Period, Loan Term. These are read-only display rows pulled from `inputs` and `computed`.
+
+**6. `src/integrations/supabase/types.ts`**
+- Add `construction_costs` to the apartment_inputs type definitions.
+
+### Files Changed
+- New migration SQL (add `construction_costs` column)
+- `src/hooks/useApartmentInputs.ts`
 - `src/pages/apartments/ApartmentInputs.tsx`
+- `src/pages/apartments/ApartmentAmortizationSchedule.tsx`
+- `src/integrations/supabase/types.ts`
 
