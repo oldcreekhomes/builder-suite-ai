@@ -1,24 +1,22 @@
 
 
-## Fix Tax Rate Calculation
+## Fix Apartment Income Statement to Match Inputs
 
-### Problem
-The tax rate field is being divided by 100 in the calculation, but the user is entering the rate as a raw decimal (e.g., `0.01135`) rather than as a percentage (e.g., `1.135`). So `$3,000,000 × (0.01135 / 100) = $341` instead of the correct `$3,000,000 × 0.01135 = $34,050`.
+### Problems Found
+
+**1. Taxes showing wrong value**
+Line 62 uses `inputs.taxes` (the raw database field, still at its default $500,000) instead of `computed.taxes` (which correctly calculates `estimated_value × tax_rate = $3,000,000 × 0.01135 = $34,050`). The `computeFinancials` function already calculates taxes correctly -- the income statement just references the wrong variable.
+
+**2. Missing 7 new operating expense line items**
+The income statement only shows: Taxes, Insurance, Utilities, Repairs, Management, Payroll, G&A, Marketing, Reserves. The 7 recently added fields are missing: Landscaping, Trash Removal, Pest Control, Security, Professional Fees, CapEx Reserve, Other/Misc.
 
 ### Solution
-Change the tax calculation in `computeFinancials` to multiply directly without dividing by 100:
 
-```ts
-// Before
-const taxes = inputs.estimated_value * (inputs.tax_rate / 100);
+Update `src/pages/apartments/ApartmentIncomeStatement.tsx`:
 
-// After
-const taxes = inputs.estimated_value * inputs.tax_rate;
-```
+1. Change `inputs.taxes` to `computed.taxes` on the Real Estate Taxes row
+2. Add 7 new `StatementRow` entries for the missing operating expenses, placed after Marketing and before Reserves
 
-Also update the `EditableRow` for Tax Rate from `format="percent"` to `format="number"` so it doesn't append a `%` sign, since the user is entering the raw decimal rate (not a percentage).
-
-### Files Changed
-- `src/hooks/useApartmentInputs.ts` — Remove `/100` from tax calculation
-- `src/pages/apartments/ApartmentInputs.tsx` — Change Tax Rate format from `"percent"` to `"number"`
+### File Changed
+- `src/pages/apartments/ApartmentIncomeStatement.tsx`
 
