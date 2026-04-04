@@ -68,7 +68,7 @@ const ApartmentIncomeStatement = () => {
                       <StatementRow label="Trash Removal" annual={fmt(inputs.trash_removal)} perUnit={perUnit(inputs.trash_removal)} pct={pctEgi(inputs.trash_removal)} />
                       <StatementRow label="Pest Control" annual={fmt(inputs.pest_control)} perUnit={perUnit(inputs.pest_control)} pct={pctEgi(inputs.pest_control)} />
                       <StatementRow label={`Management (${fmtPct(inputs.management_fee_percent)})`} annual={fmt(computed.managementFee)} perUnit={perUnit(computed.managementFee)} pct={pctEgi(computed.managementFee)} />
-                      <StatementRow label="Payroll" annual={fmt(inputs.payroll)} perUnit={perUnit(inputs.payroll)} pct={pctEgi(inputs.payroll)} />
+                      
                       <StatementRow label="General & Administrative" annual={fmt(inputs.general_admin)} perUnit={perUnit(inputs.general_admin)} pct={pctEgi(inputs.general_admin)} />
                       <StatementRow label="Marketing" annual={fmt(inputs.marketing)} perUnit={perUnit(inputs.marketing)} pct={pctEgi(inputs.marketing)} />
                       <StatementRow label="Security / Access Control" annual={fmt(inputs.security)} perUnit={perUnit(inputs.security)} pct={pctEgi(inputs.security)} />
