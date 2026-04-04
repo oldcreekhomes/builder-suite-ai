@@ -1,38 +1,30 @@
 
 
-## Add Construction Costs, Loan Amount Input, and Amortization Summary
+## Make Loan Amount Editable with Standard Font
 
-### Overview
-Add a `construction_costs` field to Property & Revenue, add a `loan_amount` field to Loan Terms (replacing the computed LTV-based calculation), and add a loan summary header to the Amortization Schedule page.
+### Problem
+1. "Loan Amount" row uses bold font (`Row` with `bold` prop) — should match the regular style of all other rows
+2. Loan Amount is currently computed and read-only — user wants it editable as a direct input
 
-### Changes
+### Solution
 
 **1. New database column**
-- Migration: add `construction_costs` numeric default 0 to `apartment_inputs`.
+- Add `loan_amount` (numeric, default 0) to `apartment_inputs` table via migration
 
 **2. `src/hooks/useApartmentInputs.ts`**
-- Add `construction_costs: number` to `ApartmentInputs` interface and `DEFAULT_INPUTS` (default 0).
-- Change `loanAmount` calculation: currently `purchase_price * (ltv / 100)`. The user wants a direct `loan_amount` input field instead. However, we also still have LTV — so the loan amount will be computed as `(purchase_price + construction_costs) * (ltv / 100)`. This way the user sees it as a read-only computed row in Loan Terms, derived from purchase price + construction costs and LTV. 
-
-Actually, re-reading the request: "we need another line item for loan amount" and "the total loan amount, which should automatically update the loan amortization schedule." This suggests loan amount should be a **computed, non-editable** display row showing `(purchase_price + construction_costs) * ltv / 100`, so the amortization schedule uses the correct principal.
+- Add `loan_amount: number` to interface and `DEFAULT_INPUTS` (default 0)
+- Keep `computed.loanAmount` but change it: if `inputs.loan_amount > 0`, use that directly; otherwise fall back to `(purchase_price + construction_costs) * (ltv / 100)`. This way existing projects still work, and once the user types a value it takes over.
 
 **3. `src/pages/apartments/ApartmentInputs.tsx`**
-- Property & Revenue: add `EditableRow` for "Construction Costs" below Purchase Price (format currency).
-- Loan Terms: add a read-only `Row` for "Loan Amount" showing `computed.loanAmount` (formatted as currency). This is not editable — it's derived from purchase price + construction costs × LTV.
+- Replace `<Row label="Loan Amount" value={fmt(computed.loanAmount)} bold />` with `<EditableRow label="Loan Amount" field="loan_amount" value={inputs.loan_amount} onChange={updateInput} format="currency" />`
+- This gives it the same font/style as every other editable row
 
-**4. `src/hooks/useApartmentInputs.ts` — update loanAmount calculation**
-- Change: `const loanAmount = (inputs.purchase_price + inputs.construction_costs) * (inputs.ltv / 100);`
-
-**5. `src/pages/apartments/ApartmentAmortizationSchedule.tsx`**
-- Add a summary card above the table showing key loan inputs: Loan Amount, Interest Rate, Amortization Period, Loan Term. These are read-only display rows pulled from `inputs` and `computed`.
-
-**6. `src/integrations/supabase/types.ts`**
-- Add `construction_costs` to the apartment_inputs type definitions.
+**4. `src/integrations/supabase/types.ts`**
+- Add `loan_amount` to type definitions
 
 ### Files Changed
-- New migration SQL (add `construction_costs` column)
+- New migration SQL
 - `src/hooks/useApartmentInputs.ts`
 - `src/pages/apartments/ApartmentInputs.tsx`
-- `src/pages/apartments/ApartmentAmortizationSchedule.tsx`
 - `src/integrations/supabase/types.ts`
 
