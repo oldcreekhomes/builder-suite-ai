@@ -33,6 +33,16 @@ export interface ApartmentInputs {
   professional_fees: number;
   capex_reserve: number;
   other_misc: number;
+  target_cap_rate: number;
+  target_dscr: number;
+  target_cash_on_cash: number;
+  target_irr: number;
+  target_grm: number;
+  exit_cap_rate: number;
+  hold_period_years: number;
+  rent_growth_rate: number;
+  expense_growth_rate: number;
+  closing_costs: number;
 }
 
 const DEFAULT_INPUTS: ApartmentInputs = {
