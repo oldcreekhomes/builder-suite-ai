@@ -977,7 +977,7 @@ export function EditBillDialog({ open, onOpenChange, billId }: EditBillDialogPro
                       </div>
                       <div className={isApprovedBill ? "col-span-5" : "col-span-4"}>
                         <Input 
-                          placeholder="Expense memo"
+                          placeholder="Description"
                           value={row.memo}
                           onChange={(e) => updateExpenseRow(row.id, 'memo', e.target.value)}
                           className="h-8"

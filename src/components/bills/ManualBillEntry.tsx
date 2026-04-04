@@ -1031,7 +1031,7 @@ export function ManualBillEntry() {
                     </div>
                     <div className="col-span-5">
                       <Input 
-                        placeholder="Expense memo"
+                        placeholder="Description"
                         value={row.memo}
                         onChange={(e) => updateExpenseRow(row.id, 'memo', e.target.value)}
                         className="h-8"

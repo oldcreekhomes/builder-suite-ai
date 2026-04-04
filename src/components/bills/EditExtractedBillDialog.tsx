@@ -1190,7 +1190,7 @@ export function EditExtractedBillDialog({
                   <TableHeader>
                     <TableRow>
                       <TableHead className="w-[200px]">Account</TableHead>
-                      <TableHead>Memo</TableHead>
+                      <TableHead>Description</TableHead>
                       <TableHead className="w-[100px]">Quantity</TableHead>
                       <TableHead className="w-[120px]">Unit Cost</TableHead>
                       <TableHead className="w-[120px]">Total</TableHead>
