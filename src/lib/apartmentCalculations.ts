@@ -112,37 +112,37 @@ export function calcMonthlyPayment(principal: number, annualRate: number, amortY
 export function calculateIncome(inputs: ApartmentInputs): IncomeResults {
   const safe = { ...DEFAULT_INPUTS, ...inputs };
   const u = safe.totalUnits || 0;
-  const gpr = u * inputs.avgMonthlyRent * 12;
-  const otherIncome = u * inputs.otherIncomePerUnit * 12;
-  const vacancyLoss = gpr * inputs.vacancyRate;
-  const creditLoss = gpr * inputs.creditLossRate;
+  const gpr = u * safe.avgMonthlyRent * 12;
+  const otherIncome = u * safe.otherIncomePerUnit * 12;
+  const vacancyLoss = gpr * safe.vacancyRate;
+  const creditLoss = gpr * safe.creditLossRate;
   const egi = gpr + otherIncome - vacancyLoss - creditLoss;
 
-  const mgmtFee = egi * inputs.propertyMgmtFee;
+  const mgmtFee = egi * safe.propertyMgmtFee;
 
   const perUnitItems: { label: string; value: number }[] = [
-    { label: "Real Estate Taxes", value: inputs.realEstateTaxes },
-    { label: "Property Insurance", value: inputs.insurance },
-    { label: "Repairs & Maintenance", value: inputs.repairsMaint },
-    { label: "Landscaping / Snow Removal", value: inputs.landscaping },
-    { label: "Utilities — Common Area", value: inputs.utilities },
-    { label: "Trash Removal", value: inputs.trash },
-    { label: "Pest Control", value: inputs.pestControl },
-    { label: "Security / Access Control", value: inputs.security },
-    { label: "Payroll / On-Site Staff", value: inputs.payroll },
-    { label: "Marketing & Advertising", value: inputs.marketing },
-    { label: "Professional Fees (legal / acctg)", value: inputs.professionalFees },
-    { label: "Administrative / Office", value: inputs.admin },
-    { label: "Reserve for Replacement", value: inputs.reserveForReplacement },
-    { label: "Capital Expenditure Reserve", value: inputs.capexReserve },
-    { label: "Other / Miscellaneous", value: inputs.otherExpense },
+    { label: "Real Estate Taxes", value: safe.realEstateTaxes },
+    { label: "Property Insurance", value: safe.insurance },
+    { label: "Repairs & Maintenance", value: safe.repairsMaint },
+    { label: "Landscaping / Snow Removal", value: safe.landscaping },
+    { label: "Utilities — Common Area", value: safe.utilities },
+    { label: "Trash Removal", value: safe.trash },
+    { label: "Pest Control", value: safe.pestControl },
+    { label: "Security / Access Control", value: safe.security },
+    { label: "Payroll / On-Site Staff", value: safe.payroll },
+    { label: "Marketing & Advertising", value: safe.marketing },
+    { label: "Professional Fees (legal / acctg)", value: safe.professionalFees },
+    { label: "Administrative / Office", value: safe.admin },
+    { label: "Reserve for Replacement", value: safe.reserveForReplacement },
+    { label: "Capital Expenditure Reserve", value: safe.capexReserve },
+    { label: "Other / Miscellaneous", value: safe.otherExpense },
   ];
 
   const expenses = [
     {
       label: "Property Management Fee",
       annual: mgmtFee,
-      perUnitMo: mgmtFee / u / 12,
+      perUnitMo: u > 0 ? mgmtFee / u / 12 : 0,
       monthly: mgmtFee / 12,
       pctEgi: egi > 0 ? mgmtFee / egi : 0,
     },
@@ -161,10 +161,9 @@ export function calculateIncome(inputs: ApartmentInputs): IncomeResults {
   const totalExpenses = expenses.reduce((s, e) => s + e.annual, 0);
   const noi = egi - totalExpenses;
 
-  const monthlyPI = calcMonthlyPayment(inputs.loanAmount, inputs.interestRate, inputs.amortYears);
-  // During I/O period the payment is interest only, but for the summary we show the amortizing payment
-  const monthlyDebtService = inputs.interestOnlyYears > 0
-    ? inputs.loanAmount * inputs.interestRate / 12
+  const monthlyPI = calcMonthlyPayment(safe.loanAmount, safe.interestRate, safe.amortYears);
+  const monthlyDebtService = safe.interestOnlyYears > 0
+    ? safe.loanAmount * safe.interestRate / 12
     : monthlyPI;
   const annualDebtService = monthlyDebtService * 12;
   const cfads = noi - annualDebtService;
