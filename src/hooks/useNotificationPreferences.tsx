@@ -49,6 +49,7 @@ const defaultPreferences: Omit<NotificationPreferences, 'id' | 'user_id'> = {
   can_delete_bills: false,
   can_delete_price_history: false,
   can_edit_templates: false,
+  can_access_apartments: false,
 };
 
 export const useNotificationPreferences = (userId?: string) => {
