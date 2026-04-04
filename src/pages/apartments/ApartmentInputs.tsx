@@ -86,6 +86,10 @@ const ApartmentInputsPage = () => {
                     <EditableRow label="General & Administrative" field="general_admin" value={inputs.general_admin} onChange={updateInput} format="currency" />
                     <EditableRow label="Marketing" field="marketing" value={inputs.marketing} onChange={updateInput} format="currency" />
                     <EditableRow label="Reserves per Unit" field="reserves_per_unit" value={inputs.reserves_per_unit} onChange={updateInput} format="currency" />
+                    <EditableRow label="Security / Access Control" field="security" value={inputs.security} onChange={updateInput} format="currency" />
+                    <EditableRow label="Professional Fees" field="professional_fees" value={inputs.professional_fees} onChange={updateInput} format="currency" />
+                    <EditableRow label="CapEx Reserve" field="capex_reserve" value={inputs.capex_reserve} onChange={updateInput} format="currency" />
+                    <EditableRow label="Other / Miscellaneous" field="other_misc" value={inputs.other_misc} onChange={updateInput} format="currency" />
                   </div>
                 </CardContent>
               </Card>

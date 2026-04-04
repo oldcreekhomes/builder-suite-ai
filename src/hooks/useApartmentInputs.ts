@@ -78,10 +78,17 @@ function computeFinancials(inputs: ApartmentInputs) {
     inputs.insurance +
     inputs.utilities +
     inputs.repairs_maintenance +
+    inputs.landscaping +
+    inputs.trash_removal +
+    inputs.pest_control +
     managementFee +
     inputs.payroll +
     inputs.general_admin +
     inputs.marketing +
+    inputs.security +
+    inputs.professional_fees +
+    inputs.capex_reserve +
+    inputs.other_misc +
     reserves;
 
   const noi = egi - totalOpEx;
