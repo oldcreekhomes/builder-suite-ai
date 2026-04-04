@@ -1,38 +1,23 @@
 
 
-## Replace Single Taxes Field with Tax Rate + Estimated Value Inputs
+## Match Inputs Page Styling to Dashboard
 
 ### Problem
-Currently "Real Estate Taxes" is a single dollar input. The user wants two inputs — **Tax Rate (%)** and **Estimated Value ($)** — with the total taxes computed as `estimated_value * (tax_rate / 100)`.
+The Inputs page has several visual inconsistencies compared to the Dashboard:
+1. **Dollar sign color**: Dashboard uses default (dark) text for `$` values; Inputs uses `text-muted-foreground` (lighter) for the `$` prefix
+2. **Spacing between `$` and value**: Dashboard has no gap (dollar sign is part of the formatted string via `fmt()`); Inputs has a `gap-1` between a separate `$` span and the input field
+3. **Row spacing in Operating Expenses**: Dashboard uses `space-y-2` in the 3-column expense section; Inputs also uses `space-y-2` but the input height and alignment create different visual spacing
+4. **Total Taxes row styling**: Uses `items-center` which differs from Dashboard's simpler `Row` component
 
-### Database Migration
-Add two new columns to `apartment_inputs`, keep the existing `taxes` column as the computed result (or remove it in favor of computing on the fly):
+### Approach
+Align every styling detail in `EditableRow` and the Inputs layout to exactly match the Dashboard's `Row` component patterns:
 
-```sql
-ALTER TABLE public.apartment_inputs
-  ADD COLUMN tax_rate numeric NOT NULL DEFAULT 2.0,
-  ADD COLUMN estimated_value numeric NOT NULL DEFAULT 25000000;
-```
-
-The `taxes` column will remain but will no longer be directly edited — it will be derived as `estimated_value * tax_rate / 100`. We keep it for backward compatibility but the hook will compute taxes from the two new fields.
-
-### Hook Changes (`src/hooks/useApartmentInputs.ts`)
-- Add `tax_rate` and `estimated_value` to the `ApartmentInputs` interface and `DEFAULT_INPUTS`
-- In `computeFinancials`, compute `taxes = inputs.estimated_value * (inputs.tax_rate / 100)` and use that instead of `inputs.taxes`
-- Add both new fields to `INPUT_FIELDS`
-
-### UI Changes (`src/pages/apartments/ApartmentInputs.tsx`)
-Replace the single "Real Estate Taxes ($)" `EditableRow` with three rows:
-1. **Tax Rate (%)** — editable, field `tax_rate`, suffix `%`
-2. **Estimated Value ($)** — editable, field `estimated_value`, prefix `$`
-3. **Total Taxes ($)** — read-only computed display showing `fmt(estimated_value * tax_rate / 100)`
-
-### Other Pages
-Dashboard, Income Statement, and Amortization Schedule already consume `computed.totalOpEx` and the taxes value flows through `computeFinancials` — no changes needed on those pages since taxes will now be computed from the two new fields automatically.
+1. **Remove separate prefix/suffix spans** -- Instead of rendering `$` as a separate element with a gap, integrate it into the input display so it sits tight against the value (no `gap-1`)
+2. **Match prefix color** -- Change prefix `$` from `text-muted-foreground` to default text color (darker, matching Dashboard)
+3. **Match suffix color** -- Same treatment for `%` suffixes
+4. **Fix Total Taxes row** -- Style identically to Dashboard's `Row` component (remove `items-center`, match class names exactly)
+5. **Consistent row structure** -- Keep the same `flex justify-between` without `items-center` to match Dashboard's `Row`
 
 ### Files Changed
-- New migration SQL
-- `src/hooks/useApartmentInputs.ts` — add `tax_rate`, `estimated_value`; compute taxes
-- `src/pages/apartments/ApartmentInputs.tsx` — replace single taxes row with three rows
-- `src/integrations/supabase/types.ts` — update generated types
+- `src/pages/apartments/ApartmentInputs.tsx` -- Update `EditableRow` styling and Total Taxes row
 
