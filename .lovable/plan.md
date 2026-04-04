@@ -1,40 +1,50 @@
 
+Assessment
+- The apartment feature does not appear to still be wired into the current `src` route tree. I only found the word “apartment” in unrelated text/parsing code, not in active routes/imports.
+- The session replay shows the page loads, but `#root` stays empty. So React is not mounting any UI at all.
+- There were no `[BOOT] main.tsx loaded` logs captured. That strongly suggests the failure is happening before `createRoot(...).render(...)` runs.
+- So the blank screen is likely not “the apartment page still rendering.” It is more likely an import-time crash somewhere in the app bootstrap/import graph.
 
-## Rename "Memo" to "Description" and Fix A/P Report Description Column
+Plan
+1. Isolate app boot from the full route tree
+   - Temporarily reduce `src/App.tsx` to a minimal shell that can render on `/`.
+   - Goal: prove React can mount again before pulling the whole app back in.
 
-### Problem
-1. The A/P detail report's Description column shows reference numbers (e.g., "AP - 70200008360") instead of the actual bill line description that the user enters
-2. The word "Memo" is used throughout the bill entry/edit UI — the user wants it renamed to "Description" for clarity
+2. Narrow the broken import
+   - Reintroduce route groups in chunks inside `src/App.tsx`:
+     - public pages
+     - company dashboard/root
+     - project pages
+     - accounting pages
+     - marketplace/templates
+   - When the blank screen returns, narrow from that group to the exact module.
 
-### Root Cause
-In `AccountDetailDialog.tsx` line 704, for bill transactions the description is set to `line.memo || bill.reference_number`. The `line.memo` is the journal entry line memo (often empty), and the fallback is the reference number. The actual bill line memo (what the user types in the description field) is fetched but never extracted — unlike checks/deposits which extract `firstLineMemo`, the bills map omits it.
+3. Fix the actual failing module
+   - Remove any top-level side effects.
+   - Move browser-only code (`window`, `document`, storage, setup code, subscriptions) into component/effect scope.
+   - Guard any unsafe assumptions so the module can import cleanly.
 
-### Fix
+4. Harden the app so one bad page cannot blank everything
+   - Convert large page imports in `src/App.tsx` to lazy-loaded routes with `Suspense`.
+   - Keep a minimal visible fallback while route chunks load or fail.
 
-**Part 1: Fix the A/P description to show the bill line memo**
+5. Re-verify the startup paths
+   - Signed out `/` should show `Landing`
+   - Signed in `/` should show `RootRoute` loading/UI
+   - Protected routes should redirect or load, not blank
 
-In `AccountDetailDialog.tsx`:
-- Extract `firstLineMemo` from the bills map (same pattern as checks/deposits — get the first bill line's memo)
-- On line 704, change the description priority to: `bill.firstLineMemo || line.memo || bill.reference_number || description`
+Files to touch
+- `src/App.tsx` — main isolation point
+- `src/main.tsx` — keep bootstrap/fallback resilient
+- whichever page/component is identified during route reintroduction
 
-**Part 2: Rename "Memo" to "Description" in bill-related UI**
+Technical detail
+- Even though `main.tsx` has a log at the top, ES module imports are evaluated before that top-level code runs.
+- That means a thrown error anywhere in the imported dependency tree can stop the app before your boot log and before the ErrorBoundary ever appears.
+- This matches the behavior here much better than “the apartment section is still crashing.”
+- The Vite websocket warnings are likely unrelated; they affect hot reload, not whether `#root` renders at all.
 
-Update column headers and placeholder text in these files:
-- `src/components/bills/ManualBillEntry.tsx` — header labels "Memo" → "Description", placeholder "Job cost memo" → "Description", "Expense memo" → "Description"
-- `src/components/bills/EditBillDialog.tsx` — same pattern: headers and placeholders
-- `src/components/bills/EditExtractedBillDialog.tsx` — table headers
-- `src/components/bills/BatchBillLineItems.tsx` — column headers
-- `src/components/bills/BatchBillReviewTable.tsx` — table headers
-- `src/components/bills/BillsApprovalTable.tsx` — table header
-
-Note: Checks, deposits, and journal entries also use "Memo" but the user specifically asked about bills. The internal data field name (`memo`) stays the same — only UI labels change.
-
-### Files changed
-- `src/components/accounting/AccountDetailDialog.tsx` — fix description sourcing for bills
-- `src/components/bills/ManualBillEntry.tsx` — rename labels
-- `src/components/bills/EditBillDialog.tsx` — rename labels
-- `src/components/bills/EditExtractedBillDialog.tsx` — rename labels
-- `src/components/bills/BatchBillLineItems.tsx` — rename labels
-- `src/components/bills/BatchBillReviewTable.tsx` — rename labels
-- `src/components/bills/BillsApprovalTable.tsx` — rename labels
-
+Expected result
+- Restore a visible shell first.
+- Identify the exact import causing the startup crash.
+- Make the app resilient so future feature work cannot take down the whole application at boot.
