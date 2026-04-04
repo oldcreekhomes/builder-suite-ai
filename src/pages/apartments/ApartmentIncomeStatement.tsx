@@ -3,20 +3,41 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { AppSidebar } from "@/components/AppSidebar";
 import { SidebarProvider, SidebarInset } from "@/components/ui/sidebar";
 import { DashboardHeader } from "@/components/DashboardHeader";
+import { useApartmentInputs, fmt, fmtPct } from "@/hooks/useApartmentInputs";
+import { Loader2 } from "lucide-react";
 
 const ApartmentIncomeStatement = () => {
   const { projectId } = useParams();
+  const { inputs, computed, isLoading } = useApartmentInputs(projectId);
+
+  if (isLoading) {
+    return (
+      <SidebarProvider>
+        <div className="flex min-h-screen w-full">
+          <AppSidebar />
+          <SidebarInset className="flex-1">
+            <DashboardHeader title="Income Statement" subtitle="Pro forma income statement projections." projectId={projectId} />
+            <div className="flex-1 flex items-center justify-center">
+              <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+            </div>
+          </SidebarInset>
+        </div>
+      </SidebarProvider>
+    );
+  }
+
+  const units = inputs.number_of_units || 1;
+  const egi = computed.egi || 1;
+
+  const perUnit = (v: number) => fmt(v / units);
+  const pctEgi = (v: number) => fmtPct((v / egi) * 100);
 
   return (
     <SidebarProvider>
       <div className="flex min-h-screen w-full">
         <AppSidebar />
         <SidebarInset className="flex-1">
-          <DashboardHeader
-            title="Income Statement"
-            subtitle="Pro forma income statement projections."
-            projectId={projectId}
-          />
+          <DashboardHeader title="Income Statement" subtitle="Pro forma income statement projections." projectId={projectId} />
           <div className="flex-1 px-6 pt-3 pb-6 overflow-auto">
             <Card>
               <CardHeader><CardTitle className="text-sm font-medium">Pro Forma Income Statement</CardTitle></CardHeader>
@@ -32,34 +53,29 @@ const ApartmentIncomeStatement = () => {
                       </tr>
                     </thead>
                     <tbody className="divide-y">
-                      {/* Revenue */}
                       <SectionHeader title="Revenue" />
-                      <StatementRow label="Gross Potential Rent" annual="$3,600,000" perUnit="$18,000" pct="105.3%" />
-                      <StatementRow label="Less: Vacancy (5%)" annual="($180,000)" perUnit="($900)" pct="-5.3%" negative />
-                      <TotalRow label="Effective Gross Income" annual="$3,420,000" perUnit="$17,100" pct="100.0%" />
+                      <StatementRow label="Gross Potential Rent" annual={fmt(computed.grossPotentialRent)} perUnit={perUnit(computed.grossPotentialRent)} pct={pctEgi(computed.grossPotentialRent)} />
+                      <StatementRow label={`Less: Vacancy (${fmtPct(inputs.vacancy_rate)})`} annual={`(${fmt(computed.vacancyLoss)})`} perUnit={`(${perUnit(computed.vacancyLoss)})`} pct={`-${pctEgi(computed.vacancyLoss)}`} negative />
+                      <TotalRow label="Effective Gross Income" annual={fmt(computed.egi)} perUnit={perUnit(computed.egi)} pct="100.0%" />
 
-                      {/* Operating Expenses */}
                       <SectionHeader title="Operating Expenses" />
-                      <StatementRow label="Real Estate Taxes" annual="$500,000" perUnit="$2,500" pct="14.6%" />
-                      <StatementRow label="Insurance" annual="$250,000" perUnit="$1,250" pct="7.3%" />
-                      <StatementRow label="Utilities" annual="$200,000" perUnit="$1,000" pct="5.8%" />
-                      <StatementRow label="Repairs & Maintenance" annual="$180,000" perUnit="$900" pct="5.3%" />
-                      <StatementRow label="Management (5%)" annual="$171,000" perUnit="$855" pct="5.0%" />
-                      <StatementRow label="Payroll" annual="$200,000" perUnit="$1,000" pct="5.8%" />
-                      <StatementRow label="General & Administrative" annual="$100,000" perUnit="$500" pct="2.9%" />
-                      <StatementRow label="Marketing" annual="$50,000" perUnit="$250" pct="1.5%" />
-                      <StatementRow label="Reserves" annual="$59,000" perUnit="$295" pct="1.7%" />
-                      <TotalRow label="Total Operating Expenses" annual="$1,710,000" perUnit="$8,550" pct="50.0%" />
+                      <StatementRow label="Real Estate Taxes" annual={fmt(inputs.taxes)} perUnit={perUnit(inputs.taxes)} pct={pctEgi(inputs.taxes)} />
+                      <StatementRow label="Insurance" annual={fmt(inputs.insurance)} perUnit={perUnit(inputs.insurance)} pct={pctEgi(inputs.insurance)} />
+                      <StatementRow label="Utilities" annual={fmt(inputs.utilities)} perUnit={perUnit(inputs.utilities)} pct={pctEgi(inputs.utilities)} />
+                      <StatementRow label="Repairs & Maintenance" annual={fmt(inputs.repairs_maintenance)} perUnit={perUnit(inputs.repairs_maintenance)} pct={pctEgi(inputs.repairs_maintenance)} />
+                      <StatementRow label={`Management (${fmtPct(inputs.management_fee_percent)})`} annual={fmt(computed.managementFee)} perUnit={perUnit(computed.managementFee)} pct={pctEgi(computed.managementFee)} />
+                      <StatementRow label="Payroll" annual={fmt(inputs.payroll)} perUnit={perUnit(inputs.payroll)} pct={pctEgi(inputs.payroll)} />
+                      <StatementRow label="General & Administrative" annual={fmt(inputs.general_admin)} perUnit={perUnit(inputs.general_admin)} pct={pctEgi(inputs.general_admin)} />
+                      <StatementRow label="Marketing" annual={fmt(inputs.marketing)} perUnit={perUnit(inputs.marketing)} pct={pctEgi(inputs.marketing)} />
+                      <StatementRow label="Reserves" annual={fmt(computed.reserves)} perUnit={perUnit(computed.reserves)} pct={pctEgi(computed.reserves)} />
+                      <TotalRow label="Total Operating Expenses" annual={fmt(computed.totalOpEx)} perUnit={perUnit(computed.totalOpEx)} pct={pctEgi(computed.totalOpEx)} />
 
-                      {/* NOI */}
-                      <TotalRow label="Net Operating Income (NOI)" annual="$1,710,000" perUnit="$8,550" pct="50.0%" highlight />
+                      <TotalRow label="Net Operating Income (NOI)" annual={fmt(computed.noi)} perUnit={perUnit(computed.noi)} pct={pctEgi(computed.noi)} highlight />
 
-                      {/* Debt Service */}
                       <SectionHeader title="Debt Service" />
-                      <StatementRow label="Annual Debt Service" annual="($1,421,016)" perUnit="($7,105)" pct="41.5%" negative />
+                      <StatementRow label="Annual Debt Service" annual={`(${fmt(computed.annualDebtService)})`} perUnit={`(${perUnit(computed.annualDebtService)})`} pct={pctEgi(computed.annualDebtService)} negative />
 
-                      {/* CFADS */}
-                      <TotalRow label="Cash Flow After Debt Service" annual="$288,984" perUnit="$1,445" pct="8.5%" highlight />
+                      <TotalRow label="Cash Flow After Debt Service" annual={fmt(computed.cashFlowAfterDebt)} perUnit={perUnit(computed.cashFlowAfterDebt)} pct={pctEgi(computed.cashFlowAfterDebt)} highlight />
                     </tbody>
                   </table>
                 </div>
