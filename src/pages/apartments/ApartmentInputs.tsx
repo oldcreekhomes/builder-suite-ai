@@ -194,7 +194,7 @@ const ApartmentInputsPage = () => {
                     <EditableRow label="Interest Rate" field="interest_rate" value={inputs.interest_rate} onChange={updateInput} format="percent" decimals={2} />
                     <EditableRow label="Amortization (years)" field="amortization_years" value={inputs.amortization_years} onChange={updateInput} format="number" />
                     <EditableRow label="Loan Term (years)" field="loan_term_years" value={inputs.loan_term_years} onChange={updateInput} format="number" />
-                    <Row label="Loan Amount" value={fmt(computed.loanAmount)} bold />
+                    <EditableRow label="Loan Amount" field="loan_amount" value={inputs.loan_amount} onChange={updateInput} format="currency" />
                   </div>
                 </CardContent>
               </Card>

@@ -1,0 +1,1 @@
+ALTER TABLE public.apartment_inputs ADD COLUMN loan_amount numeric NOT NULL DEFAULT 0;
