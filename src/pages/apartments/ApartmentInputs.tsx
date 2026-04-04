@@ -65,7 +65,7 @@ const ApartmentInputsPage = () => {
                 <CardHeader><CardTitle className="text-sm font-medium">Operating Expenses</CardTitle></CardHeader>
                 <CardContent>
                   <div className="space-y-2 text-sm">
-                    <EditableRow label="Tax Rate" field="tax_rate" value={inputs.tax_rate} onChange={updateInput} format="percent" decimals={4} />
+                    <EditableRow label="Tax Rate" field="tax_rate" value={inputs.tax_rate} onChange={updateInput} format="number" />
                     <EditableRow label="Estimated Value" field="estimated_value" value={inputs.estimated_value} onChange={updateInput} format="currency" />
                     <Row label="Taxes" value={fmt(computed.taxes)} />
                     <EditableRow label="Insurance" field="insurance" value={inputs.insurance} onChange={updateInput} format="currency" />
