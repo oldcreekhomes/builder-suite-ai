@@ -79,21 +79,6 @@ const ApartmentDashboard = () => {
               </Card>
 
               <Card>
-                <CardHeader><CardTitle className="text-sm font-medium">Key Performance Metrics</CardTitle></CardHeader>
-                <CardContent>
-                  <div className="space-y-3 text-sm">
-                    <Row label="Cash-on-Cash Return" value={fmtPct(computed.cashOnCash, 2)} />
-                    <Row label="Debt Service Coverage Ratio" value={`${computed.dscr.toFixed(2)}x`} />
-                    <Row label="Cash Flow After Debt Service" value={fmt(computed.cashFlowAfterDebt)} />
-                    <Row label="Price Per Unit" value={fmt(computed.pricePerUnit)} />
-                    <Row label="GRM (Gross Rent Multiplier)" value={computed.grm.toFixed(2)} />
-                  </div>
-                </CardContent>
-              </Card>
-            </div>
-
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-              <Card>
                 <CardHeader><CardTitle className="text-sm font-medium">Asset Valuation</CardTitle></CardHeader>
                 <CardContent>
                   <div className="space-y-3 text-sm">
