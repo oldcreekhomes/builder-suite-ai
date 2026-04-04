@@ -138,9 +138,16 @@ const Templates = safeLazy(() => import("./pages/Templates"));
 const SubcontractorContract = safeLazy(() => import("./pages/templates/SubcontractorContract"));
 const SubcontractorContractEdit = safeLazy(() => import("./pages/templates/SubcontractorContractEdit"));
 
+// Apartments
+const ApartmentDashboard = safeLazy(() => import("./pages/apartments/ApartmentDashboard"));
+const ApartmentInputs = safeLazy(() => import("./pages/apartments/ApartmentInputs"));
+const ApartmentIncomeStatement = safeLazy(() => import("./pages/apartments/ApartmentIncomeStatement"));
+const ApartmentAmortizationSchedule = safeLazy(() => import("./pages/apartments/ApartmentAmortizationSchedule"));
+
 // Guards (small, keep static)
 import { MarketplaceGuard } from "./components/guards/MarketplaceGuard";
 import { TemplatesGuard } from "./components/guards/TemplatesGuard";
+import { ApartmentGuard } from "./components/guards/ApartmentGuard";
 
 const queryClient = new QueryClient();
 
