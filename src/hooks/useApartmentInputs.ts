@@ -8,6 +8,7 @@ export interface ApartmentInputs {
   avg_rent_per_unit: number;
   vacancy_rate: number;
   purchase_price: number;
+  construction_costs: number;
   ltv: number;
   interest_rate: number;
   amortization_years: number;
@@ -38,6 +39,7 @@ const DEFAULT_INPUTS: ApartmentInputs = {
   avg_rent_per_unit: 1500,
   vacancy_rate: 5,
   purchase_price: 25000000,
+  construction_costs: 0,
   ltv: 75,
   interest_rate: 6.5,
   amortization_years: 30,
@@ -95,7 +97,7 @@ function computeFinancials(inputs: ApartmentInputs) {
 
   const noi = egi - totalOpEx;
 
-  const loanAmount = inputs.purchase_price * (inputs.ltv / 100);
+  const loanAmount = (inputs.purchase_price + inputs.construction_costs) * (inputs.ltv / 100);
   const monthlyRate = inputs.interest_rate / 100 / 12;
   const totalPayments = inputs.amortization_years * 12;
   const monthlyPayment =

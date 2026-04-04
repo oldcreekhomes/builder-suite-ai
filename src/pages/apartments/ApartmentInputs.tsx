@@ -181,6 +181,7 @@ const ApartmentInputsPage = () => {
                     <EditableRow label="Average Rent per Unit" field="avg_rent_per_unit" value={inputs.avg_rent_per_unit} onChange={updateInput} format="currency" />
                     <EditableRow label="Vacancy Rate" field="vacancy_rate" value={inputs.vacancy_rate} onChange={updateInput} format="percent" />
                     <EditableRow label="Purchase Price" field="purchase_price" value={inputs.purchase_price} onChange={updateInput} format="currency" />
+                    <EditableRow label="Construction Costs" field="construction_costs" value={inputs.construction_costs} onChange={updateInput} format="currency" />
                   </div>
                 </CardContent>
               </Card>
@@ -193,6 +194,7 @@ const ApartmentInputsPage = () => {
                     <EditableRow label="Interest Rate" field="interest_rate" value={inputs.interest_rate} onChange={updateInput} format="percent" decimals={2} />
                     <EditableRow label="Amortization (years)" field="amortization_years" value={inputs.amortization_years} onChange={updateInput} format="number" />
                     <EditableRow label="Loan Term (years)" field="loan_term_years" value={inputs.loan_term_years} onChange={updateInput} format="number" />
+                    <Row label="Loan Amount" value={fmt(computed.loanAmount)} bold />
                   </div>
                 </CardContent>
               </Card>

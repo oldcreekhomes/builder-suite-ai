@@ -1,0 +1,1 @@
+ALTER TABLE public.apartment_inputs ADD COLUMN construction_costs numeric NOT NULL DEFAULT 0;

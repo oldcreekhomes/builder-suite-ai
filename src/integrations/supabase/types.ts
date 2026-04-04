@@ -153,6 +153,7 @@ export type Database = {
           amortization_years: number
           avg_rent_per_unit: number
           capex_reserve: number
+          construction_costs: number
           created_at: string | null
           estimated_value: number
           general_admin: number
@@ -187,6 +188,7 @@ export type Database = {
           amortization_years?: number
           avg_rent_per_unit?: number
           capex_reserve?: number
+          construction_costs?: number
           created_at?: string | null
           estimated_value?: number
           general_admin?: number
@@ -221,6 +223,7 @@ export type Database = {
           amortization_years?: number
           avg_rent_per_unit?: number
           capex_reserve?: number
+          construction_costs?: number
           created_at?: string | null
           estimated_value?: number
           general_admin?: number
