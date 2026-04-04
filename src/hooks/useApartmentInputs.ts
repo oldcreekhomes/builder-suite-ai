@@ -54,6 +54,7 @@ const DEFAULT_INPUTS: ApartmentInputs = {
   marketing: 50000,
   reserves_per_unit: 295,
   landscaping: 0,
+  snow_removal: 0,
   trash_removal: 0,
   pest_control: 0,
   security: 0,
