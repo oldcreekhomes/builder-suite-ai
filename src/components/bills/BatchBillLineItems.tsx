@@ -201,7 +201,7 @@ export function BatchBillLineItems({ lines, onLinesChange }: BatchBillLineItemsP
           <div className="border rounded-lg overflow-hidden">
             <div className="grid grid-cols-10 gap-2 p-3 bg-muted font-medium text-sm">
               <div className="col-span-2">Account</div>
-              <div className="col-span-5">Memo</div>
+              <div className="col-span-5">Description</div>
               <div className="col-span-1">Quantity</div>
               <div className="col-span-1">Cost</div>
               <div className="col-span-1">Total</div>
