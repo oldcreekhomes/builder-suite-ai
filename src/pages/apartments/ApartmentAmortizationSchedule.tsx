@@ -73,7 +73,30 @@ const ApartmentAmortizationSchedule = () => {
         <AppSidebar />
         <SidebarInset className="flex-1">
           <DashboardHeader title="Amortization Schedule" subtitle="Loan amortization breakdown by year." projectId={projectId} />
-          <div className="flex-1 px-6 pt-3 pb-6 overflow-auto">
+          <div className="flex-1 px-6 pt-3 pb-6 space-y-6 overflow-auto">
+            <Card>
+              <CardHeader><CardTitle className="text-sm font-medium">Loan Summary</CardTitle></CardHeader>
+              <CardContent>
+                <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 text-sm">
+                  <div>
+                    <span className="text-muted-foreground">Loan Amount</span>
+                    <p className="font-semibold">{fmt(computed.loanAmount)}</p>
+                  </div>
+                  <div>
+                    <span className="text-muted-foreground">Interest Rate</span>
+                    <p className="font-semibold">{fmtPct(inputs.interest_rate, 2)}</p>
+                  </div>
+                  <div>
+                    <span className="text-muted-foreground">Amortization</span>
+                    <p className="font-semibold">{inputs.amortization_years} years</p>
+                  </div>
+                  <div>
+                    <span className="text-muted-foreground">Loan Term</span>
+                    <p className="font-semibold">{inputs.loan_term_years} years</p>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
             <Card>
               <CardHeader><CardTitle className="text-sm font-medium">Loan Amortization Schedule</CardTitle></CardHeader>
               <CardContent>

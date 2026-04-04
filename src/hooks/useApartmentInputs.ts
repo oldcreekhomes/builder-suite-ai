@@ -97,7 +97,7 @@ function computeFinancials(inputs: ApartmentInputs) {
 
   const noi = egi - totalOpEx;
 
-  const loanAmount = inputs.purchase_price * (inputs.ltv / 100);
+  const loanAmount = (inputs.purchase_price + inputs.construction_costs) * (inputs.ltv / 100);
   const monthlyRate = inputs.interest_rate / 100 / 12;
   const totalPayments = inputs.amortization_years * 12;
   const monthlyPayment =
