@@ -1,28 +1,28 @@
 
 
-## Fix: Sort Bid Packages by Cost Code Within Groups
+## Fix: A/P Aging vs Balance Sheet $150 Discrepancy
 
-### Problem
-The `filteredGroupedBiddingItems` memo in `BiddingTable.tsx` groups items and sorts the groups numerically, but does **not** sort items within each group by cost code. The sorting that exists in `useBiddingData.ts` is bypassed because `BiddingTable` re-groups from `filteredBiddingItems` independently.
+### Root Cause
 
-This affects all three tabs (Draft, Bidding, Closed) — the screenshot just makes it most visible in Closed because it has 15 items.
+The previous credit fix for OCH-02302 added a **$150 debit to A/P** (line 3 on JE `4b3dbb7c`). This extra A/P debit reduces the Balance Sheet A/P by $150, but the A/P Aging report (which calculates from bills data) has no way to account for arbitrary A/P debit adjustments. Result:
+
+- Balance Sheet A/P: **$147,414.12** (includes the -$150 A/P debit)
+- A/P Aging total: **$147,564.12** (bills-based, doesn't see the debit)
 
 ### Fix
-In `src/components/bidding/BiddingTable.tsx`, add a sort step inside the `filteredGroupedBiddingItems` memo — after grouping and before returning, sort each group's items by cost code numerically (matching the existing sort logic in `useBiddingData.ts`).
 
-### Technical detail
-Add after line 121 (after pushing items into groups), before the group sort:
+Change line 3 of JE `4b3dbb7c` from **Debit A/P (2010) $150** to **Debit WIP (1430) $150**. The credit memo originally reduced WIP by $500 (posting JE `4cf0fee1`). Attributing $150 back to WIP is the correct offset — it shouldn't reduce A/P twice.
 
-```typescript
-Object.values(grouped).forEach(items => {
-  items.sort((a, b) => {
-    const numA = parseFloat(a.cost_codes?.code || '0');
-    const numB = parseFloat(b.cost_codes?.code || '0');
-    return numA - numB;
-  });
-});
-```
+**After the fix:**
+- JE `4b3dbb7c`: Credit A/P $500, Debit Cash $350, Debit WIP $150 → balanced
+- BS A/P increases by $150 → **$147,564.12** (matches aging)
+- WIP increases by $150 (partial reversal of credit's cost reduction)
+- Cash unchanged → bank balance unaffected
+- Balance Sheet stays balanced (Assets +$150, Liabilities +$150)
+
+### Implementation
+Single database migration: update `journal_entry_lines` set `account_id` to the WIP account (1430) for line `dd13533a`.
 
 ### Files changed
-- `src/components/bidding/BiddingTable.tsx`
+- New migration SQL file
 
