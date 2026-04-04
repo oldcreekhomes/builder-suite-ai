@@ -4,12 +4,12 @@ import { Input } from "@/components/ui/input";
 import { AppSidebar } from "@/components/AppSidebar";
 import { SidebarProvider, SidebarInset } from "@/components/ui/sidebar";
 import { DashboardHeader } from "@/components/DashboardHeader";
-import { useApartmentInputs, ApartmentInputs as ApartmentInputsType } from "@/hooks/useApartmentInputs";
+import { useApartmentInputs, ApartmentInputs as ApartmentInputsType, fmt } from "@/hooks/useApartmentInputs";
 import { Loader2 } from "lucide-react";
 
 const ApartmentInputsPage = () => {
   const { projectId } = useParams();
-  const { inputs, isLoading, updateInput } = useApartmentInputs(projectId);
+  const { inputs, computed, isLoading, updateInput } = useApartmentInputs(projectId);
 
   if (isLoading) {
     return (
@@ -65,7 +65,12 @@ const ApartmentInputsPage = () => {
               <CardContent>
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-6 text-sm">
                   <div className="space-y-2">
-                    <EditableRow label="Real Estate Taxes ($)" field="taxes" value={inputs.taxes} onChange={updateInput} prefix="$" />
+                    <EditableRow label="Tax Rate (%)" field="tax_rate" value={inputs.tax_rate} onChange={updateInput} suffix="%" />
+                    <EditableRow label="Estimated Value ($)" field="estimated_value" value={inputs.estimated_value} onChange={updateInput} prefix="$" />
+                    <div className="flex justify-between items-center">
+                      <span className="text-muted-foreground">Total Taxes ($)</span>
+                      <span className="text-sm font-medium">{fmt(computed.taxes)}</span>
+                    </div>
                     <EditableRow label="Insurance ($)" field="insurance" value={inputs.insurance} onChange={updateInput} prefix="$" />
                     <EditableRow label="Utilities ($)" field="utilities" value={inputs.utilities} onChange={updateInput} prefix="$" />
                     <EditableRow label="Repairs & Maintenance ($)" field="repairs_maintenance" value={inputs.repairs_maintenance} onChange={updateInput} prefix="$" />

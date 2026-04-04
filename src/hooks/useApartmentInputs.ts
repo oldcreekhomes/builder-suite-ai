@@ -12,6 +12,8 @@ export interface ApartmentInputs {
   interest_rate: number;
   amortization_years: number;
   loan_term_years: number;
+  tax_rate: number;
+  estimated_value: number;
   taxes: number;
   insurance: number;
   utilities: number;
@@ -32,6 +34,8 @@ const DEFAULT_INPUTS: ApartmentInputs = {
   interest_rate: 6.5,
   amortization_years: 30,
   loan_term_years: 30,
+  tax_rate: 2.0,
+  estimated_value: 25000000,
   taxes: 500000,
   insurance: 250000,
   utilities: 200000,
@@ -53,9 +57,10 @@ function computeFinancials(inputs: ApartmentInputs) {
 
   const managementFee = egi * (inputs.management_fee_percent / 100);
   const reserves = units * inputs.reserves_per_unit;
+  const taxes = inputs.estimated_value * (inputs.tax_rate / 100);
 
   const totalOpEx =
-    inputs.taxes +
+    taxes +
     inputs.insurance +
     inputs.utilities +
     inputs.repairs_maintenance +
@@ -93,6 +98,7 @@ function computeFinancials(inputs: ApartmentInputs) {
     egi,
     managementFee,
     reserves,
+    taxes,
     totalOpEx,
     noi,
     loanAmount,
