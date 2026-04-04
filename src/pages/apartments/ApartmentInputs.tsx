@@ -63,7 +63,7 @@ const ApartmentInputsPage = () => {
             <Card>
               <CardHeader><CardTitle className="text-sm font-medium">Operating Expenses</CardTitle></CardHeader>
               <CardContent>
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-6 text-sm">
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 text-sm">
                   <div className="space-y-2">
                     <EditableRow label="Tax Rate" field="tax_rate" value={inputs.tax_rate} onChange={updateInput} format="percent" decimals={4} />
                     <EditableRow label="Estimated Value" field="estimated_value" value={inputs.estimated_value} onChange={updateInput} format="currency" />
@@ -77,8 +77,6 @@ const ApartmentInputsPage = () => {
                     <EditableRow label="Payroll" field="payroll" value={inputs.payroll} onChange={updateInput} format="currency" />
                     <EditableRow label="General & Administrative" field="general_admin" value={inputs.general_admin} onChange={updateInput} format="currency" />
                     <EditableRow label="Marketing" field="marketing" value={inputs.marketing} onChange={updateInput} format="currency" />
-                  </div>
-                  <div className="space-y-2">
                     <EditableRow label="Reserves per Unit" field="reserves_per_unit" value={inputs.reserves_per_unit} onChange={updateInput} format="currency" />
                   </div>
                 </div>
