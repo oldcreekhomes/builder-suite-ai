@@ -64,32 +64,6 @@ const ApartmentDashboard = () => {
               </Card>
             </div>
 
-            <Card>
-              <CardHeader><CardTitle className="text-sm font-medium">Expense &amp; NOI Summary</CardTitle></CardHeader>
-              <CardContent>
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-6 text-sm">
-                  <div className="space-y-2">
-                    <Row label="Taxes" value={fmt(inputs.taxes)} />
-                    <Row label="Insurance" value={fmt(inputs.insurance)} />
-                    <Row label="Utilities" value={fmt(inputs.utilities)} />
-                    <Row label="Repairs & Maintenance" value={fmt(inputs.repairs_maintenance)} />
-                  </div>
-                  <div className="space-y-2">
-                    <Row label={`Management Fee (${fmtPct(inputs.management_fee_percent)})`} value={fmt(computed.managementFee)} />
-                    <Row label="Payroll" value={fmt(inputs.payroll)} />
-                    <Row label="General & Administrative" value={fmt(inputs.general_admin)} />
-                    <Row label="Marketing" value={fmt(inputs.marketing)} />
-                  </div>
-                  <div className="space-y-2">
-                    <Row label="Reserves (per unit)" value={fmt(computed.reserves)} />
-                    <Row label="Total Operating Expenses" value={fmt(computed.totalOpEx)} bold />
-                    <Row label="NOI" value={fmt(computed.noi)} bold />
-                    <Row label="Expense Ratio" value={fmtPct(computed.expenseRatio)} />
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
               <Card>
                 <CardHeader><CardTitle className="text-sm font-medium">Property Assumptions</CardTitle></CardHeader>

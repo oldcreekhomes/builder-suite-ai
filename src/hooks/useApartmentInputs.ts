@@ -75,6 +75,16 @@ const DEFAULT_INPUTS: ApartmentInputs = {
   professional_fees: 0,
   capex_reserve: 0,
   other_misc: 0,
+  target_cap_rate: 0,
+  target_dscr: 0,
+  target_cash_on_cash: 0,
+  target_irr: 0,
+  target_grm: 0,
+  exit_cap_rate: 0,
+  hold_period_years: 5,
+  rent_growth_rate: 0,
+  expense_growth_rate: 0,
+  closing_costs: 0,
 };
 
 const INPUT_FIELDS = Object.keys(DEFAULT_INPUTS) as (keyof ApartmentInputs)[];
