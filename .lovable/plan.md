@@ -1,39 +1,20 @@
 
 
-## Dynamic Operating Expenses with Balanced Columns
+## Fix Operating Expenses: Remove Indent, Alphabetize, Balance Columns
 
-### Overview
-Make operating expense line items addable/removable, and always keep the two columns level (balanced row counts, with any extra row on the left side).
+### Problems
+1. **Indentation**: The `RemovableEditableRow` has an X button that takes up space in the layout (`flex items-center gap-1`), pushing the label text to the right compared to the fixed rows above.
+2. **Not alphabetical**: The optional expenses are listed in insertion order, not alphabetically.
+3. **Unbalanced columns**: Current logic splits optional items 50/50 (`Math.ceil(15/2) = 8` left, `7` right), but ignores the 3 fixed rows (Tax Rate, Estimated Value, Taxes) in the left column. Left card ends up with 11 rows vs right with 7.
 
-### Design
+### Solution
 
-**Fixed rows** (always shown, top of left column): Tax Rate, Estimated Value, Taxes (computed). These cannot be removed.
+**1. Remove indentation** -- Change the X button to use absolute positioning (e.g., `absolute -left-4`) so it doesn't affect the text flow. The label will align flush left, matching the fixed rows above it.
 
-**Optional rows** (15 items): Insurance, Utilities, Repairs & Maintenance, Landscaping, Snow Removal, Trash Removal, Pest Control, Management Fee, General & Administrative, Marketing, Reserves per Unit, Security, Professional Fees, CapEx Reserve, Other / Miscellaneous. Each can be hidden or shown.
+**2. Alphabetize** -- Sort the `OPTIONAL_EXPENSES` array alphabetically by label: CapEx Reserve, General & Administrative, Insurance, Landscaping, Management Fee, Marketing, Other / Miscellaneous, Pest Control, Professional Fees, Repairs & Maintenance, Reserves per Unit, Security, Snow Removal, Trash Removal, Utilities.
 
-**Visibility storage**: Use `localStorage` keyed by project ID so preferences persist without a database change. Default: all items visible.
+**3. Balance columns accounting for fixed rows** -- The left card always has 3 fixed rows. To balance total row counts: `leftOptionalCount = Math.ceil((totalVisible - 3) / 2)`, `rightCount = totalVisible - leftOptionalCount`. With 15 visible items: left gets 6 optional (9 total), right gets 9. Equal. With 14: left gets 6 (9 total), right gets 8 -- extra on left.
 
-**Column balancing**: Collect all visible optional items into a single ordered list. Split into two columns: left gets `Math.ceil(n/2)` items, right gets the rest. The fixed rows (Tax Rate, Estimated Value, Taxes) always appear at the top of the left column, before the optional items assigned to it.
-
-**Remove**: Each optional row gets a small `X` icon on hover (left of the label) to hide it. Hiding sets the field value to 0 in the database and removes it from view.
-
-**Add**: An "Add Expense" button below the cards opens a dropdown/popover listing all currently hidden items. Clicking one adds it back to the visible list.
-
-### Technical Details
-
-```text
-┌─ Operating Expenses ─────────┐  ┌─ Operating Expenses (cont.) ─┐
-│ Tax Rate            0.01135  │  │ [optional item 1]            │
-│ Estimated Value  $3,000,000  │  │ [optional item 2]            │
-│ Taxes              $34,050   │  │ [optional item 3]            │
-│ [optional item 1]            │  │ ...                          │
-│ [optional item 2]            │  │                              │
-│ [optional item 3]            │  │                              │
-│ [optional item 4] ← extra    │  │                              │
-└──────────────────────────────┘  └──────────────────────────────┘
-                    [+ Add Expense]
-```
-
-### Files Changed
-- `src/pages/apartments/ApartmentInputs.tsx` — Refactor operating expenses section to use a dynamic visible-items list, add remove (X) buttons, add "Add Expense" dropdown, and balance columns with `Math.ceil` split
+### File Changed
+- `src/pages/apartments/ApartmentInputs.tsx`
 
