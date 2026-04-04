@@ -152,25 +152,32 @@ export type Database = {
         Row: {
           amortization_years: number
           avg_rent_per_unit: number
+          capex_reserve: number
           created_at: string | null
           estimated_value: number
           general_admin: number
           id: string
           insurance: number
           interest_rate: number
+          landscaping: number
           loan_term_years: number
           ltv: number
           management_fee_percent: number
           marketing: number
           number_of_units: number
+          other_misc: number
           owner_id: string
           payroll: number
+          pest_control: number
+          professional_fees: number
           project_id: string
           purchase_price: number
           repairs_maintenance: number
           reserves_per_unit: number
+          security: number
           tax_rate: number
           taxes: number
+          trash_removal: number
           updated_at: string | null
           utilities: number
           vacancy_rate: number
@@ -178,25 +185,32 @@ export type Database = {
         Insert: {
           amortization_years?: number
           avg_rent_per_unit?: number
+          capex_reserve?: number
           created_at?: string | null
           estimated_value?: number
           general_admin?: number
           id?: string
           insurance?: number
           interest_rate?: number
+          landscaping?: number
           loan_term_years?: number
           ltv?: number
           management_fee_percent?: number
           marketing?: number
           number_of_units?: number
+          other_misc?: number
           owner_id: string
           payroll?: number
+          pest_control?: number
+          professional_fees?: number
           project_id: string
           purchase_price?: number
           repairs_maintenance?: number
           reserves_per_unit?: number
+          security?: number
           tax_rate?: number
           taxes?: number
+          trash_removal?: number
           updated_at?: string | null
           utilities?: number
           vacancy_rate?: number
@@ -204,25 +218,32 @@ export type Database = {
         Update: {
           amortization_years?: number
           avg_rent_per_unit?: number
+          capex_reserve?: number
           created_at?: string | null
           estimated_value?: number
           general_admin?: number
           id?: string
           insurance?: number
           interest_rate?: number
+          landscaping?: number
           loan_term_years?: number
           ltv?: number
           management_fee_percent?: number
           marketing?: number
           number_of_units?: number
+          other_misc?: number
           owner_id?: string
           payroll?: number
+          pest_control?: number
+          professional_fees?: number
           project_id?: string
           purchase_price?: number
           repairs_maintenance?: number
           reserves_per_unit?: number
+          security?: number
           tax_rate?: number
           taxes?: number
+          trash_removal?: number
           updated_at?: string | null
           utilities?: number
           vacancy_rate?: number

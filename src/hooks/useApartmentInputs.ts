@@ -23,6 +23,13 @@ export interface ApartmentInputs {
   general_admin: number;
   marketing: number;
   reserves_per_unit: number;
+  landscaping: number;
+  trash_removal: number;
+  pest_control: number;
+  security: number;
+  professional_fees: number;
+  capex_reserve: number;
+  other_misc: number;
 }
 
 const DEFAULT_INPUTS: ApartmentInputs = {
@@ -45,6 +52,13 @@ const DEFAULT_INPUTS: ApartmentInputs = {
   general_admin: 100000,
   marketing: 50000,
   reserves_per_unit: 295,
+  landscaping: 0,
+  trash_removal: 0,
+  pest_control: 0,
+  security: 0,
+  professional_fees: 0,
+  capex_reserve: 0,
+  other_misc: 0,
 };
 
 const INPUT_FIELDS = Object.keys(DEFAULT_INPUTS) as (keyof ApartmentInputs)[];
@@ -64,10 +78,17 @@ function computeFinancials(inputs: ApartmentInputs) {
     inputs.insurance +
     inputs.utilities +
     inputs.repairs_maintenance +
+    inputs.landscaping +
+    inputs.trash_removal +
+    inputs.pest_control +
     managementFee +
     inputs.payroll +
     inputs.general_admin +
     inputs.marketing +
+    inputs.security +
+    inputs.professional_fees +
+    inputs.capex_reserve +
+    inputs.other_misc +
     reserves;
 
   const noi = egi - totalOpEx;
