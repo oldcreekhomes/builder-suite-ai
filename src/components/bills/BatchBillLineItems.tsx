@@ -130,7 +130,7 @@ export function BatchBillLineItems({ lines, onLinesChange }: BatchBillLineItemsP
                   </div>
                   <div className="col-span-5">
                     <Input 
-                      placeholder="Job cost memo"
+                      placeholder="Description"
                       value={line.memo || line.description || ''}
                       onChange={(e) => updateLine(globalIndex, 'memo', e.target.value)}
                       className="h-8"
