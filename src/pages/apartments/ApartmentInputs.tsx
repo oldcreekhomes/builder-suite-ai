@@ -103,14 +103,28 @@ function EditableRow({ label, field, value, onChange, prefix, suffix }: {
   prefix?: string;
   suffix?: string;
 }) {
+  const [localValue, setLocalValue] = useState(String(value));
+  const [isFocused, setIsFocused] = useState(false);
+
+  useEffect(() => {
+    if (!isFocused) {
+      setLocalValue(String(value));
+    }
+  }, [value, isFocused]);
+
   return (
     <div className="flex justify-between items-center">
       <span className="text-muted-foreground">{label}</span>
       <div className="flex items-center gap-1">
         {prefix && <span className="text-muted-foreground text-sm">{prefix}</span>}
         <Input
-          value={String(value)}
-          onChange={(e) => onChange(field, e.target.value)}
+          value={localValue}
+          onChange={(e) => {
+            setLocalValue(e.target.value);
+            onChange(field, e.target.value);
+          }}
+          onFocus={() => setIsFocused(true)}
+          onBlur={() => setIsFocused(false)}
           className="w-28 h-7 text-right border-transparent bg-transparent hover:bg-muted/50 focus:bg-background focus:border-input text-sm px-2"
         />
         {suffix && <span className="text-muted-foreground text-sm">{suffix}</span>}
