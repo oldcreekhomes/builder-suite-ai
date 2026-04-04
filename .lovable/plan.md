@@ -1,50 +1,39 @@
 
 
-## Alphabetize Employee Access Preferences Sections
+## Fix Apartment Page Headers to Match Standard Layout
 
 ### Problem
-The heading sections in the Employee Access preferences panel are not in alphabetical order, and neither are the sub-items within each section.
-
-### Current order of sections
-1. Dashboards
-2. Estimating
-3. Budgets
-4. Cost Codes
-5. Accounting
-6. Employees
-7. Projects
-8. Templates
-9. Marketplace
-10. Apartments
-
-### New alphabetical order of sections
-1. Accounting
-2. Apartments
-3. Budgets
-4. Cost Codes
-5. Dashboards
-6. Employees
-7. Estimating
-8. Marketplace
-9. Projects
-10. Templates
-
-### Sub-items alphabetized within sections
-
-**Accounting** (currently: Access Accounting Menu, Access Manage Bills, Access Transactions, Access Reports, Close the Books, Undo Reconciliation, Delete Invoices):
-→ Access Accounting Menu, Access Manage Bills, Access Reports, Access Transactions, Close the Books, Delete Invoices, Undo Reconciliation
-
-**Dashboards** (currently: PM Dashboard, Owner Dashboard, Accountant Dashboard):
-→ Accountant Dashboard, Owner Dashboard, PM Dashboard
-
-**Templates** (currently: Access Templates, Edit Templates):
-→ Already alphabetical, no change needed.
-
-All other sections have only one sub-item — no reordering needed.
+All four apartment pages use a custom inline header (smaller `h-12`, with `SidebarTrigger` icon, different font) instead of the standard `DashboardHeader` component used by pages like Files. This causes the header border to be misaligned with the sidebar branding section and the styling to be inconsistent.
 
 ### Fix
-Reorder the JSX blocks in `src/components/employees/EmployeeAccessPreferences.tsx` to match the alphabetical order above, and reorder switch items within multi-item sections.
+Replace the custom header markup in all four apartment pages with the standard page structure used by Files and other project pages: `SidebarProvider` + `AppSidebar` + `SidebarInset` + `DashboardHeader` with `projectId`, `title`, and `subtitle` props.
+
+Each page will follow this pattern (using Files as the reference):
+```
+<SidebarProvider>
+  <div className="flex min-h-screen w-full">
+    <AppSidebar />
+    <SidebarInset className="flex-1">
+      <DashboardHeader title="..." subtitle="..." projectId={projectId} />
+      <div className="flex-1 px-6 pt-3 pb-6">
+        {/* page content */}
+      </div>
+    </SidebarInset>
+  </div>
+</SidebarProvider>
+```
+
+Since these are project-scoped pages, `projectId` will come from `useParams`.
+
+### Page titles and subtitles
+- **Dashboard**: title="Dashboard", subtitle="Apartment investment overview and key metrics."
+- **Inputs**: title="Inputs", subtitle="Property, revenue, and loan assumptions."
+- **Income Statement**: title="Income Statement", subtitle="Pro forma income statement projections."
+- **Amortization Schedule**: title="Amortization Schedule", subtitle="Loan amortization breakdown by year."
 
 ### Files changed
-- `src/components/employees/EmployeeAccessPreferences.tsx`
+- `src/pages/apartments/ApartmentDashboard.tsx`
+- `src/pages/apartments/ApartmentInputs.tsx`
+- `src/pages/apartments/ApartmentIncomeStatement.tsx`
+- `src/pages/apartments/ApartmentAmortizationSchedule.tsx`
 
