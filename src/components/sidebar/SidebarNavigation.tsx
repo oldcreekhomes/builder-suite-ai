@@ -20,7 +20,8 @@ import {
   Calculator,
   ChevronDown,
   BarChart3,
-  Store
+  Store,
+  Building
 } from "lucide-react";
 import { UnreadBadge } from "@/components/ui/unread-badge";
 import { useCompanyUsers } from "@/hooks/useCompanyUsers";
