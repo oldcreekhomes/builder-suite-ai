@@ -1,25 +1,38 @@
 
 
-## Redesign Inputs Page to Match Dashboard Layout
+## Replace Single Taxes Field with Tax Rate + Estimated Value Inputs
 
 ### Problem
-The Inputs page uses a form-style layout with stacked label+input fields in grids, while the Dashboard uses a clean row-based layout with label on the left and value on the right. The user wants a uniform look.
+Currently "Real Estate Taxes" is a single dollar input. The user wants two inputs — **Tax Rate (%)** and **Estimated Value ($)** — with the total taxes computed as `estimated_value * (tax_rate / 100)`.
 
-### Approach
-Restructure the Inputs page to mirror the Dashboard's exact card structure and row layout. Each row will show the label on the left and an inline editable input on the right (instead of a static value). The input will be a compact, borderless-style field that blends into the row layout.
+### Database Migration
+Add two new columns to `apartment_inputs`, keep the existing `taxes` column as the computed result (or remove it in favor of computing on the fly):
 
-### New Layout
+```sql
+ALTER TABLE public.apartment_inputs
+  ADD COLUMN tax_rate numeric NOT NULL DEFAULT 2.0,
+  ADD COLUMN estimated_value numeric NOT NULL DEFAULT 25000000;
+```
 
-**Card 1 & 2 (side-by-side, top row):**
-- "Property & Revenue" card (matches Dashboard's "Income Summary" position) with rows: Number of Units, Average Rent per Unit, Vacancy Rate, Purchase Price
-- "Loan Terms" card (matches "Loan Summary" position) with rows: Loan-to-Value, Interest Rate, Amortization (years), Loan Term (years)
+The `taxes` column will remain but will no longer be directly edited — it will be derived as `estimated_value * tax_rate / 100`. We keep it for backward compatibility but the hook will compute taxes from the two new fields.
 
-**Card 3 (full-width, middle):**
-- "Operating Expenses" card (matches "Expense & NOI Summary") in a 3-column grid layout with rows: Taxes, Insurance, Utilities, Repairs & Maintenance | Management Fee, Payroll, General & Administrative, Marketing | Reserves per Unit
+### Hook Changes (`src/hooks/useApartmentInputs.ts`)
+- Add `tax_rate` and `estimated_value` to the `ApartmentInputs` interface and `DEFAULT_INPUTS`
+- In `computeFinancials`, compute `taxes = inputs.estimated_value * (inputs.tax_rate / 100)` and use that instead of `inputs.taxes`
+- Add both new fields to `INPUT_FIELDS`
 
-### Row Component
-Replace the current stacked Field component with an inline `EditableRow` that uses the same `flex justify-between` pattern as the Dashboard's `Row` component, but renders a right-aligned, compact input instead of static text. The input will have minimal styling (no visible border until focus, right-aligned text) to maintain the clean dashboard aesthetic.
+### UI Changes (`src/pages/apartments/ApartmentInputs.tsx`)
+Replace the single "Real Estate Taxes ($)" `EditableRow` with three rows:
+1. **Tax Rate (%)** — editable, field `tax_rate`, suffix `%`
+2. **Estimated Value ($)** — editable, field `estimated_value`, prefix `$`
+3. **Total Taxes ($)** — read-only computed display showing `fmt(estimated_value * tax_rate / 100)`
 
-### Files changed
-- `src/pages/apartments/ApartmentInputs.tsx` -- complete restructure
+### Other Pages
+Dashboard, Income Statement, and Amortization Schedule already consume `computed.totalOpEx` and the taxes value flows through `computeFinancials` — no changes needed on those pages since taxes will now be computed from the two new fields automatically.
+
+### Files Changed
+- New migration SQL
+- `src/hooks/useApartmentInputs.ts` — add `tax_rate`, `estimated_value`; compute taxes
+- `src/pages/apartments/ApartmentInputs.tsx` — replace single taxes row with three rows
+- `src/integrations/supabase/types.ts` — update generated types
 
