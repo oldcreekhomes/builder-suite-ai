@@ -198,7 +198,7 @@ export function useApartmentInputs(projectId: string | undefined) {
 
       debounceTimers.current[field] = setTimeout(async () => {
         const { error } = await supabase
-          .from("apartment_inputs" as any)
+          .from("apartment_inputs")
           .update({ [field]: numValue } as any)
           .eq("id", data.id);
 
