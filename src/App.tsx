@@ -141,7 +141,7 @@ const AppContent = () => {
               <Route path="/templates/subcontractor-contract" element={<ProtectedRoute><TemplatesGuard><SubcontractorContract /></TemplatesGuard></ProtectedRoute>} />
               <Route path="/templates/subcontractor-contract/edit" element={<ProtectedRoute><TemplatesGuard><SubcontractorContractEdit /></TemplatesGuard></ProtectedRoute>} />
               <Route path="/marketplace" element={<ProtectedRoute><MarketplaceGuard><Marketplace /></MarketplaceGuard></ProtectedRoute>} />
-              <Route path="/apartments" element={<ProtectedRoute><Apartments /></ProtectedRoute>} />
+              <Route path="/apartments" element={<ProtectedRoute><Suspense fallback={<div className="p-6">Loading...</div>}><Apartments /></Suspense></ProtectedRoute>} />
               <Route path="/companies" element={<ProtectedRoute><Companies /></ProtectedRoute>} />
               <Route path="/settings" element={<ProtectedRoute><Settings /></ProtectedRoute>} />
               {navItems.map(({ to, page: Page }) => (
