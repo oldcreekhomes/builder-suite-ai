@@ -4,10 +4,14 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { AppSidebar } from "@/components/AppSidebar";
 import { SidebarProvider, SidebarInset } from "@/components/ui/sidebar";
 import { DashboardHeader } from "@/components/DashboardHeader";
+import { useApartmentInputs, fmt } from "@/hooks/useApartmentInputs";
+import { Loader2 } from "lucide-react";
 
 function generateAmortization(principal: number, annualRate: number, years: number) {
   const monthlyRate = annualRate / 12;
   const totalPayments = years * 12;
+  if (monthlyRate <= 0 || totalPayments <= 0 || principal <= 0) return [];
+
   const monthlyPayment = principal * (monthlyRate * Math.pow(1 + monthlyRate, totalPayments)) / (Math.pow(1 + monthlyRate, totalPayments) - 1);
 
   const rows: { year: number; beginningBalance: number; totalPayment: number; totalPrincipal: number; totalInterest: number; endingBalance: number }[] = [];
@@ -38,22 +42,37 @@ function generateAmortization(principal: number, annualRate: number, years: numb
   return rows;
 }
 
-const fmt = (n: number) => n.toLocaleString("en-US", { style: "currency", currency: "USD", minimumFractionDigits: 0, maximumFractionDigits: 0 });
-
 const ApartmentAmortizationSchedule = () => {
   const { projectId } = useParams();
-  const rows = useMemo(() => generateAmortization(18_750_000, 0.065, 30), []);
+  const { inputs, computed, isLoading } = useApartmentInputs(projectId);
+
+  const rows = useMemo(
+    () => generateAmortization(computed.loanAmount, inputs.interest_rate / 100, inputs.amortization_years),
+    [computed.loanAmount, inputs.interest_rate, inputs.amortization_years]
+  );
+
+  if (isLoading) {
+    return (
+      <SidebarProvider>
+        <div className="flex min-h-screen w-full">
+          <AppSidebar />
+          <SidebarInset className="flex-1">
+            <DashboardHeader title="Amortization Schedule" subtitle="Loan amortization breakdown by year." projectId={projectId} />
+            <div className="flex-1 flex items-center justify-center">
+              <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+            </div>
+          </SidebarInset>
+        </div>
+      </SidebarProvider>
+    );
+  }
 
   return (
     <SidebarProvider>
       <div className="flex min-h-screen w-full">
         <AppSidebar />
         <SidebarInset className="flex-1">
-          <DashboardHeader
-            title="Amortization Schedule"
-            subtitle="Loan amortization breakdown by year."
-            projectId={projectId}
-          />
+          <DashboardHeader title="Amortization Schedule" subtitle="Loan amortization breakdown by year." projectId={projectId} />
           <div className="flex-1 px-6 pt-3 pb-6 overflow-auto">
             <Card>
               <CardHeader><CardTitle className="text-sm font-medium">Loan Amortization Schedule</CardTitle></CardHeader>
