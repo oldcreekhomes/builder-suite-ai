@@ -10,11 +10,11 @@ import { Loader2 } from "lucide-react";
 function generateAmortization(principal: number, annualRate: number, years: number) {
   const monthlyRate = annualRate / 12;
   const totalPayments = years * 12;
-  if (monthlyRate <= 0 || totalPayments <= 0 || principal <= 0) return [];
+  if (monthlyRate <= 0 || totalPayments <= 0 || principal <= 0) return { rows: [], monthlyPayment: 0 };
 
   const monthlyPayment = principal * (monthlyRate * Math.pow(1 + monthlyRate, totalPayments)) / (Math.pow(1 + monthlyRate, totalPayments) - 1);
 
-  const rows: { year: number; beginningBalance: number; totalPayment: number; totalPrincipal: number; totalInterest: number; endingBalance: number }[] = [];
+  const rows: { year: number; beginningBalance: number; totalPayment: number; totalPrincipal: number; totalInterest: number; endingBalance: number; monthlyPayment: number; monthlyPrincipal: number; monthlyInterest: number }[] = [];
 
   let balance = principal;
   for (let yr = 1; yr <= years; yr++) {
@@ -37,9 +37,12 @@ function generateAmortization(principal: number, annualRate: number, years: numb
       totalPrincipal: yearPrincipal,
       totalInterest: yearInterest,
       endingBalance: Math.max(balance, 0),
+      monthlyPayment,
+      monthlyPrincipal: yearPrincipal / 12,
+      monthlyInterest: yearInterest / 12,
     });
   }
-  return rows;
+  return { rows, monthlyPayment };
 }
 
 const ApartmentAmortizationSchedule = () => {
