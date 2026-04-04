@@ -175,6 +175,7 @@ export type Database = {
           repairs_maintenance: number
           reserves_per_unit: number
           security: number
+          snow_removal: number
           tax_rate: number
           taxes: number
           trash_removal: number
@@ -208,6 +209,7 @@ export type Database = {
           repairs_maintenance?: number
           reserves_per_unit?: number
           security?: number
+          snow_removal?: number
           tax_rate?: number
           taxes?: number
           trash_removal?: number
@@ -241,6 +243,7 @@ export type Database = {
           repairs_maintenance?: number
           reserves_per_unit?: number
           security?: number
+          snow_removal?: number
           tax_rate?: number
           taxes?: number
           trash_removal?: number

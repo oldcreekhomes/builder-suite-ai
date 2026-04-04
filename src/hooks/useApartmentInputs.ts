@@ -81,10 +81,10 @@ function computeFinancials(inputs: ApartmentInputs) {
     inputs.utilities +
     inputs.repairs_maintenance +
     inputs.landscaping +
+    inputs.snow_removal +
     inputs.trash_removal +
     inputs.pest_control +
     managementFee +
-    inputs.payroll +
     inputs.general_admin +
     inputs.marketing +
     inputs.security +
