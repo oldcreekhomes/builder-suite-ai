@@ -947,7 +947,7 @@ export function EditBillDialog({ open, onOpenChange, billId }: EditBillDialogPro
                   <div className="grid grid-cols-12 gap-2 p-3 bg-muted font-medium text-sm">
                     <div className="col-span-2">Account</div>
                     <div className="col-span-2">Project</div>
-                    <div className={isApprovedBill ? "col-span-5" : "col-span-4"}>Memo</div>
+                    <div className={isApprovedBill ? "col-span-5" : "col-span-4"}>Description</div>
                     <div className="col-span-1">Quantity</div>
                     <div className="col-span-1">Cost</div>
                     <div className="col-span-1">Total</div>
