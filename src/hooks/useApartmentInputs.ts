@@ -8,6 +8,7 @@ export interface ApartmentInputs {
   avg_rent_per_unit: number;
   vacancy_rate: number;
   purchase_price: number;
+  construction_costs: number;
   ltv: number;
   interest_rate: number;
   amortization_years: number;
