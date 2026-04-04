@@ -122,7 +122,7 @@ export function useApartmentInputs(projectId: string | undefined) {
 
       // Try to fetch existing row
       const { data: existing, error } = await supabase
-        .from("apartment_inputs" as any)
+        .from("apartment_inputs")
         .select("*")
         .eq("project_id", projectId)
         .maybeSingle();
@@ -132,7 +132,7 @@ export function useApartmentInputs(projectId: string | undefined) {
         throw error;
       }
 
-      if (existing) return existing as any;
+      if (existing) return existing;
 
       // Determine owner_id: for employees use home_builder_id, for owners use own id
       const { data: userData } = await supabase
@@ -148,8 +148,8 @@ export function useApartmentInputs(projectId: string | undefined) {
 
       // Create default row
       const { data: newRow, error: insertError } = await supabase
-        .from("apartment_inputs" as any)
-        .insert({ project_id: projectId, owner_id: ownerId } as any)
+        .from("apartment_inputs")
+        .insert({ project_id: projectId, owner_id: ownerId })
         .select()
         .single();
 
