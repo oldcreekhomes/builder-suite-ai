@@ -59,14 +59,21 @@ const ApartmentIncomeStatement = () => {
                       <TotalRow label="Effective Gross Income" annual={fmt(computed.egi)} perUnit={perUnit(computed.egi)} pct="100.0%" />
 
                       <SectionHeader title="Operating Expenses" />
-                      <StatementRow label="Real Estate Taxes" annual={fmt(inputs.taxes)} perUnit={perUnit(inputs.taxes)} pct={pctEgi(inputs.taxes)} />
+                      <StatementRow label="Real Estate Taxes" annual={fmt(computed.taxes)} perUnit={perUnit(computed.taxes)} pct={pctEgi(computed.taxes)} />
                       <StatementRow label="Insurance" annual={fmt(inputs.insurance)} perUnit={perUnit(inputs.insurance)} pct={pctEgi(inputs.insurance)} />
                       <StatementRow label="Utilities" annual={fmt(inputs.utilities)} perUnit={perUnit(inputs.utilities)} pct={pctEgi(inputs.utilities)} />
                       <StatementRow label="Repairs & Maintenance" annual={fmt(inputs.repairs_maintenance)} perUnit={perUnit(inputs.repairs_maintenance)} pct={pctEgi(inputs.repairs_maintenance)} />
+                      <StatementRow label="Landscaping / Snow Removal" annual={fmt(inputs.landscaping)} perUnit={perUnit(inputs.landscaping)} pct={pctEgi(inputs.landscaping)} />
+                      <StatementRow label="Trash Removal" annual={fmt(inputs.trash_removal)} perUnit={perUnit(inputs.trash_removal)} pct={pctEgi(inputs.trash_removal)} />
+                      <StatementRow label="Pest Control" annual={fmt(inputs.pest_control)} perUnit={perUnit(inputs.pest_control)} pct={pctEgi(inputs.pest_control)} />
                       <StatementRow label={`Management (${fmtPct(inputs.management_fee_percent)})`} annual={fmt(computed.managementFee)} perUnit={perUnit(computed.managementFee)} pct={pctEgi(computed.managementFee)} />
                       <StatementRow label="Payroll" annual={fmt(inputs.payroll)} perUnit={perUnit(inputs.payroll)} pct={pctEgi(inputs.payroll)} />
                       <StatementRow label="General & Administrative" annual={fmt(inputs.general_admin)} perUnit={perUnit(inputs.general_admin)} pct={pctEgi(inputs.general_admin)} />
                       <StatementRow label="Marketing" annual={fmt(inputs.marketing)} perUnit={perUnit(inputs.marketing)} pct={pctEgi(inputs.marketing)} />
+                      <StatementRow label="Security / Access Control" annual={fmt(inputs.security)} perUnit={perUnit(inputs.security)} pct={pctEgi(inputs.security)} />
+                      <StatementRow label="Professional Fees" annual={fmt(inputs.professional_fees)} perUnit={perUnit(inputs.professional_fees)} pct={pctEgi(inputs.professional_fees)} />
+                      <StatementRow label="CapEx Reserve" annual={fmt(inputs.capex_reserve)} perUnit={perUnit(inputs.capex_reserve)} pct={pctEgi(inputs.capex_reserve)} />
+                      <StatementRow label="Other / Miscellaneous" annual={fmt(inputs.other_misc)} perUnit={perUnit(inputs.other_misc)} pct={pctEgi(inputs.other_misc)} />
                       <StatementRow label="Reserves" annual={fmt(computed.reserves)} perUnit={perUnit(computed.reserves)} pct={pctEgi(computed.reserves)} />
                       <TotalRow label="Total Operating Expenses" annual={fmt(computed.totalOpEx)} perUnit={perUnit(computed.totalOpEx)} pct={pctEgi(computed.totalOpEx)} />
 
