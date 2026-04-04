@@ -49,10 +49,11 @@ const ApartmentAmortizationSchedule = () => {
   const { projectId } = useParams();
   const { inputs, computed, isLoading } = useApartmentInputs(projectId);
 
-  const rows = useMemo(
+  const amortization = useMemo(
     () => generateAmortization(computed.loanAmount, inputs.interest_rate / 100, inputs.amortization_years),
     [computed.loanAmount, inputs.interest_rate, inputs.amortization_years]
   );
+  const { rows, monthlyPayment } = amortization;
 
   if (isLoading) {
     return (
