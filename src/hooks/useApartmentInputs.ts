@@ -23,6 +23,13 @@ export interface ApartmentInputs {
   general_admin: number;
   marketing: number;
   reserves_per_unit: number;
+  landscaping: number;
+  trash_removal: number;
+  pest_control: number;
+  security: number;
+  professional_fees: number;
+  capex_reserve: number;
+  other_misc: number;
 }
 
 const DEFAULT_INPUTS: ApartmentInputs = {
