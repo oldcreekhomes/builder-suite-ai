@@ -24,6 +24,7 @@ export interface ApartmentInputs {
   marketing: number;
   reserves_per_unit: number;
   landscaping: number;
+  snow_removal: number;
   trash_removal: number;
   pest_control: number;
   security: number;
