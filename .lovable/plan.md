@@ -1,35 +1,39 @@
 
 
-## Split Landscaping/Snow Removal, Remove Payroll, Rename Security
+## Dynamic Operating Expenses with Balanced Columns
 
-### Changes
+### Overview
+Make operating expense line items addable/removable, and always keep the two columns level (balanced row counts, with any extra row on the left side).
 
-**1. New database column**
-- Add `snow_removal` column (numeric, default 0) to `apartment_inputs` table via migration
+### Design
 
-**2. `src/hooks/useApartmentInputs.ts`**
-- Add `snow_removal: number` to `ApartmentInputs` interface
-- Add `snow_removal: 0` to `DEFAULT_INPUTS`
-- Remove `payroll` from `totalOpEx` calculation; add `inputs.snow_removal` instead
-- Keep `payroll` in the interface/defaults so existing data doesn't break, but it won't be summed into expenses
+**Fixed rows** (always shown, top of left column): Tax Rate, Estimated Value, Taxes (computed). These cannot be removed.
 
-**3. `src/pages/apartments/ApartmentInputs.tsx`**
-- Replace single "Landscaping / Snow Removal" row with two rows: "Landscaping" (`landscaping` field) and "Snow Removal" (`snow_removal` field)
-- Remove the "Payroll" `EditableRow`
-- Change label "Security / Access Control" to "Security"
+**Optional rows** (15 items): Insurance, Utilities, Repairs & Maintenance, Landscaping, Snow Removal, Trash Removal, Pest Control, Management Fee, General & Administrative, Marketing, Reserves per Unit, Security, Professional Fees, CapEx Reserve, Other / Miscellaneous. Each can be hidden or shown.
 
-**4. `src/pages/apartments/ApartmentIncomeStatement.tsx`**
-- Replace "Landscaping / Snow Removal" with two rows: "Landscaping" and "Snow Removal"
-- Remove "Payroll" row
-- Change "Security / Access Control" label to "Security"
+**Visibility storage**: Use `localStorage` keyed by project ID so preferences persist without a database change. Default: all items visible.
 
-**5. `src/integrations/supabase/types.ts`**
-- Add `snow_removal` to the apartment_inputs type definitions
+**Column balancing**: Collect all visible optional items into a single ordered list. Split into two columns: left gets `Math.ceil(n/2)` items, right gets the rest. The fixed rows (Tax Rate, Estimated Value, Taxes) always appear at the top of the left column, before the optional items assigned to it.
+
+**Remove**: Each optional row gets a small `X` icon on hover (left of the label) to hide it. Hiding sets the field value to 0 in the database and removes it from view.
+
+**Add**: An "Add Expense" button below the cards opens a dropdown/popover listing all currently hidden items. Clicking one adds it back to the visible list.
+
+### Technical Details
+
+```text
+┌─ Operating Expenses ─────────┐  ┌─ Operating Expenses (cont.) ─┐
+│ Tax Rate            0.01135  │  │ [optional item 1]            │
+│ Estimated Value  $3,000,000  │  │ [optional item 2]            │
+│ Taxes              $34,050   │  │ [optional item 3]            │
+│ [optional item 1]            │  │ ...                          │
+│ [optional item 2]            │  │                              │
+│ [optional item 3]            │  │                              │
+│ [optional item 4] ← extra    │  │                              │
+└──────────────────────────────┘  └──────────────────────────────┘
+                    [+ Add Expense]
+```
 
 ### Files Changed
-- New migration SQL (add `snow_removal` column)
-- `src/hooks/useApartmentInputs.ts`
-- `src/pages/apartments/ApartmentInputs.tsx`
-- `src/pages/apartments/ApartmentIncomeStatement.tsx`
-- `src/integrations/supabase/types.ts`
+- `src/pages/apartments/ApartmentInputs.tsx` — Refactor operating expenses section to use a dynamic visible-items list, add remove (X) buttons, add "Add Expense" dropdown, and balance columns with `Math.ceil` split
 
