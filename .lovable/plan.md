@@ -1,50 +1,49 @@
 
-Assessment
-- The apartment feature does not appear to still be wired into the current `src` route tree. I only found the word “apartment” in unrelated text/parsing code, not in active routes/imports.
-- The session replay shows the page loads, but `#root` stays empty. So React is not mounting any UI at all.
-- There were no `[BOOT] main.tsx loaded` logs captured. That strongly suggests the failure is happening before `createRoot(...).render(...)` runs.
-- So the blank screen is likely not “the apartment page still rendering.” It is more likely an import-time crash somewhere in the app bootstrap/import graph.
 
-Plan
-1. Isolate app boot from the full route tree
-   - Temporarily reduce `src/App.tsx` to a minimal shell that can render on `/`.
-   - Goal: prove React can mount again before pulling the whole app back in.
+## Add Apartments Section to Sidebar with Permission-Gated Access
 
-2. Narrow the broken import
-   - Reintroduce route groups in chunks inside `src/App.tsx`:
-     - public pages
-     - company dashboard/root
-     - project pages
-     - accounting pages
-     - marketplace/templates
-   - When the blank screen returns, narrow from that group to the exact module.
+### Overview
+Add an "Apartments" menu item to the sidebar (below Marketplace) with four sub-pages: Dashboard, Inputs, Income Statement, and Amortization Schedule. Access is off by default for all users and controlled via the existing Employee Access preferences system.
 
-3. Fix the actual failing module
-   - Remove any top-level side effects.
-   - Move browser-only code (`window`, `document`, storage, setup code, subscriptions) into component/effect scope.
-   - Guard any unsafe assumptions so the module can import cleanly.
+### Database Migration
+Add a `can_access_apartments` boolean column to `user_notification_preferences`, defaulting to `false`:
 
-4. Harden the app so one bad page cannot blank everything
-   - Convert large page imports in `src/App.tsx` to lazy-loaded routes with `Suspense`.
-   - Keep a minimal visible fallback while route chunks load or fail.
+```sql
+ALTER TABLE public.user_notification_preferences 
+ADD COLUMN can_access_apartments boolean NOT NULL DEFAULT false;
+```
 
-5. Re-verify the startup paths
-   - Signed out `/` should show `Landing`
-   - Signed in `/` should show `RootRoute` loading/UI
-   - Protected routes should redirect or load, not blank
+### New Files
 
-Files to touch
-- `src/App.tsx` — main isolation point
-- `src/main.tsx` — keep bootstrap/fallback resilient
-- whichever page/component is identified during route reintroduction
+1. **`src/hooks/useApartmentPermissions.ts`** — follows the same pattern as `useMarketplacePermissions.ts`. Reads `can_access_apartments` from notification preferences.
 
-Technical detail
-- Even though `main.tsx` has a log at the top, ES module imports are evaluated before that top-level code runs.
-- That means a thrown error anywhere in the imported dependency tree can stop the app before your boot log and before the ErrorBoundary ever appears.
-- This matches the behavior here much better than “the apartment section is still crashing.”
-- The Vite websocket warnings are likely unrelated; they affect hot reload, not whether `#root` renders at all.
+2. **`src/components/guards/ApartmentGuard.tsx`** — follows the `MarketplaceGuard` pattern. Redirects unauthorized users with a toast.
 
-Expected result
-- Restore a visible shell first.
-- Identify the exact import causing the startup crash.
-- Make the app resilient so future feature work cannot take down the whole application at boot.
+3. **Four apartment page components** (project-scoped, at `/project/:projectId/apartments/...`):
+   - `src/pages/apartments/ApartmentDashboard.tsx` — Executive dashboard replicating the layout from screenshot 1 (Income Summary, Loan Summary, Expense & NOI Summary, Property Assumptions, Key Performance Metrics)
+   - `src/pages/apartments/ApartmentInputs.tsx` — Editable inputs page (Property & Revenue, Operating Expenses, Loan Inputs) matching screenshot 2
+   - `src/pages/apartments/ApartmentIncomeStatement.tsx` — Pro forma income statement (Revenue, Operating Expenses, Debt Service, CFADS) matching screenshot 3
+   - `src/pages/apartments/ApartmentAmortizationSchedule.tsx` — Loan amortization table matching screenshot 4
+
+   All four pages will initially be static UI scaffolds with the correct layout, sections, and labels from the screenshots. Data will be hardcoded/placeholder for now — the user can request database-backed persistence later.
+
+### Modified Files
+
+4. **`src/components/sidebar/SidebarNavigation.tsx`**:
+   - Import `useApartmentPermissions` and a `Building` icon
+   - After the Marketplace block (~line 275), add the Apartments section with four indented sub-links, gated by `canAccessApartments` (same pattern as Accounting's sub-menu)
+   - Sub-links: Dashboard, Inputs, Income Statement, Amortization Schedule
+
+5. **`src/components/employees/EmployeeAccessPreferences.tsx`**:
+   - Add an "Apartments" toggle section after the Marketplace section, controlling `can_access_apartments`
+
+6. **`src/App.tsx`**:
+   - Add lazy imports for the four apartment pages
+   - Add four routes under `/project/:projectId/apartments/...`, wrapped in `ProtectedRoute` and `ApartmentGuard`
+
+### Technical Details
+- The permission column defaults to `false`, so no existing user gains access automatically
+- The sidebar menu item and sub-links only render when `canAccessApartments` is true and permissions are loaded
+- Routes are protected by both `ProtectedRoute` (auth) and `ApartmentGuard` (permission)
+- Pages are project-scoped (under `/project/:projectId/apartments/...`) consistent with how Accounting works
+
