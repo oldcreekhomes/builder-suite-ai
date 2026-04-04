@@ -776,7 +776,7 @@ export function ManualBillEntry() {
                     showAddressColumn ? "grid-cols-25" : "grid-cols-20"
                   )}>
                   <div className="col-span-5">Cost Code</div>
-                  <div className="col-span-5">Memo</div>
+                  <div className="col-span-5">Description</div>
                   <div className="col-span-2">Quantity</div>
                   <div className="col-span-2">Cost</div>
                   <div className="col-span-2">Total</div>
