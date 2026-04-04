@@ -60,11 +60,11 @@ const ApartmentInputsPage = () => {
               </Card>
             </div>
 
-            <Card>
-              <CardHeader><CardTitle className="text-sm font-medium">Operating Expenses</CardTitle></CardHeader>
-              <CardContent>
-                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 text-sm">
-                  <div className="space-y-2">
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              <Card>
+                <CardHeader><CardTitle className="text-sm font-medium">Operating Expenses</CardTitle></CardHeader>
+                <CardContent>
+                  <div className="space-y-2 text-sm">
                     <EditableRow label="Tax Rate" field="tax_rate" value={inputs.tax_rate} onChange={updateInput} format="percent" decimals={4} />
                     <EditableRow label="Estimated Value" field="estimated_value" value={inputs.estimated_value} onChange={updateInput} format="currency" />
                     <Row label="Taxes" value={fmt(computed.taxes)} />
@@ -72,16 +72,21 @@ const ApartmentInputsPage = () => {
                     <EditableRow label="Utilities" field="utilities" value={inputs.utilities} onChange={updateInput} format="currency" />
                     <EditableRow label="Repairs & Maintenance" field="repairs_maintenance" value={inputs.repairs_maintenance} onChange={updateInput} format="currency" />
                   </div>
-                  <div className="space-y-2">
+                </CardContent>
+              </Card>
+              <Card>
+                <CardHeader><CardTitle className="text-sm font-medium">Operating Expenses (cont.)</CardTitle></CardHeader>
+                <CardContent>
+                  <div className="space-y-2 text-sm">
                     <EditableRow label="Management Fee" field="management_fee_percent" value={inputs.management_fee_percent} onChange={updateInput} format="percent" />
                     <EditableRow label="Payroll" field="payroll" value={inputs.payroll} onChange={updateInput} format="currency" />
                     <EditableRow label="General & Administrative" field="general_admin" value={inputs.general_admin} onChange={updateInput} format="currency" />
                     <EditableRow label="Marketing" field="marketing" value={inputs.marketing} onChange={updateInput} format="currency" />
                     <EditableRow label="Reserves per Unit" field="reserves_per_unit" value={inputs.reserves_per_unit} onChange={updateInput} format="currency" />
                   </div>
-                </div>
-              </CardContent>
-            </Card>
+                </CardContent>
+              </Card>
+            </div>
           </div>
         </SidebarInset>
       </div>
