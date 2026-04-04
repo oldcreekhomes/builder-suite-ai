@@ -33,6 +33,16 @@ export interface ApartmentInputs {
   professional_fees: number;
   capex_reserve: number;
   other_misc: number;
+  target_cap_rate: number;
+  target_dscr: number;
+  target_cash_on_cash: number;
+  target_irr: number;
+  target_grm: number;
+  exit_cap_rate: number;
+  hold_period_years: number;
+  rent_growth_rate: number;
+  expense_growth_rate: number;
+  closing_costs: number;
 }
 
 const DEFAULT_INPUTS: ApartmentInputs = {
@@ -65,6 +75,16 @@ const DEFAULT_INPUTS: ApartmentInputs = {
   professional_fees: 0,
   capex_reserve: 0,
   other_misc: 0,
+  target_cap_rate: 0,
+  target_dscr: 0,
+  target_cash_on_cash: 0,
+  target_irr: 0,
+  target_grm: 0,
+  exit_cap_rate: 0,
+  hold_period_years: 5,
+  rent_growth_rate: 0,
+  expense_growth_rate: 0,
+  closing_costs: 0,
 };
 
 const INPUT_FIELDS = Object.keys(DEFAULT_INPUTS) as (keyof ApartmentInputs)[];

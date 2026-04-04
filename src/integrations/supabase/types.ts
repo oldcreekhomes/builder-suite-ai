@@ -153,10 +153,14 @@ export type Database = {
           amortization_years: number
           avg_rent_per_unit: number
           capex_reserve: number
+          closing_costs: number
           construction_costs: number
           created_at: string | null
           estimated_value: number
+          exit_cap_rate: number
+          expense_growth_rate: number
           general_admin: number
+          hold_period_years: number
           id: string
           insurance: number
           interest_rate: number
@@ -174,10 +178,16 @@ export type Database = {
           professional_fees: number
           project_id: string
           purchase_price: number
+          rent_growth_rate: number
           repairs_maintenance: number
           reserves_per_unit: number
           security: number
           snow_removal: number
+          target_cap_rate: number
+          target_cash_on_cash: number
+          target_dscr: number
+          target_grm: number
+          target_irr: number
           tax_rate: number
           taxes: number
           trash_removal: number
@@ -189,10 +199,14 @@ export type Database = {
           amortization_years?: number
           avg_rent_per_unit?: number
           capex_reserve?: number
+          closing_costs?: number
           construction_costs?: number
           created_at?: string | null
           estimated_value?: number
+          exit_cap_rate?: number
+          expense_growth_rate?: number
           general_admin?: number
+          hold_period_years?: number
           id?: string
           insurance?: number
           interest_rate?: number
@@ -210,10 +224,16 @@ export type Database = {
           professional_fees?: number
           project_id: string
           purchase_price?: number
+          rent_growth_rate?: number
           repairs_maintenance?: number
           reserves_per_unit?: number
           security?: number
           snow_removal?: number
+          target_cap_rate?: number
+          target_cash_on_cash?: number
+          target_dscr?: number
+          target_grm?: number
+          target_irr?: number
           tax_rate?: number
           taxes?: number
           trash_removal?: number
@@ -225,10 +245,14 @@ export type Database = {
           amortization_years?: number
           avg_rent_per_unit?: number
           capex_reserve?: number
+          closing_costs?: number
           construction_costs?: number
           created_at?: string | null
           estimated_value?: number
+          exit_cap_rate?: number
+          expense_growth_rate?: number
           general_admin?: number
+          hold_period_years?: number
           id?: string
           insurance?: number
           interest_rate?: number
@@ -246,10 +270,16 @@ export type Database = {
           professional_fees?: number
           project_id?: string
           purchase_price?: number
+          rent_growth_rate?: number
           repairs_maintenance?: number
           reserves_per_unit?: number
           security?: number
           snow_removal?: number
+          target_cap_rate?: number
+          target_cash_on_cash?: number
+          target_dscr?: number
+          target_grm?: number
+          target_irr?: number
           tax_rate?: number
           taxes?: number
           trash_removal?: number
