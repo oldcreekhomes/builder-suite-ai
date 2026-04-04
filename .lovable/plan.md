@@ -1,46 +1,29 @@
 
 
-## Remove Expense & NOI Summary Card, Add Key Metrics Tab to Inputs
+## Add "Asset Valuation" Card to Dashboard
+
+### Overview
+Add a new card to the dashboard — do NOT remove or replace any existing cards. The new "Asset Valuation" card tells the valuation story: NOI ÷ Cap Rate = Value, minus Loan = Equity.
 
 ### Changes
 
-**1. Delete "Expense & NOI Summary" card from Dashboard**
-- In `src/pages/apartments/ApartmentDashboard.tsx`, remove the entire `<Card>` block (lines 67-91) containing the "Expense & NOI Summary" section. The Income Summary and Loan Summary cards already cover this data.
+**1. `src/hooks/useApartmentInputs.ts`**
+- Add two new computed fields:
+  - `assetValue`: `target_cap_rate > 0 ? noi / (target_cap_rate / 100) : 0`
+  - `equityCreated`: `assetValue - loanAmount`
 
-**2. Add "Key Metrics" tab to the Inputs page**
-- Currently the Inputs page has no tabs — it's a single scrollable page with cards. We'll wrap the existing content in a Tabs component with two tabs: **Inputs** (existing content) and **Key Metrics** (new).
-- The Key Metrics tab will display editable fields for commercial real estate metrics that are currently only computed/read-only on the Dashboard. This gives the user the ability to override or input target values.
-
-**3. New database columns for Key Metrics**
-- Add to `apartment_inputs` table:
-  - `target_cap_rate` (numeric, default 0) — user-defined cap rate target
-  - `target_dscr` (numeric, default 0) — user-defined DSCR target
-  - `target_cash_on_cash` (numeric, default 0) — target cash-on-cash return
-  - `target_irr` (numeric, default 0) — internal rate of return target
-  - `target_grm` (numeric, default 0) — gross rent multiplier target
-  - `exit_cap_rate` (numeric, default 0) — projected exit cap rate
-  - `hold_period_years` (numeric, default 5) — investment hold period
-  - `rent_growth_rate` (numeric, default 0) — annual rent growth assumption
-  - `expense_growth_rate` (numeric, default 0) — annual expense growth assumption
-  - `closing_costs` (numeric, default 0) — acquisition closing costs
-
-**4. Key Metrics tab layout**
-- Two-column card layout matching the Inputs page style:
-  - **Left card — "Return Metrics"**: Target Cap Rate, Exit Cap Rate, Target Cash-on-Cash Return, Target IRR, Target DSCR, Target GRM
-  - **Right card — "Growth & Hold Assumptions"**: Hold Period (years), Annual Rent Growth Rate, Annual Expense Growth Rate, Closing Costs
-- Below the two cards, a read-only **"Computed vs. Target"** summary card showing side-by-side: actual Cap Rate vs target, actual DSCR vs target, actual Cash-on-Cash vs target, actual GRM vs target — so the user can instantly see how the deal stacks up against their targets.
-
-**5. Update hooks and types**
-- Add all new fields to `ApartmentInputs` interface, `DEFAULT_INPUTS`, and `INPUT_FIELDS` in `useApartmentInputs.ts`
-- Add fields to `src/integrations/supabase/types.ts`
-
-**6. Update sidebar navigation**
-- No changes needed — the tabs live within the existing Inputs page route
+**2. `src/pages/apartments/ApartmentDashboard.tsx`**
+- Add a new "Asset Valuation" card in a new row below the existing four cards. Contents:
+  - Net Operating Income (NOI) — bold
+  - Cap Rate (from `target_cap_rate` input)
+  - Divider
+  - Asset Value (NOI ÷ Cap Rate) — bold
+  - Loan Amount — destructive
+  - Divider
+  - Equity Created (Asset Value − Loan Amount) — bold
+- If `target_cap_rate` is 0, show a hint to set it in Key Metrics tab.
 
 ### Files Changed
-- New migration SQL (add 10 columns)
-- `src/pages/apartments/ApartmentDashboard.tsx` — remove Expense & NOI Summary card
-- `src/pages/apartments/ApartmentInputs.tsx` — wrap in Tabs, add Key Metrics tab
-- `src/hooks/useApartmentInputs.ts` — add new fields
-- `src/integrations/supabase/types.ts` — add new fields
+- `src/hooks/useApartmentInputs.ts`
+- `src/pages/apartments/ApartmentDashboard.tsx`
 
