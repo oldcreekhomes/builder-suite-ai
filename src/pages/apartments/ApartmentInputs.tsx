@@ -4,7 +4,7 @@ import { Input } from "@/components/ui/input";
 import { AppSidebar } from "@/components/AppSidebar";
 import { SidebarProvider, SidebarInset } from "@/components/ui/sidebar";
 import { DashboardHeader } from "@/components/DashboardHeader";
-import { useApartmentInputs, ApartmentInputs as ApartmentInputsType } from "@/hooks/useApartmentInputs";
+import { useApartmentInputs, ApartmentInputs as ApartmentInputsType, fmt } from "@/hooks/useApartmentInputs";
 import { Loader2 } from "lucide-react";
 
 const ApartmentInputsPage = () => {
