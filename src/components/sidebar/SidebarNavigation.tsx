@@ -4,6 +4,7 @@ import { useAccountingPermissions } from "@/hooks/useAccountingPermissions";
 import { useEstimatePermissions } from "@/hooks/useEstimatePermissions";
 import { useMarketplacePermissions } from "@/hooks/useMarketplacePermissions";
 import { useTemplatePermissions } from "@/hooks/useTemplatePermissions";
+import { useApartmentPermissions } from "@/hooks/useApartmentPermissions";
 
 import { 
   DollarSign, 
