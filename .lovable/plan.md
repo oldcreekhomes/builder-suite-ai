@@ -1,45 +1,24 @@
 
 
-## Add Missing Operating Expense Fields
+## Fix Tax Rate Calculation
 
-### What's Missing
-Comparing the attachment against the current Inputs page, these operating expense categories are not present:
+### Problem
+The tax rate field is being divided by 100 in the calculation, but the user is entering the rate as a raw decimal (e.g., `0.01135`) rather than as a percentage (e.g., `1.135`). So `$3,000,000 × (0.01135 / 100) = $341` instead of the correct `$3,000,000 × 0.01135 = $34,050`.
 
-1. **Landscaping / Snow Removal**
-2. **Trash Removal**
-3. **Pest Control**
-4. **Security / Access Control**
-5. **Professional Fees (Legal / Accounting)**
-6. **Capital Expenditure Reserve**
-7. **Other / Miscellaneous**
+### Solution
+Change the tax calculation in `computeFinancials` to multiply directly without dividing by 100:
 
-### Changes Required
+```ts
+// Before
+const taxes = inputs.estimated_value * (inputs.tax_rate / 100);
 
-**1. Database Migration**
-Add 7 new columns to `apartment_inputs`, all `numeric` defaulting to `0`:
-- `landscaping`
-- `trash_removal`
-- `pest_control`
-- `security`
-- `professional_fees`
-- `capex_reserve`
-- `other_misc`
+// After
+const taxes = inputs.estimated_value * inputs.tax_rate;
+```
 
-**2. `src/hooks/useApartmentInputs.ts`**
-- Add the 7 new fields to the `ApartmentInputs` interface and `DEFAULT_INPUTS`
-- Include all 7 in the `computeFinancials` `totalOpEx` sum so they flow into NOI, DSCR, etc.
-
-**3. `src/pages/apartments/ApartmentInputs.tsx`**
-- Add `EditableRow` entries for each new field, distributed across the two Operating Expenses cards to keep columns balanced:
-  - **Left card**: Add Landscaping, Trash Removal, Pest Control below Repairs & Maintenance
-  - **Right card**: Add Security, Professional Fees, CapEx Reserve, Other/Misc below Reserves per Unit
-
-**4. `src/integrations/supabase/types.ts`**
-- Regenerate/update types to include the new columns
+Also update the `EditableRow` for Tax Rate from `format="percent"` to `format="number"` so it doesn't append a `%` sign, since the user is entering the raw decimal rate (not a percentage).
 
 ### Files Changed
-- New migration SQL (7 columns)
-- `src/hooks/useApartmentInputs.ts`
-- `src/pages/apartments/ApartmentInputs.tsx`
-- `src/integrations/supabase/types.ts`
+- `src/hooks/useApartmentInputs.ts` — Remove `/100` from tax calculation
+- `src/pages/apartments/ApartmentInputs.tsx` — Change Tax Rate format from `"percent"` to `"number"`
 
