@@ -1,22 +1,35 @@
 
 
-## Fix Apartment Income Statement to Match Inputs
+## Split Landscaping/Snow Removal, Remove Payroll, Rename Security
 
-### Problems Found
+### Changes
 
-**1. Taxes showing wrong value**
-Line 62 uses `inputs.taxes` (the raw database field, still at its default $500,000) instead of `computed.taxes` (which correctly calculates `estimated_value × tax_rate = $3,000,000 × 0.01135 = $34,050`). The `computeFinancials` function already calculates taxes correctly -- the income statement just references the wrong variable.
+**1. New database column**
+- Add `snow_removal` column (numeric, default 0) to `apartment_inputs` table via migration
 
-**2. Missing 7 new operating expense line items**
-The income statement only shows: Taxes, Insurance, Utilities, Repairs, Management, Payroll, G&A, Marketing, Reserves. The 7 recently added fields are missing: Landscaping, Trash Removal, Pest Control, Security, Professional Fees, CapEx Reserve, Other/Misc.
+**2. `src/hooks/useApartmentInputs.ts`**
+- Add `snow_removal: number` to `ApartmentInputs` interface
+- Add `snow_removal: 0` to `DEFAULT_INPUTS`
+- Remove `payroll` from `totalOpEx` calculation; add `inputs.snow_removal` instead
+- Keep `payroll` in the interface/defaults so existing data doesn't break, but it won't be summed into expenses
 
-### Solution
+**3. `src/pages/apartments/ApartmentInputs.tsx`**
+- Replace single "Landscaping / Snow Removal" row with two rows: "Landscaping" (`landscaping` field) and "Snow Removal" (`snow_removal` field)
+- Remove the "Payroll" `EditableRow`
+- Change label "Security / Access Control" to "Security"
 
-Update `src/pages/apartments/ApartmentIncomeStatement.tsx`:
+**4. `src/pages/apartments/ApartmentIncomeStatement.tsx`**
+- Replace "Landscaping / Snow Removal" with two rows: "Landscaping" and "Snow Removal"
+- Remove "Payroll" row
+- Change "Security / Access Control" label to "Security"
 
-1. Change `inputs.taxes` to `computed.taxes` on the Real Estate Taxes row
-2. Add 7 new `StatementRow` entries for the missing operating expenses, placed after Marketing and before Reserves
+**5. `src/integrations/supabase/types.ts`**
+- Add `snow_removal` to the apartment_inputs type definitions
 
-### File Changed
+### Files Changed
+- New migration SQL (add `snow_removal` column)
+- `src/hooks/useApartmentInputs.ts`
+- `src/pages/apartments/ApartmentInputs.tsx`
 - `src/pages/apartments/ApartmentIncomeStatement.tsx`
+- `src/integrations/supabase/types.ts`
 
