@@ -143,6 +143,7 @@ function computeFinancials(inputs: ApartmentInputs) {
 
   const assetValue = inputs.target_cap_rate > 0 ? noi / (inputs.target_cap_rate / 100) : 0;
   const equityCreated = assetValue - loanAmount;
+  const ltvComputed = assetValue > 0 ? (loanAmount / assetValue) * 100 : 0;
 
   return {
     grossPotentialRent,
@@ -165,6 +166,7 @@ function computeFinancials(inputs: ApartmentInputs) {
     equityInvested,
     assetValue,
     equityCreated,
+    ltvComputed,
   };
 }
 

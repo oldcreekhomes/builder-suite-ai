@@ -53,7 +53,7 @@ const ApartmentDashboard = () => {
                 <CardContent>
                   <div className="space-y-3 text-sm">
                     <Row label="Purchase Price" value={fmt(inputs.purchase_price)} />
-                    <Row label="Loan-to-Value (LTV)" value={fmtPct(inputs.ltv)} />
+                    <Row label="Loan-to-Value (LTV)" value={computed.ltvComputed > 0 ? fmtPct(computed.ltvComputed, 2) : fmtPct(inputs.ltv)} />
                     <Row label="Loan Amount" value={fmt(computed.loanAmount)} />
                     <Row label="Interest Rate" value={fmtPct(inputs.interest_rate, 2)} />
                     <Row label="Amortization Period" value={`${inputs.amortization_years} years`} />
