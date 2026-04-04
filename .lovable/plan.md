@@ -1,19 +1,25 @@
 
 
-## Fix Operating Expenses: Remove Indent, Alphabetize, Balance Columns
+## Restructure Taxes as Removable Item with Sub-fields, Fix Tooltip & Add Confirmation
 
-### Problems
-1. **Indentation**: The `RemovableEditableRow` has an X button that takes up space in the layout (`flex items-center gap-1`), pushing the label text to the right compared to the fixed rows above.
-2. **Not alphabetical**: The optional expenses are listed in insertion order, not alphabetically.
-3. **Unbalanced columns**: Current logic splits optional items 50/50 (`Math.ceil(15/2) = 8` left, `7` right), but ignores the 3 fixed rows (Tax Rate, Estimated Value, Taxes) in the left column. Left card ends up with 11 rows vs right with 7.
+### Changes to `src/pages/apartments/ApartmentInputs.tsx`
 
-### Solution
+**1. Make "Taxes" a removable optional expense**
+- Add a `Taxes` entry to the `OPTIONAL_EXPENSES` array (alphabetically, between "Trash Removal" and "Utilities"). It will be a special computed (non-editable) row displaying `computed.taxes`.
+- Remove the current fixed Tax Rate, Estimated Value, and Taxes rows from the left card top.
+- When Taxes is visible, render it as a non-editable removable row followed by two indented sub-rows: "Tax Rate" (editable, format number) and "Estimated Value" (editable, format currency). These sub-rows get `pl-4` indent.
+- When Taxes is removed, Tax Rate and Estimated Value also hide, and both values reset to 0.
 
-**1. Remove indentation** -- Change the X button to use absolute positioning (e.g., `absolute -left-4`) so it doesn't affect the text flow. The label will align flush left, matching the fixed rows above it.
+**2. Update column balancing**
+- Remove the `fixedRowCount = 3` adjustment since there are no more fixed rows. Revert to simple `Math.ceil(n/2)` split. Each "Taxes" group counts as 3 rows (Taxes + Tax Rate + Estimated Value) for balancing purposes.
 
-**2. Alphabetize** -- Sort the `OPTIONAL_EXPENSES` array alphabetically by label: CapEx Reserve, General & Administrative, Insurance, Landscaping, Management Fee, Marketing, Other / Miscellaneous, Pest Control, Professional Fees, Repairs & Maintenance, Reserves per Unit, Security, Snow Removal, Trash Removal, Utilities.
+**3. Replace `title="Remove"` with standard Tooltip**
+- Import `Tooltip, TooltipTrigger, TooltipContent, TooltipProvider` from `@/components/ui/tooltip`.
+- Wrap the X button in `RemovableEditableRow` with a Tooltip displaying "Remove" instead of using the HTML `title` attribute.
 
-**3. Balance columns accounting for fixed rows** -- The left card always has 3 fixed rows. To balance total row counts: `leftOptionalCount = Math.ceil((totalVisible - 3) / 2)`, `rightCount = totalVisible - leftOptionalCount`. With 15 visible items: left gets 6 optional (9 total), right gets 9. Equal. With 14: left gets 6 (9 total), right gets 8 -- extra on left.
+**4. Add delete confirmation dialog**
+- Import `DeleteConfirmationDialog` from `@/components/ui/delete-confirmation-dialog`.
+- When the X button is clicked, show a confirmation dialog ("Are you sure you want to remove {label}?") before actually removing the expense.
 
 ### File Changed
 - `src/pages/apartments/ApartmentInputs.tsx`
