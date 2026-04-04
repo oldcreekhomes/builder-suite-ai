@@ -70,9 +70,10 @@ const ApartmentInputsPage = () => {
     [visibleFields]
   );
 
-  const leftCount = Math.ceil(visibleOptional.length / 2);
-  const leftItems = visibleOptional.slice(0, leftCount);
-  const rightItems = visibleOptional.slice(leftCount);
+  const fixedRowCount = 3; // Tax Rate, Estimated Value, Taxes
+  const leftOptionalCount = Math.max(0, Math.ceil((visibleOptional.length - fixedRowCount) / 2));
+  const leftItems = visibleOptional.slice(0, leftOptionalCount);
+  const rightItems = visibleOptional.slice(leftOptionalCount);
 
   const removeExpense = (field: string) => {
     setVisibleFields((prev) => prev.filter((f) => f !== field));
