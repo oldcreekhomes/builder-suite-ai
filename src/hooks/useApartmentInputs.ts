@@ -52,6 +52,13 @@ const DEFAULT_INPUTS: ApartmentInputs = {
   general_admin: 100000,
   marketing: 50000,
   reserves_per_unit: 295,
+  landscaping: 0,
+  trash_removal: 0,
+  pest_control: 0,
+  security: 0,
+  professional_fees: 0,
+  capex_reserve: 0,
+  other_misc: 0,
 };
 
 const INPUT_FIELDS = Object.keys(DEFAULT_INPUTS) as (keyof ApartmentInputs)[];
