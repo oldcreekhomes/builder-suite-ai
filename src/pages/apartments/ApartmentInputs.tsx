@@ -113,10 +113,10 @@ function EditableRow({ label, field, value, onChange, prefix, suffix }: {
   }, [value, isFocused]);
 
   return (
-    <div className="flex justify-between items-center">
+    <div className="flex justify-between">
       <span className="text-muted-foreground">{label}</span>
-      <div className="flex items-center gap-1">
-        {prefix && <span className="text-muted-foreground text-sm">{prefix}</span>}
+      <div className="flex items-center">
+        {prefix && <span className="text-sm font-medium">{prefix}</span>}
         <Input
           value={localValue}
           onChange={(e) => {
@@ -125,9 +125,9 @@ function EditableRow({ label, field, value, onChange, prefix, suffix }: {
           }}
           onFocus={() => setIsFocused(true)}
           onBlur={() => setIsFocused(false)}
-          className="w-28 h-7 text-right border-transparent bg-transparent hover:bg-muted/50 focus:bg-background focus:border-input text-sm px-2"
+          className="w-24 h-6 text-right border-transparent bg-transparent hover:bg-muted/50 focus:bg-background focus:border-input text-sm font-medium px-1 py-0"
         />
-        {suffix && <span className="text-muted-foreground text-sm">{suffix}</span>}
+        {suffix && <span className="text-sm font-medium">{suffix}</span>}
       </div>
     </div>
   );
