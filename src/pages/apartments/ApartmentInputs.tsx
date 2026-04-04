@@ -83,7 +83,6 @@ const ApartmentInputsPage = () => {
                 <CardContent>
                   <div className="space-y-2 text-sm">
                     <EditableRow label="Management Fee" field="management_fee_percent" value={inputs.management_fee_percent} onChange={updateInput} format="percent" />
-                    <EditableRow label="Payroll" field="payroll" value={inputs.payroll} onChange={updateInput} format="currency" />
                     <EditableRow label="General & Administrative" field="general_admin" value={inputs.general_admin} onChange={updateInput} format="currency" />
                     <EditableRow label="Marketing" field="marketing" value={inputs.marketing} onChange={updateInput} format="currency" />
                     <EditableRow label="Reserves per Unit" field="reserves_per_unit" value={inputs.reserves_per_unit} onChange={updateInput} format="currency" />
