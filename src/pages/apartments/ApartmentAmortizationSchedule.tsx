@@ -114,9 +114,12 @@ const ApartmentAmortizationSchedule = () => {
                       <tr className="border-b">
                         <th className="text-left py-2 pr-4 font-medium">Year</th>
                         <th className="text-right py-2 px-4 font-medium">Beginning Balance</th>
-                        <th className="text-right py-2 px-4 font-medium">Total Payment</th>
-                        <th className="text-right py-2 px-4 font-medium">Principal</th>
-                        <th className="text-right py-2 px-4 font-medium">Interest</th>
+                        <th className="text-right py-2 px-4 font-medium">Annual Payment</th>
+                        <th className="text-right py-2 px-4 font-medium">Annual Principal</th>
+                        <th className="text-right py-2 px-4 font-medium">Annual Interest</th>
+                        <th className="text-right py-2 px-4 font-medium">Monthly Payment</th>
+                        <th className="text-right py-2 px-4 font-medium">Monthly Principal</th>
+                        <th className="text-right py-2 px-4 font-medium">Monthly Interest</th>
                         <th className="text-right py-2 pl-4 font-medium">Ending Balance</th>
                       </tr>
                     </thead>
@@ -128,6 +131,9 @@ const ApartmentAmortizationSchedule = () => {
                           <td className="py-1.5 px-4 text-right">{fmt(r.totalPayment)}</td>
                           <td className="py-1.5 px-4 text-right">{fmt(r.totalPrincipal)}</td>
                           <td className="py-1.5 px-4 text-right">{fmt(r.totalInterest)}</td>
+                          <td className="py-1.5 px-4 text-right">{fmt(r.monthlyPayment)}</td>
+                          <td className="py-1.5 px-4 text-right">{fmt(r.monthlyPrincipal)}</td>
+                          <td className="py-1.5 px-4 text-right">{fmt(r.monthlyInterest)}</td>
                           <td className="py-1.5 pl-4 text-right">{fmt(r.endingBalance)}</td>
                         </tr>
                       ))}
