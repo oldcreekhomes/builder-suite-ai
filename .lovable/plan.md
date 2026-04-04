@@ -1,28 +1,23 @@
 
 
-## Fix: A/P Aging vs Balance Sheet $150 Discrepancy
+## Fix: Sort A/P Aging Report by Aging Days (Chronological)
 
-### Root Cause
-
-The previous credit fix for OCH-02302 added a **$150 debit to A/P** (line 3 on JE `4b3dbb7c`). This extra A/P debit reduces the Balance Sheet A/P by $150, but the A/P Aging report (which calculates from bills data) has no way to account for arbitrary A/P debit adjustments. Result:
-
-- Balance Sheet A/P: **$147,414.12** (includes the -$150 A/P debit)
-- A/P Aging total: **$147,564.12** (bills-based, doesn't see the debit)
+### Problem
+Within each aging bucket, bills are sorted by bill date (ascending). The user wants them sorted by aging days in chronological order — lowest aging at top, highest at bottom. This affects both the on-screen report and the emailed PDF.
 
 ### Fix
+Change the sort in both locations from `billDate` comparison to `aging` ascending:
 
-Change line 3 of JE `4b3dbb7c` from **Debit A/P (2010) $150** to **Debit WIP (1430) $150**. The credit memo originally reduced WIP by $500 (posting JE `4cf0fee1`). Attributing $150 back to WIP is the correct offset — it shouldn't reduce A/P twice.
+**1. `src/components/reports/AccountsPayableContent.tsx` (~line 256-258)**
+Replace `a.billDate.localeCompare(b.billDate)` with `a.aging - b.aging` to sort by aging days ascending.
 
-**After the fix:**
-- JE `4b3dbb7c`: Credit A/P $500, Debit Cash $350, Debit WIP $150 → balanced
-- BS A/P increases by $150 → **$147,564.12** (matches aging)
-- WIP increases by $150 (partial reversal of credit's cost reduction)
-- Cash unchanged → bank balance unaffected
-- Balance Sheet stays balanced (Assets +$150, Liabilities +$150)
+**2. `src/components/accounting/SendReportsDialog.tsx` (~after line 788)**
+Add the same sort step after populating the buckets — sort each bucket by `aging` ascending, matching the UI.
 
-### Implementation
-Single database migration: update `journal_entry_lines` set `account_id` to the WIP account (1430) for line `dd13533a`.
+### Result
+Both the on-screen A/P Aging table and emailed PDF will display bills within each bucket ordered from lowest aging (newest bills) at top to highest aging (oldest bills) at bottom.
 
 ### Files changed
-- New migration SQL file
+- `src/components/reports/AccountsPayableContent.tsx`
+- `src/components/accounting/SendReportsDialog.tsx`
 
