@@ -787,6 +787,11 @@ export function SendReportsDialog({ projectId, open, onOpenChange }: SendReports
           }
         });
 
+        // Sort each bucket by aging days ascending (chronological)
+        Object.values(agingBuckets).forEach(bucket => {
+          bucket.sort((a, b) => a.aging - b.aging);
+        });
+
         const grandTotal = openBills.reduce((sum, bill) => sum + (bill.total_amount - bill.amount_paid), 0);
 
         console.log('📊 A/P PDF: Grand total:', grandTotal);
