@@ -158,7 +158,7 @@ export function useApartmentInputs(projectId: string | undefined) {
         throw insertError;
       }
 
-      return newRow as any;
+      return newRow;
     },
     enabled: !!projectId && !!user,
     staleTime: 5000,
