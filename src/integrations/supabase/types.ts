@@ -148,33 +148,6 @@ export type Database = {
           },
         ]
       }
-      apartment_pro_formas: {
-        Row: {
-          created_at: string
-          id: string
-          inputs: Json
-          name: string
-          owner_id: string
-          updated_at: string
-        }
-        Insert: {
-          created_at?: string
-          id?: string
-          inputs?: Json
-          name: string
-          owner_id: string
-          updated_at?: string
-        }
-        Update: {
-          created_at?: string
-          id?: string
-          inputs?: Json
-          name?: string
-          owner_id?: string
-          updated_at?: string
-        }
-        Relationships: []
-      }
       bank_reconciliations: {
         Row: {
           bank_account_id: string
