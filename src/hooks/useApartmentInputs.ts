@@ -34,6 +34,8 @@ const DEFAULT_INPUTS: ApartmentInputs = {
   interest_rate: 6.5,
   amortization_years: 30,
   loan_term_years: 30,
+  tax_rate: 2.0,
+  estimated_value: 25000000,
   taxes: 500000,
   insurance: 250000,
   utilities: 200000,
