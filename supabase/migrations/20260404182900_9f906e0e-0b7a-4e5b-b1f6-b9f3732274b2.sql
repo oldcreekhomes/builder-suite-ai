@@ -1,0 +1,1 @@
+ALTER TABLE public.user_notification_preferences ADD COLUMN can_access_apartments boolean NOT NULL DEFAULT false;

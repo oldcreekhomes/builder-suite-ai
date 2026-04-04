@@ -138,9 +138,16 @@ const Templates = safeLazy(() => import("./pages/Templates"));
 const SubcontractorContract = safeLazy(() => import("./pages/templates/SubcontractorContract"));
 const SubcontractorContractEdit = safeLazy(() => import("./pages/templates/SubcontractorContractEdit"));
 
+// Apartments
+const ApartmentDashboard = safeLazy(() => import("./pages/apartments/ApartmentDashboard"));
+const ApartmentInputs = safeLazy(() => import("./pages/apartments/ApartmentInputs"));
+const ApartmentIncomeStatement = safeLazy(() => import("./pages/apartments/ApartmentIncomeStatement"));
+const ApartmentAmortizationSchedule = safeLazy(() => import("./pages/apartments/ApartmentAmortizationSchedule"));
+
 // Guards (small, keep static)
 import { MarketplaceGuard } from "./components/guards/MarketplaceGuard";
 import { TemplatesGuard } from "./components/guards/TemplatesGuard";
+import { ApartmentGuard } from "./components/guards/ApartmentGuard";
 
 const queryClient = new QueryClient();
 
@@ -216,6 +223,10 @@ const AppContent = () => {
                 <Route path="/templates/subcontractor-contract" element={<ProtectedRoute><TemplatesGuard><SubcontractorContract /></TemplatesGuard></ProtectedRoute>} />
                 <Route path="/templates/subcontractor-contract/edit" element={<ProtectedRoute><TemplatesGuard><SubcontractorContractEdit /></TemplatesGuard></ProtectedRoute>} />
                 <Route path="/marketplace" element={<ProtectedRoute><MarketplaceGuard><Marketplace /></MarketplaceGuard></ProtectedRoute>} />
+                <Route path="/project/:projectId/apartments" element={<ProtectedRoute><ApartmentGuard><ApartmentDashboard /></ApartmentGuard></ProtectedRoute>} />
+                <Route path="/project/:projectId/apartments/inputs" element={<ProtectedRoute><ApartmentGuard><ApartmentInputs /></ApartmentGuard></ProtectedRoute>} />
+                <Route path="/project/:projectId/apartments/income-statement" element={<ProtectedRoute><ApartmentGuard><ApartmentIncomeStatement /></ApartmentGuard></ProtectedRoute>} />
+                <Route path="/project/:projectId/apartments/amortization" element={<ProtectedRoute><ApartmentGuard><ApartmentAmortizationSchedule /></ApartmentGuard></ProtectedRoute>} />
                 <Route path="/companies" element={<ProtectedRoute><Companies /></ProtectedRoute>} />
                 <Route path="/settings" element={<ProtectedRoute><Settings /></ProtectedRoute>} />
                 {navItems.map(({ to, page: Page }) => (

@@ -4118,6 +4118,7 @@ export type Database = {
           browser_notifications_enabled: boolean
           can_access_accountant_dashboard: boolean | null
           can_access_accounting: boolean
+          can_access_apartments: boolean
           can_access_employees: boolean
           can_access_estimate: boolean
           can_access_manage_bills: boolean
@@ -4145,6 +4146,7 @@ export type Database = {
           browser_notifications_enabled?: boolean
           can_access_accountant_dashboard?: boolean | null
           can_access_accounting?: boolean
+          can_access_apartments?: boolean
           can_access_employees?: boolean
           can_access_estimate?: boolean
           can_access_manage_bills?: boolean
@@ -4172,6 +4174,7 @@ export type Database = {
           browser_notifications_enabled?: boolean
           can_access_accountant_dashboard?: boolean | null
           can_access_accounting?: boolean
+          can_access_apartments?: boolean
           can_access_employees?: boolean
           can_access_estimate?: boolean
           can_access_manage_bills?: boolean

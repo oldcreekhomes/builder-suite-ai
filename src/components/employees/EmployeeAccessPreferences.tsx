@@ -454,6 +454,36 @@ export function EmployeeAccessPreferences({ employeeId }: EmployeeAccessPreferen
           </div>
         </div>
       </div>
+
+      {/* Apartments Section */}
+      <div className="space-y-4">
+        <div>
+          <h3 className="text-sm font-medium">Apartments</h3>
+          <p className="text-xs text-muted-foreground mt-1">
+            Control access to apartment pro forma analysis tools
+          </p>
+        </div>
+        
+        <div className="space-y-3 pl-6">
+          <div className="flex items-center justify-between gap-4">
+            <div className="space-y-0.5 flex-1">
+              <Label htmlFor="access-apartments" className="text-sm font-normal cursor-pointer">
+                Access Apartments
+              </Label>
+              <p className="text-xs text-muted-foreground">
+                View and use apartment pro forma dashboard, inputs, income statement, and amortization schedule
+              </p>
+            </div>
+            <Switch
+              id="access-apartments"
+              checked={(preferences as any).can_access_apartments ?? false}
+              onCheckedChange={(checked) => 
+                updatePreferences({ can_access_apartments: checked } as any)
+              }
+            />
+          </div>
+        </div>
+      </div>
     </div>
   );
 }
