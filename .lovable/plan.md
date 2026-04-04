@@ -1,80 +1,48 @@
 
+Fix blank app after Apartments rollout
 
-## New "Apartments" Pro Forma Tool (with Database Persistence)
+What I found
+- The preview root stays empty: the session replay shows `<div id="root"></div>` and React never mounts.
+- The dev server is up and Vite is still processing HMR updates, so this is not a server outage.
+- That points to a startup/module-load failure before the app can render.
+- The newest startup-path changes are from the Apartments rollout:
+  - `src/App.tsx` now eagerly imports `src/pages/Apartments.tsx`
+  - the company dashboard sidebar files now load the new Apartments link on `/`
 
-### Overview
-Add a new global menu item "Apartments" below Marketplace. The page has 4 tabs: **Inputs**, **Dashboard**, **Income Statement**, and **Amortization Schedule**. Users can create, save, and load multiple pro forma analyses. All calculations happen client-side in real-time; the database stores the inputs.
+Plan
+1. Isolate Apartments from app startup
+   - In `src/App.tsx`, replace the eager Apartments import with `React.lazy`.
+   - Wrap only the `/apartments` route in `Suspense`.
+   - This prevents one new page from blanking the entire app before React mounts.
 
-### Database
+2. Harden the root dashboard startup path
+   - Review the new Apartments nav additions in:
+     - `src/components/sidebar/CompanyDashboardNav.tsx`
+     - `src/components/sidebar/SidebarNavigation.tsx`
+   - Simplify those new link blocks and remove unused sidebar imports so `/` stays as stable as possible.
 
-**New table: `apartment_pro_formas`**
-- `id` (uuid, PK)
-- `owner_id` (uuid, references auth.users, NOT NULL) — for multi-tenant RLS
-- `name` (text, NOT NULL) — user-given name for the analysis
-- `inputs` (jsonb, NOT NULL) — all form inputs stored as a single JSON object
-- `created_at`, `updated_at` (timestamptz)
+3. Make Apartments safe when it is opened
+   - In `src/pages/Apartments.tsx`, add explicit states for:
+     - no authenticated user
+     - missing profile / missing effective owner id
+     - failed `apartment_pro_formas` query
+   - Fix the current loading logic so it cannot sit forever if owner resolution returns null.
+   - Bring the page into the standard authenticated app shell so it behaves like the rest of the product.
 
-RLS policies: owner can CRUD their own rows. Employees can access their home_builder's rows (matching existing pattern).
+4. Re-test the critical flows
+   - Refresh `/` while logged in
+   - Refresh `/` while logged out
+   - Open `/apartments`
+   - Create, select, save, and delete a pro forma
+   - Refresh directly on `/apartments`
 
-This keeps the schema simple — one row per pro forma, with all inputs in a JSONB column. No need for dozens of columns since the inputs are always read/written as a unit.
+Technical detail
+- Error boundaries only help after React is already mounted. A bad static import in `App.tsx` can fail before any fallback UI appears.
+- The safest first fix is to lazy-load `Apartments`, because it removes the newest feature from the root import path without removing the feature itself.
+- There is also a secondary bug inside `Apartments.tsx`: if `effectiveOwnerId` resolves to `null`, the page can remain stuck in loading.
 
-### Inputs State Model (stored as JSONB)
-
-```text
-{
-  // Property & Revenue
-  totalUnits, avgMonthlyRent, otherIncomePerUnit,
-  vacancyRate, creditLossRate,
-
-  // Operating Expenses ($/unit/yr)
-  propertyMgmtFee (% of EGI), realEstateTaxes, insurance,
-  repairsMaint, landscaping, utilities, trash, pestControl,
-  security, payroll, marketing, professionalFees, admin,
-  reserveForReplacement, capexReserve, other,
-
-  // Loan
-  totalProjectCost, appraisedValue, loanAmount,
-  interestRate, loanTermYears, amortYears, interestOnlyYears
-}
-```
-
-### UI Flow
-- `/apartments` page shows a list of saved pro formas (name, date, key metrics) with a "New Pro Forma" button
-- Clicking one opens the 4-tab view
-- **Inputs tab** has a Save button; auto-saves on tab switch or navigation away (using existing UnsavedChangesProvider pattern)
-- Dashboard, Income Statement, and Amortization tabs are read-only calculated outputs
-
-### Calculation Engine (`src/lib/apartmentCalculations.ts`)
-Pure functions replicating the Excel exactly:
-- GPR = units × rent × 12
-- EGI = GPR + otherIncome − vacancy − creditLoss
-- NOI = EGI − total operating expenses
-- Monthly P&I via standard amortization formula
-- Key metrics: DSCR, Cap Rate, Cash-on-Cash, LTV, LTC, Break-Even Occupancy
-
-### Navigation
-- Add "Apartments" link with Building icon below Marketplace in both `CompanyDashboardNav.tsx` and `SidebarNavigation.tsx`
-- Add `/apartments` route in `App.tsx` (protected)
-
-### File Structure
-
-```text
-src/pages/Apartments.tsx                             — List + detail view
-src/components/apartments/ApartmentsList.tsx          — Saved pro formas list
-src/components/apartments/ApartmentDetail.tsx         — 4-tab container
-src/components/apartments/ApartmentInputsTab.tsx      — Editable form
-src/components/apartments/ApartmentDashboardTab.tsx   — Executive dashboard
-src/components/apartments/ApartmentIncomeTab.tsx      — Income statement table
-src/components/apartments/ApartmentAmortizationTab.tsx — Amortization schedule
-src/lib/apartmentCalculations.ts                     — All formulas
-```
-
-### Files changed
-- New migration: create `apartment_pro_formas` table with RLS
-- `src/pages/Apartments.tsx` (new)
-- `src/components/apartments/*` (new, 6 files)
-- `src/lib/apartmentCalculations.ts` (new)
-- `src/App.tsx` — add route
-- `src/components/sidebar/CompanyDashboardNav.tsx` — add nav link
-- `src/components/sidebar/SidebarNavigation.tsx` — add nav link
-
+Files involved
+- `src/App.tsx`
+- `src/pages/Apartments.tsx`
+- `src/components/sidebar/CompanyDashboardNav.tsx`
+- `src/components/sidebar/SidebarNavigation.tsx`
