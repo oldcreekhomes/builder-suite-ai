@@ -9,6 +9,7 @@ export interface ApartmentInputs {
   vacancy_rate: number;
   purchase_price: number;
   construction_costs: number;
+  loan_amount: number;
   ltv: number;
   interest_rate: number;
   amortization_years: number;
