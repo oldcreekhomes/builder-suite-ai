@@ -785,7 +785,7 @@ export function EditBillDialog({ open, onOpenChange, billId }: EditBillDialogPro
                 <div className="border rounded-lg overflow-hidden w-full">
                 <div className={cn("grid gap-2 p-3 bg-muted font-medium text-sm w-full", showAddressColumn ? "grid-cols-24" : "grid-cols-20")}>
                     <div className="col-span-5">Cost Code</div>
-                    <div className="col-span-5">Memo</div>
+                    <div className="col-span-5">Description</div>
                     <div className="col-span-2">Quantity</div>
                     <div className="col-span-2">Cost</div>
                     <div className="col-span-2">Total</div>
@@ -810,7 +810,7 @@ export function EditBillDialog({ open, onOpenChange, billId }: EditBillDialogPro
                       </div>
                       <div className="col-span-5">
                         <Input 
-                          placeholder="Job cost memo"
+                          placeholder="Description"
                           value={row.memo}
                           onChange={(e) => updateJobCostRow(row.id, 'memo', e.target.value)}
                           className="h-8"
@@ -947,7 +947,7 @@ export function EditBillDialog({ open, onOpenChange, billId }: EditBillDialogPro
                   <div className="grid grid-cols-12 gap-2 p-3 bg-muted font-medium text-sm">
                     <div className="col-span-2">Account</div>
                     <div className="col-span-2">Project</div>
-                    <div className={isApprovedBill ? "col-span-5" : "col-span-4"}>Memo</div>
+                    <div className={isApprovedBill ? "col-span-5" : "col-span-4"}>Description</div>
                     <div className="col-span-1">Quantity</div>
                     <div className="col-span-1">Cost</div>
                     <div className="col-span-1">Total</div>
@@ -977,7 +977,7 @@ export function EditBillDialog({ open, onOpenChange, billId }: EditBillDialogPro
                       </div>
                       <div className={isApprovedBill ? "col-span-5" : "col-span-4"}>
                         <Input 
-                          placeholder="Expense memo"
+                          placeholder="Description"
                           value={row.memo}
                           onChange={(e) => updateExpenseRow(row.id, 'memo', e.target.value)}
                           className="h-8"

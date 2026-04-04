@@ -776,7 +776,7 @@ export function ManualBillEntry() {
                     showAddressColumn ? "grid-cols-25" : "grid-cols-20"
                   )}>
                   <div className="col-span-5">Cost Code</div>
-                  <div className="col-span-5">Memo</div>
+                  <div className="col-span-5">Description</div>
                   <div className="col-span-2">Quantity</div>
                   <div className="col-span-2">Cost</div>
                   <div className="col-span-2">Total</div>
@@ -810,7 +810,7 @@ export function ManualBillEntry() {
                     </div>
                     <div className="col-span-5">
                       <Input
-                        placeholder="Job cost memo"
+                        placeholder="Description"
                         value={row.memo}
                         onChange={(e) => updateJobCostRow(row.id, 'memo', e.target.value)}
                         onBlur={() => {
@@ -1002,7 +1002,7 @@ export function ManualBillEntry() {
                   showAddressColumn ? "grid-cols-25" : "grid-cols-20"
                 )}>
                   <div className="col-span-5">Account</div>
-                  <div className="col-span-5">Memo</div>
+                  <div className="col-span-5">Description</div>
                   <div className="col-span-2">Quantity</div>
                   <div className="col-span-2">Cost</div>
                   <div className="col-span-2">Total</div>
@@ -1031,7 +1031,7 @@ export function ManualBillEntry() {
                     </div>
                     <div className="col-span-5">
                       <Input 
-                        placeholder="Expense memo"
+                        placeholder="Description"
                         value={row.memo}
                         onChange={(e) => updateExpenseRow(row.id, 'memo', e.target.value)}
                         className="h-8"

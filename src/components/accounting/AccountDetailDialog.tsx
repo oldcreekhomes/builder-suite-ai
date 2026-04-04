@@ -392,6 +392,7 @@ export function AccountDetailDialog({
             vendor_name: bill.companies?.company_name || 'Unknown Vendor',
             firstLineAccountId: firstLine?.account_id || null,
             firstLineCostCodeId: firstLine?.cost_code_id || null,
+            firstLineMemo: firstLine?.memo || null,
             isPaid
           });
         });
@@ -701,7 +702,7 @@ export function AccountDetailDialog({
           const bill = billsMap.get(line.journal_entries.source_id);
           if (bill) {
             reference = bill.vendor_name;
-            description = line.memo || bill.reference_number || description;
+            description = bill.firstLineMemo || line.memo || bill.reference_number || description;
             reconciled = bill.reconciled || !!bill.reconciliation_id || !!bill.reconciliation_date;
             reconciliation_date = bill.reconciliation_date;
             isPaid = bill.isPaid;
