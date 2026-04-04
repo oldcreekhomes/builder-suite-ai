@@ -1,7 +1,9 @@
 import { useMemo } from "react";
+import { useParams } from "react-router-dom";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { AppSidebar } from "@/components/AppSidebar";
-import { SidebarTrigger } from "@/components/ui/sidebar";
+import { SidebarProvider, SidebarInset } from "@/components/ui/sidebar";
+import { DashboardHeader } from "@/components/DashboardHeader";
 
 function generateAmortization(principal: number, annualRate: number, years: number) {
   const monthlyRate = annualRate / 12;
@@ -39,51 +41,55 @@ function generateAmortization(principal: number, annualRate: number, years: numb
 const fmt = (n: number) => n.toLocaleString("en-US", { style: "currency", currency: "USD", minimumFractionDigits: 0, maximumFractionDigits: 0 });
 
 const ApartmentAmortizationSchedule = () => {
+  const { projectId } = useParams();
   const rows = useMemo(() => generateAmortization(18_750_000, 0.065, 30), []);
 
   return (
-    <div className="flex min-h-screen w-full">
-      <AppSidebar />
-      <div className="flex-1 flex flex-col">
-        <header className="flex items-center h-12 border-b px-4">
-          <SidebarTrigger />
-          <h1 className="text-lg font-semibold ml-2">Amortization Schedule</h1>
-        </header>
-        <main className="flex-1 p-6 overflow-auto">
-          <Card>
-            <CardHeader><CardTitle className="text-sm font-medium">Loan Amortization Schedule</CardTitle></CardHeader>
-            <CardContent>
-              <div className="overflow-x-auto">
-                <table className="w-full text-sm">
-                  <thead>
-                    <tr className="border-b">
-                      <th className="text-left py-2 pr-4 font-medium">Year</th>
-                      <th className="text-right py-2 px-4 font-medium">Beginning Balance</th>
-                      <th className="text-right py-2 px-4 font-medium">Total Payment</th>
-                      <th className="text-right py-2 px-4 font-medium">Principal</th>
-                      <th className="text-right py-2 px-4 font-medium">Interest</th>
-                      <th className="text-right py-2 pl-4 font-medium">Ending Balance</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y">
-                    {rows.map((r) => (
-                      <tr key={r.year} className="hover:bg-muted/50">
-                        <td className="py-1.5 pr-4">{r.year}</td>
-                        <td className="py-1.5 px-4 text-right">{fmt(r.beginningBalance)}</td>
-                        <td className="py-1.5 px-4 text-right">{fmt(r.totalPayment)}</td>
-                        <td className="py-1.5 px-4 text-right">{fmt(r.totalPrincipal)}</td>
-                        <td className="py-1.5 px-4 text-right">{fmt(r.totalInterest)}</td>
-                        <td className="py-1.5 pl-4 text-right">{fmt(r.endingBalance)}</td>
+    <SidebarProvider>
+      <div className="flex min-h-screen w-full">
+        <AppSidebar />
+        <SidebarInset className="flex-1">
+          <DashboardHeader
+            title="Amortization Schedule"
+            subtitle="Loan amortization breakdown by year."
+            projectId={projectId}
+          />
+          <div className="flex-1 px-6 pt-3 pb-6 overflow-auto">
+            <Card>
+              <CardHeader><CardTitle className="text-sm font-medium">Loan Amortization Schedule</CardTitle></CardHeader>
+              <CardContent>
+                <div className="overflow-x-auto">
+                  <table className="w-full text-sm">
+                    <thead>
+                      <tr className="border-b">
+                        <th className="text-left py-2 pr-4 font-medium">Year</th>
+                        <th className="text-right py-2 px-4 font-medium">Beginning Balance</th>
+                        <th className="text-right py-2 px-4 font-medium">Total Payment</th>
+                        <th className="text-right py-2 px-4 font-medium">Principal</th>
+                        <th className="text-right py-2 px-4 font-medium">Interest</th>
+                        <th className="text-right py-2 pl-4 font-medium">Ending Balance</th>
                       </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            </CardContent>
-          </Card>
-        </main>
+                    </thead>
+                    <tbody className="divide-y">
+                      {rows.map((r) => (
+                        <tr key={r.year} className="hover:bg-muted/50">
+                          <td className="py-1.5 pr-4">{r.year}</td>
+                          <td className="py-1.5 px-4 text-right">{fmt(r.beginningBalance)}</td>
+                          <td className="py-1.5 px-4 text-right">{fmt(r.totalPayment)}</td>
+                          <td className="py-1.5 px-4 text-right">{fmt(r.totalPrincipal)}</td>
+                          <td className="py-1.5 px-4 text-right">{fmt(r.totalInterest)}</td>
+                          <td className="py-1.5 pl-4 text-right">{fmt(r.endingBalance)}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+        </SidebarInset>
       </div>
-    </div>
+    </SidebarProvider>
   );
 };
 
