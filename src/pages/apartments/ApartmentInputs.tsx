@@ -253,15 +253,15 @@ function RemovableEditableRow({ label, field, value, onChange, format, decimals,
   };
 
   return (
-    <div className="flex justify-between group">
-      <span className="text-muted-foreground flex items-center gap-1">
-        <button
-          onClick={onRemove}
-          className="opacity-0 group-hover:opacity-100 transition-opacity text-muted-foreground/50 hover:text-destructive"
-          title="Remove"
-        >
-          <X className="h-3 w-3" />
-        </button>
+    <div className="flex justify-between group relative">
+      <button
+        onClick={onRemove}
+        className="absolute -left-5 top-1/2 -translate-y-1/2 opacity-0 group-hover:opacity-100 transition-opacity text-muted-foreground/50 hover:text-destructive"
+        title="Remove"
+      >
+        <X className="h-3 w-3" />
+      </button>
+      <span className="text-muted-foreground">
         {label}
       </span>
       {isFocused ? (
