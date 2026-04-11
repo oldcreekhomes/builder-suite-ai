@@ -197,7 +197,7 @@ serve(async (req) => {
     );
 
     const { error: emailError } = await resend.emails.send({
-      from: "BuilderSuite ML <marketplace@transactional.buildersuiteml.com>",
+      from: "BuilderSuite ML <noreply@transactional.buildersuiteml.com>",
       to: [recipientEmail],
       subject: `New inquiry from ${senderName} via BuilderSuite ML`,
       html: emailHtml,
