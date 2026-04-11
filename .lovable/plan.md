@@ -1,38 +1,16 @@
 
 
-## Plan: Update All Email Sender Addresses to New Domain
+## Plan: Clean Up Remaining buildersuiteai References
 
-Your `transactional.buildersuiteml.com` domain is verified in Resend. Now we need to update all edge functions to send from the new domain instead of the old `buildersuiteai.com` one.
+### Changes
 
-### What Changes
+1. **`supabase/functions/send-issue-closure-email/index.ts`** — Change display text `WWW.BUILDERSUITEAI.COM` to `WWW.BUILDERSUITEML.COM` on line 161. Redeploy the function.
 
-**11 edge functions** need their sender `from` address updated:
+2. **`supabase/functions/get-weather-forecast/index.ts`** — Update User-Agent from `BuilderSuiteAI Weather App` to `BuilderSuiteML Weather App` (2 occurrences). Redeploy the function.
 
-| Edge Function | Old `from` | New `from` |
-|---|---|---|
-| send-employee-approved-email | `BuilderSuite ML <noreply@transactional.buildersuiteai.com>` | `BuilderSuite ML <noreply@transactional.buildersuiteml.com>` |
-| send-accounting-reports | same pattern | same update |
-| send-issue-closure-email | `BuilderSuite AI <noreply@...>` | `BuilderSuite ML <noreply@transactional.buildersuiteml.com>` |
-| send-employee-invitation | same pattern | same update |
-| send-signup-emails | (4 occurrences) | same update |
-| send-password-reset | same pattern | same update |
-| send-bid-package-email | `${senderName} <noreply@...>` | update domain only |
-| send-po-email | `${senderCompanyName} <noreply@...>` | update domain only |
-| send-bid-submission-email | `${senderCompanyName} <noreply@...>` | update domain only |
-| send-marketplace-message | `Builder Suite AI <marketplace@...>` | `BuilderSuite ML <noreply@transactional.buildersuiteml.com>` |
-| send-schedule-notification | `${senderCompanyName} <noreply@...>` | update domain only |
+3. **`index.html`** — The logo filename `buildersuiteai-logo.png` is a local asset path, not a domain reference. We can either rename the file to `buildersuiteml-logo.png` and update the references, or leave it as-is since users never see it. I'll rename it for consistency.
 
-**Additional updates across all files:**
-- Footer links: `www.buildersuiteai.com` changed to `www.buildersuiteml.com`
-- Redirect URLs in `handle-bid-response` and `handle-schedule-response`: `buildersuiteai.com` to `buildersuiteml.com`
-- Share redirect in `share-redirect`: `app.buildersuiteai.com` to `app.buildersuiteml.com`
-- Bid submit links in email HTML templates
-- Display name standardized to **BuilderSuite ML** everywhere
-- Update `docs/email-standards.md` to reflect new domain
-
-**All 12+ edge functions will be redeployed** after the changes.
-
-### No Risk
-
-This is a find-and-replace operation across known files. No logic changes, no database changes. Emails will start sending from the verified new domain immediately after deployment.
+### Technical Details
+- 3 files edited, 2 edge functions redeployed
+- No logic changes, purely cosmetic/branding cleanup
 
