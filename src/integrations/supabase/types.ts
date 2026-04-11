@@ -3934,6 +3934,138 @@ export type Database = {
           },
         ]
       }
+      recurring_transaction_lines: {
+        Row: {
+          account_id: string | null
+          amount: number
+          cost_code_id: string | null
+          created_at: string
+          id: string
+          line_number: number
+          line_type: string
+          lot_id: string | null
+          memo: string | null
+          owner_id: string
+          project_id: string | null
+          quantity: number
+          recurring_transaction_id: string
+          updated_at: string
+        }
+        Insert: {
+          account_id?: string | null
+          amount?: number
+          cost_code_id?: string | null
+          created_at?: string
+          id?: string
+          line_number?: number
+          line_type?: string
+          lot_id?: string | null
+          memo?: string | null
+          owner_id: string
+          project_id?: string | null
+          quantity?: number
+          recurring_transaction_id: string
+          updated_at?: string
+        }
+        Update: {
+          account_id?: string | null
+          amount?: number
+          cost_code_id?: string | null
+          created_at?: string
+          id?: string
+          line_number?: number
+          line_type?: string
+          lot_id?: string | null
+          memo?: string | null
+          owner_id?: string
+          project_id?: string | null
+          quantity?: number
+          recurring_transaction_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "recurring_transaction_lines_account_id_fkey"
+            columns: ["account_id"]
+            isOneToOne: false
+            referencedRelation: "accounts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "recurring_transaction_lines_cost_code_id_fkey"
+            columns: ["cost_code_id"]
+            isOneToOne: false
+            referencedRelation: "cost_codes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "recurring_transaction_lines_lot_id_fkey"
+            columns: ["lot_id"]
+            isOneToOne: false
+            referencedRelation: "project_lots"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "recurring_transaction_lines_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "recurring_transaction_lines_recurring_transaction_id_fkey"
+            columns: ["recurring_transaction_id"]
+            isOneToOne: false
+            referencedRelation: "recurring_transactions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      recurring_transactions: {
+        Row: {
+          auto_enter: boolean
+          created_at: string
+          end_date: string | null
+          frequency: string
+          id: string
+          is_active: boolean
+          name: string
+          next_date: string
+          owner_id: string
+          template_data: Json
+          transaction_type: string
+          updated_at: string
+        }
+        Insert: {
+          auto_enter?: boolean
+          created_at?: string
+          end_date?: string | null
+          frequency?: string
+          id?: string
+          is_active?: boolean
+          name: string
+          next_date: string
+          owner_id: string
+          template_data?: Json
+          transaction_type: string
+          updated_at?: string
+        }
+        Update: {
+          auto_enter?: boolean
+          created_at?: string
+          end_date?: string | null
+          frequency?: string
+          id?: string
+          is_active?: boolean
+          name?: string
+          next_date?: string
+          owner_id?: string
+          template_data?: Json
+          transaction_type?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       shared_links: {
         Row: {
           created_at: string
