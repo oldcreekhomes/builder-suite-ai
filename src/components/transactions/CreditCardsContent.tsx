@@ -80,6 +80,9 @@ export function CreditCardsContent({ projectId, recurringTemplate, onClearTempla
 
   // Active tab state for controlled Tabs
   const [activeTab, setActiveTab] = useState<string>("expense");
+  
+  // Memorize dialog state
+  const [memorizeDialogOpen, setMemorizeDialogOpen] = useState(false);
 
   // Attachments
   const {
