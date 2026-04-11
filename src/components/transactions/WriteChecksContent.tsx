@@ -32,6 +32,8 @@ import { useLots } from "@/hooks/useLots";
 import { CheckPrintPreview } from "@/components/checks/CheckPrintPreview";
 import { CheckPrintSettingsDialog } from "@/components/checks/CheckPrintSettingsDialog";
 import { useCheckPrintSettings } from "@/hooks/useCheckPrintSettings";
+import { MemorizeTransactionDialog } from "./MemorizeTransactionDialog";
+import type { RecurringTransaction, RecurringTransactionLine } from "@/hooks/useRecurringTransactions";
 
 interface CheckRow {
   id: string;
@@ -47,9 +49,11 @@ interface CheckRow {
 
 interface WriteChecksContentProps {
   projectId?: string;
+  recurringTemplate?: RecurringTransaction | null;
+  onClearTemplate?: () => void;
 }
 
-export function WriteChecksContent({ projectId }: WriteChecksContentProps) {
+export function WriteChecksContent({ projectId, recurringTemplate, onClearTemplate }: WriteChecksContentProps) {
   const navigate = useNavigate();
   const { isDateLocked, latestClosedDate } = useClosedPeriodCheck(projectId);
   const [checkDate, setCheckDate] = useState<Date>(new Date());
@@ -97,6 +101,9 @@ export function WriteChecksContent({ projectId }: WriteChecksContentProps) {
   // Print dialog states
   const [printPreviewOpen, setPrintPreviewOpen] = useState(false);
   const [printSettingsOpen, setPrintSettingsOpen] = useState(false);
+  
+  // Memorize dialog state
+  const [memorizeDialogOpen, setMemorizeDialogOpen] = useState(false);
 
   // Track initial state for unsaved changes detection
   const initialFormStateRef = useRef<string>("");
@@ -1426,6 +1433,9 @@ export function WriteChecksContent({ projectId }: WriteChecksContentProps) {
                   </div>
                 ) : (
                   <div className="flex gap-2">
+                    <Button variant="outline" onClick={() => setMemorizeDialogOpen(true)} size="sm" className="h-10">
+                      Memorize
+                    </Button>
                     <Button variant="outline" onClick={handleClear} size="sm" className="h-10">
                       Clear
                     </Button>
@@ -1506,6 +1516,50 @@ export function WriteChecksContent({ projectId }: WriteChecksContentProps) {
         open={printSettingsOpen}
         onOpenChange={setPrintSettingsOpen}
         projectId={projectId}
+      />
+
+      {/* Memorize Dialog */}
+      <MemorizeTransactionDialog
+        open={memorizeDialogOpen}
+        onOpenChange={setMemorizeDialogOpen}
+        transactionType="check"
+        templateData={{
+          pay_to: payTo,
+          pay_to_name: payToName,
+          bank_account_id: bankAccountId,
+          bank_account: bankAccount,
+          check_number: checkNumber,
+          amount: parseFloat(calculateTotal()) || 0,
+          project_id: projectId,
+          company_name: companyName,
+          company_address: companyAddress,
+          company_city_state: companyCityState,
+          bank_name: bankName,
+          memo: "",
+        }}
+        lines={[
+          ...jobCostRows.filter(r => parseFloat(r.amount) > 0).map((r, i) => ({
+            line_type: "job_cost" as const,
+            account_id: r.accountId,
+            project_id: r.projectId,
+            lot_id: r.lotId,
+            quantity: parseFloat(r.quantity || "1") || 1,
+            amount: parseFloat(r.amount) || 0,
+            memo: r.memo,
+            line_number: i + 1,
+          })),
+          ...expenseRows.filter(r => parseFloat(r.amount) > 0).map((r, i) => ({
+            line_type: "expense" as const,
+            account_id: r.accountId,
+            project_id: r.projectId,
+            lot_id: r.lotId,
+            quantity: parseFloat(r.quantity || "1") || 1,
+            amount: parseFloat(r.amount) || 0,
+            memo: r.memo,
+            line_number: i + 1,
+          })),
+        ]}
+        defaultName={payToName || payTo}
       />
     </TooltipProvider>
   );

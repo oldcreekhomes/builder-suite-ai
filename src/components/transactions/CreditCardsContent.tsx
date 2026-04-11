@@ -26,6 +26,8 @@ import { AttachmentFilesRow } from "@/components/accounting/AttachmentFilesRow";
 import { useCreditCardAttachments } from "@/hooks/useCreditCardAttachments";
 import { CreditCardSearchDialog } from "@/components/creditcards/CreditCardSearchDialog";
 import { useLots } from "@/hooks/useLots";
+import { MemorizeTransactionDialog } from "./MemorizeTransactionDialog";
+import type { RecurringTransaction, RecurringTransactionLine } from "@/hooks/useRecurringTransactions";
 
 interface CreditCardRow {
   id: string;
@@ -42,9 +44,11 @@ interface CreditCardRow {
 
 interface CreditCardsContentProps {
   projectId?: string;
+  recurringTemplate?: RecurringTransaction | null;
+  onClearTemplate?: () => void;
 }
 
-export function CreditCardsContent({ projectId }: CreditCardsContentProps) {
+export function CreditCardsContent({ projectId, recurringTemplate, onClearTemplate }: CreditCardsContentProps) {
   const { creditCards, createCreditCard, updateCreditCard, deleteCreditCard } = useCreditCards();
   const { costCodes, loading: costCodesLoading } = useCostCodeSearch();
   const { accounts } = useAccounts();
@@ -76,6 +80,9 @@ export function CreditCardsContent({ projectId }: CreditCardsContentProps) {
 
   // Active tab state for controlled Tabs
   const [activeTab, setActiveTab] = useState<string>("expense");
+  
+  // Memorize dialog state
+  const [memorizeDialogOpen, setMemorizeDialogOpen] = useState(false);
 
   // Attachments
   const {
@@ -947,6 +954,15 @@ export function CreditCardsContent({ projectId }: CreditCardsContentProps) {
                 </div>
               ) : (
                 <div className="flex gap-2">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={() => setMemorizeDialogOpen(true)}
+                    size="sm"
+                    className="h-10"
+                  >
+                    Memorize
+                  </Button>
                   <Button 
                     type="button"
                     variant="outline" 
@@ -1000,6 +1016,45 @@ export function CreditCardsContent({ projectId }: CreditCardsContentProps) {
           onDeleteCreditCard={async (creditCardId) => {
             await deleteCreditCard.mutateAsync(creditCardId);
           }}
+        />
+
+        {/* Memorize Dialog */}
+        <MemorizeTransactionDialog
+          open={memorizeDialogOpen}
+          onOpenChange={setMemorizeDialogOpen}
+          transactionType="credit_card"
+          templateData={{
+            credit_card_account: creditCardAccount,
+            credit_card_account_id: creditCardAccountId,
+            vendor: vendor,
+            vendor_id: vendorId,
+            transaction_type: transactionType,
+            amount: calculateTotal(),
+            project_id: selectedProjectId || projectId,
+          }}
+          lines={[
+            ...expenseRows.filter(r => parseFloat(r.amount) > 0).map((r, i) => ({
+              line_type: "expense" as const,
+              account_id: r.accountId,
+              project_id: r.projectId,
+              lot_id: r.lotId,
+              quantity: parseFloat(r.quantity || "1") || 1,
+              amount: parseFloat(r.amount) || 0,
+              memo: r.memo,
+              line_number: i + 1,
+            })),
+            ...jobCostRows.filter(r => parseFloat(r.amount) > 0).map((r, i) => ({
+              line_type: "job_cost" as const,
+              cost_code_id: r.costCodeId,
+              project_id: r.projectId,
+              lot_id: r.lotId,
+              quantity: parseFloat(r.quantity || "1") || 1,
+              amount: parseFloat(r.amount) || 0,
+              memo: r.memo,
+              line_number: i + 1,
+            })),
+          ]}
+          defaultName={vendor}
         />
       </TooltipProvider>
     </Card>
