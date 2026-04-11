@@ -26,6 +26,8 @@ import { AttachmentFilesRow } from "@/components/accounting/AttachmentFilesRow";
 import { useCreditCardAttachments } from "@/hooks/useCreditCardAttachments";
 import { CreditCardSearchDialog } from "@/components/creditcards/CreditCardSearchDialog";
 import { useLots } from "@/hooks/useLots";
+import { MemorizeTransactionDialog } from "./MemorizeTransactionDialog";
+import type { RecurringTransaction, RecurringTransactionLine } from "@/hooks/useRecurringTransactions";
 
 interface CreditCardRow {
   id: string;
@@ -42,9 +44,11 @@ interface CreditCardRow {
 
 interface CreditCardsContentProps {
   projectId?: string;
+  recurringTemplate?: RecurringTransaction | null;
+  onClearTemplate?: () => void;
 }
 
-export function CreditCardsContent({ projectId }: CreditCardsContentProps) {
+export function CreditCardsContent({ projectId, recurringTemplate, onClearTemplate }: CreditCardsContentProps) {
   const { creditCards, createCreditCard, updateCreditCard, deleteCreditCard } = useCreditCards();
   const { costCodes, loading: costCodesLoading } = useCostCodeSearch();
   const { accounts } = useAccounts();

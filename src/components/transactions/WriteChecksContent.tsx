@@ -101,6 +101,9 @@ export function WriteChecksContent({ projectId, recurringTemplate, onClearTempla
   // Print dialog states
   const [printPreviewOpen, setPrintPreviewOpen] = useState(false);
   const [printSettingsOpen, setPrintSettingsOpen] = useState(false);
+  
+  // Memorize dialog state
+  const [memorizeDialogOpen, setMemorizeDialogOpen] = useState(false);
 
   // Track initial state for unsaved changes detection
   const initialFormStateRef = useRef<string>("");
