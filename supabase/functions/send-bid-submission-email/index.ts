@@ -181,7 +181,7 @@ const handler = async (req: Request): Promise<Response> => {
     }
 
     // Fetch the sender company information (use provided or get from project owner)
-    let senderCompanyName = 'BuilderSuite AI';
+    let senderCompanyName = 'BuilderSuite ML';
     if (projectInfo?.owner_id) {
       const { data: senderUser } = await supabase
         .from('users')

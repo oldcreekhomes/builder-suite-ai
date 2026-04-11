@@ -166,7 +166,7 @@ const generatePOEmailHTML = (data: any, purchaseOrderId?: string, companyId?: st
   const projectAddress = data.projectAddress || 'Project Address Not Available';
   const companyName = data.companyName || 'Company Name Not Available';
   const proposals = data.proposals || [];
-  const senderCompanyName = data.senderCompanyName || 'Builder Suite AI';
+  const senderCompanyName = data.senderCompanyName || 'BuilderSuite ML';
   const managerName = data.projectManager?.name || 'Project Manager';
   const managerEmail = data.projectManager?.email || '';
   const managerPhone = data.projectManager?.phone || '';
@@ -803,7 +803,7 @@ const handler = async (req: Request): Promise<Response> => {
       projectAddress: finalProjectAddress,
       companyName: fetchedCompanyName || 'Unknown Company',
       proposals: proposals || [],
-      senderCompanyName: senderCompanyName || 'Builder Suite AI',
+      senderCompanyName: senderCompanyName || 'BuilderSuite ML',
       projectManager,
       costCode: costCodeInfo,
       totalAmount,
@@ -822,7 +822,7 @@ const handler = async (req: Request): Promise<Response> => {
       console.log(`📤 Sending PO email to: ${rep.email}`);
       
       return await resend.emails.send({
-        from: `${senderCompanyName || 'Builder Suite AI'} <noreply@transactional.buildersuiteml.com>`,
+        from: `${senderCompanyName || 'BuilderSuite ML'} <noreply@transactional.buildersuiteml.com>`,
         to: [rep.email],
         subject: emailSubject,
         html: emailHTML,
