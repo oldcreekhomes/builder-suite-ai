@@ -4,7 +4,7 @@ import { useAccountingPermissions } from "@/hooks/useAccountingPermissions";
 import { useEstimatePermissions } from "@/hooks/useEstimatePermissions";
 import { useMarketplacePermissions } from "@/hooks/useMarketplacePermissions";
 import { useTemplatePermissions } from "@/hooks/useTemplatePermissions";
-import { useApartmentPermissions } from "@/hooks/useApartmentPermissions";
+import { useProject } from "@/hooks/useProject";
 
 import { 
   DollarSign, 
@@ -103,6 +103,11 @@ interface SidebarNavigationProps {
 
 export function SidebarNavigation({ unreadCounts }: SidebarNavigationProps) {
   const location = useLocation();
+  
+  // Extract project ID from URL (must be before hooks that depend on it)
+  const pathParts = location.pathname.split('/');
+  const projectId = (pathParts[1] === 'project' && pathParts[2]) ? pathParts[2] : null;
+  
   const { users } = useCompanyUsers();
   const { 
     canAccessAccounting, 
@@ -114,7 +119,7 @@ export function SidebarNavigation({ unreadCounts }: SidebarNavigationProps) {
   const { canAccessEstimate, isLoading: estimatePermissionsLoading } = useEstimatePermissions();
   const { canAccessMarketplace, isLoading: marketplacePermissionsLoading } = useMarketplacePermissions();
   const { canAccessTemplates, isLoading: templatePermissionsLoading } = useTemplatePermissions();
-  const { canAccessApartments, isLoading: apartmentPermissionsLoading } = useApartmentPermissions();
+  const { data: currentProject } = useProject(projectId || '');
   const { data: issueCounts } = useIssueCounts();
   const { projectContext, goBackToProject, hasProjectContext } = useProjectContextWithData();
   
@@ -134,17 +139,6 @@ export function SidebarNavigation({ unreadCounts }: SidebarNavigationProps) {
     0
   );
   const totalIssueCount = totalNormalIssues + totalHighIssues;
-
-  // Get current project ID from URL
-  const getProjectId = () => {
-    const pathParts = location.pathname.split('/');
-    if (pathParts[1] === 'project' && pathParts[2]) {
-      return pathParts[2]; // /project/{id}
-    }
-    return null;
-  };
-
-  const projectId = getProjectId();
 
   // Check if we're on the Company Dashboard, Messages page, Issues page, or global pages
   const isCompanyDashboard = location.pathname === '/';
@@ -278,7 +272,7 @@ export function SidebarNavigation({ unreadCounts }: SidebarNavigationProps) {
             )}
 
             {/* Apartments Section - shown only if user has permission and on project pages */}
-            {projectId && !apartmentPermissionsLoading && canAccessApartments && (
+            {projectId && currentProject?.apartments_enabled && (
               <div>
                 <Link
                   to={`/project/${projectId}/apartments`}
