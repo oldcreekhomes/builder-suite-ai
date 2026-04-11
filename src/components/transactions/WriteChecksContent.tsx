@@ -32,6 +32,8 @@ import { useLots } from "@/hooks/useLots";
 import { CheckPrintPreview } from "@/components/checks/CheckPrintPreview";
 import { CheckPrintSettingsDialog } from "@/components/checks/CheckPrintSettingsDialog";
 import { useCheckPrintSettings } from "@/hooks/useCheckPrintSettings";
+import { MemorizeTransactionDialog } from "./MemorizeTransactionDialog";
+import type { RecurringTransaction, RecurringTransactionLine } from "@/hooks/useRecurringTransactions";
 
 interface CheckRow {
   id: string;
@@ -47,9 +49,11 @@ interface CheckRow {
 
 interface WriteChecksContentProps {
   projectId?: string;
+  recurringTemplate?: RecurringTransaction | null;
+  onClearTemplate?: () => void;
 }
 
-export function WriteChecksContent({ projectId }: WriteChecksContentProps) {
+export function WriteChecksContent({ projectId, recurringTemplate, onClearTemplate }: WriteChecksContentProps) {
   const navigate = useNavigate();
   const { isDateLocked, latestClosedDate } = useClosedPeriodCheck(projectId);
   const [checkDate, setCheckDate] = useState<Date>(new Date());
