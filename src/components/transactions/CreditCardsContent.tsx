@@ -954,6 +954,15 @@ export function CreditCardsContent({ projectId, recurringTemplate, onClearTempla
                 </div>
               ) : (
                 <div className="flex gap-2">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={() => setMemorizeDialogOpen(true)}
+                    size="sm"
+                    className="h-10"
+                  >
+                    Memorize
+                  </Button>
                   <Button 
                     type="button"
                     variant="outline" 
