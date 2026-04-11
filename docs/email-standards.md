@@ -1,11 +1,11 @@
-# BuilderSuite AI Email Standards
+# BuilderSuite ML Email Standards
 
 ## Standard Email Configuration
 
-**ALWAYS use this email sender address for ALL BuilderSuite AI functions:**
+**ALWAYS use this email sender address for ALL BuilderSuite ML functions:**
 
 ```
-"BuilderSuite AI <noreply@transactional.buildersuiteml.com>"
+"BuilderSuite ML <noreply@transactional.buildersuiteml.com>"
 ```
 
 ## Verified Domain
@@ -37,7 +37,7 @@
 
 ```typescript
 const emailResponse = await resend.emails.send({
-  from: "BuilderSuite AI <noreply@transactional.buildersuiteml.com>",
+  from: "BuilderSuite ML <noreply@transactional.buildersuiteml.com>",
   to: [recipientEmail],
   subject: "Your Subject Here",
   html: `Your email content here`,
