@@ -1433,6 +1433,9 @@ export function WriteChecksContent({ projectId, recurringTemplate, onClearTempla
                   </div>
                 ) : (
                   <div className="flex gap-2">
+                    <Button variant="outline" onClick={() => setMemorizeDialogOpen(true)} size="sm" className="h-10">
+                      Memorize
+                    </Button>
                     <Button variant="outline" onClick={handleClear} size="sm" className="h-10">
                       Clear
                     </Button>
@@ -1508,11 +1511,48 @@ export function WriteChecksContent({ projectId, recurringTemplate, onClearTempla
         }}
       />
 
-      {/* Check Print Settings Dialog */}
-      <CheckPrintSettingsDialog
-        open={printSettingsOpen}
-        onOpenChange={setPrintSettingsOpen}
-        projectId={projectId}
+      {/* Memorize Dialog */}
+      <MemorizeTransactionDialog
+        open={memorizeDialogOpen}
+        onOpenChange={setMemorizeDialogOpen}
+        transactionType="check"
+        templateData={{
+          pay_to: payTo,
+          pay_to_name: payToName,
+          bank_account_id: bankAccountId,
+          bank_account: bankAccount,
+          check_number: checkNumber,
+          amount: parseFloat(calculateTotal()) || 0,
+          project_id: projectId,
+          company_name: companyName,
+          company_address: companyAddress,
+          company_city_state: companyCityState,
+          bank_name: bankName,
+          memo: "",
+        }}
+        lines={[
+          ...jobCostRows.filter(r => parseFloat(r.amount) > 0).map((r, i) => ({
+            line_type: "job_cost" as const,
+            account_id: r.accountId,
+            project_id: r.projectId,
+            lot_id: r.lotId,
+            quantity: parseFloat(r.quantity || "1") || 1,
+            amount: parseFloat(r.amount) || 0,
+            memo: r.memo,
+            line_number: i + 1,
+          })),
+          ...expenseRows.filter(r => parseFloat(r.amount) > 0).map((r, i) => ({
+            line_type: "expense" as const,
+            account_id: r.accountId,
+            project_id: r.projectId,
+            lot_id: r.lotId,
+            quantity: parseFloat(r.quantity || "1") || 1,
+            amount: parseFloat(r.amount) || 0,
+            memo: r.memo,
+            line_number: i + 1,
+          })),
+        ]}
+        defaultName={payToName || payTo}
       />
     </TooltipProvider>
   );
