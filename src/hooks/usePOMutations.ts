@@ -116,7 +116,7 @@ export const usePOMutations = (projectId: string) => {
           customMessage: customMessage,
           totalAmount: totalAmount || 0,
           costCode: costCodeData.data,
-          senderCompanyName: senderData?.company_name || 'Builder Suite AI'
+          senderCompanyName: senderData?.company_name || 'BuilderSuite ML'
         }
       });
 
@@ -264,7 +264,7 @@ export const usePOMutations = (projectId: string) => {
             customMessage: customMessage,
             totalAmount: totalAmount || 0,
             costCode: costCodeData.data,
-            senderCompanyName: senderData?.company_name || 'Builder Suite AI'
+            senderCompanyName: senderData?.company_name || 'BuilderSuite ML'
           }
         });
 

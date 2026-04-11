@@ -82,7 +82,7 @@ export const usePurchaseOrderMutations = (projectId: string) => {
       ]);
 
       const projectAddress = projectResult.data?.address || 'Project Address';
-      const senderCompanyName = senderResult.data?.company_name || 'Builder Suite AI';
+      const senderCompanyName = senderResult.data?.company_name || 'BuilderSuite ML';
 
       // Step 2: Send cancellation email
       const { error: emailError } = await supabase.functions.invoke('send-po-email', {
