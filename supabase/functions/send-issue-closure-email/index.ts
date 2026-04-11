@@ -158,7 +158,7 @@ const handler = async (req: Request): Promise<Response> => {
                             
                             <p style="color: #000000; font-size: 16px; margin: 30px 0 0 0; line-height: 1.5; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif;">Best regards,<br>BuilderSuite ML</p>
                             
-                            <p style="color: #000000; font-size: 14px; margin: 20px 0 0 0; line-height: 1.4; text-align: center; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif;"><a href="https://www.buildersuiteml.com" target="_blank" rel="noopener noreferrer" style="color: #000000; text-decoration: none; font-weight: bold;">WWW.BUILDERSUITEAI.COM</a></p>
+                            <p style="color: #000000; font-size: 14px; margin: 20px 0 0 0; line-height: 1.4; text-align: center; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif;"><a href="https://www.buildersuiteml.com" target="_blank" rel="noopener noreferrer" style="color: #000000; text-decoration: none; font-weight: bold;"><p style="color: #000000; font-size: 14px; margin: 20px 0 0 0; line-height: 1.4; text-align: center; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif;"><a href="https://www.buildersuiteml.com" target="_blank" rel="noopener noreferrer" style="color: #000000; text-decoration: none; font-weight: bold;">WWW.BUILDERSUITEML.COM</a></p></a></p>
                         </td>
                     </tr>
                 </table>
