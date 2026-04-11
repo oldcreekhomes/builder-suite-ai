@@ -11,6 +11,7 @@ export interface Project {
   accounting_software?: string;
   total_lots?: number;
   region?: string;
+  apartments_enabled?: boolean;
   created_at: string;
   updated_at: string;
 }
@@ -25,7 +26,7 @@ export const useProject = (projectId: string) => {
 
       const { data, error } = await supabase
         .from('projects')
-        .select('id, address, status, construction_manager, accounting_manager, accounting_software, total_lots, region, created_at, updated_at')
+        .select('id, address, status, construction_manager, accounting_manager, accounting_software, total_lots, region, apartments_enabled, created_at, updated_at')
         .eq('id', projectId)
         .maybeSingle();
 
