@@ -1017,6 +1017,45 @@ export function CreditCardsContent({ projectId, recurringTemplate, onClearTempla
             await deleteCreditCard.mutateAsync(creditCardId);
           }}
         />
+
+        {/* Memorize Dialog */}
+        <MemorizeTransactionDialog
+          open={memorizeDialogOpen}
+          onOpenChange={setMemorizeDialogOpen}
+          transactionType="credit_card"
+          templateData={{
+            credit_card_account: creditCardAccount,
+            credit_card_account_id: creditCardAccountId,
+            vendor: vendor,
+            vendor_id: vendorId,
+            transaction_type: transactionType,
+            amount: calculateTotal(),
+            project_id: selectedProjectId || projectId,
+          }}
+          lines={[
+            ...expenseRows.filter(r => parseFloat(r.amount) > 0).map((r, i) => ({
+              line_type: "expense" as const,
+              account_id: r.accountId,
+              project_id: r.projectId,
+              lot_id: r.lotId,
+              quantity: parseFloat(r.quantity || "1") || 1,
+              amount: parseFloat(r.amount) || 0,
+              memo: r.memo,
+              line_number: i + 1,
+            })),
+            ...jobCostRows.filter(r => parseFloat(r.amount) > 0).map((r, i) => ({
+              line_type: "job_cost" as const,
+              cost_code_id: r.costCodeId,
+              project_id: r.projectId,
+              lot_id: r.lotId,
+              quantity: parseFloat(r.quantity || "1") || 1,
+              amount: parseFloat(r.amount) || 0,
+              memo: r.memo,
+              line_number: i + 1,
+            })),
+          ]}
+          defaultName={vendor}
+        />
       </TooltipProvider>
     </Card>
   );
