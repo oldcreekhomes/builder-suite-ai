@@ -36,7 +36,7 @@ const handler = async (req: Request): Promise<Response> => {
 
     if (!bidPackageId || !companyId || !response) {
       console.error('Missing required parameters');
-      const errorUrl = new URL('https://buildersuiteai.com/bid-response-confirmation');
+      const errorUrl = new URL('https://buildersuiteml.com/bid-response-confirmation');
       errorUrl.searchParams.set('status', 'error');
       return new Response(null, {
         status: 302,
@@ -46,7 +46,7 @@ const handler = async (req: Request): Promise<Response> => {
 
     if (response !== "will_bid" && response !== "will_not_bid") {
       console.error('Invalid response value');
-      const errorUrl = new URL('https://buildersuiteai.com/bid-response-confirmation');
+      const errorUrl = new URL('https://buildersuiteml.com/bid-response-confirmation');
       errorUrl.searchParams.set('status', 'error');
       return new Response(null, {
         status: 302,
@@ -93,7 +93,7 @@ const handler = async (req: Request): Promise<Response> => {
       
       console.log('Existing bid record:', existingBid);
       
-      const errorUrl = new URL('https://buildersuiteai.com/bid-response-confirmation');
+      const errorUrl = new URL('https://buildersuiteml.com/bid-response-confirmation');
       errorUrl.searchParams.set('status', 'error');
       return new Response(null, {
         status: 302,
@@ -105,7 +105,7 @@ const handler = async (req: Request): Promise<Response> => {
       console.log('No rows were updated (test email or already processed). Showing confirmation anyway.');
       
       // Gracefully redirect to confirmation instead of error
-      const confirmUrl = new URL('https://buildersuiteai.com/bid-response-confirmation');
+      const confirmUrl = new URL('https://buildersuiteml.com/bid-response-confirmation');
       confirmUrl.searchParams.set('response', response);
       confirmUrl.searchParams.set('status', 'success');
       return new Response(null, {
@@ -127,7 +127,7 @@ const handler = async (req: Request): Promise<Response> => {
     console.log('Bid package due date:', dueDate);
 
     // Redirect to confirmation page
-    const confirmationUrl = new URL('https://buildersuiteai.com/bid-response-confirmation');
+    const confirmationUrl = new URL('https://buildersuiteml.com/bid-response-confirmation');
     confirmationUrl.searchParams.set('response', response);
     confirmationUrl.searchParams.set('status', 'success');
     if (dueDate) {
@@ -147,7 +147,7 @@ const handler = async (req: Request): Promise<Response> => {
   } catch (error) {
     console.error("❌ CRITICAL ERROR in handle-bid-response function:", error);
     console.error("Error stack:", error instanceof Error ? error.stack : 'No stack trace');
-    const errorUrl = new URL('https://buildersuiteai.com/bid-response-confirmation');
+    const errorUrl = new URL('https://buildersuiteml.com/bid-response-confirmation');
     errorUrl.searchParams.set('status', 'error');
     return new Response(null, {
       status: 302,

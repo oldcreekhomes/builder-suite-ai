@@ -92,12 +92,12 @@ export default function ScheduleResponseConfirmation() {
               </Button>
               <div>
                 <a 
-                  href="https://www.buildersuiteai.com" 
+                  href="https://www.buildersuiteml.com" 
                   target="_blank" 
                   rel="noopener noreferrer"
                   className="text-sm text-black no-underline hover:text-gray-700 transition-colors"
                 >
-                  www.buildersuiteai.com
+                  www.buildersuiteml.com
                 </a>
               </div>
             </div>

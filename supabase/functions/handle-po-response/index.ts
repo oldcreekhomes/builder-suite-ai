@@ -31,7 +31,7 @@ const handler = async (req: Request): Promise<Response> => {
 
     if (!purchaseOrderId || !companyId || !response) {
       console.error('Missing required parameters');
-      const errorUrl = new URL('https://buildersuiteai.com/po-response-confirmation');
+      const errorUrl = new URL('https://buildersuiteml.com/po-response-confirmation');
       errorUrl.searchParams.set('status', 'error');
       return new Response(null, {
         status: 302,
@@ -41,7 +41,7 @@ const handler = async (req: Request): Promise<Response> => {
 
     if (response !== "approved" && response !== "rejected") {
       console.error('Invalid response value');
-      const errorUrl = new URL('https://buildersuiteai.com/po-response-confirmation');
+      const errorUrl = new URL('https://buildersuiteml.com/po-response-confirmation');
       errorUrl.searchParams.set('status', 'error');
       return new Response(null, {
         status: 302,
@@ -61,7 +61,7 @@ const handler = async (req: Request): Promise<Response> => {
 
     if (updateError) {
       console.error('Error updating PO status:', updateError);
-      const errorUrl = new URL('https://buildersuiteai.com/po-response-confirmation');
+      const errorUrl = new URL('https://buildersuiteml.com/po-response-confirmation');
       errorUrl.searchParams.set('status', 'error');
       return new Response(null, {
         status: 302,
@@ -72,7 +72,7 @@ const handler = async (req: Request): Promise<Response> => {
     console.log('PO status updated successfully');
 
     // Redirect to confirmation page
-    const confirmationUrl = new URL('https://buildersuiteai.com/po-response-confirmation');
+    const confirmationUrl = new URL('https://buildersuiteml.com/po-response-confirmation');
     confirmationUrl.searchParams.set('response', response);
     confirmationUrl.searchParams.set('status', 'success');
 
@@ -88,7 +88,7 @@ const handler = async (req: Request): Promise<Response> => {
 
   } catch (error) {
     console.error("Error in handle-po-response function:", error);
-    const errorUrl = new URL('https://buildersuiteai.com/po-response-confirmation');
+    const errorUrl = new URL('https://buildersuiteml.com/po-response-confirmation');
     errorUrl.searchParams.set('status', 'error');
     return new Response(null, {
       status: 302,

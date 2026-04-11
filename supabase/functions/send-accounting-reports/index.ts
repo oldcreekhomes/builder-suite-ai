@@ -165,7 +165,7 @@ const handler = async (req: Request): Promise<Response> => {
     // Send email
     console.log("Sending email to:", recipientEmail);
     const emailResponse = await resend.emails.send({
-      from: "BuilderSuite ML <noreply@transactional.buildersuiteai.com>",
+      from: "BuilderSuite ML <noreply@transactional.buildersuiteml.com>",
       to: [recipientEmail],
       subject: `Accounting Reports - ${projectName} (As of ${formattedDate})`,
       html: generateEmailTemplate(projectName, formattedDate, reports, pdfFiles.length, customMessage),
@@ -331,7 +331,7 @@ function generateEmailTemplate(projectName: string, asOfDate: string, reports: a
                     <tr>
                         <td align="center" style="padding: 30px; background-color: #f8f8f8; margin: 0;">
                             <p style="color: #666666; font-size: 14px; margin: 0; line-height: 1.4; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif;">
-                                <a href="https://www.buildersuiteai.com" style="color: #666666; text-decoration: underline;" target="_blank">www.buildersuiteai.com</a>
+                                <a href="https://www.buildersuiteml.com" style="color: #666666; text-decoration: underline;" target="_blank">www.buildersuiteml.com</a>
                             </p>
                         </td>
                     </tr>

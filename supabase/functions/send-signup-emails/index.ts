@@ -84,7 +84,7 @@ function buildAdminNotificationHtml(signupTypeLabel: string, companyName: string
                     <tr>
                         <td align="center" style="padding: 30px; background-color: #f8f8f8; margin: 0;">
                             <p style="color: #666666; font-size: 14px; margin: 0; line-height: 1.4;">
-                                <a href="https://www.buildersuiteai.com" style="color: #666666; text-decoration: underline;" target="_blank">www.buildersuiteai.com</a>
+                                <a href="https://www.buildersuiteml.com" style="color: #666666; text-decoration: underline;" target="_blank">www.buildersuiteml.com</a>
                             </p>
                         </td>
                     </tr>
@@ -138,7 +138,7 @@ function buildHomeBuilderVerificationHtml(companyName: string, verificationLink:
                     <tr>
                         <td align="center" style="padding: 30px; background-color: #f8f8f8; margin: 0;">
                             <p style="color: #666666; font-size: 14px; margin: 0; line-height: 1.4;">
-                                <a href="https://www.buildersuiteai.com" style="color: #666666; text-decoration: underline;" target="_blank">www.buildersuiteai.com</a>
+                                <a href="https://www.buildersuiteml.com" style="color: #666666; text-decoration: underline;" target="_blank">www.buildersuiteml.com</a>
                             </p>
                         </td>
                     </tr>
@@ -214,7 +214,7 @@ function buildMarketplaceWelcomeHtml(companyName: string): string {
                     <tr>
                         <td align="center" style="padding: 30px; background-color: #f8f8f8; margin: 0;">
                             <p style="color: #666666; font-size: 14px; margin: 0; line-height: 1.4;">
-                                <a href="https://www.buildersuiteai.com" style="color: #666666; text-decoration: underline;" target="_blank">www.buildersuiteai.com</a>
+                                <a href="https://www.buildersuiteml.com" style="color: #666666; text-decoration: underline;" target="_blank">www.buildersuiteml.com</a>
                             </p>
                         </td>
                     </tr>
@@ -282,7 +282,7 @@ const handler = async (req: Request): Promise<Response> => {
     // Step 2: Send admin notification email
     console.log("📧 Sending admin notification to:", ADMIN_EMAIL);
     const adminEmailResponse = await resend.emails.send({
-      from: "BuilderSuite ML <noreply@transactional.buildersuiteai.com>",
+      from: "BuilderSuite ML <noreply@transactional.buildersuiteml.com>",
       to: [ADMIN_EMAIL],
       subject: `New ${signupTypeLabel} Signup - ${companyName}`,
       html: buildAdminNotificationHtml(signupTypeLabel, companyName, email, formattedTime),
@@ -310,7 +310,7 @@ const handler = async (req: Request): Promise<Response> => {
         type: 'signup',
         email: email,
         options: {
-          redirectTo: 'https://buildersuiteai.com/auth'
+          redirectTo: 'https://buildersuiteml.com/auth'
         }
       });
 
@@ -318,7 +318,7 @@ const handler = async (req: Request): Promise<Response> => {
         console.error("❌ Error generating verification link:", linkError);
         // Fall back to welcome email without button
         userEmailResponse = await resend.emails.send({
-          from: "BuilderSuite ML <noreply@transactional.buildersuiteai.com>",
+          from: "BuilderSuite ML <noreply@transactional.buildersuiteml.com>",
           to: [email],
           subject: "Welcome to BuilderSuite ML!",
           html: buildMarketplaceWelcomeHtml(companyName),
@@ -328,7 +328,7 @@ const handler = async (req: Request): Promise<Response> => {
         console.log("🔗 Verification link generated successfully");
 
         userEmailResponse = await resend.emails.send({
-          from: "BuilderSuite ML <noreply@transactional.buildersuiteai.com>",
+          from: "BuilderSuite ML <noreply@transactional.buildersuiteml.com>",
           to: [email],
           subject: "Verify Your Email - BuilderSuite ML",
           html: buildHomeBuilderVerificationHtml(companyName, verificationLink),
@@ -337,7 +337,7 @@ const handler = async (req: Request): Promise<Response> => {
     } else {
       // Marketplace vendor: send welcome email
       userEmailResponse = await resend.emails.send({
-        from: "BuilderSuite ML <noreply@transactional.buildersuiteai.com>",
+        from: "BuilderSuite ML <noreply@transactional.buildersuiteml.com>",
         to: [email],
         subject: "Welcome to BuilderSuite Marketplace!",
         html: buildMarketplaceWelcomeHtml(companyName),

@@ -79,7 +79,7 @@ const handler = async (req: Request): Promise<Response> => {
     const ccEmailAddresses = ccEmails.map(c => c.email).filter(Boolean);
 
     const emailResponse = await resend.emails.send({
-      from: "BuilderSuite AI <noreply@transactional.buildersuiteai.com>",
+      from: "BuilderSuite AI <noreply@transactional.buildersuiteml.com>",
       to: [authorEmail],
       ...(ccEmailAddresses.length > 0 && { cc: ccEmailAddresses }),
       subject: "Issue Resolved on Builder Suite AI",
@@ -158,7 +158,7 @@ const handler = async (req: Request): Promise<Response> => {
                             
                             <p style="color: #000000; font-size: 16px; margin: 30px 0 0 0; line-height: 1.5; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif;">Best regards,<br>Builder Suite</p>
                             
-                            <p style="color: #000000; font-size: 14px; margin: 20px 0 0 0; line-height: 1.4; text-align: center; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif;"><a href="https://www.buildersuiteai.com" target="_blank" rel="noopener noreferrer" style="color: #000000; text-decoration: none; font-weight: bold;">WWW.BUILDERSUITEAI.COM</a></p>
+                            <p style="color: #000000; font-size: 14px; margin: 20px 0 0 0; line-height: 1.4; text-align: center; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif;"><a href="https://www.buildersuiteml.com" target="_blank" rel="noopener noreferrer" style="color: #000000; text-decoration: none; font-weight: bold;">WWW.BUILDERSUITEAI.COM</a></p>
                         </td>
                     </tr>
                 </table>

@@ -195,7 +195,7 @@ const handler = async (req: Request): Promise<Response> => {
     }
 
     // Create the bid submission URL
-    const bidSubmissionUrl = `https://buildersuiteai.com/submit-bid?bid_package_id=${bidPackageId}&company_id=${companyId}`;
+    const bidSubmissionUrl = `https://buildersuiteml.com/submit-bid?bid_package_id=${bidPackageId}&company_id=${companyId}`;
 
     // Format due date
     const dueDateFormatted = bidPackage.due_date 
@@ -302,7 +302,7 @@ const handler = async (req: Request): Promise<Response> => {
                     <tr>
                         <td style="text-align: center; padding: 25px 30px; border-top: 1px solid #e5e5e5; background-color: #f8f8f8; margin: 0;">
                             <p style="color: #666666; font-size: 16px; margin: 0; line-height: 1.4; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif;">
-                                <a href="https://www.buildersuiteai.com" style="color: #000000 !important; text-decoration: none !important; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif;">www.buildersuiteai.com</a>
+                                <a href="https://www.buildersuiteml.com" style="color: #000000 !important; text-decoration: none !important; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif;">www.buildersuiteml.com</a>
                             </p>
                         </td>
                     </tr>
@@ -447,7 +447,7 @@ const handler = async (req: Request): Promise<Response> => {
                     <tr>
                         <td style="text-align: center; padding: 25px 30px; border-top: 1px solid #e5e5e5; background-color: #f8f8f8; margin: 0;">
                             <p style="color: #666666; font-size: 16px; margin: 0; line-height: 1.4; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif;">
-                                <a href="https://www.buildersuiteai.com" style="color: #000000 !important; text-decoration: none !important; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif;">www.buildersuiteai.com</a>
+                                <a href="https://www.buildersuiteml.com" style="color: #000000 !important; text-decoration: none !important; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif;">www.buildersuiteml.com</a>
                             </p>
                         </td>
                     </tr>
@@ -463,7 +463,7 @@ const handler = async (req: Request): Promise<Response> => {
 
     // Send email using Resend
     const { data: emailData, error: emailError } = await resend.emails.send({
-      from: `${senderCompanyName} <noreply@transactional.buildersuiteai.com>`,
+      from: `${senderCompanyName} <noreply@transactional.buildersuiteml.com>`,
       to: [recipientEmail],
       subject,
       html: htmlContent

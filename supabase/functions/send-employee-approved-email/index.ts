@@ -23,7 +23,7 @@ const handler = async (req: Request): Promise<Response> => {
     const { employeeEmail, companyName }: ApprovalEmailRequest = await req.json();
 
     const emailResponse = await resend.emails.send({
-      from: "BuilderSuite ML <noreply@transactional.buildersuiteai.com>",
+      from: "BuilderSuite ML <noreply@transactional.buildersuiteml.com>",
       to: [employeeEmail],
       subject: "Access Approved - Welcome to BuildCore!",
       html: `
@@ -38,7 +38,7 @@ const handler = async (req: Request): Promise<Response> => {
         </p>
         <p>If you have any questions, please contact your company administrator.</p>
         <p>Best regards,<br>The BuildCore Team</p>
-        <p><a href="https://www.buildersuiteai.com" target="_blank" rel="noopener noreferrer" style="color: #666; text-decoration: none;">www.buildersuiteai.com</a></p>
+        <p><a href="https://www.buildersuiteml.com" target="_blank" rel="noopener noreferrer" style="color: #666; text-decoration: none;">www.buildersuiteml.com</a></p>
       `,
     });
 

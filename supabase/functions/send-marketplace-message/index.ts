@@ -93,7 +93,7 @@ function generateEmailTemplate(
         
         <div style="margin-top: 30px; padding-top: 20px; border-top: 1px solid #e2e8f0; text-align: center;">
           <p style="color: #64748b; font-size: 12px; margin: 0;">
-            This lead was generated through <a href="https://buildersuiteai.com" style="color: #6366f1; text-decoration: none;">Builder Suite AI</a> Marketplace
+            This lead was generated through <a href="https://buildersuiteml.com" style="color: #6366f1; text-decoration: none;">Builder Suite AI</a> Marketplace
           </p>
         </div>
       </div>
@@ -197,7 +197,7 @@ serve(async (req) => {
     );
 
     const { error: emailError } = await resend.emails.send({
-      from: "Builder Suite AI <marketplace@transactional.buildersuiteai.com>",
+      from: "Builder Suite AI <marketplace@transactional.buildersuiteml.com>",
       to: [recipientEmail],
       subject: `New inquiry from ${senderName} via Builder Suite`,
       html: emailHtml,

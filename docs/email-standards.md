@@ -5,12 +5,12 @@
 **ALWAYS use this email sender address for ALL BuilderSuite AI functions:**
 
 ```
-"BuilderSuite AI <noreply@transactional.buildersuiteai.com>"
+"BuilderSuite AI <noreply@transactional.buildersuiteml.com>"
 ```
 
 ## Verified Domain
 
-- Domain: `transactional.buildersuiteai.com`
+- Domain: `transactional.buildersuiteml.com`
 - Status: ✅ Verified in Resend
 - MX Records: ✅ Configured
 - DKIM: ✅ Active
@@ -18,7 +18,7 @@
 ## DO NOT USE:
 
 - ❌ `onboarding@resend.dev` (Resend default)
-- ❌ `noreply@buildersuiteai.com` (Not verified)
+- ❌ `noreply@buildersuiteml.com` (Not verified)
 - ❌ Any other domains
 
 ## Functions Using Correct Email:
@@ -37,7 +37,7 @@
 
 ```typescript
 const emailResponse = await resend.emails.send({
-  from: "BuilderSuite AI <noreply@transactional.buildersuiteai.com>",
+  from: "BuilderSuite AI <noreply@transactional.buildersuiteml.com>",
   to: [recipientEmail],
   subject: "Your Subject Here",
   html: `Your email content here`,
