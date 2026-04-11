@@ -95,7 +95,7 @@ const handler = async (req: Request): Promise<Response> => {
     try {
       console.log("Attempting to send email via Resend...");
       const emailResponse = await resend.emails.send({
-        from: "BuilderSuite ML <noreply@transactional.buildersuiteai.com>",
+        from: "BuilderSuite ML <noreply@transactional.buildersuiteml.com>",
         to: [email],
         subject: "Reset Your Password - BuilderSuite ML",
         html: `<!DOCTYPE html>
@@ -176,7 +176,7 @@ const handler = async (req: Request): Promise<Response> => {
                     <tr>
                         <td align="center" style="padding: 30px; background-color: #f8f8f8; margin: 0;">
                             <p style="color: #666666; font-size: 14px; margin: 0; line-height: 1.4; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif;">
-                                <a href="https://www.buildersuiteai.com" style="color: #666666; text-decoration: underline;" target="_blank">www.buildersuiteai.com</a>
+                                <a href="https://www.buildersuiteml.com" style="color: #666666; text-decoration: underline;" target="_blank">www.buildersuiteml.com</a>
                             </p>
                         </td>
                     </tr>

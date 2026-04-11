@@ -54,7 +54,7 @@ export function SendPOTestEmailModal({
           totalAmount: purchaseOrder.total_amount,
           costCode: purchaseOrder.cost_codes,
           testEmail: testEmail.trim(),
-          senderCompanyName: userDetails?.company_name || 'Builder Suite AI'
+          senderCompanyName: userDetails?.company_name || 'BuilderSuite ML'
         }
       });
 

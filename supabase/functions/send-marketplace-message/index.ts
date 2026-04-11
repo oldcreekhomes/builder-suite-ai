@@ -46,7 +46,7 @@ function generateEmailTemplate(
     </head>
     <body style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto; padding: 20px;">
       <div style="background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%); padding: 30px 20px; text-align: center; border-radius: 12px 12px 0 0;">
-        <h1 style="color: white; margin: 0; font-size: 24px; font-weight: 600;">Builder Suite AI</h1>
+        <h1 style="color: white; margin: 0; font-size: 24px; font-weight: 600;">BuilderSuite ML</h1>
         <p style="color: rgba(255,255,255,0.9); margin: 8px 0 0 0; font-size: 14px;">Marketplace Lead Notification</p>
       </div>
       
@@ -93,14 +93,14 @@ function generateEmailTemplate(
         
         <div style="margin-top: 30px; padding-top: 20px; border-top: 1px solid #e2e8f0; text-align: center;">
           <p style="color: #64748b; font-size: 12px; margin: 0;">
-            This lead was generated through <a href="https://buildersuiteai.com" style="color: #6366f1; text-decoration: none;">Builder Suite AI</a> Marketplace
+            This lead was generated through <a href="https://buildersuiteml.com" style="color: #6366f1; text-decoration: none;">BuilderSuite ML</a> Marketplace
           </p>
         </div>
       </div>
       
       <div style="background: #1e293b; padding: 20px; text-align: center; border-radius: 0 0 12px 12px;">
         <p style="color: #94a3b8; font-size: 12px; margin: 0;">
-          © ${new Date().getFullYear()} Builder Suite AI. All rights reserved.
+          © ${new Date().getFullYear()} BuilderSuite ML. All rights reserved.
         </p>
       </div>
     </body>
@@ -197,9 +197,9 @@ serve(async (req) => {
     );
 
     const { error: emailError } = await resend.emails.send({
-      from: "Builder Suite AI <marketplace@transactional.buildersuiteai.com>",
+      from: "BuilderSuite ML <noreply@transactional.buildersuiteml.com>",
       to: [recipientEmail],
-      subject: `New inquiry from ${senderName} via Builder Suite`,
+      subject: `New inquiry from ${senderName} via BuilderSuite ML`,
       html: emailHtml,
       replyTo: senderEmail || undefined,
     });

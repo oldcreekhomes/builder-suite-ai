@@ -62,7 +62,7 @@ export function SendPOEmailModal({
           customMessage: customMessage.trim() || undefined,
           totalAmount: purchaseOrder.total_amount,
           costCode: purchaseOrder.cost_codes,
-          senderCompanyName: userDetails?.company_name || 'Builder Suite AI'
+          senderCompanyName: userDetails?.company_name || 'BuilderSuite ML'
         }
       });
 

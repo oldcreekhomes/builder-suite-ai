@@ -166,7 +166,7 @@ const generatePOEmailHTML = (data: any, purchaseOrderId?: string, companyId?: st
   const projectAddress = data.projectAddress || 'Project Address Not Available';
   const companyName = data.companyName || 'Company Name Not Available';
   const proposals = data.proposals || [];
-  const senderCompanyName = data.senderCompanyName || 'Builder Suite AI';
+  const senderCompanyName = data.senderCompanyName || 'BuilderSuite ML';
   const managerName = data.projectManager?.name || 'Project Manager';
   const managerEmail = data.projectManager?.email || '';
   const managerPhone = data.projectManager?.phone || '';
@@ -380,7 +380,7 @@ const generatePOEmailHTML = (data: any, purchaseOrderId?: string, companyId?: st
                     <tr>
                         <td style="text-align: center; padding: 25px 30px; border-top: 1px solid #e5e5e5; background-color: #f8f8f8; margin: 0;">
                              <p style="color: #666666; font-size: 16px; margin: 0; line-height: 1.4; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif;">
-                                 <a href="https://www.buildersuiteai.com" style="color: #000000 !important; text-decoration: none !important; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif;">www.buildersuiteai.com</a>
+                                 <a href="https://www.buildersuiteml.com" style="color: #000000 !important; text-decoration: none !important; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif;">www.buildersuiteml.com</a>
                              </p>
                         </td>
                     </tr>
@@ -803,7 +803,7 @@ const handler = async (req: Request): Promise<Response> => {
       projectAddress: finalProjectAddress,
       companyName: fetchedCompanyName || 'Unknown Company',
       proposals: proposals || [],
-      senderCompanyName: senderCompanyName || 'Builder Suite AI',
+      senderCompanyName: senderCompanyName || 'BuilderSuite ML',
       projectManager,
       costCode: costCodeInfo,
       totalAmount,
@@ -822,7 +822,7 @@ const handler = async (req: Request): Promise<Response> => {
       console.log(`📤 Sending PO email to: ${rep.email}`);
       
       return await resend.emails.send({
-        from: `${senderCompanyName || 'Builder Suite AI'} <noreply@transactional.buildersuiteai.com>`,
+        from: `${senderCompanyName || 'BuilderSuite ML'} <noreply@transactional.buildersuiteml.com>`,
         to: [rep.email],
         subject: emailSubject,
         html: emailHTML,

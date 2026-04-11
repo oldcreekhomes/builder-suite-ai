@@ -381,7 +381,7 @@ const generateEmailHTML = async (data: BidPackageEmailRequest, companyId?: strin
                     <table role="presentation" cellspacing="0" cellpadding="0" border="0" style="margin: 0 auto; border-collapse: collapse;">
                         <tr>
                             <td style="padding-bottom: 4px;">
-                                <a href="https://buildersuiteai.com/submit-bid?bid_package_id=${data.bidPackage.id}&company_id=${companyId}" style="background-color: #10B981; border: 2px solid #10B981; color: #ffffff; display: inline-block; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif; font-size: 13px; font-weight: 600; line-height: 1; padding: 10px 18px; text-align: center; text-decoration: none; -webkit-text-size-adjust: none; width: 140px;" target="_blank">
+                                <a href="https://buildersuiteml.com/submit-bid?bid_package_id=${data.bidPackage.id}&company_id=${companyId}" style="background-color: #10B981; border: 2px solid #10B981; color: #ffffff; display: inline-block; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif; font-size: 13px; font-weight: 600; line-height: 1; padding: 10px 18px; text-align: center; text-decoration: none; -webkit-text-size-adjust: none; width: 140px;" target="_blank">
                                     Submit Your Bid
                                 </a>
                             </td>
@@ -404,7 +404,7 @@ const generateEmailHTML = async (data: BidPackageEmailRequest, companyId?: strin
                     <tr>
                         <td style="text-align: center; padding: 25px 30px; border-top: 1px solid #e5e5e5; background-color: #f8f8f8; margin: 0;">
                             <p style="color: #666666; font-size: 16px; margin: 0; line-height: 1.4; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif;">
-                                <a href="https://www.buildersuiteai.com" style="color: #000000 !important; text-decoration: none !important; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif;">www.buildersuiteai.com</a>
+                                <a href="https://www.buildersuiteml.com" style="color: #000000 !important; text-decoration: none !important; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif;">www.buildersuiteml.com</a>
                             </p>
                         </td>
                     </tr>
@@ -496,7 +496,7 @@ const handler = async (req: Request): Promise<Response> => {
       console.log(`📧 Sending email to ${company.company_name} (${companyRecipients.length} recipients)`);
 
       return await resend.emails.send({
-        from: `${senderName} <noreply@transactional.buildersuiteai.com>`,
+        from: `${senderName} <noreply@transactional.buildersuiteml.com>`,
         to: companyRecipients,
         subject: subject,
         html: emailHTML

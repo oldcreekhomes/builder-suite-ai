@@ -83,7 +83,7 @@ const AIBillManagement = () => {
               <div className="rounded-2xl overflow-hidden shadow-2xl">
                 <img
                   src="/images/ai-bill-management-preview.png"
-                  alt="BuilderSuite AI Bill Management"
+                  alt="BuilderSuite ML Bill Management"
                   className="w-full h-auto object-cover"
                 />
               </div>

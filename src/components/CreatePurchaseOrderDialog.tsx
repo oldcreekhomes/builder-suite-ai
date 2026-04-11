@@ -295,7 +295,7 @@ export const CreatePurchaseOrderDialog = ({
           customMessage: customMessage.trim() || undefined,
           totalAmount,
           costCode: firstCC ? { code: firstCC.code, name: firstCC.name } : undefined,
-          senderCompanyName: senderData?.company_name || 'Builder Suite AI',
+          senderCompanyName: senderData?.company_name || 'BuilderSuite ML',
           isUpdate,
           lineItems: lineItemsForEmail,
         },
