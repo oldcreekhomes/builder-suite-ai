@@ -103,6 +103,11 @@ interface SidebarNavigationProps {
 
 export function SidebarNavigation({ unreadCounts }: SidebarNavigationProps) {
   const location = useLocation();
+  
+  // Extract project ID from URL (must be before hooks that depend on it)
+  const pathParts = location.pathname.split('/');
+  const projectId = (pathParts[1] === 'project' && pathParts[2]) ? pathParts[2] : null;
+  
   const { users } = useCompanyUsers();
   const { 
     canAccessAccounting, 
@@ -134,17 +139,6 @@ export function SidebarNavigation({ unreadCounts }: SidebarNavigationProps) {
     0
   );
   const totalIssueCount = totalNormalIssues + totalHighIssues;
-
-  // Get current project ID from URL
-  const getProjectId = () => {
-    const pathParts = location.pathname.split('/');
-    if (pathParts[1] === 'project' && pathParts[2]) {
-      return pathParts[2]; // /project/{id}
-    }
-    return null;
-  };
-
-  const projectId = getProjectId();
 
   // Check if we're on the Company Dashboard, Messages page, Issues page, or global pages
   const isCompanyDashboard = location.pathname === '/';
