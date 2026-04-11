@@ -40,6 +40,7 @@ export function EditProjectDialog({ project, open, onOpenChange }: EditProjectDi
     accounting_manager: "no-manager",
     accounting_software: "quickbooks",
     region: "",
+    apartments_enabled: "no",
   });
 
   useEffect(() => {
@@ -51,6 +52,7 @@ export function EditProjectDialog({ project, open, onOpenChange }: EditProjectDi
         accounting_manager: project.accounting_manager || "no-manager",
         accounting_software: project.accounting_software || "quickbooks",
         region: normalizeServiceArea((project as any).region || "") || "",
+        apartments_enabled: (project as any).apartments_enabled ? "yes" : "no",
       });
     }
   }, [project]);
@@ -66,6 +68,7 @@ export function EditProjectDialog({ project, open, onOpenChange }: EditProjectDi
         accounting_manager: data.accounting_manager === "no-manager" ? null : data.accounting_manager,
         accounting_software: data.accounting_software,
         region: data.region || null,
+        apartments_enabled: data.apartments_enabled === "yes",
       };
       
       const { error } = await supabase
@@ -145,7 +148,7 @@ export function EditProjectDialog({ project, open, onOpenChange }: EditProjectDi
                 </div>
               </div>
 
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-3 gap-4">
                 <div className="space-y-2">
                   <Label htmlFor="constructionManager">Construction Manager</Label>
                   <Select
@@ -184,6 +187,23 @@ export function EditProjectDialog({ project, open, onOpenChange }: EditProjectDi
                           {`${user.first_name || ""} ${user.last_name || ""}`.trim() || user.email}
                         </SelectItem>
                       ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="apartments">Apartments</Label>
+                  <Select
+                    value={formData.apartments_enabled}
+                    onValueChange={(value) => handleChange("apartments_enabled", value)}
+                    disabled={updateProjectMutation.isPending}
+                  >
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="no">No</SelectItem>
+                      <SelectItem value="yes">Yes</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>

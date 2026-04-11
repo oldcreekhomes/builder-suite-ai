@@ -12,6 +12,7 @@ export interface Project {
   accounting_software?: string;
   total_lots?: number;
   display_order?: number;
+  apartments_enabled?: boolean;
   last_schedule_published_at?: string;
   created_at: string;
   updated_at: string;
