@@ -10,7 +10,7 @@ import { DateInputPicker } from "@/components/ui/date-input-picker";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { DeleteButton } from "@/components/ui/delete-button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Plus, ChevronLeft, ChevronRight, Trash2, CalendarIcon, Search, Lock } from "lucide-react";
+import { Plus, ChevronLeft, ChevronRight, Trash2, CalendarIcon, Search, Lock, Divide } from "lucide-react";
 import { AccountSearchInput } from "@/components/AccountSearchInput";
 import { CostCodeSearchInput } from "@/components/CostCodeSearchInput";
 import { JobSearchInput } from "@/components/JobSearchInput";
@@ -130,6 +130,51 @@ export function CreditCardsContent({ projectId, recurringTemplate, onClearTempla
                        !!currentCreditCard?.reconciliation_date;
   const isPeriodLocked = isViewingMode && isDateLocked(format(transactionDate, 'yyyy-MM-dd'));
   const isTransactionLocked = isViewingMode && (isReconciled || isPeriodLocked);
+
+  // Split a row evenly across all project lots
+  const splitRowEvenly = (rowId: string, rowType: 'job_cost' | 'expense') => {
+    const rows = rowType === 'job_cost' ? jobCostRows : expenseRows;
+    const setRows = rowType === 'job_cost' ? setJobCostRows : setExpenseRows;
+    
+    const rowToSplit = rows.find(r => r.id === rowId);
+    if (!rowToSplit || lots.length < 2) return;
+    
+    const originalAmount = parseFloat(rowToSplit.amount) || 0;
+    const originalQty = parseFloat(rowToSplit.quantity || "1") || 1;
+    const totalValue = Math.round(originalAmount * originalQty * 100) / 100;
+    
+    const perLotAmount = Math.floor((totalValue / lots.length) * 100) / 100;
+    const remainder = Math.round((totalValue - (perLotAmount * (lots.length - 1))) * 100) / 100;
+    
+    const newRows: CreditCardRow[] = lots.map((lot, index) => ({
+      id: `${rowId}_split_${lot.id}`,
+      account: rowToSplit.account,
+      accountId: rowToSplit.accountId,
+      costCode: rowToSplit.costCode,
+      costCodeId: rowToSplit.costCodeId,
+      projectId: rowToSplit.projectId,
+      lotId: lot.id,
+      quantity: '1',
+      amount: index === lots.length - 1 
+        ? remainder.toFixed(2) 
+        : perLotAmount.toFixed(2),
+      memo: rowToSplit.memo,
+    }));
+    
+    const rowIndex = rows.findIndex(r => r.id === rowId);
+    const updatedRows = [
+      ...rows.slice(0, rowIndex),
+      ...newRows,
+      ...rows.slice(rowIndex + 1)
+    ];
+    
+    setRows(updatedRows);
+    
+    toast({
+      title: "Row Split",
+      description: `Split $${totalValue.toFixed(2)} evenly across ${lots.length} addresses`,
+    });
+  };
 
   const addExpenseRow = () => {
     setExpenseRows([...expenseRows, { id: crypto.randomUUID(), amount: '0.00', quantity: '1' }]);
@@ -789,6 +834,26 @@ export function CreditCardsContent({ projectId, recurringTemplate, onClearTempla
                         </div>
                       )}
                       <div className="col-span-1 flex justify-center items-center gap-1">
+                        {showAddressColumn && (
+                          <TooltipProvider>
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <Button
+                                  onClick={() => splitRowEvenly(row.id, 'expense')}
+                                  size="sm"
+                                  variant="ghost"
+                                  className="h-8 w-8 p-0"
+                                  disabled={!!row.lotId || (parseFloat(row.amount) || 0) <= 0}
+                                >
+                                  <Divide className="h-4 w-4" />
+                                </Button>
+                              </TooltipTrigger>
+                              <TooltipContent>
+                                <p>Split evenly across all addresses</p>
+                              </TooltipContent>
+                            </Tooltip>
+                          </TooltipProvider>
+                        )}
                         <Button
                           onClick={() => removeExpenseRow(row.id)}
                           size="sm"
@@ -915,6 +980,26 @@ export function CreditCardsContent({ projectId, recurringTemplate, onClearTempla
                         </div>
                       )}
                       <div className="col-span-1 flex justify-center items-center gap-1">
+                        {showAddressColumn && (
+                          <TooltipProvider>
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <Button
+                                  onClick={() => splitRowEvenly(row.id, 'job_cost')}
+                                  size="sm"
+                                  variant="ghost"
+                                  className="h-8 w-8 p-0"
+                                  disabled={!!row.lotId || (parseFloat(row.amount) || 0) <= 0}
+                                >
+                                  <Divide className="h-4 w-4" />
+                                </Button>
+                              </TooltipTrigger>
+                              <TooltipContent>
+                                <p>Split evenly across all addresses</p>
+                              </TooltipContent>
+                            </Tooltip>
+                          </TooltipProvider>
+                        )}
                         <Button
                           onClick={() => removeJobCostRow(row.id)}
                           size="sm"
