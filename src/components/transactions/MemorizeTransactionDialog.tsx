@@ -84,8 +84,8 @@ export function MemorizeTransactionDialog({
           <div className="grid gap-2">
             <Label>Next Date</Label>
             <DateInputPicker
-              value={nextDate}
-              onChange={(d) => d && setNextDate(d)}
+              date={nextDate}
+              onDateChange={(d) => setNextDate(d)}
             />
           </div>
           <div className="flex items-center justify-between">
