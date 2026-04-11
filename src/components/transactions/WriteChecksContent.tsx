@@ -1511,6 +1511,13 @@ export function WriteChecksContent({ projectId, recurringTemplate, onClearTempla
         }}
       />
 
+      {/* Check Print Settings Dialog */}
+      <CheckPrintSettingsDialog
+        open={printSettingsOpen}
+        onOpenChange={setPrintSettingsOpen}
+        projectId={projectId}
+      />
+
       {/* Memorize Dialog */}
       <MemorizeTransactionDialog
         open={memorizeDialogOpen}
