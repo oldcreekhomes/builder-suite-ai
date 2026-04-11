@@ -169,6 +169,48 @@ const handler = async (req: Request): Promise<Response> => {
 
     console.log("✅ Employee deleted successfully from database");
 
+    // Update subscription seat count
+    try {
+      const { count: remainingEmployees } = await supabaseAdmin
+        .from('users')
+        .select('id', { count: 'exact', head: true })
+        .eq('home_builder_id', caller.id)
+        .eq('confirmed', true);
+      
+      const seatCount = 1 + (remainingEmployees || 0);
+      
+      await supabaseAdmin
+        .from('subscriptions')
+        .update({ user_count: seatCount })
+        .eq('owner_id', caller.id);
+      
+      // Also update Stripe if subscription exists
+      const { data: subscription } = await supabaseAdmin
+        .from('subscriptions')
+        .select('stripe_subscription_id')
+        .eq('owner_id', caller.id)
+        .single();
+
+      if (subscription?.stripe_subscription_id) {
+        const { default: Stripe } = await import("https://esm.sh/stripe@18.5.0");
+        const stripe = new Stripe(Deno.env.get("STRIPE_SECRET_KEY") || "", {
+          apiVersion: "2025-08-27.basil",
+        });
+        const stripeSub = await stripe.subscriptions.retrieve(subscription.stripe_subscription_id);
+        const itemId = stripeSub.items.data[0]?.id;
+        if (itemId) {
+          await stripe.subscriptions.update(subscription.stripe_subscription_id, {
+            items: [{ id: itemId, quantity: seatCount }],
+            proration_behavior: "always_invoice",
+          });
+          console.log(`✅ Stripe seats updated to ${seatCount}`);
+        }
+      }
+    } catch (seatError) {
+      console.error("⚠️ Failed to update seat count:", seatError);
+      // Don't fail the deletion because of seat sync
+    }
+
     return new Response(
       JSON.stringify({ 
         success: true, 

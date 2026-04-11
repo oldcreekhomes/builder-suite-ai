@@ -97,6 +97,9 @@ export function AddEmployeeDialog({ open, onOpenChange }: AddEmployeeDialogProps
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['employees'] });
+      queryClient.invalidateQueries({ queryKey: ['subscription'] });
+      // Sync subscription seats with Stripe
+      supabase.functions.invoke('update-subscription-seats').catch(console.error);
       toast({
         title: "Invitation sent!",
         description: "The employee will receive an email to complete their account setup.",
