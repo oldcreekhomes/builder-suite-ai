@@ -25,6 +25,8 @@ import { useUserProfile } from "@/hooks/useUserProfile";
 import { useCompanyUsers } from "@/hooks/useCompanyUsers";
 import { supabase } from "@/integrations/supabase/client";
 import { AddressAutocomplete } from "./AddressAutocomplete";
+import { useSubscription } from "@/hooks/useSubscription";
+import { PaywallDialog } from "./PaywallDialog";
 
 interface NewProjectDialogProps {
   open: boolean;
@@ -46,6 +48,8 @@ export function NewProjectDialog({ open, onOpenChange }: NewProjectDialogProps) 
   const { user } = useAuth();
   const { profile } = useUserProfile();
   const { users, isLoading: usersLoading } = useCompanyUsers();
+  const { canCreateProject, needsSubscription, projectCount } = useSubscription();
+  const [showPaywall, setShowPaywall] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -137,6 +141,17 @@ export function NewProjectDialog({ open, onOpenChange }: NewProjectDialogProps) 
     }
     onOpenChange(open);
   };
+
+  // If user needs a subscription, show paywall instead
+  if (needsSubscription && open) {
+    return (
+      <PaywallDialog
+        open={open}
+        onOpenChange={onOpenChange}
+        projectCount={projectCount}
+      />
+    );
+  }
 
   return (
     <Dialog open={open} onOpenChange={handleOpenChange}>
