@@ -83,7 +83,7 @@ async function fetchNWSPointsData(lat: number, lon: number) {
     `https://api.weather.gov/points/${lat},${lon}`,
     {
       headers: {
-        'User-Agent': 'BuilderSuiteAI Weather App (contact@example.com)'
+        'User-Agent': 'BuilderSuiteML Weather App (contact@example.com)'
       }
     }
   );
@@ -107,7 +107,7 @@ async function fetchWeatherData(forecastUrl: string) {
   
   const weatherResponse = await fetch(forecastUrl, {
     headers: {
-      'User-Agent': 'BuilderSuiteAI Weather App (contact@example.com)'
+      'User-Agent': 'BuilderSuiteML Weather App (contact@example.com)'
     }
   });
 
