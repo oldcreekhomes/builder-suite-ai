@@ -1,13 +1,13 @@
 
 
-## Store Stripe Webhook Signing Secret
+## Store the Webhook Signing Secret
 
-### What we're doing
-Saving the webhook signing secret (`whsec_XqBscXFbTQL2enJK4mDEVwOuI8FQtYkm`) as a secure environment variable in Supabase so the `stripe-webhook` edge function can verify that incoming requests are genuinely from Stripe.
+### What
+Save your Stripe webhook signing secret (`whsec_XqBscXFbTQL2enJK4mDEVwOuI8FQtYkm`) as a secure environment variable so the `stripe-webhook` edge function can verify incoming Stripe requests are authentic.
 
 ### Steps
-1. **Add the secret** `STRIPE_WEBHOOK_SECRET` to Supabase edge function secrets using the secrets tool
-2. **Verify** the `stripe-webhook` edge function already references `STRIPE_WEBHOOK_SECRET` (it does — confirmed in the code)
+1. **Add the secret** `STRIPE_WEBHOOK_SECRET` with value `whsec_XqBscXFbTQL2enJK4mDEVwOuI8FQtYkm` to your Supabase edge function secrets
+2. **Verify** by redeploying the `stripe-webhook` function (it already references this secret in its code)
 
-That's it — once the secret is stored, the webhook is fully secured and production-ready.
+That's the only remaining setup step. Once stored, your webhook is secured and the full subscription flow is ready to test end-to-end.
 
