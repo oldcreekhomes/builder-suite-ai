@@ -66,7 +66,7 @@ serve(async (req) => {
         quantity: item.quantity || 1,
         unit_amount: item.price.unit_amount ? item.price.unit_amount / 100 : 0,
         total_amount: (item.price.unit_amount ? item.price.unit_amount / 100 : 0) * (item.quantity || 1),
-        current_period_end: new Date(sub.current_period_end * 1000).toISOString(),
+        current_period_end: sub.current_period_end ? new Date(sub.current_period_end * 1000).toISOString() : null,
         cancel_at_period_end: sub.cancel_at_period_end,
       };
 
