@@ -1,42 +1,31 @@
 
 
-## Subscription Gating and Billing Settings
+## Fix: Old Creek Homes (and all users) must actually pay
 
-### Problem
-Old Creek Homes has 32 projects but no subscription — they can use the entire app freely. Every home builder with 2+ projects must subscribe (or be trialing) to continue using the software.
+### Root Cause
+Old Creek Homes has a subscription record in the database with `status: 'trialing'` but **no Stripe customer or subscription ID**. This means they never went through Stripe checkout — it's a phantom trial record. The `SubscriptionGate` sees `isTrialing = true` and lets them through.
 
-### What I'll build (you just approve)
+### Fix (2 parts)
 
-**1. Subscription Gate (hard block)**
-- A `SubscriptionGate` component that wraps the app
-- If an owner has 2+ projects and no active/trialing subscription, they see a full-screen paywall instead of the app
-- Settings page remains accessible so they can subscribe
-- Employees are exempt (their owner is responsible)
+**1. Tighten the subscription validation in `useSubscription.ts`**
+- A subscription should only be considered valid (trialing or active) if it has a `stripe_subscription_id`. Without one, the record is meaningless.
+- Update the logic: `isTrialing` and `isActive` should also require `stripe_subscription_id` to be non-null.
+- This ensures phantom/manual records don't bypass the gate.
 
-**2. "Subscription" tab in Settings**
-- Shows plan status: Free, Trial (with days remaining), Active, Past Due
-- Shows project count and seat count
-- "Subscribe" button for free-tier users (opens PaywallDialog)
-- "Manage Subscription" button for paying users (opens Stripe Customer Portal)
-- Only visible to owners
+**2. Delete or reset the bogus subscription record**
+- Delete the existing Old Creek Homes subscription row (no Stripe IDs, not a real subscription) so the gate properly blocks them.
+- Alternatively, the code fix alone will handle it since the record has no `stripe_subscription_id`.
 
-**3. Customer Portal edge function**
-- New `customer-portal` edge function
-- Lets paying users manage billing (change card, cancel, switch plans) via Stripe's hosted portal
+### Code change in `src/hooks/useSubscription.ts`
+- Add a check: `const hasStripeSubscription = !!subscription?.stripe_subscription_id;`
+- Change derived flags:
+  - `isTrialing = status === "trialing" && hasStripeSubscription`
+  - `isActive = status === "active" && hasStripeSubscription`
+- `needsSubscription` will then correctly be `true` for Old Creek Homes since they have no real Stripe subscription.
 
-### What you need to do
-- Approve the plan
-- Click "approve" on any migration or deployment prompts I show you
+### Result
+Old Creek Homes (and any other account with a fake subscription record) will be blocked by the full-screen paywall until they complete a real Stripe checkout. Settings page remains accessible so they can subscribe.
 
-### Files I'll create
-- `src/components/SubscriptionGate.tsx`
-- `src/components/settings/SubscriptionTab.tsx`
-- `supabase/functions/customer-portal/index.ts`
-
-### Files I'll modify
-- `src/components/SidebarLayout.tsx` (add gate)
-- `src/pages/Settings.tsx` (add Subscription tab)
-- `src/hooks/useSubscription.ts` (minor adjustments)
-
-### No action needed from you beyond approving this plan.
+### Files modified
+- `src/hooks/useSubscription.ts` — add `stripe_subscription_id` validation
 
