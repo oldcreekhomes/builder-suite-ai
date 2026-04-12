@@ -11,7 +11,7 @@ import { loadStripe } from "@stripe/stripe-js";
 import { Elements, CardNumberElement, CardExpiryElement, CardCvcElement, useStripe, useElements } from "@stripe/react-stripe-js";
 import { useQueryClient } from "@tanstack/react-query";
 
-const stripePromise = loadStripe("pk_live_51TL6xt2OJCoyD632VBPb5DsDdznZHJBjhDpvfORHkMiCdXcaFpFdJ3DOAzmjjLxLkNDp0vQdaPaYJVzMWK0mYDwO00xHydFc2c");
+const stripePromise = loadStripe("pk_test_51TL5mD2OJCoyD632I78ZLOABNArQ3j0vjFOIDJxojGuktR4wIGPZeq5HDRlyjtPqNruAa7HDRRQWTmA6N1aKFHck00850Qmh79");
 
 interface CheckoutViewProps {
   billingInterval: "monthly" | "annual";
