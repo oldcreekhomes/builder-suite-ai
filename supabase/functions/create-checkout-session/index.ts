@@ -77,7 +77,6 @@ serve(async (req) => {
       customer_email: customerId ? undefined : user.email!,
       line_items: [{ price: priceId, quantity: seatCount }],
       mode: "subscription",
-      ui_mode: "embedded",
       payment_method_types: ['card'],
       saved_payment_method_options: {
         payment_method_save: 'disabled',
@@ -86,7 +85,8 @@ serve(async (req) => {
         trial_period_days: 14,
         metadata: { owner_id: ownerId, seat_count: String(seatCount) },
       },
-      return_url: `${origin}/?subscription=success`,
+      success_url: `${origin}/?subscription=success`,
+      cancel_url: `${origin}/?subscription=cancelled`,
       metadata: { owner_id: ownerId },
     });
 
@@ -102,7 +102,7 @@ serve(async (req) => {
 
     console.log(`✅ Checkout session created for owner ${ownerId}, ${seatCount} seats, ${billing_interval}`);
 
-    return new Response(JSON.stringify({ clientSecret: session.client_secret }), {
+    return new Response(JSON.stringify({ url: session.url }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
       status: 200,
     });
