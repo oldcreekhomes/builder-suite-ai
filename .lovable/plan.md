@@ -1,62 +1,17 @@
 
 
-## Replace Stripe Embedded Checkout with Custom Card Form (Stripe Elements)
+## Make Right Column Match Left Column Width
 
 ### The Problem
-Stripe's Embedded Checkout renders inside an iframe that we cannot customize. The duplicate header ("14 days free", "View details"), email field, field labels ("Card information", "Cardholder name", "Country or region"), and "Powered by Stripe / Terms / Privacy" footer are all baked into Stripe's iframe and cannot be removed.
+The grid layout uses `md:grid-cols-[340px_1fr]`, making the right column stretch to fill all remaining space while the left is fixed at 340px.
 
 ### Solution
-Replace the Embedded Checkout with **Stripe Elements** — specifically the `CardElement` component, which renders a single compact card input (number, expiry, CVC) that we fully control. We build our own minimal payment form with just the card input and a "Start trial" button. No email field, no labels, no branding footer.
+Change the grid to use two equal-width columns: `md:grid-cols-[340px_340px]`. This gives both sides the same compact width. Also reduce `max-w-4xl` to something tighter like `max-w-[680px]` so the container fits snugly around the two columns.
 
-The backend switches from creating a Checkout Session to creating a Stripe Subscription directly with a trial period. The frontend collects the card via `CardElement`, creates a PaymentMethod, and sends it to the backend to attach to the customer and start the subscription.
+### Answer to your question
+Yes, Stripe's `CardElement` can absolutely process real payments with just card number, expiry date, and CVC. Those three fields are the standard minimum required for card transactions. Stripe handles all validation, tokenization, and fraud checks on their end.
 
-### Changes
-
-**1. New Edge Function: `supabase/functions/create-subscription/index.ts`**
-- Receives `{ billing_interval, payment_method_id }` from frontend
-- Authenticates user, looks up profile, calculates seat count (same logic as current function)
-- Creates or retrieves Stripe customer
-- Attaches the payment method to the customer, sets it as default
-- Creates a Stripe Subscription with `trial_period_days: 14` and the appropriate price/quantity
-- Upserts the local `subscriptions` table record
-- Returns success with subscription details
-
-**2. Frontend: `src/components/SubscriptionGate.tsx`**
-- Remove `EmbeddedCheckout` / `EmbeddedCheckoutProvider` imports
-- Keep `loadStripe` and add `Elements`, `CardElement`, `useStripe`, `useElements` from `@stripe/react-stripe-js`
-- The checkout view becomes:
-  - Left column: Order summary (unchanged)
-  - Right column: Custom form with just:
-    - `<CardElement>` (compact single-row card input)
-    - "Start trial" button
-  - No email field, no labels, no branding text
-- On submit: call `stripe.createPaymentMethod({ type: 'card', card })`, then invoke `create-subscription` edge function with the payment method ID
-- Handle success/error states
-
-**3. Frontend: `src/components/PaywallDialog.tsx`**
-- Same pattern as SubscriptionGate — replace embedded checkout with CardElement form
-
-**4. Keep existing `create-checkout-session` function** (no breaking changes, can remove later)
-
-### Visual Layout
-
-```text
-┌──────────────────┐  ┌──────────────────────┐
-│ Try BuilderSuite │  │                      │
-│ Pro - Monthly    │  │ Payment method       │
-│                  │  │ ┌──────────────────┐ │
-│ 14 days free     │  │ │ 4242... MM/YY CVC│ │
-│ Then $273/mo     │  │ └──────────────────┘ │
-│                  │  │                      │
-│ BuilderSuite Pro │  │ [  Start trial  ]    │
-│ Qty 7            │  │                      │
-│ Due today $0.00  │  │                      │
-│ After: $273/mo   │  │                      │
-└──────────────────┘  └──────────────────────┘
-```
-
-### Files
-1. **New**: `supabase/functions/create-subscription/index.ts`
-2. **Edit**: `src/components/SubscriptionGate.tsx` — replace embedded checkout with CardElement form
-3. **Edit**: `src/components/PaywallDialog.tsx` — same replacement
+### Files to modify
+1. **`src/components/SubscriptionGate.tsx`** (line 80) — change grid template from `md:grid-cols-[340px_1fr]` to `md:grid-cols-2` and update `max-w-4xl` to `max-w-[700px]`
+2. **`src/components/PaywallDialog.tsx`** — same grid change in the checkout card form layout
 
