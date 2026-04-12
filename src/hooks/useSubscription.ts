@@ -63,9 +63,10 @@ export function useSubscription() {
   });
 
   const status = subscription?.status || "free";
-  const isOnFreeTier = !subscription || status === "free";
-  const isTrialing = status === "trialing";
-  const isActive = status === "active";
+  const hasStripeSubscription = !!subscription?.stripe_subscription_id;
+  const isOnFreeTier = !subscription || status === "free" || !hasStripeSubscription;
+  const isTrialing = status === "trialing" && hasStripeSubscription;
+  const isActive = status === "active" && hasStripeSubscription;
   const isPastDue = status === "past_due";
   const isCanceled = status === "canceled";
 
