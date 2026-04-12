@@ -7,7 +7,8 @@ import { Badge } from "@/components/ui/badge";
 import { PaywallDialog } from "@/components/PaywallDialog";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
-import { Crown, Users, FolderOpen, Calendar, ExternalLink, Loader2 } from "lucide-react";
+import { ManageSubscriptionDialog } from "@/components/settings/ManageSubscriptionDialog";
+import { Crown, Users, FolderOpen, Calendar, Loader2 } from "lucide-react";
 import { format } from "date-fns";
 import { useQuery } from "@tanstack/react-query";
 
@@ -28,6 +29,7 @@ export function SubscriptionTab() {
   const { isOwner } = useUserRole();
   const { toast } = useToast();
   const [showPaywall, setShowPaywall] = useState(false);
+  const [showManageDialog, setShowManageDialog] = useState(false);
   const [portalLoading, setPortalLoading] = useState(false);
 
   // Get seat count
@@ -45,25 +47,8 @@ export function SubscriptionTab() {
     enabled: !!ownerId,
   });
 
-  const handleManageSubscription = async () => {
-    setPortalLoading(true);
-    try {
-      const { data, error } = await supabase.functions.invoke("customer-portal");
-      if (error) throw error;
-      if (data?.error) throw new Error(data.error);
-      if (data?.url) {
-        window.open(data.url, "_blank");
-      }
-    } catch (err: any) {
-      console.error("Portal error:", err);
-      toast({
-        title: "Error",
-        description: err.message || "Failed to open billing portal",
-        variant: "destructive",
-      });
-    } finally {
-      setPortalLoading(false);
-    }
+  const handleManageSubscription = () => {
+    setShowManageDialog(true);
   };
 
   const statusBadge = () => {
@@ -177,8 +162,8 @@ export function SubscriptionTab() {
               Upgrade to Pro
             </Button>
           ) : (
-            <Button onClick={handleManageSubscription} disabled={portalLoading} variant="outline" className="gap-2">
-              {portalLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <ExternalLink className="h-4 w-4" />}
+            <Button onClick={handleManageSubscription} variant="outline" className="gap-2">
+              <Crown className="h-4 w-4" />
               Manage Subscription
             </Button>
           )}
@@ -215,6 +200,7 @@ export function SubscriptionTab() {
       )}
 
       <PaywallDialog open={showPaywall} onOpenChange={setShowPaywall} projectCount={projectCount} />
+      <ManageSubscriptionDialog open={showManageDialog} onOpenChange={setShowManageDialog} />
     </div>
   );
 }
