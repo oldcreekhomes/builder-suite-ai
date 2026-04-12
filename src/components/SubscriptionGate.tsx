@@ -74,58 +74,57 @@ function CheckoutForm({ billingInterval, seatCount, onClose }: CheckoutViewProps
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 gap-0 rounded-xl overflow-hidden border shadow-lg bg-background">
       {/* Left: Order Summary */}
-          <div className="bg-muted/50 p-6 flex flex-col gap-4 border-r">
-            <div>
-              <p className="text-sm text-muted-foreground">Try BuilderSuite Pro</p>
-              <h2 className="text-lg font-semibold mt-0.5">{isAnnual ? "Annual Plan" : "Monthly Plan"}</h2>
-            </div>
-            <div className="space-y-1">
-              <p className="text-2xl font-bold">14 days free</p>
-              <p className="text-sm text-muted-foreground">Then {displayTotal}</p>
-            </div>
-            <div className="border-t pt-4 space-y-3">
-              <div className="flex items-center justify-between text-sm">
-                <div>
-                  <p className="font-medium">BuilderSuite Pro</p>
-                  <p className="text-muted-foreground text-xs">${perUser}/user/{isAnnual ? "mo (billed annually)" : "mo"}</p>
-                </div>
-                <span className="text-muted-foreground">Qty {seatCount}</span>
-              </div>
-              <div className="border-t pt-3 flex items-center justify-between text-sm">
-                <span className="font-medium">Due today</span>
-                <span className="font-semibold text-green-600">$0.00</span>
-              </div>
-              <div className="flex items-center justify-between text-xs text-muted-foreground">
-                <span>After trial ends</span>
-                <span>{displayTotal}</span>
-              </div>
-            </div>
-            <p className="text-xs text-muted-foreground mt-auto pt-4">Cancel anytime during your trial. No charge until trial ends.</p>
-          </div>
-
-          {/* Right: Card Form */}
-          <div className="p-6 flex flex-col justify-center">
-            <h3 className="text-sm font-medium mb-4">Payment method</h3>
-            <form onSubmit={handleSubmit} className="space-y-4">
-              <div className="border rounded-md p-3">
-                <CardElement options={{
-                  style: {
-                    base: {
-                      fontSize: "16px",
-                      color: "hsl(var(--foreground))",
-                      "::placeholder": { color: "hsl(var(--muted-foreground))" },
-                    },
-                  },
-                  hidePostalCode: true,
-                }} />
-              </div>
-              {error && <p className="text-sm text-destructive">{error}</p>}
-              <Button type="submit" disabled={!stripe || isSubmitting} className="w-full bg-green-600 hover:bg-green-700 text-white">
-                {isSubmitting ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
-                {isSubmitting ? "Processing..." : "Start trial"}
-              </Button>
-            </form>
+      <div className="bg-muted/50 p-6 flex flex-col gap-4 border-r">
+        <div>
+          <p className="text-sm text-muted-foreground">Try BuilderSuite Pro</p>
+          <h2 className="text-lg font-semibold mt-0.5">{isAnnual ? "Annual Plan" : "Monthly Plan"}</h2>
         </div>
+        <div className="space-y-1">
+          <p className="text-2xl font-bold">14 days free</p>
+          <p className="text-sm text-muted-foreground">Then {displayTotal}</p>
+        </div>
+        <div className="border-t pt-4 space-y-3">
+          <div className="flex items-center justify-between text-sm">
+            <div>
+              <p className="font-medium">BuilderSuite Pro</p>
+              <p className="text-muted-foreground text-xs">${perUser}/user/{isAnnual ? "mo (billed annually)" : "mo"}</p>
+            </div>
+            <span className="text-muted-foreground">Qty {seatCount}</span>
+          </div>
+          <div className="border-t pt-3 flex items-center justify-between text-sm">
+            <span className="font-medium">Due today</span>
+            <span className="font-semibold text-green-600">$0.00</span>
+          </div>
+          <div className="flex items-center justify-between text-xs text-muted-foreground">
+            <span>After trial ends</span>
+            <span>{displayTotal}</span>
+          </div>
+        </div>
+        <p className="text-xs text-muted-foreground mt-auto pt-4">Cancel anytime during your trial. No charge until trial ends.</p>
+      </div>
+
+      {/* Right: Card Form */}
+      <div className="p-6 flex flex-col justify-center">
+        <h3 className="text-sm font-medium mb-4">Payment method</h3>
+        <form onSubmit={handleSubmit} className="space-y-4">
+          <div className="border rounded-md p-3">
+            <CardElement options={{
+              style: {
+                base: {
+                  fontSize: "16px",
+                  color: "hsl(var(--foreground))",
+                  "::placeholder": { color: "hsl(var(--muted-foreground))" },
+                },
+              },
+              hidePostalCode: true,
+            }} />
+          </div>
+          {error && <p className="text-sm text-destructive">{error}</p>}
+          <Button type="submit" disabled={!stripe || isSubmitting} className="w-full bg-green-600 hover:bg-green-700 text-white">
+            {isSubmitting ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
+            {isSubmitting ? "Processing..." : "Start trial"}
+          </Button>
+        </form>
       </div>
     </div>
   );
