@@ -1,30 +1,17 @@
 
 
-## Switch to Stripe Hosted Checkout (Redirect Mode)
+## Fix: Stripe Checkout Redirect Not Working
 
 ### The Problem
-The current embedded checkout (`ui_mode: "embedded"`) renders a tall, single-column payment form inside the app that requires scrolling. The attached screenshot shows Stripe's **hosted checkout page** — a compact two-column layout with order summary on the left and payment form on the right. This layout is only available with Stripe's redirect-based checkout (the default mode).
+The edge function is working correctly — logs confirm checkout sessions are created successfully and URLs are returned. However, `window.location.href = data.url` does not work inside the Lovable preview iframe because cross-origin navigations are blocked. The page appears to load indefinitely.
 
 ### Solution
-Switch from embedded checkout to redirect-based checkout. Instead of rendering a Stripe iframe inside the app, users will be redirected to Stripe's hosted checkout page, which provides that compact two-column layout automatically.
+Change `window.location.href` to `window.open(data.url, "_blank")` in both `SubscriptionGate.tsx` and `PaywallDialog.tsx`. This opens the Stripe hosted checkout in a new tab, which works both in the preview iframe and in production.
 
-### Changes
-
-**1. Backend: `supabase/functions/create-checkout-session/index.ts`**
-- Remove `ui_mode: "embedded"` 
-- Replace `return_url` with `success_url` and `cancel_url`
-- Return `session.url` instead of `session.client_secret`
-- Keep `payment_method_types: ['card']` and `saved_payment_method_options`
-
-**2. Frontend: `src/components/SubscriptionGate.tsx`**
-- Remove `EmbeddedCheckout` / `EmbeddedCheckoutProvider` imports and rendering
-- Remove `clientSecret` state and the embedded checkout view
-- On plan selection, redirect to `session.url` via `window.location.href`
-- Remove `@stripe/react-stripe-js` and `loadStripe` imports (no longer needed here)
-
-**3. Frontend: `src/components/PaywallDialog.tsx`**
-- Same changes: remove embedded checkout, redirect to `session.url` instead
+### Files to modify
+1. **`src/components/SubscriptionGate.tsx`** — line 28: change `window.location.href = data.url` to `window.open(data.url, "_blank")`
+2. **`src/components/PaywallDialog.tsx`** — same change if it has `window.location.href`
 
 ### Result
-Users click a plan, get redirected to Stripe's hosted checkout with the compact two-column layout (order summary left, card form right), then return to the app on success.
+Clicking "Subscribe Monthly" or "Subscribe Annual" will open Stripe's hosted checkout page in a new browser tab with the compact two-column layout.
 
