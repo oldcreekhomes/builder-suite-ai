@@ -77,7 +77,7 @@ function CheckoutForm({ billingInterval, seatCount, onBack }: CheckoutViewProps)
         </Button>
       </div>
       <div className="flex-1 flex items-start justify-center px-4 pb-8">
-        <div className="w-full max-w-4xl grid grid-cols-1 md:grid-cols-[340px_1fr] gap-0 rounded-xl overflow-hidden border shadow-lg bg-background">
+        <div className="w-full max-w-[700px] grid grid-cols-1 md:grid-cols-2 gap-0 rounded-xl overflow-hidden border shadow-lg bg-background">
           {/* Left: Order Summary */}
           <div className="bg-muted/50 p-6 flex flex-col gap-4 border-r">
             <div>
