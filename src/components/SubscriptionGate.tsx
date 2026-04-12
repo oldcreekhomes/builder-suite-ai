@@ -72,15 +72,8 @@ function CheckoutForm({ billingInterval, seatCount, onClose }: CheckoutViewProps
   };
 
   return (
-    <div className="min-h-screen bg-muted/30 flex flex-col">
-      <div className="p-4">
-        <Button variant="ghost" size="sm" onClick={onBack} className="gap-1 text-muted-foreground hover:text-foreground">
-          <ArrowLeft className="h-4 w-4" /> Back
-        </Button>
-      </div>
-      <div className="flex-1 flex items-start justify-center px-4 pb-8">
-        <div className="w-full max-w-[700px] grid grid-cols-1 md:grid-cols-2 gap-0 rounded-xl overflow-hidden border shadow-lg bg-background">
-          {/* Left: Order Summary */}
+    <div className="grid grid-cols-1 md:grid-cols-2 gap-0 rounded-xl overflow-hidden border shadow-lg bg-background">
+      {/* Left: Order Summary */}
           <div className="bg-muted/50 p-6 flex flex-col gap-4 border-r">
             <div>
               <p className="text-sm text-muted-foreground">Try BuilderSuite Pro</p>
