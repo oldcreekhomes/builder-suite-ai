@@ -162,8 +162,8 @@ export function SubscriptionTab() {
               Upgrade to Pro
             </Button>
           ) : (
-            <Button onClick={handleManageSubscription} disabled={portalLoading} variant="outline" className="gap-2">
-              {portalLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <ExternalLink className="h-4 w-4" />}
+            <Button onClick={handleManageSubscription} variant="outline" className="gap-2">
+              <Crown className="h-4 w-4" />
               Manage Subscription
             </Button>
           )}
@@ -200,6 +200,7 @@ export function SubscriptionTab() {
       )}
 
       <PaywallDialog open={showPaywall} onOpenChange={setShowPaywall} projectCount={projectCount} />
+      <ManageSubscriptionDialog open={showManageDialog} onOpenChange={setShowManageDialog} />
     </div>
   );
 }
