@@ -125,7 +125,6 @@ function CheckoutForm({ billingInterval, seatCount, onClose }: CheckoutViewProps
                 {isSubmitting ? "Processing..." : "Start trial"}
               </Button>
             </form>
-          </div>
         </div>
       </div>
     </div>
