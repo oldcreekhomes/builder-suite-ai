@@ -1,19 +1,10 @@
 import { useSubscription } from "@/hooks/useSubscription";
 import { useUserRole } from "@/hooks/useUserRole";
-import { useState, useCallback } from "react";
+import { useState } from "react";
 import { Crown, Lock, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
-import { loadStripe } from "@stripe/stripe-js";
-import {
-  EmbeddedCheckoutProvider,
-  EmbeddedCheckout,
-} from "@stripe/react-stripe-js";
-
-const stripePromise = loadStripe(
-  "pk_test_51TL5mD2OJCoyD632I78ZLOABNArQ3j0vjFOIDJxojGuktR4wIGPZeq5HDRlyjtPqNruAa7HDRRQWTmA6N1aKFHck00850Qmh79"
-);
 
 interface SubscriptionGateProps {
   children: React.ReactNode;
@@ -22,7 +13,6 @@ interface SubscriptionGateProps {
 export function SubscriptionGate({ children }: SubscriptionGateProps) {
   const { needsSubscription, projectCount, isLoading } = useSubscription();
   const { isEmployee, isLoading: rolesLoading } = useUserRole();
-  const [clientSecret, setClientSecret] = useState<string | null>(null);
   const [loadingPlan, setLoadingPlan] = useState<string | null>(null);
   const { toast } = useToast();
 
@@ -34,8 +24,8 @@ export function SubscriptionGate({ children }: SubscriptionGateProps) {
       });
       if (error) throw error;
       if (data?.error) throw new Error(data.error);
-      if (data?.clientSecret) {
-        setClientSecret(data.clientSecret);
+      if (data?.url) {
+        window.location.href = data.url;
       }
     } catch (err: any) {
       console.error("Checkout error:", err);
@@ -53,28 +43,6 @@ export function SubscriptionGate({ children }: SubscriptionGateProps) {
   if (isEmployee) return <>{children}</>;
 
   if (needsSubscription) {
-    // Show embedded Stripe checkout inline
-    if (clientSecret) {
-      return (
-        <div className="min-h-screen flex items-center justify-center bg-muted/30 p-6">
-          <div className="max-w-3xl w-full">
-            <Button
-              variant="ghost"
-              size="sm"
-              className="mb-4"
-              onClick={() => setClientSecret(null)}
-            >
-              ← Back to plans
-            </Button>
-            <EmbeddedCheckoutProvider stripe={stripePromise} options={{ clientSecret }}>
-              <EmbeddedCheckout />
-            </EmbeddedCheckoutProvider>
-          </div>
-        </div>
-      );
-    }
-
-    // Plan selection screen
     return (
       <div className="min-h-screen flex items-center justify-center bg-muted/30 p-6">
         <div className="max-w-lg w-full text-center space-y-6">
