@@ -78,6 +78,7 @@ serve(async (req) => {
       line_items: [{ price: priceId, quantity: seatCount }],
       mode: "subscription",
       ui_mode: "embedded",
+      payment_method_types: ['card'],
       subscription_data: {
         trial_period_days: 14,
         metadata: { owner_id: ownerId, seat_count: String(seatCount) },
