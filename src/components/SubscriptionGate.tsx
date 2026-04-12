@@ -62,6 +62,7 @@ function CheckoutForm({ billingInterval, seatCount, onClose }: CheckoutViewProps
       if (data?.error) throw new Error(data.error);
 
       toast({ title: "Trial started!", description: "Your 14-day free trial has begun." });
+      onClose();
       queryClient.invalidateQueries({ queryKey: ["subscription"] });
     } catch (err: any) {
       console.error("Subscription error:", err);
