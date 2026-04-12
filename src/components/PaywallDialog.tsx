@@ -11,7 +11,7 @@ import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { Check, Crown, ArrowLeft, Loader2 } from "lucide-react";
 import { loadStripe } from "@stripe/stripe-js";
-import { Elements, CardElement, useStripe, useElements } from "@stripe/react-stripe-js";
+import { Elements, CardNumberElement, CardExpiryElement, CardCvcElement, useStripe, useElements } from "@stripe/react-stripe-js";
 import { useQueryClient } from "@tanstack/react-query";
 
 const stripePromise = loadStripe("pk_live_51TL6xt2OJCoyD632VBPb5DsDdznZHJBjhDpvfORHkMiCdXcaFpFdJ3DOAzmjjLxLkNDp0vQdaPaYJVzMWK0mYDwO00xHydFc2c");
@@ -64,7 +64,7 @@ function CheckoutCardForm({ billingInterval, seatCount, onBack, onSuccess }: {
     setError(null);
 
     try {
-      const cardElement = elements.getElement(CardElement);
+      const cardElement = elements.getElement(CardNumberElement);
       if (!cardElement) throw new Error("Card element not found");
 
       const { error: pmError, paymentMethod } = await stripe.createPaymentMethod({
@@ -136,7 +136,7 @@ function CheckoutCardForm({ billingInterval, seatCount, onBack, onSuccess }: {
           <h3 className="text-sm font-medium mb-4">Payment method</h3>
           <form onSubmit={handleSubmit} className="space-y-4">
             <div className="border rounded-md p-3">
-              <CardElement options={{
+              <CardNumberElement options={{
                 style: {
                   base: {
                     fontSize: "16px",
@@ -144,8 +144,32 @@ function CheckoutCardForm({ billingInterval, seatCount, onBack, onSuccess }: {
                     "::placeholder": { color: "hsl(var(--muted-foreground))" },
                   },
                 },
-                hidePostalCode: true,
+                placeholder: "Card number",
               }} />
+            </div>
+            <div className="grid grid-cols-2 gap-3">
+              <div className="border rounded-md p-3">
+                <CardExpiryElement options={{
+                  style: {
+                    base: {
+                      fontSize: "16px",
+                      color: "hsl(var(--foreground))",
+                      "::placeholder": { color: "hsl(var(--muted-foreground))" },
+                    },
+                  },
+                }} />
+              </div>
+              <div className="border rounded-md p-3">
+                <CardCvcElement options={{
+                  style: {
+                    base: {
+                      fontSize: "16px",
+                      color: "hsl(var(--foreground))",
+                      "::placeholder": { color: "hsl(var(--muted-foreground))" },
+                    },
+                  },
+                }} />
+              </div>
             </div>
             {error && <p className="text-sm text-destructive">{error}</p>}
             <Button type="submit" disabled={!stripe || isSubmitting} className="w-full bg-green-600 hover:bg-green-700 text-white">
