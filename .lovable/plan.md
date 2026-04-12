@@ -1,32 +1,30 @@
 
 
-## Fix: Remove "Pay with Link" and "Save my info" from Stripe Checkout
+## Switch to Stripe Hosted Checkout (Redirect Mode)
 
 ### The Problem
-Even though `payment_method_types: ['card']` is set, Stripe's Embedded Checkout still shows "Pay with Link" and "Save my information for 1-click checkout." These are controlled by separate settings, not by `payment_method_types`.
+The current embedded checkout (`ui_mode: "embedded"`) renders a tall, single-column payment form inside the app that requires scrolling. The attached screenshot shows Stripe's **hosted checkout page** — a compact two-column layout with order summary on the left and payment form on the right. This layout is only available with Stripe's redirect-based checkout (the default mode).
 
-### Solution (Two Parts)
+### Solution
+Switch from embedded checkout to redirect-based checkout. Instead of rendering a Stripe iframe inside the app, users will be redirected to Stripe's hosted checkout page, which provides that compact two-column layout automatically.
 
-**Part 1: Code change — Disable saved payment method options**
-In `supabase/functions/create-checkout-session/index.ts`, add `saved_payment_method_options` to the checkout session to disable saving:
+### Changes
 
-```typescript
-saved_payment_method_options: {
-  payment_method_save: 'disabled',
-},
-```
+**1. Backend: `supabase/functions/create-checkout-session/index.ts`**
+- Remove `ui_mode: "embedded"` 
+- Replace `return_url` with `success_url` and `cancel_url`
+- Return `session.url` instead of `session.client_secret`
+- Keep `payment_method_types: ['card']` and `saved_payment_method_options`
 
-This removes the "Save my information for faster checkout" checkbox.
+**2. Frontend: `src/components/SubscriptionGate.tsx`**
+- Remove `EmbeddedCheckout` / `EmbeddedCheckoutProvider` imports and rendering
+- Remove `clientSecret` state and the embedded checkout view
+- On plan selection, redirect to `session.url` via `window.location.href`
+- Remove `@stripe/react-stripe-js` and `loadStripe` imports (no longer needed here)
 
-**Part 2: Stripe Dashboard — Disable Link**
-"Pay with Link" is a Stripe Dashboard setting that cannot be disabled via API. You need to:
-1. Go to your [Stripe Dashboard → Settings → Payment Methods](https://dashboard.stripe.com/settings/payment_methods)
-2. Find **Link** and toggle it **off**
-3. Wait a few minutes for it to take effect
-
-### Files to modify
-- `supabase/functions/create-checkout-session/index.ts` — add `saved_payment_method_options`
+**3. Frontend: `src/components/PaywallDialog.tsx`**
+- Same changes: remove embedded checkout, redirect to `session.url` instead
 
 ### Result
-After both changes, the checkout will show only: Email, Card number, Expiry, CVC, and Country — matching the clean layout from your first screenshot.
+Users click a plan, get redirected to Stripe's hosted checkout with the compact two-column layout (order summary left, card form right), then return to the app on success.
 
