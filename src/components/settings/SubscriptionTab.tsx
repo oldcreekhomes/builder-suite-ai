@@ -29,6 +29,7 @@ export function SubscriptionTab() {
   const { isOwner } = useUserRole();
   const { toast } = useToast();
   const [showPaywall, setShowPaywall] = useState(false);
+  const [showManageDialog, setShowManageDialog] = useState(false);
   const [portalLoading, setPortalLoading] = useState(false);
 
   // Get seat count
@@ -46,25 +47,8 @@ export function SubscriptionTab() {
     enabled: !!ownerId,
   });
 
-  const handleManageSubscription = async () => {
-    setPortalLoading(true);
-    try {
-      const { data, error } = await supabase.functions.invoke("customer-portal");
-      if (error) throw error;
-      if (data?.error) throw new Error(data.error);
-      if (data?.url) {
-        window.open(data.url, "_blank");
-      }
-    } catch (err: any) {
-      console.error("Portal error:", err);
-      toast({
-        title: "Error",
-        description: err.message || "Failed to open billing portal",
-        variant: "destructive",
-      });
-    } finally {
-      setPortalLoading(false);
-    }
+  const handleManageSubscription = () => {
+    setShowManageDialog(true);
   };
 
   const statusBadge = () => {
