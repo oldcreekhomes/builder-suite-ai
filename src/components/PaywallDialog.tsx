@@ -102,7 +102,7 @@ function CheckoutCardForm({ billingInterval, seatCount, onBack, onSuccess }: {
           <ArrowLeft className="h-4 w-4" /> Back
         </Button>
       </div>
-      <div className="grid grid-cols-1 md:grid-cols-[320px_1fr]">
+      <div className="grid grid-cols-1 md:grid-cols-2">
         <div className="bg-muted/50 p-5 flex flex-col gap-3 border-r">
           <div>
             <p className="text-sm text-muted-foreground">Try BuilderSuite Pro</p>
