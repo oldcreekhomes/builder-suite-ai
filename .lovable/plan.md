@@ -1,17 +1,61 @@
 
 
-## Fix Invalid Stripe Publishable Key
+## Replace External Stripe Portal with In-App Subscription Management Dialog
 
-### The Problem
-The screenshot shows "Invalid API Key provided: pk_live_..." — the Stripe publishable key hardcoded in `SubscriptionGate.tsx` and `PaywallDialog.tsx` is invalid or belongs to a different/deactivated Stripe account.
+### Summary
+Replace the "Manage Subscription" button (which opens Stripe's external Customer Portal) with a dialog that shows all the same information inline: current subscription details, payment method, billing info, invoice history, and a cancel option.
 
-### Solution
-You need to provide the correct Stripe **publishable key** for your Stripe account. You can find it in your [Stripe Dashboard](https://dashboard.stripe.com/apikeys) under **Developers > API keys**. It starts with `pk_live_` (production) or `pk_test_` (test mode).
+### New Edge Function: `get-subscription-details`
+Fetches from Stripe API:
+- Active subscription info (plan name, quantity, amount, interval, next billing date)
+- Default payment method (card brand, last 4, expiry)
+- Customer billing email
+- Recent invoices (date, amount, status, PDF link)
 
-Once you share the correct key, I will update it in both files:
-1. **`src/components/SubscriptionGate.tsx`** (line 14)
-2. **`src/components/PaywallDialog.tsx`** (line 17)
+Returns all this as JSON to the frontend.
 
-### What I need from you
-Please provide your correct Stripe publishable key so I can replace the invalid one. Since publishable keys are safe to store in client-side code, I'll hardcode it directly.
+### New Edge Function: `cancel-subscription`
+Cancels the Stripe subscription (at period end by default), updates the local `subscriptions` table status to `canceled`.
+
+### New Component: `ManageSubscriptionDialog`
+A dialog matching the Stripe portal layout from the screenshot:
+- **Current Subscription** section: Plan name (×quantity), total per month, next billing date
+- **Payment Method** section: Card brand icon, last 4 digits, expiry, "Default" badge
+- **Billing Information** section: Email address
+- **Invoice History** section: Table with date, amount, status badge, plan name
+- **Cancel Subscription** button (with confirmation dialog)
+
+### Changes to `SubscriptionTab.tsx`
+- Replace `handleManageSubscription` (which opens external portal) with dialog state toggle
+- Add `<ManageSubscriptionDialog>` component
+- Keep the `customer-portal` edge function as fallback (no deletion)
+
+### Files
+1. **New**: `supabase/functions/get-subscription-details/index.ts`
+2. **New**: `supabase/functions/cancel-subscription/index.ts`
+3. **New**: `src/components/settings/ManageSubscriptionDialog.tsx`
+4. **Edit**: `src/components/settings/SubscriptionTab.tsx` — swap external link for dialog
+
+### Dialog Layout
+```text
+┌─────────────────────────────────────────────────┐
+│  Manage Subscription                        [X] │
+│─────────────────────────────────────────────────│
+│  CURRENT SUBSCRIPTION                           │
+│  BuilderSuite Pro - Monthly (×7)                │
+│  $273.00 per month                              │
+│  Next billing date: May 12, 2026                │
+│─────────────────────────────────────────────────│
+│  PAYMENT METHOD                                 │
+│  🔵 Visa •••• 4242   Expires 02/2028  [Default] │
+│─────────────────────────────────────────────────│
+│  BILLING INFORMATION                            │
+│  Email: mgray@oldcreekhomes.com                 │
+│─────────────────────────────────────────────────│
+│  INVOICE HISTORY                                │
+│  Apr 12, 2026  $273.00  [Paid]  BSPro-Monthly   │
+│─────────────────────────────────────────────────│
+│                        [Cancel Subscription]    │
+└─────────────────────────────────────────────────┘
+```
 
