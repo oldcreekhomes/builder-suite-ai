@@ -7,7 +7,8 @@ import { Badge } from "@/components/ui/badge";
 import { PaywallDialog } from "@/components/PaywallDialog";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
-import { Crown, Users, FolderOpen, Calendar, ExternalLink, Loader2 } from "lucide-react";
+import { ManageSubscriptionDialog } from "@/components/settings/ManageSubscriptionDialog";
+import { Crown, Users, FolderOpen, Calendar, Loader2 } from "lucide-react";
 import { format } from "date-fns";
 import { useQuery } from "@tanstack/react-query";
 
