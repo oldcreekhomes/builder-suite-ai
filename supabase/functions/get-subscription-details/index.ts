@@ -66,7 +66,7 @@ serve(async (req) => {
         quantity: item.quantity || 1,
         unit_amount: item.price.unit_amount ? item.price.unit_amount / 100 : 0,
         total_amount: (item.price.unit_amount ? item.price.unit_amount / 100 : 0) * (item.quantity || 1),
-        current_period_end: new Date(sub.current_period_end * 1000).toISOString(),
+        current_period_end: sub.current_period_end ? new Date(sub.current_period_end * 1000).toISOString() : null,
         cancel_at_period_end: sub.cancel_at_period_end,
       };
 
@@ -104,14 +104,24 @@ serve(async (req) => {
       limit: 10,
     });
 
-    const invoiceList = invoices.data.map((inv) => ({
-      id: inv.id,
-      date: inv.created ? new Date(inv.created * 1000).toISOString() : null,
-      amount: inv.amount_paid ? inv.amount_paid / 100 : 0,
-      status: inv.status,
-      description: inv.lines?.data?.[0]?.description || "BuilderSuite Pro",
-      invoice_pdf: inv.invoice_pdf,
-    }));
+    const invoiceList = invoices.data.map((inv) => {
+      let dateStr: string | null = null;
+      try {
+        if (inv.created && typeof inv.created === "number") {
+          dateStr = new Date(inv.created * 1000).toISOString();
+        }
+      } catch (_) {
+        dateStr = null;
+      }
+      return {
+        id: inv.id,
+        date: dateStr,
+        amount: (inv.amount_paid ?? 0) / 100,
+        status: inv.status,
+        description: inv.lines?.data?.[0]?.description || "BuilderSuite Pro",
+        invoice_pdf: inv.invoice_pdf,
+      };
+    });
 
     return new Response(
       JSON.stringify({
