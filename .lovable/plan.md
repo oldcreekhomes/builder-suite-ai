@@ -1,39 +1,36 @@
 
 
-## Embed Stripe Checkout in PaywallDialog
+## Streamline: Green Subscribe → Stripe Checkout (No Dialog)
 
-### Overview
-Replace the redirect-to-Stripe flow with an inline embedded checkout. The user picks a plan, then completes payment directly inside the dialog without leaving the app.
+### Problem
+There's an unnecessary intermediate step: Gate screen → Plan selection dialog → Stripe checkout. The user wants one click from the gate screen straight into Stripe.
 
-### Stripe Publishable Key
-`pk_test_51TL5mD2OJCoyD632I78ZLOABNArQ3j0vjFOIDJxojGuktR4wIGPZeq5HDRlyjtPqNruAa7HDRRQWTmA6N1aKFHck00850Qmh79`
-
-This is a public/test key and will be stored as a constant in the codebase.
+### Solution
+Move the Monthly/Annual choice onto the **gate screen itself** (the one with the red lock icon and green button). When the user clicks "Subscribe Monthly" or "Subscribe Annual", it calls the edge function directly and opens the embedded Stripe checkout inline — no `PaywallDialog` at all.
 
 ### Changes
 
-**1. Edge function: `supabase/functions/create-checkout-session/index.ts`**
-- Add `ui_mode: "embedded"` to the Stripe session creation
-- Replace `success_url`/`cancel_url` with `return_url` (required for embedded mode)
-- Return `{ clientSecret: session.client_secret }` instead of `{ url: session.url }`
+**1. `src/components/SubscriptionGate.tsx`**
+- Add Monthly/Annual plan cards directly on the gate screen (below the existing message)
+- Each card has a green "Subscribe" button
+- Clicking a button calls `create-checkout-session` with the chosen `billing_interval`
+- On success, render `<EmbeddedCheckoutProvider>` + `<EmbeddedCheckout>` inline, replacing the gate content
+- Import `loadStripe`, `EmbeddedCheckoutProvider`, `EmbeddedCheckout` here
+- Remove the `PaywallDialog` import and usage from this component
 
-**2. Frontend: `src/components/PaywallDialog.tsx`**
-- Two-step flow inside one dialog:
-  - **Step 1 (Plan Selection)**: Feature list + Monthly/Annual cards with "Select" buttons
-  - **Step 2 (Payment)**: Call edge function to get `clientSecret`, then render `<EmbeddedCheckoutProvider>` + `<EmbeddedCheckout>` inline
-- Initialize `loadStripe()` with the publishable key
-- Dialog expands to `sm:max-w-3xl` when showing the embedded form
-- Add a "Back" button to return to plan selection
-- On completion, Stripe handles the redirect to `return_url`
+**2. `src/components/SubscriptionBanner.tsx`**
+- The banner's "Upgrade now" button still needs a way to trigger checkout
+- Option: open `PaywallDialog` as before (keep it for banner use), OR replicate the same inline approach
+- Simplest: keep `PaywallDialog` for the banner since it's a small prompt, not a full-screen block
 
-**3. Dependencies** (already installed)
-- `@stripe/react-stripe-js` and `@stripe/stripe-js` are already in `package.json`
+**3. No edge function changes needed** — already returns `clientSecret` for embedded mode
+
+### Result
+- Gate screen shows lock icon → plan cards (Monthly $39 / Annual $33) → click → Stripe checkout appears inline
+- One fewer click, no intermediate dialog
+- `PaywallDialog` remains available for the banner and settings tab use cases
 
 ### Files to modify
-- `supabase/functions/create-checkout-session/index.ts`
-- `src/components/PaywallDialog.tsx`
-
-### Files unchanged
-- `SubscriptionGate.tsx` — already opens PaywallDialog correctly
-- `NewProjectDialog.tsx` — already opens PaywallDialog correctly
+- `src/components/SubscriptionGate.tsx` — add plan selection + embedded checkout inline
+- `src/components/SubscriptionBanner.tsx` — no changes (keeps using PaywallDialog)
 
