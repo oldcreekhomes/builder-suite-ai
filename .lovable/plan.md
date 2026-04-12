@@ -1,17 +1,27 @@
 
 
-## Make Right Column Match Left Column Width
+## Show Checkout as Dialog Instead of Separate Page
 
 ### The Problem
-The grid layout uses `md:grid-cols-[340px_1fr]`, making the right column stretch to fill all remaining space while the left is fixed at 340px.
+When a user clicks "Subscribe Monthly" or "Subscribe Annual", the entire screen replaces with a checkout page that has a "Back" button. The user navigates away from the "Subscription Required" screen. You want the checkout to appear as a dialog overlay so the user stays on the same page, and on success, the page simply refreshes into the app.
 
 ### Solution
-Change the grid to use two equal-width columns: `md:grid-cols-[340px_340px]`. This gives both sides the same compact width. Also reduce `max-w-4xl` to something tighter like `max-w-[680px]` so the container fits snugly around the two columns.
+Wrap the `CheckoutForm` in a `Dialog` component instead of rendering it as a full-page replacement. When the user clicks a subscribe button, open the dialog with the two-column checkout form inside it. On successful subscription, close the dialog and invalidate queries so the gate re-evaluates and lets them through.
 
-### Answer to your question
-Yes, Stripe's `CardElement` can absolutely process real payments with just card number, expiry date, and CVC. Those three fields are the standard minimum required for card transactions. Stripe handles all validation, tokenization, and fraud checks on their end.
+### Changes
 
-### Files to modify
-1. **`src/components/SubscriptionGate.tsx`** (line 80) — change grid template from `md:grid-cols-[340px_1fr]` to `md:grid-cols-2` and update `max-w-4xl` to `max-w-[700px]`
-2. **`src/components/PaywallDialog.tsx`** — same grid change in the checkout card form layout
+**`src/components/SubscriptionGate.tsx`**
+
+1. Import `Dialog`, `DialogContent` from `@/components/ui/dialog`
+2. Change `checkout` state to control dialog open/close
+3. Move the `Elements` + `CheckoutForm` render into a `<Dialog>` that overlays the "Subscription Required" screen
+4. Remove the full-page layout from `CheckoutForm` (the `min-h-screen`, back button, outer container) — keep only the two-column card content
+5. Remove the `onBack` prop; replace with `onClose` to close the dialog
+6. On successful subscription, close dialog + invalidate queries (existing behavior handles the refresh)
+
+### Layout
+The "Subscription Required" page stays visible behind the dialog. The dialog contains the compact two-column checkout (order summary left, card form right) at roughly the same size as now (~700px max width).
+
+### Files
+1. **Edit**: `src/components/SubscriptionGate.tsx` — wrap checkout in Dialog instead of full-page swap
 
