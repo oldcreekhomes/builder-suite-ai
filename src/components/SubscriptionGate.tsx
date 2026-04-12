@@ -1,8 +1,10 @@
 import { useSubscription } from "@/hooks/useSubscription";
 import { useUserRole } from "@/hooks/useUserRole";
 import { useState } from "react";
-import { Crown, Lock, Loader2, ArrowLeft } from "lucide-react";
+import { Crown, Lock, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
+import { VisuallyHidden } from "@radix-ui/react-visually-hidden";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { loadStripe } from "@stripe/stripe-js";
@@ -14,10 +16,10 @@ const stripePromise = loadStripe("pk_live_51TL6xt2OJCoyD632VBPb5DsDdznZHJBjhDpvf
 interface CheckoutViewProps {
   billingInterval: "monthly" | "annual";
   seatCount: number;
-  onBack: () => void;
+  onClose: () => void;
 }
 
-function CheckoutForm({ billingInterval, seatCount, onBack }: CheckoutViewProps) {
+function CheckoutForm({ billingInterval, seatCount, onClose }: CheckoutViewProps) {
   const stripe = useStripe();
   const elements = useElements();
   const [isSubmitting, setIsSubmitting] = useState(false);
