@@ -1,6 +1,5 @@
 import { useSubscription } from "@/hooks/useSubscription";
 import { useUserRole } from "@/hooks/useUserRole";
-import { useLocation } from "react-router-dom";
 import { PaywallDialog } from "./PaywallDialog";
 import { useState } from "react";
 import { Crown, Lock } from "lucide-react";
