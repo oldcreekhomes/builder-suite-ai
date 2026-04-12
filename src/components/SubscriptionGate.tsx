@@ -166,18 +166,6 @@ export function SubscriptionGate({ children }: SubscriptionGateProps) {
   if (isEmployee) return <>{children}</>;
 
   if (needsSubscription) {
-    if (checkout) {
-      return (
-        <Elements stripe={stripePromise}>
-          <CheckoutForm
-            billingInterval={checkout.billingInterval}
-            seatCount={checkout.seatCount}
-            onBack={() => setCheckout(null)}
-          />
-        </Elements>
-      );
-    }
-
     return (
       <div className="min-h-screen flex items-center justify-center bg-muted/30 p-6">
         <div className="max-w-lg w-full text-center space-y-6">
@@ -215,6 +203,23 @@ export function SubscriptionGate({ children }: SubscriptionGateProps) {
           </div>
           <p className="text-xs text-muted-foreground">14-day free trial. Cancel anytime. No charge until trial ends.</p>
         </div>
+
+        <Dialog open={!!checkout} onOpenChange={(open) => { if (!open) setCheckout(null); }}>
+          <DialogContent className="max-w-[700px] p-0 gap-0">
+            <VisuallyHidden>
+              <DialogTitle>Checkout</DialogTitle>
+            </VisuallyHidden>
+            {checkout && (
+              <Elements stripe={stripePromise}>
+                <CheckoutForm
+                  billingInterval={checkout.billingInterval}
+                  seatCount={checkout.seatCount}
+                  onClose={() => setCheckout(null)}
+                />
+              </Elements>
+            )}
+          </DialogContent>
+        </Dialog>
       </div>
     );
   }
