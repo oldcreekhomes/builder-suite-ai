@@ -39,7 +39,6 @@ serve(async (req) => {
 
     const priceId = PRICES[billing_interval as keyof typeof PRICES];
 
-    // Get owner info — if employee, get their owner's ID
     const { data: profile } = await supabaseAdmin
       .from("users")
       .select("id, home_builder_id, role, company_name")
@@ -48,22 +47,19 @@ serve(async (req) => {
 
     if (!profile) throw new Error("User profile not found");
 
-    // Only owners can start subscriptions
     const ownerId = profile.home_builder_id || profile.id;
     if (ownerId !== user.id) {
       throw new Error("Only the company owner can manage subscriptions");
     }
 
-    // Count users: owner + confirmed employees
     const { count: employeeCount } = await supabaseAdmin
       .from("users")
       .select("id", { count: "exact", head: true })
       .eq("home_builder_id", ownerId)
       .eq("confirmed", true);
 
-    const seatCount = 1 + (employeeCount || 0); // owner + employees
+    const seatCount = 1 + (employeeCount || 0);
 
-    // Check for existing Stripe customer
     const stripe = new Stripe(Deno.env.get("STRIPE_SECRET_KEY") || "", {
       apiVersion: "2025-08-27.basil",
     });
@@ -81,12 +77,12 @@ serve(async (req) => {
       customer_email: customerId ? undefined : user.email!,
       line_items: [{ price: priceId, quantity: seatCount }],
       mode: "subscription",
+      ui_mode: "embedded",
       subscription_data: {
         trial_period_days: 14,
         metadata: { owner_id: ownerId, seat_count: String(seatCount) },
       },
-      success_url: `${origin}/?subscription=success`,
-      cancel_url: `${origin}/?subscription=canceled`,
+      return_url: `${origin}/?subscription=success`,
       metadata: { owner_id: ownerId },
     });
 
@@ -102,7 +98,7 @@ serve(async (req) => {
 
     console.log(`✅ Checkout session created for owner ${ownerId}, ${seatCount} seats, ${billing_interval}`);
 
-    return new Response(JSON.stringify({ url: session.url }), {
+    return new Response(JSON.stringify({ clientSecret: session.client_secret }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
       status: 200,
     });
