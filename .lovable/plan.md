@@ -1,47 +1,17 @@
 
 
-## Remove Trial, Change to 3 Free Projects, Simplify Checkout UI
+## Fix Invalid Stripe Publishable Key
 
-### Summary
-Remove the 14-day trial entirely. Users get 3 free projects (up from 2), and after that they pay immediately. The checkout order summary is simplified to show only the essential pricing info with the total due in green.
+### The Problem
+The screenshot shows "Invalid API Key provided: pk_live_..." — the Stripe publishable key hardcoded in `SubscriptionGate.tsx` and `PaywallDialog.tsx` is invalid or belongs to a different/deactivated Stripe account.
 
-### Changes
+### Solution
+You need to provide the correct Stripe **publishable key** for your Stripe account. You can find it in your [Stripe Dashboard](https://dashboard.stripe.com/apikeys) under **Developers > API keys**. It starts with `pk_live_` (production) or `pk_test_` (test mode).
 
-**1. `src/hooks/useSubscription.ts`** — Change free tier limit from 2 to 3
-- `projectCount < 2` → `projectCount < 3`
-- `projectCount >= 2` → `projectCount >= 3`
+Once you share the correct key, I will update it in both files:
+1. **`src/components/SubscriptionGate.tsx`** (line 14)
+2. **`src/components/PaywallDialog.tsx`** (line 17)
 
-**2. `supabase/functions/create-subscription/index.ts`** — Remove trial
-- Remove `trial_period_days: 14` from `stripe.subscriptions.create`
-- Change upserted status from `"trialing"` to `"active"`
-- Remove `trial_ends_at` from the upsert
-
-**3. `src/components/SubscriptionGate.tsx`** — Update UI
-- **Subscription Required page**: Change "free tier limit of 2" to "3", remove "14-day free trial" footer text
-- **CheckoutForm order summary**: Simplify left column to:
-  - "BuilderSuite Pro" + "Quantity" on same row (both same font/color)
-  - "$39/user/mo" + seat count number on the row below
-  - "Due today" with actual amount (e.g. `$273`) in green
-  - Remove: "14 days free", "Then $273/mo", "After trial ends" row, "Cancel anytime" text
-- **Button text**: "Start trial" → "Subscribe"
-- **Toast**: "Trial started!" → "Subscription started!"
-
-**4. `src/components/PaywallDialog.tsx`** — Same UI updates
-- Change "14-day free trial" references to direct subscription language
-- Simplify CheckoutCardForm order summary (same as SubscriptionGate)
-- Button: "Start trial" → "Subscribe"
-- Toast: update message
-- Description: change "2 free projects" to "3 free projects", remove trial mention
-
-**5. `src/components/SubscriptionBanner.tsx`** — Remove trial-related banner text (if referencing trial)
-
-### Checkout Order Summary Layout (after changes)
-```text
-┌─────────────────────────────────┐
-│ BuilderSuite Pro      Quantity  │
-│ $39/user/mo                  7  │
-│─────────────────────────────────│
-│ Due today              $273.00  │  ← green
-└─────────────────────────────────┘
-```
+### What I need from you
+Please provide your correct Stripe publishable key so I can replace the invalid one. Since publishable keys are safe to store in client-side code, I'll hardcode it directly.
 
