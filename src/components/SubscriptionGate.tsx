@@ -30,8 +30,7 @@ function CheckoutForm({ billingInterval, seatCount, onClose }: CheckoutViewProps
   const isAnnual = billingInterval === "annual";
   const perUser = isAnnual ? 33 : 39;
   const totalMonthly = perUser * seatCount;
-  const totalAnnual = totalMonthly * 12;
-  const displayTotal = isAnnual ? `$${totalAnnual.toLocaleString()}/yr` : `$${totalMonthly.toLocaleString()}/mo`;
+  const dueToday = isAnnual ? totalMonthly * 12 : totalMonthly;
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -61,7 +60,7 @@ function CheckoutForm({ billingInterval, seatCount, onClose }: CheckoutViewProps
       if (fnError) throw fnError;
       if (data?.error) throw new Error(data.error);
 
-      toast({ title: "Trial started!", description: "Your 14-day free trial has begun." });
+      toast({ title: "Subscription started!", description: "Your subscription is now active." });
       onClose();
       queryClient.invalidateQueries({ queryKey: ["subscription"] });
     } catch (err: any) {
@@ -76,32 +75,21 @@ function CheckoutForm({ billingInterval, seatCount, onClose }: CheckoutViewProps
     <div className="grid grid-cols-1 md:grid-cols-2 gap-0 rounded-xl overflow-hidden border shadow-lg bg-background">
       {/* Left: Order Summary */}
       <div className="bg-muted/50 p-6 flex flex-col gap-4 border-r">
-        <div>
-          <p className="text-sm text-muted-foreground">Try BuilderSuite Pro</p>
-          <h2 className="text-lg font-semibold mt-0.5">{isAnnual ? "Annual Plan" : "Monthly Plan"}</h2>
-        </div>
-        <div className="space-y-1">
-          <p className="text-2xl font-bold">14 days free</p>
-          <p className="text-sm text-muted-foreground">Then {displayTotal}</p>
-        </div>
+        <h2 className="text-lg font-semibold">{isAnnual ? "Annual Plan" : "Monthly Plan"}</h2>
         <div className="border-t pt-4 space-y-3">
           <div className="flex items-center justify-between text-sm">
-            <div>
-              <p className="font-medium">BuilderSuite Pro</p>
-              <p className="text-muted-foreground text-xs">${perUser}/user/{isAnnual ? "mo (billed annually)" : "mo"}</p>
-            </div>
-            <span className="text-muted-foreground">Qty {seatCount}</span>
+            <span className="font-medium">BuilderSuite Pro</span>
+            <span className="font-medium">Quantity</span>
+          </div>
+          <div className="flex items-center justify-between text-sm">
+            <span className="text-muted-foreground">${perUser}/user/{isAnnual ? "mo (billed annually)" : "mo"}</span>
+            <span className="text-muted-foreground">{seatCount}</span>
           </div>
           <div className="border-t pt-3 flex items-center justify-between text-sm">
             <span className="font-medium">Due today</span>
-            <span className="font-semibold text-green-600">$0.00</span>
-          </div>
-          <div className="flex items-center justify-between text-xs text-muted-foreground">
-            <span>After trial ends</span>
-            <span>{displayTotal}</span>
+            <span className="font-semibold text-green-600">${dueToday.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
           </div>
         </div>
-        <p className="text-xs text-muted-foreground mt-auto pt-4">Cancel anytime during your trial. No charge until trial ends.</p>
       </div>
 
       {/* Right: Card Form */}
@@ -147,7 +135,7 @@ function CheckoutForm({ billingInterval, seatCount, onClose }: CheckoutViewProps
           {error && <p className="text-sm text-destructive">{error}</p>}
           <Button type="submit" disabled={!stripe || isSubmitting} className="w-full bg-green-600 hover:bg-green-700 text-white">
             {isSubmitting ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
-            {isSubmitting ? "Processing..." : "Start trial"}
+            {isSubmitting ? "Processing..." : "Subscribe"}
           </Button>
         </form>
       </div>
@@ -199,7 +187,7 @@ export function SubscriptionGate({ children }: SubscriptionGateProps) {
           </div>
           <h1 className="text-2xl font-bold">Subscription Required</h1>
           <p className="text-muted-foreground">
-            You have {projectCount} projects, which exceeds the free tier limit of 2. Please subscribe to continue using BuilderSuite.
+            You have {projectCount} projects, which exceeds the free tier limit of 3. Please subscribe to continue using BuilderSuite.
           </p>
           <div className="grid grid-cols-2 gap-4 pt-2">
             <div className="border rounded-lg p-5 flex flex-col items-center">
@@ -226,7 +214,7 @@ export function SubscriptionGate({ children }: SubscriptionGateProps) {
               </div>
             </div>
           </div>
-          <p className="text-xs text-muted-foreground">14-day free trial. Cancel anytime. No charge until trial ends.</p>
+          <p className="text-xs text-muted-foreground">Cancel anytime from your account settings.</p>
         </div>
 
         <Dialog open={!!checkout} onOpenChange={(open) => { if (!open) setCheckout(null); }}>

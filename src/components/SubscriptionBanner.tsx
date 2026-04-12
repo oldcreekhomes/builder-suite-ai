@@ -1,10 +1,10 @@
 import { useSubscription } from "@/hooks/useSubscription";
-import { AlertTriangle, Clock, CreditCard } from "lucide-react";
+import { AlertTriangle, CreditCard } from "lucide-react";
 import { useState } from "react";
 import { PaywallDialog } from "./PaywallDialog";
 
 export function SubscriptionBanner() {
-  const { isTrialing, isPastDue, trialDaysRemaining, projectCount, needsSubscription } = useSubscription();
+  const { isPastDue, projectCount, needsSubscription } = useSubscription();
   const [showPaywall, setShowPaywall] = useState(false);
 
   if (isPastDue) {
@@ -27,18 +27,6 @@ export function SubscriptionBanner() {
     );
   }
 
-  if (isTrialing && trialDaysRemaining !== null && trialDaysRemaining <= 7) {
-    return (
-      <div className="bg-yellow-50 dark:bg-yellow-900/20 border-b border-yellow-200 dark:border-yellow-700/30 px-4 py-2 flex items-center gap-2 text-sm text-yellow-800 dark:text-yellow-200">
-        <Clock className="h-4 w-4" />
-        <span>
-          {trialDaysRemaining === 0
-            ? "Your trial ends today!"
-            : `${trialDaysRemaining} day${trialDaysRemaining !== 1 ? "s" : ""} left in your trial.`}
-        </span>
-      </div>
-    );
-  }
 
   if (needsSubscription) {
     return (

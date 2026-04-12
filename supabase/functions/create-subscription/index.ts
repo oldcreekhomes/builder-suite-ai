@@ -90,7 +90,6 @@ serve(async (req) => {
     const subscription = await stripe.subscriptions.create({
       customer: customerId,
       items: [{ price: priceId, quantity: seatCount }],
-      trial_period_days: 14,
       payment_settings: {
         payment_method_types: ["card"],
         save_default_payment_method: "on_subscription",
@@ -103,10 +102,9 @@ serve(async (req) => {
       owner_id: ownerId,
       stripe_customer_id: customerId,
       stripe_subscription_id: subscription.id,
-      status: "trialing",
+      status: "active",
       billing_interval,
       user_count: seatCount,
-      trial_ends_at: new Date(Date.now() + 14 * 24 * 60 * 60 * 1000).toISOString(),
     }, { onConflict: "owner_id" });
 
     console.log(`✅ Subscription created for owner ${ownerId}, ${seatCount} seats, ${billing_interval}`);
