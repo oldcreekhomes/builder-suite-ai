@@ -27,6 +27,7 @@ import { EmployeesTab } from "@/components/settings/EmployeesTab";
 import { CompaniesTab } from "@/components/settings/CompaniesTab";
 import { RepresentativesTab } from "@/components/settings/RepresentativesTab";
 import { MyProfileTab } from "@/components/settings/MyProfileTab";
+import { SubscriptionTab } from "@/components/settings/SubscriptionTab";
 
 import { useCostCodes } from "@/hooks/useCostCodes";
 import { useSpecifications } from "@/hooks/useSpecifications";
