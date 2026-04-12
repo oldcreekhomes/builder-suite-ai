@@ -81,8 +81,8 @@ export function useSubscription() {
   // Can create projects if:
   // - On free tier with < 2 projects
   // - Has active/trialing subscription
-  const canCreateProject = isActive || isTrialing || (isOnFreeTier && projectCount < 2);
-  const needsSubscription = isOnFreeTier && projectCount >= 2;
+  const canCreateProject = isActive || isTrialing || (isOnFreeTier && projectCount < 3);
+  const needsSubscription = isOnFreeTier && projectCount >= 3;
 
   return {
     subscription,

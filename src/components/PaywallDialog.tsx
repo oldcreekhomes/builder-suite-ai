@@ -53,8 +53,7 @@ function CheckoutCardForm({ billingInterval, seatCount, onBack, onSuccess }: {
   const isAnnual = billingInterval === "annual";
   const perUser = isAnnual ? 33 : 39;
   const totalMonthly = perUser * seatCount;
-  const totalAnnual = totalMonthly * 12;
-  const displayTotal = isAnnual ? `$${totalAnnual.toLocaleString()}/yr` : `$${totalMonthly.toLocaleString()}/mo`;
+  const dueToday = isAnnual ? totalMonthly * 12 : totalMonthly;
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -84,7 +83,7 @@ function CheckoutCardForm({ billingInterval, seatCount, onBack, onSuccess }: {
       if (fnError) throw fnError;
       if (data?.error) throw new Error(data.error);
 
-      toast({ title: "Trial started!", description: "Your 14-day free trial has begun." });
+      toast({ title: "Subscription started!", description: "Your subscription is now active." });
       queryClient.invalidateQueries({ queryKey: ["subscription"] });
       onSuccess();
     } catch (err: any) {
@@ -104,32 +103,21 @@ function CheckoutCardForm({ billingInterval, seatCount, onBack, onSuccess }: {
       </div>
       <div className="grid grid-cols-1 md:grid-cols-2">
         <div className="bg-muted/50 p-5 flex flex-col gap-3 border-r">
-          <div>
-            <p className="text-sm text-muted-foreground">Try BuilderSuite Pro</p>
-            <h2 className="text-base font-semibold">{isAnnual ? "Annual Plan" : "Monthly Plan"}</h2>
-          </div>
-          <div>
-            <p className="text-xl font-bold">14 days free</p>
-            <p className="text-sm text-muted-foreground">Then {displayTotal}</p>
-          </div>
+          <h2 className="text-base font-semibold">{isAnnual ? "Annual Plan" : "Monthly Plan"}</h2>
           <div className="border-t pt-3 space-y-2">
             <div className="flex justify-between text-sm">
-              <div>
-                <p className="font-medium">BuilderSuite Pro</p>
-                <p className="text-xs text-muted-foreground">${perUser}/user/mo</p>
-              </div>
-              <span className="text-muted-foreground text-sm">Qty {seatCount}</span>
+              <span className="font-medium">BuilderSuite Pro</span>
+              <span className="font-medium">Quantity</span>
+            </div>
+            <div className="flex justify-between text-sm">
+              <span className="text-muted-foreground">${perUser}/user/{isAnnual ? "mo (billed annually)" : "mo"}</span>
+              <span className="text-muted-foreground">{seatCount}</span>
             </div>
             <div className="border-t pt-2 flex justify-between text-sm">
               <span className="font-medium">Due today</span>
-              <span className="font-semibold text-green-600">$0.00</span>
-            </div>
-            <div className="flex justify-between text-xs text-muted-foreground">
-              <span>After trial</span>
-              <span>{displayTotal}</span>
+              <span className="font-semibold text-green-600">${dueToday.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
             </div>
           </div>
-          <p className="text-xs text-muted-foreground mt-auto pt-3">Cancel anytime. No charge until trial ends.</p>
         </div>
 
         <div className="p-5 flex flex-col justify-center">
@@ -174,7 +162,7 @@ function CheckoutCardForm({ billingInterval, seatCount, onBack, onSuccess }: {
             {error && <p className="text-sm text-destructive">{error}</p>}
             <Button type="submit" disabled={!stripe || isSubmitting} className="w-full bg-green-600 hover:bg-green-700 text-white">
               {isSubmitting ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
-              {isSubmitting ? "Processing..." : "Start trial"}
+              {isSubmitting ? "Processing..." : "Subscribe"}
             </Button>
           </form>
         </div>
@@ -238,8 +226,8 @@ export function PaywallDialog({ open, onOpenChange, projectCount }: PaywallDialo
             <Crown className="h-5 w-5 text-yellow-500" />
             <DialogTitle>Upgrade to BuilderSuite Pro</DialogTitle>
           </div>
-          <DialogDescription>
-            You've used your {projectCount} free projects. Upgrade to create unlimited projects with a 14-day free trial.
+           <DialogDescription>
+            You've used your {projectCount} free projects. Upgrade to create unlimited projects.
           </DialogDescription>
         </DialogHeader>
         <div className="space-y-4 py-4">
@@ -272,7 +260,7 @@ export function PaywallDialog({ open, onOpenChange, projectCount }: PaywallDialo
               </Button>
             </div>
           </div>
-          <p className="text-xs text-center text-muted-foreground pt-2">14-day free trial. Cancel anytime. No charge until trial ends.</p>
+          <p className="text-xs text-center text-muted-foreground pt-2">Cancel anytime from your account settings.</p>
         </div>
       </DialogContent>
     </Dialog>
