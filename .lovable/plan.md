@@ -2,34 +2,38 @@
 
 ## Embed Stripe Checkout in PaywallDialog
 
-### What changes
+### Overview
+Replace the redirect-to-Stripe flow with an inline embedded checkout. The user picks a plan, then completes payment directly inside the dialog without leaving the app.
 
-**1. Update the edge function `create-checkout-session`**
-- Add `ui_mode: "embedded"` and `return_url` (instead of `success_url`/`cancel_url`) to the Stripe session creation
-- Return the `client_secret` instead of the checkout URL
+### Stripe Publishable Key
+`pk_test_51TL5mD2OJCoyD632I78ZLOABNArQ3j0vjFOIDJxojGuktR4wIGPZeq5HDRlyjtPqNruAa7HDRRQWTmA6N1aKFHck00850Qmh79`
 
-**2. Install `@stripe/react-stripe-js` and `@stripe/stripe-js`**
-- These provide the `EmbeddedCheckoutProvider` and `EmbeddedCheckout` React components
+This is a public/test key and will be stored as a constant in the codebase.
 
-**3. Redesign `PaywallDialog.tsx`**
+### Changes
+
+**1. Edge function: `supabase/functions/create-checkout-session/index.ts`**
+- Add `ui_mode: "embedded"` to the Stripe session creation
+- Replace `success_url`/`cancel_url` with `return_url` (required for embedded mode)
+- Return `{ clientSecret: session.client_secret }` instead of `{ url: session.url }`
+
+**2. Frontend: `src/components/PaywallDialog.tsx`**
 - Two-step flow inside one dialog:
-  - **Step 1**: User picks Monthly ($39) or Annual ($33) — shows feature list, two plan cards with "Select" buttons
-  - **Step 2**: After selecting a plan, call the edge function to get a `clientSecret`, then render `<EmbeddedCheckout>` inline in the dialog alongside the feature list
-- Dialog expands to `max-w-3xl` to fit the embedded form
-- User completes payment without leaving the app
+  - **Step 1 (Plan Selection)**: Feature list + Monthly/Annual cards with "Select" buttons
+  - **Step 2 (Payment)**: Call edge function to get `clientSecret`, then render `<EmbeddedCheckoutProvider>` + `<EmbeddedCheckout>` inline
+- Initialize `loadStripe()` with the publishable key
+- Dialog expands to `sm:max-w-3xl` when showing the embedded form
+- Add a "Back" button to return to plan selection
+- On completion, Stripe handles the redirect to `return_url`
 
-**4. Update `SubscriptionGate.tsx`**
-- The "Subscribe Now" button opens the redesigned PaywallDialog (no behavior change needed, just confirming it still works)
-
-**5. Add Stripe publishable key**
-- Store the Stripe publishable key (public, safe for codebase) as a constant or env var for `loadStripe()`
+**3. Dependencies** (already installed)
+- `@stripe/react-stripe-js` and `@stripe/stripe-js` are already in `package.json`
 
 ### Files to modify
-- `supabase/functions/create-checkout-session/index.ts` — switch to embedded mode
-- `src/components/PaywallDialog.tsx` — embed Stripe checkout inline
-- `package.json` — add `@stripe/react-stripe-js` and `@stripe/stripe-js`
+- `supabase/functions/create-checkout-session/index.ts`
+- `src/components/PaywallDialog.tsx`
 
 ### Files unchanged
-- `SubscriptionGate.tsx` — already calls PaywallDialog correctly
-- `SubscriptionTab.tsx` — already calls PaywallDialog correctly
+- `SubscriptionGate.tsx` — already opens PaywallDialog correctly
+- `NewProjectDialog.tsx` — already opens PaywallDialog correctly
 
