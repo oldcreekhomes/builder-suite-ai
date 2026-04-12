@@ -1,19 +1,140 @@
 import { useSubscription } from "@/hooks/useSubscription";
 import { useUserRole } from "@/hooks/useUserRole";
-import { useState, useCallback } from "react";
+import { useState } from "react";
 import { Crown, Lock, Loader2, ArrowLeft } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { loadStripe } from "@stripe/stripe-js";
-import { EmbeddedCheckout, EmbeddedCheckoutProvider } from "@stripe/react-stripe-js";
+import { Elements, CardElement, useStripe, useElements } from "@stripe/react-stripe-js";
+import { useQueryClient } from "@tanstack/react-query";
 
 const stripePromise = loadStripe("pk_live_51TL6xt2OJCoyD632VBPb5DsDdznZHJBjhDpvfORHkMiCdXcaFpFdJ3DOAzmjjLxLkNDp0vQdaPaYJVzMWK0mYDwO00xHydFc2c");
 
-interface CheckoutState {
-  clientSecret: string;
+interface CheckoutViewProps {
   billingInterval: "monthly" | "annual";
   seatCount: number;
+  onBack: () => void;
+}
+
+function CheckoutForm({ billingInterval, seatCount, onBack }: CheckoutViewProps) {
+  const stripe = useStripe();
+  const elements = useElements();
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const { toast } = useToast();
+  const queryClient = useQueryClient();
+
+  const isAnnual = billingInterval === "annual";
+  const perUser = isAnnual ? 33 : 39;
+  const totalMonthly = perUser * seatCount;
+  const totalAnnual = totalMonthly * 12;
+  const displayTotal = isAnnual ? `$${totalAnnual.toLocaleString()}/yr` : `$${totalMonthly.toLocaleString()}/mo`;
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!stripe || !elements) return;
+
+    setIsSubmitting(true);
+    setError(null);
+
+    try {
+      const cardElement = elements.getElement(CardElement);
+      if (!cardElement) throw new Error("Card element not found");
+
+      const { error: pmError, paymentMethod } = await stripe.createPaymentMethod({
+        type: "card",
+        card: cardElement,
+      });
+
+      if (pmError) throw new Error(pmError.message);
+
+      const { data, error: fnError } = await supabase.functions.invoke("create-subscription", {
+        body: {
+          billing_interval: billingInterval,
+          payment_method_id: paymentMethod.id,
+        },
+      });
+
+      if (fnError) throw fnError;
+      if (data?.error) throw new Error(data.error);
+
+      toast({ title: "Trial started!", description: "Your 14-day free trial has begun." });
+      queryClient.invalidateQueries({ queryKey: ["subscription"] });
+    } catch (err: any) {
+      console.error("Subscription error:", err);
+      setError(err.message || "Failed to start subscription");
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  return (
+    <div className="min-h-screen bg-muted/30 flex flex-col">
+      <div className="p-4">
+        <Button variant="ghost" size="sm" onClick={onBack} className="gap-1 text-muted-foreground hover:text-foreground">
+          <ArrowLeft className="h-4 w-4" /> Back
+        </Button>
+      </div>
+      <div className="flex-1 flex items-start justify-center px-4 pb-8">
+        <div className="w-full max-w-4xl grid grid-cols-1 md:grid-cols-[340px_1fr] gap-0 rounded-xl overflow-hidden border shadow-lg bg-background">
+          {/* Left: Order Summary */}
+          <div className="bg-muted/50 p-6 flex flex-col gap-4 border-r">
+            <div>
+              <p className="text-sm text-muted-foreground">Try BuilderSuite Pro</p>
+              <h2 className="text-lg font-semibold mt-0.5">{isAnnual ? "Annual Plan" : "Monthly Plan"}</h2>
+            </div>
+            <div className="space-y-1">
+              <p className="text-2xl font-bold">14 days free</p>
+              <p className="text-sm text-muted-foreground">Then {displayTotal}</p>
+            </div>
+            <div className="border-t pt-4 space-y-3">
+              <div className="flex items-center justify-between text-sm">
+                <div>
+                  <p className="font-medium">BuilderSuite Pro</p>
+                  <p className="text-muted-foreground text-xs">${perUser}/user/{isAnnual ? "mo (billed annually)" : "mo"}</p>
+                </div>
+                <span className="text-muted-foreground">Qty {seatCount}</span>
+              </div>
+              <div className="border-t pt-3 flex items-center justify-between text-sm">
+                <span className="font-medium">Due today</span>
+                <span className="font-semibold text-green-600">$0.00</span>
+              </div>
+              <div className="flex items-center justify-between text-xs text-muted-foreground">
+                <span>After trial ends</span>
+                <span>{displayTotal}</span>
+              </div>
+            </div>
+            <p className="text-xs text-muted-foreground mt-auto pt-4">Cancel anytime during your trial. No charge until trial ends.</p>
+          </div>
+
+          {/* Right: Card Form */}
+          <div className="p-6 flex flex-col justify-center">
+            <h3 className="text-sm font-medium mb-4">Payment method</h3>
+            <form onSubmit={handleSubmit} className="space-y-4">
+              <div className="border rounded-md p-3">
+                <CardElement options={{
+                  style: {
+                    base: {
+                      fontSize: "16px",
+                      color: "hsl(var(--foreground))",
+                      "::placeholder": { color: "hsl(var(--muted-foreground))" },
+                    },
+                  },
+                  hidePostalCode: true,
+                }} />
+              </div>
+              {error && <p className="text-sm text-destructive">{error}</p>}
+              <Button type="submit" disabled={!stripe || isSubmitting} className="w-full bg-green-600 hover:bg-green-700 text-white">
+                {isSubmitting ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
+                {isSubmitting ? "Processing..." : "Start trial"}
+              </Button>
+            </form>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
 }
 
 interface SubscriptionGateProps {
@@ -24,31 +145,25 @@ export function SubscriptionGate({ children }: SubscriptionGateProps) {
   const { needsSubscription, projectCount, isLoading } = useSubscription();
   const { isEmployee, isLoading: rolesLoading } = useUserRole();
   const [loadingPlan, setLoadingPlan] = useState<string | null>(null);
-  const [checkout, setCheckout] = useState<CheckoutState | null>(null);
+  const [checkout, setCheckout] = useState<{ billingInterval: "monthly" | "annual"; seatCount: number } | null>(null);
   const { toast } = useToast();
 
   const handleSelectPlan = async (billing_interval: "monthly" | "annual") => {
     setLoadingPlan(billing_interval);
     try {
+      // We need seat count — fetch from create-checkout-session or calculate locally
       const { data, error } = await supabase.functions.invoke("create-checkout-session", {
         body: { billing_interval },
       });
       if (error) throw error;
       if (data?.error) throw new Error(data.error);
-      if (data?.clientSecret) {
-        setCheckout({
-          clientSecret: data.clientSecret,
-          billingInterval: billing_interval,
-          seatCount: data.seatCount || 1,
-        });
-      }
-    } catch (err: any) {
-      console.error("Checkout error:", err);
-      toast({
-        title: "Error",
-        description: err.message || "Failed to start checkout",
-        variant: "destructive",
+      setCheckout({
+        billingInterval: billing_interval,
+        seatCount: data.seatCount || 1,
       });
+    } catch (err: any) {
+      console.error("Error:", err);
+      toast({ title: "Error", description: err.message || "Failed to load checkout", variant: "destructive" });
     } finally {
       setLoadingPlan(null);
     }
@@ -58,85 +173,18 @@ export function SubscriptionGate({ children }: SubscriptionGateProps) {
   if (isEmployee) return <>{children}</>;
 
   if (needsSubscription) {
-    // Show embedded checkout with two-column layout
     if (checkout) {
-      const isAnnual = checkout.billingInterval === "annual";
-      const perUser = isAnnual ? 33 : 39;
-      const totalMonthly = perUser * checkout.seatCount;
-      const totalAnnual = totalMonthly * 12;
-      const displayTotal = isAnnual ? `$${totalAnnual.toLocaleString()}/yr` : `$${totalMonthly.toLocaleString()}/mo`;
-
       return (
-        <div className="min-h-screen bg-muted/30 flex flex-col">
-          <div className="p-4">
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => setCheckout(null)}
-              className="gap-1 text-muted-foreground hover:text-foreground"
-            >
-              <ArrowLeft className="h-4 w-4" />
-              Back
-            </Button>
-          </div>
-          <div className="flex-1 flex items-start justify-center px-4 pb-8">
-            <div className="w-full max-w-4xl grid grid-cols-1 md:grid-cols-[340px_1fr] gap-0 rounded-xl overflow-hidden border shadow-lg bg-background">
-              {/* Left: Order Summary */}
-              <div className="bg-muted/50 p-6 flex flex-col gap-4 border-r">
-                <div>
-                  <p className="text-sm text-muted-foreground">Try BuilderSuite Pro</p>
-                  <h2 className="text-lg font-semibold mt-0.5">
-                    {isAnnual ? "Annual Plan" : "Monthly Plan"}
-                  </h2>
-                </div>
-
-                <div className="space-y-1">
-                  <p className="text-2xl font-bold">14 days free</p>
-                  <p className="text-sm text-muted-foreground">
-                    Then {displayTotal}
-                  </p>
-                </div>
-
-                <div className="border-t pt-4 space-y-3">
-                  <div className="flex items-center justify-between text-sm">
-                    <div>
-                      <p className="font-medium">BuilderSuite Pro</p>
-                      <p className="text-muted-foreground text-xs">
-                        ${perUser}/user/{isAnnual ? "mo (billed annually)" : "mo"}
-                      </p>
-                    </div>
-                    <span className="text-muted-foreground">Qty {checkout.seatCount}</span>
-                  </div>
-
-                  <div className="border-t pt-3 flex items-center justify-between text-sm">
-                    <span className="font-medium">Due today</span>
-                    <span className="font-semibold text-green-600">$0.00</span>
-                  </div>
-
-                  <div className="flex items-center justify-between text-xs text-muted-foreground">
-                    <span>After trial ends</span>
-                    <span>{displayTotal}</span>
-                  </div>
-                </div>
-
-                <p className="text-xs text-muted-foreground mt-auto pt-4">
-                  Cancel anytime during your trial. No charge until trial ends.
-                </p>
-              </div>
-
-              {/* Right: Stripe Embedded Checkout */}
-              <div className="p-0">
-                <EmbeddedCheckoutProvider stripe={stripePromise} options={{ clientSecret: checkout.clientSecret }}>
-                  <EmbeddedCheckout className="min-h-[400px]" />
-                </EmbeddedCheckoutProvider>
-              </div>
-            </div>
-          </div>
-        </div>
+        <Elements stripe={stripePromise}>
+          <CheckoutForm
+            billingInterval={checkout.billingInterval}
+            seatCount={checkout.seatCount}
+            onBack={() => setCheckout(null)}
+          />
+        </Elements>
       );
     }
 
-    // Plan selection screen
     return (
       <div className="min-h-screen flex items-center justify-center bg-muted/30 p-6">
         <div className="max-w-lg w-full text-center space-y-6">
@@ -145,58 +193,34 @@ export function SubscriptionGate({ children }: SubscriptionGateProps) {
           </div>
           <h1 className="text-2xl font-bold">Subscription Required</h1>
           <p className="text-muted-foreground">
-            You have {projectCount} projects, which exceeds the free tier limit of 2.
-            Please subscribe to continue using BuilderSuite.
+            You have {projectCount} projects, which exceeds the free tier limit of 2. Please subscribe to continue using BuilderSuite.
           </p>
-
           <div className="grid grid-cols-2 gap-4 pt-2">
             <div className="border rounded-lg p-5 flex flex-col items-center">
               <div className="text-sm font-medium text-muted-foreground">Monthly</div>
               <div className="text-2xl font-bold mt-2">$39</div>
               <div className="text-xs text-muted-foreground mt-1">per user / month</div>
               <div className="w-full mt-4">
-                <Button
-                  onClick={() => handleSelectPlan("monthly")}
-                  disabled={!!loadingPlan}
-                  className="w-full gap-2 bg-green-600 hover:bg-green-700 text-white"
-                >
-                  {loadingPlan === "monthly" ? (
-                    <Loader2 className="h-4 w-4 animate-spin" />
-                  ) : (
-                    <Crown className="h-4 w-4" />
-                  )}
+                <Button onClick={() => handleSelectPlan("monthly")} disabled={!!loadingPlan} className="w-full gap-2 bg-green-600 hover:bg-green-700 text-white">
+                  {loadingPlan === "monthly" ? <Loader2 className="h-4 w-4 animate-spin" /> : <Crown className="h-4 w-4" />}
                   {loadingPlan === "monthly" ? "Loading..." : "Subscribe Monthly"}
                 </Button>
               </div>
             </div>
-
             <div className="border-2 border-primary rounded-lg p-5 flex flex-col items-center relative">
-              <div className="absolute -top-2.5 left-1/2 -translate-x-1/2 bg-primary text-primary-foreground text-xs px-2 py-0.5 rounded-full">
-                Save 15%
-              </div>
+              <div className="absolute -top-2.5 left-1/2 -translate-x-1/2 bg-primary text-primary-foreground text-xs px-2 py-0.5 rounded-full">Save 15%</div>
               <div className="text-sm font-medium text-muted-foreground">Annual</div>
               <div className="text-2xl font-bold mt-2">$33</div>
               <div className="text-xs text-muted-foreground mt-1">per user / month</div>
               <div className="w-full mt-4">
-                <Button
-                  onClick={() => handleSelectPlan("annual")}
-                  disabled={!!loadingPlan}
-                  className="w-full gap-2 bg-green-600 hover:bg-green-700 text-white"
-                >
-                  {loadingPlan === "annual" ? (
-                    <Loader2 className="h-4 w-4 animate-spin" />
-                  ) : (
-                    <Crown className="h-4 w-4" />
-                  )}
+                <Button onClick={() => handleSelectPlan("annual")} disabled={!!loadingPlan} className="w-full gap-2 bg-green-600 hover:bg-green-700 text-white">
+                  {loadingPlan === "annual" ? <Loader2 className="h-4 w-4 animate-spin" /> : <Crown className="h-4 w-4" />}
                   {loadingPlan === "annual" ? "Loading..." : "Subscribe Annual"}
                 </Button>
               </div>
             </div>
           </div>
-
-          <p className="text-xs text-muted-foreground">
-            14-day free trial. Cancel anytime. No charge until trial ends.
-          </p>
+          <p className="text-xs text-muted-foreground">14-day free trial. Cancel anytime. No charge until trial ends.</p>
         </div>
       </div>
     );
