@@ -1,10 +1,20 @@
 import { useSubscription } from "@/hooks/useSubscription";
 import { useUserRole } from "@/hooks/useUserRole";
-import { useState } from "react";
-import { Crown, Lock, Loader2 } from "lucide-react";
+import { useState, useCallback } from "react";
+import { Crown, Lock, Loader2, ArrowLeft } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
+import { loadStripe } from "@stripe/stripe-js";
+import { EmbeddedCheckout, EmbeddedCheckoutProvider } from "@stripe/react-stripe-js";
+
+const stripePromise = loadStripe("pk_live_51TL6xt2OJCoyD632VBPb5DsDdznZHJBjhDpvfORHkMiCdXcaFpFdJ3DOAzmjjLxLkNDp0vQdaPaYJVzMWK0mYDwO00xHydFc2c");
+
+interface CheckoutState {
+  clientSecret: string;
+  billingInterval: "monthly" | "annual";
+  seatCount: number;
+}
 
 interface SubscriptionGateProps {
   children: React.ReactNode;
@@ -14,6 +24,7 @@ export function SubscriptionGate({ children }: SubscriptionGateProps) {
   const { needsSubscription, projectCount, isLoading } = useSubscription();
   const { isEmployee, isLoading: rolesLoading } = useUserRole();
   const [loadingPlan, setLoadingPlan] = useState<string | null>(null);
+  const [checkout, setCheckout] = useState<CheckoutState | null>(null);
   const { toast } = useToast();
 
   const handleSelectPlan = async (billing_interval: "monthly" | "annual") => {
@@ -24,8 +35,12 @@ export function SubscriptionGate({ children }: SubscriptionGateProps) {
       });
       if (error) throw error;
       if (data?.error) throw new Error(data.error);
-      if (data?.url) {
-        window.open(data.url, "_blank");
+      if (data?.clientSecret) {
+        setCheckout({
+          clientSecret: data.clientSecret,
+          billingInterval: billing_interval,
+          seatCount: data.seatCount || 1,
+        });
       }
     } catch (err: any) {
       console.error("Checkout error:", err);
@@ -43,6 +58,85 @@ export function SubscriptionGate({ children }: SubscriptionGateProps) {
   if (isEmployee) return <>{children}</>;
 
   if (needsSubscription) {
+    // Show embedded checkout with two-column layout
+    if (checkout) {
+      const isAnnual = checkout.billingInterval === "annual";
+      const perUser = isAnnual ? 33 : 39;
+      const totalMonthly = perUser * checkout.seatCount;
+      const totalAnnual = totalMonthly * 12;
+      const displayTotal = isAnnual ? `$${totalAnnual.toLocaleString()}/yr` : `$${totalMonthly.toLocaleString()}/mo`;
+
+      return (
+        <div className="min-h-screen bg-muted/30 flex flex-col">
+          <div className="p-4">
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => setCheckout(null)}
+              className="gap-1 text-muted-foreground hover:text-foreground"
+            >
+              <ArrowLeft className="h-4 w-4" />
+              Back
+            </Button>
+          </div>
+          <div className="flex-1 flex items-start justify-center px-4 pb-8">
+            <div className="w-full max-w-4xl grid grid-cols-1 md:grid-cols-[340px_1fr] gap-0 rounded-xl overflow-hidden border shadow-lg bg-background">
+              {/* Left: Order Summary */}
+              <div className="bg-muted/50 p-6 flex flex-col gap-4 border-r">
+                <div>
+                  <p className="text-sm text-muted-foreground">Try BuilderSuite Pro</p>
+                  <h2 className="text-lg font-semibold mt-0.5">
+                    {isAnnual ? "Annual Plan" : "Monthly Plan"}
+                  </h2>
+                </div>
+
+                <div className="space-y-1">
+                  <p className="text-2xl font-bold">14 days free</p>
+                  <p className="text-sm text-muted-foreground">
+                    Then {displayTotal}
+                  </p>
+                </div>
+
+                <div className="border-t pt-4 space-y-3">
+                  <div className="flex items-center justify-between text-sm">
+                    <div>
+                      <p className="font-medium">BuilderSuite Pro</p>
+                      <p className="text-muted-foreground text-xs">
+                        ${perUser}/user/{isAnnual ? "mo (billed annually)" : "mo"}
+                      </p>
+                    </div>
+                    <span className="text-muted-foreground">Qty {checkout.seatCount}</span>
+                  </div>
+
+                  <div className="border-t pt-3 flex items-center justify-between text-sm">
+                    <span className="font-medium">Due today</span>
+                    <span className="font-semibold text-green-600">$0.00</span>
+                  </div>
+
+                  <div className="flex items-center justify-between text-xs text-muted-foreground">
+                    <span>After trial ends</span>
+                    <span>{displayTotal}</span>
+                  </div>
+                </div>
+
+                <p className="text-xs text-muted-foreground mt-auto pt-4">
+                  Cancel anytime during your trial. No charge until trial ends.
+                </p>
+              </div>
+
+              {/* Right: Stripe Embedded Checkout */}
+              <div className="p-0">
+                <EmbeddedCheckoutProvider stripe={stripePromise} options={{ clientSecret: checkout.clientSecret }}>
+                  <EmbeddedCheckout className="min-h-[400px]" />
+                </EmbeddedCheckoutProvider>
+              </div>
+            </div>
+          </div>
+        </div>
+      );
+    }
+
+    // Plan selection screen
     return (
       <div className="min-h-screen flex items-center justify-center bg-muted/30 p-6">
         <div className="max-w-lg w-full text-center space-y-6">
