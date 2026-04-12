@@ -1,23 +1,35 @@
 
 
-## Fix Subscription Gating Issues
+## Embed Stripe Checkout in PaywallDialog
 
-### Changes
+### What changes
 
-**1. Remove the SubscriptionBanner entirely**
-- Delete the `SubscriptionBanner` import and usage from `SidebarLayout.tsx`
-- The full-screen paywall already handles the messaging; the banner is redundant and barely legible.
+**1. Update the edge function `create-checkout-session`**
+- Add `ui_mode: "embedded"` and `return_url` (instead of `success_url`/`cancel_url`) to the Stripe session creation
+- Return the `client_secret` instead of the checkout URL
 
-**2. Update the paywall screen styling in `SubscriptionGate.tsx`**
-- Change the lock icon color to red (`text-red-500`) and its background to `bg-red-100`
-- Change the "Subscribe Now" button to a green background (`bg-green-600 hover:bg-green-700`)
-- Remove the "Go to Settings" button entirely, since Settings should also be locked
+**2. Install `@stripe/react-stripe-js` and `@stripe/stripe-js`**
+- These provide the `EmbeddedCheckoutProvider` and `EmbeddedCheckout` React components
 
-**3. Lock ALL routes when subscription is needed (including Settings)**
-- Remove the `/settings` route exemption from `SubscriptionGate.tsx`
-- The only action available to an unpaid owner is clicking "Subscribe Now" which opens the PaywallDialog (Stripe checkout) directly on the paywall screen itself
+**3. Redesign `PaywallDialog.tsx`**
+- Two-step flow inside one dialog:
+  - **Step 1**: User picks Monthly ($39) or Annual ($33) — shows feature list, two plan cards with "Select" buttons
+  - **Step 2**: After selecting a plan, call the edge function to get a `clientSecret`, then render `<EmbeddedCheckout>` inline in the dialog alongside the feature list
+- Dialog expands to `max-w-3xl` to fit the embedded form
+- User completes payment without leaving the app
+
+**4. Update `SubscriptionGate.tsx`**
+- The "Subscribe Now" button opens the redesigned PaywallDialog (no behavior change needed, just confirming it still works)
+
+**5. Add Stripe publishable key**
+- Store the Stripe publishable key (public, safe for codebase) as a constant or env var for `loadStripe()`
 
 ### Files to modify
-- `src/components/SidebarLayout.tsx` — remove SubscriptionBanner
-- `src/components/SubscriptionGate.tsx` — restyle lock/button, remove Settings exemption
+- `supabase/functions/create-checkout-session/index.ts` — switch to embedded mode
+- `src/components/PaywallDialog.tsx` — embed Stripe checkout inline
+- `package.json` — add `@stripe/react-stripe-js` and `@stripe/stripe-js`
+
+### Files unchanged
+- `SubscriptionGate.tsx` — already calls PaywallDialog correctly
+- `SubscriptionTab.tsx` — already calls PaywallDialog correctly
 
