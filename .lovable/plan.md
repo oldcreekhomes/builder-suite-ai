@@ -1,61 +1,46 @@
 
 
-## Replace External Stripe Portal with In-App Subscription Management Dialog
+## Fix Billing Date & Remove Dialog Scrolling
 
-### Summary
-Replace the "Manage Subscription" button (which opens Stripe's external Customer Portal) with a dialog that shows all the same information inline: current subscription details, payment method, billing info, invoice history, and a cancel option.
+### Problems
+1. **"December 31, 1969"** — This is epoch 0 (`new Date(0)`). The edge function returns `current_period_end: null` when `sub.current_period_end` is falsy (line 69), but the frontend blindly does `new Date(null)` which yields epoch 0.
+2. **Horizontal scrollbar** — The invoice row has too many fixed-width items (`w-24`, `w-20`, badge, description, icon) overflowing the `max-w-lg` dialog. The `overflow-y-auto` on DialogContent doesn't prevent horizontal overflow.
 
-### New Edge Function: `get-subscription-details`
-Fetches from Stripe API:
-- Active subscription info (plan name, quantity, amount, interval, next billing date)
-- Default payment method (card brand, last 4, expiry)
-- Customer billing email
-- Recent invoices (date, amount, status, PDF link)
+### Changes
 
-Returns all this as JSON to the frontend.
+**1. `supabase/functions/get-subscription-details/index.ts`**
+- Add a fallback: if `sub.current_period_end` is 0 or falsy, compute the date from `sub.current_period_start + interval` or leave as `null`.
+- Actually the real issue is simpler: Stripe's `current_period_end` is always set on active subscriptions. The value `0` or missing likely means the timestamp multiplication is wrong. Add logging to debug. But the safe fix is: guard `null` on the frontend side too.
 
-### New Edge Function: `cancel-subscription`
-Cancels the Stripe subscription (at period end by default), updates the local `subscriptions` table status to `canceled`.
+**2. `src/components/settings/ManageSubscriptionDialog.tsx`**
+- Guard against `null` `current_period_end` — show "—" instead of formatting epoch 0.
+- Remove `overflow-y-auto` and `max-h-[85vh]` from DialogContent (no scrolling).
+- Add `overflow-hidden` to prevent any scrollbar.
+- Make invoice rows wrap better: remove fixed widths, use `min-w-0` and `truncate` properly, or simplify the invoice row layout to prevent horizontal overflow.
 
-### New Component: `ManageSubscriptionDialog`
-A dialog matching the Stripe portal layout from the screenshot:
-- **Current Subscription** section: Plan name (×quantity), total per month, next billing date
-- **Payment Method** section: Card brand icon, last 4 digits, expiry, "Default" badge
-- **Billing Information** section: Email address
-- **Invoice History** section: Table with date, amount, status badge, plan name
-- **Cancel Subscription** button (with confirmation dialog)
+### Technical Details
 
-### Changes to `SubscriptionTab.tsx`
-- Replace `handleManageSubscription` (which opens external portal) with dialog state toggle
-- Add `<ManageSubscriptionDialog>` component
-- Keep the `customer-portal` edge function as fallback (no deletion)
+**Date fix (frontend guard):**
+```tsx
+// Before:
+{format(new Date(data.subscription.current_period_end), "MMMM d, yyyy")}
 
-### Files
-1. **New**: `supabase/functions/get-subscription-details/index.ts`
-2. **New**: `supabase/functions/cancel-subscription/index.ts`
-3. **New**: `src/components/settings/ManageSubscriptionDialog.tsx`
-4. **Edit**: `src/components/settings/SubscriptionTab.tsx` — swap external link for dialog
-
-### Dialog Layout
-```text
-┌─────────────────────────────────────────────────┐
-│  Manage Subscription                        [X] │
-│─────────────────────────────────────────────────│
-│  CURRENT SUBSCRIPTION                           │
-│  BuilderSuite Pro - Monthly (×7)                │
-│  $273.00 per month                              │
-│  Next billing date: May 12, 2026                │
-│─────────────────────────────────────────────────│
-│  PAYMENT METHOD                                 │
-│  🔵 Visa •••• 4242   Expires 02/2028  [Default] │
-│─────────────────────────────────────────────────│
-│  BILLING INFORMATION                            │
-│  Email: mgray@oldcreekhomes.com                 │
-│─────────────────────────────────────────────────│
-│  INVOICE HISTORY                                │
-│  Apr 12, 2026  $273.00  [Paid]  BSPro-Monthly   │
-│─────────────────────────────────────────────────│
-│                        [Cancel Subscription]    │
-└─────────────────────────────────────────────────┘
+// After:
+{data.subscription.current_period_end
+  ? format(new Date(data.subscription.current_period_end), "MMMM d, yyyy")
+  : "—"}
 ```
+
+**Dialog no-scroll fix:**
+```tsx
+// Change:
+<DialogContent className="max-w-lg max-h-[85vh] overflow-y-auto">
+// To:
+<DialogContent className="max-w-lg overflow-hidden">
+```
+
+**Invoice row simplification** — remove the description column's `flex-1` stretch and fixed widths that cause overflow. Use a more compact layout.
+
+### Files to modify
+1. `src/components/settings/ManageSubscriptionDialog.tsx` — date guard + remove scroll + fix invoice row widths
 
