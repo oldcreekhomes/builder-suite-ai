@@ -32,6 +32,19 @@ import {
   Crown,
   AlertTriangle,
 } from "lucide-react";
+import { loadStripe } from "@stripe/stripe-js";
+import {
+  Elements,
+  CardNumberElement,
+  CardExpiryElement,
+  CardCvcElement,
+  useStripe,
+  useElements,
+} from "@stripe/react-stripe-js";
+
+const stripePromise = loadStripe(
+  "pk_test_51TL5mD2OJCoyD632I78ZLOABNArQ3j0vjFOIDJxojGuktR4wIGPZeq5HDRlyjtPqNruAa7HDRRQWTmA6N1aKFHck00850Qmh79"
+);
 
 interface ManageSubscriptionDialogProps {
   open: boolean;
@@ -70,24 +83,23 @@ interface SubscriptionDetails {
 }
 
 /** Get the next billing date with robust fallbacks */
-function getNextBillingDate(sub: SubscriptionDetails["subscription"]): Date | null {
+function getNextBillingDate(
+  sub: SubscriptionDetails["subscription"]
+): Date | null {
   if (!sub) return null;
-  
-  // Primary: use current_period_end from Stripe
+
   if (sub.current_period_end) {
     const d = new Date(sub.current_period_end);
     if (!isNaN(d.getTime()) && d.getTime() > 0) return d;
   }
-  
-  // Fallback: compute from current_period_start + interval
+
   if (sub.current_period_start) {
     const start = new Date(sub.current_period_start);
     if (!isNaN(start.getTime()) && start.getTime() > 0) {
       return addDays(start, sub.interval === "year" ? 365 : 30);
     }
   }
-  
-  // Last resort: compute from created date + interval
+
   if (sub.created) {
     const created = new Date(sub.created);
     if (!isNaN(created.getTime()) && created.getTime() > 0) {
@@ -95,15 +107,26 @@ function getNextBillingDate(sub: SubscriptionDetails["subscription"]): Date | nu
     }
   }
 
-  // Absolute fallback: 30 days from now
   return addDays(new Date(), 30);
 }
 
 /** Generate and download a receipt as an HTML file */
-function downloadInvoiceReceipt(invoice: SubscriptionDetails["invoices"][0], billingEmail: string) {
-  const invoiceDate = invoice.date ? format(new Date(invoice.date), "MMMM d, yyyy") : "N/A";
+function downloadInvoiceReceipt(
+  invoice: SubscriptionDetails["invoices"][0],
+  billingEmail: string
+) {
+  // If Stripe provides a PDF, use it directly
+  if (invoice.invoice_pdf) {
+    window.open(invoice.invoice_pdf, "_blank");
+    return;
+  }
+
+  // Fallback: generate HTML receipt and download
+  const invoiceDate = invoice.date
+    ? format(new Date(invoice.date), "MMMM d, yyyy")
+    : "N/A";
   const amount = `$${invoice.amount.toFixed(2)}`;
-  
+
   const receiptHtml = `<!DOCTYPE html>
 <html>
 <head>
@@ -143,7 +166,7 @@ function downloadInvoiceReceipt(invoice: SubscriptionDetails["invoices"][0], bil
   <div class="section">
     <div class="section-title">Invoice Details</div>
     <div class="detail-row"><span class="detail-label">Date</span><span class="detail-value">${invoiceDate}</span></div>
-    <div class="detail-row"><span class="detail-label">Status</span><span class="detail-value"><span class="status ${invoice.status === 'paid' ? 'status-paid' : 'status-open'}">${(invoice.status || 'unknown').toUpperCase()}</span></span></div>
+    <div class="detail-row"><span class="detail-label">Status</span><span class="detail-value"><span class="status ${invoice.status === "paid" ? "status-paid" : "status-open"}">${(invoice.status || "unknown").toUpperCase()}</span></span></div>
     <div class="detail-row"><span class="detail-label">Billing Email</span><span class="detail-value">${billingEmail}</span></div>
   </div>
   <div class="section">
@@ -166,6 +189,108 @@ function downloadInvoiceReceipt(invoice: SubscriptionDetails["invoices"][0], bil
   URL.revokeObjectURL(url);
 }
 
+// ── Update Payment Method Form (inside Elements provider) ──
+function UpdatePaymentForm({
+  onSuccess,
+  onCancel,
+}: {
+  onSuccess: () => void;
+  onCancel: () => void;
+}) {
+  const stripe = useStripe();
+  const elements = useElements();
+  const { toast } = useToast();
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    if (!stripe || !elements) return;
+
+    setIsSubmitting(true);
+    setError(null);
+
+    try {
+      const cardElement = elements.getElement(CardNumberElement);
+      if (!cardElement) throw new Error("Card element not found");
+
+      const { error: pmError, paymentMethod } =
+        await stripe.createPaymentMethod({
+          type: "card",
+          card: cardElement,
+        });
+
+      if (pmError) throw new Error(pmError.message);
+
+      const { data, error: fnError } = await supabase.functions.invoke(
+        "update-payment-method",
+        {
+          body: { payment_method_id: paymentMethod.id },
+        }
+      );
+
+      if (fnError) throw fnError;
+      if (data?.error) throw new Error(data.error);
+
+      toast({
+        title: "Payment method updated",
+        description: "Your card has been updated successfully.",
+      });
+      onSuccess();
+    } catch (err: any) {
+      console.error("Update payment error:", err);
+      setError(err.message || "Failed to update payment method");
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const elementStyle = {
+    base: {
+      fontSize: "16px",
+      color: "hsl(var(--foreground))",
+      "::placeholder": { color: "hsl(var(--muted-foreground))" },
+    },
+  };
+
+  return (
+    <form onSubmit={handleSubmit} className="space-y-4">
+      <div className="border rounded-md p-3">
+        <CardNumberElement
+          options={{ style: elementStyle, placeholder: "Card number" }}
+        />
+      </div>
+      <div className="grid grid-cols-2 gap-3">
+        <div className="border rounded-md p-3">
+          <CardExpiryElement options={{ style: elementStyle }} />
+        </div>
+        <div className="border rounded-md p-3">
+          <CardCvcElement options={{ style: elementStyle }} />
+        </div>
+      </div>
+      {error && <p className="text-sm text-destructive">{error}</p>}
+      <div className="flex gap-2 justify-end">
+        <Button
+          type="button"
+          variant="outline"
+          size="sm"
+          onClick={onCancel}
+          disabled={isSubmitting}
+        >
+          Cancel
+        </Button>
+        <Button type="submit" size="sm" disabled={isSubmitting || !stripe}>
+          {isSubmitting && (
+            <Loader2 className="h-3.5 w-3.5 animate-spin mr-1.5" />
+          )}
+          Update Card
+        </Button>
+      </div>
+    </form>
+  );
+}
+
 export function ManageSubscriptionDialog({
   open,
   onOpenChange,
@@ -174,27 +299,8 @@ export function ManageSubscriptionDialog({
   const queryClient = useQueryClient();
   const [cancelDialogOpen, setCancelDialogOpen] = useState(false);
   const [canceling, setCanceling] = useState(false);
-  const [updatingPayment, setUpdatingPayment] = useState(false);
+  const [showUpdateCard, setShowUpdateCard] = useState(false);
 
-  const handleUpdatePaymentMethod = async () => {
-    setUpdatingPayment(true);
-    try {
-      const { data: result, error } = await supabase.functions.invoke("customer-portal");
-      if (error) throw error;
-      if (result?.error) throw new Error(result.error);
-      if (result?.url) {
-        window.open(result.url, "_blank");
-      }
-    } catch (err: any) {
-      toast({
-        title: "Error",
-        description: err.message || "Failed to open billing portal",
-        variant: "destructive",
-      });
-    } finally {
-      setUpdatingPayment(false);
-    }
-  };
   const { data, isLoading, error } = useQuery<SubscriptionDetails>({
     queryKey: ["subscription-details"],
     queryFn: async () => {
@@ -264,7 +370,9 @@ export function ManageSubscriptionDialog({
     }
   };
 
-  const billingDate = data?.subscription ? getNextBillingDate(data.subscription) : null;
+  const billingDate = data?.subscription
+    ? getNextBillingDate(data.subscription)
+    : null;
 
   return (
     <>
@@ -342,7 +450,21 @@ export function ManageSubscriptionDialog({
                 <h3 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
                   Payment Method
                 </h3>
-                {data.paymentMethod ? (
+                {showUpdateCard ? (
+                  <div className="rounded-lg border p-4">
+                    <Elements stripe={stripePromise}>
+                      <UpdatePaymentForm
+                        onSuccess={() => {
+                          setShowUpdateCard(false);
+                          queryClient.invalidateQueries({
+                            queryKey: ["subscription-details"],
+                          });
+                        }}
+                        onCancel={() => setShowUpdateCard(false)}
+                      />
+                    </Elements>
+                  </div>
+                ) : data.paymentMethod ? (
                   <div className="rounded-lg border p-4 flex items-center gap-3">
                     <CreditCard className="h-5 w-5 text-muted-foreground" />
                     <div className="flex-1">
@@ -352,17 +474,16 @@ export function ManageSubscriptionDialog({
                       •••• {data.paymentMethod.last4}
                     </div>
                     <span className="text-sm text-muted-foreground">
-                      Expires {String(data.paymentMethod.exp_month).padStart(2, "0")}/
+                      Expires{" "}
+                      {String(data.paymentMethod.exp_month).padStart(2, "0")}/
                       {data.paymentMethod.exp_year}
                     </span>
                     <Badge variant="outline">Default</Badge>
                     <Button
                       variant="outline"
                       size="sm"
-                      onClick={handleUpdatePaymentMethod}
-                      disabled={updatingPayment}
+                      onClick={() => setShowUpdateCard(true)}
                     >
-                      {updatingPayment && <Loader2 className="h-3.5 w-3.5 animate-spin mr-1.5" />}
                       Update
                     </Button>
                   </div>
@@ -420,7 +541,9 @@ export function ManageSubscriptionDialog({
                           size="icon"
                           className="h-7 w-7 shrink-0"
                           title="Download Receipt"
-                          onClick={() => downloadInvoiceReceipt(inv, data.billingEmail)}
+                          onClick={() =>
+                            downloadInvoiceReceipt(inv, data.billingEmail)
+                          }
                         >
                           <Download className="h-3.5 w-3.5" />
                         </Button>
@@ -435,20 +558,21 @@ export function ManageSubscriptionDialog({
               </div>
 
               {/* Cancel */}
-              {data.subscription && !data.subscription.cancel_at_period_end && (
-                <>
-                  <Separator />
-                  <div className="flex justify-end">
-                    <Button
-                      variant="destructive"
-                      size="sm"
-                      onClick={() => setCancelDialogOpen(true)}
-                    >
-                      Cancel Subscription
-                    </Button>
-                  </div>
-                </>
-              )}
+              {data.subscription &&
+                !data.subscription.cancel_at_period_end && (
+                  <>
+                    <Separator />
+                    <div className="flex justify-end">
+                      <Button
+                        variant="destructive"
+                        size="sm"
+                        onClick={() => setCancelDialogOpen(true)}
+                      >
+                        Cancel Subscription
+                      </Button>
+                    </div>
+                  </>
+                )}
             </div>
           )}
         </DialogContent>
@@ -476,7 +600,9 @@ export function ManageSubscriptionDialog({
               disabled={canceling}
               className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
             >
-              {canceling && <Loader2 className="h-4 w-4 animate-spin mr-2" />}
+              {canceling && (
+                <Loader2 className="h-4 w-4 animate-spin mr-2" />
+              )}
               Yes, Cancel
             </AlertDialogAction>
           </AlertDialogFooter>
