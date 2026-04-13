@@ -99,112 +99,71 @@ function getNextBillingDate(sub: SubscriptionDetails["subscription"]): Date | nu
   return addDays(new Date(), 30);
 }
 
-/** Generate and download a simple receipt PDF */
+/** Generate and download a receipt as an HTML file */
 function downloadInvoiceReceipt(invoice: SubscriptionDetails["invoices"][0], billingEmail: string) {
   const invoiceDate = invoice.date ? format(new Date(invoice.date), "MMMM d, yyyy") : "N/A";
   const amount = `$${invoice.amount.toFixed(2)}`;
   
-  // Build a simple HTML receipt, render to blob, and download
-  const receiptHtml = `
-    <!DOCTYPE html>
-    <html>
-    <head>
-      <meta charset="utf-8">
-      <title>Invoice ${invoice.id}</title>
-      <style>
-        @page { margin: 0.5in; }
-        @media print { body { -webkit-print-color-adjust: exact; } }
-        body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; margin: 40px; color: #1a1a1a; }
-        .header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 40px; }
-        .company { font-size: 24px; font-weight: 700; color: #1a1a1a; }
-        .invoice-title { font-size: 14px; color: #6b7280; text-transform: uppercase; letter-spacing: 1px; }
-        .invoice-id { font-size: 12px; color: #9ca3af; margin-top: 4px; }
-        .section { margin-bottom: 24px; }
-        .section-title { font-size: 11px; text-transform: uppercase; letter-spacing: 1px; color: #6b7280; margin-bottom: 8px; font-weight: 600; }
-        .detail-row { display: flex; justify-content: space-between; padding: 8px 0; border-bottom: 1px solid #f3f4f6; }
-        .detail-label { color: #6b7280; }
-        .detail-value { font-weight: 500; }
-        .total-row { display: flex; justify-content: space-between; padding: 12px 0; border-top: 2px solid #e5e7eb; margin-top: 8px; }
-        .total-label { font-weight: 600; font-size: 16px; }
-        .total-value { font-weight: 700; font-size: 16px; color: #059669; }
-        .status { display: inline-block; padding: 2px 8px; border-radius: 4px; font-size: 12px; font-weight: 600; }
-        .status-paid { background: #d1fae5; color: #065f46; }
-        .status-open { background: #fef3c7; color: #92400e; }
-        .footer { margin-top: 48px; text-align: center; color: #9ca3af; font-size: 12px; }
-      </style>
-    </head>
-    <body>
-      <div class="header">
-        <div>
-          <div class="company">BuilderSuite</div>
-          <div style="color: #6b7280; font-size: 13px; margin-top: 4px;">Subscription Invoice</div>
-        </div>
-        <div style="text-align: right;">
-          <div class="invoice-title">Invoice</div>
-          <div class="invoice-id">${invoice.id}</div>
-        </div>
-      </div>
+  const receiptHtml = `<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>Invoice ${invoice.id}</title>
+  <style>
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; margin: 40px; color: #1a1a1a; }
+    .header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 40px; }
+    .company { font-size: 24px; font-weight: 700; color: #1a1a1a; }
+    .invoice-title { font-size: 14px; color: #6b7280; text-transform: uppercase; letter-spacing: 1px; }
+    .invoice-id { font-size: 12px; color: #9ca3af; margin-top: 4px; }
+    .section { margin-bottom: 24px; }
+    .section-title { font-size: 11px; text-transform: uppercase; letter-spacing: 1px; color: #6b7280; margin-bottom: 8px; font-weight: 600; }
+    .detail-row { display: flex; justify-content: space-between; padding: 8px 0; border-bottom: 1px solid #f3f4f6; }
+    .detail-label { color: #6b7280; }
+    .detail-value { font-weight: 500; }
+    .total-row { display: flex; justify-content: space-between; padding: 12px 0; border-top: 2px solid #e5e7eb; margin-top: 8px; }
+    .total-label { font-weight: 600; font-size: 16px; }
+    .total-value { font-weight: 700; font-size: 16px; color: #059669; }
+    .status { display: inline-block; padding: 2px 8px; border-radius: 4px; font-size: 12px; font-weight: 600; }
+    .status-paid { background: #d1fae5; color: #065f46; }
+    .status-open { background: #fef3c7; color: #92400e; }
+    .footer { margin-top: 48px; text-align: center; color: #9ca3af; font-size: 12px; }
+  </style>
+</head>
+<body>
+  <div class="header">
+    <div>
+      <div class="company">BuilderSuite</div>
+      <div style="color: #6b7280; font-size: 13px; margin-top: 4px;">Subscription Invoice</div>
+    </div>
+    <div style="text-align: right;">
+      <div class="invoice-title">Invoice</div>
+      <div class="invoice-id">${invoice.id}</div>
+    </div>
+  </div>
+  <div class="section">
+    <div class="section-title">Invoice Details</div>
+    <div class="detail-row"><span class="detail-label">Date</span><span class="detail-value">${invoiceDate}</span></div>
+    <div class="detail-row"><span class="detail-label">Status</span><span class="detail-value"><span class="status ${invoice.status === 'paid' ? 'status-paid' : 'status-open'}">${(invoice.status || 'unknown').toUpperCase()}</span></span></div>
+    <div class="detail-row"><span class="detail-label">Billing Email</span><span class="detail-value">${billingEmail}</span></div>
+  </div>
+  <div class="section">
+    <div class="section-title">Description</div>
+    <div class="detail-row"><span class="detail-label">${invoice.description}</span><span class="detail-value">${amount}</span></div>
+    <div class="total-row"><span class="total-label">Total Paid</span><span class="total-value">${amount}</span></div>
+  </div>
+  <div class="footer">This is a receipt for your records. Thank you for your subscription!</div>
+</body>
+</html>`;
 
-      <div class="section">
-        <div class="section-title">Invoice Details</div>
-        <div class="detail-row">
-          <span class="detail-label">Date</span>
-          <span class="detail-value">${invoiceDate}</span>
-        </div>
-        <div class="detail-row">
-          <span class="detail-label">Status</span>
-          <span class="detail-value"><span class="status ${invoice.status === 'paid' ? 'status-paid' : 'status-open'}">${(invoice.status || 'unknown').toUpperCase()}</span></span>
-        </div>
-        <div class="detail-row">
-          <span class="detail-label">Billing Email</span>
-          <span class="detail-value">${billingEmail}</span>
-        </div>
-      </div>
-
-      <div class="section">
-        <div class="section-title">Description</div>
-        <div class="detail-row">
-          <span class="detail-label">${invoice.description}</span>
-          <span class="detail-value">${amount}</span>
-        </div>
-        <div class="total-row">
-          <span class="total-label">Total Paid</span>
-          <span class="total-value">${amount}</span>
-        </div>
-      </div>
-
-      <div class="footer">
-        This is a receipt for your records. Thank you for your subscription!
-      </div>
-    </body>
-    </html>
-  `;
-
-  // Use print-to-PDF via a hidden iframe
-  const iframe = document.createElement("iframe");
-  iframe.style.position = "fixed";
-  iframe.style.right = "0";
-  iframe.style.bottom = "0";
-  iframe.style.width = "0";
-  iframe.style.height = "0";
-  iframe.style.border = "none";
-  document.body.appendChild(iframe);
-  
-  const iframeDoc = iframe.contentDocument || iframe.contentWindow?.document;
-  if (iframeDoc) {
-    iframeDoc.open();
-    iframeDoc.write(receiptHtml);
-    iframeDoc.close();
-    
-    // Wait for content to render then trigger print (save as PDF)
-    setTimeout(() => {
-      iframe.contentWindow?.print();
-      // Clean up after a delay
-      setTimeout(() => {
-        document.body.removeChild(iframe);
-      }, 1000);
-    }, 500);
-  }
+  const blob = new Blob([receiptHtml], { type: "text/html" });
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement("a");
+  link.href = url;
+  link.download = `Invoice_${invoice.id}.html`;
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
+  URL.revokeObjectURL(url);
 }
 
 export function ManageSubscriptionDialog({
@@ -215,7 +174,27 @@ export function ManageSubscriptionDialog({
   const queryClient = useQueryClient();
   const [cancelDialogOpen, setCancelDialogOpen] = useState(false);
   const [canceling, setCanceling] = useState(false);
+  const [updatingPayment, setUpdatingPayment] = useState(false);
 
+  const handleUpdatePaymentMethod = async () => {
+    setUpdatingPayment(true);
+    try {
+      const { data: result, error } = await supabase.functions.invoke("customer-portal");
+      if (error) throw error;
+      if (result?.error) throw new Error(result.error);
+      if (result?.url) {
+        window.open(result.url, "_blank");
+      }
+    } catch (err: any) {
+      toast({
+        title: "Error",
+        description: err.message || "Failed to open billing portal",
+        variant: "destructive",
+      });
+    } finally {
+      setUpdatingPayment(false);
+    }
+  };
   const { data, isLoading, error } = useQuery<SubscriptionDetails>({
     queryKey: ["subscription-details"],
     queryFn: async () => {
@@ -377,6 +356,15 @@ export function ManageSubscriptionDialog({
                       {data.paymentMethod.exp_year}
                     </span>
                     <Badge variant="outline">Default</Badge>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={handleUpdatePaymentMethod}
+                      disabled={updatingPayment}
+                    >
+                      {updatingPayment && <Loader2 className="h-3.5 w-3.5 animate-spin mr-1.5" />}
+                      Update
+                    </Button>
                   </div>
                 ) : (
                   <p className="text-sm text-muted-foreground">
