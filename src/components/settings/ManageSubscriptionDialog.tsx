@@ -26,7 +26,7 @@ import {
   CreditCard,
   Mail,
   FileText,
-  ExternalLink,
+  Download,
   Loader2,
   Calendar,
   Crown,
@@ -153,7 +153,7 @@ export function ManageSubscriptionDialog({
   return (
     <>
       <Dialog open={open} onOpenChange={onOpenChange}>
-        <DialogContent className="max-w-lg overflow-hidden">
+        <DialogContent className="max-w-lg">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <Crown className="h-5 w-5 text-yellow-500" />
@@ -298,9 +298,11 @@ export function ManageSubscriptionDialog({
                             href={inv.invoice_pdf}
                             target="_blank"
                             rel="noopener noreferrer"
+                            download
                             className="text-primary hover:text-primary/80 shrink-0"
+                            title="Download Invoice"
                           >
-                            <ExternalLink className="h-3.5 w-3.5" />
+                            <Download className="h-3.5 w-3.5" />
                           </a>
                         )}
                       </div>
