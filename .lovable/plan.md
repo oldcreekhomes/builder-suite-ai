@@ -1,33 +1,18 @@
 
 
-## Add Cancel/Reactivate Toggle Switch
-
-### Current Problem
-Once a subscription is set to cancel at period end, there is no way to undo it. The "Cancel Subscription" button simply disappears when `cancel_at_period_end` is true.
-
-### Solution
-Replace the "Cancel Subscription" button with a toggle switch that shows the subscription's active/canceling state. Flipping the toggle off triggers cancellation (with confirmation dialog); flipping it back on reactivates the subscription.
+## Hide Subscription Tab for Non-Owners + Green Toggle Switch
 
 ### Changes
 
-**1. Create `reactivate-subscription` edge function** (`supabase/functions/reactivate-subscription/index.ts`)
-- Accepts `{ subscription_id }`, authenticates the user, verifies ownership
-- Calls `stripe.subscriptions.update(id, { cancel_at_period_end: false })` to undo the pending cancellation
-- Updates local `subscriptions` table status back to `"active"`
+**1. Hide the "Subscription" sidebar item for non-owners** (`src/pages/Settings.tsx`)
+- Import `useUserRole` and conditionally exclude the `{ value: "subscription", label: "Subscription" }` item from the sidebar list when `isOwner` is false
+- This completely removes the menu entry so employees never see it
 
-**2. Update `ManageSubscriptionDialog.tsx`**
-- Remove the conditional that hides the cancel section when `cancel_at_period_end` is true
-- Replace the "Cancel Subscription" button with a labeled Switch toggle:
-  - Label: "Auto-renew subscription"
-  - ON = subscription will renew (active state)
-  - OFF = subscription set to cancel at period end (canceling state)
-- When toggled OFF: show the existing confirmation dialog, then call `cancel-subscription`
-- When toggled ON: call the new `reactivate-subscription` edge function, show a success toast
-- Show helper text below: "Your subscription will cancel on [date]" when toggled off, or "Your subscription will automatically renew" when on
-
-### Files to create
-1. `supabase/functions/reactivate-subscription/index.ts`
+**2. Make the auto-renew toggle switch green when active** (`src/components/settings/ManageSubscriptionDialog.tsx`)
+- Add a className to the `<Switch>` component that uses the same green as the "Paid" badge background: `data-[state=checked]:bg-green-100` with a green thumb or the filled green style
+- Specifically: use `data-[state=checked]:bg-green-500` to match the green tone from the Paid badge's lighter green background
 
 ### Files to modify
-1. `src/components/settings/ManageSubscriptionDialog.tsx` -- replace cancel button with toggle, add reactivate handler
+1. `src/pages/Settings.tsx` -- filter out subscription sidebar item for non-owners
+2. `src/components/settings/ManageSubscriptionDialog.tsx` -- add green color class to Switch
 
