@@ -153,7 +153,7 @@ export function ManageSubscriptionDialog({
   return (
     <>
       <Dialog open={open} onOpenChange={onOpenChange}>
-        <DialogContent className="max-w-lg max-h-[85vh] overflow-y-auto">
+        <DialogContent className="max-w-lg overflow-hidden">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <Crown className="h-5 w-5 text-yellow-500" />
@@ -211,10 +211,12 @@ export function ManageSubscriptionDialog({
                       {data.subscription.cancel_at_period_end
                         ? "Access until: "
                         : "Next billing date: "}
-                      {format(
-                        new Date(data.subscription.current_period_end),
-                        "MMMM d, yyyy"
-                      )}
+                      {data.subscription.current_period_end
+                        ? format(
+                            new Date(data.subscription.current_period_end),
+                            "MMMM d, yyyy"
+                          )
+                        : "—"}
                     </div>
                   </div>
                 </div>
@@ -274,21 +276,21 @@ export function ManageSubscriptionDialog({
                     {data.invoices.map((inv) => (
                       <div
                         key={inv.id}
-                        className="flex items-center gap-3 p-3 text-sm"
+                        className="flex items-center gap-2 p-3 text-sm"
                       >
                         <FileText className="h-4 w-4 text-muted-foreground shrink-0" />
-                        <span className="text-muted-foreground w-24 shrink-0">
+                        <span className="text-muted-foreground text-xs shrink-0">
                           {inv.date
                             ? format(new Date(inv.date), "MMM d, yyyy")
                             : "—"}
                         </span>
-                        <span className="font-medium w-20 shrink-0">
+                        <span className="font-medium shrink-0">
                           ${inv.amount.toFixed(2)}
                         </span>
                         <span className="shrink-0">
                           {invoiceStatusBadge(inv.status || "unknown")}
                         </span>
-                        <span className="flex-1 truncate text-muted-foreground text-xs">
+                        <span className="min-w-0 flex-1 truncate text-muted-foreground text-xs">
                           {inv.description}
                         </span>
                         {inv.invoice_pdf && (
@@ -296,7 +298,7 @@ export function ManageSubscriptionDialog({
                             href={inv.invoice_pdf}
                             target="_blank"
                             rel="noopener noreferrer"
-                            className="text-primary hover:text-primary/80"
+                            className="text-primary hover:text-primary/80 shrink-0"
                           >
                             <ExternalLink className="h-3.5 w-3.5" />
                           </a>
