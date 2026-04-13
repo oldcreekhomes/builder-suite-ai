@@ -32,6 +32,7 @@ import {
   Crown,
   AlertTriangle,
 } from "lucide-react";
+import { Switch } from "@/components/ui/switch";
 import { loadStripe } from "@stripe/stripe-js";
 import {
   Elements,
