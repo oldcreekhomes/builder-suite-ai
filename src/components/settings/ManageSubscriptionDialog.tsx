@@ -32,7 +32,7 @@ import {
   Crown,
   AlertTriangle,
 } from "lucide-react";
-import { Switch } from "@/components/ui/switch";
+
 import { loadStripe } from "@stripe/stripe-js";
 import {
   Elements,
@@ -530,38 +530,55 @@ export function ManageSubscriptionDialog({
               </div>
 
               {/* Auto-renew toggle */}
-              {data.subscription && (
-                <>
-                  <Separator />
-                  <div className="space-y-2">
-                    <div className="flex items-center justify-between">
-                      <div className="space-y-0.5">
-                        <label htmlFor="auto-renew" className="text-sm font-medium">
-                          Auto-renew subscription
-                        </label>
-                        <p className="text-xs text-muted-foreground">
-                          {data.subscription.cancel_at_period_end
-                            ? `Your subscription will cancel on ${billingDate ? format(billingDate, "MMMM d, yyyy") : "the end of the billing period"}`
-                            : "Your subscription will automatically renew"}
-                        </p>
+              {data.subscription && (() => {
+                const isOn = !data.subscription.cancel_at_period_end;
+                const disabled = canceling || reactivating;
+                return (
+                  <>
+                    <Separator />
+                    <div className="space-y-2">
+                      <div className="flex items-center justify-between">
+                        <div className="space-y-0.5">
+                          <span id="auto-renew-label" className="text-sm font-medium">
+                            Auto-renew subscription
+                          </span>
+                          <p className="text-xs text-muted-foreground">
+                            {data.subscription!.cancel_at_period_end
+                              ? `Your subscription will cancel on ${billingDate ? format(billingDate, "MMMM d, yyyy") : "the end of the billing period"}`
+                              : "Your subscription will automatically renew"}
+                          </p>
+                        </div>
+                        <button
+                          type="button"
+                          role="switch"
+                          aria-checked={isOn}
+                          aria-labelledby="auto-renew-label"
+                          disabled={disabled}
+                          onClick={() => {
+                            if (disabled) return;
+                            if (isOn) {
+                              setCancelDialogOpen(true);
+                            } else {
+                              handleReactivate();
+                            }
+                          }}
+                          className={`relative inline-flex h-6 w-11 shrink-0 cursor-pointer items-center rounded-full transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background disabled:cursor-not-allowed disabled:opacity-50 ${
+                            isOn
+                              ? "bg-green-100 dark:bg-green-900/30"
+                              : "bg-input"
+                          }`}
+                        >
+                          <span
+                            className={`pointer-events-none block h-5 w-5 rounded-full bg-background shadow-lg ring-0 transition-transform ${
+                              isOn ? "translate-x-5" : "translate-x-0"
+                            }`}
+                          />
+                        </button>
                       </div>
-                      <Switch
-                        id="auto-renew"
-                        checked={!data.subscription.cancel_at_period_end}
-                        disabled={canceling || reactivating}
-                        className="data-[state=checked]:!bg-green-100 data-[state=checked]:!border-green-100 data-[state=unchecked]:!bg-input data-[state=unchecked]:!border-input"
-                        onCheckedChange={(checked) => {
-                          if (checked) {
-                            handleReactivate();
-                          } else {
-                            setCancelDialogOpen(true);
-                          }
-                        }}
-                      />
                     </div>
-                  </div>
-                </>
-              )}
+                  </>
+                );
+              })()}
             </div>
           )}
         </DialogContent>
