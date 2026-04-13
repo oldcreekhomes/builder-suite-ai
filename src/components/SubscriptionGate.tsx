@@ -1,5 +1,5 @@
 import { useSubscription } from "@/hooks/useSubscription";
-import { useUserRole } from "@/hooks/useUserRole";
+import { useUserProfile } from "@/hooks/useUserProfile";
 import { useState } from "react";
 import { Crown, Lock, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -149,15 +149,17 @@ interface SubscriptionGateProps {
 
 export function SubscriptionGate({ children }: SubscriptionGateProps) {
   const { needsSubscription, projectCount, isLoading } = useSubscription();
-  const { isEmployee, isLoading: rolesLoading } = useUserRole();
+  const { profile, isLoading: profileLoading } = useUserProfile();
   const [loadingPlan, setLoadingPlan] = useState<string | null>(null);
   const [checkout, setCheckout] = useState<{ billingInterval: "monthly" | "annual"; seatCount: number } | null>(null);
   const { toast } = useToast();
 
+  // Any user with a home_builder_id is a member of another company — they inherit that company's access
+  const isCompanyMember = !!profile?.home_builder_id;
+
   const handleSelectPlan = async (billing_interval: "monthly" | "annual") => {
     setLoadingPlan(billing_interval);
     try {
-      // We need seat count — fetch from create-checkout-session or calculate locally
       const { data, error } = await supabase.functions.invoke("create-checkout-session", {
         body: { billing_interval },
       });
@@ -175,8 +177,8 @@ export function SubscriptionGate({ children }: SubscriptionGateProps) {
     }
   };
 
-  if (isLoading || rolesLoading) return <>{children}</>;
-  if (isEmployee) return <>{children}</>;
+  if (isLoading || profileLoading) return <>{children}</>;
+  if (isCompanyMember) return <>{children}</>;
 
   if (needsSubscription) {
     return (
