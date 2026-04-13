@@ -64,7 +64,9 @@ serve(async (req) => {
       JSON.stringify({
         success: true,
         cancel_at_period_end: updated.cancel_at_period_end,
-        current_period_end: new Date(updated.current_period_end * 1000).toISOString(),
+        current_period_end: typeof updated.current_period_end === 'number'
+          ? new Date(updated.current_period_end * 1000).toISOString()
+          : updated.current_period_end || null,
       }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 200 }
     );
