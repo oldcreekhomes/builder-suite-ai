@@ -43,6 +43,7 @@ import { useSearchParams } from "react-router-dom";
 
 const Settings = () => {
   const { user } = useAuth();
+  const { isOwner } = useUserRole();
   const [searchParams] = useSearchParams();
   const defaultTab = searchParams.get('tab') || "company-profile";
   const [activeTab, setActiveTab] = useState(defaultTab);
