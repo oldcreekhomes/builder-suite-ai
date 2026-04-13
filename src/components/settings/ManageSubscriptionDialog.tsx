@@ -566,7 +566,7 @@ export function ManageSubscriptionDialog({
                           }}
                           className={`relative inline-flex h-6 w-11 shrink-0 cursor-pointer items-center rounded-full p-[3px] overflow-hidden transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background disabled:cursor-not-allowed disabled:opacity-50 ${
                             isOn
-                              ? "bg-[#dcfce7] dark:bg-green-900/30"
+                              ? "bg-black"
                               : "bg-input"
                           }`}
                         >
