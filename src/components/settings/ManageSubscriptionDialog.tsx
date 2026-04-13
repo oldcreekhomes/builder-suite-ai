@@ -242,6 +242,7 @@ export function ManageSubscriptionDialog({
   const queryClient = useQueryClient();
   const [cancelDialogOpen, setCancelDialogOpen] = useState(false);
   const [canceling, setCanceling] = useState(false);
+  const [reactivating, setReactivating] = useState(false);
   const [showUpdateCard, setShowUpdateCard] = useState(false);
 
   const { data, isLoading, error } = useQuery<SubscriptionDetails>({
