@@ -319,11 +319,13 @@ export function ManageSubscriptionDialog({
     }
   };
 
+  const PAID_GREEN_BG = "bg-[#dcfce7] dark:bg-green-900/30";
+
   const invoiceStatusBadge = (status: string) => {
     switch (status) {
       case "paid":
         return (
-          <Badge className="bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400">
+          <Badge className={`${PAID_GREEN_BG} text-green-800 dark:text-green-400`}>
             Paid
           </Badge>
         );
