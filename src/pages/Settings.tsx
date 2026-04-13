@@ -175,7 +175,7 @@ const Settings = () => {
                   { value: "my-profile", label: "My Profile" },
                   { value: "employees", label: "Employees" },
                   { value: "specifications", label: "Specifications" },
-                  { value: "subscription", label: "Subscription" },
+                  ...(isOwner ? [{ value: "subscription", label: "Subscription" }] : []),
                   {
                     label: "Suppliers",
                     collapsible: true,
