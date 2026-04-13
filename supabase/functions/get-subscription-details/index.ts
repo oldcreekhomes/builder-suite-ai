@@ -58,6 +58,27 @@ serve(async (req) => {
       const sub = subscriptions.data[0];
       const item = sub.items.data[0];
 
+      // Debug logging for billing date
+      console.log("[get-subscription-details] Raw sub.current_period_end:", sub.current_period_end);
+      console.log("[get-subscription-details] Raw sub.current_period_start:", sub.current_period_start);
+      console.log("[get-subscription-details] Sub created:", sub.created);
+
+      // Compute current_period_end with fallback
+      let periodEndISO: string | null = null;
+      if (sub.current_period_end && typeof sub.current_period_end === "number" && sub.current_period_end > 0) {
+        periodEndISO = new Date(sub.current_period_end * 1000).toISOString();
+      } else if (sub.current_period_start && typeof sub.current_period_start === "number" && sub.current_period_start > 0) {
+        // Fallback: add interval duration to period start
+        const intervalMs = item.price.recurring?.interval === "year" ? 365.25 * 24 * 60 * 60 * 1000 : 30 * 24 * 60 * 60 * 1000;
+        periodEndISO = new Date(sub.current_period_start * 1000 + intervalMs).toISOString();
+      }
+
+      // Compute current_period_start
+      let periodStartISO: string | null = null;
+      if (sub.current_period_start && typeof sub.current_period_start === "number" && sub.current_period_start > 0) {
+        periodStartISO = new Date(sub.current_period_start * 1000).toISOString();
+      }
+
       subscription = {
         id: sub.id,
         status: sub.status,
@@ -66,8 +87,10 @@ serve(async (req) => {
         quantity: item.quantity || 1,
         unit_amount: item.price.unit_amount ? item.price.unit_amount / 100 : 0,
         total_amount: (item.price.unit_amount ? item.price.unit_amount / 100 : 0) * (item.quantity || 1),
-        current_period_end: sub.current_period_end ? new Date(sub.current_period_end * 1000).toISOString() : null,
+        current_period_start: periodStartISO,
+        current_period_end: periodEndISO,
         cancel_at_period_end: sub.cancel_at_period_end,
+        created: sub.created ? new Date(sub.created * 1000).toISOString() : null,
       };
 
       // Payment method

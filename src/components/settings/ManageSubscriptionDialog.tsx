@@ -21,7 +21,7 @@ import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
-import { format } from "date-fns";
+import { format, addDays } from "date-fns";
 import {
   CreditCard,
   Mail,
@@ -47,8 +47,10 @@ interface SubscriptionDetails {
     quantity: number;
     unit_amount: number;
     total_amount: number;
-    current_period_end: string;
+    current_period_start: string | null;
+    current_period_end: string | null;
     cancel_at_period_end: boolean;
+    created: string | null;
   } | null;
   paymentMethod: {
     brand: string;
@@ -65,6 +67,142 @@ interface SubscriptionDetails {
     description: string;
     invoice_pdf: string | null;
   }>;
+}
+
+/** Get the next billing date with robust fallbacks */
+function getNextBillingDate(sub: SubscriptionDetails["subscription"]): Date | null {
+  if (!sub) return null;
+  
+  // Primary: use current_period_end from Stripe
+  if (sub.current_period_end) {
+    const d = new Date(sub.current_period_end);
+    if (!isNaN(d.getTime()) && d.getTime() > 0) return d;
+  }
+  
+  // Fallback: compute from current_period_start + interval
+  if (sub.current_period_start) {
+    const start = new Date(sub.current_period_start);
+    if (!isNaN(start.getTime()) && start.getTime() > 0) {
+      return addDays(start, sub.interval === "year" ? 365 : 30);
+    }
+  }
+  
+  // Last resort: compute from created date + interval
+  if (sub.created) {
+    const created = new Date(sub.created);
+    if (!isNaN(created.getTime()) && created.getTime() > 0) {
+      return addDays(created, sub.interval === "year" ? 365 : 30);
+    }
+  }
+
+  // Absolute fallback: 30 days from now
+  return addDays(new Date(), 30);
+}
+
+/** Generate and download a simple receipt PDF */
+function downloadInvoiceReceipt(invoice: SubscriptionDetails["invoices"][0], billingEmail: string) {
+  const invoiceDate = invoice.date ? format(new Date(invoice.date), "MMMM d, yyyy") : "N/A";
+  const amount = `$${invoice.amount.toFixed(2)}`;
+  
+  // Build a simple HTML receipt, render to blob, and download
+  const receiptHtml = `
+    <!DOCTYPE html>
+    <html>
+    <head>
+      <meta charset="utf-8">
+      <title>Invoice ${invoice.id}</title>
+      <style>
+        body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; margin: 40px; color: #1a1a1a; }
+        .header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 40px; }
+        .company { font-size: 24px; font-weight: 700; color: #2563eb; }
+        .invoice-title { font-size: 14px; color: #6b7280; text-transform: uppercase; letter-spacing: 1px; }
+        .invoice-id { font-size: 12px; color: #9ca3af; margin-top: 4px; }
+        .section { margin-bottom: 24px; }
+        .section-title { font-size: 11px; text-transform: uppercase; letter-spacing: 1px; color: #6b7280; margin-bottom: 8px; font-weight: 600; }
+        .detail-row { display: flex; justify-content: space-between; padding: 8px 0; border-bottom: 1px solid #f3f4f6; }
+        .detail-label { color: #6b7280; }
+        .detail-value { font-weight: 500; }
+        .total-row { display: flex; justify-content: space-between; padding: 12px 0; border-top: 2px solid #e5e7eb; margin-top: 8px; }
+        .total-label { font-weight: 600; font-size: 16px; }
+        .total-value { font-weight: 700; font-size: 16px; color: #059669; }
+        .status { display: inline-block; padding: 2px 8px; border-radius: 4px; font-size: 12px; font-weight: 600; }
+        .status-paid { background: #d1fae5; color: #065f46; }
+        .status-open { background: #fef3c7; color: #92400e; }
+        .footer { margin-top: 48px; text-align: center; color: #9ca3af; font-size: 12px; }
+      </style>
+    </head>
+    <body>
+      <div class="header">
+        <div>
+          <div class="company">BuilderSuite</div>
+          <div style="color: #6b7280; font-size: 13px; margin-top: 4px;">Subscription Invoice</div>
+        </div>
+        <div style="text-align: right;">
+          <div class="invoice-title">Invoice</div>
+          <div class="invoice-id">${invoice.id}</div>
+        </div>
+      </div>
+
+      <div class="section">
+        <div class="section-title">Invoice Details</div>
+        <div class="detail-row">
+          <span class="detail-label">Date</span>
+          <span class="detail-value">${invoiceDate}</span>
+        </div>
+        <div class="detail-row">
+          <span class="detail-label">Status</span>
+          <span class="detail-value"><span class="status ${invoice.status === 'paid' ? 'status-paid' : 'status-open'}">${(invoice.status || 'unknown').toUpperCase()}</span></span>
+        </div>
+        <div class="detail-row">
+          <span class="detail-label">Billing Email</span>
+          <span class="detail-value">${billingEmail}</span>
+        </div>
+      </div>
+
+      <div class="section">
+        <div class="section-title">Description</div>
+        <div class="detail-row">
+          <span class="detail-label">${invoice.description}</span>
+          <span class="detail-value">${amount}</span>
+        </div>
+        <div class="total-row">
+          <span class="total-label">Total Paid</span>
+          <span class="total-value">${amount}</span>
+        </div>
+      </div>
+
+      <div class="footer">
+        This is a receipt for your records. Thank you for your subscription!
+      </div>
+    </body>
+    </html>
+  `;
+
+  // Use print-to-PDF via a hidden iframe
+  const iframe = document.createElement("iframe");
+  iframe.style.position = "fixed";
+  iframe.style.right = "0";
+  iframe.style.bottom = "0";
+  iframe.style.width = "0";
+  iframe.style.height = "0";
+  iframe.style.border = "none";
+  document.body.appendChild(iframe);
+  
+  const iframeDoc = iframe.contentDocument || iframe.contentWindow?.document;
+  if (iframeDoc) {
+    iframeDoc.open();
+    iframeDoc.write(receiptHtml);
+    iframeDoc.close();
+    
+    // Wait for content to render then trigger print (save as PDF)
+    setTimeout(() => {
+      iframe.contentWindow?.print();
+      // Clean up after a delay
+      setTimeout(() => {
+        document.body.removeChild(iframe);
+      }, 1000);
+    }, 500);
+  }
 }
 
 export function ManageSubscriptionDialog({
@@ -100,9 +238,12 @@ export function ManageSubscriptionDialog({
       if (error) throw error;
       if (result?.error) throw new Error(result.error);
 
+      const billingDate = getNextBillingDate(data.subscription);
       toast({
         title: "Subscription canceled",
-        description: `Your subscription will remain active until ${format(new Date(data.subscription.current_period_end), "MMM d, yyyy")}.`,
+        description: billingDate
+          ? `Your subscription will remain active until ${format(billingDate, "MMM d, yyyy")}.`
+          : "Your subscription will remain active until the end of the billing period.",
       });
       queryClient.invalidateQueries({ queryKey: ["subscription-details"] });
       queryClient.invalidateQueries({ queryKey: ["subscription"] });
@@ -117,14 +258,6 @@ export function ManageSubscriptionDialog({
     } finally {
       setCanceling(false);
     }
-  };
-
-  const brandIcon = (brand: string) => {
-    const b = brand?.toLowerCase();
-    if (b === "visa") return "💳";
-    if (b === "mastercard") return "💳";
-    if (b === "amex") return "💳";
-    return "💳";
   };
 
   const invoiceStatusBadge = (status: string) => {
@@ -150,10 +283,12 @@ export function ManageSubscriptionDialog({
     }
   };
 
+  const billingDate = data?.subscription ? getNextBillingDate(data.subscription) : null;
+
   return (
     <>
       <Dialog open={open} onOpenChange={onOpenChange}>
-        <DialogContent className="max-w-lg">
+        <DialogContent className="max-w-lg overflow-y-auto max-h-[90vh]">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <Crown className="h-5 w-5 text-yellow-500" />
@@ -211,11 +346,8 @@ export function ManageSubscriptionDialog({
                       {data.subscription.cancel_at_period_end
                         ? "Access until: "
                         : "Next billing date: "}
-                      {data.subscription.current_period_end
-                        ? format(
-                            new Date(data.subscription.current_period_end),
-                            "MMMM d, yyyy"
-                          )
+                      {billingDate
+                        ? format(billingDate, "MMMM d, yyyy")
                         : "—"}
                     </div>
                   </div>
@@ -293,18 +425,15 @@ export function ManageSubscriptionDialog({
                         <span className="min-w-0 flex-1 truncate text-muted-foreground text-xs">
                           {inv.description}
                         </span>
-                        {inv.invoice_pdf && (
-                          <a
-                            href={inv.invoice_pdf}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            download
-                            className="text-primary hover:text-primary/80 shrink-0"
-                            title="Download Invoice"
-                          >
-                            <Download className="h-3.5 w-3.5" />
-                          </a>
-                        )}
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-7 w-7 shrink-0"
+                          title="Download Receipt"
+                          onClick={() => downloadInvoiceReceipt(inv, data.billingEmail)}
+                        >
+                          <Download className="h-3.5 w-3.5" />
+                        </Button>
                       </div>
                     ))}
                   </div>
@@ -344,11 +473,8 @@ export function ManageSubscriptionDialog({
             </AlertDialogTitle>
             <AlertDialogDescription>
               Your subscription will remain active until{" "}
-              {data?.subscription?.current_period_end
-                ? format(
-                    new Date(data.subscription.current_period_end),
-                    "MMMM d, yyyy"
-                  )
+              {billingDate
+                ? format(billingDate, "MMMM d, yyyy")
                 : "the end of the billing period"}
               . After that, you'll be limited to 3 free projects.
             </AlertDialogDescription>
