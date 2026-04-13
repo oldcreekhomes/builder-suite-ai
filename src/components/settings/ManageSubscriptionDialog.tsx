@@ -291,6 +291,34 @@ export function ManageSubscriptionDialog({
     }
   };
 
+  const handleReactivate = async () => {
+    if (!data?.subscription?.id) return;
+    setReactivating(true);
+    try {
+      const { data: result, error } = await supabase.functions.invoke(
+        "reactivate-subscription",
+        { body: { subscription_id: data.subscription.id } }
+      );
+      if (error) throw error;
+      if (result?.error) throw new Error(result.error);
+
+      toast({
+        title: "Subscription reactivated",
+        description: "Your subscription will continue to auto-renew.",
+      });
+      queryClient.invalidateQueries({ queryKey: ["subscription-details"] });
+      queryClient.invalidateQueries({ queryKey: ["subscription"] });
+    } catch (err: any) {
+      toast({
+        title: "Error",
+        description: err.message || "Failed to reactivate subscription",
+        variant: "destructive",
+      });
+    } finally {
+      setReactivating(false);
+    }
+  };
+
   const invoiceStatusBadge = (status: string) => {
     switch (status) {
       case "paid":
@@ -501,22 +529,38 @@ export function ManageSubscriptionDialog({
                 )}
               </div>
 
-              {/* Cancel */}
-              {data.subscription &&
-                !data.subscription.cancel_at_period_end && (
-                  <>
-                    <Separator />
-                    <div className="flex justify-end">
-                      <Button
-                        variant="destructive"
-                        size="sm"
-                        onClick={() => setCancelDialogOpen(true)}
-                      >
-                        Cancel Subscription
-                      </Button>
+              {/* Auto-renew toggle */}
+              {data.subscription && (
+                <>
+                  <Separator />
+                  <div className="space-y-2">
+                    <div className="flex items-center justify-between">
+                      <div className="space-y-0.5">
+                        <label htmlFor="auto-renew" className="text-sm font-medium">
+                          Auto-renew subscription
+                        </label>
+                        <p className="text-xs text-muted-foreground">
+                          {data.subscription.cancel_at_period_end
+                            ? `Your subscription will cancel on ${billingDate ? format(billingDate, "MMMM d, yyyy") : "the end of the billing period"}`
+                            : "Your subscription will automatically renew"}
+                        </p>
+                      </div>
+                      <Switch
+                        id="auto-renew"
+                        checked={!data.subscription.cancel_at_period_end}
+                        disabled={canceling || reactivating}
+                        onCheckedChange={(checked) => {
+                          if (checked) {
+                            handleReactivate();
+                          } else {
+                            setCancelDialogOpen(true);
+                          }
+                        }}
+                      />
                     </div>
-                  </>
-                )}
+                  </div>
+                </>
+              )}
             </div>
           )}
         </DialogContent>
