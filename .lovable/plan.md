@@ -1,24 +1,33 @@
 
 
-## Fix Cancel Subscription Edge Function
+## Add Cancel/Reactivate Toggle Switch
 
-### Root Cause
-The `cancel-subscription` edge function crashes with `Invalid time value` on line 67. In the Stripe API version `2025-08-27.basil`, `subscription.current_period_end` may already be a string or have a different structure than a raw Unix timestamp. Multiplying it by 1000 and passing to `new Date()` produces an invalid date.
+### Current Problem
+Once a subscription is set to cancel at period end, there is no way to undo it. The "Cancel Subscription" button simply disappears when `cancel_at_period_end` is true.
 
-### Fix
-In `supabase/functions/cancel-subscription/index.ts` (line 67):
-- Add safe handling for `current_period_end`: check if it's a number (Unix timestamp) or string, and convert accordingly
-- Wrap the date conversion in a try-catch to prevent the entire function from failing on a date formatting issue
+### Solution
+Replace the "Cancel Subscription" button with a toggle switch that shows the subscription's active/canceling state. Flipping the toggle off triggers cancellation (with confirmation dialog); flipping it back on reactivates the subscription.
 
-```typescript
-// Replace line 67:
-// current_period_end: new Date(updated.current_period_end * 1000).toISOString(),
-// With:
-current_period_end: typeof updated.current_period_end === 'number'
-  ? new Date(updated.current_period_end * 1000).toISOString()
-  : updated.current_period_end || null,
-```
+### Changes
+
+**1. Create `reactivate-subscription` edge function** (`supabase/functions/reactivate-subscription/index.ts`)
+- Accepts `{ subscription_id }`, authenticates the user, verifies ownership
+- Calls `stripe.subscriptions.update(id, { cancel_at_period_end: false })` to undo the pending cancellation
+- Updates local `subscriptions` table status back to `"active"`
+
+**2. Update `ManageSubscriptionDialog.tsx`**
+- Remove the conditional that hides the cancel section when `cancel_at_period_end` is true
+- Replace the "Cancel Subscription" button with a labeled Switch toggle:
+  - Label: "Auto-renew subscription"
+  - ON = subscription will renew (active state)
+  - OFF = subscription set to cancel at period end (canceling state)
+- When toggled OFF: show the existing confirmation dialog, then call `cancel-subscription`
+- When toggled ON: call the new `reactivate-subscription` edge function, show a success toast
+- Show helper text below: "Your subscription will cancel on [date]" when toggled off, or "Your subscription will automatically renew" when on
+
+### Files to create
+1. `supabase/functions/reactivate-subscription/index.ts`
 
 ### Files to modify
-1. `supabase/functions/cancel-subscription/index.ts` -- fix the date conversion on line 67
+1. `src/components/settings/ManageSubscriptionDialog.tsx` -- replace cancel button with toggle, add reactivate handler
 
