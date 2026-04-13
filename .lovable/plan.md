@@ -1,36 +1,52 @@
 
+Fix Invoice Download Regression
 
-## Fix Invoice Download and In-App Payment Update
+Do I know what the issue is? Yes.
 
-### Two Issues
+Exact problem:
+- In `src/components/settings/ManageSubscriptionDialog.tsx`, `downloadInvoiceReceipt()` now immediately opens `invoice.invoice_pdf` with `window.open(...)`.
+- That `invoice_pdf` is a Stripe-hosted `pay.stripe.com` URL, so the app sends the user back to Stripe instead of generating an in-app receipt.
+- Earlier HTML/print attempts added the Lovable URL because browser print headers/footers are browser-controlled and cannot be reliably removed with CSS.
+- So the correct fix is neither Stripe-hosted PDFs nor printable HTML. It must be a locally generated PDF blob downloaded directly in the app.
 
-1. **Invoice download opens HTML in browser** -- The current code downloads an `.html` file via blob. The user wants it to go back to using the Stripe `invoice_pdf` URL (which was the original behavior) but without the browser URL footer. Since `invoice_pdf` is a direct PDF download from Stripe, we should simply link to it. If `invoice_pdf` is available, open/download it directly. If not, fall back to the HTML receipt.
+Plan
+1. Replace the current invoice download logic in `ManageSubscriptionDialog.tsx`
+- Remove the `invoice.invoice_pdf` → `window.open(...)` branch.
+- Remove the HTML receipt fallback.
+- Keep the same invoice row button, but make it generate a local PDF and download `Invoice_<id>.pdf`.
 
-2. **"Update" button redirects to billing.stripe.com** -- Currently calls the `customer-portal` edge function which opens Stripe's external portal. Instead, we need an in-app dialog with Stripe Elements (matching the existing checkout pattern in `SubscriptionGate.tsx` and `PaywallDialog.tsx`) that collects a new card and updates the payment method via a new edge function.
+2. Generate a real in-app PDF
+- Add a small PDF document component using `@react-pdf/renderer` styled like the earlier simple receipt:
+  - BuilderSuite title in black
+  - Invoice number
+  - Invoice date
+  - Billing email
+  - Status
+  - Description
+  - Total paid
+- No iframe, no browser print dialog, no Stripe redirect, no URL footer.
 
-### Changes
+3. Use the project’s existing download pattern
+- Follow the same blob download approach already used in `BudgetTable`, `AccountsPayableContent`, and `CheckPrintPreview`:
+  - `pdf(<... />).toBlob()`
+  - `URL.createObjectURL(blob)`
+  - temporary `<a download>` click
+- This keeps the experience inside the app and produces a normal PDF file.
 
-**1. Fix invoice download** (`ManageSubscriptionDialog.tsx`)
-- Change the download button: if `inv.invoice_pdf` exists, open it directly (it's a Stripe-hosted PDF -- no browser footer). If not, fall back to the HTML receipt generator.
-- This restores the original behavior of downloading/viewing the actual Stripe PDF.
+4. Keep scope tight
+- No Supabase/database changes.
+- No edge function changes.
+- No changes to the payment-method update flow in this pass unless requested separately.
 
-**2. Create `update-payment-method` edge function** (`supabase/functions/update-payment-method/index.ts`)
-- Accepts `{ payment_method_id }` in the request body
-- Authenticates the user, finds their Stripe customer
-- Detaches old default payment method (optional)
-- Attaches new payment method and sets it as default on the customer + subscription
-- Returns success
+Files to modify
+- `src/components/settings/ManageSubscriptionDialog.tsx`
+  - replace `downloadInvoiceReceipt()` implementation
+  - wire invoice buttons to the new local PDF generator
+- `src/components/settings/pdf/SubscriptionInvoicePdfDocument.tsx` (new)
+  - one-page receipt PDF component following existing `@react-pdf/renderer` conventions used elsewhere in the project
 
-**3. Add in-app Update Payment dialog** (`ManageSubscriptionDialog.tsx`)
-- Add a nested dialog/modal that appears when "Update" is clicked
-- Uses `loadStripe` + `Elements` + `CardNumberElement`/`CardExpiryElement`/`CardCvcElement` (same pattern as `SubscriptionGate.tsx`)
-- On submit: creates a PaymentMethod via Stripe.js, then calls the new `update-payment-method` edge function
-- On success: closes dialog, invalidates query cache to refresh payment method display
-- Reuses the same Stripe publishable key already in the project
-
-### Files to create
-1. `supabase/functions/update-payment-method/index.ts` -- new edge function
-
-### Files to modify
-1. `src/components/settings/ManageSubscriptionDialog.tsx` -- fix invoice download + add in-app card update dialog
-
+Technical details
+- I will stop using `invoice.invoice_pdf` on the frontend for downloads.
+- I will not use HTML-to-print or `window.print()` because that is what introduces uncontrollable browser footers/URLs.
+- The downloaded file will be a true PDF generated from the invoice data already returned by `get-subscription-details`.
+- This is the reliable way to give you the same simple receipt experience without any Stripe URL or Lovable URL showing on the document.
