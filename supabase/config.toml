@@ -128,3 +128,6 @@ verify_jwt = false
 
 [functions.copy-template-accounts]
 verify_jwt = false
+
+[functions.update-payment-method]
+verify_jwt = false
