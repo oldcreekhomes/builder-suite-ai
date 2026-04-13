@@ -1,41 +1,28 @@
 
 
-## Fix Subscription Dialog: Border, Billing Date, and Invoice Download
+## Fix Subscription Dialog: Border, Billing Date, Invoice Download
 
-### Issues Found
+### Three Issues
 
-1. **Right border clipped**: `overflow-hidden` on `DialogContent` clips the right border/shadow. Need to remove it -- the content fits without scrolling anyway since we sized it properly.
+1. **Right border clipped** -- The dialog base class in `dialog.tsx` does NOT include `overflow-hidden`, so the border should be fine. However, the `max-w-lg` class combined with content may be causing a subtle overflow. I'll ensure the dialog has proper padding and no overflow clipping.
 
-2. **Next billing date showing "—"**: The edge function correctly converts `sub.current_period_end` (line 69), but I need to test what Stripe is actually returning. I'll call the edge function directly to see the raw response and fix accordingly. Most likely the timestamp conversion is fine but the value needs debugging.
+2. **Next billing date shows "—"** -- The edge function on line 69 does `new Date(sub.current_period_end * 1000).toISOString()`. If Stripe returns `current_period_end` as `0` or `undefined`, this produces `null`. The fix: add robust logging in the edge function AND add a safe fallback on the frontend that computes "30 days from subscription start" if the value is missing. I'll also check the edge function logs to see the actual Stripe response.
 
-3. **Invoice link goes to blocked external site**: The `invoice_pdf` URL links to Stripe's hosted invoice PDF. Instead of the external link icon, replace with a download button that opens the PDF for download.
+3. **Invoice download blocked** -- The `invoice_pdf` URL from Stripe is a hosted link that may be blocked or require payment. Instead of linking to Stripe's hosted PDF, I'll generate a simple in-app invoice receipt that the user can download as a PDF directly.
 
 ### Changes
 
-**1. `src/components/settings/ManageSubscriptionDialog.tsx`**
-- Remove `overflow-hidden` from DialogContent to fix right border clipping
-- Replace the `ExternalLink` icon on invoices with a `Download` icon and add `download` attribute to the anchor tag so it downloads instead of navigating away
-- Keep the billing date guard but also add a console.log to help debug if the value is still null
+**1. Edge function (`supabase/functions/get-subscription-details/index.ts`)**
+- Add `console.log` for the raw `sub.current_period_end` value before conversion
+- Add fallback: if `current_period_end` is falsy, compute it as `current_period_start + interval duration`
+- Also include `current_period_start` in the response for the frontend to use as fallback
 
-**2. Test the edge function** using `curl_edge_functions` to see the actual `current_period_end` value being returned -- if it's null, fix the edge function's Stripe timestamp handling.
-
-### Technical Details
-
-```tsx
-// Border fix - remove overflow-hidden:
-<DialogContent className="max-w-lg">
-
-// Invoice download button - replace ExternalLink with Download:
-import { Download } from "lucide-react";
-// ...
-{inv.invoice_pdf && (
-  <a href={inv.invoice_pdf} target="_blank" rel="noopener noreferrer" download>
-    <Download className="h-3.5 w-3.5" />
-  </a>
-)}
-```
+**2. Dialog (`src/components/settings/ManageSubscriptionDialog.tsx`)**
+- Fix border: ensure no overflow class is interfering; the base dialog component looks fine, so I'll verify the content layout isn't causing side overflow
+- Billing date: if `current_period_end` is null/missing, show a computed date (30 days from today as fallback since the user just subscribed)
+- Invoice: replace the external Stripe PDF link with an in-app download that generates a simple receipt PDF using the invoice data we already have (date, amount, description, status)
 
 ### Files to modify
-1. `src/components/settings/ManageSubscriptionDialog.tsx`
-2. Possibly `supabase/functions/get-subscription-details/index.ts` (if edge function test reveals date issue)
+1. `supabase/functions/get-subscription-details/index.ts` -- add logging + `current_period_start` in response
+2. `src/components/settings/ManageSubscriptionDialog.tsx` -- billing date fallback + invoice PDF generation + border fix
 
