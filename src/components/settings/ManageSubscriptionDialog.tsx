@@ -112,9 +112,11 @@ function downloadInvoiceReceipt(invoice: SubscriptionDetails["invoices"][0], bil
       <meta charset="utf-8">
       <title>Invoice ${invoice.id}</title>
       <style>
+        @page { margin: 0.5in; }
+        @media print { body { -webkit-print-color-adjust: exact; } }
         body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; margin: 40px; color: #1a1a1a; }
         .header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 40px; }
-        .company { font-size: 24px; font-weight: 700; color: #2563eb; }
+        .company { font-size: 24px; font-weight: 700; color: #1a1a1a; }
         .invoice-title { font-size: 14px; color: #6b7280; text-transform: uppercase; letter-spacing: 1px; }
         .invoice-id { font-size: 12px; color: #9ca3af; margin-top: 4px; }
         .section { margin-bottom: 24px; }
@@ -288,7 +290,7 @@ export function ManageSubscriptionDialog({
   return (
     <>
       <Dialog open={open} onOpenChange={onOpenChange}>
-        <DialogContent className="max-w-lg overflow-y-auto max-h-[90vh]">
+        <DialogContent className="max-w-2xl overflow-y-auto max-h-[90vh]">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <Crown className="h-5 w-5 text-yellow-500" />
