@@ -1,5 +1,6 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { AppSidebar } from "@/components/AppSidebar";
+import { useUserRole } from "@/hooks/useUserRole";
 import { SidebarProvider } from "@/components/ui/sidebar";
 import { DashboardHeader } from "@/components/DashboardHeader";
 import { Settings as SettingsIcon } from "lucide-react";
