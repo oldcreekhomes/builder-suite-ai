@@ -549,6 +549,7 @@ export function ManageSubscriptionDialog({
                         id="auto-renew"
                         checked={!data.subscription.cancel_at_period_end}
                         disabled={canceling || reactivating}
+                        className="data-[state=checked]:bg-green-500"
                         onCheckedChange={(checked) => {
                           if (checked) {
                             handleReactivate();

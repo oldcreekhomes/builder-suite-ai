@@ -1,5 +1,6 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { AppSidebar } from "@/components/AppSidebar";
+import { useUserRole } from "@/hooks/useUserRole";
 import { SidebarProvider } from "@/components/ui/sidebar";
 import { DashboardHeader } from "@/components/DashboardHeader";
 import { Settings as SettingsIcon } from "lucide-react";
@@ -42,6 +43,7 @@ import { useSearchParams } from "react-router-dom";
 
 const Settings = () => {
   const { user } = useAuth();
+  const { isOwner } = useUserRole();
   const [searchParams] = useSearchParams();
   const defaultTab = searchParams.get('tab') || "company-profile";
   const [activeTab, setActiveTab] = useState(defaultTab);
@@ -173,7 +175,7 @@ const Settings = () => {
                   { value: "my-profile", label: "My Profile" },
                   { value: "employees", label: "Employees" },
                   { value: "specifications", label: "Specifications" },
-                  { value: "subscription", label: "Subscription" },
+                  ...(isOwner ? [{ value: "subscription", label: "Subscription" }] : []),
                   {
                     label: "Suppliers",
                     collapsible: true,
