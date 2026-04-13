@@ -1,18 +1,14 @@
 
 
-## Hide Subscription Tab for Non-Owners + Green Toggle Switch
+## Fix Auto-Renew Toggle to Match Paid Badge Color
 
-### Changes
+### Problem
+The Switch component's base class includes `data-[state=checked]:bg-primary`, which has the same CSS specificity as the override `data-[state=checked]:bg-green-100` passed via className. Tailwind's class merging (via `cn()`) may not reliably resolve the conflict, causing the toggle to show the primary color or a blended result instead of the exact `bg-green-100`.
 
-**1. Hide the "Subscription" sidebar item for non-owners** (`src/pages/Settings.tsx`)
-- Import `useUserRole` and conditionally exclude the `{ value: "subscription", label: "Subscription" }` item from the sidebar list when `isOwner` is false
-- This completely removes the menu entry so employees never see it
+### Solution
+Use the `!important` modifier in Tailwind (`!bg-green-100`) to force the green background to win over the base style.
 
-**2. Make the auto-renew toggle switch green when active** (`src/components/settings/ManageSubscriptionDialog.tsx`)
-- Add a className to the `<Switch>` component that uses the same green as the "Paid" badge background: `data-[state=checked]:bg-green-100` with a green thumb or the filled green style
-- Specifically: use `data-[state=checked]:bg-green-500` to match the green tone from the Paid badge's lighter green background
-
-### Files to modify
-1. `src/pages/Settings.tsx` -- filter out subscription sidebar item for non-owners
-2. `src/components/settings/ManageSubscriptionDialog.tsx` -- add green color class to Switch
+### File to modify
+**`src/components/settings/ManageSubscriptionDialog.tsx`** (line ~552)
+- Change `data-[state=checked]:bg-green-100` to `data-[state=checked]:!bg-green-100`
 
