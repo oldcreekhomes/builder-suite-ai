@@ -1,30 +1,16 @@
 
-Goal
-- Stop fighting the green match and make the Auto-renew ON toggle a solid black switch.
 
-What I found
-- In `src/components/settings/ManageSubscriptionDialog.tsx`, the toggle is already a custom `<button>`, not the shared `Switch`.
-- The ON-state rail color is currently set inline as `bg-[#dcfce7] dark:bg-green-900/30`.
-- That means this is now a very small, localized fix.
+## Add $7,700 Price History Entry for Staging (2560)
 
-Implementation
-1. Update only `src/components/settings/ManageSubscriptionDialog.tsx`.
-2. Change the Auto-renew ON-state rail from the current green classes to a literal `bg-black`.
-3. Leave the OFF state as `bg-input`.
-4. Keep the white thumb so the black rail has strong contrast and stays easy to read/click.
-5. Do not change the Paid badge, any shared UI component, or any other settings styling.
+Two data operations — no code changes needed:
 
-Verification
-- Open Settings → Subscription.
-- Confirm the Paid badge stays green.
-- Confirm the Auto-renew toggle shows a solid black background when ON.
-- Confirm the toggle still works normally for cancel/reactivate behavior.
+1. **Insert a price history record** into `cost_code_price_history`:
+   - cost_code_id: `46447250-c06c-435f-8ec2-ac1908297de2`
+   - price: `7700`
+   - changed_at: `2025-12-12`
+   - owner_id: `2653aba8-d154-4301-99bf-77d559492e19`
 
-Technical details
-- Replace:
-  - `isOn ? "bg-[#dcfce7] dark:bg-green-900/30" : "bg-input"`
-- With:
-  - `isOn ? "bg-black" : "bg-input"`
-- No global switch changes.
-- No opacity utilities on the active black rail.
-- Single-file change only.
+2. **Update the cost code's current price** on `cost_codes` to `7700` (since this will be the most recent/only history entry, matching how the UI syncs the price after adding history).
+
+After this, the Price History graph for 2560 - Staging will show a $7,700 data point at 12/12/2025, and the current price will read $7,700.
+
