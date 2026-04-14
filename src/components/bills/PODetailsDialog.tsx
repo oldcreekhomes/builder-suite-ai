@@ -162,17 +162,9 @@ export function PODetailsDialog({
         return sum;
       }
 
-      // Tier 2.5: parent/child cost code match
-      // Check if the bill line's cost code string starts with the PO line's cost code string
-      // e.g., bill uses "3180.2" (Silt Fence) and PO line uses "3180" (Sediment & Erosion Control)
-      if (pbl.cost_code_id && lineCostCodeId && pbl.cost_code_id !== lineCostCodeId) {
-        const poLineCC = lineItems.find(l => l.id === lineId)?.cost_code;
-        if (poLineCC?.code) {
-          // Find the bill line's cost code by checking all line items' cost codes
-          // We need to check if the bill's cost code is a child of this PO line's cost code
-          // Since we don't have the bill's cost code string directly, use the single-line fallback below
-        }
-      }
+      // Tier 2.5: parent/child cost code match (placeholder for future enhancement)
+      // Would compare bill line's cost code string against PO line's cost code string
+      // e.g., bill "3180.2" starts with PO "3180" — requires cost code strings on pending lines
 
       // Tier 3: single-line PO fallback
       // If this PO has only one line item and the bill line wasn't matched by any tier above,
