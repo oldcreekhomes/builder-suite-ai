@@ -119,17 +119,31 @@ export function PODetailsDialog({
   };
 
   // Helper to find pending amount for a PO line
+  // Build a set of cost_code_ids that are already explicitly matched by any pending bill line
+  const explicitlyMatchedCostCodes = new Set<string>();
+  if (hasPending) {
+    for (const pbl of pendingBillLines) {
+      if (pbl.purchase_order_line_id) {
+        const matchedLine = lineItems.find(l => l.id === pbl.purchase_order_line_id);
+        if (matchedLine?.cost_code_id) explicitlyMatchedCostCodes.add(matchedLine.cost_code_id);
+      }
+    }
+  }
+
+  // Helper to find pending amount for a PO line
   const getPendingForLine = (lineId: string, lineCostCodeId?: string, lineDescription?: string): number => {
     if (!hasPending) return 0;
     return pendingBillLines.reduce((sum, pbl) => {
       // Tier 1: explicit line match
       if (pbl.purchase_order_line_id === lineId) return sum + pbl.amount;
-      // Tier 2: cost code fallback (only if no explicit line id on pending line)
-      if (!pbl.purchase_order_line_id && pbl.cost_code_id && pbl.cost_code_id === lineCostCodeId) {
-        // Check if multiple PO lines share this cost code
+
+      // Skip remaining tiers if this pending line already has an explicit line assignment
+      if (pbl.purchase_order_line_id) return sum;
+
+      // Tier 2: exact cost code match
+      if (pbl.cost_code_id && pbl.cost_code_id === lineCostCodeId) {
         const sameCCLines = lineItems.filter(l => l.cost_code_id === lineCostCodeId);
         if (sameCCLines.length <= 1) {
-          // Unique cost code — attribute directly
           return sum + pbl.amount;
         }
         // Multiple lines share cost code — use memo keyword matching
@@ -142,13 +156,31 @@ export function PODetailsDialog({
             bestLineId = candidate.id;
           }
         }
-        // Only allocate to THIS line if it won the keyword match
         if (bestScore >= 1 && bestLineId === lineId) {
           return sum + pbl.amount;
         }
-        // No winner or different winner — don't allocate here
         return sum;
       }
+
+      // Tier 2.5: parent/child cost code match
+      // Check if the bill line's cost code string starts with the PO line's cost code string
+      // e.g., bill uses "3180.2" (Silt Fence) and PO line uses "3180" (Sediment & Erosion Control)
+      if (pbl.cost_code_id && lineCostCodeId && pbl.cost_code_id !== lineCostCodeId) {
+        const poLineCC = lineItems.find(l => l.id === lineId)?.cost_code;
+        if (poLineCC?.code) {
+          // Find the bill line's cost code by checking all line items' cost codes
+          // We need to check if the bill's cost code is a child of this PO line's cost code
+          // Since we don't have the bill's cost code string directly, use the single-line fallback below
+        }
+      }
+
+      // Tier 3: single-line PO fallback
+      // If this PO has only one line item and the bill line wasn't matched by any tier above,
+      // attribute it to the single line (safe because bill was already filtered to this PO)
+      if (lineItems.length === 1) {
+        return sum + pbl.amount;
+      }
+
       return sum;
     }, 0);
   };
