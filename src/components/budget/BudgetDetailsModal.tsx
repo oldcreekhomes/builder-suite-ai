@@ -323,6 +323,55 @@ export function BudgetDetailsModal({
     manualInitialState,
   ]);
 
+  // Hydrate manual sub-lines from project_budget_manual_lines (true source of truth)
+  const { data: manualLineRows } = useQuery({
+    queryKey: ['budget-manual-lines', projectId, costCode.id],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('project_budget_manual_lines' as any)
+        .select('id, description, notes, unit_price, quantity, sort_order')
+        .eq('project_id', projectId)
+        .eq('cost_code_id', costCode.id)
+        .order('sort_order', { ascending: true });
+      if (error) throw error;
+      return (data as any[]) || [];
+    },
+    enabled: isOpen,
+  });
+
+  useEffect(() => {
+    if (!isOpen) {
+      manualLinesHydrationKeyRef.current = null;
+      return;
+    }
+    if (manualLineRows === undefined) return;
+
+    const hydrationKey = `${budgetItem.id}:lines`;
+    if (manualLinesHydrationKeyRef.current === hydrationKey) return;
+
+    if (manualLineRows.length > 0) {
+      setManualLines(
+        manualLineRows.map((row: any) => ({
+          tempId: `db-${row.id}`,
+          id: row.id,
+          description: row.description ?? costCode.name,
+          notes: row.notes ?? '',
+          unitPriceInput: row.unit_price?.toString() ?? '',
+          quantityInput: row.quantity?.toString() ?? '1',
+        }))
+      );
+    } else {
+      // Seed single line from existing reconstructed manual total
+      setManualLines([
+        newManualLine({
+          unitPriceInput: manualInitialState.unitPriceInput,
+          quantityInput: manualInitialState.quantityInput || '1',
+        }),
+      ]);
+    }
+    manualLinesHydrationKeyRef.current = hydrationKey;
+  }, [isOpen, budgetItem.id, manualLineRows, manualInitialState, costCode.name]);
+
   useEffect(() => {
     setSelectedBidId(currentSelectedBidId || null);
   }, [currentSelectedBidId]);
