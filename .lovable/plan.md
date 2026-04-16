@@ -1,44 +1,36 @@
 
 
-## Plan: Manual tab header + Unit cell polish
+## Plan: Slim down Manual tab table
 
-### 1. Cost Code on one line
-"Cost Code" header currently wraps to two lines because the column is too narrow. Widen the Cost Code column slightly and add `whitespace-nowrap` to the header so "Cost Code" stays on a single line.
+The Manual tab currently shows Cost Code + Description columns, which duplicates the "2310 - Public Housing Contributions" header already shown at the top of the Budget Details dialog. This forces the modal to span full width.
 
-### 2. Unit options as 2-letter abbreviations
-Update the shared `MANUAL_UNIT_OPTIONS` constant in `BudgetDetailsModal.tsx` to use `{ value, label }` pairs:
-- CY — Cubic Yard
-- EA — Each
-- LF — Linear Feet
-- SF — Square Feet
-- SY — Square Yard
+### Changes (`src/components/budget/BudgetDetailsModal.tsx`)
 
-The dropdown list shows the 2-letter code as the option label (e.g. "CY"), and the selected trigger displays the same 2-letter code. Stored value in `unit_of_measure` becomes the 2-letter code (`CY`, `EA`, `LF`, `SF`, `SY`).
+1. **Remove redundant columns** from the Manual tab table:
+   - Drop the "Cost Code" column (header + cell).
+   - Drop the "Description" column (header + cell).
+   - Remaining columns: Notes, Unit Price, Unit, Quantity, Total, Actions.
 
-Note: existing rows saved with full names ("Cubic Yard", etc.) will simply not match a current option; the trigger will fall back to "Select" until re-saved. Acceptable since this feature was just shipped and unlikely to have legacy data.
+2. **Keep persistence intact**: continue saving `description = costCode.name` and `cost_code_id` on each row — only the visible columns are removed, not the underlying data.
 
-### 3. Unit column width = width of "Unit"
-Shrink the Unit column to fit just the word "Unit" plus the 2-letter dropdown. Use `w-16` (~64px) on the header/cell and remove the wider `<SelectTrigger>` width.
+3. **Shrink the dialog width**: change `DialogContent` from its current wide class (e.g. `max-w-6xl`/`max-w-5xl`) to `max-w-3xl` so the modal no longer spans the full screen. Keep responsive padding.
 
-### 4. Header alignment
-- Left-align all headers: Cost Code, Description, Notes, Unit Price, Quantity, Total.
-- Center-align Unit header (over the dropdown).
-- Center-align Actions header AND the 3-dot button cell content.
-
-Currently Total/Actions or others may be right/left mixed — explicitly set:
-- `text-left` on: Cost Code, Description, Notes, Unit Price, Quantity, Total
-- `text-center` on: Unit, Actions
-- Actions cell body: `flex justify-center` for the 3-dot menu trigger
-
-### Files to change
-- `src/components/budget/BudgetDetailsModal.tsx` — header classes, column widths, MANUAL_UNIT_OPTIONS shape, Select rendering, Actions cell alignment.
+4. **Column sizing tweaks** so the slimmer table looks balanced:
+   - Notes: flexible (takes remaining space)
+   - Unit Price: ~`w-32`
+   - Unit: `w-16` centered (unchanged)
+   - Quantity: ~`w-24`
+   - Total: ~`w-32` left-aligned (unchanged)
+   - Actions: `w-12` centered (unchanged)
 
 ### Out of scope
-No DB changes, no changes to other tabs, no changes to allocation/save logic.
+- No changes to other tabs (Estimate, PO, Vendor Bid, Historical, Actual) — they keep their current layout.
+- No DB or save-logic changes.
+- No changes to Allocation Mode panel or Total Budget footer.
 
 ### Validation
-1. "Cost Code" header renders on one line.
-2. Unit dropdown shows CY, EA, LF, SF, SY (alphabetical by code).
-3. Unit column is just wide enough for the word "Unit".
-4. All headers left-aligned except Unit and Actions (centered); 3-dot button centered in its cell.
+1. Open Budget Details → Manual tab: table starts with Notes column; Cost Code / Description columns are gone.
+2. Dialog is noticeably narrower (no longer full-screen width).
+3. Apply still saves correctly; reopening shows the same notes / unit price / unit / quantity values.
+4. Cost code identity still visible via the "2310 - Public Housing Contributions" subheader at the top of the dialog.
 
