@@ -436,9 +436,13 @@ export function BudgetDetailsModal({
     ? Math.floor((selectedBidPrice / lotCount) * 100) / 100
     : selectedBidPrice;
   const displayAmount = hasMultipleLots && allocationMode === 'per-lot' ? perLotAmount : selectedBidPrice;
-  const manualQuantityValue = parseFloat(manualQuantityInput) || 0;
-  const manualUnitPriceValue = parseFloat(manualUnitPriceInput) || 0;
-  const manualTotalCents = toCents(manualQuantityValue * manualUnitPriceValue);
+  // Manual total = sum of all sub-lines (cent-precise)
+  const manualLineTotalsCents = manualLines.map((line) => {
+    const qty = parseFloat(line.quantityInput) || 0;
+    const price = parseFloat(line.unitPriceInput) || 0;
+    return toCents(qty * price);
+  });
+  const manualTotalCents = manualLineTotalsCents.reduce((sum, c) => sum + c, 0);
   const manualTotalAmount = fromCents(manualTotalCents);
   const manualPerLotAmount = hasMultipleLots && manualTotalCents > 0
     ? fromCents(Math.floor(manualTotalCents / lotCount))
