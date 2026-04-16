@@ -16,7 +16,7 @@ import { useBudgetSourceUpdate } from "@/hooks/useBudgetSourceUpdate";
 import { useHistoricalProjects, parseHistoricalKey } from "@/hooks/useHistoricalProjects";
 import { useHistoricalActualCosts } from "@/hooks/useHistoricalActualCosts";
 import { BudgetDetailsPurchaseOrderTab } from "@/components/budget/BudgetDetailsPurchaseOrderTab";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo, useRef } from "react";
 import { format } from "date-fns";
 import type { Tables } from "@/integrations/supabase/types";
 import { supabase } from "@/integrations/supabase/client";
@@ -29,6 +29,7 @@ type BudgetItem = Tables<'project_budgets'> & {
   cost_codes: CostCode;
   unit_price?: number;
 };
+type BudgetRowLike = Pick<Tables<'project_budgets'>, 'lot_id' | 'quantity' | 'unit_price'>;
 
 interface BudgetDetailsModalProps {
   isOpen: boolean;
@@ -40,6 +41,21 @@ interface BudgetDetailsModalProps {
   isLocked?: boolean;
   lotCount?: number;
 }
+
+const toCents = (value: number | null | undefined) => Math.round((value ?? 0) * 100);
+
+const fromCents = (value: number) => value / 100;
+
+const getBudgetRowTotalCents = (row: BudgetRowLike) => {
+  const quantity = row.quantity ?? 1;
+  const unitPrice = row.unit_price ?? 0;
+  return toCents(quantity * unitPrice);
+};
+
+const getPreferredLotRows = <TRow extends Pick<Tables<'project_budgets'>, 'lot_id'>>(rows: TRow[]) => {
+  const lotRows = rows.filter((row) => row.lot_id !== null);
+  return lotRows.length > 0 ? lotRows : rows;
+};
 
 export function BudgetDetailsModal({
   isOpen,
@@ -159,6 +175,7 @@ export function BudgetDetailsModal({
   const [manualAllocationMode, setManualAllocationMode] = useState<'full' | 'per-lot'>('full');
   const [poAllocationMode, setPoAllocationMode] = useState<'full' | 'per-lot'>('full');
   const [poAllocationAmount, setPoAllocationAmount] = useState<number>(0);
+  const manualHydrationKeyRef = useRef<string | null>(null);
 
   // Budget source update hook
   const { updateSource, isUpdating } = useBudgetSourceUpdate(projectId);
@@ -201,34 +218,83 @@ export function BudgetDetailsModal({
     enabled: isOpen && lotCount > 1 && budgetItem.budget_source === 'manual',
   });
 
-  useEffect(() => {
-    if (lotCount <= 1 || budgetItem.budget_source !== 'manual' || !siblingRows || siblingRows.length === 0) return;
+  const manualFallbackState = useMemo(() => ({
+    quantityInput: budgetItem.quantity?.toString() || '',
+    unitPriceInput: budgetItem.unit_price?.toString() || '',
+    allocationMode: 'full' as const,
+  }), [budgetItem.quantity, budgetItem.unit_price]);
 
-    const isNear = (a: number, b: number, epsilon = 0.02) => Math.abs(a - b) < epsilon;
+  const manualInitialState = useMemo(() => {
+    if (budgetItem.budget_source !== 'manual' || lotCount <= 1 || !siblingRows?.length) {
+      return manualFallbackState;
+    }
 
-    // Sum all sibling row totals with cent-precise math
-    const reconstructedTotal = siblingRows.reduce((sum, row) => {
-      return sum + Math.round(((row.unit_price || 0) * (row.quantity || 1)) * 100);
-    }, 0) / 100;
+    const candidateRows = getPreferredLotRows(siblingRows);
 
-    if (reconstructedTotal <= 0) return;
+    if (candidateRows.length < 2) {
+      return manualFallbackState;
+    }
 
-    // Compute expected split pattern
-    const basePerLot = Math.floor((reconstructedTotal / lotCount) * 100) / 100;
-    const remainderPerLot = Number((reconstructedTotal - basePerLot * (lotCount - 1)).toFixed(2));
+    const reconstructedTotalCents = candidateRows.reduce((sum, row) => sum + getBudgetRowTotalCents(row), 0);
 
-    // Check if all sibling rows match the split pattern
-    const allMatch = siblingRows.every(row => {
-      const rowTotal = Math.round(((row.unit_price || 0) * (row.quantity || 1)) * 100) / 100;
-      return isNear(rowTotal, basePerLot) || isNear(rowTotal, remainderPerLot);
+    if (reconstructedTotalCents <= 0) {
+      return manualFallbackState;
+    }
+
+    const basePerLotCents = Math.floor(reconstructedTotalCents / lotCount);
+    const remainderPerLotCents = reconstructedTotalCents - basePerLotCents * (lotCount - 1);
+
+    const matchesSplitPattern = candidateRows.every((row) => {
+      const rowTotalCents = getBudgetRowTotalCents(row);
+      return rowTotalCents === basePerLotCents || rowTotalCents === remainderPerLotCents;
     });
 
-    if (allMatch && siblingRows.length === lotCount) {
-      setManualAllocationMode('per-lot');
-      setManualUnitPriceInput(reconstructedTotal.toString());
-      setManualQuantityInput('1');
+    if (!matchesSplitPattern) {
+      return manualFallbackState;
     }
-  }, [lotCount, budgetItem.budget_source, siblingRows]);
+
+    return {
+      quantityInput: '1',
+      unitPriceInput: fromCents(reconstructedTotalCents).toString(),
+      allocationMode: 'per-lot' as const,
+    };
+  }, [budgetItem.budget_source, lotCount, manualFallbackState, siblingRows]);
+
+  useEffect(() => {
+    if (!isOpen) {
+      manualHydrationKeyRef.current = null;
+      return;
+    }
+
+    const needsSiblingRows = budgetItem.budget_source === 'manual' && lotCount > 1;
+
+    if (needsSiblingRows && siblingRows === undefined) {
+      const fallbackKey = `${budgetItem.id}:fallback`;
+      if (manualHydrationKeyRef.current === fallbackKey) return;
+
+      setManualQuantityInput(manualFallbackState.quantityInput);
+      setManualUnitPriceInput(manualFallbackState.unitPriceInput);
+      setManualAllocationMode(manualFallbackState.allocationMode);
+      manualHydrationKeyRef.current = fallbackKey;
+      return;
+    }
+
+    const hydrationKey = `${budgetItem.id}:resolved`;
+    if (manualHydrationKeyRef.current === hydrationKey) return;
+
+    setManualQuantityInput(manualInitialState.quantityInput);
+    setManualUnitPriceInput(manualInitialState.unitPriceInput);
+    setManualAllocationMode(manualInitialState.allocationMode);
+    manualHydrationKeyRef.current = hydrationKey;
+  }, [
+    isOpen,
+    budgetItem.id,
+    budgetItem.budget_source,
+    lotCount,
+    siblingRows,
+    manualFallbackState,
+    manualInitialState,
+  ]);
 
   useEffect(() => {
     setSelectedBidId(currentSelectedBidId || null);
@@ -294,6 +360,16 @@ export function BudgetDetailsModal({
     ? Math.floor((selectedBidPrice / lotCount) * 100) / 100
     : selectedBidPrice;
   const displayAmount = hasMultipleLots && allocationMode === 'per-lot' ? perLotAmount : selectedBidPrice;
+  const manualQuantityValue = parseFloat(manualQuantityInput) || 0;
+  const manualUnitPriceValue = parseFloat(manualUnitPriceInput) || 0;
+  const manualTotalCents = toCents(manualQuantityValue * manualUnitPriceValue);
+  const manualTotalAmount = fromCents(manualTotalCents);
+  const manualPerLotAmount = hasMultipleLots && manualTotalCents > 0
+    ? fromCents(Math.floor(manualTotalCents / lotCount))
+    : manualTotalAmount;
+  const manualDisplayAmount = hasMultipleLots && manualAllocationMode === 'per-lot'
+    ? manualPerLotAmount
+    : manualTotalAmount;
 
   // Historical cost for current cost code
   const historicalCostForCode = historicalCosts?.mapByCode[costCode.code] || 0;
@@ -330,14 +406,14 @@ export function BudgetDetailsModal({
         }
       );
     } else if (source === 'manual') {
-      const manualQty = parseFloat(manualQuantityInput) || 0;
-      const manualPrice = parseFloat(manualUnitPriceInput) || 0;
+      const manualQty = manualQuantityValue;
+      const manualPrice = manualUnitPriceValue;
       const shouldDivide = hasMultipleLots && manualAllocationMode === 'per-lot';
 
       if (shouldDivide && lotCount > 1) {
-        const total = manualQty * manualPrice;
-        const perLot = Math.floor((total / lotCount) * 100) / 100;
-        const lastLotAmount = Number((total - perLot * (lotCount - 1)).toFixed(2));
+        const perLotCents = Math.floor(manualTotalCents / lotCount);
+        const perLot = fromCents(perLotCents);
+        const lastLotAmount = fromCents(manualTotalCents - perLotCents * (lotCount - 1));
 
         try {
           const { data: allBudgetItems, error: allError } = await supabase
@@ -822,56 +898,44 @@ export function BudgetDetailsModal({
                         />
                       </TableCell>
                       <TableCell className="text-sm font-medium">
-                        {formatCurrency((parseFloat(manualQuantityInput) || 0) * (parseFloat(manualUnitPriceInput) || 0))}
+                        {formatCurrency(manualTotalAmount)}
                       </TableCell>
                     </TableRow>
                   </TableBody>
                 </Table>
               </div>
               {/* Manual Allocation Mode Toggle */}
-              {hasMultipleLots && ((parseFloat(manualQuantityInput) || 0) * (parseFloat(manualUnitPriceInput) || 0)) > 0 && (
-                (() => {
-                  const manualTotal = (parseFloat(manualQuantityInput) || 0) * (parseFloat(manualUnitPriceInput) || 0);
-                  const manualPerLot = Math.floor((manualTotal / lotCount) * 100) / 100;
-                  return (
-                    <div className="border rounded-lg bg-muted/50 p-3 space-y-2">
-                      <div className="text-sm font-medium">Allocation Mode</div>
-                      <RadioGroup
-                        value={manualAllocationMode}
-                        onValueChange={(val) => setManualAllocationMode(val as 'full' | 'per-lot')}
-                        className="grid grid-cols-2 gap-3"
-                      >
-                        <label htmlFor="manual-alloc-full" className={`flex items-center gap-2 rounded-md border p-2.5 cursor-pointer transition-colors ${manualAllocationMode === 'full' ? 'border-primary bg-primary/5' : 'border-border'}`}>
-                          <RadioGroupItem value="full" id="manual-alloc-full" />
-                          <div className="min-w-0">
-                            <div className="text-sm font-medium">Full amount</div>
-                            <div className="text-xs text-muted-foreground">{formatCurrency(manualTotal)}</div>
-                          </div>
-                        </label>
-                        <label htmlFor="manual-alloc-per-lot" className={`flex items-center gap-2 rounded-md border p-2.5 cursor-pointer transition-colors ${manualAllocationMode === 'per-lot' ? 'border-primary bg-primary/5' : 'border-border'}`}>
-                          <RadioGroupItem value="per-lot" id="manual-alloc-per-lot" />
-                          <div className="min-w-0">
-                            <div className="text-sm font-medium">Divide by {lotCount} lots</div>
-                            <div className="text-xs text-muted-foreground">{formatCurrency(manualTotal)} ÷ {lotCount} = {formatCurrency(manualPerLot)}/lot</div>
-                          </div>
-                        </label>
-                      </RadioGroup>
-                    </div>
-                  );
-                })()
+              {hasMultipleLots && manualTotalAmount > 0 && (
+                <div className="border rounded-lg bg-muted/50 p-3 space-y-2">
+                  <div className="text-sm font-medium">Allocation Mode</div>
+                  <RadioGroup
+                    value={manualAllocationMode}
+                    onValueChange={(val) => setManualAllocationMode(val as 'full' | 'per-lot')}
+                    className="grid grid-cols-2 gap-3"
+                  >
+                    <label htmlFor="manual-alloc-full" className={`flex items-center gap-2 rounded-md border p-2.5 cursor-pointer transition-colors ${manualAllocationMode === 'full' ? 'border-primary bg-primary/5' : 'border-border'}`}>
+                      <RadioGroupItem value="full" id="manual-alloc-full" />
+                      <div className="min-w-0">
+                        <div className="text-sm font-medium">Full amount</div>
+                        <div className="text-xs text-muted-foreground">{formatCurrency(manualTotalAmount)}</div>
+                      </div>
+                    </label>
+                    <label htmlFor="manual-alloc-per-lot" className={`flex items-center gap-2 rounded-md border p-2.5 cursor-pointer transition-colors ${manualAllocationMode === 'per-lot' ? 'border-primary bg-primary/5' : 'border-border'}`}>
+                      <RadioGroupItem value="per-lot" id="manual-alloc-per-lot" />
+                      <div className="min-w-0">
+                        <div className="text-sm font-medium">Divide by {lotCount} lots</div>
+                        <div className="text-xs text-muted-foreground">{formatCurrency(manualTotalAmount)} ÷ {lotCount} = {formatCurrency(manualPerLotAmount)}/lot</div>
+                      </div>
+                    </label>
+                  </RadioGroup>
+                </div>
               )}
               <div className="flex justify-between items-center pt-2 border-t">
                 <span className="text-sm font-medium">
                   {hasMultipleLots && manualAllocationMode === 'per-lot' ? 'Total Budget (per lot):' : 'Total Budget:'}
                 </span>
                 <span className="text-sm font-semibold">
-                  {(() => {
-                    const manualTotal = (parseFloat(manualQuantityInput) || 0) * (parseFloat(manualUnitPriceInput) || 0);
-                    if (hasMultipleLots && manualAllocationMode === 'per-lot' && manualTotal > 0) {
-                      return formatCurrency(Math.floor((manualTotal / lotCount) * 100) / 100);
-                    }
-                    return formatCurrency(manualTotal);
-                  })()}
+                  {formatCurrency(manualDisplayAmount)}
                 </span>
               </div>
             </div>
