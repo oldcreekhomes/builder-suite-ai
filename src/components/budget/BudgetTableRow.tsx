@@ -242,11 +242,49 @@ export function BudgetTableRow({
   // Get budget warnings
   const warnings = useBudgetWarnings(item, total, costCode);
 
+  // Prefetch heavy modal queries on hover so the modal opens instantly
+  const queryClient = useQueryClient();
+  const prefetchedRef = React.useRef(false);
+  const handlePrefetch = () => {
+    if (prefetchedRef.current || !costCode?.id || !item.project_id) return;
+    prefetchedRef.current = true;
+    const projectId = item.project_id;
+    const costCodeId = costCode.id;
+    queryClient.prefetchQuery({
+      queryKey: ['budget-siblings-manual', projectId, costCodeId],
+      queryFn: async () => {
+        const { data, error } = await supabase
+          .from('project_budgets')
+          .select('id, lot_id, unit_price, quantity, manual_allocation_mode')
+          .eq('project_id', projectId)
+          .eq('cost_code_id', costCodeId);
+        if (error) throw error;
+        return (data as any[]) || [];
+      },
+      staleTime: 60_000,
+    });
+    queryClient.prefetchQuery({
+      queryKey: ['budget-manual-lines', projectId, costCodeId],
+      queryFn: async () => {
+        const { data, error } = await supabase
+          .from('project_budget_manual_lines' as any)
+          .select('id, description, notes, unit_price, quantity, sort_order, unit_of_measure')
+          .eq('project_id', projectId)
+          .eq('cost_code_id', costCodeId)
+          .order('sort_order', { ascending: true });
+        if (error) throw error;
+        return (data as any[]) || [];
+      },
+      staleTime: 60_000,
+    });
+  };
+
   return (
     <React.Fragment>
       <TableRow 
         className={`h-10 hover:bg-muted/50 border-b cursor-pointer transition-colors ${isSelected ? 'bg-primary/5' : ''}`}
         onClick={() => setShowDetailsModal(true)}
+        onMouseEnter={handlePrefetch}
       >
       <TableCell className="w-8 px-1 py-1" onClick={(e) => e.stopPropagation()}>
         <Checkbox
