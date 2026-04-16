@@ -1,35 +1,19 @@
 
-## Plan: Make Income Statement dynamic from Inputs page
+## Plan: Rename Property & Revenue labels + lock Estimated Value in Taxes
 
-### Problem
-Income Statement rows are hardcoded. When a user removes a row on the Inputs page (e.g. CapEx Reserve), it persists in localStorage as hidden — but the IS still shows it because it's not reading that visibility state.
-
-### Investigation needed (during implementation)
-1. Read `src/pages/apartments/ApartmentInputs.tsx` to find the localStorage key + shape used for tracking which expense rows are visible/hidden (per the `apartments/operating-expense-logic` memory: "visibility persisted in localStorage").
-2. Confirm the list of toggleable expense fields and their labels.
-
-### Approach
-1. **Extract visibility state into a shared hook** — `src/hooks/useApartmentExpenseVisibility.ts`:
-   - Reads the same localStorage key used by Inputs page.
-   - Returns `{ visibleFields: Set<string>, isVisible: (field) => boolean }`.
-   - Subscribes to `storage` events + a custom `apartment-expenses-changed` event so the IS updates live when the Inputs page toggles a row (same tab).
-2. **Update `ApartmentInputs.tsx`** to dispatch `apartment-expenses-changed` whenever a row is added/removed (small change next to existing localStorage write).
-3. **Update `ApartmentIncomeStatement.tsx`**:
-   - Define an array describing each operating expense row (field key, label, value source).
-   - `.filter(row => isVisible(row.field))` before rendering.
-   - Always-visible rows (Taxes, Insurance core line, Management Fee, Reserves) stay rendered; only the toggleable ones go through the filter — matching Inputs page behavior.
-
-### Files to change
-- `src/hooks/useApartmentExpenseVisibility.ts` (new)
-- `src/pages/apartments/ApartmentInputs.tsx` (dispatch event on toggle)
-- `src/pages/apartments/ApartmentIncomeStatement.tsx` (data-driven rows + visibility filter)
+### Changes to `src/pages/apartments/ApartmentInputs.tsx`
+1. Rename label **"Purchase Price"** → **"Total Costs"** (still bound to `purchase_price` field — no calculation changes).
+2. Rename label **"Construction Costs"** → **"Estimated Value"** AND rebind that input to the existing `estimated_value` field (instead of `construction_costs`).
+   - This makes the Property & Revenue "Estimated Value" the single source of truth.
+   - The Estimated Value shown under Taxes will now mirror this value automatically (both read from `estimated_value`).
+3. In the **Taxes** sub-row, render the **Estimated Value** as **read-only** (display only, no input) so users only edit it from Property & Revenue.
 
 ### Out of scope
-- DB schema, calculations, Dashboard, Inputs UI layout.
-- Project-level scoping of visibility (stays in localStorage as it is today).
+- No DB schema changes (`construction_costs` field remains in the table, just unused by this row).
+- No changes to Income Statement, calculations, or other cards.
 
 ### Validation
-1. On Inputs page, remove CapEx Reserve → IS page (already open in another tab or after navigation) no longer shows CapEx Reserve row.
-2. Re-add CapEx Reserve on Inputs → IS shows it again with current value.
-3. Toggle Landscaping, Snow Removal, etc. → IS reflects each change.
-4. Totals (Total OpEx, NOI, Cash Flow) remain mathematically correct (calculations untouched; hidden rows still contribute $0 by user intent — confirm with user if hidden rows should also be excluded from totals; default: exclude from display only, since DB value is what feeds totals and user zeroed it out by removing).
+1. Property & Revenue shows "Total Costs" and "Estimated Value" labels.
+2. Editing "Estimated Value" in Property & Revenue updates the Taxes → Estimated Value display in real time.
+3. Taxes → Estimated Value is not editable (plain text, no input field).
+4. Tax calc (`estimated_value × tax_rate`) continues to work using the same field.
