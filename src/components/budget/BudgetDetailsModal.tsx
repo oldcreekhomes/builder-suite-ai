@@ -685,7 +685,7 @@ export function BudgetDetailsModal({
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="max-w-5xl max-h-[80vh] overflow-hidden flex flex-col">
+      <DialogContent className="max-w-3xl max-h-[80vh] overflow-hidden flex flex-col">
         <DialogHeader>
           <DialogTitle className="text-base font-semibold">
             Budget Details
@@ -1002,13 +1002,11 @@ export function BudgetDetailsModal({
                 <Table>
                   <TableHeader>
                     <TableRow>
-                      <TableHead className="text-left whitespace-nowrap">Cost Code</TableHead>
-                      <TableHead className="text-left">Description</TableHead>
                       <TableHead className="text-left">Notes</TableHead>
-                      <TableHead className="text-left">Unit Price</TableHead>
+                      <TableHead className="text-left w-32">Unit Price</TableHead>
                       <TableHead className="text-center w-16">Unit</TableHead>
-                      <TableHead className="text-left">Quantity</TableHead>
-                      <TableHead className="text-left">Total</TableHead>
+                      <TableHead className="text-left w-24">Quantity</TableHead>
+                      <TableHead className="text-left w-32">Total</TableHead>
                       <TableHead className="w-12 text-center">Actions</TableHead>
                     </TableRow>
                   </TableHeader>
@@ -1019,8 +1017,6 @@ export function BudgetDetailsModal({
                       const lineTotal = qty * price;
                       return (
                         <TableRow key={line.tempId}>
-                          <TableCell className="text-sm whitespace-nowrap">{costCode.code}</TableCell>
-                          <TableCell className="text-sm whitespace-nowrap">{costCode.name}</TableCell>
                           <TableCell className="text-sm">
                             <Input
                               type="text"
