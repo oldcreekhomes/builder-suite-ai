@@ -1,57 +1,67 @@
 
-Do I know what the issue is? Yes.
 
-The Manual tab is still using the saved lot row as its source of truth, then dividing that value again in the UI. Purchase Orders works because it does not do that — it keeps one canonical full total and only derives the per-lot display from that full total.
+## Plan: Manual tab — single row layout, Notes column, and Add Row capability
 
-What is actually wrong:
-1. Manual still initializes from `budgetItem.unit_price` and `budgetItem.quantity`, which are already split values on lot rows.
-2. The current sibling-row patch is too brittle, so if the sibling set is not exactly what the effect expects, the modal falls back to the single divided row.
-3. The Manual cards and total label are still driven by the editable row values, so reopen logic can still double-divide.
+### Issue 1 — Single row layout
+The current Manual tab wraps because `Quantity` and `Unit Price` use `w-28` inputs inside a 7-column table inside a `max-w-3xl` dialog. Description "Public Housing Contributions" wraps to 2 lines.
 
-Fix
-File: `src/components/budget/BudgetDetailsModal.tsx`
+Fix in `src/components/budget/BudgetDetailsModal.tsx`:
+- Widen dialog from `max-w-3xl` to `max-w-5xl` (matches Vendor Bid / PO breathing room).
+- Shrink number inputs from `w-28 h-8` to `w-24 h-8` and remove the `w-12` checkbox spacer column on Manual (no checkbox is used there).
+- Add `whitespace-nowrap` to total cell.
 
-1. Mirror the PO tab concept for Manual:
-   - create one canonical Manual full amount for reopen/display
-   - if the cost code is lot-split, reconstruct that full amount from sibling budget rows using cent-precise math
-   - otherwise use the current row total
+### Issue 2 — Actions column with "Add Row" dropdown
+Add a final `Actions` column with a 3-dot `MoreHorizontal` button (matches PO tab style) that opens a `DropdownMenu` containing **Add Row** (and **Delete Row** for non-primary rows).
 
-2. Make the sibling reconstruction robust:
-   - when multiple lots exist, prefer the non-null `lot_id` rows for that cost code
-   - ignore any project-wide `lot_id = null` row so it cannot break detection
-   - remove the brittle “exact row count must equal lotCount” fallback that leaves the modal on the single split row
+Behavior of "Add Row":
+- Inserts a new editable manual sub-line into the Manual tab UI directly below the clicked row.
+- Each sub-line has its own Description, Notes, Unit Price, Quantity, Total.
+- All sub-lines sum into the Manual total (and feed `manualTotalAmount`, which the existing per-lot allocation math already handles correctly).
 
-3. Rehydrate Manual from that canonical full amount:
-   - `manualAllocationMode = 'per-lot'` only when the sibling rows match a true split pattern
-   - `manualQuantityInput = "1"`
-   - `manualUnitPriceInput = original full amount`
-   - Manual “Full amount”, “Divide by 19 lots”, and “Total Budget” should all read from that same full amount, just like PO
+### Issue 3 — Notes column
+Insert a new `Notes` column between `Description` and `Unit Price` on the Manual tab, rendered as a small `<Input>` (same `h-8` size). Stored per sub-line.
 
-4. Keep save behavior the same:
-   - Full amount saves full amount
-   - Per-lot mode splits once across the lot rows with cent-precise remainder handling
-   - reopening never divides twice
+### Storage approach (technical)
 
-Technical details
-- Use cent math for all manual reconstruction and comparisons
-- Derive:
-  - `basePerLot = floor(fullTotal / lotCount to cents)`
-  - `remainderPerLot = fullTotal - basePerLot * (lotCount - 1)`
-- Use a single source of truth for Manual display state to avoid contradictory state
+The existing `project_budgets` table has a `(project_id, lot_id, cost_code_id)` unique constraint, so we cannot store multiple manual sub-lines as additional rows in `project_budgets`. We also cannot use the existing `comment` column for multi-row data without breaking other consumers.
 
-Validation
-1. Enter Manual full amount `$142,626` and choose `Divide by 19 lots`
-2. Reopen from:
-   - a normal lot row
-   - the remainder lot row
-   - the Job Costs budget dialog
-3. Confirm Manual shows:
-   - Full amount = `$142,626.00`
-   - Divide helper = `$142,626.00 ÷ 19 = $7,506.63/lot`
-   - no second division
-4. Click Apply without changes and confirm nothing changes unexpectedly
+Create a new child table `project_budget_manual_lines`:
+- `id uuid pk`
+- `project_id uuid` (FK projects)
+- `cost_code_id uuid` (FK cost_codes)
+- `description text` (defaults to cost code name)
+- `notes text null`
+- `unit_price numeric`
+- `quantity numeric default 1`
+- `sort_order int`
+- `owner_id uuid` (multi-tenant stamp per RLS standard)
+- `created_at`, `updated_at`
+- RLS: same `home_builder_id`-scoped policies used by `project_budgets`
 
-Scope
-- Single-file fix
-- No database changes
-- No UI redesign
+Save behavior on Apply (Manual tab):
+- Compute `manualTotalAmount` as the sum of all sub-lines.
+- Persist sub-lines to `project_budget_manual_lines` (upsert + delete removed).
+- Continue to write the aggregate into `project_budgets` exactly as today (per-lot split with cent-precise remainder when "Divide by N lots" is chosen, otherwise full amount on the row). This keeps Budget ↔ Job Costs mirror sync intact.
+
+Reopen behavior:
+- If `project_budget_manual_lines` rows exist for `(project_id, cost_code_id)`, hydrate the Manual tab from them (true source of truth — no reconstruction guesswork).
+- Else fall back to the current sibling-sum reconstruction for legacy single-line manual entries.
+
+### Files to change
+- `src/components/budget/BudgetDetailsModal.tsx` — Manual tab layout, Notes column, Actions dropdown, sub-line state, hydration from new table, save logic.
+- New migration — create `project_budget_manual_lines` table + RLS + indexes.
+- `src/integrations/supabase/types.ts` — auto-regenerated.
+
+### Out of scope
+- No changes to PO, Vendor Bid, Estimate, Historical, Actual tabs.
+- No changes to Job Costs report (it still reads from `project_budgets` aggregate).
+- No changes to budget locking or header actions.
+
+### Validation
+1. Open Manual tab → row renders on a single line; inputs are compact.
+2. Click 3-dot → Add Row → new editable sub-line appears with Notes field.
+3. Enter values; total updates live; Apply saves.
+4. Reopen modal → all sub-lines including notes reload exactly as entered.
+5. Per-lot allocation still divides the combined total correctly (e.g. $142,626 ÷ 19).
+6. Job Costs report shows the same combined total.
+
