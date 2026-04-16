@@ -1010,6 +1010,7 @@ export function BudgetDetailsModal({
                       const lineTotal = qty * price;
                       return (
                         <TableRow key={line.tempId}>
+                          <TableCell className="text-sm whitespace-nowrap">{costCode.code}</TableCell>
                           <TableCell className="text-sm whitespace-nowrap">{costCode.name}</TableCell>
                           <TableCell className="text-sm">
                             <Input
