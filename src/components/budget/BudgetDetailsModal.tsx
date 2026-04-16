@@ -1002,14 +1002,14 @@ export function BudgetDetailsModal({
                 <Table>
                   <TableHeader>
                     <TableRow>
-                      <TableHead>Cost Code</TableHead>
-                      <TableHead>Description</TableHead>
-                      <TableHead>Notes</TableHead>
-                      <TableHead>Unit Price</TableHead>
-                      <TableHead className="text-center">Unit</TableHead>
-                      <TableHead>Quantity</TableHead>
-                      <TableHead className="text-right">Total</TableHead>
-                      <TableHead className="w-12 text-right">Actions</TableHead>
+                      <TableHead className="text-left whitespace-nowrap">Cost Code</TableHead>
+                      <TableHead className="text-left">Description</TableHead>
+                      <TableHead className="text-left">Notes</TableHead>
+                      <TableHead className="text-left">Unit Price</TableHead>
+                      <TableHead className="text-center w-16">Unit</TableHead>
+                      <TableHead className="text-left">Quantity</TableHead>
+                      <TableHead className="text-left">Total</TableHead>
+                      <TableHead className="w-12 text-center">Actions</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
@@ -1050,7 +1050,7 @@ export function BudgetDetailsModal({
                               readOnly={isLocked}
                             />
                           </TableCell>
-                          <TableCell className="text-sm text-center whitespace-nowrap">
+                          <TableCell className="text-sm text-center whitespace-nowrap w-16">
                             <Select
                               value={line.unitOfMeasure || undefined}
                               onValueChange={(value) =>
@@ -1060,12 +1060,12 @@ export function BudgetDetailsModal({
                               }
                               disabled={isLocked}
                             >
-                              <SelectTrigger className="h-8 w-32">
-                                <SelectValue placeholder="Select" />
+                              <SelectTrigger className="h-8 w-full px-2">
+                                <SelectValue placeholder="—" />
                               </SelectTrigger>
                               <SelectContent>
                                 {MANUAL_UNIT_OPTIONS.map((opt) => (
-                                  <SelectItem key={opt} value={opt}>{opt}</SelectItem>
+                                  <SelectItem key={opt.value} value={opt.value}>{opt.label}</SelectItem>
                                 ))}
                               </SelectContent>
                             </Select>
