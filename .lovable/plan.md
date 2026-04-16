@@ -1,39 +1,44 @@
 
 
-## Plan: Lock description + Unit dropdown on Manual sub-lines
+## Plan: Manual tab header + Unit cell polish
 
-### 1. Description — read-only
-Replace the editable `<Input>` for Description on each Manual sub-line with plain text showing the cost code name. Remove `description` from per-line editable state. On save, continue writing `description = costCodeName` so existing data stays consistent.
+### 1. Cost Code on one line
+"Cost Code" header currently wraps to two lines because the column is too narrow. Widen the Cost Code column slightly and add `whitespace-nowrap` to the header so "Cost Code" stays on a single line.
 
-### 2. Unit — dropdown matching Estimating
-Use the same 5-option list as `EditCostCodeDialog.tsx`, sorted alphabetically:
-- Cubic Yard
-- Each
-- Linear Feet
-- Square Feet
-- Square Yard
+### 2. Unit options as 2-letter abbreviations
+Update the shared `MANUAL_UNIT_OPTIONS` constant in `BudgetDetailsModal.tsx` to use `{ value, label }` pairs:
+- CY — Cubic Yard
+- EA — Each
+- LF — Linear Feet
+- SF — Square Feet
+- SY — Square Yard
 
-Render a shadcn `<Select>` in the Unit cell of every Manual sub-line. Extract the option list to a single shared constant so Estimate and Manual stay in sync.
+The dropdown list shows the 2-letter code as the option label (e.g. "CY"), and the selected trigger displays the same 2-letter code. Stored value in `unit_of_measure` becomes the 2-letter code (`CY`, `EA`, `LF`, `SF`, `SY`).
 
-### 3. Storage
-Additive migration:
-```sql
-ALTER TABLE public.project_budget_manual_lines
-  ADD COLUMN unit_of_measure text;
-```
-No backfill needed. Hydration reads the column; save writes it.
+Note: existing rows saved with full names ("Cubic Yard", etc.) will simply not match a current option; the trigger will fall back to "Select" until re-saved. Acceptable since this feature was just shipped and unlikely to have legacy data.
 
-### Files
-- `src/components/budget/BudgetDetailsModal.tsx` — read-only description cell, Unit `<Select>`, `unit_of_measure` in state + hydration + save payload.
-- New migration — add `unit_of_measure` column.
-- `src/integrations/supabase/types.ts` — auto-regenerated.
+### 3. Unit column width = width of "Unit"
+Shrink the Unit column to fit just the word "Unit" plus the 2-letter dropdown. Use `w-16` (~64px) on the header/cell and remove the wider `<SelectTrigger>` width.
+
+### 4. Header alignment
+- Left-align all headers: Cost Code, Description, Notes, Unit Price, Quantity, Total.
+- Center-align Unit header (over the dropdown).
+- Center-align Actions header AND the 3-dot button cell content.
+
+Currently Total/Actions or others may be right/left mixed — explicitly set:
+- `text-left` on: Cost Code, Description, Notes, Unit Price, Quantity, Total
+- `text-center` on: Unit, Actions
+- Actions cell body: `flex justify-center` for the 3-dot menu trigger
+
+### Files to change
+- `src/components/budget/BudgetDetailsModal.tsx` — header classes, column widths, MANUAL_UNIT_OPTIONS shape, Select rendering, Actions cell alignment.
 
 ### Out of scope
-Other tabs, lot allocation math, Job Costs sync, Apply behavior.
+No DB changes, no changes to other tabs, no changes to allocation/save logic.
 
 ### Validation
-1. Manual tab: Description renders as plain text, not editable.
-2. Unit column shows dropdown with 5 options in alphabetical order.
-3. Select unit → Apply → reopen → value persists per row.
-4. Add Row → new sub-line has read-only description and Unit dropdown.
+1. "Cost Code" header renders on one line.
+2. Unit dropdown shows CY, EA, LF, SF, SY (alphabetical by code).
+3. Unit column is just wide enough for the word "Unit".
+4. All headers left-aligned except Unit and Actions (centered); 3-dot button centered in its cell.
 
