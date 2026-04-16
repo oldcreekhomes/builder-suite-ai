@@ -169,7 +169,7 @@ export function BudgetDetailsPurchaseOrderTab({
                 <TableCell className="text-sm">
                   {po.companies?.company_name || 'Unknown Vendor'}
                 </TableCell>
-                <TableCell className="text-sm text-center">
+                <TableCell className="text-sm text-left">
                   <Badge 
                     variant="outline" 
                     className={`text-xs ${getStatusColor(po.status)}`}
@@ -177,10 +177,10 @@ export function BudgetDetailsPurchaseOrderTab({
                     {po.status}
                   </Badge>
                 </TableCell>
-                <TableCell className="text-sm text-right font-medium">
+                <TableCell className="text-sm text-left font-medium">
                   {formatCurrency(po.total_amount)}
                 </TableCell>
-                <TableCell className="text-sm text-center">
+                <TableCell className="text-sm text-left">
                   <FilesCell files={po.files} projectId={projectId} />
                 </TableCell>
                 <TableCell className="text-center">
