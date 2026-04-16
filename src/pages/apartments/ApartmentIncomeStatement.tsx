@@ -28,10 +28,9 @@ const ApartmentIncomeStatement = () => {
     );
   }
 
-  const units = inputs.number_of_units || 1;
   const egi = computed.egi || 1;
 
-  const perUnit = (v: number) => fmt(v / units);
+  const monthly = (v: number) => fmt(v / 12);
   const pctEgi = (v: number) => fmtPct((v / egi) * 100);
 
   // Data-driven expense rows. Each row's `field` matches the key used by the
