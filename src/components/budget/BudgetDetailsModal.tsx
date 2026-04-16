@@ -156,6 +156,7 @@ export function BudgetDetailsModal({
   const [manualQuantityInput, setManualQuantityInput] = useState<string>(budgetItem.quantity?.toString() || '');
   const [manualUnitPriceInput, setManualUnitPriceInput] = useState<string>(budgetItem.unit_price?.toString() || '');
   const [allocationMode, setAllocationMode] = useState<'full' | 'per-lot'>('full');
+  const [manualAllocationMode, setManualAllocationMode] = useState<'full' | 'per-lot'>('full');
   const [poAllocationMode, setPoAllocationMode] = useState<'full' | 'per-lot'>('full');
   const [poAllocationAmount, setPoAllocationAmount] = useState<number>(0);
 
