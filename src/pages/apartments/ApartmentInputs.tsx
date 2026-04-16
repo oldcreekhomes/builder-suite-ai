@@ -151,7 +151,10 @@ const ApartmentInputsPage = () => {
           />
           <div className="pl-4 space-y-2">
             <EditableRow label="Tax Rate" field="tax_rate" value={inputs.tax_rate} onChange={updateInput} format="number" />
-            <EditableRow label="Estimated Value" field="estimated_value" value={inputs.estimated_value} onChange={updateInput} format="currency" />
+            <div className="flex justify-between items-center">
+              <span className="text-muted-foreground">Estimated Value</span>
+              <span className="w-28 text-right">{fmt(inputs.estimated_value)}</span>
+            </div>
           </div>
         </div>
       );
