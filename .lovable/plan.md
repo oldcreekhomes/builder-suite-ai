@@ -1,55 +1,46 @@
 
+## Plan: Persist Manual allocation mode exactly as saved
 
-## Plan: Fix Manual modal default allocation + Total
+The real issue is that the Manual dialog is still reopening from inferred math instead of a saved user choice. Right now the selected mode is not explicitly stored, and `BudgetDetailsModal.tsx` can also lock onto stale sibling-row data because its hydration guard uses a static “resolved” key.
 
-### Bug
-For cost code 2310, the budget rows show $7,506.66/lot across 19 lots ($142,626 total). When opening Budget Details → Manual:
-- It defaults to **Full amount** (should default to **Divide by 19 lots**, since that's what's actually saved on the rows).
-- Total Budget shows $142,626.00 (should show $7,506.63 per-lot to match the row).
+### What to change
 
-### Root cause
-Two independent hydration paths run in `BudgetDetailsModal.tsx`:
+1. **Persist the Manual allocation choice**
+- Add a nullable `manual_allocation_mode` column to `project_budgets` with allowed values `full` / `per-lot`.
+- When the user clicks **Apply** in the Manual tab, save the chosen mode.
+- For multi-lot manual budgets, write that mode to all sibling `project_budgets` rows for the same project + cost code so reopening any lot row uses the same saved choice.
 
-1. **`manualLineRows`** (sub-lines from `project_budget_manual_lines`) → seeds `manualLines` array. The total of these lines (`manualTotalCents`) drives the displayed Total.
-2. **`siblingRows`** (per-lot rows from `project_budgets`) → infers `manualAllocationMode` ('full' vs 'per-lot') by checking if the lot rows match a split pattern.
+2. **Make reopen use the saved mode first**
+- In `src/components/budget/BudgetDetailsModal.tsx`, change manual hydration so:
+  - `manual_allocation_mode` is the primary source of truth
+  - current sibling-row math inference is only a fallback for older records that do not have a saved mode yet
+- Keep the existing total-reconstruction logic for legacy/manual line amounts, but do not let it override an explicitly saved choice.
 
-The two are not cross-checked. In this case:
-- `siblingRows` inference *should* detect per-lot (18× $7,506.63 + 1× $7,506.66 = $142,626). If it does, mode flips to 'per-lot' and Total Budget shows $7,506.63. ✓
-- But if the saved `project_budget_manual_lines` row stores the **per-lot** amount ($7,506.63) instead of the **full** amount ($142,626), then:
-  - `manualTotalCents` = $7,506.63
-  - In per-lot mode, Total displays $7,506.63 / 19 = $395.08 (wrong)
-  - In full mode, Total displays $7,506.63 (matches the row, but the radio shows "Full amount" misleadingly)
+3. **Fix stale reopen behavior**
+- After a Manual save, also invalidate:
+  - `['budget-siblings-manual', projectId, costCode.id]`
+  - `['budget-manual-lines', projectId, costCode.id]`
+  - plus the existing `['project-budgets', projectId]` and `['job-costs']`
+- Update/remove the current hydration dedupe so it reacts to the newly saved mode instead of only `budgetItem.id:resolved`.
 
-The current code is inconsistent about whether `project_budget_manual_lines.unit_price` stores the full or per-lot amount.
+4. **Keep backward compatibility**
+- Existing manual budgets with no saved `manual_allocation_mode` will still use the current split-pattern inference.
+- As soon as the user saves once, the mode becomes explicit and future opens will match exactly what they last saved.
 
-### Fix
-
-In `src/components/budget/BudgetDetailsModal.tsx`:
-
-1. **Standardize storage**: `project_budget_manual_lines` always stores the **full (un-divided) total**. The per-lot split happens only when writing to `project_budgets` rows.
-
-2. **Hydration coherence**: When the modal opens, after both `manualLineRows` and `siblingRows` resolve, reconcile:
-   - If `siblingRows` total matches `manualLines` total → keep allocation mode from sibling inference.
-   - If `siblingRows` total ≈ `manualLines` total × `lotCount` → the saved sub-lines are per-lot values; multiply each line's `unit_price` by `lotCount` for display so `manualTotalCents` reflects the full amount, then set mode to `per-lot`.
-   - Defensive: prefer `siblingRows` reconstructed total as the source of truth when it disagrees with the sub-lines.
-
-3. **Default allocation mode**: When `lotCount > 1` and the saved per-lot rows in `project_budgets` indicate a split (sibling inference returns `per-lot`), default `manualAllocationMode` to `'per-lot'` and show "Divide by N lots" selected.
-
-4. **Total Budget display**: Already correct — `manualDisplayAmount` returns per-lot amount when mode = 'per-lot'. After the fix in step 2, `manualTotalCents` will correctly be $142,626 → Total Budget displays $7,506.63.
-
-5. **One-time data normalization** (defensive, no migration needed): on first open after this fix, if we detect per-lot-stored sub-lines, the next Apply will re-save them as full-amount, self-healing the row.
-
-### Files to change
-- `src/components/budget/BudgetDetailsModal.tsx` — hydration reconciliation logic in the `useEffect` that sets `manualLines` and `manualAllocationMode`.
+### Files
+- `supabase/migrations/...sql` — add `manual_allocation_mode` to `project_budgets`
+- `src/integrations/supabase/types.ts` — regenerate/update types for the new column
+- `src/components/budget/BudgetDetailsModal.tsx` — persist mode, hydrate from saved mode, fix invalidation/hydration guard
+- `src/hooks/useBudgetSourceUpdate.ts` — extend manual updates to carry the saved mode where that helper is used
 
 ### Out of scope
-- No DB schema changes.
-- No changes to other tabs or to the per-lot write logic in `handleApply`.
+- No UI redesign
+- No change to PO/Vendor Bid allocation behavior
+- No change to lot math beyond making reopen honor the saved Manual choice
 
 ### Validation
-1. Open Budget Details on cost code 2310 (or any manual per-lot row). Modal opens with **Divide by 19 lots** selected.
-2. Total Budget shows **$7,506.63** (matches the budget row).
-3. Switch to Full amount → Total shows **$142,626.00**.
-4. Click Apply with no changes → all 19 lot rows remain at $7,506.63 / $7,506.66 (no drift).
-5. Add a new sub-line, Apply → rows update consistently and reopen still defaults to per-lot.
-
+1. Save Manual as **Divide by 19 lots** → close → reopen → it opens as **Divide by 19 lots**.
+2. Save Manual as **Full amount** → close → reopen → it opens as **Full amount**.
+3. Toggle/save multiple times → the last saved mode always wins.
+4. Reopen immediately after saving without a hard refresh → correct mode still loads.
+5. Older manual rows without the new field still open sensibly until re-saved.
