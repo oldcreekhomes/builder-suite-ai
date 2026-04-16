@@ -486,9 +486,61 @@ export function BudgetDetailsModal({
         }
       );
     } else if (source === 'manual') {
-      const manualQty = manualQuantityValue;
-      const manualPrice = manualUnitPriceValue;
       const shouldDivide = hasMultipleLots && manualAllocationMode === 'per-lot';
+
+      // Persist manual sub-lines to project_budget_manual_lines
+      try {
+        // Resolve owner_id from project
+        const { data: projectRow, error: projErr } = await supabase
+          .from('projects')
+          .select('owner_id')
+          .eq('id', projectId)
+          .single();
+        if (projErr) throw projErr;
+        const ownerId = (projectRow as any)?.owner_id;
+        if (!ownerId) throw new Error('Could not determine project owner');
+
+        // Delete removed lines
+        const existingIds = (manualLineRows || []).map((r: any) => r.id);
+        const keptIds = manualLines.filter((l) => l.id).map((l) => l.id as string);
+        const toDelete = existingIds.filter((id: string) => !keptIds.includes(id));
+        if (toDelete.length > 0) {
+          const { error: delErr } = await supabase
+            .from('project_budget_manual_lines' as any)
+            .delete()
+            .in('id', toDelete);
+          if (delErr) throw delErr;
+        }
+
+        // Upsert all current lines
+        const upsertRows = manualLines.map((line, idx) => {
+          const qty = parseFloat(line.quantityInput) || 0;
+          const price = parseFloat(line.unitPriceInput) || 0;
+          return {
+            ...(line.id ? { id: line.id } : {}),
+            owner_id: ownerId,
+            project_id: projectId,
+            cost_code_id: costCode.id,
+            description: line.description || costCode.name,
+            notes: line.notes || null,
+            unit_price: price,
+            quantity: qty,
+            sort_order: idx,
+          };
+        });
+        if (upsertRows.length > 0) {
+          const { error: upErr } = await supabase
+            .from('project_budget_manual_lines' as any)
+            .upsert(upsertRows);
+          if (upErr) throw upErr;
+        }
+
+        queryClient.invalidateQueries({ queryKey: ['budget-manual-lines', projectId, costCode.id] });
+      } catch (error: any) {
+        console.error('Error saving manual sub-lines:', error);
+        toast({ title: "Error", description: error?.message || "Failed to save manual lines", variant: "destructive" });
+        return;
+      }
 
       if (shouldDivide && lotCount > 1) {
         const perLotCents = Math.floor(manualTotalCents / lotCount);
@@ -527,8 +579,8 @@ export function BudgetDetailsModal({
         updateSource({
           budgetItemId: budgetItem.id,
           source: 'manual',
-          manualQuantity: manualQty,
-          manualUnitPrice: manualPrice,
+          manualQuantity: 1,
+          manualUnitPrice: manualTotalAmount,
         });
       }
       onClose();
