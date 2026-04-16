@@ -1,57 +1,26 @@
 
-## Plan: Speed up Budget Details modal open
+## Plan: Fix "null id" error when adding a 2nd manual sub-line
 
-### Problem
-Clicking a budget row takes 3-5 seconds before the modal becomes interactive. The modal mounts immediately but blocks on serial network requests before hydrating, making it feel frozen.
+### Root cause
+In `BudgetDetailsModal.tsx` (Apply handler, manual branch ~line 588-609), all manual lines are sent in a single `.upsert(upsertRows)` call. Some rows have `id` (existing) and some don't (new). PostgREST normalizes the column set across the batch — new rows end up sending `id: null`, which violates the NOT NULL constraint on `project_budget_manual_lines.id` (the default `gen_random_uuid()` doesn't apply because the column is explicitly present as null).
 
-### Root cause (to confirm by reading code)
-`BudgetDetailsModal.tsx` issues several queries on open and only finishes hydrating once they all resolve:
-- `budget-siblings-manual` (sibling rows for same project + cost code)
-- `budget-manual-lines` (sub-lines from `project_budget_manual_lines`)
-- `manual_allocation_mode` reconciliation now also waits on siblings
-- Plus PO list, vendor bid list, historical projects (per-tab data)
+### Fix
+Split the write into two operations:
+1. **Update** existing rows (those with `id`) using `.upsert(updates, { onConflict: 'id' })` — every row in this batch has `id`, so no null.
+2. **Insert** new rows (those without `id`) using `.insert(inserts)` — `id` field is omitted entirely, so the DB default `gen_random_uuid()` fires.
 
-These run with default React Query settings (no `staleTime`, refetch on focus), so every open re-fetches from scratch even when the user just closed the same modal. The Manual tab hydration `useEffect` is gated on all of them resolving, which is what creates the visible "frozen" delay.
-
-### Fix strategy
-
-1. **Render instantly with optimistic state**
-   - Open the modal and show the Manual tab immediately seeded from `budgetItem` itself (already in cache from the budget grid).
-   - Show a subtle inline "syncing…" indicator only on the Allocation Mode panel while siblings/lines load — do NOT block the whole dialog.
-
-2. **Cache aggressively**
-   - Add `staleTime: 60_000`, `refetchOnWindowFocus: false`, `refetchOnReconnect: false`, and `placeholderData: keepPreviousData` to:
-     - `budget-siblings-manual`
-     - `budget-manual-lines`
-     - PO list, vendor bid list, historical project list queries used by other tabs
-   - Result: reopening the same (or nearby) cost code is instant.
-
-3. **Prefetch on hover/row-mount**
-   - In the budget table row component, prefetch `budget-siblings-manual` and `budget-manual-lines` for the row's cost code on `onMouseEnter` (and optionally on row mount for the visible viewport). By the time the user clicks, data is already warm.
-
-4. **Lazy-load non-active tabs**
-   - Only fetch PO / Vendor Bid / Historical data when those tabs are actually selected (`enabled: activeTab === 'purchase-orders'`, etc.). Today they likely fire on open.
-
-5. **Tighten hydration gating**
-   - Remove the "wait for siblings before seeding manualLines" gate. Seed from `budgetItem` first, then reconcile (scale factor / saved mode) when siblings arrive — using the existing `hydrationKey` mechanism so it re-runs cleanly.
-
-6. **Memoize heavy derivations**
-   - Wrap `siblingRows` reconstruction math and `manualInitialState` in `useMemo` keyed on stable inputs to avoid re-renders during typing.
+Also generate the new UUIDs client-side (via `crypto.randomUUID()`) before insert so we can update `manualLines` state with the new ids and avoid orphaning them on subsequent Applies.
 
 ### Files to change
-- `src/components/budget/BudgetDetailsModal.tsx` — optimistic seed, lazy-tab `enabled` flags, staleTime on its internal queries, hydration gate fix.
-- `src/components/budget/BudgetDetailsPurchaseOrderTab.tsx` — gate PO query on tab active.
-- Vendor Bid / Historical tab components — same `enabled` gating + staleTime.
-- Budget grid row component (the one that opens the modal) — add `onMouseEnter` prefetch via `queryClient.prefetchQuery` for the two manual-related keys.
+- `src/components/budget/BudgetDetailsModal.tsx` — replace the single mixed `.upsert` with separate update/insert paths.
 
 ### Out of scope
-- No DB or schema changes.
-- No change to allocation math, persistence, or saved-mode behavior from prior fix.
-- No UI redesign of the modal.
+- No DB schema changes.
+- No change to allocation mode persistence or sibling-row writes (that block stays as-is).
 
 ### Validation
-1. Click a budget row cold → modal is interactive in <300 ms; Allocation Mode shows a brief "syncing" hint then resolves.
-2. Hover a row for ~200 ms then click → modal opens instantly with full data.
-3. Reopen the same row within 60 s → instant, no spinner.
-4. Saving still updates rows correctly and the modal reopens with the saved allocation mode (regression check on the previous fix).
-5. Switching to PO / Vendor Bid / Historical tabs fetches their data only on first activation.
+1. Open Manual tab on cost code 2310, add a 2nd row, set values, click Apply → saves with no error.
+2. Reopen → both rows present.
+3. Edit row 1, add row 3, Apply → row 1 updates, row 3 inserts, row 2 unchanged.
+4. Delete a row, Apply → removed correctly.
+5. Allocation mode (Full / Per-lot) still persists exactly as last saved.
