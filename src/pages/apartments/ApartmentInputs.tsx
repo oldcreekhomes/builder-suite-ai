@@ -54,6 +54,7 @@ function loadVisibleExpenses(projectId?: string): string[] {
 
 function saveVisibleExpenses(projectId: string | undefined, fields: string[]) {
   localStorage.setItem(getStorageKey(projectId), JSON.stringify(fields));
+  notifyApartmentExpensesChanged();
 }
 
 function rowCount(item: OptionalExpense): number {
