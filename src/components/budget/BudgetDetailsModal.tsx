@@ -38,6 +38,15 @@ type BudgetItem = Tables<'project_budgets'> & {
 };
 type BudgetRowLike = Pick<Tables<'project_budgets'>, 'lot_id' | 'quantity' | 'unit_price'>;
 
+// Shared with EditCostCodeDialog (Estimating). Alphabetical order.
+const MANUAL_UNIT_OPTIONS = [
+  'Cubic Yard',
+  'Each',
+  'Linear Feet',
+  'Square Feet',
+  'Square Yard',
+] as const;
+
 interface BudgetDetailsModalProps {
   isOpen: boolean;
   onClose: () => void;
