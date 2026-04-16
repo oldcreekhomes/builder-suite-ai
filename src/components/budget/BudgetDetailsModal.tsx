@@ -329,7 +329,7 @@ export function BudgetDetailsModal({
     queryFn: async () => {
       const { data, error } = await supabase
         .from('project_budget_manual_lines' as any)
-        .select('id, description, notes, unit_price, quantity, sort_order')
+        .select('id, description, notes, unit_price, quantity, sort_order, unit_of_measure')
         .eq('project_id', projectId)
         .eq('cost_code_id', costCode.id)
         .order('sort_order', { ascending: true });
