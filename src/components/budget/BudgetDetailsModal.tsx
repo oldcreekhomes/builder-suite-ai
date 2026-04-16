@@ -245,11 +245,11 @@ export function BudgetDetailsModal({
     queryFn: async () => {
       const { data, error } = await supabase
         .from('project_budgets')
-        .select('id, lot_id, unit_price, quantity, manual_allocation_mode' as any)
+        .select('id, lot_id, unit_price, quantity, manual_allocation_mode')
         .eq('project_id', projectId)
         .eq('cost_code_id', costCode.id);
       if (error) throw error;
-      return data || [];
+      return ((data as any[]) || []);
     },
     enabled: isOpen && lotCount > 1 && budgetItem.budget_source === 'manual',
   });
