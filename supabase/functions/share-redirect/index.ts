@@ -63,7 +63,7 @@ serve(async (req) => {
     }
 
     // Always use custom domain
-    const targetOrigin = "https://app.buildersuiteml.com";
+    const targetOrigin = "https://buildersuiteml.com";
 
     // Choose path - our app handles both files/photos via /s/f/:id
     const path = type === "p" ? `/s/p/${shareId}` : `/s/f/${shareId}`;
