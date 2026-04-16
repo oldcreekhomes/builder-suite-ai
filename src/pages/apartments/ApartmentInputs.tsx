@@ -205,7 +205,7 @@ const ApartmentInputsPage = () => {
                         <EditableRow label="Average Rent per Unit" field="avg_rent_per_unit" value={inputs.avg_rent_per_unit} onChange={updateInput} format="currency" />
                         <EditableRow label="Vacancy Rate" field="vacancy_rate" value={inputs.vacancy_rate} onChange={updateInput} format="percent" />
                         <EditableRow label="Total Costs" field="purchase_price" value={inputs.purchase_price} onChange={updateInput} format="currency" />
-                        <EditableRow label="Estimated Value" field="estimated_value" value={inputs.estimated_value} onChange={updateInput} format="currency" />
+                        <EditableRow label="Estimated Value" field="construction_costs" value={inputs.construction_costs} onChange={updateInput} format="currency" />
                       </div>
                     </CardContent>
                   </Card>
