@@ -685,7 +685,7 @@ export function BudgetDetailsModal({
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="max-w-5xl max-h-[80vh] overflow-hidden flex flex-col">
+      <DialogContent className="max-w-3xl max-h-[80vh] overflow-hidden flex flex-col">
         <DialogHeader>
           <DialogTitle className="text-base font-semibold">
             Budget Details
