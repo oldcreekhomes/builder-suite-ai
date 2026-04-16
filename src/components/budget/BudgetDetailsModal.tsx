@@ -346,6 +346,7 @@ export function BudgetDetailsModal({
     siblingRows,
     manualFallbackState,
     manualInitialState,
+    savedManualMode,
   ]);
 
   // Hydrate manual sub-lines from project_budget_manual_lines (true source of truth)
