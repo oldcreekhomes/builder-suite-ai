@@ -9,7 +9,7 @@ export interface HistoricalProject {
   address: string;
 }
 
-export function useHistoricalProjects() {
+export function useHistoricalProjects(enabled: boolean = true) {
   return useQuery({
     queryKey: ['historical-projects'],
     queryFn: async (): Promise<HistoricalProject[]> => {
