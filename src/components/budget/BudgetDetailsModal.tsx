@@ -354,6 +354,8 @@ export function BudgetDetailsModal({
       return;
     }
     if (manualLineRows === undefined) return;
+    // Wait for sibling rows so we can correctly reconcile per-lot vs full storage
+    if (budgetItem.budget_source === 'manual' && lotCount > 1 && siblingRows === undefined) return;
 
     const hydrationKey = `${budgetItem.id}:lines`;
     if (manualLinesHydrationKeyRef.current === hydrationKey) return;
