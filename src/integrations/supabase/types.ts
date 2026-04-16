@@ -3336,6 +3336,7 @@ export type Database = {
           historical_project_id: string | null
           id: string
           lot_id: string | null
+          manual_allocation_mode: string | null
           project_id: string
           quantity: number | null
           selected_bid_id: string | null
@@ -3352,6 +3353,7 @@ export type Database = {
           historical_project_id?: string | null
           id?: string
           lot_id?: string | null
+          manual_allocation_mode?: string | null
           project_id: string
           quantity?: number | null
           selected_bid_id?: string | null
@@ -3368,6 +3370,7 @@ export type Database = {
           historical_project_id?: string | null
           id?: string
           lot_id?: string | null
+          manual_allocation_mode?: string | null
           project_id?: string
           quantity?: number | null
           selected_bid_id?: string | null
