@@ -331,7 +331,7 @@ export function BudgetDetailsModal({
       return;
     }
 
-    const hydrationKey = `${budgetItem.id}:resolved`;
+    const hydrationKey = `${budgetItem.id}:resolved:${manualInitialState.allocationMode}:${manualInitialState.unitPriceInput}:${savedManualMode ?? 'none'}`;
     if (manualHydrationKeyRef.current === hydrationKey) return;
 
     setManualQuantityInput(manualInitialState.quantityInput);
