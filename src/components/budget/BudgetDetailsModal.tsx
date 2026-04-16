@@ -305,12 +305,51 @@ export function BudgetDetailsModal({
         }
       );
     } else if (source === 'manual') {
-      updateSource({
-        budgetItemId: budgetItem.id,
-        source: 'manual',
-        manualQuantity: parseFloat(manualQuantityInput) || 0,
-        manualUnitPrice: parseFloat(manualUnitPriceInput) || 0,
-      });
+      const manualQty = parseFloat(manualQuantityInput) || 0;
+      const manualPrice = parseFloat(manualUnitPriceInput) || 0;
+      const shouldDivide = hasMultipleLots && manualAllocationMode === 'per-lot';
+
+      if (shouldDivide && lotCount > 1) {
+        const total = manualQty * manualPrice;
+        const perLot = Math.floor((total / lotCount) * 100) / 100;
+        const lastLotAmount = Number((total - perLot * (lotCount - 1)).toFixed(2));
+
+        try {
+          const { data: allBudgetItems, error: allError } = await supabase
+            .from('project_budgets')
+            .select('id, lot_id')
+            .eq('project_id', projectId)
+            .eq('cost_code_id', costCode.id)
+            .order('lot_id', { ascending: true });
+
+          if (allError) throw allError;
+
+          if (allBudgetItems && allBudgetItems.length > 0) {
+            for (let i = 0; i < allBudgetItems.length; i++) {
+              const amount = i === allBudgetItems.length - 1 ? lastLotAmount : perLot;
+              const { error: updateError } = await supabase
+                .from('project_budgets')
+                .update({ unit_price: amount, quantity: 1, budget_source: 'manual' })
+                .eq('id', allBudgetItems[i].id);
+              if (updateError) throw updateError;
+            }
+          }
+
+          queryClient.invalidateQueries({ queryKey: ['project-budgets', projectId] });
+          queryClient.invalidateQueries({ queryKey: ['job-costs'] });
+          toast({ title: "Budget source updated", description: `Now using Manual for this budget item` });
+        } catch (error: any) {
+          console.error('Error saving manual per-lot:', error);
+          toast({ title: "Error", description: error?.message || "Failed to save manual allocation", variant: "destructive" });
+        }
+      } else {
+        updateSource({
+          budgetItemId: budgetItem.id,
+          source: 'manual',
+          manualQuantity: manualQty,
+          manualUnitPrice: manualPrice,
+        });
+      }
       onClose();
     } else if (source === 'purchase-orders') {
       const shouldDivide = hasMultipleLots && poAllocationMode === 'per-lot';
