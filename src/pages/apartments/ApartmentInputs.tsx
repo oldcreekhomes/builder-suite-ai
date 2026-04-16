@@ -135,13 +135,16 @@ const ApartmentInputsPage = () => {
     );
   }
 
+  const numUnits = inputs.number_of_units || 0;
+
   const renderExpenseItem = (item: OptionalExpense) => {
     if (item.special === "taxes") {
       return (
         <div key={item.field} className="space-y-2">
           <RemovableRow
             label="Taxes"
-            value={fmt(computed.taxes)}
+            monthly={fmt(computed.taxes / 12)}
+            annual={fmt(computed.taxes)}
             onRemove={() => removeExpense(item.field, item.label)}
           />
           <div className="pl-4 space-y-2">
@@ -160,10 +163,22 @@ const ApartmentInputsPage = () => {
         onChange={updateInput}
         format={item.format}
         decimals={item.decimals}
+        numUnits={numUnits}
+        isReservesPerUnit={item.field === "reserves_per_unit"}
         onRemove={() => removeExpense(item.field, item.label)}
       />
     );
   };
+
+  const ExpensesHeader = () => (
+    <div className="flex justify-between text-xs font-medium text-muted-foreground pb-1 border-b mb-2">
+      <span>&nbsp;</span>
+      <div className="flex gap-4">
+        <span className="w-28 text-right">Monthly</span>
+        <span className="w-28 text-right">Annual</span>
+      </div>
+    </div>
+  );
 
   return (
     <SidebarProvider>
@@ -212,6 +227,7 @@ const ApartmentInputsPage = () => {
                     <CardHeader><CardTitle className="text-sm font-medium">Operating Expenses</CardTitle></CardHeader>
                     <CardContent>
                       <div className="space-y-2 text-sm">
+                        <ExpensesHeader />
                         {leftItems.map(renderExpenseItem)}
                         {leftItems.length === 0 && (
                           <span className="text-muted-foreground text-xs italic">No items</span>
@@ -223,6 +239,7 @@ const ApartmentInputsPage = () => {
                     <CardHeader><CardTitle className="text-sm font-medium">Operating Expenses (cont.)</CardTitle></CardHeader>
                     <CardContent>
                       <div className="space-y-2 text-sm">
+                        <ExpensesHeader />
                         {rightItems.map(renderExpenseItem)}
                         {rightItems.length === 0 && (
                           <span className="text-muted-foreground text-xs italic">No items</span>
@@ -347,13 +364,14 @@ function formatDisplay(value: number, format: string, decimals?: number): string
   return String(value);
 }
 
-function RemovableRow({ label, value, onRemove }: {
+function RemovableRow({ label, monthly, annual, onRemove }: {
   label: string;
-  value: string;
+  monthly: string;
+  annual: string;
   onRemove: () => void;
 }) {
   return (
-    <div className="flex justify-between group relative">
+    <div className="flex justify-between group relative items-center">
       <TooltipProvider>
         <Tooltip>
           <TooltipTrigger asChild>
@@ -368,37 +386,62 @@ function RemovableRow({ label, value, onRemove }: {
         </Tooltip>
       </TooltipProvider>
       <span className="text-muted-foreground">{label}</span>
-      <span>{value}</span>
+      <div className="flex gap-4">
+        <span className="w-28 text-right text-muted-foreground/70">{monthly}</span>
+        <span className="w-28 text-right">{annual}</span>
+      </div>
     </div>
   );
 }
 
-function RemovableEditableRow({ label, field, value, onChange, format, decimals, onRemove }: {
+function RemovableEditableRow({ label, field, value, onChange, format, decimals, numUnits, isReservesPerUnit, onRemove }: {
   label: string;
   field: keyof ApartmentInputsType;
   value: number;
   onChange: (field: keyof ApartmentInputsType, value: string) => void;
   format: "currency" | "percent" | "number";
   decimals?: number;
+  numUnits: number;
+  isReservesPerUnit?: boolean;
   onRemove: () => void;
 }) {
-  const [localValue, setLocalValue] = useState(String(value));
-  const [isFocused, setIsFocused] = useState(false);
-  const inputRef = useRef<HTMLInputElement>(null);
+  const isPercent = format === "percent";
+  const isCurrency = format === "currency";
+
+  const monthlyValue = isCurrency
+    ? (isReservesPerUnit
+        ? value / 12
+        : numUnits > 0 ? value / numUnits / 12 : 0)
+    : 0;
+
+  const [monthlyLocal, setMonthlyLocal] = useState(monthlyValue.toFixed(2));
+  const [annualLocal, setAnnualLocal] = useState(String(value));
+  const [focused, setFocused] = useState<"monthly" | "annual" | null>(null);
+  const monthlyRef = useRef<HTMLInputElement>(null);
+  const annualRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
-    if (!isFocused) {
-      setLocalValue(String(value));
-    }
-  }, [value, isFocused]);
+    if (focused !== "monthly") setMonthlyLocal(monthlyValue.toFixed(2));
+  }, [monthlyValue, focused]);
 
-  const handleClick = () => {
-    setIsFocused(true);
-    setTimeout(() => inputRef.current?.select(), 0);
+  useEffect(() => {
+    if (focused !== "annual") setAnnualLocal(String(value));
+  }, [value, focused]);
+
+  const handleMonthlyChange = (raw: string) => {
+    setMonthlyLocal(raw);
+    const num = parseFloat(raw) || 0;
+    const annual = isReservesPerUnit ? num * 12 : num * numUnits * 12;
+    onChange(field, String(annual));
+  };
+
+  const handleAnnualChange = (raw: string) => {
+    setAnnualLocal(raw);
+    onChange(field, raw);
   };
 
   return (
-    <div className="flex justify-between group relative">
+    <div className="flex justify-between group relative items-center">
       <TooltipProvider>
         <Tooltip>
           <TooltipTrigger asChild>
@@ -412,30 +455,55 @@ function RemovableEditableRow({ label, field, value, onChange, format, decimals,
           <TooltipContent side="left"><p>Remove</p></TooltipContent>
         </Tooltip>
       </TooltipProvider>
-      <span className="text-muted-foreground">
-        {label}
-      </span>
-      {isFocused ? (
-        <input
-          ref={inputRef}
-          type="text"
-          autoFocus
-          value={localValue}
-          onChange={(e) => {
-            setLocalValue(e.target.value);
-            onChange(field, e.target.value);
-          }}
-          onBlur={() => setIsFocused(false)}
-          className="w-28 text-right text-sm bg-transparent border-none outline-none p-0 m-0"
-        />
-      ) : (
-        <span
-          className="cursor-pointer hover:text-muted-foreground/70 transition-colors"
-          onClick={handleClick}
-        >
-          {formatDisplay(value, format, decimals)}
-        </span>
-      )}
+      <span className="text-muted-foreground">{label}</span>
+      <div className="flex gap-4">
+        {isPercent ? (
+          <span className="w-28 text-right text-muted-foreground/40">—</span>
+        ) : focused === "monthly" ? (
+          <input
+            ref={monthlyRef}
+            type="text"
+            autoFocus
+            value={monthlyLocal}
+            onChange={(e) => handleMonthlyChange(e.target.value)}
+            onBlur={() => setFocused(null)}
+            className="w-28 text-right text-sm bg-transparent border-none outline-none p-0 m-0"
+          />
+        ) : (
+          <span
+            className="w-28 text-right cursor-pointer hover:text-muted-foreground/70 transition-colors"
+            onClick={() => {
+              setFocused("monthly");
+              setTimeout(() => monthlyRef.current?.select(), 0);
+            }}
+          >
+            {fmt(monthlyValue)}
+          </span>
+        )}
+
+        {isPercent && focused === "annual" ? (
+          <input
+            ref={annualRef}
+            type="text"
+            autoFocus
+            value={annualLocal}
+            onChange={(e) => handleAnnualChange(e.target.value)}
+            onBlur={() => setFocused(null)}
+            className="w-28 text-right text-sm bg-transparent border-none outline-none p-0 m-0"
+          />
+        ) : (
+          <span
+            className={`w-28 text-right transition-colors ${isPercent ? "cursor-pointer hover:text-muted-foreground/70" : ""}`}
+            onClick={() => {
+              if (!isPercent) return;
+              setFocused("annual");
+              setTimeout(() => annualRef.current?.select(), 0);
+            }}
+          >
+            {formatDisplay(value, format, decimals)}
+          </span>
+        )}
+      </div>
     </div>
   );
 }
