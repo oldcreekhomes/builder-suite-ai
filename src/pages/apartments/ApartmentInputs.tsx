@@ -135,13 +135,16 @@ const ApartmentInputsPage = () => {
     );
   }
 
+  const numUnits = inputs.number_of_units || 0;
+
   const renderExpenseItem = (item: OptionalExpense) => {
     if (item.special === "taxes") {
       return (
         <div key={item.field} className="space-y-2">
           <RemovableRow
             label="Taxes"
-            value={fmt(computed.taxes)}
+            monthly={fmt(computed.taxes / 12)}
+            annual={fmt(computed.taxes)}
             onRemove={() => removeExpense(item.field, item.label)}
           />
           <div className="pl-4 space-y-2">
@@ -160,10 +163,22 @@ const ApartmentInputsPage = () => {
         onChange={updateInput}
         format={item.format}
         decimals={item.decimals}
+        numUnits={numUnits}
+        isReservesPerUnit={item.field === "reserves_per_unit"}
         onRemove={() => removeExpense(item.field, item.label)}
       />
     );
   };
+
+  const ExpensesHeader = () => (
+    <div className="flex justify-between text-xs font-medium text-muted-foreground pb-1 border-b mb-2">
+      <span>&nbsp;</span>
+      <div className="flex gap-4">
+        <span className="w-28 text-right">Monthly</span>
+        <span className="w-28 text-right">Annual</span>
+      </div>
+    </div>
+  );
 
   return (
     <SidebarProvider>
