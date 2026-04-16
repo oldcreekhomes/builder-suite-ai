@@ -3276,6 +3276,7 @@ export type Database = {
           project_id: string
           quantity: number
           sort_order: number
+          unit_of_measure: string | null
           unit_price: number
           updated_at: string
         }
@@ -3289,6 +3290,7 @@ export type Database = {
           project_id: string
           quantity?: number
           sort_order?: number
+          unit_of_measure?: string | null
           unit_price?: number
           updated_at?: string
         }
@@ -3302,6 +3304,7 @@ export type Database = {
           project_id?: string
           quantity?: number
           sort_order?: number
+          unit_of_measure?: string | null
           unit_price?: number
           updated_at?: string
         }

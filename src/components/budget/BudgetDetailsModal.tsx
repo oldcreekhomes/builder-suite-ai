@@ -38,6 +38,15 @@ type BudgetItem = Tables<'project_budgets'> & {
 };
 type BudgetRowLike = Pick<Tables<'project_budgets'>, 'lot_id' | 'quantity' | 'unit_price'>;
 
+// Shared with EditCostCodeDialog (Estimating). Alphabetical order.
+const MANUAL_UNIT_OPTIONS = [
+  'Cubic Yard',
+  'Each',
+  'Linear Feet',
+  'Square Feet',
+  'Square Yard',
+] as const;
+
 interface BudgetDetailsModalProps {
   isOpen: boolean;
   onClose: () => void;
@@ -188,15 +197,15 @@ export function BudgetDetailsModal({
   type ManualLine = {
     tempId: string;
     id?: string;
-    description: string;
     notes: string;
+    unitOfMeasure: string;
     unitPriceInput: string;
     quantityInput: string;
   };
   const newManualLine = (overrides: Partial<ManualLine> = {}): ManualLine => ({
     tempId: `tmp-${Math.random().toString(36).slice(2, 10)}`,
-    description: costCode.name,
     notes: '',
+    unitOfMeasure: '',
     unitPriceInput: '',
     quantityInput: '1',
     ...overrides,
@@ -329,7 +338,7 @@ export function BudgetDetailsModal({
     queryFn: async () => {
       const { data, error } = await supabase
         .from('project_budget_manual_lines' as any)
-        .select('id, description, notes, unit_price, quantity, sort_order')
+        .select('id, description, notes, unit_price, quantity, sort_order, unit_of_measure')
         .eq('project_id', projectId)
         .eq('cost_code_id', costCode.id)
         .order('sort_order', { ascending: true });
@@ -354,8 +363,8 @@ export function BudgetDetailsModal({
         manualLineRows.map((row: any) => ({
           tempId: `db-${row.id}`,
           id: row.id,
-          description: row.description ?? costCode.name,
           notes: row.notes ?? '',
+          unitOfMeasure: row.unit_of_measure ?? '',
           unitPriceInput: row.unit_price?.toString() ?? '',
           quantityInput: row.quantity?.toString() ?? '1',
         }))
@@ -521,7 +530,8 @@ export function BudgetDetailsModal({
             owner_id: ownerId,
             project_id: projectId,
             cost_code_id: costCode.id,
-            description: line.description || costCode.name,
+            description: costCode.name,
+            unit_of_measure: line.unitOfMeasure || null,
             notes: line.notes || null,
             unit_price: price,
             quantity: qty,
@@ -1010,20 +1020,7 @@ export function BudgetDetailsModal({
                       return (
                         <TableRow key={line.tempId}>
                           <TableCell className="text-sm whitespace-nowrap">{costCode.code}</TableCell>
-                          <TableCell className="text-sm">
-                            <Input
-                              type="text"
-                              value={line.description}
-                              onChange={(e) =>
-                                setManualLines((prev) =>
-                                  prev.map((l, i) => (i === idx ? { ...l, description: e.target.value } : l))
-                                )
-                              }
-                              className="h-8 min-w-[160px]"
-                              disabled={isLocked}
-                              readOnly={isLocked}
-                            />
-                          </TableCell>
+                          <TableCell className="text-sm whitespace-nowrap">{costCode.name}</TableCell>
                           <TableCell className="text-sm">
                             <Input
                               type="text"
@@ -1054,7 +1051,24 @@ export function BudgetDetailsModal({
                             />
                           </TableCell>
                           <TableCell className="text-sm text-center whitespace-nowrap">
-                            {truncateUnit(costCode.unit_of_measure)}
+                            <Select
+                              value={line.unitOfMeasure || undefined}
+                              onValueChange={(value) =>
+                                setManualLines((prev) =>
+                                  prev.map((l, i) => (i === idx ? { ...l, unitOfMeasure: value } : l))
+                                )
+                              }
+                              disabled={isLocked}
+                            >
+                              <SelectTrigger className="h-8 w-32">
+                                <SelectValue placeholder="Select" />
+                              </SelectTrigger>
+                              <SelectContent>
+                                {MANUAL_UNIT_OPTIONS.map((opt) => (
+                                  <SelectItem key={opt} value={opt}>{opt}</SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
                           </TableCell>
                           <TableCell className="text-sm">
                             <Input
