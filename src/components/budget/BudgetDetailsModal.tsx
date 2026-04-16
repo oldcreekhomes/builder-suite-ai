@@ -1258,17 +1258,19 @@ export function BudgetDetailsModal({
 
           {/* Purchase Orders Tab */}
           <TabsContent value="purchase-orders" className="flex-1 overflow-auto mt-4">
-            <BudgetDetailsPurchaseOrderTab 
-              projectId={projectId} 
-              costCodeId={costCode.id} 
-              lotCount={lotCount}
-              isLocked={isLocked}
-              budgetItemUnitPrice={budgetItem.unit_price}
-              onAllocationChange={(mode, amount) => {
-                setPoAllocationMode(mode);
-                setPoAllocationAmount(amount);
-              }}
-            />
+            {activeTab === 'purchase-orders' && (
+              <BudgetDetailsPurchaseOrderTab 
+                projectId={projectId} 
+                costCodeId={costCode.id} 
+                lotCount={lotCount}
+                isLocked={isLocked}
+                budgetItemUnitPrice={budgetItem.unit_price}
+                onAllocationChange={(mode, amount) => {
+                  setPoAllocationMode(mode);
+                  setPoAllocationAmount(amount);
+                }}
+              />
+            )}
           </TabsContent>
 
           {/* Historical Tab */}
