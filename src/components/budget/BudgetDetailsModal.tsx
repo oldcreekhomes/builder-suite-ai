@@ -188,15 +188,15 @@ export function BudgetDetailsModal({
   type ManualLine = {
     tempId: string;
     id?: string;
-    description: string;
     notes: string;
+    unitOfMeasure: string;
     unitPriceInput: string;
     quantityInput: string;
   };
   const newManualLine = (overrides: Partial<ManualLine> = {}): ManualLine => ({
     tempId: `tmp-${Math.random().toString(36).slice(2, 10)}`,
-    description: costCode.name,
     notes: '',
+    unitOfMeasure: '',
     unitPriceInput: '',
     quantityInput: '1',
     ...overrides,
