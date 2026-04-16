@@ -200,6 +200,9 @@ export function BudgetDetailsModal({
         const isNear = (a: number, b: number, epsilon = 0.02) => Math.abs(a - b) < epsilon;
         if (isNear(savedPrice, basePerLot)) {
           setManualAllocationMode('per-lot');
+          // Reconstruct original full amount for display
+          const reconstructedTotal = savedPrice * lotCount;
+          setManualUnitPriceInput(reconstructedTotal.toString());
         }
       }
     }
