@@ -803,10 +803,50 @@ export function BudgetDetailsModal({
                   </TableBody>
                 </Table>
               </div>
+              {/* Manual Allocation Mode Toggle */}
+              {hasMultipleLots && ((parseFloat(manualQuantityInput) || 0) * (parseFloat(manualUnitPriceInput) || 0)) > 0 && (
+                (() => {
+                  const manualTotal = (parseFloat(manualQuantityInput) || 0) * (parseFloat(manualUnitPriceInput) || 0);
+                  const manualPerLot = Math.floor((manualTotal / lotCount) * 100) / 100;
+                  return (
+                    <div className="border rounded-lg bg-muted/50 p-3 space-y-2">
+                      <div className="text-sm font-medium">Allocation Mode</div>
+                      <RadioGroup
+                        value={manualAllocationMode}
+                        onValueChange={(val) => setManualAllocationMode(val as 'full' | 'per-lot')}
+                        className="grid grid-cols-2 gap-3"
+                      >
+                        <label htmlFor="manual-alloc-full" className={`flex items-center gap-2 rounded-md border p-2.5 cursor-pointer transition-colors ${manualAllocationMode === 'full' ? 'border-primary bg-primary/5' : 'border-border'}`}>
+                          <RadioGroupItem value="full" id="manual-alloc-full" />
+                          <div className="min-w-0">
+                            <div className="text-sm font-medium">Full amount</div>
+                            <div className="text-xs text-muted-foreground">{formatCurrency(manualTotal)}</div>
+                          </div>
+                        </label>
+                        <label htmlFor="manual-alloc-per-lot" className={`flex items-center gap-2 rounded-md border p-2.5 cursor-pointer transition-colors ${manualAllocationMode === 'per-lot' ? 'border-primary bg-primary/5' : 'border-border'}`}>
+                          <RadioGroupItem value="per-lot" id="manual-alloc-per-lot" />
+                          <div className="min-w-0">
+                            <div className="text-sm font-medium">Divide by {lotCount} lots</div>
+                            <div className="text-xs text-muted-foreground">{formatCurrency(manualTotal)} ÷ {lotCount} = {formatCurrency(manualPerLot)}/lot</div>
+                          </div>
+                        </label>
+                      </RadioGroup>
+                    </div>
+                  );
+                })()
+              )}
               <div className="flex justify-between items-center pt-2 border-t">
-                <span className="text-sm font-medium">Total Budget:</span>
+                <span className="text-sm font-medium">
+                  {hasMultipleLots && manualAllocationMode === 'per-lot' ? 'Total Budget (per lot):' : 'Total Budget:'}
+                </span>
                 <span className="text-sm font-semibold">
-                  {formatCurrency((parseFloat(manualQuantityInput) || 0) * (parseFloat(manualUnitPriceInput) || 0))}
+                  {(() => {
+                    const manualTotal = (parseFloat(manualQuantityInput) || 0) * (parseFloat(manualUnitPriceInput) || 0);
+                    if (hasMultipleLots && manualAllocationMode === 'per-lot' && manualTotal > 0) {
+                      return formatCurrency(Math.floor((manualTotal / lotCount) * 100) / 100);
+                    }
+                    return formatCurrency(manualTotal);
+                  })()}
                 </span>
               </div>
             </div>
