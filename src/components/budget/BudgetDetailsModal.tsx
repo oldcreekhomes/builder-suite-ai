@@ -261,6 +261,10 @@ export function BudgetDetailsModal({
       return ((data as any[]) || []);
     },
     enabled: isOpen && lotCount > 1 && budgetItem.budget_source === 'manual',
+    staleTime: 60_000,
+    refetchOnWindowFocus: false,
+    refetchOnReconnect: false,
+    placeholderData: (prev) => prev,
   });
 
   // Saved mode (explicit user choice from a previous Apply) — primary source of truth
