@@ -178,24 +178,13 @@ export function BudgetDetailsModal({
       const total = (lines || []).reduce((sum, l) => sum + ((l.debit || 0) - (l.credit || 0)), 0);
       return { lines: lines || [], total };
     },
-    enabled: !!projectId && !!costCode.id && isOpen,
+    enabled: !!projectId && !!costCode.id && isOpen && activeTab === 'actual',
+    staleTime: 60_000,
+    refetchOnWindowFocus: false,
+    refetchOnReconnect: false,
+    placeholderData: (prev) => prev,
   });
 
-  // Determine initial tab based on budget_source
-  const getInitialTab = () => {
-    if (budgetItem.budget_source) {
-      const source = budgetItem.budget_source;
-      if (source === 'actual' || source === 'vendor-bid' || source === 'manual' || source === 'purchase-orders' || source === 'historical') {
-        return source;
-      }
-      if (source === 'estimate') {
-        return 'estimate';
-      }
-    }
-    return 'estimate';
-  };
-  
-  const [activeTab, setActiveTab] = useState(getInitialTab());
 
   const [editingQuantityId, setEditingQuantityId] = useState<string | null>(null);
   const [editingValue, setEditingValue] = useState<string>('');
