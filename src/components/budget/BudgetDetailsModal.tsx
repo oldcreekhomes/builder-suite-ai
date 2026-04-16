@@ -376,6 +376,10 @@ export function BudgetDetailsModal({
       return (data as any[]) || [];
     },
     enabled: isOpen,
+    staleTime: 60_000,
+    refetchOnWindowFocus: false,
+    refetchOnReconnect: false,
+    placeholderData: (prev) => prev,
   });
 
   useEffect(() => {
