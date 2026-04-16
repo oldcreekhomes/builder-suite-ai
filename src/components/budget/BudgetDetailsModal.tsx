@@ -109,7 +109,23 @@ export function BudgetDetailsModal({
   const parsedHistorical = selectedHistoricalProjectId ? parseHistoricalKey(selectedHistoricalProjectId) : null;
   const { data: historicalCosts } = useHistoricalActualCosts(parsedHistorical?.projectId || null, parsedHistorical?.lotId);
 
-  // PO tab - query PO count/total for this cost code
+  // Determine initial tab based on budget_source
+  const getInitialTab = () => {
+    if (budgetItem.budget_source) {
+      const source = budgetItem.budget_source;
+      if (source === 'actual' || source === 'vendor-bid' || source === 'manual' || source === 'purchase-orders' || source === 'historical') {
+        return source;
+      }
+      if (source === 'estimate') {
+        return 'estimate';
+      }
+    }
+    return 'estimate';
+  };
+
+  const [activeTab, setActiveTab] = useState(getInitialTab());
+
+  // PO tab - query PO count/total for this cost code (lazy: only when PO tab is active)
   const { data: poData } = useQuery({
     queryKey: ['budget-purchase-orders-summary', projectId, costCode.id],
     queryFn: async () => {
@@ -123,10 +139,14 @@ export function BudgetDetailsModal({
       const total = (data || []).reduce((sum, po) => sum + (po.total_amount || 0), 0);
       return { count: data?.length || 0, total };
     },
-    enabled: !!projectId && !!costCode.id,
+    enabled: isOpen && !!projectId && !!costCode.id && activeTab === 'purchase-orders',
+    staleTime: 60_000,
+    refetchOnWindowFocus: false,
+    refetchOnReconnect: false,
+    placeholderData: (prev) => prev,
   });
 
-  // Actual tab - query real costs from journal entry lines (mirrors Job Costs logic)
+  // Actual tab - query real costs from journal entry lines (lazy: only when Actual tab is active)
   const { data: actualCostData, isLoading: isActualLoading } = useQuery({
     queryKey: ['budget-actual-costs', projectId, costCode.id, budgetItem.lot_id],
     queryFn: async () => {
