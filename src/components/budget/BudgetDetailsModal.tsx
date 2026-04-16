@@ -618,7 +618,7 @@ export function BudgetDetailsModal({
               const amount = i === allBudgetItems.length - 1 ? lastLotAmount : perLot;
               const { error: updateError } = await supabase
                 .from('project_budgets')
-                .update({ unit_price: amount, quantity: 1, budget_source: 'manual' })
+                .update({ unit_price: amount, quantity: 1, budget_source: 'manual', manual_allocation_mode: 'per-lot' } as any)
                 .eq('id', allBudgetItems[i].id);
               if (updateError) throw updateError;
             }
@@ -626,18 +626,47 @@ export function BudgetDetailsModal({
 
           queryClient.invalidateQueries({ queryKey: ['project-budgets', projectId] });
           queryClient.invalidateQueries({ queryKey: ['job-costs'] });
+          queryClient.invalidateQueries({ queryKey: ['budget-siblings-manual', projectId, costCode.id] });
+          queryClient.invalidateQueries({ queryKey: ['budget-manual-lines', projectId, costCode.id] });
           toast({ title: "Budget source updated", description: `Now using Manual for this budget item` });
         } catch (error: any) {
           console.error('Error saving manual per-lot:', error);
           toast({ title: "Error", description: error?.message || "Failed to save manual allocation", variant: "destructive" });
         }
       } else {
-        updateSource({
-          budgetItemId: budgetItem.id,
-          source: 'manual',
-          manualQuantity: 1,
-          manualUnitPrice: manualTotalAmount,
-        });
+        // Full-amount mode: write the full total to all sibling rows and persist mode='full'
+        try {
+          const { data: allBudgetItems, error: allError } = await supabase
+            .from('project_budgets')
+            .select('id, lot_id')
+            .eq('project_id', projectId)
+            .eq('cost_code_id', costCode.id);
+          if (allError) throw allError;
+
+          if (allBudgetItems && allBudgetItems.length > 0) {
+            for (const row of allBudgetItems) {
+              const { error: updateError } = await supabase
+                .from('project_budgets')
+                .update({
+                  unit_price: manualTotalAmount,
+                  quantity: 1,
+                  budget_source: 'manual',
+                  manual_allocation_mode: 'full',
+                } as any)
+                .eq('id', row.id);
+              if (updateError) throw updateError;
+            }
+          }
+
+          queryClient.invalidateQueries({ queryKey: ['project-budgets', projectId] });
+          queryClient.invalidateQueries({ queryKey: ['job-costs'] });
+          queryClient.invalidateQueries({ queryKey: ['budget-siblings-manual', projectId, costCode.id] });
+          queryClient.invalidateQueries({ queryKey: ['budget-manual-lines', projectId, costCode.id] });
+          toast({ title: "Budget source updated", description: `Now using Manual for this budget item` });
+        } catch (error: any) {
+          console.error('Error saving manual full:', error);
+          toast({ title: "Error", description: error?.message || "Failed to save manual allocation", variant: "destructive" });
+        }
       }
       onClose();
     } else if (source === 'purchase-orders') {
