@@ -992,47 +992,127 @@ export function BudgetDetailsModal({
                 <Table>
                   <TableHeader>
                     <TableRow>
-                      <TableHead className="w-12"></TableHead>
                       <TableHead>Cost Code</TableHead>
                       <TableHead>Description</TableHead>
+                      <TableHead>Notes</TableHead>
                       <TableHead>Unit Price</TableHead>
                       <TableHead className="text-center">Unit</TableHead>
                       <TableHead>Quantity</TableHead>
-                      <TableHead>Total</TableHead>
+                      <TableHead className="text-right">Total</TableHead>
+                      <TableHead className="w-12 text-right">Actions</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    <TableRow>
-                      <TableCell></TableCell>
-                      <TableCell className="text-sm">{costCode.code}</TableCell>
-                      <TableCell className="text-sm">{costCode.name}</TableCell>
-                      <TableCell className="text-sm">
-                        <Input
-                          type="number"
-                          value={manualUnitPriceInput}
-                          onChange={(e) => setManualUnitPriceInput(e.target.value)}
-                          className="w-28 h-8"
-                          disabled={isLocked}
-                          readOnly={isLocked}
-                        />
-                      </TableCell>
-                      <TableCell className="text-sm text-center">
-                        {truncateUnit(costCode.unit_of_measure)}
-                      </TableCell>
-                      <TableCell className="text-sm">
-                        <Input
-                          type="number"
-                          value={manualQuantityInput}
-                          onChange={(e) => setManualQuantityInput(e.target.value)}
-                          className="w-28 h-8"
-                          disabled={isLocked}
-                          readOnly={isLocked}
-                        />
-                      </TableCell>
-                      <TableCell className="text-sm font-medium">
-                        {formatCurrency(manualTotalAmount)}
-                      </TableCell>
-                    </TableRow>
+                    {manualLines.map((line, idx) => {
+                      const qty = parseFloat(line.quantityInput) || 0;
+                      const price = parseFloat(line.unitPriceInput) || 0;
+                      const lineTotal = qty * price;
+                      return (
+                        <TableRow key={line.tempId}>
+                          <TableCell className="text-sm whitespace-nowrap">{costCode.code}</TableCell>
+                          <TableCell className="text-sm">
+                            <Input
+                              type="text"
+                              value={line.description}
+                              onChange={(e) =>
+                                setManualLines((prev) =>
+                                  prev.map((l, i) => (i === idx ? { ...l, description: e.target.value } : l))
+                                )
+                              }
+                              className="h-8 min-w-[160px]"
+                              disabled={isLocked}
+                              readOnly={isLocked}
+                            />
+                          </TableCell>
+                          <TableCell className="text-sm">
+                            <Input
+                              type="text"
+                              value={line.notes}
+                              onChange={(e) =>
+                                setManualLines((prev) =>
+                                  prev.map((l, i) => (i === idx ? { ...l, notes: e.target.value } : l))
+                                )
+                              }
+                              className="h-8 min-w-[140px]"
+                              placeholder="Notes…"
+                              disabled={isLocked}
+                              readOnly={isLocked}
+                            />
+                          </TableCell>
+                          <TableCell className="text-sm">
+                            <Input
+                              type="number"
+                              value={line.unitPriceInput}
+                              onChange={(e) =>
+                                setManualLines((prev) =>
+                                  prev.map((l, i) => (i === idx ? { ...l, unitPriceInput: e.target.value } : l))
+                                )
+                              }
+                              className="w-24 h-8"
+                              disabled={isLocked}
+                              readOnly={isLocked}
+                            />
+                          </TableCell>
+                          <TableCell className="text-sm text-center whitespace-nowrap">
+                            {truncateUnit(costCode.unit_of_measure)}
+                          </TableCell>
+                          <TableCell className="text-sm">
+                            <Input
+                              type="number"
+                              value={line.quantityInput}
+                              onChange={(e) =>
+                                setManualLines((prev) =>
+                                  prev.map((l, i) => (i === idx ? { ...l, quantityInput: e.target.value } : l))
+                                )
+                              }
+                              className="w-20 h-8"
+                              disabled={isLocked}
+                              readOnly={isLocked}
+                            />
+                          </TableCell>
+                          <TableCell className="text-sm font-medium text-right whitespace-nowrap">
+                            {formatCurrency(lineTotal)}
+                          </TableCell>
+                          <TableCell className="text-right">
+                            <DropdownMenu>
+                              <DropdownMenuTrigger asChild>
+                                <Button
+                                  variant="ghost"
+                                  size="icon"
+                                  className="h-7 w-7"
+                                  disabled={isLocked}
+                                >
+                                  <MoreHorizontal className="h-4 w-4" />
+                                </Button>
+                              </DropdownMenuTrigger>
+                              <DropdownMenuContent align="end">
+                                <DropdownMenuItem
+                                  onClick={() =>
+                                    setManualLines((prev) => {
+                                      const next = [...prev];
+                                      next.splice(idx + 1, 0, newManualLine());
+                                      return next;
+                                    })
+                                  }
+                                >
+                                  Add Row
+                                </DropdownMenuItem>
+                                {manualLines.length > 1 && (
+                                  <DropdownMenuItem
+                                    className="text-destructive focus:text-destructive"
+                                    onClick={() =>
+                                      setManualLines((prev) => prev.filter((_, i) => i !== idx))
+                                    }
+                                  >
+                                    Delete Row
+                                  </DropdownMenuItem>
+                                )}
+                              </DropdownMenuContent>
+                            </DropdownMenu>
+                          </TableCell>
+                        </TableRow>
+                      );
+                    })}
                   </TableBody>
                 </Table>
               </div>
