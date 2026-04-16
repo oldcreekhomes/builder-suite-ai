@@ -1,26 +1,35 @@
 
-## Plan: Fix "null id" error when adding a 2nd manual sub-line
+## Plan: Add Monthly + Annual columns to Operating Expenses
 
-### Root cause
-In `BudgetDetailsModal.tsx` (Apply handler, manual branch ~line 588-609), all manual lines are sent in a single `.upsert(upsertRows)` call. Some rows have `id` (existing) and some don't (new). PostgREST normalizes the column set across the batch — new rows end up sending `id: null`, which violates the NOT NULL constraint on `project_budget_manual_lines.id` (the default `gen_random_uuid()` doesn't apply because the column is explicitly present as null).
+### Behavior
+For each currency expense in the Operating Expenses cards, show two columns on the right:
+- **Monthly** — editable; entered as **per-unit per-month** dollars (e.g. $65)
+- **Annual** — read-only; computed as `monthly × number_of_units × 12` (e.g. $65 × 18 × 12 = $14,040)
 
-### Fix
-Split the write into two operations:
-1. **Update** existing rows (those with `id`) using `.upsert(updates, { onConflict: 'id' })` — every row in this batch has `id`, so no null.
-2. **Insert** new rows (those without `id`) using `.insert(inserts)` — `id` field is omitted entirely, so the DB default `gen_random_uuid()` fires.
+Annual is what's stored in the DB (existing field, already wired into the Income Statement) — nothing downstream changes.
 
-Also generate the new UUIDs client-side (via `crypto.randomUUID()`) before insert so we can update `manualLines` state with the new ids and avoid orphaning them on subsequent Applies.
+### Special cases
+- **Management Fee (%)** — still a single percent input; no monthly/annual split. Show value in the Annual column, leave Monthly blank.
+- **Reserves per Unit** — already a per-unit annual number. Show as-is in Annual; Monthly = `reserves_per_unit / 12` (editable, recomputes annual on edit).
+- **Taxes** — keep the existing Tax Rate / Estimated Value sub-rows. Computed taxes appear in Annual; Monthly = `taxes / 12` (read-only since taxes are derived).
 
-### Files to change
-- `src/components/budget/BudgetDetailsModal.tsx` — replace the single mixed `.upsert` with separate update/insert paths.
+### UI changes (`src/pages/apartments/ApartmentInputs.tsx`)
+1. Add a small column header row at the top of each Operating Expenses card:
+   ```
+   [label]                          Monthly        Annual
+   ```
+2. Update `RemovableEditableRow` (and `renderExpenseItem`) to render two right-aligned cells instead of one.
+3. Edit handler for Monthly: parse number → multiply by `inputs.number_of_units * 12` → call existing `updateInput(field, annualString)`. Annual cell updates automatically from `inputs[field]`.
+4. Empty Monthly cell for percent fields (Management Fee) and read-only Monthly for derived Taxes.
 
 ### Out of scope
-- No DB schema changes.
-- No change to allocation mode persistence or sibling-row writes (that block stays as-is).
+- No DB schema changes (annual values still persist in current columns).
+- No changes to Income Statement, Dashboard, or `useApartmentInputs` computations.
+- Property & Revenue, Loan Terms, Key Metrics tabs unchanged.
 
 ### Validation
-1. Open Manual tab on cost code 2310, add a 2nd row, set values, click Apply → saves with no error.
-2. Reopen → both rows present.
-3. Edit row 1, add row 3, Apply → row 1 updates, row 3 inserts, row 2 unchanged.
-4. Delete a row, Apply → removed correctly.
-5. Allocation mode (Full / Per-lot) still persists exactly as last saved.
+1. With 18 units, type `65` in Insurance Monthly → Annual shows `$14,040`; Income Statement reflects `$14,040`.
+2. Change units to 20 → Insurance Annual recomputes to `$15,600` (Monthly stays `$65`).
+3. Reserves per Unit: Monthly shows `$24.58` for `$295` annual.
+4. Management Fee row shows `5.0%` in Annual column, Monthly cell blank.
+5. Taxes row: Annual shows computed taxes; Monthly shows `annual / 12`, both read-only.
