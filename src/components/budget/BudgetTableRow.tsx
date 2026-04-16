@@ -14,6 +14,8 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/comp
 import { Badge } from '@/components/ui/badge';
 import { VisibleColumns } from './BudgetColumnVisibilityDropdown';
 import { BudgetCommentBadge, BudgetComment } from './BudgetCommentBadge';
+import { useQueryClient } from '@tanstack/react-query';
+import { supabase } from '@/integrations/supabase/client';
 import {
   Select,
   SelectContent,
