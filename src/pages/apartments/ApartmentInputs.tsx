@@ -227,6 +227,7 @@ const ApartmentInputsPage = () => {
                     <CardHeader><CardTitle className="text-sm font-medium">Operating Expenses</CardTitle></CardHeader>
                     <CardContent>
                       <div className="space-y-2 text-sm">
+                        <ExpensesHeader />
                         {leftItems.map(renderExpenseItem)}
                         {leftItems.length === 0 && (
                           <span className="text-muted-foreground text-xs italic">No items</span>
@@ -238,6 +239,7 @@ const ApartmentInputsPage = () => {
                     <CardHeader><CardTitle className="text-sm font-medium">Operating Expenses (cont.)</CardTitle></CardHeader>
                     <CardContent>
                       <div className="space-y-2 text-sm">
+                        <ExpensesHeader />
                         {rightItems.map(renderExpenseItem)}
                         {rightItems.length === 0 && (
                           <span className="text-muted-foreground text-xs italic">No items</span>
