@@ -98,7 +98,7 @@ export function BudgetDetailsModal({
   const hasSubcategories = subcategories.length > 0;
   
   // Historical tab state and hooks
-  const { data: historicalProjects = [] } = useHistoricalProjects();
+  const { data: historicalProjects = [] } = useHistoricalProjects(isOpen);
   const [selectedHistoricalProjectId, setSelectedHistoricalProjectId] = useState<string | null>(() => {
     if (budgetItem.budget_source !== 'historical') return null;
     const pid = (budgetItem as any).historical_project_id;
@@ -109,7 +109,23 @@ export function BudgetDetailsModal({
   const parsedHistorical = selectedHistoricalProjectId ? parseHistoricalKey(selectedHistoricalProjectId) : null;
   const { data: historicalCosts } = useHistoricalActualCosts(parsedHistorical?.projectId || null, parsedHistorical?.lotId);
 
-  // PO tab - query PO count/total for this cost code
+  // Determine initial tab based on budget_source
+  const getInitialTab = () => {
+    if (budgetItem.budget_source) {
+      const source = budgetItem.budget_source;
+      if (source === 'actual' || source === 'vendor-bid' || source === 'manual' || source === 'purchase-orders' || source === 'historical') {
+        return source;
+      }
+      if (source === 'estimate') {
+        return 'estimate';
+      }
+    }
+    return 'estimate';
+  };
+
+  const [activeTab, setActiveTab] = useState(getInitialTab());
+
+  // PO tab - query PO count/total for this cost code (lazy: only when PO tab is active)
   const { data: poData } = useQuery({
     queryKey: ['budget-purchase-orders-summary', projectId, costCode.id],
     queryFn: async () => {
@@ -123,10 +139,14 @@ export function BudgetDetailsModal({
       const total = (data || []).reduce((sum, po) => sum + (po.total_amount || 0), 0);
       return { count: data?.length || 0, total };
     },
-    enabled: !!projectId && !!costCode.id,
+    enabled: isOpen && !!projectId && !!costCode.id && activeTab === 'purchase-orders',
+    staleTime: 60_000,
+    refetchOnWindowFocus: false,
+    refetchOnReconnect: false,
+    placeholderData: (prev) => prev,
   });
 
-  // Actual tab - query real costs from journal entry lines (mirrors Job Costs logic)
+  // Actual tab - query real costs from journal entry lines (lazy: only when Actual tab is active)
   const { data: actualCostData, isLoading: isActualLoading } = useQuery({
     queryKey: ['budget-actual-costs', projectId, costCode.id, budgetItem.lot_id],
     queryFn: async () => {
@@ -158,24 +178,13 @@ export function BudgetDetailsModal({
       const total = (lines || []).reduce((sum, l) => sum + ((l.debit || 0) - (l.credit || 0)), 0);
       return { lines: lines || [], total };
     },
-    enabled: !!projectId && !!costCode.id && isOpen,
+    enabled: !!projectId && !!costCode.id && isOpen && activeTab === 'actual',
+    staleTime: 60_000,
+    refetchOnWindowFocus: false,
+    refetchOnReconnect: false,
+    placeholderData: (prev) => prev,
   });
 
-  // Determine initial tab based on budget_source
-  const getInitialTab = () => {
-    if (budgetItem.budget_source) {
-      const source = budgetItem.budget_source;
-      if (source === 'actual' || source === 'vendor-bid' || source === 'manual' || source === 'purchase-orders' || source === 'historical') {
-        return source;
-      }
-      if (source === 'estimate') {
-        return 'estimate';
-      }
-    }
-    return 'estimate';
-  };
-  
-  const [activeTab, setActiveTab] = useState(getInitialTab());
 
   const [editingQuantityId, setEditingQuantityId] = useState<string | null>(null);
   const [editingValue, setEditingValue] = useState<string>('');
@@ -252,6 +261,10 @@ export function BudgetDetailsModal({
       return ((data as any[]) || []);
     },
     enabled: isOpen && lotCount > 1 && budgetItem.budget_source === 'manual',
+    staleTime: 60_000,
+    refetchOnWindowFocus: false,
+    refetchOnReconnect: false,
+    placeholderData: (prev) => prev,
   });
 
   // Saved mode (explicit user choice from a previous Apply) — primary source of truth
@@ -363,6 +376,10 @@ export function BudgetDetailsModal({
       return (data as any[]) || [];
     },
     enabled: isOpen,
+    staleTime: 60_000,
+    refetchOnWindowFocus: false,
+    refetchOnReconnect: false,
+    placeholderData: (prev) => prev,
   });
 
   useEffect(() => {
@@ -1241,17 +1258,19 @@ export function BudgetDetailsModal({
 
           {/* Purchase Orders Tab */}
           <TabsContent value="purchase-orders" className="flex-1 overflow-auto mt-4">
-            <BudgetDetailsPurchaseOrderTab 
-              projectId={projectId} 
-              costCodeId={costCode.id} 
-              lotCount={lotCount}
-              isLocked={isLocked}
-              budgetItemUnitPrice={budgetItem.unit_price}
-              onAllocationChange={(mode, amount) => {
-                setPoAllocationMode(mode);
-                setPoAllocationAmount(amount);
-              }}
-            />
+            {activeTab === 'purchase-orders' && (
+              <BudgetDetailsPurchaseOrderTab 
+                projectId={projectId} 
+                costCodeId={costCode.id} 
+                lotCount={lotCount}
+                isLocked={isLocked}
+                budgetItemUnitPrice={budgetItem.unit_price}
+                onAllocationChange={(mode, amount) => {
+                  setPoAllocationMode(mode);
+                  setPoAllocationAmount(amount);
+                }}
+              />
+            )}
           </TabsContent>
 
           {/* Historical Tab */}

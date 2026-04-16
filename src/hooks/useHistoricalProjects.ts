@@ -9,7 +9,7 @@ export interface HistoricalProject {
   address: string;
 }
 
-export function useHistoricalProjects() {
+export function useHistoricalProjects(enabled: boolean = true) {
   return useQuery({
     queryKey: ['historical-projects'],
     queryFn: async (): Promise<HistoricalProject[]> => {
@@ -95,6 +95,11 @@ export function useHistoricalProjects() {
         return a.address.localeCompare(b.address);
       });
     },
+    enabled,
+    staleTime: 60_000,
+    refetchOnWindowFocus: false,
+    refetchOnReconnect: false,
+    placeholderData: (prev) => prev,
   });
 }
 

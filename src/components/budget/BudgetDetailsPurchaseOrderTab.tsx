@@ -69,6 +69,10 @@ export function BudgetDetailsPurchaseOrderTab({
       return enrichedPOs;
     },
     enabled: !!projectId && !!costCodeId,
+    staleTime: 60_000,
+    refetchOnWindowFocus: false,
+    refetchOnReconnect: false,
+    placeholderData: (prev) => prev,
   });
 
   const totalAmount = purchaseOrders.reduce((sum, po) => sum + (po.total_amount || 0), 0);
