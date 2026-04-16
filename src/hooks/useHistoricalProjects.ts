@@ -95,6 +95,11 @@ export function useHistoricalProjects(enabled: boolean = true) {
         return a.address.localeCompare(b.address);
       });
     },
+    enabled,
+    staleTime: 60_000,
+    refetchOnWindowFocus: false,
+    refetchOnReconnect: false,
+    placeholderData: (prev) => prev,
   });
 }
 
