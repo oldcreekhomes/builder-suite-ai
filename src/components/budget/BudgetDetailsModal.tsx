@@ -354,8 +354,8 @@ export function BudgetDetailsModal({
         manualLineRows.map((row: any) => ({
           tempId: `db-${row.id}`,
           id: row.id,
-          description: row.description ?? costCode.name,
           notes: row.notes ?? '',
+          unitOfMeasure: row.unit_of_measure ?? '',
           unitPriceInput: row.unit_price?.toString() ?? '',
           quantityInput: row.quantity?.toString() ?? '1',
         }))
