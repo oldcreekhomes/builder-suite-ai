@@ -245,20 +245,30 @@ export function BudgetDetailsModal({
     queryFn: async () => {
       const { data, error } = await supabase
         .from('project_budgets')
-        .select('id, lot_id, unit_price, quantity')
+        .select('id, lot_id, unit_price, quantity, manual_allocation_mode')
         .eq('project_id', projectId)
         .eq('cost_code_id', costCode.id);
       if (error) throw error;
-      return data || [];
+      return ((data as any[]) || []);
     },
     enabled: isOpen && lotCount > 1 && budgetItem.budget_source === 'manual',
   });
 
+  // Saved mode (explicit user choice from a previous Apply) — primary source of truth
+  const savedManualMode = useMemo<'full' | 'per-lot' | null>(() => {
+    const fromItem = (budgetItem as any).manual_allocation_mode;
+    if (fromItem === 'full' || fromItem === 'per-lot') return fromItem;
+    const fromSiblings = (siblingRows || [])
+      .map((r: any) => r.manual_allocation_mode)
+      .find((m: any) => m === 'full' || m === 'per-lot');
+    return (fromSiblings as 'full' | 'per-lot' | undefined) ?? null;
+  }, [budgetItem, siblingRows]);
+
   const manualFallbackState = useMemo(() => ({
     quantityInput: budgetItem.quantity?.toString() || '',
     unitPriceInput: budgetItem.unit_price?.toString() || '',
-    allocationMode: 'full' as const,
-  }), [budgetItem.quantity, budgetItem.unit_price]);
+    allocationMode: (savedManualMode ?? 'full') as 'full' | 'per-lot',
+  }), [budgetItem.quantity, budgetItem.unit_price, savedManualMode]);
 
   const manualInitialState = useMemo(() => {
     if (budgetItem.budget_source !== 'manual' || lotCount <= 1 || !siblingRows?.length) {
@@ -285,16 +295,22 @@ export function BudgetDetailsModal({
       return rowTotalCents === basePerLotCents || rowTotalCents === remainderPerLotCents;
     });
 
-    if (!matchesSplitPattern) {
+    // Saved mode wins over inference. Only fall back to math inference when no saved mode exists.
+    let mode: 'full' | 'per-lot';
+    if (savedManualMode) {
+      mode = savedManualMode;
+    } else if (matchesSplitPattern) {
+      mode = 'per-lot';
+    } else {
       return manualFallbackState;
     }
 
     return {
       quantityInput: '1',
       unitPriceInput: fromCents(reconstructedTotalCents).toString(),
-      allocationMode: 'per-lot' as const,
+      allocationMode: mode,
     };
-  }, [budgetItem.budget_source, lotCount, manualFallbackState, siblingRows]);
+  }, [budgetItem.budget_source, lotCount, manualFallbackState, siblingRows, savedManualMode]);
 
   useEffect(() => {
     if (!isOpen) {
@@ -315,7 +331,7 @@ export function BudgetDetailsModal({
       return;
     }
 
-    const hydrationKey = `${budgetItem.id}:resolved`;
+    const hydrationKey = `${budgetItem.id}:resolved:${manualInitialState.allocationMode}:${manualInitialState.unitPriceInput}:${savedManualMode ?? 'none'}`;
     if (manualHydrationKeyRef.current === hydrationKey) return;
 
     setManualQuantityInput(manualInitialState.quantityInput);
@@ -330,6 +346,7 @@ export function BudgetDetailsModal({
     siblingRows,
     manualFallbackState,
     manualInitialState,
+    savedManualMode,
   ]);
 
   // Hydrate manual sub-lines from project_budget_manual_lines (true source of truth)
@@ -602,7 +619,7 @@ export function BudgetDetailsModal({
               const amount = i === allBudgetItems.length - 1 ? lastLotAmount : perLot;
               const { error: updateError } = await supabase
                 .from('project_budgets')
-                .update({ unit_price: amount, quantity: 1, budget_source: 'manual' })
+                .update({ unit_price: amount, quantity: 1, budget_source: 'manual', manual_allocation_mode: 'per-lot' } as any)
                 .eq('id', allBudgetItems[i].id);
               if (updateError) throw updateError;
             }
@@ -610,18 +627,47 @@ export function BudgetDetailsModal({
 
           queryClient.invalidateQueries({ queryKey: ['project-budgets', projectId] });
           queryClient.invalidateQueries({ queryKey: ['job-costs'] });
+          queryClient.invalidateQueries({ queryKey: ['budget-siblings-manual', projectId, costCode.id] });
+          queryClient.invalidateQueries({ queryKey: ['budget-manual-lines', projectId, costCode.id] });
           toast({ title: "Budget source updated", description: `Now using Manual for this budget item` });
         } catch (error: any) {
           console.error('Error saving manual per-lot:', error);
           toast({ title: "Error", description: error?.message || "Failed to save manual allocation", variant: "destructive" });
         }
       } else {
-        updateSource({
-          budgetItemId: budgetItem.id,
-          source: 'manual',
-          manualQuantity: 1,
-          manualUnitPrice: manualTotalAmount,
-        });
+        // Full-amount mode: write the full total to all sibling rows and persist mode='full'
+        try {
+          const { data: allBudgetItems, error: allError } = await supabase
+            .from('project_budgets')
+            .select('id, lot_id')
+            .eq('project_id', projectId)
+            .eq('cost_code_id', costCode.id);
+          if (allError) throw allError;
+
+          if (allBudgetItems && allBudgetItems.length > 0) {
+            for (const row of allBudgetItems) {
+              const { error: updateError } = await supabase
+                .from('project_budgets')
+                .update({
+                  unit_price: manualTotalAmount,
+                  quantity: 1,
+                  budget_source: 'manual',
+                  manual_allocation_mode: 'full',
+                } as any)
+                .eq('id', row.id);
+              if (updateError) throw updateError;
+            }
+          }
+
+          queryClient.invalidateQueries({ queryKey: ['project-budgets', projectId] });
+          queryClient.invalidateQueries({ queryKey: ['job-costs'] });
+          queryClient.invalidateQueries({ queryKey: ['budget-siblings-manual', projectId, costCode.id] });
+          queryClient.invalidateQueries({ queryKey: ['budget-manual-lines', projectId, costCode.id] });
+          toast({ title: "Budget source updated", description: `Now using Manual for this budget item` });
+        } catch (error: any) {
+          console.error('Error saving manual full:', error);
+          toast({ title: "Error", description: error?.message || "Failed to save manual allocation", variant: "destructive" });
+        }
       }
       onClose();
     } else if (source === 'purchase-orders') {
