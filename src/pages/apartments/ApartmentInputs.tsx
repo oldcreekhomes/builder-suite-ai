@@ -151,10 +151,7 @@ const ApartmentInputsPage = () => {
           />
           <div className="pl-4 space-y-2">
             <EditableRow label="Tax Rate" field="tax_rate" value={inputs.tax_rate} onChange={updateInput} format="number" />
-            <div className="flex justify-between items-center">
-              <span className="text-muted-foreground">Estimated Value</span>
-              <span className="w-28 text-right">{fmt(inputs.estimated_value)}</span>
-            </div>
+            <EditableRow label="Estimated Value" field="estimated_value" value={inputs.estimated_value} onChange={updateInput} format="currency" />
           </div>
         </div>
       );
@@ -208,7 +205,7 @@ const ApartmentInputsPage = () => {
                         <EditableRow label="Average Rent per Unit" field="avg_rent_per_unit" value={inputs.avg_rent_per_unit} onChange={updateInput} format="currency" />
                         <EditableRow label="Vacancy Rate" field="vacancy_rate" value={inputs.vacancy_rate} onChange={updateInput} format="percent" />
                         <EditableRow label="Total Costs" field="purchase_price" value={inputs.purchase_price} onChange={updateInput} format="currency" />
-                        <EditableRow label="Estimated Value" field="estimated_value" value={inputs.estimated_value} onChange={updateInput} format="currency" />
+                        <EditableRow label="Estimated Value" field="construction_costs" value={inputs.construction_costs} onChange={updateInput} format="currency" />
                       </div>
                     </CardContent>
                   </Card>
