@@ -186,6 +186,25 @@ export function BudgetDetailsModal({
     }
   }, [lotCount, selectedBidId, budgetItem.unit_price, availableBids]);
 
+  // Infer manual allocation mode from saved data
+  useEffect(() => {
+    if (lotCount > 1 && budgetItem.budget_source === 'manual' && budgetItem.unit_price > 0) {
+      const savedQty = budgetItem.quantity || 0;
+      const savedPrice = budgetItem.unit_price || 0;
+      const manualQty = parseFloat(manualQuantityInput) || 0;
+      const manualPrice = parseFloat(manualUnitPriceInput) || 0;
+      // If the saved values show quantity=1 and the price looks like a divided amount, infer per-lot
+      if (savedQty === 1 && manualQty > 0 && manualPrice > 0) {
+        const fullTotal = manualQty * manualPrice;
+        const basePerLot = Math.floor((fullTotal / lotCount) * 100) / 100;
+        const isNear = (a: number, b: number, epsilon = 0.02) => Math.abs(a - b) < epsilon;
+        if (isNear(savedPrice, basePerLot)) {
+          setManualAllocationMode('per-lot');
+        }
+      }
+    }
+  }, [lotCount, budgetItem.budget_source, budgetItem.unit_price, budgetItem.quantity]);
+
   useEffect(() => {
     setSelectedBidId(currentSelectedBidId || null);
   }, [currentSelectedBidId]);
