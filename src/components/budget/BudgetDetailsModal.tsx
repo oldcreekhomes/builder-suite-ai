@@ -98,7 +98,7 @@ export function BudgetDetailsModal({
   const hasSubcategories = subcategories.length > 0;
   
   // Historical tab state and hooks
-  const { data: historicalProjects = [] } = useHistoricalProjects();
+  const { data: historicalProjects = [] } = useHistoricalProjects(isOpen);
   const [selectedHistoricalProjectId, setSelectedHistoricalProjectId] = useState<string | null>(() => {
     if (budgetItem.budget_source !== 'historical') return null;
     const pid = (budgetItem as any).historical_project_id;
