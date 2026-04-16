@@ -1010,21 +1010,7 @@ export function BudgetDetailsModal({
                       const lineTotal = qty * price;
                       return (
                         <TableRow key={line.tempId}>
-                          <TableCell className="text-sm whitespace-nowrap">{costCode.code}</TableCell>
-                          <TableCell className="text-sm">
-                            <Input
-                              type="text"
-                              value={line.description}
-                              onChange={(e) =>
-                                setManualLines((prev) =>
-                                  prev.map((l, i) => (i === idx ? { ...l, description: e.target.value } : l))
-                                )
-                              }
-                              className="h-8 min-w-[160px]"
-                              disabled={isLocked}
-                              readOnly={isLocked}
-                            />
-                          </TableCell>
+                          <TableCell className="text-sm whitespace-nowrap">{costCode.name}</TableCell>
                           <TableCell className="text-sm">
                             <Input
                               type="text"
@@ -1055,7 +1041,24 @@ export function BudgetDetailsModal({
                             />
                           </TableCell>
                           <TableCell className="text-sm text-center whitespace-nowrap">
-                            {truncateUnit(costCode.unit_of_measure)}
+                            <Select
+                              value={line.unitOfMeasure || undefined}
+                              onValueChange={(value) =>
+                                setManualLines((prev) =>
+                                  prev.map((l, i) => (i === idx ? { ...l, unitOfMeasure: value } : l))
+                                )
+                              }
+                              disabled={isLocked}
+                            >
+                              <SelectTrigger className="h-8 w-32">
+                                <SelectValue placeholder="Select" />
+                              </SelectTrigger>
+                              <SelectContent>
+                                {MANUAL_UNIT_OPTIONS.map((opt) => (
+                                  <SelectItem key={opt} value={opt}>{opt}</SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
                           </TableCell>
                           <TableCell className="text-sm">
                             <Input
