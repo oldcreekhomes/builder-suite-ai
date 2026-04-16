@@ -184,6 +184,26 @@ export function BudgetDetailsModal({
   const [poAllocationAmount, setPoAllocationAmount] = useState<number>(0);
   const manualHydrationKeyRef = useRef<string | null>(null);
 
+  // Manual sub-lines state — multi-row breakouts
+  type ManualLine = {
+    tempId: string;
+    id?: string;
+    description: string;
+    notes: string;
+    unitPriceInput: string;
+    quantityInput: string;
+  };
+  const newManualLine = (overrides: Partial<ManualLine> = {}): ManualLine => ({
+    tempId: `tmp-${Math.random().toString(36).slice(2, 10)}`,
+    description: costCode.name,
+    notes: '',
+    unitPriceInput: '',
+    quantityInput: '1',
+    ...overrides,
+  });
+  const [manualLines, setManualLines] = useState<ManualLine[]>([newManualLine()]);
+  const manualLinesHydrationKeyRef = useRef<string | null>(null);
+
   // Budget source update hook
   const { updateSource, isUpdating } = useBudgetSourceUpdate(projectId);
   const queryClient = useQueryClient();
