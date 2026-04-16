@@ -354,18 +354,48 @@ export function BudgetDetailsModal({
       return;
     }
     if (manualLineRows === undefined) return;
+    // Wait for sibling rows so we can correctly reconcile per-lot vs full storage
+    if (budgetItem.budget_source === 'manual' && lotCount > 1 && siblingRows === undefined) return;
 
     const hydrationKey = `${budgetItem.id}:lines`;
     if (manualLinesHydrationKeyRef.current === hydrationKey) return;
 
     if (manualLineRows.length > 0) {
+      // Reconcile: if sub-lines were stored as per-lot values, scale them back to full amount.
+      // The reconstructed total from project_budgets sibling rows is the source of truth.
+      let scaleFactor = 1;
+      if (
+        budgetItem.budget_source === 'manual' &&
+        lotCount > 1 &&
+        manualInitialState.allocationMode === 'per-lot'
+      ) {
+        const linesTotalCents = manualLineRows.reduce((sum: number, row: any) => {
+          const up = Number(row.unit_price) || 0;
+          const q = Number(row.quantity) || 0;
+          return sum + Math.round(up * q * 100);
+        }, 0);
+        const reconstructedFullCents = Math.round(
+          (parseFloat(manualInitialState.unitPriceInput) || 0) * 100
+        );
+        if (
+          linesTotalCents > 0 &&
+          reconstructedFullCents > 0 &&
+          // sub-lines look like per-lot values (lines × lotCount ≈ full total)
+          Math.abs(linesTotalCents * lotCount - reconstructedFullCents) <= lotCount * 2 &&
+          // and they don't already match the full total
+          Math.abs(linesTotalCents - reconstructedFullCents) > lotCount * 2
+        ) {
+          scaleFactor = lotCount;
+        }
+      }
+
       setManualLines(
         manualLineRows.map((row: any) => ({
           tempId: `db-${row.id}`,
           id: row.id,
           notes: row.notes ?? '',
           unitOfMeasure: row.unit_of_measure ?? '',
-          unitPriceInput: row.unit_price?.toString() ?? '',
+          unitPriceInput: ((Number(row.unit_price) || 0) * scaleFactor).toString(),
           quantityInput: row.quantity?.toString() ?? '1',
         }))
       );
@@ -379,7 +409,7 @@ export function BudgetDetailsModal({
       ]);
     }
     manualLinesHydrationKeyRef.current = hydrationKey;
-  }, [isOpen, budgetItem.id, manualLineRows, manualInitialState, costCode.name]);
+  }, [isOpen, budgetItem.id, budgetItem.budget_source, lotCount, manualLineRows, siblingRows, manualInitialState, costCode.name]);
 
   useEffect(() => {
     setSelectedBidId(currentSelectedBidId || null);
