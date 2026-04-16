@@ -409,7 +409,7 @@ export function BudgetDetailsModal({
       ]);
     }
     manualLinesHydrationKeyRef.current = hydrationKey;
-  }, [isOpen, budgetItem.id, manualLineRows, manualInitialState, costCode.name]);
+  }, [isOpen, budgetItem.id, budgetItem.budget_source, lotCount, manualLineRows, siblingRows, manualInitialState, costCode.name]);
 
   useEffect(() => {
     setSelectedBidId(currentSelectedBidId || null);
