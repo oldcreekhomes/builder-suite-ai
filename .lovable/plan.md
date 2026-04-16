@@ -1,20 +1,20 @@
 
-## Plan: Income Statement cleanup
+## Plan: Remove CapEx Reserve from Income Statement
 
-### Changes to `src/pages/apartments/ApartmentIncomeStatement.tsx`
-1. Remove the **CapEx Reserve** row from the Operating Expenses section (it's no longer in Inputs).
-2. Rename the **"Per Unit"** column header to **"Monthly"**.
-3. Update the per-unit cells to display **monthly per-unit** values instead of annual per-unit:
-   - Replace `perUnit(v) = v / units` with `monthly(v) = v / units / 12`.
-   - Apply to all rows including totals (NOI, EGI, Cash Flow After Debt, etc.) so the column is internally consistent.
-   - The `% of EGI` column and Annual column remain unchanged.
+### Understanding
+User deleted CapEx Reserve from Inputs page (it's a removable row there). It still shows on the Income Statement page hardcoded. Just remove that one row from the IS — don't touch anything else (no "Per Unit" → "Monthly" rename this time).
+
+### Change
+In `src/pages/apartments/ApartmentIncomeStatement.tsx`, delete this single line:
+```tsx
+<StatementRow label="CapEx Reserve" annual={fmt(inputs.capex_reserve)} perUnit={perUnit(inputs.capex_reserve)} pct={pctEgi(inputs.capex_reserve)} />
+```
 
 ### Out of scope
-- No changes to Inputs page, calculations, or DB.
-- No changes to the Reserves row (that's the per-unit reserve, separate from CapEx).
+- No changes to `useApartmentInputs.ts` (field stays in interface — harmless, avoids breaking other consumers).
+- No header rename, no monthly recalculation.
+- No DB changes.
 
 ### Validation
-1. CapEx Reserve row no longer appears on Income Statement.
-2. Column header reads "Monthly".
-3. Insurance Monthly shows `$65` (matches Inputs); Annual still `$14,040`.
-4. Totals (EGI, NOI) show correct monthly per-unit values.
+1. Income Statement no longer shows the CapEx Reserve row.
+2. All other rows and totals unchanged.
