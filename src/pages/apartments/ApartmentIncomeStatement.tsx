@@ -70,15 +70,15 @@ const ApartmentIncomeStatement = () => {
                       <tr className="border-b">
                         <th className="text-left py-2 pr-4 font-medium">Line Item</th>
                         <th className="text-right py-2 px-4 font-medium">Annual</th>
-                        <th className="text-right py-2 px-4 font-medium">Per Unit</th>
+                        <th className="text-right py-2 px-4 font-medium">Monthly</th>
                         <th className="text-right py-2 pl-4 font-medium">% of EGI</th>
                       </tr>
                     </thead>
                     <tbody className="divide-y">
                       <SectionHeader title="Revenue" />
-                      <StatementRow label="Gross Potential Rent" annual={fmt(computed.grossPotentialRent)} perUnit={perUnit(computed.grossPotentialRent)} pct={pctEgi(computed.grossPotentialRent)} />
-                      <StatementRow label={`Less: Vacancy (${fmtPct(inputs.vacancy_rate)})`} annual={`(${fmt(computed.vacancyLoss)})`} perUnit={`(${perUnit(computed.vacancyLoss)})`} pct={`-${pctEgi(computed.vacancyLoss)}`} negative />
-                      <TotalRow label="Effective Gross Income" annual={fmt(computed.egi)} perUnit={perUnit(computed.egi)} pct="100.0%" />
+                      <StatementRow label="Gross Potential Rent" annual={fmt(computed.grossPotentialRent)} perUnit={monthly(computed.grossPotentialRent)} pct={pctEgi(computed.grossPotentialRent)} />
+                      <StatementRow label={`Less: Vacancy (${fmtPct(inputs.vacancy_rate)})`} annual={`(${fmt(computed.vacancyLoss)})`} perUnit={`(${monthly(computed.vacancyLoss)})`} pct={`-${pctEgi(computed.vacancyLoss)}`} negative />
+                      <TotalRow label="Effective Gross Income" annual={fmt(computed.egi)} perUnit={monthly(computed.egi)} pct="100.0%" />
 
                       <SectionHeader title="Operating Expenses" />
                       {expenseRows.map((r) => (
@@ -86,18 +86,18 @@ const ApartmentIncomeStatement = () => {
                           key={r.field}
                           label={r.label}
                           annual={fmt(r.value)}
-                          perUnit={perUnit(r.value)}
+                          perUnit={monthly(r.value)}
                           pct={pctEgi(r.value)}
                         />
                       ))}
-                      <TotalRow label="Total Operating Expenses" annual={fmt(computed.totalOpEx)} perUnit={perUnit(computed.totalOpEx)} pct={pctEgi(computed.totalOpEx)} />
+                      <TotalRow label="Total Operating Expenses" annual={fmt(computed.totalOpEx)} perUnit={monthly(computed.totalOpEx)} pct={pctEgi(computed.totalOpEx)} />
 
-                      <TotalRow label="Net Operating Income (NOI)" annual={fmt(computed.noi)} perUnit={perUnit(computed.noi)} pct={pctEgi(computed.noi)} highlight />
+                      <TotalRow label="Net Operating Income (NOI)" annual={fmt(computed.noi)} perUnit={monthly(computed.noi)} pct={pctEgi(computed.noi)} highlight />
 
                       <SectionHeader title="Debt Service" />
-                      <StatementRow label="Annual Debt Service" annual={`(${fmt(computed.annualDebtService)})`} perUnit={`(${perUnit(computed.annualDebtService)})`} pct={pctEgi(computed.annualDebtService)} negative />
+                      <StatementRow label="Annual Debt Service" annual={`(${fmt(computed.annualDebtService)})`} perUnit={`(${monthly(computed.annualDebtService)})`} pct={pctEgi(computed.annualDebtService)} negative />
 
-                      <TotalRow label="Cash Flow After Debt Service" annual={fmt(computed.cashFlowAfterDebt)} perUnit={perUnit(computed.cashFlowAfterDebt)} pct={pctEgi(computed.cashFlowAfterDebt)} highlight />
+                      <TotalRow label="Cash Flow After Debt Service" annual={fmt(computed.cashFlowAfterDebt)} perUnit={monthly(computed.cashFlowAfterDebt)} pct={pctEgi(computed.cashFlowAfterDebt)} highlight />
                     </tbody>
                   </table>
                 </div>
