@@ -4,11 +4,13 @@ import { AppSidebar } from "@/components/AppSidebar";
 import { SidebarProvider, SidebarInset } from "@/components/ui/sidebar";
 import { DashboardHeader } from "@/components/DashboardHeader";
 import { useApartmentInputs, fmt, fmtPct } from "@/hooks/useApartmentInputs";
+import { useApartmentExpenseVisibility } from "@/hooks/useApartmentExpenseVisibility";
 import { Loader2 } from "lucide-react";
 
 const ApartmentIncomeStatement = () => {
   const { projectId } = useParams();
   const { inputs, computed, isLoading } = useApartmentInputs(projectId);
+  const { isVisible } = useApartmentExpenseVisibility(projectId);
 
   if (isLoading) {
     return (
@@ -31,6 +33,27 @@ const ApartmentIncomeStatement = () => {
 
   const perUnit = (v: number) => fmt(v / units);
   const pctEgi = (v: number) => fmtPct((v / egi) * 100);
+
+  // Data-driven expense rows. Each row's `field` matches the key used by the
+  // Inputs page visibility toggle so removed rows disappear here automatically.
+  const expenseRows: Array<{ field: string; label: string; value: number }> = [
+    { field: "taxes", label: "Real Estate Taxes", value: computed.taxes },
+    { field: "insurance", label: "Insurance", value: inputs.insurance },
+    { field: "utilities", label: "Utilities", value: inputs.utilities },
+    { field: "repairs_maintenance", label: "Repairs & Maintenance", value: inputs.repairs_maintenance },
+    { field: "landscaping", label: "Landscaping", value: inputs.landscaping },
+    { field: "snow_removal", label: "Snow Removal", value: inputs.snow_removal },
+    { field: "trash_removal", label: "Trash Removal", value: inputs.trash_removal },
+    { field: "pest_control", label: "Pest Control", value: inputs.pest_control },
+    { field: "management_fee_percent", label: `Management (${fmtPct(inputs.management_fee_percent)})`, value: computed.managementFee },
+    { field: "general_admin", label: "General & Administrative", value: inputs.general_admin },
+    { field: "marketing", label: "Marketing", value: inputs.marketing },
+    { field: "security", label: "Security", value: inputs.security },
+    { field: "professional_fees", label: "Professional Fees", value: inputs.professional_fees },
+    { field: "capex_reserve", label: "CapEx Reserve", value: inputs.capex_reserve },
+    { field: "other_misc", label: "Other / Miscellaneous", value: inputs.other_misc },
+    { field: "reserves_per_unit", label: "Reserves", value: computed.reserves },
+  ].filter((r) => isVisible(r.field));
 
   return (
     <SidebarProvider>
@@ -59,23 +82,15 @@ const ApartmentIncomeStatement = () => {
                       <TotalRow label="Effective Gross Income" annual={fmt(computed.egi)} perUnit={perUnit(computed.egi)} pct="100.0%" />
 
                       <SectionHeader title="Operating Expenses" />
-                      <StatementRow label="Real Estate Taxes" annual={fmt(computed.taxes)} perUnit={perUnit(computed.taxes)} pct={pctEgi(computed.taxes)} />
-                      <StatementRow label="Insurance" annual={fmt(inputs.insurance)} perUnit={perUnit(inputs.insurance)} pct={pctEgi(inputs.insurance)} />
-                      <StatementRow label="Utilities" annual={fmt(inputs.utilities)} perUnit={perUnit(inputs.utilities)} pct={pctEgi(inputs.utilities)} />
-                      <StatementRow label="Repairs & Maintenance" annual={fmt(inputs.repairs_maintenance)} perUnit={perUnit(inputs.repairs_maintenance)} pct={pctEgi(inputs.repairs_maintenance)} />
-                      <StatementRow label="Landscaping" annual={fmt(inputs.landscaping)} perUnit={perUnit(inputs.landscaping)} pct={pctEgi(inputs.landscaping)} />
-                      <StatementRow label="Snow Removal" annual={fmt(inputs.snow_removal)} perUnit={perUnit(inputs.snow_removal)} pct={pctEgi(inputs.snow_removal)} />
-                      <StatementRow label="Trash Removal" annual={fmt(inputs.trash_removal)} perUnit={perUnit(inputs.trash_removal)} pct={pctEgi(inputs.trash_removal)} />
-                      <StatementRow label="Pest Control" annual={fmt(inputs.pest_control)} perUnit={perUnit(inputs.pest_control)} pct={pctEgi(inputs.pest_control)} />
-                      <StatementRow label={`Management (${fmtPct(inputs.management_fee_percent)})`} annual={fmt(computed.managementFee)} perUnit={perUnit(computed.managementFee)} pct={pctEgi(computed.managementFee)} />
-                      
-                      <StatementRow label="General & Administrative" annual={fmt(inputs.general_admin)} perUnit={perUnit(inputs.general_admin)} pct={pctEgi(inputs.general_admin)} />
-                      <StatementRow label="Marketing" annual={fmt(inputs.marketing)} perUnit={perUnit(inputs.marketing)} pct={pctEgi(inputs.marketing)} />
-                      <StatementRow label="Security" annual={fmt(inputs.security)} perUnit={perUnit(inputs.security)} pct={pctEgi(inputs.security)} />
-                      <StatementRow label="Professional Fees" annual={fmt(inputs.professional_fees)} perUnit={perUnit(inputs.professional_fees)} pct={pctEgi(inputs.professional_fees)} />
-                      <StatementRow label="CapEx Reserve" annual={fmt(inputs.capex_reserve)} perUnit={perUnit(inputs.capex_reserve)} pct={pctEgi(inputs.capex_reserve)} />
-                      <StatementRow label="Other / Miscellaneous" annual={fmt(inputs.other_misc)} perUnit={perUnit(inputs.other_misc)} pct={pctEgi(inputs.other_misc)} />
-                      <StatementRow label="Reserves" annual={fmt(computed.reserves)} perUnit={perUnit(computed.reserves)} pct={pctEgi(computed.reserves)} />
+                      {expenseRows.map((r) => (
+                        <StatementRow
+                          key={r.field}
+                          label={r.label}
+                          annual={fmt(r.value)}
+                          perUnit={perUnit(r.value)}
+                          pct={pctEgi(r.value)}
+                        />
+                      ))}
                       <TotalRow label="Total Operating Expenses" annual={fmt(computed.totalOpEx)} perUnit={perUnit(computed.totalOpEx)} pct={pctEgi(computed.totalOpEx)} />
 
                       <TotalRow label="Net Operating Income (NOI)" annual={fmt(computed.noi)} perUnit={perUnit(computed.noi)} pct={pctEgi(computed.noi)} highlight />

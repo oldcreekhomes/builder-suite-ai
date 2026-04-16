@@ -11,6 +11,7 @@ import { Button } from "@/components/ui/button";
 import { Tooltip, TooltipTrigger, TooltipContent, TooltipProvider } from "@/components/ui/tooltip";
 import { DeleteConfirmationDialog } from "@/components/ui/delete-confirmation-dialog";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
+import { notifyApartmentExpensesChanged } from "@/hooks/useApartmentExpenseVisibility";
 
 type OptionalExpense = {
   label: string;
@@ -53,6 +54,7 @@ function loadVisibleExpenses(projectId?: string): string[] {
 
 function saveVisibleExpenses(projectId: string | undefined, fields: string[]) {
   localStorage.setItem(getStorageKey(projectId), JSON.stringify(fields));
+  notifyApartmentExpensesChanged();
 }
 
 function rowCount(item: OptionalExpense): number {
