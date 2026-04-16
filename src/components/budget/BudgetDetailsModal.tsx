@@ -1084,16 +1084,16 @@ export function BudgetDetailsModal({
                               readOnly={isLocked}
                             />
                           </TableCell>
-                          <TableCell className="text-sm font-medium text-right whitespace-nowrap">
+                          <TableCell className="text-sm font-medium text-left whitespace-nowrap">
                             {formatCurrency(lineTotal)}
                           </TableCell>
-                          <TableCell className="text-right">
+                          <TableCell className="text-center">
                             <DropdownMenu>
                               <DropdownMenuTrigger asChild>
                                 <Button
                                   variant="ghost"
                                   size="icon"
-                                  className="h-7 w-7"
+                                  className="h-7 w-7 mx-auto"
                                   disabled={isLocked}
                                 >
                                   <MoreHorizontal className="h-4 w-4" />
