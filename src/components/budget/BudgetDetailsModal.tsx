@@ -245,7 +245,7 @@ export function BudgetDetailsModal({
     queryFn: async () => {
       const { data, error } = await supabase
         .from('project_budgets')
-        .select('id, lot_id, unit_price, quantity')
+        .select('id, lot_id, unit_price, quantity, manual_allocation_mode' as any)
         .eq('project_id', projectId)
         .eq('cost_code_id', costCode.id);
       if (error) throw error;
@@ -254,11 +254,21 @@ export function BudgetDetailsModal({
     enabled: isOpen && lotCount > 1 && budgetItem.budget_source === 'manual',
   });
 
+  // Saved mode (explicit user choice from a previous Apply) — primary source of truth
+  const savedManualMode = useMemo<'full' | 'per-lot' | null>(() => {
+    const fromItem = (budgetItem as any).manual_allocation_mode;
+    if (fromItem === 'full' || fromItem === 'per-lot') return fromItem;
+    const fromSiblings = (siblingRows || [])
+      .map((r: any) => r.manual_allocation_mode)
+      .find((m: any) => m === 'full' || m === 'per-lot');
+    return (fromSiblings as 'full' | 'per-lot' | undefined) ?? null;
+  }, [budgetItem, siblingRows]);
+
   const manualFallbackState = useMemo(() => ({
     quantityInput: budgetItem.quantity?.toString() || '',
     unitPriceInput: budgetItem.unit_price?.toString() || '',
-    allocationMode: 'full' as const,
-  }), [budgetItem.quantity, budgetItem.unit_price]);
+    allocationMode: (savedManualMode ?? 'full') as 'full' | 'per-lot',
+  }), [budgetItem.quantity, budgetItem.unit_price, savedManualMode]);
 
   const manualInitialState = useMemo(() => {
     if (budgetItem.budget_source !== 'manual' || lotCount <= 1 || !siblingRows?.length) {
@@ -285,16 +295,22 @@ export function BudgetDetailsModal({
       return rowTotalCents === basePerLotCents || rowTotalCents === remainderPerLotCents;
     });
 
-    if (!matchesSplitPattern) {
+    // Saved mode wins over inference. Only fall back to math inference when no saved mode exists.
+    let mode: 'full' | 'per-lot';
+    if (savedManualMode) {
+      mode = savedManualMode;
+    } else if (matchesSplitPattern) {
+      mode = 'per-lot';
+    } else {
       return manualFallbackState;
     }
 
     return {
       quantityInput: '1',
       unitPriceInput: fromCents(reconstructedTotalCents).toString(),
-      allocationMode: 'per-lot' as const,
+      allocationMode: mode,
     };
-  }, [budgetItem.budget_source, lotCount, manualFallbackState, siblingRows]);
+  }, [budgetItem.budget_source, lotCount, manualFallbackState, siblingRows, savedManualMode]);
 
   useEffect(() => {
     if (!isOpen) {
