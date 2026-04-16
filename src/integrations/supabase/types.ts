@@ -3265,6 +3265,63 @@ export type Database = {
           },
         ]
       }
+      project_budget_manual_lines: {
+        Row: {
+          cost_code_id: string
+          created_at: string
+          description: string | null
+          id: string
+          notes: string | null
+          owner_id: string
+          project_id: string
+          quantity: number
+          sort_order: number
+          unit_price: number
+          updated_at: string
+        }
+        Insert: {
+          cost_code_id: string
+          created_at?: string
+          description?: string | null
+          id?: string
+          notes?: string | null
+          owner_id: string
+          project_id: string
+          quantity?: number
+          sort_order?: number
+          unit_price?: number
+          updated_at?: string
+        }
+        Update: {
+          cost_code_id?: string
+          created_at?: string
+          description?: string | null
+          id?: string
+          notes?: string | null
+          owner_id?: string
+          project_id?: string
+          quantity?: number
+          sort_order?: number
+          unit_price?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "project_budget_manual_lines_cost_code_id_fkey"
+            columns: ["cost_code_id"]
+            isOneToOne: false
+            referencedRelation: "cost_codes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "project_budget_manual_lines_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       project_budgets: {
         Row: {
           actual_amount: number | null

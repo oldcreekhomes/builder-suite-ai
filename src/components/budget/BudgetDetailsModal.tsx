@@ -6,6 +6,13 @@ import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Checkbox } from "@/components/ui/checkbox";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { MoreHorizontal } from "lucide-react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from "@/components/ui/table";
 import { getFileIcon, getFileIconColor } from "@/components/bidding/utils/fileIconUtils";
@@ -177,6 +184,26 @@ export function BudgetDetailsModal({
   const [poAllocationAmount, setPoAllocationAmount] = useState<number>(0);
   const manualHydrationKeyRef = useRef<string | null>(null);
 
+  // Manual sub-lines state — multi-row breakouts
+  type ManualLine = {
+    tempId: string;
+    id?: string;
+    description: string;
+    notes: string;
+    unitPriceInput: string;
+    quantityInput: string;
+  };
+  const newManualLine = (overrides: Partial<ManualLine> = {}): ManualLine => ({
+    tempId: `tmp-${Math.random().toString(36).slice(2, 10)}`,
+    description: costCode.name,
+    notes: '',
+    unitPriceInput: '',
+    quantityInput: '1',
+    ...overrides,
+  });
+  const [manualLines, setManualLines] = useState<ManualLine[]>([newManualLine()]);
+  const manualLinesHydrationKeyRef = useRef<string | null>(null);
+
   // Budget source update hook
   const { updateSource, isUpdating } = useBudgetSourceUpdate(projectId);
   const queryClient = useQueryClient();
@@ -296,6 +323,55 @@ export function BudgetDetailsModal({
     manualInitialState,
   ]);
 
+  // Hydrate manual sub-lines from project_budget_manual_lines (true source of truth)
+  const { data: manualLineRows } = useQuery({
+    queryKey: ['budget-manual-lines', projectId, costCode.id],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('project_budget_manual_lines' as any)
+        .select('id, description, notes, unit_price, quantity, sort_order')
+        .eq('project_id', projectId)
+        .eq('cost_code_id', costCode.id)
+        .order('sort_order', { ascending: true });
+      if (error) throw error;
+      return (data as any[]) || [];
+    },
+    enabled: isOpen,
+  });
+
+  useEffect(() => {
+    if (!isOpen) {
+      manualLinesHydrationKeyRef.current = null;
+      return;
+    }
+    if (manualLineRows === undefined) return;
+
+    const hydrationKey = `${budgetItem.id}:lines`;
+    if (manualLinesHydrationKeyRef.current === hydrationKey) return;
+
+    if (manualLineRows.length > 0) {
+      setManualLines(
+        manualLineRows.map((row: any) => ({
+          tempId: `db-${row.id}`,
+          id: row.id,
+          description: row.description ?? costCode.name,
+          notes: row.notes ?? '',
+          unitPriceInput: row.unit_price?.toString() ?? '',
+          quantityInput: row.quantity?.toString() ?? '1',
+        }))
+      );
+    } else {
+      // Seed single line from existing reconstructed manual total
+      setManualLines([
+        newManualLine({
+          unitPriceInput: manualInitialState.unitPriceInput,
+          quantityInput: manualInitialState.quantityInput || '1',
+        }),
+      ]);
+    }
+    manualLinesHydrationKeyRef.current = hydrationKey;
+  }, [isOpen, budgetItem.id, manualLineRows, manualInitialState, costCode.name]);
+
   useEffect(() => {
     setSelectedBidId(currentSelectedBidId || null);
   }, [currentSelectedBidId]);
@@ -360,9 +436,13 @@ export function BudgetDetailsModal({
     ? Math.floor((selectedBidPrice / lotCount) * 100) / 100
     : selectedBidPrice;
   const displayAmount = hasMultipleLots && allocationMode === 'per-lot' ? perLotAmount : selectedBidPrice;
-  const manualQuantityValue = parseFloat(manualQuantityInput) || 0;
-  const manualUnitPriceValue = parseFloat(manualUnitPriceInput) || 0;
-  const manualTotalCents = toCents(manualQuantityValue * manualUnitPriceValue);
+  // Manual total = sum of all sub-lines (cent-precise)
+  const manualLineTotalsCents = manualLines.map((line) => {
+    const qty = parseFloat(line.quantityInput) || 0;
+    const price = parseFloat(line.unitPriceInput) || 0;
+    return toCents(qty * price);
+  });
+  const manualTotalCents = manualLineTotalsCents.reduce((sum, c) => sum + c, 0);
   const manualTotalAmount = fromCents(manualTotalCents);
   const manualPerLotAmount = hasMultipleLots && manualTotalCents > 0
     ? fromCents(Math.floor(manualTotalCents / lotCount))
@@ -406,9 +486,61 @@ export function BudgetDetailsModal({
         }
       );
     } else if (source === 'manual') {
-      const manualQty = manualQuantityValue;
-      const manualPrice = manualUnitPriceValue;
       const shouldDivide = hasMultipleLots && manualAllocationMode === 'per-lot';
+
+      // Persist manual sub-lines to project_budget_manual_lines
+      try {
+        // Resolve owner_id from project
+        const { data: projectRow, error: projErr } = await supabase
+          .from('projects')
+          .select('owner_id')
+          .eq('id', projectId)
+          .single();
+        if (projErr) throw projErr;
+        const ownerId = (projectRow as any)?.owner_id;
+        if (!ownerId) throw new Error('Could not determine project owner');
+
+        // Delete removed lines
+        const existingIds = (manualLineRows || []).map((r: any) => r.id);
+        const keptIds = manualLines.filter((l) => l.id).map((l) => l.id as string);
+        const toDelete = existingIds.filter((id: string) => !keptIds.includes(id));
+        if (toDelete.length > 0) {
+          const { error: delErr } = await supabase
+            .from('project_budget_manual_lines' as any)
+            .delete()
+            .in('id', toDelete);
+          if (delErr) throw delErr;
+        }
+
+        // Upsert all current lines
+        const upsertRows = manualLines.map((line, idx) => {
+          const qty = parseFloat(line.quantityInput) || 0;
+          const price = parseFloat(line.unitPriceInput) || 0;
+          return {
+            ...(line.id ? { id: line.id } : {}),
+            owner_id: ownerId,
+            project_id: projectId,
+            cost_code_id: costCode.id,
+            description: line.description || costCode.name,
+            notes: line.notes || null,
+            unit_price: price,
+            quantity: qty,
+            sort_order: idx,
+          };
+        });
+        if (upsertRows.length > 0) {
+          const { error: upErr } = await supabase
+            .from('project_budget_manual_lines' as any)
+            .upsert(upsertRows);
+          if (upErr) throw upErr;
+        }
+
+        queryClient.invalidateQueries({ queryKey: ['budget-manual-lines', projectId, costCode.id] });
+      } catch (error: any) {
+        console.error('Error saving manual sub-lines:', error);
+        toast({ title: "Error", description: error?.message || "Failed to save manual lines", variant: "destructive" });
+        return;
+      }
 
       if (shouldDivide && lotCount > 1) {
         const perLotCents = Math.floor(manualTotalCents / lotCount);
@@ -447,8 +579,8 @@ export function BudgetDetailsModal({
         updateSource({
           budgetItemId: budgetItem.id,
           source: 'manual',
-          manualQuantity: manualQty,
-          manualUnitPrice: manualPrice,
+          manualQuantity: 1,
+          manualUnitPrice: manualTotalAmount,
         });
       }
       onClose();
@@ -543,7 +675,7 @@ export function BudgetDetailsModal({
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="max-w-3xl max-h-[80vh] overflow-hidden flex flex-col">
+      <DialogContent className="max-w-5xl max-h-[80vh] overflow-hidden flex flex-col">
         <DialogHeader>
           <DialogTitle className="text-base font-semibold">
             Budget Details
@@ -860,47 +992,127 @@ export function BudgetDetailsModal({
                 <Table>
                   <TableHeader>
                     <TableRow>
-                      <TableHead className="w-12"></TableHead>
                       <TableHead>Cost Code</TableHead>
                       <TableHead>Description</TableHead>
+                      <TableHead>Notes</TableHead>
                       <TableHead>Unit Price</TableHead>
                       <TableHead className="text-center">Unit</TableHead>
                       <TableHead>Quantity</TableHead>
-                      <TableHead>Total</TableHead>
+                      <TableHead className="text-right">Total</TableHead>
+                      <TableHead className="w-12 text-right">Actions</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    <TableRow>
-                      <TableCell></TableCell>
-                      <TableCell className="text-sm">{costCode.code}</TableCell>
-                      <TableCell className="text-sm">{costCode.name}</TableCell>
-                      <TableCell className="text-sm">
-                        <Input
-                          type="number"
-                          value={manualUnitPriceInput}
-                          onChange={(e) => setManualUnitPriceInput(e.target.value)}
-                          className="w-28 h-8"
-                          disabled={isLocked}
-                          readOnly={isLocked}
-                        />
-                      </TableCell>
-                      <TableCell className="text-sm text-center">
-                        {truncateUnit(costCode.unit_of_measure)}
-                      </TableCell>
-                      <TableCell className="text-sm">
-                        <Input
-                          type="number"
-                          value={manualQuantityInput}
-                          onChange={(e) => setManualQuantityInput(e.target.value)}
-                          className="w-28 h-8"
-                          disabled={isLocked}
-                          readOnly={isLocked}
-                        />
-                      </TableCell>
-                      <TableCell className="text-sm font-medium">
-                        {formatCurrency(manualTotalAmount)}
-                      </TableCell>
-                    </TableRow>
+                    {manualLines.map((line, idx) => {
+                      const qty = parseFloat(line.quantityInput) || 0;
+                      const price = parseFloat(line.unitPriceInput) || 0;
+                      const lineTotal = qty * price;
+                      return (
+                        <TableRow key={line.tempId}>
+                          <TableCell className="text-sm whitespace-nowrap">{costCode.code}</TableCell>
+                          <TableCell className="text-sm">
+                            <Input
+                              type="text"
+                              value={line.description}
+                              onChange={(e) =>
+                                setManualLines((prev) =>
+                                  prev.map((l, i) => (i === idx ? { ...l, description: e.target.value } : l))
+                                )
+                              }
+                              className="h-8 min-w-[160px]"
+                              disabled={isLocked}
+                              readOnly={isLocked}
+                            />
+                          </TableCell>
+                          <TableCell className="text-sm">
+                            <Input
+                              type="text"
+                              value={line.notes}
+                              onChange={(e) =>
+                                setManualLines((prev) =>
+                                  prev.map((l, i) => (i === idx ? { ...l, notes: e.target.value } : l))
+                                )
+                              }
+                              className="h-8 min-w-[140px]"
+                              placeholder="Notes…"
+                              disabled={isLocked}
+                              readOnly={isLocked}
+                            />
+                          </TableCell>
+                          <TableCell className="text-sm">
+                            <Input
+                              type="number"
+                              value={line.unitPriceInput}
+                              onChange={(e) =>
+                                setManualLines((prev) =>
+                                  prev.map((l, i) => (i === idx ? { ...l, unitPriceInput: e.target.value } : l))
+                                )
+                              }
+                              className="w-24 h-8"
+                              disabled={isLocked}
+                              readOnly={isLocked}
+                            />
+                          </TableCell>
+                          <TableCell className="text-sm text-center whitespace-nowrap">
+                            {truncateUnit(costCode.unit_of_measure)}
+                          </TableCell>
+                          <TableCell className="text-sm">
+                            <Input
+                              type="number"
+                              value={line.quantityInput}
+                              onChange={(e) =>
+                                setManualLines((prev) =>
+                                  prev.map((l, i) => (i === idx ? { ...l, quantityInput: e.target.value } : l))
+                                )
+                              }
+                              className="w-20 h-8"
+                              disabled={isLocked}
+                              readOnly={isLocked}
+                            />
+                          </TableCell>
+                          <TableCell className="text-sm font-medium text-right whitespace-nowrap">
+                            {formatCurrency(lineTotal)}
+                          </TableCell>
+                          <TableCell className="text-right">
+                            <DropdownMenu>
+                              <DropdownMenuTrigger asChild>
+                                <Button
+                                  variant="ghost"
+                                  size="icon"
+                                  className="h-7 w-7"
+                                  disabled={isLocked}
+                                >
+                                  <MoreHorizontal className="h-4 w-4" />
+                                </Button>
+                              </DropdownMenuTrigger>
+                              <DropdownMenuContent align="end">
+                                <DropdownMenuItem
+                                  onClick={() =>
+                                    setManualLines((prev) => {
+                                      const next = [...prev];
+                                      next.splice(idx + 1, 0, newManualLine());
+                                      return next;
+                                    })
+                                  }
+                                >
+                                  Add Row
+                                </DropdownMenuItem>
+                                {manualLines.length > 1 && (
+                                  <DropdownMenuItem
+                                    className="text-destructive focus:text-destructive"
+                                    onClick={() =>
+                                      setManualLines((prev) => prev.filter((_, i) => i !== idx))
+                                    }
+                                  >
+                                    Delete Row
+                                  </DropdownMenuItem>
+                                )}
+                              </DropdownMenuContent>
+                            </DropdownMenu>
+                          </TableCell>
+                        </TableRow>
+                      );
+                    })}
                   </TableBody>
                 </Table>
               </div>
