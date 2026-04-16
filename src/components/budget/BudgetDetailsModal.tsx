@@ -186,27 +186,49 @@ export function BudgetDetailsModal({
     }
   }, [lotCount, selectedBidId, budgetItem.unit_price, availableBids]);
 
-  // Infer manual allocation mode from saved data
+  // Infer manual allocation mode by summing all sibling lot rows
+  const { data: siblingRows } = useQuery({
+    queryKey: ['budget-siblings-manual', projectId, costCode.id],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('project_budgets')
+        .select('id, lot_id, unit_price, quantity')
+        .eq('project_id', projectId)
+        .eq('cost_code_id', costCode.id);
+      if (error) throw error;
+      return data || [];
+    },
+    enabled: isOpen && lotCount > 1 && budgetItem.budget_source === 'manual',
+  });
+
   useEffect(() => {
-    if (lotCount > 1 && budgetItem.budget_source === 'manual' && budgetItem.unit_price > 0) {
-      const savedQty = budgetItem.quantity || 0;
-      const savedPrice = budgetItem.unit_price || 0;
-      const manualQty = parseFloat(manualQuantityInput) || 0;
-      const manualPrice = parseFloat(manualUnitPriceInput) || 0;
-      // If the saved values show quantity=1 and the price looks like a divided amount, infer per-lot
-      if (savedQty === 1 && manualQty > 0 && manualPrice > 0) {
-        const fullTotal = manualQty * manualPrice;
-        const basePerLot = Math.floor((fullTotal / lotCount) * 100) / 100;
-        const isNear = (a: number, b: number, epsilon = 0.02) => Math.abs(a - b) < epsilon;
-        if (isNear(savedPrice, basePerLot)) {
-          setManualAllocationMode('per-lot');
-          // Reconstruct original full amount for display
-          const reconstructedTotal = savedPrice * lotCount;
-          setManualUnitPriceInput(reconstructedTotal.toString());
-        }
-      }
+    if (lotCount <= 1 || budgetItem.budget_source !== 'manual' || !siblingRows || siblingRows.length === 0) return;
+
+    const isNear = (a: number, b: number, epsilon = 0.02) => Math.abs(a - b) < epsilon;
+
+    // Sum all sibling row totals with cent-precise math
+    const reconstructedTotal = siblingRows.reduce((sum, row) => {
+      return sum + Math.round(((row.unit_price || 0) * (row.quantity || 1)) * 100);
+    }, 0) / 100;
+
+    if (reconstructedTotal <= 0) return;
+
+    // Compute expected split pattern
+    const basePerLot = Math.floor((reconstructedTotal / lotCount) * 100) / 100;
+    const remainderPerLot = Number((reconstructedTotal - basePerLot * (lotCount - 1)).toFixed(2));
+
+    // Check if all sibling rows match the split pattern
+    const allMatch = siblingRows.every(row => {
+      const rowTotal = Math.round(((row.unit_price || 0) * (row.quantity || 1)) * 100) / 100;
+      return isNear(rowTotal, basePerLot) || isNear(rowTotal, remainderPerLot);
+    });
+
+    if (allMatch && siblingRows.length === lotCount) {
+      setManualAllocationMode('per-lot');
+      setManualUnitPriceInput(reconstructedTotal.toString());
+      setManualQuantityInput('1');
     }
-  }, [lotCount, budgetItem.budget_source, budgetItem.unit_price, budgetItem.quantity]);
+  }, [lotCount, budgetItem.budget_source, siblingRows]);
 
   useEffect(() => {
     setSelectedBidId(currentSelectedBidId || null);
