@@ -585,12 +585,16 @@ export function BudgetDetailsModal({
           if (delErr) throw delErr;
         }
 
-        // Upsert all current lines
-        const upsertRows = manualLines.map((line, idx) => {
+        // Split into updates (existing rows with id) and inserts (new rows without id).
+        // Mixing them in a single upsert causes PostgREST to send id:null for new rows,
+        // violating the NOT NULL constraint (DB default gen_random_uuid() won't fire).
+        const updates: any[] = [];
+        const inserts: any[] = [];
+        const insertIndexMap: number[] = []; // track which manualLines indices are new
+        manualLines.forEach((line, idx) => {
           const qty = parseFloat(line.quantityInput) || 0;
           const price = parseFloat(line.unitPriceInput) || 0;
-          return {
-            ...(line.id ? { id: line.id } : {}),
+          const base = {
             owner_id: ownerId,
             project_id: projectId,
             cost_code_id: costCode.id,
@@ -601,12 +605,40 @@ export function BudgetDetailsModal({
             quantity: qty,
             sort_order: idx,
           };
+          if (line.id) {
+            updates.push({ id: line.id, ...base });
+          } else {
+            const newId = (typeof crypto !== 'undefined' && crypto.randomUUID)
+              ? crypto.randomUUID()
+              : undefined;
+            inserts.push(newId ? { id: newId, ...base } : base);
+            insertIndexMap.push(idx);
+          }
         });
-        if (upsertRows.length > 0) {
+
+        if (updates.length > 0) {
           const { error: upErr } = await supabase
             .from('project_budget_manual_lines' as any)
-            .upsert(upsertRows);
+            .upsert(updates, { onConflict: 'id' });
           if (upErr) throw upErr;
+        }
+
+        if (inserts.length > 0) {
+          const { data: insertedRows, error: insErr } = await supabase
+            .from('project_budget_manual_lines' as any)
+            .insert(inserts)
+            .select('id');
+          if (insErr) throw insErr;
+          // Sync new ids back into local state so subsequent Applies update instead of re-insert
+          if (insertedRows && insertedRows.length === insertIndexMap.length) {
+            setManualLines((prev) => {
+              const next = [...prev];
+              insertIndexMap.forEach((mlIdx, i) => {
+                if (next[mlIdx]) next[mlIdx] = { ...next[mlIdx], id: (insertedRows[i] as any).id };
+              });
+              return next;
+            });
+          }
         }
 
         queryClient.invalidateQueries({ queryKey: ['budget-manual-lines', projectId, costCode.id] });
