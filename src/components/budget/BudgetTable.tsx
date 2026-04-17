@@ -84,6 +84,20 @@ export function BudgetTable({ projectId, projectAddress, onHeaderActionChange, o
   const headerRef = useRef<HTMLTableSectionElement | null>(null);
   
   const { budgetItems, groupedBudgetItems, existingCostCodeIds, parentCodeNames } = useBudgetData(projectId, selectedLotId);
+
+  // Pre-resolve Source label for every item, using the same helper the on-screen
+  // badge uses. PDF/Print components MUST consume `__sourceLabel` directly so
+  // they cannot drift from what the user sees on the budget page.
+  const groupedBudgetItemsWithSource = useMemo(() => {
+    const out: Record<string, any[]> = {};
+    Object.entries(groupedBudgetItems).forEach(([group, items]) => {
+      out[group] = (items as any[]).map((item) => ({
+        ...item,
+        __sourceLabel: getBudgetSourceLabel(item),
+      }));
+    });
+    return out;
+  }, [groupedBudgetItems]);
   const parsedHistorical = selectedHistoricalProject ? parseHistoricalKey(selectedHistoricalProject) : null;
   const { data: historicalData } = useHistoricalActualCosts(parsedHistorical?.projectId || null, parsedHistorical?.lotId);
   
