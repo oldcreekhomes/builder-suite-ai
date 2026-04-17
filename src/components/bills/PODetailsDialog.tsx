@@ -1,11 +1,11 @@
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { Badge } from "@/components/ui/badge";
 import { VendorPurchaseOrder, BilledInvoice } from "@/hooks/useVendorPurchaseOrders";
-import { FileText, AlertTriangle, Check } from "lucide-react";
+import { FileText, AlertTriangle } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Tooltip, TooltipTrigger, TooltipContent, TooltipProvider } from "@/components/ui/tooltip";
 import { formatDateSafe } from "@/utils/dateOnly";
+import { POStatusBadge, POStatus } from "./POStatusBadge";
 
 export interface PendingBillLine {
   purchase_order_line_id?: string;
