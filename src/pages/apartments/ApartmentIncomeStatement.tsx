@@ -1,16 +1,62 @@
 import { useParams } from "react-router-dom";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
 import { AppSidebar } from "@/components/AppSidebar";
 import { SidebarProvider, SidebarInset } from "@/components/ui/sidebar";
 import { DashboardHeader } from "@/components/DashboardHeader";
 import { useApartmentInputs, fmt, fmtPct } from "@/hooks/useApartmentInputs";
 import { useApartmentExpenseVisibility } from "@/hooks/useApartmentExpenseVisibility";
-import { Loader2 } from "lucide-react";
+import { useProject } from "@/hooks/useProject";
+import { Loader2, Download } from "lucide-react";
+import { pdf } from "@react-pdf/renderer";
+import { ApartmentIncomeStatementPdfDocument } from "@/components/apartments/pdf/ApartmentIncomeStatementPdfDocument";
+import { useState } from "react";
+import { toast } from "@/hooks/use-toast";
 
 const ApartmentIncomeStatement = () => {
   const { projectId } = useParams();
   const { inputs, computed, isLoading } = useApartmentInputs(projectId);
   const { isVisible } = useApartmentExpenseVisibility(projectId);
+  const { data: project } = useProject(projectId || "");
+  const [isExporting, setIsExporting] = useState(false);
+
+  const handleExportPdf = async () => {
+    setIsExporting(true);
+    try {
+      const blob = await pdf(
+        <ApartmentIncomeStatementPdfDocument
+          projectAddress={project?.address}
+          inputs={inputs}
+          computed={computed}
+          isVisible={isVisible}
+        />
+      ).toBlob();
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      const now = new Date();
+      const pad = (n: number) => String(n).padStart(2, "0");
+      const stamp = `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}_${pad(now.getHours())}-${pad(now.getMinutes())}-${pad(now.getSeconds())}`;
+      link.href = url;
+      link.download = `Apartment_Income_Statement-${stamp}.pdf`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(url);
+      toast({ title: "PDF exported", description: "Your income statement PDF has been downloaded" });
+    } catch (e) {
+      console.error(e);
+      toast({ title: "Export failed", description: "Could not generate PDF", variant: "destructive" });
+    } finally {
+      setIsExporting(false);
+    }
+  };
+
+  const exportButton = (
+    <Button onClick={handleExportPdf} disabled={isExporting || isLoading} size="sm" variant="outline">
+      {isExporting ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Download className="h-4 w-4 mr-2" />}
+      Export PDF
+    </Button>
+  );
 
   if (isLoading) {
     return (
@@ -18,7 +64,7 @@ const ApartmentIncomeStatement = () => {
         <div className="flex min-h-screen w-full">
           <AppSidebar />
           <SidebarInset className="flex-1">
-            <DashboardHeader title="Income Statement" subtitle="Pro forma income statement projections." projectId={projectId} />
+            <DashboardHeader title="Income Statement" subtitle="Pro forma income statement projections." projectId={projectId} headerAction={exportButton} />
             <div className="flex-1 flex items-center justify-center">
               <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
             </div>
@@ -59,7 +105,7 @@ const ApartmentIncomeStatement = () => {
       <div className="flex min-h-screen w-full">
         <AppSidebar />
         <SidebarInset className="flex-1">
-          <DashboardHeader title="Income Statement" subtitle="Pro forma income statement projections." projectId={projectId} />
+          <DashboardHeader title="Income Statement" subtitle="Pro forma income statement projections." projectId={projectId} headerAction={exportButton} />
           <div className="flex-1 px-6 pt-3 pb-6 overflow-auto">
             <Card>
               <CardHeader><CardTitle className="text-sm font-medium">Pro Forma Income Statement</CardTitle></CardHeader>

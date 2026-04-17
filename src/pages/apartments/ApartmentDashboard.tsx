@@ -1,14 +1,59 @@
 import { useParams } from "react-router-dom";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
 import { AppSidebar } from "@/components/AppSidebar";
 import { SidebarProvider, SidebarInset } from "@/components/ui/sidebar";
 import { DashboardHeader } from "@/components/DashboardHeader";
 import { useApartmentInputs, fmt, fmtPct } from "@/hooks/useApartmentInputs";
-import { Loader2 } from "lucide-react";
+import { useProject } from "@/hooks/useProject";
+import { Loader2, Download } from "lucide-react";
+import { pdf } from "@react-pdf/renderer";
+import { ApartmentDashboardPdfDocument } from "@/components/apartments/pdf/ApartmentDashboardPdfDocument";
+import { useState } from "react";
+import { toast } from "@/hooks/use-toast";
 
 const ApartmentDashboard = () => {
   const { projectId } = useParams();
   const { inputs, computed, isLoading } = useApartmentInputs(projectId);
+  const { data: project } = useProject(projectId || "");
+  const [isExporting, setIsExporting] = useState(false);
+
+  const handleExportPdf = async () => {
+    setIsExporting(true);
+    try {
+      const blob = await pdf(
+        <ApartmentDashboardPdfDocument
+          projectAddress={project?.address}
+          inputs={inputs}
+          computed={computed}
+        />
+      ).toBlob();
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      const now = new Date();
+      const pad = (n: number) => String(n).padStart(2, "0");
+      const stamp = `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}_${pad(now.getHours())}-${pad(now.getMinutes())}-${pad(now.getSeconds())}`;
+      link.href = url;
+      link.download = `Apartment_Dashboard-${stamp}.pdf`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(url);
+      toast({ title: "PDF exported", description: "Your dashboard PDF has been downloaded" });
+    } catch (e) {
+      console.error(e);
+      toast({ title: "Export failed", description: "Could not generate PDF", variant: "destructive" });
+    } finally {
+      setIsExporting(false);
+    }
+  };
+
+  const exportButton = (
+    <Button onClick={handleExportPdf} disabled={isExporting || isLoading} size="sm" variant="outline">
+      {isExporting ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Download className="h-4 w-4 mr-2" />}
+      Export PDF
+    </Button>
+  );
 
   if (isLoading) {
     return (
@@ -16,7 +61,7 @@ const ApartmentDashboard = () => {
         <div className="flex min-h-screen w-full">
           <AppSidebar />
           <SidebarInset className="flex-1">
-            <DashboardHeader title="Dashboard" subtitle="Apartment investment overview and key metrics." projectId={projectId} />
+            <DashboardHeader title="Dashboard" subtitle="Apartment investment overview and key metrics." projectId={projectId} headerAction={exportButton} />
             <div className="flex-1 flex items-center justify-center">
               <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
             </div>
@@ -31,7 +76,7 @@ const ApartmentDashboard = () => {
       <div className="flex min-h-screen w-full">
         <AppSidebar />
         <SidebarInset className="flex-1">
-          <DashboardHeader title="Dashboard" subtitle="Apartment investment overview and key metrics." projectId={projectId} />
+          <DashboardHeader title="Dashboard" subtitle="Apartment investment overview and key metrics." projectId={projectId} headerAction={exportButton} />
           <div className="flex-1 px-6 pt-3 pb-6 space-y-6 overflow-auto">
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
               <Card>
