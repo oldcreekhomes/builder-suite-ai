@@ -84,6 +84,7 @@ export function PODetailsDialog({
   currentBillId,
   currentBillAmount,
   currentBillReference,
+  currentBillStatus,
   pendingBillLines,
 }: PODetailsDialogProps) {
   if (!purchaseOrder) return null;
