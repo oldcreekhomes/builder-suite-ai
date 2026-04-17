@@ -284,22 +284,6 @@ const ApartmentInputsPage = () => {
   );
 };
 
-function ComparisonItem({ label, actual, target }: { label: string; actual: string; target: string }) {
-  return (
-    <div className="space-y-1">
-      <span className="text-muted-foreground">{label}</span>
-      <div className="flex justify-between">
-        <span className="text-xs text-muted-foreground">Actual</span>
-        <span className="font-medium">{actual}</span>
-      </div>
-      <div className="flex justify-between">
-        <span className="text-xs text-muted-foreground">Target</span>
-        <span className="font-medium">{target}</span>
-      </div>
-    </div>
-  );
-}
-
 function Row({ label, value, bold, className }: { label: string; value: string; bold?: boolean; className?: string }) {
   return (
     <div className="flex justify-between">
