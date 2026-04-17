@@ -1091,7 +1091,8 @@ export function BillsApprovalTable({ status, projectId, projectIds, showProjectC
         </TableCell>
       )}
     </TableRow>
-  );
+    );
+  };
 
   return (
     <>
