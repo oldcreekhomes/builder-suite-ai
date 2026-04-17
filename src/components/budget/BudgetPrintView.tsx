@@ -1,6 +1,7 @@
 
 import React from 'react';
 import { calculateBudgetItemTotal } from '@/utils/budgetUtils';
+import { getBudgetSourceLabel } from '@/utils/budgetSource';
 import { VisibleColumns } from './BudgetColumnVisibilityDropdown';
 
 interface BudgetPrintViewProps {
@@ -40,36 +41,7 @@ export function BudgetPrintView({
     return undefined;
   };
 
-  const getSourceLabel = (item: any) => {
-    // Check budget_source field first (new system)
-    if (item.budget_source) {
-      switch (item.budget_source) {
-        case 'vendor-bid': return 'Vendor Bid';
-        case 'estimate': return 'Estimate';
-        case 'historical': return 'Historical';
-        case 'settings': return 'Settings';
-        case 'manual': return 'Manual';
-        case 'actual': return 'Actual';
-        case 'purchase-orders': return 'Purchase Order';
-      }
-    }
-
-    // Legacy logic for items without budget_source set
-    if (item.selected_bid_id && item.selected_bid) {
-      return 'Vendor Bid';
-    }
-    
-    const costCode = item.cost_codes;
-    if (costCode?.has_subcategories) {
-      return 'Estimate';
-    }
-    
-    if ((item.quantity !== null && item.quantity > 0) || (item.unit_price !== null && item.unit_price > 0)) {
-      return 'Manual';
-    }
-    
-    return 'Manual';
-  };
+  const getSourceLabel = (item: any) => getBudgetSourceLabel(item);
 
   const calculateVariance = (budgetTotal: number, historicalValue: number) => {
     if (showVarianceAsPercentage && historicalValue > 0) {
