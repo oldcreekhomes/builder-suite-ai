@@ -89,7 +89,10 @@ export function PODetailsDialog({
 }: PODetailsDialogProps) {
   if (!purchaseOrder) return null;
 
-  // Cent-precise over-budget check to avoid $0.01 floating-point drift
+  // Cent-precise over-budget check to avoid $0.01 floating-point drift.
+  // For posted/paid bills, total_billed already includes this bill — don't double-count.
+  // For draft bills, total_billed excludes it (the dialog math is forward-looking via pendingBillLines).
+  const isDraftBill = (currentBillStatus || 'draft') === 'draft';
   const remainingCents = Math.round(purchaseOrder.remaining * 100);
   const isOverBudget = remainingCents < 0;
   const utilizationPercent = purchaseOrder.total_amount > 0
@@ -97,6 +100,15 @@ export function PODetailsDialog({
     : 0;
   const isWarning = utilizationPercent >= 90 && utilizationPercent < 100;
   const isHealthy = !isOverBudget && !isWarning;
+
+  // Determine the bill amount allocated to this PO for the header status badge.
+  // For draft: pendingBillLines sum. For posted/paid: currentBillAmount fallback.
+  const headerBillAmount = (() => {
+    if (pendingBillLines && pendingBillLines.length > 0) {
+      return pendingBillLines.reduce((s, l) => s + l.amount, 0);
+    }
+    return currentBillAmount || 0;
+  })();
 
   const realLineItems = purchaseOrder.line_items || [];
 
