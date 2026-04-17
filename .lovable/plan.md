@@ -1,19 +1,17 @@
 
-## Issue
-The header-only PO fallback row in `PODetailsDialog` hardcodes `description: 'Purchase Order Total'`. User wants it to reflect the bill line description (e.g., "Plumbing the groundworks") instead.
+## Goal
+Extend the row-click-to-open-PO-dialog behavior from the Review tab to the Rejected, Approved, and Paid tabs as well — whenever a bill row has a matched PO.
 
-## Where it lives
-`src/components/bills/PODetailsDialog.tsx` — the synthetic line item built when `realLineItems.length === 0`.
-
-## Source of the description
-`pendingBillLines` is already passed into the dialog and includes `memo` per line. For header-only POs, all pending bill lines on this dialog belong to this single PO, so we can derive the description from those memos.
+## Current state
+In `BillsApprovalTable.tsx`, `renderBillRow` gates row-click on `isDraftStatus && rowAllMatches.length > 0`. The PO Status column already shows "Matched" badges in non-draft tabs, so the dialog data path works for them too.
 
 ## Plan
-1. In `PODetailsDialog.tsx`, when building the header-only fallback line:
-   - If `pendingBillLines` exists and has entries, set `description` to the joined unique non-empty `memo` values (comma-separated).
-   - Fallback to PO header description if available, else `'—'` (drop the misleading "Purchase Order Total" string).
-2. No other changes — the "Total" row label below stays as "Total".
+1. In `src/components/bills/BillsApprovalTable.tsx`:
+   - Remove the `isDraftStatus` condition from `rowClickable`. Keep the `rowAllMatches.length > 0` check so rows without a PO stay non-interactive.
+   - Keep all existing `stopPropagation` wrappers (Files, Notes, PO Status badge, Actions menu) — they already protect interactive cells in every tab.
+2. Verify the Paid tab's consolidated/grouped payment rows (e.g., the "OCH at Nob Hill — 13 items" expandable rows) are not affected — those are rendered by a separate path, not `renderBillRow`. If they share the renderer, exclude grouped/parent rows from row-click so expand/collapse still works.
 
 ## Out of scope
-- Real PO line items (those already show their own description).
-- Changing PO header storage.
+- Visual restyling
+- Dialog content changes
+- Grouped payment parent-row behavior (will be left as-is)
