@@ -394,7 +394,7 @@ export function BudgetTable({ projectId, projectAddress, onHeaderActionChange, o
       const blob = await pdf(
         <BudgetPdfDocument
           projectAddress={projectAddress}
-          groupedBudgetItems={groupedBudgetItems}
+          groupedBudgetItems={groupedBudgetItemsWithSource}
           visibleColumns={pdfVisibleColumns}
           historicalProjectAddress={options.historicalProjectAddress}
           showVarianceAsPercentage={options.varianceAsPercentage}
@@ -710,7 +710,7 @@ export function BudgetTable({ projectId, projectAddress, onHeaderActionChange, o
 
       <BudgetPrintView
         budgetItems={budgetItems}
-        groupedBudgetItems={groupedBudgetItems}
+        groupedBudgetItems={groupedBudgetItemsWithSource}
         projectAddress={projectAddress}
         subcategoryTotals={subcategoryTotalsMap}
         historicalCostsMap={historicalCostsMap}
