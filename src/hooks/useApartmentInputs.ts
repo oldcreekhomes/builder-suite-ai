@@ -98,8 +98,10 @@ const DEFAULT_INPUTS: ApartmentInputs = {
 const INPUT_FIELDS = Object.keys(DEFAULT_INPUTS) as (keyof ApartmentInputs)[];
 
 function computeFinancials(inputs: ApartmentInputs) {
-  const units = inputs.number_of_units || 0;
-  const grossPotentialRent = units * inputs.avg_rent_per_unit * 12;
+  const units = (inputs.market_units || 0) + (inputs.affordable_units || 0);
+  const grossPotentialRent =
+    (inputs.market_units * inputs.market_rent +
+      inputs.affordable_units * inputs.affordable_rent) * 12;
   const vacancyLoss = grossPotentialRent * (inputs.vacancy_rate / 100);
   const egi = grossPotentialRent - vacancyLoss;
 
