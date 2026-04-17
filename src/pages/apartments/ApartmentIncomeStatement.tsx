@@ -76,9 +76,9 @@ const ApartmentIncomeStatement = () => {
                     </thead>
                     <tbody className="divide-y">
                       <SectionHeader title="Revenue" />
-                      <StatementRow label="Gross Potential Rent" annual={fmt(computed.grossPotentialRent)} perUnit={monthly(computed.grossPotentialRent)} pct={pctEgi(computed.grossPotentialRent)} />
-                      <StatementRow label={`Less: Vacancy (${fmtPct(inputs.vacancy_rate)})`} annual={`(${fmt(computed.vacancyLoss)})`} perUnit={`(${monthly(computed.vacancyLoss)})`} pct={`-${pctEgi(computed.vacancyLoss)}`} negative />
-                      <TotalRow label="Effective Gross Income" annual={fmt(computed.egi)} perUnit={monthly(computed.egi)} pct="100.0%" />
+                      <StatementRow label="Gross Potential Rent" annual={fmt(computed.grossPotentialRent)} monthly={monthly(computed.grossPotentialRent)} pct={pctEgi(computed.grossPotentialRent)} />
+                      <StatementRow label={`Less: Vacancy (${fmtPct(inputs.vacancy_rate)})`} annual={`(${fmt(computed.vacancyLoss)})`} monthly={`(${monthly(computed.vacancyLoss)})`} pct={`-${pctEgi(computed.vacancyLoss)}`} negative />
+                      <TotalRow label="Effective Gross Income" annual={fmt(computed.egi)} monthly={monthly(computed.egi)} pct="100.0%" />
 
                       <SectionHeader title="Operating Expenses" />
                       {expenseRows.map((r) => (
@@ -86,18 +86,18 @@ const ApartmentIncomeStatement = () => {
                           key={r.field}
                           label={r.label}
                           annual={fmt(r.value)}
-                          perUnit={monthly(r.value)}
+                          monthly={monthly(r.value)}
                           pct={pctEgi(r.value)}
                         />
                       ))}
-                      <TotalRow label="Total Operating Expenses" annual={fmt(computed.totalOpEx)} perUnit={monthly(computed.totalOpEx)} pct={pctEgi(computed.totalOpEx)} />
+                      <TotalRow label="Total Operating Expenses" annual={fmt(computed.totalOpEx)} monthly={monthly(computed.totalOpEx)} pct={pctEgi(computed.totalOpEx)} />
 
-                      <TotalRow label="Net Operating Income (NOI)" annual={fmt(computed.noi)} perUnit={monthly(computed.noi)} pct={pctEgi(computed.noi)} highlight />
+                      <TotalRow label="Net Operating Income (NOI)" annual={fmt(computed.noi)} monthly={monthly(computed.noi)} pct={pctEgi(computed.noi)} highlight />
 
                       <SectionHeader title="Debt Service" />
-                      <StatementRow label="Annual Debt Service" annual={`(${fmt(computed.annualDebtService)})`} perUnit={`(${monthly(computed.annualDebtService)})`} pct={pctEgi(computed.annualDebtService)} negative />
+                      <StatementRow label="Annual Debt Service" annual={`(${fmt(computed.annualDebtService)})`} monthly={`(${monthly(computed.annualDebtService)})`} pct={pctEgi(computed.annualDebtService)} negative />
 
-                      <TotalRow label="Cash Flow After Debt Service" annual={fmt(computed.cashFlowAfterDebt)} perUnit={monthly(computed.cashFlowAfterDebt)} pct={pctEgi(computed.cashFlowAfterDebt)} highlight />
+                      <TotalRow label="Cash Flow After Debt Service" annual={fmt(computed.cashFlowAfterDebt)} monthly={monthly(computed.cashFlowAfterDebt)} pct={pctEgi(computed.cashFlowAfterDebt)} highlight />
                     </tbody>
                   </table>
                 </div>
@@ -118,29 +118,29 @@ function SectionHeader({ title }: { title: string }) {
   );
 }
 
-function StatementRow({ label, annual, perUnit, pct, negative }: {
-  label: string; annual: string; perUnit: string; pct: string; negative?: boolean;
+function StatementRow({ label, annual, monthly, pct, negative }: {
+  label: string; annual: string; monthly: string; pct: string; negative?: boolean;
 }) {
   const cls = negative ? "text-destructive" : "";
   return (
     <tr>
       <td className="py-1.5 pr-4 pl-4 text-muted-foreground">{label}</td>
       <td className={`py-1.5 px-4 text-right ${cls}`}>{annual}</td>
-      <td className={`py-1.5 px-4 text-right ${cls}`}>{perUnit}</td>
+      <td className={`py-1.5 px-4 text-right ${cls}`}>{monthly}</td>
       <td className={`py-1.5 pl-4 text-right ${cls}`}>{pct}</td>
     </tr>
   );
 }
 
-function TotalRow({ label, annual, perUnit, pct, highlight }: {
-  label: string; annual: string; perUnit: string; pct: string; highlight?: boolean;
+function TotalRow({ label, annual, monthly, pct, highlight }: {
+  label: string; annual: string; monthly: string; pct: string; highlight?: boolean;
 }) {
   const bgCls = highlight ? "bg-muted/50" : "";
   return (
     <tr className={`font-semibold ${bgCls}`}>
       <td className="py-2 pr-4">{label}</td>
       <td className="py-2 px-4 text-right">{annual}</td>
-      <td className="py-2 px-4 text-right">{perUnit}</td>
+      <td className="py-2 px-4 text-right">{monthly}</td>
       <td className="py-2 pl-4 text-right">{pct}</td>
     </tr>
   );
