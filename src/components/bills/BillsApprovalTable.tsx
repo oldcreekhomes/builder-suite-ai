@@ -741,8 +741,20 @@ export function BillsApprovalTable({ status, projectId, projectIds, showProjectC
   const showPOStatusColumn = true;
   const baseColCount = 11 + (showAddressColumn ? 1 : 0) + (showProjectColumn ? 1 : 0) + (showPayBillButton ? 1 : 0) + (canShowDeleteButton ? 1 : 0) + (showPOStatusColumn ? 1 : 0);
 
-  const renderBillRow = (bill: BillForApproval, memoSummary: string | null) => (
-    <TableRow key={bill.id} className="h-11">
+  const renderBillRow = (bill: BillForApproval, memoSummary: string | null) => {
+    const matchResult = poMatchingData?.get(bill.id);
+    const rowAllMatches = matchResult?.matches || [];
+    const rowClickable = isDraftStatus && rowAllMatches.length > 0;
+    const handleRowClick = () => {
+      if (!rowClickable) return;
+      setPoDialogState({ open: true, matches: rowAllMatches, bill });
+    };
+    return (
+    <TableRow
+      key={bill.id}
+      className={`h-11 ${rowClickable ? 'cursor-pointer' : ''}`}
+      onClick={rowClickable ? handleRowClick : undefined}
+    >
       {showProjectColumn && (
         <TableCell className="w-44">
           <TooltipProvider>
