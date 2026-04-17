@@ -223,6 +223,7 @@ const ApartmentInputsPage = () => {
                 <CardContent>
                   <div className="space-y-3 text-sm">
                     <EditableRow label="Loan-to-Value" field="ltv" value={inputs.ltv} onChange={updateInput} format="percent" />
+                    <EditableRow label="Loan-to-Cost" field="ltc" value={inputs.ltc} onChange={updateInput} format="percent" decimals={1} />
                     <EditableRow label="Interest Rate" field="interest_rate" value={inputs.interest_rate} onChange={updateInput} format="percent" decimals={2} />
                     <EditableRow label="Amortization (years)" field="amortization_years" value={inputs.amortization_years} onChange={updateInput} format="number" />
                     <EditableRow label="Loan Term (years)" field="loan_term_years" value={inputs.loan_term_years} onChange={updateInput} format="number" />
