@@ -38,7 +38,7 @@ const ApartmentDashboard = () => {
                 <CardHeader><CardTitle className="text-sm font-medium">Income Summary</CardTitle></CardHeader>
                 <CardContent>
                   <div className="space-y-3 text-sm">
-                    <Row label="Number of Units" value={String(inputs.number_of_units)} />
+                    <Row label="Number of Units" value={String(computed.units)} />
                     <Row label="Gross Potential Rent (Annual)" value={fmt(computed.grossPotentialRent)} />
                     <Row label={`Vacancy Loss (${fmtPct(inputs.vacancy_rate)})`} value={`(${fmt(computed.vacancyLoss)})`} className="text-destructive" />
                     <Row label="Effective Gross Income" value={fmt(computed.egi)} bold />
@@ -69,8 +69,8 @@ const ApartmentDashboard = () => {
                 <CardHeader><CardTitle className="text-sm font-medium">Property Assumptions</CardTitle></CardHeader>
                 <CardContent>
                   <div className="space-y-3 text-sm">
-                    <Row label="Number of Units" value={String(inputs.number_of_units)} />
-                    <Row label="Average Rent per Unit" value={`${fmt(inputs.avg_rent_per_unit)}/mo`} />
+                    <Row label="Number of Units" value={String(computed.units)} />
+                    <Row label="Average Rent per Unit" value={`${fmt(inputs.market_rent)}/mo`} />
                     <Row label="Vacancy Rate" value={fmtPct(inputs.vacancy_rate)} />
                     <Row label="Operating Expense Ratio" value={fmtPct(computed.expenseRatio)} />
                     <Row label="Target Cap Rate" value={inputs.target_cap_rate > 0 ? fmtPct(inputs.target_cap_rate, 2) : "—"} />
