@@ -156,6 +156,7 @@ function computeFinancials(inputs: ApartmentInputs) {
   const ltvComputed = assetValue > 0 ? (loanAmount / assetValue) * 100 : 0;
 
   return {
+    units,
     grossPotentialRent,
     vacancyLoss,
     egi,
