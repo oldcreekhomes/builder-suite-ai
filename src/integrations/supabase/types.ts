@@ -169,6 +169,7 @@ export type Database = {
           landscaping: number
           loan_amount: number
           loan_term_years: number
+          ltc: number
           ltv: number
           management_fee_percent: number
           market_rent: number
@@ -219,6 +220,7 @@ export type Database = {
           landscaping?: number
           loan_amount?: number
           loan_term_years?: number
+          ltc?: number
           ltv?: number
           management_fee_percent?: number
           market_rent?: number
@@ -269,6 +271,7 @@ export type Database = {
           landscaping?: number
           loan_amount?: number
           loan_term_years?: number
+          ltc?: number
           ltv?: number
           management_fee_percent?: number
           market_rent?: number

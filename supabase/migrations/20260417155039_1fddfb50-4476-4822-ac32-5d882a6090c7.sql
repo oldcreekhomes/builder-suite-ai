@@ -1,0 +1,1 @@
+ALTER TABLE public.apartment_inputs ADD COLUMN IF NOT EXISTS ltc numeric NOT NULL DEFAULT 0;

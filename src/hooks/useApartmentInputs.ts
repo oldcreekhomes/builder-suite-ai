@@ -15,6 +15,7 @@ export interface ApartmentInputs {
   construction_costs: number;
   loan_amount: number;
   ltv: number;
+  ltc: number;
   interest_rate: number;
   amortization_years: number;
   loan_term_years: number;
@@ -61,6 +62,7 @@ const DEFAULT_INPUTS: ApartmentInputs = {
   construction_costs: 0,
   loan_amount: 0,
   ltv: 75,
+  ltc: 0,
   interest_rate: 6.5,
   amortization_years: 30,
   loan_term_years: 30,
