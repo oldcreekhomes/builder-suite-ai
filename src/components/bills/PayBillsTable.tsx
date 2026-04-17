@@ -539,6 +539,7 @@ export function PayBillsTable({ projectId, projectIds, showProjectColumn = true,
       vendor_id: b.vendor_id,
       project_id: b.project_id,
       total_amount: b.total_amount,
+      status: b.status,
       bill_lines: b.bill_lines?.map(l => ({
         cost_code_id: l.cost_code_id,
         amount: l.amount,
