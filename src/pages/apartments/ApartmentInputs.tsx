@@ -10,7 +10,7 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { Button } from "@/components/ui/button";
 import { Tooltip, TooltipTrigger, TooltipContent, TooltipProvider } from "@/components/ui/tooltip";
 import { DeleteConfirmationDialog } from "@/components/ui/delete-confirmation-dialog";
-import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
+
 import { notifyApartmentExpensesChanged } from "@/hooks/useApartmentExpenseVisibility";
 
 type OptionalExpense = {
