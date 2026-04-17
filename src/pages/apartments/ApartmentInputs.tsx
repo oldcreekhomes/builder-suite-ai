@@ -194,8 +194,22 @@ const ApartmentInputsPage = () => {
                 <CardHeader><CardTitle className="text-sm font-medium">Property &amp; Revenue</CardTitle></CardHeader>
                 <CardContent>
                   <div className="space-y-3 text-sm">
-                    <EditableRow label="Number of Units" field="number_of_units" value={inputs.number_of_units} onChange={updateInput} format="number" />
-                    <EditableRow label="Average Rent per Unit" field="avg_rent_per_unit" value={inputs.avg_rent_per_unit} onChange={updateInput} format="currency" />
+                    <DualEditableRow
+                      label="Market Rent"
+                      unitsField="market_units"
+                      unitsValue={inputs.market_units}
+                      rentField="market_rent"
+                      rentValue={inputs.market_rent}
+                      onChange={updateInput}
+                    />
+                    <DualEditableRow
+                      label="Affordable Rent"
+                      unitsField="affordable_units"
+                      unitsValue={inputs.affordable_units}
+                      rentField="affordable_rent"
+                      rentValue={inputs.affordable_rent}
+                      onChange={updateInput}
+                    />
                     <EditableRow label="Vacancy Rate" field="vacancy_rate" value={inputs.vacancy_rate} onChange={updateInput} format="percent" />
                     <EditableRow label="Total Costs" field="purchase_price" value={inputs.purchase_price} onChange={updateInput} format="currency" />
                     <EditableRow label="Estimated Value" field="construction_costs" value={inputs.construction_costs} onChange={updateInput} format="currency" />
