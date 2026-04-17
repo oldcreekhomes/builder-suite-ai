@@ -227,6 +227,23 @@ export function PODetailsDialog({
   const projectedRemaining = Math.round((purchaseOrder.remaining - totalPending) * 100) / 100;
   const projectedOverBudget = projectedRemaining < 0;
 
+  // Compute header status using the same cent-precise logic as useBillPOMatching.
+  // For draft: project forward by adding pendingBillLines (or currentBillAmount fallback).
+  // For posted/paid: total_billed already includes this bill, use as-is.
+  const headerStatus: POStatus = (() => {
+    const poAmount = purchaseOrder.total_amount || 0;
+    const projectedBilled = isDraftBill
+      ? purchaseOrder.total_billed + headerBillAmount
+      : purchaseOrder.total_billed;
+    const headerRemainingCents = Math.round((poAmount - projectedBilled) * 100);
+    if (headerRemainingCents < 0) return 'over_po';
+    // Draw: this bill is a partial slice of the PO total
+    if (headerRemainingCents >= 0 && headerBillAmount > 0 && headerBillAmount < poAmount && poAmount > 0) {
+      return 'draw';
+    }
+    return 'matched';
+  })();
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-4xl max-h-[85vh] flex flex-col overflow-hidden">
@@ -235,13 +252,7 @@ export function PODetailsDialog({
             <FileText className="h-5 w-5 text-primary" />
             <span>PO {purchaseOrder.po_number}</span>
             <div className="ml-auto">
-            {(isOverBudget || (hasPending && projectedOverBudget)) ? (
-                <Badge variant="destructive" className="gap-1"><AlertTriangle className="h-3 w-3" />Over Budget</Badge>
-              ) : isWarning ? (
-                <Badge variant="secondary" className="bg-amber-100 text-amber-700 gap-1"><AlertTriangle className="h-3 w-3" />Near Limit</Badge>
-              ) : (
-                <Badge variant="secondary" className="bg-green-100 text-green-700 gap-1"><Check className="h-3 w-3" />Matched</Badge>
-              )}
+              <POStatusBadge status={headerStatus} />
             </div>
           </DialogTitle>
         </DialogHeader>
