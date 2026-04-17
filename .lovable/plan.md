@@ -1,18 +1,25 @@
 
-Update the Dashboard "Property Assumptions" card to replace the single "Average Rent per Unit" row with two descriptive rows matching the Inputs page format.
+## Problem
+Dashboard shows "Target Cap Rate" as `—` and Asset Valuation calc fails because there's no UI to enter `target_cap_rate`. The DB column and field already exist in `useApartmentInputs.ts` — only an input control is missing.
 
-## Change
-In `src/pages/apartments/ApartmentDashboard.tsx`, in the Property Assumptions card, replace:
-- `Average Rent per Unit` → `$4,400/mo`
+## Fix
+Add a "Target Cap Rate" editable row to the **Property & Revenue** card in `src/pages/apartments/ApartmentInputs.tsx`, using the existing `EditableRow` with `format="percent"` and `decimals={2}`. Place it just below "Estimated Value" so it sits with the valuation-related inputs.
 
-With two rows:
-- `Market Rate Units` → `18 × $4,400`
-- `Affordable Rate Units` → `1 × $2,800`
+```tsx
+<EditableRow
+  label="Target Cap Rate"
+  field="target_cap_rate"
+  value={inputs.target_cap_rate}
+  onChange={updateInput}
+  format="percent"
+  decimals={2}
+/>
+```
 
-Then keep Vacancy Rate, Operating Expense Ratio, and Target Cap Rate below them.
-
-## Implementation
-Use existing inputs already available: `inputs.market_units`, `inputs.market_rent`, `inputs.affordable_units`, `inputs.affordable_rent`. Format the value cell as `{units} × {fmt(rent)}` to mirror the Inputs page.
+## Result
+- User can enter a target cap rate (e.g. 5.50%).
+- `computed.assetValue = noi / (target_cap_rate/100)` starts producing a real number.
+- Dashboard "Target Cap Rate" row and Asset Valuation card auto-populate (no Dashboard changes needed — it already reads `inputs.target_cap_rate` and `computed.assetValue`).
 
 ## File
-- `src/pages/apartments/ApartmentDashboard.tsx` (Property Assumptions card only)
+- `src/pages/apartments/ApartmentInputs.tsx` (add one row)
