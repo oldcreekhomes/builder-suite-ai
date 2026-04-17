@@ -1,42 +1,41 @@
 
-## Investigation + Plan: Per Unit → Monthly column
+## Plan: Split Rent into Market Rent + Affordable Rent
 
-### Current calculation (confirmed from code)
-In `ApartmentIncomeStatement.tsx`:
-```ts
-const units = inputs.number_of_units || 1;  // 18
-const perUnit = (v: number) => fmt(v / units);
+### Inputs page changes (`ApartmentInputs.tsx`)
+Replace "Number of Units / Average Rent per Unit" rows in **Property & Revenue** with:
+
+- **Market Rent** — two editable inputs side-by-side: `market_units` × `market_rent` (default 18 × $4,400)
+- **Affordable Rent** — two editable inputs: `affordable_units` × `affordable_rent` (default 1 × $2,800)
+
+Vacancy Rate, Total Costs, Estimated Value rows stay as-is.
+
+### Calculation change (`useApartmentInputs.ts`)
+- Add 4 new fields to `ApartmentInputs` interface + DEFAULT_INPUTS: `market_units`, `market_rent`, `affordable_units`, `affordable_rent`.
+- New GPR formula:
+  ```
+  grossPotentialRent = (market_units × market_rent + affordable_units × affordable_rent) × 12
+  ```
+- Update `units` (used elsewhere for reserves, price/unit) to `market_units + affordable_units`.
+- Keep legacy `number_of_units` / `avg_rent_per_unit` fields in DB untouched (read but unused for GPR) so nothing else breaks.
+
+### Income Statement (`ApartmentIncomeStatement.tsx`)
+No changes — it already reads `computed.grossPotentialRent`, which will reflect the new formula automatically.
+
+### Database migration
+Add 4 numeric columns to `apartment_inputs`:
+- `market_units` (default 18)
+- `market_rent` (default 4400)
+- `affordable_units` (default 1)
+- `affordable_rent` (default 2800)
+
+### UI sketch for the new rows
+```text
+Market Rent              [ 18 ] x  [ $4,400 ]
+Affordable Rent          [  1 ] x  [ $2,800 ]
 ```
-So today the "Per Unit" column divides annual values by **number_of_units (18)**, NOT by 12 months. Example: Insurance $14,040 / 18 = $780 ✓ matches your screenshot. You are correct — it's dividing by units, not months.
+Both numbers per row are editable; display formats as integer × currency.
 
-### Confirmation #1: Are annual values truly annualized?
-Yes. Spot-checks against your screenshot confirm everything in the Annual column is a full-year figure:
-- Insurance: $14,040/yr = $1,170/mo
-- Utilities: $4,320/yr = $360/mo
-- Management: 2.0% × EGI $923,400 = $18,468/yr ✓
-- Taxes: $143,010/yr (estimated_value × tax_rate)
-- Vacancy: 5% × GPR $972,000 = $48,600/yr ✓
-
-All Annual figures are correctly annualized. Nothing is being double-counted or mis-scaled.
-
-### Confirmation #2: "Per Unit" is wrong as labeled-and-intended
-You want **monthly totals** (annual ÷ 12), not per-unit-annual (annual ÷ 18). Current code does the latter.
-
-### Change
-In `src/pages/apartments/ApartmentIncomeStatement.tsx`:
-1. Rename column header `"Per Unit"` → `"Monthly"`.
-2. Replace the `perUnit` helper:
-   ```ts
-   const monthly = (v: number) => fmt(v / 12);
-   ```
-3. Update every row currently using `perUnit(...)` to use `monthly(...)` — Gross Potential Rent, Vacancy, EGI, all expense rows, Total OpEx, NOI, Debt Service, Cash Flow After Debt.
-
-Validation against your screenshot after change:
-- Insurance Monthly: $14,040 / 12 = **$1,170**
-- EGI Monthly: $923,400 / 12 = **$76,950**
-- NOI Monthly: (NOI annual) / 12
-
-### Out of scope
-- Annual column (correct already).
-- % of EGI column (correct already).
-- Calculations / DB / Inputs page.
+### Validation
+- Defaults render: Market 18 × $4,400, Affordable 1 × $2,800.
+- Income Statement GPR = (18×4400 + 1×2800) × 12 = $984,000.
+- Editing any of the 4 fields updates GPR live; vacancy/EGI/NOI cascade correctly.
