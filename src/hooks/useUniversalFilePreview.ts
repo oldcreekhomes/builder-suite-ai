@@ -55,20 +55,24 @@ export function useUniversalFilePreview() {
   };
 
   const openSpecificationFile = (filePath: string, fileName?: string, additionalData?: Partial<UniversalFile>) => {
-    // Normalize the path - remove any prefixes and ensure proper specifications path
+    // Strip accidental bucket prefix
     let normalizedPath = filePath;
-    if (normalizedPath.startsWith('project-files/specifications/')) {
-      normalizedPath = normalizedPath.replace('project-files/specifications/', '');
-    } else if (normalizedPath.startsWith('project-files/')) {
+    if (normalizedPath.startsWith('project-files/')) {
       normalizedPath = normalizedPath.replace('project-files/', '');
-    } else if (normalizedPath.startsWith('specifications/')) {
-      normalizedPath = normalizedPath.replace('specifications/', '');
     }
-    
-    const finalPath = `specifications/${normalizedPath}`;
-    
+
+    // Known top-level folders inside the project-files bucket
+    const topLevelFolders = ['specifications/', 'bidding/', 'proposals/', 'purchase-orders/', 'journal-entries/', 'checks/', 'deposits/', 'credit-cards/'];
+    const alreadyHasFolder = topLevelFolders.some(folder => normalizedPath.startsWith(folder));
+
+    // Only wrap bare filenames (no '/') in 'specifications/'.
+    // If path already contains a top-level folder OR any subfolder, use as-is.
+    const finalPath = alreadyHasFolder || normalizedPath.includes('/')
+      ? normalizedPath
+      : `specifications/${normalizedPath}`;
+
     openFile({
-      name: fileName || normalizedPath.split('/').pop() || normalizedPath,
+      name: fileName || finalPath.split('/').pop() || finalPath,
       bucket: 'project-files',
       path: finalPath,
       ...additionalData
