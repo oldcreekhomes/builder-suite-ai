@@ -100,11 +100,21 @@ export function PODetailsDialog({
 
   // Header-only PO fallback: if no line items exist, synthesize one from PO header
   // so the comparison still renders meaningfully instead of "No line items found".
+  const headerFallbackDescription = (() => {
+    if (pendingBillLines && pendingBillLines.length > 0) {
+      const memos = Array.from(new Set(
+        pendingBillLines.map(l => (l.memo || '').trim()).filter(m => m.length > 0)
+      ));
+      if (memos.length > 0) return memos.join(', ');
+    }
+    return '—';
+  })();
+
   const lineItems = realLineItems.length === 0 && purchaseOrder.total_amount > 0
     ? [{
         id: `__header__${purchaseOrder.id}`,
         line_number: 1,
-        description: 'Purchase Order Total',
+        description: headerFallbackDescription,
         cost_code_id: purchaseOrder.cost_code_id,
         cost_code: purchaseOrder.cost_code,
         quantity: 1,
