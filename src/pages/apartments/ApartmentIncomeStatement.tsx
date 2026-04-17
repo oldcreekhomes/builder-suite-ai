@@ -76,9 +76,9 @@ const ApartmentIncomeStatement = () => {
                     </thead>
                     <tbody className="divide-y">
                       <SectionHeader title="Revenue" />
-                      <StatementRow label="Gross Potential Rent" annual={fmt(computed.grossPotentialRent)} perUnit={monthly(computed.grossPotentialRent)} pct={pctEgi(computed.grossPotentialRent)} />
-                      <StatementRow label={`Less: Vacancy (${fmtPct(inputs.vacancy_rate)})`} annual={`(${fmt(computed.vacancyLoss)})`} perUnit={`(${monthly(computed.vacancyLoss)})`} pct={`-${pctEgi(computed.vacancyLoss)}`} negative />
-                      <TotalRow label="Effective Gross Income" annual={fmt(computed.egi)} perUnit={monthly(computed.egi)} pct="100.0%" />
+                      <StatementRow label="Gross Potential Rent" annual={fmt(computed.grossPotentialRent)} monthly={monthly(computed.grossPotentialRent)} pct={pctEgi(computed.grossPotentialRent)} />
+                      <StatementRow label={`Less: Vacancy (${fmtPct(inputs.vacancy_rate)})`} annual={`(${fmt(computed.vacancyLoss)})`} monthly={`(${monthly(computed.vacancyLoss)})`} pct={`-${pctEgi(computed.vacancyLoss)}`} negative />
+                      <TotalRow label="Effective Gross Income" annual={fmt(computed.egi)} monthly={monthly(computed.egi)} pct="100.0%" />
 
                       <SectionHeader title="Operating Expenses" />
                       {expenseRows.map((r) => (
