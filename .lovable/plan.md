@@ -1,35 +1,46 @@
 
+Problem:
+- The uploaded PDF still does not match the Budget page for Nob Hill.
+- Confirmed from the uploaded export:
+  - 1000s (1010 / 1020 / 1040) show as Manual in the PDF, but should be Actual.
+  - Several 3000s (3180 / 3220 / 3340 / 3380) show as Estimate/Manual in the PDF, but should be Purchase Order.
+- The on-screen budget table uses `BudgetSourceBadge.tsx`, while the PDF and print paths each maintain their own separate `getSourceLabel()` logic. That duplication is the real weakness: even if one path is edited, the export can still drift from the budget page.
 
-## Problem
-The Source column in the PDF export ("Project_Budget-2026-04-17.pdf") doesn't match the Budget screen for Nob Hill. Examples:
+Implementation plan:
+1. Create one shared budget source helper
+   - Extract the exact source-label decision tree from `src/components/budget/BudgetSourceBadge.tsx` into a shared utility such as `src/utils/budgetSource.ts`.
+   - Have it return the canonical label for each item (`Actual`, `Purchase Order`, `Vendor Bid`, `Historical`, `Estimate`, `Settings`, `Manual`) using `budget_source` first, then legacy fallback only when `budget_source` is missing.
 
-| Cost Code | UI (correct) | PDF (wrong) |
-|---|---|---|
-| 1010 Lot Costs | Actual | Manual |
-| 1020 Closing Costs | Actual | Manual |
-| 1040 Land Taxes | Actual | Manual |
-| 3180 Sediment & Erosion | Purchase Order | Estimate |
-| 3220 Demolition | Purchase Order | Estimate |
-| 3340 Earthwork | Purchase Order | Manual |
-| 3380 Sanitary | Purchase Order | Manual |
+2. Make the budget page use the shared helper
+   - Update `BudgetSourceBadge.tsx` to call the shared helper instead of owning its own source decision logic.
+   - This keeps the current page behavior as the single source of truth.
 
-## Root cause
-The PDF `getSourceLabel()` switch in two files is missing the `'actual'` and `'purchase-orders'` cases. When `budget_source` is one of those values, the switch returns `undefined`, so the legacy fallback runs and prints the wrong label.
+3. Make PDF export use the exact same helper
+   - Replace `getSourceLabel()` in `src/components/budget/pdf/BudgetPdfDocument.tsx` with the shared helper.
+   - This guarantees the PDF uses the same label resolution as the budget page.
 
-The on-screen `BudgetSourceBadge.tsx` already handles all 7 sources correctly — it's just the print/PDF paths that are stale.
+4. Make print view use the exact same helper
+   - Replace `getSourceLabel()` in `src/components/budget/BudgetPrintView.tsx` with the shared helper.
+   - This prevents print/export drift going forward.
 
-## Fix
-Add the two missing cases to `getSourceLabel` in:
-1. `src/components/budget/pdf/BudgetPdfDocument.tsx`
-2. `src/components/budget/BudgetPrintView.tsx`
+5. Regression validation
+   - Re-export Nob Hill and verify the PDF matches the on-screen budget page row-for-row for the Source column.
+   - Specifically verify:
+     - 1010 Lot Costs → Actual
+     - 1020 Closing Costs → Actual
+     - 1040 Land Taxes → Actual
+     - 3180 Sediment & Erosion → Purchase Order
+     - 3220 Demolition → Purchase Order
+     - 3340 Earthwork → Purchase Order
+     - 3380 Sanitary → Purchase Order
+   - Also spot-check Vendor Bid, Historical, Estimate, and Manual rows to confirm no regressions.
 
-```ts
-case 'actual': return 'Actual';
-case 'purchase-orders': return 'Purchase Order';
-```
-
-Also fix the ordering bug in `BudgetPdfDocument.tsx` where the legacy "selected_bid + selected_bid_id → Vendor Bid" check runs *before* `budget_source`. This can mislabel an item whose `budget_source` was changed away from `'vendor-bid'` but still has a `selected_bid_id`. Move the `budget_source` switch ahead of that legacy check (matching the on-screen badge logic).
-
-## Validation
-After the change, regenerating the PDF for Nob Hill should show the same Source labels as the on-screen Budget table for every row.
-
+Technical details:
+- Files to update:
+  - `src/components/budget/BudgetSourceBadge.tsx`
+  - `src/components/budget/pdf/BudgetPdfDocument.tsx`
+  - `src/components/budget/BudgetPrintView.tsx`
+  - new shared helper file in `src/utils/`
+- Goal:
+  - No independent source-label logic in export/print paths.
+  - PDF export must render the same Source labels as the Budget page, using the same helper and same precedence rules.
