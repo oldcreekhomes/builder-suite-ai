@@ -1,6 +1,5 @@
 import { Document, Page, Text, View, StyleSheet } from '@react-pdf/renderer';
 import { calculateBudgetItemTotal } from '@/utils/budgetUtils';
-import { getBudgetSourceLabel } from '@/utils/budgetSource';
 
 
 const styles = StyleSheet.create({
@@ -123,7 +122,9 @@ export function BudgetPdfDocument({
     return historicalActualCosts.mapByCode[costCode.code] || 0;
   };
 
-  const getSourceLabel = (item: any): string => item?.__sourceLabel ?? getBudgetSourceLabel(item);
+  // Strict: only use the label precomputed by the budget page. No fallback —
+  // export must never re-decide Source independently of the on-screen badge.
+  const getSourceLabel = (item: any): string => item?.__sourceLabel ?? '';
 
   const calculateVariance = (budgetedAmount: number, historicalAmount: number): number => {
     if (historicalAmount === 0) return 0;

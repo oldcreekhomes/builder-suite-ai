@@ -1,7 +1,6 @@
 
 import React from 'react';
 import { calculateBudgetItemTotal } from '@/utils/budgetUtils';
-import { getBudgetSourceLabel } from '@/utils/budgetSource';
 import { VisibleColumns } from './BudgetColumnVisibilityDropdown';
 
 interface BudgetPrintViewProps {
@@ -41,7 +40,8 @@ export function BudgetPrintView({
     return undefined;
   };
 
-  const getSourceLabel = (item: any) => item?.__sourceLabel ?? getBudgetSourceLabel(item);
+  // Strict: only use the label precomputed by the budget page (BudgetTable).
+  const getSourceLabel = (item: any) => item?.__sourceLabel ?? '';
 
   const calculateVariance = (budgetTotal: number, historicalValue: number) => {
     if (showVarianceAsPercentage && historicalValue > 0) {
