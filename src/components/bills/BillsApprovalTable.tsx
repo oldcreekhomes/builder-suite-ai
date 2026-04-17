@@ -957,7 +957,7 @@ export function BillsApprovalTable({ status, projectId, projectIds, showProjectC
         })()}
       </TableCell>
       )}
-      <TableCell className="w-10 text-center">
+      <TableCell className="w-10 text-center" onClick={(e) => e.stopPropagation()}>
         <BillFilesCell attachments={bill.bill_attachments || []} />
       </TableCell>
       <TableCell className="w-10 text-center">
