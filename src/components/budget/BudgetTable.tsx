@@ -407,8 +407,13 @@ export function BudgetTable({ projectId, projectAddress, onHeaderActionChange, o
 
       const url = URL.createObjectURL(blob);
       const link = document.createElement('a');
+      // Include full timestamp so each export is a unique filename and the user
+      // can never accidentally open a stale previous download.
+      const now = new Date();
+      const pad = (n: number) => String(n).padStart(2, '0');
+      const stamp = `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}_${pad(now.getHours())}-${pad(now.getMinutes())}-${pad(now.getSeconds())}`;
       link.href = url;
-      link.download = `Project_Budget-${new Date().toISOString().split('T')[0]}.pdf`;
+      link.download = `Project_Budget-${stamp}.pdf`;
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
