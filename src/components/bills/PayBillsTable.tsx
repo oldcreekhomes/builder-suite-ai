@@ -1173,7 +1173,8 @@ export function PayBillsTable({ projectId, projectIds, showProjectColumn = true,
                     ]} />
                   </TableCell>
                 </TableRow>
-              ))
+                );
+              })
             )}
           </TableBody>
         </Table>
