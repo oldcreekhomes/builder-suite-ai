@@ -248,13 +248,15 @@ export function PODetailsDialog({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-4xl max-h-[85vh] flex flex-col overflow-hidden">
         <DialogHeader>
-          <DialogTitle className="flex items-center gap-2">
-            <FileText className="h-5 w-5 text-primary" />
-            <span>PO {purchaseOrder.po_number}</span>
+          <div className="flex items-center gap-2">
+            <DialogTitle className="flex items-center gap-2">
+              <FileText className="h-5 w-5 text-primary" />
+              <span>PO {purchaseOrder.po_number}</span>
+            </DialogTitle>
             <div className="ml-auto">
               <POStatusBadge status={headerStatus} />
             </div>
-          </DialogTitle>
+          </div>
         </DialogHeader>
 
         {/* Line Items Table */}
