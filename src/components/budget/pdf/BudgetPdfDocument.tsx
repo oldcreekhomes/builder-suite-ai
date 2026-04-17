@@ -123,11 +123,6 @@ export function BudgetPdfDocument({
   };
 
   const getSourceLabel = (item: any): string => {
-    // Check for vendor bid first
-    if (item.selected_bid_id && item.selected_bid) {
-      return 'Vendor Bid';
-    }
-    
     if (item.budget_source) {
       switch (item.budget_source) {
         case 'vendor-bid': return 'Vendor Bid';
@@ -135,9 +130,16 @@ export function BudgetPdfDocument({
         case 'historical': return 'Historical';
         case 'settings': return 'Settings';
         case 'manual': return 'Manual';
+        case 'actual': return 'Actual';
+        case 'purchase-orders': return 'Purchase Order';
       }
     }
-    
+
+    // Legacy fallback
+    if (item.selected_bid_id && item.selected_bid) {
+      return 'Vendor Bid';
+    }
+
     const costCode = item.cost_codes;
     if (costCode?.has_subcategories) {
       return 'Estimate';
