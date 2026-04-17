@@ -70,7 +70,8 @@ const ApartmentDashboard = () => {
                 <CardContent>
                   <div className="space-y-3 text-sm">
                     <Row label="Number of Units" value={String(computed.units)} />
-                    <Row label="Average Rent per Unit" value={`${fmt(inputs.market_rent)}/mo`} />
+                    <Row label="Market Rate Units" value={`${inputs.market_units} × ${fmt(inputs.market_rent)}`} />
+                    <Row label="Affordable Rate Units" value={`${inputs.affordable_units} × ${fmt(inputs.affordable_rent)}`} />
                     <Row label="Vacancy Rate" value={fmtPct(inputs.vacancy_rate)} />
                     <Row label="Operating Expense Ratio" value={fmtPct(computed.expenseRatio)} />
                     <Row label="Target Cap Rate" value={inputs.target_cap_rate > 0 ? fmtPct(inputs.target_cap_rate, 2) : "—"} />
