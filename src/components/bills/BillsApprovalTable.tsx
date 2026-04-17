@@ -1021,7 +1021,7 @@ export function BillsApprovalTable({ status, projectId, projectIds, showProjectC
         </TableCell>
       )}
       {/* Final column: Actions for draft, Cleared for posted/paid */}
-      <TableCell className="w-24 text-center">
+      <TableCell className="w-24 text-center" onClick={(e) => e.stopPropagation()}>
         {isDraftStatus ? (
           <TableRowActions actions={[
             { label: "Approve", onClick: () => handleActionChange(bill.id, 'approve'), disabled: approveBill.isPending || rejectBill.isPending },
