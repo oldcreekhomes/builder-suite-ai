@@ -87,14 +87,36 @@ export function PODetailsDialog({
 }: PODetailsDialogProps) {
   if (!purchaseOrder) return null;
 
-  const isOverBudget = purchaseOrder.remaining < 0;
+  // Cent-precise over-budget check to avoid $0.01 floating-point drift
+  const remainingCents = Math.round(purchaseOrder.remaining * 100);
+  const isOverBudget = remainingCents < 0;
   const utilizationPercent = purchaseOrder.total_amount > 0
     ? Math.round((purchaseOrder.total_billed / purchaseOrder.total_amount) * 100)
     : 0;
   const isWarning = utilizationPercent >= 90 && utilizationPercent < 100;
   const isHealthy = !isOverBudget && !isWarning;
 
-  const lineItems = purchaseOrder.line_items || [];
+  const realLineItems = purchaseOrder.line_items || [];
+
+  // Header-only PO fallback: if no line items exist, synthesize one from PO header
+  // so the comparison still renders meaningfully instead of "No line items found".
+  const lineItems = realLineItems.length === 0 && purchaseOrder.total_amount > 0
+    ? [{
+        id: `__header__${purchaseOrder.id}`,
+        line_number: 1,
+        description: 'Purchase Order Total',
+        cost_code_id: purchaseOrder.cost_code_id,
+        cost_code: purchaseOrder.cost_code,
+        quantity: 1,
+        unit_cost: purchaseOrder.total_amount,
+        amount: purchaseOrder.total_amount,
+        total_billed: purchaseOrder.total_billed,
+        remaining: purchaseOrder.remaining,
+        billed_invoices: purchaseOrder.unallocated_invoices || [],
+      }]
+    : realLineItems;
+
+  const isHeaderOnly = realLineItems.length === 0 && lineItems.length === 1;
   const hasPending = pendingBillLines && pendingBillLines.length > 0;
 
   // Keyword matching helpers (mirrors useVendorPurchaseOrders.ts logic)
