@@ -508,4 +508,81 @@ function EditableRow({ label, field, value, onChange, format, decimals }: {
   );
 }
 
+function DualEditableRow({ label, unitsField, unitsValue, rentField, rentValue, onChange }: {
+  label: string;
+  unitsField: keyof ApartmentInputsType;
+  unitsValue: number;
+  rentField: keyof ApartmentInputsType;
+  rentValue: number;
+  onChange: (field: keyof ApartmentInputsType, value: string) => void;
+}) {
+  return (
+    <div className="flex justify-between items-center">
+      <span className="text-muted-foreground">{label}</span>
+      <div className="flex items-center gap-2">
+        <InlineNumberInput
+          field={unitsField}
+          value={unitsValue}
+          onChange={onChange}
+          format="number"
+          widthClass="w-16"
+        />
+        <span className="text-muted-foreground">×</span>
+        <InlineNumberInput
+          field={rentField}
+          value={rentValue}
+          onChange={onChange}
+          format="currency"
+          widthClass="w-24"
+        />
+      </div>
+    </div>
+  );
+}
+
+function InlineNumberInput({ field, value, onChange, format, widthClass }: {
+  field: keyof ApartmentInputsType;
+  value: number;
+  onChange: (field: keyof ApartmentInputsType, value: string) => void;
+  format: "currency" | "number";
+  widthClass: string;
+}) {
+  const [localValue, setLocalValue] = useState(String(value));
+  const [isFocused, setIsFocused] = useState(false);
+  const inputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    if (!isFocused) setLocalValue(String(value));
+  }, [value, isFocused]);
+
+  if (isFocused) {
+    return (
+      <input
+        ref={inputRef}
+        type="text"
+        autoFocus
+        value={localValue}
+        onChange={(e) => {
+          setLocalValue(e.target.value);
+          onChange(field, e.target.value);
+        }}
+        onBlur={() => setIsFocused(false)}
+        className={`${widthClass} text-right text-sm bg-transparent border-none outline-none p-0 m-0`}
+      />
+    );
+  }
+
+  return (
+    <span
+      className={`${widthClass} text-right cursor-pointer hover:text-muted-foreground/70 transition-colors`}
+      onClick={() => {
+        setIsFocused(true);
+        setTimeout(() => inputRef.current?.select(), 0);
+      }}
+    >
+      {format === "currency" ? fmt(value) : String(value)}
+    </span>
+  );
+}
+
 export default ApartmentInputsPage;
