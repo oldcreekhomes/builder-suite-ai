@@ -1,51 +1,28 @@
 
-## Goal
-Add an "Export PDF" button to the three Apartment pages (Dashboard, Income Statement, Amortization Schedule) using the same header/footer template as the Budget PDF.
+## Problem
+Apartment data (inputs) is leaking across projects — opening 1020 Princess Street shows Knob Hill's numbers. Apartment data must be project-scoped, just like Accounting, Schedule, POs, etc.
 
-## Template (reused from `BudgetPdfDocument`)
-- **Header (centered):** big title + project address subtitle
-- **Footer (fixed, on every page):** date (left) · time (center) · "Page N of M" (right)
-- Letter size, 40pt padding, Helvetica, same font sizes/colors
+## Root Cause Investigation Needed
+`useApartmentInputs.ts` queries `apartment_inputs` filtered by `project_id` and creates a row with `project_id` if none exists. That looks correct on the surface. The bug is likely one of:
+1. **Missing/wrong unique constraint** — multiple rows exist for `(project_id)`, and `.maybeSingle()` returns whichever Postgres orders first (often the same one). Or `.maybeSingle()` errors silently when >1 row exists.
+2. **RLS too permissive on `project_id`** — pulling rows from other projects within the same `home_builder_id`. Still, the `.eq('project_id', projectId)` should constrain it… unless the original row was created without a `project_id` (NULL) and is being matched by the owner-only RLS path somewhere.
+3. **React Query cache key issue** — query key is `["apartment-inputs", projectId]` which looks fine, but if there's stale cross-project hydration somewhere it could carry over. Less likely since the data clearly persists in DB.
 
-I'll create a small shared layout component `src/components/apartments/pdf/ApartmentPdfLayout.tsx` exporting:
-- `apartmentPdfStyles` (page, header, title, subtitle, table styles, footer)
-- `ApartmentPdfHeader({ title, address })`
-- `ApartmentPdfFooter()` (fixed footer with date/time/page numbers)
+Most likely #1 — when LTC and target_cap_rate were added, or earlier, an extra row got created and now the query returns a row from a different project.
 
-This keeps the three documents DRY and guarantees identical headers/footers to Budget.
-
-## New PDF documents
-1. `src/components/apartments/pdf/ApartmentDashboardPdfDocument.tsx`
-   - Title: "Apartment Dashboard"
-   - Renders the 4 cards as PDF sections: Income Summary, Loan Summary, Property Assumptions, Asset Valuation (label/value rows mirroring the on-screen layout).
-2. `src/components/apartments/pdf/ApartmentIncomeStatementPdfDocument.tsx`
-   - Title: "Income Statement"
-   - Table with columns: Line Item · Annual · Monthly · % of EGI. Section headers (Revenue, Operating Expenses, Debt Service), totals rows bolded/highlighted.
-3. `src/components/apartments/pdf/ApartmentAmortizationPdfDocument.tsx`
-   - Title: "Amortization Schedule"
-   - Loan summary block (Loan Amount, Rate, Amortization, Term, Monthly Payment) followed by the year-by-year table (9 columns matching the page).
-
-## Page wiring (each of the three apartment pages)
-- Fetch the project's address via React Query (same pattern as `ProjectBudget.tsx`):
-  ```ts
-  const { data: project } = useQuery({
-    queryKey: ['project', projectId],
-    queryFn: async () => (await supabase.from('projects').select('address').eq('id', projectId).single()).data,
-    enabled: !!projectId,
-  });
-  ```
-- Add an "Export PDF" button passed via `DashboardHeader`'s `headerAction` prop.
-- Click handler renders the corresponding PDF doc with `pdf(<Doc .../>).toBlob()` and triggers a download (same pattern used in `BudgetTable.handleExportPdf`).
-- Filename: `apartment-dashboard-{address}.pdf`, etc.
+## Plan
+1. Inspect DB directly: `SELECT id, project_id, owner_id FROM apartment_inputs ORDER BY created_at;` to confirm whether 1020 Princess has its own row, and whether duplicates exist.
+2. Check for a unique constraint on `apartment_inputs.project_id`. If missing, add one.
+3. Audit `useApartmentInputs.ts` query: confirm `.eq('project_id', projectId)` is the only filter and no fallback to "first row for owner".
+4. Fix data:
+   - If 1020 Princess has no row → the hook will auto-create one (current logic). Verify it does.
+   - If duplicate/wrong rows exist → migration to dedupe and enforce unique constraint on `project_id`.
+5. Same audit for `apartment_operating_expenses` (or whatever table powers the dynamic op-ex list per the apartment memory) to make sure it's also project-scoped.
 
 ## Files
-- New: `src/components/apartments/pdf/ApartmentPdfLayout.tsx`
-- New: `src/components/apartments/pdf/ApartmentDashboardPdfDocument.tsx`
-- New: `src/components/apartments/pdf/ApartmentIncomeStatementPdfDocument.tsx`
-- New: `src/components/apartments/pdf/ApartmentAmortizationPdfDocument.tsx`
-- Edit: `src/pages/apartments/ApartmentDashboard.tsx` (fetch address, add Export button)
-- Edit: `src/pages/apartments/ApartmentIncomeStatement.tsx` (same)
-- Edit: `src/pages/apartments/ApartmentAmortizationSchedule.tsx` (same)
+- `src/hooks/useApartmentInputs.ts` (verify, likely no change)
+- New migration: `ALTER TABLE apartment_inputs ADD CONSTRAINT apartment_inputs_project_id_key UNIQUE (project_id);` (after deduping)
+- Possibly any other apartment-scoped tables (operating expenses) — verify and patch similarly.
 
-## Out of scope
-No changes to data calculations, no changes to Budget PDF, no changes to the on-screen apartment UIs beyond the new header button.
+## Out of Scope
+No UI changes. No calculation changes. Pure data-isolation fix.
