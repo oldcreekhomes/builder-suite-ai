@@ -539,6 +539,7 @@ export function PayBillsTable({ projectId, projectIds, showProjectColumn = true,
       vendor_id: b.vendor_id,
       project_id: b.project_id,
       total_amount: b.total_amount,
+      status: b.status,
       bill_lines: b.bill_lines?.map(l => ({
         cost_code_id: l.cost_code_id,
         amount: l.amount,
@@ -939,8 +940,20 @@ export function PayBillsTable({ projectId, projectIds, showProjectColumn = true,
                 </TableCell>
               </TableRow>
             ) : (
-              filteredBills.map((bill) => (
-                <TableRow key={bill.id}>
+              filteredBills.map((bill) => {
+                const rowMatchResult = poMatchingData?.get(bill.id);
+                const rowAllMatches = rowMatchResult?.matches || [];
+                const rowClickable = rowAllMatches.length > 0;
+                const handleRowClick = () => {
+                  if (!rowClickable) return;
+                  setPoDialogState({ open: true, matches: rowAllMatches, bill });
+                };
+                return (
+                <TableRow
+                  key={bill.id}
+                  className={rowClickable ? 'cursor-pointer' : ''}
+                  onClick={rowClickable ? handleRowClick : undefined}
+                >
                   <TableCell>
                     <MinimalCheckbox
                       checked={selectedBillIds.has(bill.id)}
@@ -1160,7 +1173,8 @@ export function PayBillsTable({ projectId, projectIds, showProjectColumn = true,
                     ]} />
                   </TableCell>
                 </TableRow>
-              ))
+                );
+              })
             )}
           </TableBody>
         </Table>

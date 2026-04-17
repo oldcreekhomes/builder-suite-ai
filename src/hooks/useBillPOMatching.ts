@@ -33,6 +33,7 @@ interface BillForMatching {
   vendor_id: string;
   project_id?: string;
   total_amount: number;
+  status?: string;
   bill_lines?: BillLine[];
 }
 
@@ -160,10 +161,14 @@ export function useBillPOMatching(bills: BillForMatching[]) {
 
         if (linkedError) throw linkedError;
 
-        const billIdsToExclude = new Set(bills.map(b => b.id));
+        // Only exclude DRAFT bills from totalBilled (they aren't in accounting yet).
+        // Posted/paid bills are already accounted for, so we should NOT subtract them again.
+        const draftBillIdsToExclude = new Set(
+          bills.filter(b => (b.status || 'draft') === 'draft').map(b => b.id)
+        );
 
         (linkedLines || []).forEach(line => {
-          if (billIdsToExclude.has(line.bill_id)) return;
+          if (draftBillIdsToExclude.has(line.bill_id)) return;
 
           const billData = line.bills as unknown as { status: string; is_reversal: boolean; reversed_at: string | null };
           if (
@@ -258,8 +263,9 @@ export function useBillPOMatching(bills: BillForMatching[]) {
             const ccData = costCodeLookup.get(matchedPo.cost_code_id || '');
             const totalBilled = billedLookup.get(matchedPo.id) || 0;
             const poAmount = matchedPo.total_amount || 0;
+            const isDraftBill = (bill.status || 'draft') === 'draft';
 
-            // Include current bill's lines allocated to this PO
+            // Current bill's lines allocated to this PO
             const thisBillAmount = allLines
               .filter(l => {
                 let lpId = l.purchase_order_id;
@@ -270,9 +276,15 @@ export function useBillPOMatching(bills: BillForMatching[]) {
               })
               .reduce((s, l) => s + (l.amount || 0), 0);
 
-            const remaining = poAmount - totalBilled - thisBillAmount;
-            const isDraw = remaining >= 0 && thisBillAmount < poAmount && poAmount > 0;
-            const status: 'matched' | 'over_po' | 'draw' = remaining < 0 ? 'over_po' : isDraw ? 'draw' : 'matched';
+            // For draft bills: forecast (totalBilled excludes this bill, so add thisBillAmount).
+            // For posted/paid bills: this bill is already in totalBilled — do NOT double-count.
+            const projectedBilled = isDraftBill ? (totalBilled + thisBillAmount) : totalBilled;
+            // Cent-precise to avoid $0.01 floating-point drift causing false "Over"
+            const remainingCents = Math.round((poAmount - projectedBilled) * 100);
+            const remaining = remainingCents / 100;
+            const billedAgainstPo = isDraftBill ? thisBillAmount : (totalBilled > 0 ? thisBillAmount || totalBilled : thisBillAmount);
+            const isDraw = remainingCents >= 0 && billedAgainstPo < poAmount && poAmount > 0;
+            const status: 'matched' | 'over_po' | 'draw' = remainingCents < 0 ? 'over_po' : isDraw ? 'draw' : 'matched';
             
             matches.push({
               po_id: matchedPo.id,
