@@ -45,6 +45,7 @@ import { DeleteButton } from '@/components/ui/delete-button';
 import { usePurchaseOrders } from '@/hooks/usePurchaseOrders';
 import { useBudgetSubcategories } from '@/hooks/useBudgetSubcategories';
 import { VisibleColumns } from './BudgetColumnVisibilityDropdown';
+import { getBudgetSourceLabel } from '@/utils/budgetSource';
 
 interface BudgetTableProps {
   projectId: string;
@@ -83,6 +84,20 @@ export function BudgetTable({ projectId, projectAddress, onHeaderActionChange, o
   const headerRef = useRef<HTMLTableSectionElement | null>(null);
   
   const { budgetItems, groupedBudgetItems, existingCostCodeIds, parentCodeNames } = useBudgetData(projectId, selectedLotId);
+
+  // Pre-resolve Source label for every item, using the same helper the on-screen
+  // badge uses. PDF/Print components MUST consume `__sourceLabel` directly so
+  // they cannot drift from what the user sees on the budget page.
+  const groupedBudgetItemsWithSource = useMemo(() => {
+    const out: Record<string, any[]> = {};
+    Object.entries(groupedBudgetItems).forEach(([group, items]) => {
+      out[group] = (items as any[]).map((item) => ({
+        ...item,
+        __sourceLabel: getBudgetSourceLabel(item),
+      }));
+    });
+    return out;
+  }, [groupedBudgetItems]);
   const parsedHistorical = selectedHistoricalProject ? parseHistoricalKey(selectedHistoricalProject) : null;
   const { data: historicalData } = useHistoricalActualCosts(parsedHistorical?.projectId || null, parsedHistorical?.lotId);
   
@@ -379,7 +394,7 @@ export function BudgetTable({ projectId, projectAddress, onHeaderActionChange, o
       const blob = await pdf(
         <BudgetPdfDocument
           projectAddress={projectAddress}
-          groupedBudgetItems={groupedBudgetItems}
+          groupedBudgetItems={groupedBudgetItemsWithSource}
           visibleColumns={pdfVisibleColumns}
           historicalProjectAddress={options.historicalProjectAddress}
           showVarianceAsPercentage={options.varianceAsPercentage}
@@ -695,7 +710,7 @@ export function BudgetTable({ projectId, projectAddress, onHeaderActionChange, o
 
       <BudgetPrintView
         budgetItems={budgetItems}
-        groupedBudgetItems={groupedBudgetItems}
+        groupedBudgetItems={groupedBudgetItemsWithSource}
         projectAddress={projectAddress}
         subcategoryTotals={subcategoryTotalsMap}
         historicalCostsMap={historicalCostsMap}

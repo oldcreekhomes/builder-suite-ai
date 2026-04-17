@@ -123,7 +123,7 @@ export function BudgetPdfDocument({
     return historicalActualCosts.mapByCode[costCode.code] || 0;
   };
 
-  const getSourceLabel = (item: any): string => getBudgetSourceLabel(item);
+  const getSourceLabel = (item: any): string => item?.__sourceLabel ?? getBudgetSourceLabel(item);
 
   const calculateVariance = (budgetedAmount: number, historicalAmount: number): number => {
     if (historicalAmount === 0) return 0;

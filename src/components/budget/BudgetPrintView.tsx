@@ -41,7 +41,7 @@ export function BudgetPrintView({
     return undefined;
   };
 
-  const getSourceLabel = (item: any) => getBudgetSourceLabel(item);
+  const getSourceLabel = (item: any) => item?.__sourceLabel ?? getBudgetSourceLabel(item);
 
   const calculateVariance = (budgetTotal: number, historicalValue: number) => {
     if (showVarianceAsPercentage && historicalValue > 0) {
