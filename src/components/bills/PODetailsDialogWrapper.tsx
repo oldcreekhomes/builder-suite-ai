@@ -31,6 +31,7 @@ export function PODetailsDialogWrapper({ poDialogState, onClose }: PODetailsDial
       currentBillId={poDialogState.bill?.id}
       currentBillAmount={poDialogState.bill?.total_amount}
       currentBillReference={poDialogState.bill?.reference_number || undefined}
+      currentBillStatus={poDialogState.bill?.status}
     />
   );
 }
