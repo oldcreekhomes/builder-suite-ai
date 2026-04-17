@@ -7,7 +7,7 @@ export type POStatus = 'matched' | 'over_po' | 'no_po' | 'partial' | 'draw';
 
 interface POStatusBadgeProps {
   status: POStatus;
-  onClick?: () => void;
+  onClick?: (e?: React.MouseEvent) => void;
   className?: string;
 }
 
@@ -72,7 +72,7 @@ export function POStatusBadge({ status, onClick, className }: POStatusBadgeProps
               config.bgClass,
               className
             )}
-            onClick={onClick}
+            onClick={(e) => onClick?.(e)}
           >
             {Icon && <Icon className={cn("h-3 w-3", config.iconClass)} />}
             <span>{config.label}</span>

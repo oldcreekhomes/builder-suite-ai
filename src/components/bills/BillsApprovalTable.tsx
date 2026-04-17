@@ -741,8 +741,20 @@ export function BillsApprovalTable({ status, projectId, projectIds, showProjectC
   const showPOStatusColumn = true;
   const baseColCount = 11 + (showAddressColumn ? 1 : 0) + (showProjectColumn ? 1 : 0) + (showPayBillButton ? 1 : 0) + (canShowDeleteButton ? 1 : 0) + (showPOStatusColumn ? 1 : 0);
 
-  const renderBillRow = (bill: BillForApproval, memoSummary: string | null) => (
-    <TableRow key={bill.id} className="h-11">
+  const renderBillRow = (bill: BillForApproval, memoSummary: string | null) => {
+    const matchResult = poMatchingData?.get(bill.id);
+    const rowAllMatches = matchResult?.matches || [];
+    const rowClickable = isDraftStatus && rowAllMatches.length > 0;
+    const handleRowClick = () => {
+      if (!rowClickable) return;
+      setPoDialogState({ open: true, matches: rowAllMatches, bill });
+    };
+    return (
+    <TableRow
+      key={bill.id}
+      className={`h-11 ${rowClickable ? 'cursor-pointer' : ''}`}
+      onClick={rowClickable ? handleRowClick : undefined}
+    >
       {showProjectColumn && (
         <TableCell className="w-44">
           <TooltipProvider>
@@ -945,7 +957,7 @@ export function BillsApprovalTable({ status, projectId, projectIds, showProjectC
         })()}
       </TableCell>
       )}
-      <TableCell className="w-10 text-center">
+      <TableCell className="w-10 text-center" onClick={(e) => e.stopPropagation()}>
         <BillFilesCell attachments={bill.bill_attachments || []} />
       </TableCell>
       <TableCell className="w-10 text-center">
@@ -956,15 +968,18 @@ export function BillsApprovalTable({ status, projectId, projectIds, showProjectC
                 variant="ghost"
                 size="sm"
                 className="h-6 w-6 p-0 hover:bg-muted"
-                onClick={() => setNotesDialog({ 
-                  open: true, 
-                  billId: bill.id,
-                  billInfo: {
-                    vendor: bill.companies?.company_name || 'Unknown Vendor',
-                    amount: bill.total_amount
-                  },
-                  initialNotes: bill.notes || ''
-                })}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setNotesDialog({ 
+                    open: true, 
+                    billId: bill.id,
+                    billInfo: {
+                      vendor: bill.companies?.company_name || 'Unknown Vendor',
+                      amount: bill.total_amount
+                    },
+                    initialNotes: bill.notes || ''
+                  });
+                }}
               >
                 {bill.notes?.trim() ? (
                   <StickyNote className="h-3.5 w-3.5 text-yellow-600" />
@@ -990,7 +1005,8 @@ export function BillsApprovalTable({ status, projectId, projectIds, showProjectC
             return (
               <POStatusBadge
                 status={poStatus}
-                onClick={() => {
+                onClick={(e?: any) => {
+                  e?.stopPropagation?.();
                   if (allMatches.length > 0) {
                     setPoDialogState({
                       open: true,
@@ -1005,7 +1021,7 @@ export function BillsApprovalTable({ status, projectId, projectIds, showProjectC
         </TableCell>
       )}
       {/* Final column: Actions for draft, Cleared for posted/paid */}
-      <TableCell className="w-24 text-center">
+      <TableCell className="w-24 text-center" onClick={(e) => e.stopPropagation()}>
         {isDraftStatus ? (
           <TableRowActions actions={[
             { label: "Approve", onClick: () => handleActionChange(bill.id, 'approve'), disabled: approveBill.isPending || rejectBill.isPending },
@@ -1079,7 +1095,8 @@ export function BillsApprovalTable({ status, projectId, projectIds, showProjectC
         </TableCell>
       )}
     </TableRow>
-  );
+    );
+  };
 
   return (
     <>
