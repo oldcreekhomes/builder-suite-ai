@@ -1,19 +1,35 @@
 
-The Dashboard shows "undefined" because `computed.units` evaluates to `NaN`/undefined when the legacy fields path is hit. Looking at the hook: `units = (inputs.market_units || 0) + (inputs.affordable_units || 0)` — that should work. But the issue is likely that `INPUT_FIELDS` includes the new fields, and `Number(data[key]) || DEFAULT_INPUTS[key]` — if `data[key]` is 0 it falls to default. That's fine.
 
-The real issue: `String(computed.units)` shows "undefined" → meaning `computed.units` is `undefined`. This happens because `data` exists but `market_units`/`affordable_units` columns may not be present on existing rows (NULL). `Number(null)` = 0, `0 || DEFAULT` = 18/1. So units should = 19.
+## Problem
+The Source column in the PDF export ("Project_Budget-2026-04-17.pdf") doesn't match the Budget screen for Nob Hill. Examples:
 
-Wait — looking more carefully, the dashboard shows GPR = $984,000 which IS (18×4400 + 1×2800)×12, so market_units=18 and affordable_units=1 ARE loaded correctly. Yet units shows "undefined".
+| Cost Code | UI (correct) | PDF (wrong) |
+|---|---|---|
+| 1010 Lot Costs | Actual | Manual |
+| 1020 Closing Costs | Actual | Manual |
+| 1040 Land Taxes | Actual | Manual |
+| 3180 Sediment & Erosion | Purchase Order | Estimate |
+| 3220 Demolition | Purchase Order | Estimate |
+| 3340 Earthwork | Purchase Order | Manual |
+| 3380 Sanitary | Purchase Order | Manual |
 
-That means `computed.units` itself is undefined — likely `computeFinancials` doesn't return `units` in the returned object. Checking the hook return: the returned object lists `grossPotentialRent, vacancyLoss, egi, ...` but I don't see `units` in the return statement.
+## Root cause
+The PDF `getSourceLabel()` switch in two files is missing the `'actual'` and `'purchase-orders'` cases. When `budget_source` is one of those values, the switch returns `undefined`, so the legacy fallback runs and prints the wrong label.
+
+The on-screen `BudgetSourceBadge.tsx` already handles all 7 sources correctly — it's just the print/PDF paths that are stale.
 
 ## Fix
-Add `units` to the returned object in `computeFinancials` in `src/hooks/useApartmentInputs.ts`.
+Add the two missing cases to `getSourceLabel` in:
+1. `src/components/budget/pdf/BudgetPdfDocument.tsx`
+2. `src/components/budget/BudgetPrintView.tsx`
 
 ```ts
-return {
-  units,
-  grossPotentialRent,
-  ...
-};
+case 'actual': return 'Actual';
+case 'purchase-orders': return 'Purchase Order';
 ```
+
+Also fix the ordering bug in `BudgetPdfDocument.tsx` where the legacy "selected_bid + selected_bid_id → Vendor Bid" check runs *before* `budget_source`. This can mislabel an item whose `budget_source` was changed away from `'vendor-bid'` but still has a `selected_bid_id`. Move the `budget_source` switch ahead of that legacy check (matching the on-screen badge logic).
+
+## Validation
+After the change, regenerating the PDF for Nob Hill should show the same Source labels as the on-screen Budget table for every row.
+
