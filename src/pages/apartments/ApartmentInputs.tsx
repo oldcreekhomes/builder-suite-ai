@@ -195,7 +195,7 @@ const ApartmentInputsPage = () => {
                 <CardContent>
                   <div className="space-y-3 text-sm">
                     <DualEditableRow
-                      label="Market Rent"
+                      label="Market Rate Units"
                       unitsField="market_units"
                       unitsValue={inputs.market_units}
                       rentField="market_rent"
@@ -203,7 +203,7 @@ const ApartmentInputsPage = () => {
                       onChange={updateInput}
                     />
                     <DualEditableRow
-                      label="Affordable Rent"
+                      label="Affordable Rate Units"
                       unitsField="affordable_units"
                       unitsValue={inputs.affordable_units}
                       rentField="affordable_rent"
