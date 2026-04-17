@@ -52,6 +52,10 @@ export interface ApartmentInputs {
 const DEFAULT_INPUTS: ApartmentInputs = {
   number_of_units: 200,
   avg_rent_per_unit: 1500,
+  market_units: 18,
+  market_rent: 4400,
+  affordable_units: 1,
+  affordable_rent: 2800,
   vacancy_rate: 5,
   purchase_price: 25000000,
   construction_costs: 0,
