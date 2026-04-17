@@ -6,6 +6,10 @@ import { useAuth } from "@/hooks/useAuth";
 export interface ApartmentInputs {
   number_of_units: number;
   avg_rent_per_unit: number;
+  market_units: number;
+  market_rent: number;
+  affordable_units: number;
+  affordable_rent: number;
   vacancy_rate: number;
   purchase_price: number;
   construction_costs: number;
@@ -48,6 +52,10 @@ export interface ApartmentInputs {
 const DEFAULT_INPUTS: ApartmentInputs = {
   number_of_units: 200,
   avg_rent_per_unit: 1500,
+  market_units: 18,
+  market_rent: 4400,
+  affordable_units: 1,
+  affordable_rent: 2800,
   vacancy_rate: 5,
   purchase_price: 25000000,
   construction_costs: 0,
@@ -90,8 +98,10 @@ const DEFAULT_INPUTS: ApartmentInputs = {
 const INPUT_FIELDS = Object.keys(DEFAULT_INPUTS) as (keyof ApartmentInputs)[];
 
 function computeFinancials(inputs: ApartmentInputs) {
-  const units = inputs.number_of_units || 0;
-  const grossPotentialRent = units * inputs.avg_rent_per_unit * 12;
+  const units = (inputs.market_units || 0) + (inputs.affordable_units || 0);
+  const grossPotentialRent =
+    (inputs.market_units * inputs.market_rent +
+      inputs.affordable_units * inputs.affordable_rent) * 12;
   const vacancyLoss = grossPotentialRent * (inputs.vacancy_rate / 100);
   const egi = grossPotentialRent - vacancyLoss;
 

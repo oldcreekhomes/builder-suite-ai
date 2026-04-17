@@ -150,6 +150,8 @@ export type Database = {
       }
       apartment_inputs: {
         Row: {
+          affordable_rent: number
+          affordable_units: number
           amortization_years: number
           avg_rent_per_unit: number
           capex_reserve: number
@@ -169,6 +171,8 @@ export type Database = {
           loan_term_years: number
           ltv: number
           management_fee_percent: number
+          market_rent: number
+          market_units: number
           marketing: number
           number_of_units: number
           other_misc: number
@@ -196,6 +200,8 @@ export type Database = {
           vacancy_rate: number
         }
         Insert: {
+          affordable_rent?: number
+          affordable_units?: number
           amortization_years?: number
           avg_rent_per_unit?: number
           capex_reserve?: number
@@ -215,6 +221,8 @@ export type Database = {
           loan_term_years?: number
           ltv?: number
           management_fee_percent?: number
+          market_rent?: number
+          market_units?: number
           marketing?: number
           number_of_units?: number
           other_misc?: number
@@ -242,6 +250,8 @@ export type Database = {
           vacancy_rate?: number
         }
         Update: {
+          affordable_rent?: number
+          affordable_units?: number
           amortization_years?: number
           avg_rent_per_unit?: number
           capex_reserve?: number
@@ -261,6 +271,8 @@ export type Database = {
           loan_term_years?: number
           ltv?: number
           management_fee_percent?: number
+          market_rent?: number
+          market_units?: number
           marketing?: number
           number_of_units?: number
           other_misc?: number

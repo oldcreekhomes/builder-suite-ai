@@ -194,8 +194,22 @@ const ApartmentInputsPage = () => {
                 <CardHeader><CardTitle className="text-sm font-medium">Property &amp; Revenue</CardTitle></CardHeader>
                 <CardContent>
                   <div className="space-y-3 text-sm">
-                    <EditableRow label="Number of Units" field="number_of_units" value={inputs.number_of_units} onChange={updateInput} format="number" />
-                    <EditableRow label="Average Rent per Unit" field="avg_rent_per_unit" value={inputs.avg_rent_per_unit} onChange={updateInput} format="currency" />
+                    <DualEditableRow
+                      label="Market Rent"
+                      unitsField="market_units"
+                      unitsValue={inputs.market_units}
+                      rentField="market_rent"
+                      rentValue={inputs.market_rent}
+                      onChange={updateInput}
+                    />
+                    <DualEditableRow
+                      label="Affordable Rent"
+                      unitsField="affordable_units"
+                      unitsValue={inputs.affordable_units}
+                      rentField="affordable_rent"
+                      rentValue={inputs.affordable_rent}
+                      onChange={updateInput}
+                    />
                     <EditableRow label="Vacancy Rate" field="vacancy_rate" value={inputs.vacancy_rate} onChange={updateInput} format="percent" />
                     <EditableRow label="Total Costs" field="purchase_price" value={inputs.purchase_price} onChange={updateInput} format="currency" />
                     <EditableRow label="Estimated Value" field="construction_costs" value={inputs.construction_costs} onChange={updateInput} format="currency" />
@@ -491,6 +505,83 @@ function EditableRow({ label, field, value, onChange, format, decimals }: {
         </span>
       )}
     </div>
+  );
+}
+
+function DualEditableRow({ label, unitsField, unitsValue, rentField, rentValue, onChange }: {
+  label: string;
+  unitsField: keyof ApartmentInputsType;
+  unitsValue: number;
+  rentField: keyof ApartmentInputsType;
+  rentValue: number;
+  onChange: (field: keyof ApartmentInputsType, value: string) => void;
+}) {
+  return (
+    <div className="flex justify-between items-center">
+      <span className="text-muted-foreground">{label}</span>
+      <div className="flex items-center gap-2">
+        <InlineNumberInput
+          field={unitsField}
+          value={unitsValue}
+          onChange={onChange}
+          format="number"
+          widthClass="w-16"
+        />
+        <span className="text-muted-foreground">×</span>
+        <InlineNumberInput
+          field={rentField}
+          value={rentValue}
+          onChange={onChange}
+          format="currency"
+          widthClass="w-24"
+        />
+      </div>
+    </div>
+  );
+}
+
+function InlineNumberInput({ field, value, onChange, format, widthClass }: {
+  field: keyof ApartmentInputsType;
+  value: number;
+  onChange: (field: keyof ApartmentInputsType, value: string) => void;
+  format: "currency" | "number";
+  widthClass: string;
+}) {
+  const [localValue, setLocalValue] = useState(String(value));
+  const [isFocused, setIsFocused] = useState(false);
+  const inputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    if (!isFocused) setLocalValue(String(value));
+  }, [value, isFocused]);
+
+  if (isFocused) {
+    return (
+      <input
+        ref={inputRef}
+        type="text"
+        autoFocus
+        value={localValue}
+        onChange={(e) => {
+          setLocalValue(e.target.value);
+          onChange(field, e.target.value);
+        }}
+        onBlur={() => setIsFocused(false)}
+        className={`${widthClass} text-right text-sm bg-transparent border-none outline-none p-0 m-0`}
+      />
+    );
+  }
+
+  return (
+    <span
+      className={`${widthClass} text-right cursor-pointer hover:text-muted-foreground/70 transition-colors`}
+      onClick={() => {
+        setIsFocused(true);
+        setTimeout(() => inputRef.current?.select(), 0);
+      }}
+    >
+      {format === "currency" ? fmt(value) : String(value)}
+    </span>
   );
 }
 
