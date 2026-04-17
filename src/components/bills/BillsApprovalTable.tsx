@@ -968,15 +968,18 @@ export function BillsApprovalTable({ status, projectId, projectIds, showProjectC
                 variant="ghost"
                 size="sm"
                 className="h-6 w-6 p-0 hover:bg-muted"
-                onClick={() => setNotesDialog({ 
-                  open: true, 
-                  billId: bill.id,
-                  billInfo: {
-                    vendor: bill.companies?.company_name || 'Unknown Vendor',
-                    amount: bill.total_amount
-                  },
-                  initialNotes: bill.notes || ''
-                })}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setNotesDialog({ 
+                    open: true, 
+                    billId: bill.id,
+                    billInfo: {
+                      vendor: bill.companies?.company_name || 'Unknown Vendor',
+                      amount: bill.total_amount
+                    },
+                    initialNotes: bill.notes || ''
+                  });
+                }}
               >
                 {bill.notes?.trim() ? (
                   <StickyNote className="h-3.5 w-3.5 text-yellow-600" />
