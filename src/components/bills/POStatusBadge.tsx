@@ -7,7 +7,7 @@ export type POStatus = 'matched' | 'over_po' | 'no_po' | 'partial' | 'draw';
 
 interface POStatusBadgeProps {
   status: POStatus;
-  onClick?: () => void;
+  onClick?: (e?: React.MouseEvent) => void;
   className?: string;
 }
 
