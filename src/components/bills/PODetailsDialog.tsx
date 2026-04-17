@@ -1,11 +1,11 @@
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { Badge } from "@/components/ui/badge";
 import { VendorPurchaseOrder, BilledInvoice } from "@/hooks/useVendorPurchaseOrders";
-import { FileText, AlertTriangle, Check } from "lucide-react";
+import { FileText, AlertTriangle } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Tooltip, TooltipTrigger, TooltipContent, TooltipProvider } from "@/components/ui/tooltip";
 import { formatDateSafe } from "@/utils/dateOnly";
+import { POStatusBadge, POStatus } from "./POStatusBadge";
 
 export interface PendingBillLine {
   purchase_order_line_id?: string;
@@ -23,6 +23,7 @@ interface PODetailsDialogProps {
   currentBillId?: string;
   currentBillAmount?: number;
   currentBillReference?: string;
+  currentBillStatus?: string;
   pendingBillLines?: PendingBillLine[];
 }
 
@@ -83,11 +84,15 @@ export function PODetailsDialog({
   currentBillId,
   currentBillAmount,
   currentBillReference,
+  currentBillStatus,
   pendingBillLines,
 }: PODetailsDialogProps) {
   if (!purchaseOrder) return null;
 
-  // Cent-precise over-budget check to avoid $0.01 floating-point drift
+  // Cent-precise over-budget check to avoid $0.01 floating-point drift.
+  // For posted/paid bills, total_billed already includes this bill — don't double-count.
+  // For draft bills, total_billed excludes it (the dialog math is forward-looking via pendingBillLines).
+  const isDraftBill = (currentBillStatus || 'draft') === 'draft';
   const remainingCents = Math.round(purchaseOrder.remaining * 100);
   const isOverBudget = remainingCents < 0;
   const utilizationPercent = purchaseOrder.total_amount > 0
@@ -95,6 +100,15 @@ export function PODetailsDialog({
     : 0;
   const isWarning = utilizationPercent >= 90 && utilizationPercent < 100;
   const isHealthy = !isOverBudget && !isWarning;
+
+  // Determine the bill amount allocated to this PO for the header status badge.
+  // For draft: pendingBillLines sum. For posted/paid: currentBillAmount fallback.
+  const headerBillAmount = (() => {
+    if (pendingBillLines && pendingBillLines.length > 0) {
+      return pendingBillLines.reduce((s, l) => s + l.amount, 0);
+    }
+    return currentBillAmount || 0;
+  })();
 
   const realLineItems = purchaseOrder.line_items || [];
 
@@ -213,6 +227,23 @@ export function PODetailsDialog({
   const projectedRemaining = Math.round((purchaseOrder.remaining - totalPending) * 100) / 100;
   const projectedOverBudget = projectedRemaining < 0;
 
+  // Compute header status using the same cent-precise logic as useBillPOMatching.
+  // For draft: project forward by adding pendingBillLines (or currentBillAmount fallback).
+  // For posted/paid: total_billed already includes this bill, use as-is.
+  const headerStatus: POStatus = (() => {
+    const poAmount = purchaseOrder.total_amount || 0;
+    const projectedBilled = isDraftBill
+      ? purchaseOrder.total_billed + headerBillAmount
+      : purchaseOrder.total_billed;
+    const headerRemainingCents = Math.round((poAmount - projectedBilled) * 100);
+    if (headerRemainingCents < 0) return 'over_po';
+    // Draw: this bill is a partial slice of the PO total
+    if (headerRemainingCents >= 0 && headerBillAmount > 0 && headerBillAmount < poAmount && poAmount > 0) {
+      return 'draw';
+    }
+    return 'matched';
+  })();
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-4xl max-h-[85vh] flex flex-col overflow-hidden">
@@ -221,13 +252,7 @@ export function PODetailsDialog({
             <FileText className="h-5 w-5 text-primary" />
             <span>PO {purchaseOrder.po_number}</span>
             <div className="ml-auto">
-            {(isOverBudget || (hasPending && projectedOverBudget)) ? (
-                <Badge variant="destructive" className="gap-1"><AlertTriangle className="h-3 w-3" />Over Budget</Badge>
-              ) : isWarning ? (
-                <Badge variant="secondary" className="bg-amber-100 text-amber-700 gap-1"><AlertTriangle className="h-3 w-3" />Near Limit</Badge>
-              ) : (
-                <Badge variant="secondary" className="bg-green-100 text-green-700 gap-1"><Check className="h-3 w-3" />Matched</Badge>
-              )}
+              <POStatusBadge status={headerStatus} />
             </div>
           </DialogTitle>
         </DialogHeader>
