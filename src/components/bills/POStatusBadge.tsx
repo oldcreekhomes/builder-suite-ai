@@ -72,7 +72,7 @@ export function POStatusBadge({ status, onClick, className }: POStatusBadgeProps
               config.bgClass,
               className
             )}
-            onClick={onClick}
+            onClick={(e) => onClick?.(e)}
           >
             {Icon && <Icon className={cn("h-3 w-3", config.iconClass)} />}
             <span>{config.label}</span>
