@@ -213,6 +213,7 @@ const ApartmentInputsPage = () => {
                     <EditableRow label="Vacancy Rate" field="vacancy_rate" value={inputs.vacancy_rate} onChange={updateInput} format="percent" />
                     <EditableRow label="Total Costs" field="purchase_price" value={inputs.purchase_price} onChange={updateInput} format="currency" />
                     <EditableRow label="Estimated Value" field="construction_costs" value={inputs.construction_costs} onChange={updateInput} format="currency" />
+                    <EditableRow label="Target Cap Rate" field="target_cap_rate" value={inputs.target_cap_rate} onChange={updateInput} format="percent" decimals={2} />
                   </div>
                 </CardContent>
               </Card>
