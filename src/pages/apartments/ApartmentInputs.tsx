@@ -274,7 +274,7 @@ const ApartmentInputsPage = () => {
                       {hiddenOptional.map((item) => (
                         <button
                           key={item.field}
-                          onClick={() => { showExpense(item.field); setAddOpen(false); }}
+                          onClick={() => { setVisibleFields((prev) => prev.includes(item.field) ? prev : [...prev, item.field]); setAddOpen(false); }}
                           className="text-left px-2 py-1.5 text-sm rounded hover:bg-accent"
                         >
                           {item.label}
