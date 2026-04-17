@@ -49,6 +49,8 @@ export function BudgetPrintView({
         case 'historical': return 'Historical';
         case 'settings': return 'Settings';
         case 'manual': return 'Manual';
+        case 'actual': return 'Actual';
+        case 'purchase-orders': return 'Purchase Order';
       }
     }
 
