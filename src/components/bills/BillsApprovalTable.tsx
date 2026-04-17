@@ -1005,7 +1005,8 @@ export function BillsApprovalTable({ status, projectId, projectIds, showProjectC
             return (
               <POStatusBadge
                 status={poStatus}
-                onClick={() => {
+                onClick={(e?: any) => {
+                  e?.stopPropagation?.();
                   if (allMatches.length > 0) {
                     setPoDialogState({
                       open: true,
