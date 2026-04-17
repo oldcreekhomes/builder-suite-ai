@@ -45,6 +45,7 @@ import { DeleteButton } from '@/components/ui/delete-button';
 import { usePurchaseOrders } from '@/hooks/usePurchaseOrders';
 import { useBudgetSubcategories } from '@/hooks/useBudgetSubcategories';
 import { VisibleColumns } from './BudgetColumnVisibilityDropdown';
+import { getBudgetSourceLabel } from '@/utils/budgetSource';
 
 interface BudgetTableProps {
   projectId: string;
