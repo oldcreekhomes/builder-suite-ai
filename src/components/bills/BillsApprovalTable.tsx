@@ -744,7 +744,7 @@ export function BillsApprovalTable({ status, projectId, projectIds, showProjectC
   const renderBillRow = (bill: BillForApproval, memoSummary: string | null) => {
     const matchResult = poMatchingData?.get(bill.id);
     const rowAllMatches = matchResult?.matches || [];
-    const rowClickable = isDraftStatus && rowAllMatches.length > 0;
+    const rowClickable = rowAllMatches.length > 0;
     const handleRowClick = () => {
       if (!rowClickable) return;
       setPoDialogState({ open: true, matches: rowAllMatches, bill });
