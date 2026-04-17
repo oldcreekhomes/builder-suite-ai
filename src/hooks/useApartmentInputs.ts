@@ -248,7 +248,8 @@ export function useApartmentInputs(projectId: string | undefined) {
 
   const inputs: ApartmentInputs = data
     ? INPUT_FIELDS.reduce((acc, key) => {
-        acc[key] = Number(data[key]) || DEFAULT_INPUTS[key];
+        const raw = data[key];
+        acc[key] = raw === null || raw === undefined ? DEFAULT_INPUTS[key] : Number(raw);
         return acc;
       }, {} as ApartmentInputs)
     : DEFAULT_INPUTS;
