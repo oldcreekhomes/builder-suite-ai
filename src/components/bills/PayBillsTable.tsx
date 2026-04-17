@@ -940,8 +940,20 @@ export function PayBillsTable({ projectId, projectIds, showProjectColumn = true,
                 </TableCell>
               </TableRow>
             ) : (
-              filteredBills.map((bill) => (
-                <TableRow key={bill.id}>
+              filteredBills.map((bill) => {
+                const rowMatchResult = poMatchingData?.get(bill.id);
+                const rowAllMatches = rowMatchResult?.matches || [];
+                const rowClickable = rowAllMatches.length > 0;
+                const handleRowClick = () => {
+                  if (!rowClickable) return;
+                  setPoDialogState({ open: true, matches: rowAllMatches, bill });
+                };
+                return (
+                <TableRow
+                  key={bill.id}
+                  className={rowClickable ? 'cursor-pointer' : ''}
+                  onClick={rowClickable ? handleRowClick : undefined}
+                >
                   <TableCell>
                     <MinimalCheckbox
                       checked={selectedBillIds.has(bill.id)}
