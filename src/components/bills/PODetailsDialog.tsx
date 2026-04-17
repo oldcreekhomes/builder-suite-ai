@@ -23,6 +23,7 @@ interface PODetailsDialogProps {
   currentBillId?: string;
   currentBillAmount?: number;
   currentBillReference?: string;
+  currentBillStatus?: string;
   pendingBillLines?: PendingBillLine[];
 }
 
