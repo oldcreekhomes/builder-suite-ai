@@ -1,25 +1,17 @@
 
-## Problem
-Dashboard shows "Target Cap Rate" as `—` and Asset Valuation calc fails because there's no UI to enter `target_cap_rate`. The DB column and field already exist in `useApartmentInputs.ts` — only an input control is missing.
+## Add "Loan-to-Cost" to Loan Terms
 
-## Fix
-Add a "Target Cap Rate" editable row to the **Property & Revenue** card in `src/pages/apartments/ApartmentInputs.tsx`, using the existing `EditableRow` with `format="percent"` and `decimals={2}`. Place it just below "Estimated Value" so it sits with the valuation-related inputs.
+Add an editable Loan-to-Cost (LTC) row directly below Loan-to-Value in the Loan Terms card on the Inputs page.
 
-```tsx
-<EditableRow
-  label="Target Cap Rate"
-  field="target_cap_rate"
-  value={inputs.target_cap_rate}
-  onChange={updateInput}
-  format="percent"
-  decimals={2}
-/>
-```
+## Approach
+- Add a new field `ltc` (numeric, percent) to the apartment inputs schema in `useApartmentInputs.ts` (state, defaults, load, save).
+- Add a DB migration to add an `ltc numeric` column to the apartment inputs table (need to confirm exact table name — likely `apartment_inputs`).
+- Render a new `EditableRow` in `src/pages/apartments/ApartmentInputs.tsx` Loan Terms card, placed between "Loan-to-Value" and "Interest Rate", using `format="percent"` with `decimals={1}`.
 
-## Result
-- User can enter a target cap rate (e.g. 5.50%).
-- `computed.assetValue = noi / (target_cap_rate/100)` starts producing a real number.
-- Dashboard "Target Cap Rate" row and Asset Valuation card auto-populate (no Dashboard changes needed — it already reads `inputs.target_cap_rate` and `computed.assetValue`).
+## Notes
+- This is purely an editable input (like LTV is on this page) — no auto-calc tie-in unless you want it later (e.g., LTC × Total Costs to suggest a loan amount).
 
-## File
-- `src/pages/apartments/ApartmentInputs.tsx` (add one row)
+## Files
+- `src/hooks/useApartmentInputs.ts` (add `ltc` field)
+- `src/pages/apartments/ApartmentInputs.tsx` (add row in Loan Terms)
+- New migration: add `ltc numeric default 0` column to apartment inputs table
