@@ -1,18 +1,16 @@
 
 ## Issue
-Table badge correctly shows "Draw" for the TNT bill, but the PO dialog still shows "Matched". The two need to use the same status logic.
+The "Draw" badge looks different in the dialog vs. the table. Table version (preferred) is smaller/lighter; dialog version is bolder/larger.
 
 ## Root cause
-`PODetailsDialog` computes its own status (matched / over_po) and doesn't know about the "draw" state. The table uses `useBillPOMatching` which now returns `draw` when the bill amount is less than the PO remaining (partial draw).
+`POStatusBadge` uses shadcn `Badge` with `variant="outline"`, which applies `text-xs font-semibold` from `badge.tsx`. The component then overrides with `text-xs px-2 py-0.5 font-normal`. In the table, the badge sits inside a small table cell that visually constrains it; in the dialog header (`DialogTitle`), it inherits the title's larger/bolder font styling, making the badge text appear heavier.
+
+`DialogTitle` from shadcn typically applies `text-lg font-semibold` to its children context, and the badge's `<span>{config.label}</span>` doesn't pin its own font-size/weight, so it inherits.
 
 ## Plan
-1. In `src/components/bills/PODetailsDialog.tsx`, replicate the same cent-precise logic used in `useBillPOMatching`:
-   - `over_po` when `remainingCents < 0`
-   - `draw` when bill amount < PO remaining (partial of total)
-   - `matched` when bill fully consumes the remaining PO
-2. Render the existing `POStatusBadge` (which already supports the `draw` variant) in the dialog header instead of the hardcoded Matched/Over badge.
-3. Pass the bill `status` (draft vs posted) into the dialog so it avoids double-counting `total_billed` for posted bills, mirroring the hook fix.
+1. In `src/components/bills/PODetailsDialog.tsx`, wrap the `<POStatusBadge>` in the `DialogTitle` with a span that resets font sizing/weight to defaults (`text-xs font-normal`), OR move the badge outside `DialogTitle` so it doesn't inherit title typography.
+2. Simplest approach: keep it in the header row but render it as a sibling of `DialogTitle` (inside the same flex container) instead of inside it. That isolates it from title font inheritance and matches the table's appearance exactly.
 
 ## Out of scope
-- Restyling the dialog
-- Changing the table logic (already correct)
+- Restyling the badge component itself
+- Other dialog content
