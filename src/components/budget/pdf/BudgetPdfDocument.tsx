@@ -1,5 +1,6 @@
 import { Document, Page, Text, View, StyleSheet } from '@react-pdf/renderer';
 import { calculateBudgetItemTotal } from '@/utils/budgetUtils';
+import { getBudgetSourceLabel } from '@/utils/budgetSource';
 
 
 const styles = StyleSheet.create({
@@ -122,35 +123,7 @@ export function BudgetPdfDocument({
     return historicalActualCosts.mapByCode[costCode.code] || 0;
   };
 
-  const getSourceLabel = (item: any): string => {
-    if (item.budget_source) {
-      switch (item.budget_source) {
-        case 'vendor-bid': return 'Vendor Bid';
-        case 'estimate': return 'Estimate';
-        case 'historical': return 'Historical';
-        case 'settings': return 'Settings';
-        case 'manual': return 'Manual';
-        case 'actual': return 'Actual';
-        case 'purchase-orders': return 'Purchase Order';
-      }
-    }
-
-    // Legacy fallback
-    if (item.selected_bid_id && item.selected_bid) {
-      return 'Vendor Bid';
-    }
-
-    const costCode = item.cost_codes;
-    if (costCode?.has_subcategories) {
-      return 'Estimate';
-    }
-    
-    if ((item.quantity !== null && item.quantity > 0) || (item.unit_price !== null && item.unit_price > 0)) {
-      return 'Manual';
-    }
-    
-    return 'Manual';
-  };
+  const getSourceLabel = (item: any): string => getBudgetSourceLabel(item);
 
   const calculateVariance = (budgetedAmount: number, historicalAmount: number): number => {
     if (historicalAmount === 0) return 0;
