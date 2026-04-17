@@ -6,6 +6,10 @@ import { useAuth } from "@/hooks/useAuth";
 export interface ApartmentInputs {
   number_of_units: number;
   avg_rent_per_unit: number;
+  market_units: number;
+  market_rent: number;
+  affordable_units: number;
+  affordable_rent: number;
   vacancy_rate: number;
   purchase_price: number;
   construction_costs: number;
