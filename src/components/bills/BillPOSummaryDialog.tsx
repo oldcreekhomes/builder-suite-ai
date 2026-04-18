@@ -25,7 +25,14 @@ interface BillLine {
   amount?: number;
   purchase_order_id?: string | null;
   purchase_order_line_id?: string | null;
+  po_reference?: string | null;
   memo?: string | null;
+}
+
+/** Normalize a PO reference for fuzzy comparison. */
+function normalizePoRef(s: string | null | undefined): string {
+  if (!s) return '';
+  return String(s).toUpperCase().replace(/[^A-Z0-9]/g, '');
 }
 
 interface BillPOSummaryDialogProps {
