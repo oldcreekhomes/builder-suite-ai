@@ -1047,7 +1047,7 @@ export function BatchBillReviewTable({
         />
       )}
 
-      {poDialogBillId && poDialogMatches.length > 0 && (
+      {poDialogBillId && (
         <BillPOSummaryDialog
           open={!!poDialogBillId}
           onOpenChange={(open) => { if (!open) setPoDialogBillId(null); }}
