@@ -1,82 +1,85 @@
 
-Goal: make the PO dialog use the same line-level signals the hover already proves are correct, so bill C26019 shows:
-- 2025-923T-0035 → $20,350.00
-- 2025-923T-0036 → $2,800.00
-- 2025-923T-0027 → $4,030.00
+Problem rephrased:
+The hover is correct because it reads the extracted invoice lines directly. The PO dialog is still wrong because it rebuilds allocations from a different data source, and that source does not even contain the three target POs for this bill.
 
-What’s actually wrong
-- The hover tooltip is just showing the extracted bill lines in order, which already contain the right three amounts.
-- The PO dialog re-allocates those lines again and currently trusts only:
-  1. purchase_order_line_id
-  2. purchase_order_id
-  3. unique cost-code fallback
-- For this bill, the two 4400 lines are ambiguous by cost code, so the dialog drops them to $0 instead of using the printed PO references already present in extracted data.
+Do I know what the issue is?
+Yes.
 
-Key proof from current data
-- `pending_bill_uploads.extracted_data.line_items` for bill `C26019` already has:
-  - `2025-923T-0035` / 20350 / Siding
-  - `2025-923T-0036` / 2800 / Exterior Trim / Cornice
-  - `2025-923T-0027` / 4030 / Cornice
-- So this is not an OCR problem. It is a dialog-allocation problem.
+What I found:
+- Bill `C26019` extraction is correct:
+  - `2025-923T-0035` → `20350`
+  - `2025-923T-0036` → `2800`
+  - `2025-923T-0027` → `4030`
+- `pending_bill_lines` also now carry the correct `po_reference` values for all 3 lines.
+- The real break is in the dialog PO source:
+  - `BillPOSummaryDialog` and `PODetailsDialog` depend on `useVendorPurchaseOrders(...)`
+  - `useVendorPurchaseOrders` only loads `project_purchase_orders` where `status = 'approved'`
+- But the three exact POs for this bill are currently `status = 'rejected'`:
+  - `2025-923T-0027`
+  - `2025-923T-0035`
+  - `2025-923T-0036`
+- So the dialog never has those PO records available.
+  - That means `po_reference` cannot resolve to the real PO
+  - Siding still works via unique cost-code fallback
+  - The two `4400` lines stay at `$0.00` because the strict ambiguity guard blocks guessing
 
-Implementation
-1. Make the dialog resolve lines by printed PO number before falling back
-- In `src/components/bills/BillPOSummaryDialog.tsx`, update the line allocation order to:
+Why the mismatch happens:
+- Row/hover matching path can still identify the correct PO numbers.
+- Dialog detail path fetches a different PO dataset and silently excludes the needed records by status.
+- So the dialog and hover are still using different truths.
+
+Implementation plan:
+1. Make the PO dialog fetch the exact matched POs, not just approved POs
+- Update `useVendorPurchaseOrders.ts` to support an optional override such as:
+  - `includePoIds?: string[]`
+  - or `statuses?: string[]`
+- For dialog usage, fetch:
+  - the matched PO ids explicitly
+  - even if their status is not `approved`
+- Keep existing default behavior for dropdowns/manual-entry screens that should still show only normal approved POs.
+
+2. Wire the summary/details dialogs to pass matched PO ids into that hook
+- In `BillPOSummaryDialog.tsx`, call `useVendorPurchaseOrders` with `matches.map(m => m.po_id)`.
+- This guarantees `vendorPOs` contains:
+  - `0027`
+  - `0035`
+  - `0036`
+- Then the existing `po_reference` resolution logic can finally map each pending line to the correct PO.
+
+3. Keep the strict allocation rules, but let them operate on the real PO list
+- Leave the current resolution order in place:
   1. `purchase_order_line_id`
-  2. explicit `purchase_order_id`
-  3. normalized `po_reference` matched against PO number
-  4. memo/description disambiguation
-  5. unique cost-code fallback only
-- Apply the same logic in:
-  - `getThisBillAmount`
-  - single-PO early return
-  - bottom `pendingBillLines` filter
+  2. `purchase_order_id`
+  3. `po_reference`
+  4. unique cost-code fallback
+- Once the actual matched POs are loaded, `getThisBillAmount` and the drill-down `pendingBillLines` filter should naturally produce:
+  - `0027` → `$4,030.00`
+  - `0035` → `$20,350.00`
+  - `0036` → `$2,800.00`
 
-2. Make PO details use the exact same resolution rules
-- In `src/components/bills/PODetailsDialog.tsx`, extend pending line handling so it can use:
-  - `purchase_order_id`
-  - `po_reference`
-  - memo/description
-- Update `getPendingForLine(...)` so ambiguous shared cost codes are resolved by printed PO number and then keyword match, not just raw cost code.
+4. Fix Enter with AI auto-match so persistence can also use explicit PO numbers even when PO status is not approved
+- In `BillsApprovalTabs.tsx`, keep the fuzzy fallback on approved POs if desired, but add a first-pass lookup by printed `po_reference` against exact PO numbers regardless of status.
+- Persist `purchase_order_id` and `purchase_order_line_id` when that exact printed-reference match is found.
+- This prevents the queue from re-opening with null PO ids for bills like this one.
 
-3. Pass the needed fields into the dialog
-- In `src/components/bills/BatchBillReviewTable.tsx`, ensure `buildDialogBill()` passes:
-  - `po_reference`
-  - `memo`
-  - extracted description fallback
-  - `purchase_order_id`
-  - `purchase_order_line_id`
-- This keeps the dialog payload aligned with what the hover is already showing.
+5. Verify other tabs stay stable
+- `BillsApprovalTable` and `PayBillsTable` already pass full bill objects; they should keep working.
+- The change should be scoped so only the PO dialogs can load non-approved matched POs when needed.
 
-4. Persist/backfill exact matching for Enter with AI
-- In `src/components/bills/BillsApprovalTabs.tsx`, keep auto-match centered on printed PO reference first, then line selection.
-- Fix the billed lookup bug so it uses actual `poLineIds` instead of PO ids when querying `bill_lines.purchase_order_line_id`.
-- Persist whichever explicit match is found so refreshes keep the same result.
-
-5. Keep edit flow in sync
-- In `src/components/bills/EditExtractedBillDialog.tsx`, carry `po_reference` through load/save so editing this bill does not lose the exact 0036 / 0027 split.
-
-Files to update
+Files to update:
+- `src/hooks/useVendorPurchaseOrders.ts`
 - `src/components/bills/BillPOSummaryDialog.tsx`
 - `src/components/bills/PODetailsDialog.tsx`
-- `src/components/bills/BatchBillReviewTable.tsx`
 - `src/components/bills/BillsApprovalTabs.tsx`
-- `src/components/bills/EditExtractedBillDialog.tsx`
 
-Technical notes
-- The current mismatch exists because two different views are using two different truths:
-  - hover = extracted line items
-  - dialog = persisted/recomputed PO linkage
-- The fix is to make the dialog consume the same explicit line-level PO reference already available on this bill.
-- No schema change is expected if `po_reference` already exists on pending lines; otherwise verify and handle in default mode without touching generated Supabase types.
+Expected result after implementation:
+- PO Status Summary for `C26019` shows:
+  - `2025-923T-0027` → This Bill `$4,030.00`
+  - `2025-923T-0035` → This Bill `$20,350.00`
+  - `2025-923T-0036` → This Bill `$2,800.00`
+- Total “This Bill” = `$27,180.00`
+- Clicking each row opens the correct line-level detail
+- Refreshing the queue keeps the same result
 
-Verification
-- Hover still shows the same 3 lines and amounts.
-- Open PO dialog for C26019:
-  - 0027 shows $4,030.00
-  - 0035 shows $20,350.00
-  - 0036 shows $2,800.00
-- Total “This Bill” = $27,180.00
-- Click into each PO detail row and confirm the correct pending line appears under that PO.
-- Refresh and reopen the bill; same result.
-- Open Edit Extracted Bill and confirm the same PO assignments remain attached.
+Technical note:
+This is not an OCR problem and not primarily a line-allocation bug anymore. The dialog is missing the exact PO records because its PO query filters them out by status. Once the dialog is given the same matched PO set the hover already proves, the existing `po_reference` logic should finally work.
