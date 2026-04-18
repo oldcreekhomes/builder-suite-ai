@@ -266,6 +266,7 @@ export function BillsApprovalTable({ status, projectId, projectIds, showProjectC
             lot_id,
             amount,
             memo,
+            po_reference,
             purchase_order_id,
             purchase_order_line_id,
             cost_codes!bill_lines_cost_code_id_fkey (
