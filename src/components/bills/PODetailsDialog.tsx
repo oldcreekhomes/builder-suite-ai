@@ -9,6 +9,8 @@ import { POStatusBadge, POStatus } from "./POStatusBadge";
 
 export interface PendingBillLine {
   purchase_order_line_id?: string;
+  purchase_order_id?: string;
+  po_reference?: string;
   cost_code_id?: string;
   amount: number;
   memo?: string;
