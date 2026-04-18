@@ -60,13 +60,19 @@ export function BillPOSummaryDialog({
   const [selectedPoId, setSelectedPoId] = useState<string | null>(null);
 
   const matchedPoIdsArr = matches.map(m => m.po_id);
-  const { data: vendorPOs } = useVendorPurchaseOrders(
+  const { data: vendorPOs, isLoading: isLoadingPOs } = useVendorPurchaseOrders(
     bill?.project_id,
     bill?.vendor_id,
     bill?.id,
     bill?.bill_date,
     matchedPoIdsArr
   );
+
+  // Wait until every requested matched PO is present in vendorPOs to avoid
+  // a brief flash of wrong allocations during the secondary fetch.
+  const loadedPoIds = new Set((vendorPOs || []).map((p: any) => p.id));
+  const allMatchesLoaded = matchedPoIdsArr.every(id => loadedPoIds.has(id));
+  const poDataReady = !isLoadingPOs && allMatchesLoaded;
 
   const selectedPO = vendorPOs?.find(po => po.id === selectedPoId) || null;
 
