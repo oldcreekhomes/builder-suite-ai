@@ -223,7 +223,23 @@ export function useBillPOMatching(bills: BillForMatching[]) {
           if (resolvedPoId === '__none__' || resolvedPoId === '__auto__') {
             resolvedPoId = undefined;
           }
-          
+
+          // HIGHEST PRIORITY: if the invoice line printed a PO number, match by PO number
+          if (!resolvedPoId && line.po_reference && bill.project_id && bill.vendor_id) {
+            const target = normalizePoRef(line.po_reference);
+            if (target) {
+              const byNumber = pos.find(p =>
+                p.project_id === bill.project_id &&
+                (p.company_id === bill.vendor_id || !p.company_id) &&
+                normalizePoRef(p.po_number).includes(target)
+              ) || pos.find(p =>
+                p.project_id === bill.project_id &&
+                normalizePoRef(p.po_number).includes(target)
+              );
+              if (byNumber) resolvedPoId = byNumber.id;
+            }
+          }
+
           // Fallback: if no explicit PO link, match by vendor + project + cost_code
           if (!resolvedPoId && line.cost_code_id && bill.vendor_id && bill.project_id) {
             const candidatePos = pos.filter(p =>
