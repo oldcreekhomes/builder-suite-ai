@@ -302,7 +302,7 @@ export function BillsApprovalTabs({ projectId, projectIds, reviewOnly = false, o
           });
 
           // Run matching for each bill's unmatched lines
-          const dbUpdates: { id: string; purchase_order_id: string; purchase_order_line_id: string | null }[] = [];
+          const dbUpdates: { id: string; purchase_order_id: string; purchase_order_line_id: string | null; po_reference: string | null }[] = [];
 
           for (const [vendorId, bills] of vendorMap) {
             const vendorPOs = poByVendor.get(vendorId) || [];
@@ -328,16 +328,38 @@ export function BillsApprovalTabs({ projectId, projectIds, reviewOnly = false, o
               s ? String(s).toUpperCase().replace(/[^A-Z0-9]/g, '') : '';
 
             for (const bill of bills) {
-              for (const line of bill.lines || []) {
+              const extLineItems: any[] = Array.isArray(bill.extracted_data?.line_items)
+                ? bill.extracted_data.line_items
+                : [];
+              const lineList = bill.lines || [];
+              for (let idx = 0; idx < lineList.length; idx++) {
+                const line: any = lineList[idx];
                 if (line.purchase_order_id) continue; // already matched
 
+                // Hydrate po_reference from extracted_data when the row doesn't have it
+                const fallbackRef = extLineItems[idx]?.po_reference || null;
+                if (!line.po_reference && fallbackRef) {
+                  line.po_reference = fallbackRef;
+                }
+
                 // HIGHEST PRIORITY: PO number printed directly on the invoice line
-                const printedRef = normRef((line as any).po_reference);
+                const printedRef = normRef(line.po_reference);
                 if (printedRef) {
                   const byNumber = vendorPOs.find(p => normRef(p.po_number).includes(printedRef));
                   if (byNumber) {
+                    // Try to also resolve a specific PO line by cost code on that PO
+                    const candidatePoLine = vendorPOLines.find(
+                      pl => pl.purchase_order_id === byNumber.id &&
+                            (!line.cost_code_id || pl.cost_code_id === line.cost_code_id)
+                    ) || vendorPOLines.find(pl => pl.purchase_order_id === byNumber.id);
                     line.purchase_order_id = byNumber.id;
-                    dbUpdates.push({ id: line.id, purchase_order_id: byNumber.id, purchase_order_line_id: null });
+                    if (candidatePoLine) line.purchase_order_line_id = candidatePoLine.id;
+                    dbUpdates.push({
+                      id: line.id,
+                      purchase_order_id: byNumber.id,
+                      purchase_order_line_id: candidatePoLine?.id || null,
+                      po_reference: line.po_reference,
+                    });
                     continue;
                   }
                 }
@@ -352,8 +374,13 @@ export function BillsApprovalTabs({ projectId, projectIds, reviewOnly = false, o
 
                 if (match) {
                   line.purchase_order_id = match.poId;
-                  (line as any).purchase_order_line_id = match.poLineId;
-                  dbUpdates.push({ id: line.id, purchase_order_id: match.poId, purchase_order_line_id: match.poLineId });
+                  line.purchase_order_line_id = match.poLineId;
+                  dbUpdates.push({
+                    id: line.id,
+                    purchase_order_id: match.poId,
+                    purchase_order_line_id: match.poLineId,
+                    po_reference: line.po_reference || null,
+                  });
                 }
               }
             }
