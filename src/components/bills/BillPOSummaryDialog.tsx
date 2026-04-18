@@ -205,8 +205,8 @@ export function BillPOSummaryDialog({
                   <TableHead className="whitespace-nowrap">Billed to Date</TableHead>
                   <TableHead className="whitespace-nowrap">This Bill</TableHead>
                   <TableHead className="whitespace-nowrap">Remaining</TableHead>
-                  <TableHead className="whitespace-nowrap">Status</TableHead>
                   <TableHead className="whitespace-nowrap">Files</TableHead>
+                  <TableHead className="whitespace-nowrap">Status</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
