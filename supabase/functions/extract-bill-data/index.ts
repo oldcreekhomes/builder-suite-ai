@@ -944,9 +944,12 @@ Return ONLY the JSON object, no additional text.`;
           description: item.description,
           quantity: item.quantity,
           unit_cost: item.unitPrice || item.unit_cost || item.unitCost,
+          amount: item.amount ?? item.total,
           total: item.total,
+          memo: item.memo,
           cost_code_name: item.costCodeName || item.cost_code_name,
           account_name: item.accountName || item.account_name,
+          po_reference: item.poReference || item.po_reference || item.PO || item.po || null,
           line_type: item.line_type || item.lineType || 'job_cost'
         }))
       };
