@@ -82,6 +82,7 @@ interface PendingBillLine {
   lot_name?: string;
   purchase_order_id?: string;
   purchase_order_line_id?: string;
+  po_reference?: string | null;
 }
 
 interface PendingBill {
@@ -206,16 +207,18 @@ export function BatchBillReviewTable({
       const totalAmount = total
         ? (typeof total === 'string' ? parseFloat(total) : total)
         : (b.lines?.reduce((s, l) => s + (l.amount || 0), 0) || 0);
+      const extLineItems: any[] = Array.isArray(ext?.line_items) ? ext.line_items : [];
       return {
         id: b.id,
         vendor_id: vendorId || '',
         project_id: projectId,
         total_amount: totalAmount,
         status: 'draft',
-        bill_lines: (b.lines || []).map(l => ({
+        bill_lines: (b.lines || []).map((l, idx) => ({
           cost_code_id: l.cost_code_id,
           amount: l.amount,
           purchase_order_id: l.purchase_order_id,
+          po_reference: l.po_reference || extLineItems[idx]?.po_reference || null,
         })),
       };
     });
@@ -749,11 +752,12 @@ export function BatchBillReviewTable({
                   reference_number: bill.reference_number || ext?.reference_number || ext?.referenceNumber || null,
                   bill_date: ext?.bill_date || ext?.billDate || undefined,
                   status: 'draft',
-                  bill_lines: (bill.lines || []).map(l => ({
+                  bill_lines: (bill.lines || []).map((l, idx) => ({
                     cost_code_id: l.cost_code_id,
                     amount: l.amount || 0,
                     purchase_order_id: l.purchase_order_id,
                     purchase_order_line_id: l.purchase_order_line_id,
+                    po_reference: l.po_reference || ext?.line_items?.[idx]?.po_reference || null,
                     memo: l.memo || l.description || undefined,
                   })),
                 };
