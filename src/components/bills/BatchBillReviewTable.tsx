@@ -1000,12 +1000,14 @@ export function BatchBillReviewTable({
                   {/* PO Status */}
                   <TableCell className="w-20 text-center" onClick={(e) => e.stopPropagation()}>
                     {(() => {
-                      const poResult = poStatusMap?.get(bill.id);
-                      const status = poResult?.status || 'no_po';
+                      const status = poStatusForRow;
                       return (
                         <POStatusBadge
                           status={status}
-                          onClick={status !== 'no_po' ? () => setPoDialogBillId(bill.id) : undefined}
+                          onClick={rowAllMatches.length > 0 ? (e?: any) => {
+                            e?.stopPropagation?.();
+                            setPoDialogState({ open: true, matches: rowAllMatches, bill: buildDialogBill() });
+                          } : undefined}
                         />
                       );
                     })()}
@@ -1082,13 +1084,12 @@ export function BatchBillReviewTable({
         />
       )}
 
-      {poDialogBillId && (
-        <BillPOSummaryDialog
-          open={!!poDialogBillId}
-          onOpenChange={(open) => { if (!open) setPoDialogBillId(null); }}
-          matches={poDialogMatches}
-          bill={{
-            id: poDialogBillId,
+      <BillPOSummaryDialog
+        open={poDialogState.open}
+        onOpenChange={(open) => { if (!open) setPoDialogState({ open: false, matches: [], bill: null }); }}
+        matches={poDialogState.matches}
+        bill={poDialogState.bill}
+      />
             project_id: projectId || null,
             vendor_id: poDialogVendorId,
             total_amount: (() => {
