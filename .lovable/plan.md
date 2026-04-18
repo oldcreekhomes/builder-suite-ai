@@ -1,85 +1,56 @@
 
-Problem rephrased:
-The hover is correct because it reads the extracted invoice lines directly. The PO dialog is still wrong because it rebuilds allocations from a different data source, and that source does not even contain the three target POs for this bill.
 
-Do I know what the issue is?
-Yes.
+## Issues
 
-What I found:
-- Bill `C26019` extraction is correct:
-  - `2025-923T-0035` → `20350`
-  - `2025-923T-0036` → `2800`
-  - `2025-923T-0027` → `4030`
-- `pending_bill_lines` also now carry the correct `po_reference` values for all 3 lines.
-- The real break is in the dialog PO source:
-  - `BillPOSummaryDialog` and `PODetailsDialog` depend on `useVendorPurchaseOrders(...)`
-  - `useVendorPurchaseOrders` only loads `project_purchase_orders` where `status = 'approved'`
-- But the three exact POs for this bill are currently `status = 'rejected'`:
-  - `2025-923T-0027`
-  - `2025-923T-0035`
-  - `2025-923T-0036`
-- So the dialog never has those PO records available.
-  - That means `po_reference` cannot resolve to the real PO
-  - Siding still works via unique cost-code fallback
-  - The two `4400` lines stay at `$0.00` because the strict ambiguity guard blocks guessing
+1. **Initial flash of wrong allocation** — Dialog renders before `useVendorPurchaseOrders` finishes loading the non-approved POs (via the new `includePoIds` path). With no PO records, `po_reference` resolution fails and ambiguous 4400 lines drop to $0. Once the secondary fetch completes, it re-renders correctly.
 
-Why the mismatch happens:
-- Row/hover matching path can still identify the correct PO numbers.
-- Dialog detail path fetches a different PO dataset and silently excludes the needed records by status.
-- So the dialog and hover are still using different truths.
+2. **Per-PO status in dialog shows "over"** — Likely because the per-line `getThisBillAmount()` returns 0 during the loading window OR the status math is using stale/zero allocations. Need to verify in `BillPOSummaryDialog.tsx`.
 
-Implementation plan:
-1. Make the PO dialog fetch the exact matched POs, not just approved POs
-- Update `useVendorPurchaseOrders.ts` to support an optional override such as:
-  - `includePoIds?: string[]`
-  - or `statuses?: string[]`
-- For dialog usage, fetch:
-  - the matched PO ids explicitly
-  - even if their status is not `approved`
-- Keep existing default behavior for dropdowns/manual-entry screens that should still show only normal approved POs.
+3. **Table-level aggregate status** — Currently shows "over" when any line is over. Need a mixed-state label.
 
-2. Wire the summary/details dialogs to pass matched PO ids into that hook
-- In `BillPOSummaryDialog.tsx`, call `useVendorPurchaseOrders` with `matches.map(m => m.po_id)`.
-- This guarantees `vendorPOs` contains:
-  - `0027`
-  - `0035`
-  - `0036`
-- Then the existing `po_reference` resolution logic can finally map each pending line to the correct PO.
+## Investigation needed
+- Confirm loading-state handling in `BillPOSummaryDialog.tsx` and `PODetailsDialog.tsx`.
+- Locate the table-level status badge (`BatchBillReviewTable.tsx` row badge) and confirm how it aggregates per-PO statuses.
+- Confirm `POStatus` enum values to add `"numerous"` / `"mixed"`.
 
-3. Keep the strict allocation rules, but let them operate on the real PO list
-- Leave the current resolution order in place:
-  1. `purchase_order_line_id`
-  2. `purchase_order_id`
-  3. `po_reference`
-  4. unique cost-code fallback
-- Once the actual matched POs are loaded, `getThisBillAmount` and the drill-down `pendingBillLines` filter should naturally produce:
-  - `0027` → `$4,030.00`
-  - `0035` → `$20,350.00`
-  - `0036` → `$2,800.00`
+## Implementation plan
 
-4. Fix Enter with AI auto-match so persistence can also use explicit PO numbers even when PO status is not approved
-- In `BillsApprovalTabs.tsx`, keep the fuzzy fallback on approved POs if desired, but add a first-pass lookup by printed `po_reference` against exact PO numbers regardless of status.
-- Persist `purchase_order_id` and `purchase_order_line_id` when that exact printed-reference match is found.
-- This prevents the queue from re-opening with null PO ids for bills like this one.
+### 1. Fix initial flash (dialog)
+In `BillPOSummaryDialog.tsx`:
+- Pull `isLoading` from `useVendorPurchaseOrders`.
+- While loading (or while `includePoIds` are still missing from `vendorPOs`), show a small skeleton/spinner instead of the table.
+- Apply same gating in `PODetailsDialog.tsx` so the drill-down doesn't flash either.
 
-5. Verify other tabs stay stable
-- `BillsApprovalTable` and `PayBillsTable` already pass full bill objects; they should keep working.
-- The change should be scoped so only the PO dialogs can load non-approved matched POs when needed.
+This guarantees the user never sees the pre-fetch (approved-only) allocation.
 
-Files to update:
-- `src/hooks/useVendorPurchaseOrders.ts`
+### 2. Fix per-PO "over" status in dialog
+In `BillPOSummaryDialog.tsx`:
+- Ensure the per-row status badge is computed from the **resolved** `getThisBillAmount(poId)` using the same `resolveLineToPoId` chain (line_id → po_id → po_reference → unique cost code).
+- Re-derive each row's status only after PO data is loaded:
+  - `thisBill + total_billed > po_amount` → `over_po`
+  - `thisBill + total_billed === po_amount` → `matched`
+  - `thisBill > 0 && < po_amount` → `draw`
+- Verify the cent-precise comparison uses `Math.round(x * 100)` to avoid drift.
+
+### 3. Add aggregate "Numerous" status to table row
+In `POStatusBadge.tsx` and the table row badge in `BatchBillReviewTable.tsx`:
+- Extend `POStatus` with `'numerous'` (label: "Numerous", neutral/amber styling).
+- Aggregation rule for the row badge:
+  - All matched POs share same status → use that status.
+  - Mixed statuses across POs (e.g., one `matched` + one `over_po`) → `'numerous'`.
+- Apply the same aggregation in `usePendingBillPOStatus.ts` if it computes the table badge.
+
+### Files to update
 - `src/components/bills/BillPOSummaryDialog.tsx`
 - `src/components/bills/PODetailsDialog.tsx`
-- `src/components/bills/BillsApprovalTabs.tsx`
+- `src/components/bills/POStatusBadge.tsx`
+- `src/components/bills/BatchBillReviewTable.tsx`
+- `src/hooks/usePendingBillPOStatus.ts` (if it drives the row badge)
 
-Expected result after implementation:
-- PO Status Summary for `C26019` shows:
-  - `2025-923T-0027` → This Bill `$4,030.00`
-  - `2025-923T-0035` → This Bill `$20,350.00`
-  - `2025-923T-0036` → This Bill `$2,800.00`
-- Total “This Bill” = `$27,180.00`
-- Clicking each row opens the correct line-level detail
-- Refreshing the queue keeps the same result
+## Verification
+- Open bill C26019 dialog cold: no flash, allocations correct from frame 1.
+- Each PO row in dialog shows `Matched` (not `Over`).
+- Table row badge for C26019 shows `Matched` (single consistent status).
+- Construct a test bill where one PO is matched and another is over → row badge shows `Numerous`.
+- Refresh and reopen — same results.
 
-Technical note:
-This is not an OCR problem and not primarily a line-allocation bug anymore. The dialog is missing the exact PO records because its PO query filters them out by status. Once the dialog is given the same matched PO set the hover already proves, the existing `po_reference` logic should finally work.
