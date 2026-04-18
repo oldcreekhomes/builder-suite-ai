@@ -324,9 +324,24 @@ export function BillsApprovalTabs({ projectId, projectIds, reviewOnly = false, o
 
             if (vendorPOLines.length === 0) continue;
 
+            // Helper to normalize a PO reference (strip non-alphanumeric, uppercase)
+            const normRef = (s: string | null | undefined) =>
+              s ? String(s).toUpperCase().replace(/[^A-Z0-9]/g, '') : '';
+
             for (const bill of bills) {
               for (const line of bill.lines || []) {
                 if (line.purchase_order_id) continue; // already matched
+
+                // HIGHEST PRIORITY: PO number printed directly on the invoice line
+                const printedRef = normRef((line as any).po_reference);
+                if (printedRef) {
+                  const byNumber = vendorPOs.find(p => normRef(p.po_number).includes(printedRef));
+                  if (byNumber) {
+                    line.purchase_order_id = byNumber.id;
+                    dbUpdates.push({ id: line.id, purchase_order_id: byNumber.id });
+                    continue;
+                  }
+                }
 
                 const match = getBestPOLineMatch(
                   line.memo || line.description || '',
