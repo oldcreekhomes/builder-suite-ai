@@ -107,14 +107,16 @@ export function useVendorPurchaseOrders(
         .select('purchase_order_line_id, amount, bill_id, bills!bill_lines_bill_id_fkey(id, reference_number, bill_date, status)')
         .in('purchase_order_line_id', poLineIds);
 
+        // Status-based rule: include only bills committed to the GL (approved or paid).
+        // Review/draft and rejected bills are excluded — they are not committed cost.
         const activeBilled = (lineBilled || []).filter((bl: any) =>
-          bl.bills?.status && bl.bills.status !== 'draft'
+          bl.bills?.status && (bl.bills.status === 'approved' || bl.bills.status === 'paid' || bl.bills.status === 'posted')
         );
 
         activeBilled.filter((bl: any) => {
+          // Exclude the bill currently being viewed to avoid double-counting
+          // (its amount is shown separately as "This Bill" via pendingBillLines).
           if (bl.bill_id === excludeBillId) return false;
-          if (excludeBillDate && bl.bills?.bill_date > excludeBillDate) return false;
-          if (excludeBillDate && bl.bills?.bill_date === excludeBillDate && bl.bill_id > excludeBillId) return false;
           return true;
         }).forEach((bl: any) => {
           if (bl.purchase_order_line_id) {
@@ -149,7 +151,7 @@ export function useVendorPurchaseOrders(
         .is('purchase_order_line_id', null);
 
       const activePoBilled = (poBilled || []).filter((bl: any) =>
-        bl.bills?.status && bl.bills.status !== 'draft'
+        bl.bills?.status && (bl.bills.status === 'approved' || bl.bills.status === 'paid' || bl.bills.status === 'posted')
       );
 
       // --- Helper: simple keyword overlap for memo-to-description matching ---
@@ -184,9 +186,8 @@ export function useVendorPurchaseOrders(
       const billedByPoIdOnly = new Map<string, number>();
       const unallocatedInvoicesByPoId = new Map<string, BilledInvoice[]>();
       activePoBilled.filter((bl: any) => {
+        // Exclude the bill currently being viewed to avoid double-counting.
         if (bl.bill_id === excludeBillId) return false;
-        if (excludeBillDate && bl.bills?.bill_date > excludeBillDate) return false;
-        if (excludeBillDate && bl.bills?.bill_date === excludeBillDate && bl.bill_id > excludeBillId) return false;
         return true;
       }).forEach((bl: any) => {
         if (!bl.purchase_order_id) return;
