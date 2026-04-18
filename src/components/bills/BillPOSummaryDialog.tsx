@@ -205,8 +205,8 @@ export function BillPOSummaryDialog({
                   <TableHead className="whitespace-nowrap">Billed to Date</TableHead>
                   <TableHead className="whitespace-nowrap">This Bill</TableHead>
                   <TableHead className="whitespace-nowrap">Remaining</TableHead>
-                  <TableHead className="whitespace-nowrap">Status</TableHead>
                   <TableHead className="whitespace-nowrap">Files</TableHead>
+                  <TableHead className="whitespace-nowrap">Status</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -246,6 +246,12 @@ export function BillPOSummaryDialog({
                       {formatCurrency(adjustedRemaining)}
                     </TableCell>
                     <TableCell className="whitespace-nowrap">
+                      <FilesCell
+                        files={poRecord?.files}
+                        projectId={poRecord?.project_id || bill?.project_id || ''}
+                      />
+                    </TableCell>
+                    <TableCell className="whitespace-nowrap">
                       <span
                         className={cn(
                           "inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium",
@@ -254,12 +260,6 @@ export function BillPOSummaryDialog({
                       >
                         {statusLabel}
                       </span>
-                    </TableCell>
-                    <TableCell className="whitespace-nowrap">
-                      <FilesCell
-                        files={poRecord?.files}
-                        projectId={poRecord?.project_id || bill?.project_id || ''}
-                      />
                     </TableCell>
                   </TableRow>
                   );
