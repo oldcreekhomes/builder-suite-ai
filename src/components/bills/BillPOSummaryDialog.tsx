@@ -149,8 +149,8 @@ export function BillPOSummaryDialog({
     };
   });
 
-  // If only one match, go directly to the detail dialog
-  if (matches.length === 1 && open) {
+  // If only one match, go directly to the detail dialog (wait for PO data so we don't flash).
+  if (matches.length === 1 && open && poDataReady) {
     const singlePO = vendorPOs?.find(po => po.id === matches[0].po_id) || null;
     return (
       <PODetailsDialog
@@ -181,6 +181,11 @@ export function BillPOSummaryDialog({
             </DialogDescription>
           </DialogHeader>
 
+          {!poDataReady ? (
+            <div className="py-12 text-center text-sm text-muted-foreground">
+              Loading purchase order details…
+            </div>
+          ) : (
           <SettingsTableWrapper>
             <Table>
               <TableHeader>
@@ -198,6 +203,18 @@ export function BillPOSummaryDialog({
                 {[...matches].sort((a, b) => (a.po_number || '').localeCompare(b.po_number || '')).map((match) => {
                   const thisBillAmount = getThisBillAmount(match);
                   const adjustedRemaining = match.po_amount - match.total_billed - thisBillAmount;
+                  // Re-derive status from the resolved allocation, cent-precise.
+                  const projectedBilledCents = Math.round((match.total_billed + thisBillAmount) * 100);
+                  const poAmountCents = Math.round(match.po_amount * 100);
+                  const remainingCents = poAmountCents - projectedBilledCents;
+                  const rowStatus: 'matched' | 'over_po' | 'draw' =
+                    remainingCents < 0
+                      ? 'over_po'
+                      : (thisBillAmount > 0 && thisBillAmount < match.po_amount && match.po_amount > 0 && remainingCents > 0)
+                        ? 'draw'
+                        : 'matched';
+                  const statusLabel = rowStatus === 'matched' ? 'Matched' : rowStatus === 'draw' ? 'Draw' : 'Over';
+                  const statusClass = rowStatus === 'over_po' ? 'bg-red-100 text-red-700' : 'bg-green-100 text-green-700';
                   return (
                   <TableRow
                     key={match.po_id}
@@ -225,12 +242,10 @@ export function BillPOSummaryDialog({
                       <span
                         className={cn(
                           "inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium",
-                          match.status === "matched"
-                            ? "bg-green-100 text-green-700"
-                            : "bg-red-100 text-red-700"
+                          statusClass
                         )}
                       >
-                        {match.status === "matched" ? "Matched" : "Over"}
+                        {statusLabel}
                       </span>
                     </TableCell>
                   </TableRow>
@@ -239,6 +254,7 @@ export function BillPOSummaryDialog({
               </TableBody>
             </Table>
           </SettingsTableWrapper>
+          )}
         </DialogContent>
       </Dialog>
 
