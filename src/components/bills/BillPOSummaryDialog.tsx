@@ -198,6 +198,7 @@ export function BillPOSummaryDialog({
         currentBillId={bill?.id}
         currentBillAmount={bill?.total_amount}
         currentBillReference={bill?.reference_number || undefined}
+        currentBillStatus={bill?.status}
         pendingBillLines={derivedPendingBillLines.filter(l => l.purchase_order_id === selectedPoId)}
       />
     </>
