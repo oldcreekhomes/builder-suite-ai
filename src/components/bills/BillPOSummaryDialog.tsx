@@ -1,4 +1,3 @@
-import { useState } from "react";
 import {
   Dialog,
   DialogContent,
@@ -57,8 +56,6 @@ export function BillPOSummaryDialog({
   matches,
   bill,
 }: BillPOSummaryDialogProps) {
-  const [selectedPoId, setSelectedPoId] = useState<string | null>(null);
-
   const matchedPoIdsArr = matches.map(m => m.po_id);
   const { data: vendorPOs, isLoading: isLoadingPOs } = useVendorPurchaseOrders(
     bill?.project_id,
@@ -74,7 +71,7 @@ export function BillPOSummaryDialog({
   const allMatchesLoaded = matchedPoIdsArr.every(id => loadedPoIds.has(id));
   const poDataReady = !isLoadingPOs && allMatchesLoaded;
 
-  const selectedPO = vendorPOs?.find(po => po.id === selectedPoId) || null;
+
 
   const formatCurrency = (amount: number) =>
     new Intl.NumberFormat("en-US", { style: "currency", currency: "USD" }).format(Math.round(amount * 100) === 0 ? 0 : amount);
@@ -181,9 +178,8 @@ export function BillPOSummaryDialog({
   }
 
   return (
-    <>
-      <Dialog open={open && !selectedPoId} onOpenChange={onOpenChange}>
-        <DialogContent className="max-w-4xl">
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="max-w-4xl">
           <DialogHeader>
             <DialogTitle>PO Status Summary</DialogTitle>
             <DialogDescription>
@@ -228,11 +224,7 @@ export function BillPOSummaryDialog({
                   const statusLabel = rowStatus === 'matched' ? 'Matched' : rowStatus === 'draw' ? 'Draw' : 'Over';
                   const statusClass = rowStatus === 'over_po' ? 'bg-red-100 text-red-700' : 'bg-green-100 text-green-700';
                   return (
-                  <TableRow
-                    key={match.po_id}
-                    className="cursor-pointer hover:bg-muted/50"
-                    onClick={() => setSelectedPoId(match.po_id)}
-                  >
+                  <TableRow key={match.po_id}>
                     <TableCell className="whitespace-nowrap font-medium">{match.po_number}</TableCell>
                     <TableCell className="whitespace-nowrap">{match.cost_code_display}</TableCell>
                     <TableCell className="whitespace-nowrap text-right">{formatCurrency(match.po_amount)}</TableCell>
@@ -267,24 +259,7 @@ export function BillPOSummaryDialog({
             </Table>
           </SettingsTableWrapper>
           )}
-        </DialogContent>
-      </Dialog>
-
-      {/* Drill-down into single PO detail */}
-      <PODetailsDialog
-        open={!!selectedPoId}
-        onOpenChange={(isOpen) => {
-          if (!isOpen) setSelectedPoId(null);
-        }}
-        purchaseOrder={selectedPO}
-        projectId={bill?.project_id || null}
-        vendorId={bill?.vendor_id || null}
-        currentBillId={bill?.id}
-        currentBillAmount={bill?.total_amount}
-        currentBillReference={bill?.reference_number || undefined}
-        currentBillStatus={bill?.status}
-        pendingBillLines={derivedPendingBillLines.filter(l => resolveLineToPoId(l as BillLine) === selectedPoId)}
-      />
-    </>
+      </DialogContent>
+    </Dialog>
   );
 }
