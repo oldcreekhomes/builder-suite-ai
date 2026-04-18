@@ -358,20 +358,20 @@ export function useBillPOMatching(bills: BillForMatching[]) {
           }
         });
 
-        // Determine overall status
-        let overall_status: 'matched' | 'over_po' | 'no_po' | 'partial' | 'draw';
+        // Determine overall status:
+        // - 0 matches → no_po
+        // - all POs share the same status → use it
+        // - mixed statuses (e.g. one matched + one over) → 'numerous'
+        let overall_status: 'matched' | 'over_po' | 'no_po' | 'partial' | 'draw' | 'numerous';
         if (matches.length === 0) {
           overall_status = 'no_po';
-        } else if (matches.every(m => m.status === 'matched')) {
-          overall_status = 'matched';
-        } else if (matches.every(m => m.status === 'draw')) {
-          overall_status = 'draw';
-        } else if (matches.every(m => m.status === 'matched' || m.status === 'draw')) {
-          overall_status = 'draw';
-        } else if (matches.some(m => m.status === 'over_po')) {
-          overall_status = 'over_po';
         } else {
-          overall_status = 'partial';
+          const distinct = new Set(matches.map(m => m.status));
+          if (distinct.size === 1) {
+            overall_status = matches[0].status as any;
+          } else {
+            overall_status = 'numerous';
+          }
         }
 
         resultMap.set(bill.id, {
