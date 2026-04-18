@@ -1,40 +1,27 @@
 
-
 ## Goal
-On the **Enter with AI** tab, make each bill row clickable. Clicking the row should open the PO dialog showing what POs the line items are attached to — same behavior as the Review / Rejected / Approved / Paid tabs.
+On the **Enter with AI** tab, when hovering the cost-code cell, show every bill line as its own row in the tooltip. Today two lines that share a cost code (4400 Exterior Trim and 4400 Cornice → both shown as "4400: Exterior Trim / Cornice $6,830.00") are being merged. Stop the merge — show one row per `pending_bill_lines` row, in original order, with its own description and amount.
 
-## What's already in place
-- `BatchBillReviewTable.tsx` already wires up `BillPOSummaryDialog` and `setPoDialogBillId(bill.id)` via the PO Status badge click.
-- `usePendingBillPOStatus` already computes `poStatusMap` for each bill (status + matched PO ids).
-- So the dialog, data, and matches all exist — only the row-level click handler is missing.
+## Where the merge happens
+The cost-code summary tooltip lives in `src/components/bills/BatchBillReviewTable.tsx` (the cell that renders "4470: Siding +1" with the hover popover). It currently aggregates lines by cost code (sum of amounts, deduped label) which is why two distinct 4400 lines collapse into one $6,830 row.
 
-## Changes (single file: `src/components/bills/BatchBillReviewTable.tsx`)
+## Change
+Single file: `src/components/bills/BatchBillReviewTable.tsx`
 
-1. **Make each `<TableRow>` clickable when the bill has matched POs**
-   - Add `onClick` to the row that calls `setPoDialogBillId(bill.id)` only when `poStatusMap.get(bill.id)?.status !== 'no_po'`.
-   - Add conditional classes: `cursor-pointer hover:bg-muted/50` when clickable.
-   - Mirror the pattern used in `BillsApprovalTable.tsx` and `PayBillsTable.tsx` (`handleRowClick` + `rowClickable`).
-
-2. **Stop propagation on interactive child cells** so clicking them doesn't also pop the PO dialog:
-   - Checkbox cell
-   - Vendor "Re-match" / "Add" buttons (when vendor unmatched)
-   - Files cell (file icon buttons + remove `×` buttons)
-   - PO Status badge cell (already triggers the dialog itself)
-   - Actions menu (Edit / Delete)
-   - Tooltip triggers stay fine (they don't have onClick handlers that conflict)
-
-3. **No data, no schema, no dialog component changes** — the existing `BillPOSummaryDialog` rendering block at the bottom of the file already handles everything.
+1. Replace the cost-code aggregation logic with a straight pass-through of `bill.pending_bill_lines` (or equivalent line array already on the bill object).
+2. Tooltip rows = one per line, preserving original order:
+   - Left: `{cost_code_number}: {cost_code_name}` — fall back to the line's `description`/`memo` when no cost code is set, then `"Uncategorized"`.
+   - Right: line amount, currency-formatted (2 decimals, existing standard).
+3. Trigger label in the cell stays as-is: first line's cost code + `+N` when there are more lines (N = total lines − 1, not unique cost codes − 1).
+4. Total row at the bottom of the tooltip stays — it's the sum of all line amounts (already matches `bill.total_amount`).
+5. No data fetching changes — `pending_bill_lines` is already loaded for this table.
 
 ## Out of scope
-- Hover-to-preview (user said "click on that row" — matches the behavior on the other tabs).
-- Any extraction / matcher / PO-reference logic (that's the prior thread).
-- The file preview / Storage RLS work (separate open thread).
+- Approved/Paid/Review tabs (user only asked about Enter with AI; those tabs use `bill_lines` and a separate component).
+- Any matcher/extractor changes.
+- Styling beyond keeping the existing popover look.
 
 ## Verification
-- Open Enter with AI tab → AN EXTERIOR INC. row → click anywhere on the row → PO summary dialog opens showing the matched POs.
-- Click checkbox → only toggles selection, dialog does NOT open.
-- Click file icon → only opens preview, dialog does NOT open.
-- Click PO Status badge → still opens dialog (existing behavior preserved).
-- Click ⋯ Actions menu → only opens menu.
-- Bills with `no_po` status → row is not clickable, no hover affordance.
-
+- Hover the AN EXTERIOR INC. row cost-code cell → tooltip shows 3 rows: `4470: Siding $20,350.00`, `4400: Exterior Trim $2,800.00`, `4400: Cornice $4,030.00`, Total `$27,180.00`.
+- Trigger label reads `4470: Siding +2` (3 lines − 1).
+- A single-line bill still shows just one row + total, no `+N` suffix.
