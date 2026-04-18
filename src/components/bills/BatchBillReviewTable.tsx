@@ -758,7 +758,7 @@ export function BatchBillReviewTable({
                   )}
                   
                   {/* Vendor */}
-                  <TableCell className="w-36">
+                  <TableCell className="w-36" onClick={(e) => { if (!vendorId && vendorName) e.stopPropagation(); }}>
                     {!vendorId && vendorName ? (
                       <div className="flex items-center gap-1">
                         <span className="text-destructive truncate max-w-20">{vendorName}</span>
@@ -907,7 +907,7 @@ export function BatchBillReviewTable({
                   )}
                   
                   {/* Files */}
-                  <TableCell className="w-14 text-center">
+                  <TableCell className="w-14 text-center" onClick={(e) => e.stopPropagation()}>
                     <div className="flex items-center justify-center gap-1">
                       {(bill.attachments || []).slice(0, 3).map(att => {
                         const IconComponent = getFileIcon(att.file_name);
@@ -958,7 +958,7 @@ export function BatchBillReviewTable({
                   </TableCell>
                   
                   {/* PO Status */}
-                  <TableCell className="w-20 text-center">
+                  <TableCell className="w-20 text-center" onClick={(e) => e.stopPropagation()}>
                     {(() => {
                       const poResult = poStatusMap?.get(bill.id);
                       const status = poResult?.status || 'no_po';
@@ -972,7 +972,7 @@ export function BatchBillReviewTable({
                   </TableCell>
                   
                   {/* Actions */}
-                  <TableCell className="w-20 text-center">
+                  <TableCell className="w-20 text-center" onClick={(e) => e.stopPropagation()}>
                     <TableRowActions actions={[
                       { label: "Edit", onClick: () => setEditingBillId(bill.id) },
                       { label: "Delete", onClick: () => onBillDelete(bill.id), variant: "destructive", requiresConfirmation: true, confirmTitle: "Delete Bill", confirmDescription: "Are you sure you want to delete this extracted bill? This action cannot be undone." },
