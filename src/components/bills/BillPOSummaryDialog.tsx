@@ -150,7 +150,19 @@ export function BillPOSummaryDialog({
   });
 
   // If only one match, go directly to the detail dialog (wait for PO data so we don't flash).
-  if (matches.length === 1 && open && poDataReady) {
+  if (matches.length === 1 && open) {
+    if (!poDataReady) {
+      return (
+        <Dialog open={open} onOpenChange={onOpenChange}>
+          <DialogContent className="max-w-md">
+            <DialogHeader>
+              <DialogTitle>Loading…</DialogTitle>
+              <DialogDescription>Loading purchase order details…</DialogDescription>
+            </DialogHeader>
+          </DialogContent>
+        </Dialog>
+      );
+    }
     const singlePO = vendorPOs?.find(po => po.id === matches[0].po_id) || null;
     return (
       <PODetailsDialog
