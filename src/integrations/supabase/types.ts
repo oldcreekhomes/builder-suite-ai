@@ -2910,6 +2910,7 @@ export type Database = {
           project_id: string | null
           project_name: string | null
           purchase_order_id: string | null
+          purchase_order_line_id: string | null
           quantity: number | null
           unit_cost: number | null
           updated_at: string
@@ -2933,6 +2934,7 @@ export type Database = {
           project_id?: string | null
           project_name?: string | null
           purchase_order_id?: string | null
+          purchase_order_line_id?: string | null
           quantity?: number | null
           unit_cost?: number | null
           updated_at?: string
@@ -2956,6 +2958,7 @@ export type Database = {
           project_id?: string | null
           project_name?: string | null
           purchase_order_id?: string | null
+          purchase_order_line_id?: string | null
           quantity?: number | null
           unit_cost?: number | null
           updated_at?: string
@@ -3001,6 +3004,13 @@ export type Database = {
             columns: ["purchase_order_id"]
             isOneToOne: false
             referencedRelation: "project_purchase_orders"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pending_bill_lines_purchase_order_line_id_fkey"
+            columns: ["purchase_order_line_id"]
+            isOneToOne: false
+            referencedRelation: "purchase_order_lines"
             referencedColumns: ["id"]
           },
         ]
