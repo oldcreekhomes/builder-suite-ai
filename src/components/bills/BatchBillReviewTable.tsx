@@ -17,10 +17,8 @@ import { useUniversalFilePreviewContext } from "@/components/files/UniversalFile
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { POStatusBadge } from "./POStatusBadge";
-import { usePendingBillPOStatus } from "@/hooks/usePendingBillPOStatus";
 import { BillPOSummaryDialog } from "./BillPOSummaryDialog";
-import { useVendorPurchaseOrders } from "@/hooks/useVendorPurchaseOrders";
-import { POMatch } from "@/hooks/useBillPOMatching";
+import { useBillPOMatching, POMatch } from "@/hooks/useBillPOMatching";
 
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 // Helper function to format terms for display
