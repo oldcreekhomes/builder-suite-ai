@@ -305,13 +305,32 @@ export function useBillPOMatching(bills: BillForMatching[]) {
             const poAmount = matchedPo.total_amount || 0;
             const isDraftBill = (bill.status || 'draft') === 'draft';
 
-            // Current bill's lines allocated to this PO
+            // Current bill's lines allocated to this PO — mirror dialog resolution chain:
+            // 1) explicit purchase_order_id, 2) printed po_reference, 3) unique cost_code fallback.
+            const matchedPoNumNorm = normalizePoRef(matchedPo.po_number);
             const thisBillAmount = allLines
               .filter(l => {
                 let lpId = l.purchase_order_id;
                 if (lpId === '__none__' || lpId === '__auto__') lpId = undefined;
                 if (lpId === matchedPo.id) return true;
-                if (!lpId && l.cost_code_id === matchedPo.cost_code_id) return true;
+                if (lpId && lpId !== matchedPo.id) return false; // explicitly assigned elsewhere
+                if (l.po_reference && matchedPoNumNorm) {
+                  const target = normalizePoRef(l.po_reference);
+                  if (target && (target === matchedPoNumNorm || matchedPoNumNorm.includes(target) || target.includes(matchedPoNumNorm))) {
+                    return true;
+                  }
+                  // printed a different PO — exclude from this PO
+                  if (target) return false;
+                }
+                if (l.cost_code_id === matchedPo.cost_code_id) {
+                  // Only attribute by cost_code if no other matched PO shares it
+                  const sharedPos = pos.filter(p =>
+                    p.company_id === bill.vendor_id &&
+                    p.project_id === bill.project_id &&
+                    p.cost_code_id === matchedPo.cost_code_id
+                  );
+                  if (sharedPos.length <= 1) return true;
+                }
                 return false;
               })
               .reduce((s, l) => s + (l.amount || 0), 0);
