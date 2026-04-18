@@ -120,6 +120,10 @@ export function BillPOSummaryDialog({
         currentBillReference={bill?.reference_number || undefined}
         currentBillStatus={bill?.status}
         pendingBillLines={derivedPendingBillLines.filter(l => {
+          if (l.purchase_order_line_id) {
+            const poId = poLineToPoId.get(l.purchase_order_line_id);
+            if (poId) return poId === matches[0].po_id;
+          }
           if (l.purchase_order_id && l.purchase_order_id !== '__auto__' && l.purchase_order_id !== '__none__') {
             return l.purchase_order_id === matches[0].po_id;
           }
