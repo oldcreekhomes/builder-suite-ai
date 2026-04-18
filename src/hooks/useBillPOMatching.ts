@@ -22,10 +22,17 @@ interface BillLine {
   cost_code_id?: string;
   amount?: number;
   purchase_order_id?: string;
+  po_reference?: string | null;
   cost_codes?: {
     code: string;
     name: string;
   };
+}
+
+/** Normalize a PO reference for comparison: strip non-alphanumerics and uppercase. */
+function normalizePoRef(s: string | null | undefined): string {
+  if (!s) return '';
+  return String(s).toUpperCase().replace(/[^A-Z0-9]/g, '');
 }
 
 interface BillForMatching {
