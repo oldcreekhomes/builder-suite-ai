@@ -708,11 +708,26 @@ Extract the following information and return as valid JSON:
       "amount": number,
       "memo": "string or null",
       "account_name": "string - exact match from available accounts, or null",
-      "cost_code_name": "string - MUST be in format 'CODE: NAME' (e.g., '4020: Project Manager'), or null"
+      "cost_code_name": "string - MUST be in format 'CODE: NAME' (e.g., '4020: Project Manager'), or null",
+      "po_reference": "string - PO number printed ON THIS LINE if visible (e.g. 'PO2025-923T-0036', '2025-923T-0027'), or null"
     }
   ],
   "total_amount": number
 }
+
+PO REFERENCE EXTRACTION (CRITICAL):
+- Many invoices print a Purchase Order number next to each line item, in a "Customer PO", "PO #", "P.O.", "Job #", or memo column.
+- For EACH line item, capture that PO number into "po_reference" EXACTLY as printed.
+- Recognize patterns like: "PO2025-923T-0036", "PO# 2025-923T-0027", "P.O. 1234", "Customer PO: 2025-923T-0035", "Job #2025-923T-0036", or a bare token like "2025-923T-0036" appearing in the description column.
+- If different lines reference different POs, each line gets its OWN po_reference. Do NOT copy one line's PO to another line.
+- If no PO is printed for a line, set po_reference to null.
+
+WORKED EXAMPLE (multi-PO invoice):
+An invoice from "AN EXTERIOR INC." total $27,180 with three rows:
+  Row 1: "Siding - PO2025-923T-0035"   $20,350
+  Row 2: "Exterior Trim - PO2025-923T-0036"   $2,800
+  Row 3: "Cornice - PO#2025-923T-0027"   $4,030
+Must produce THREE separate line_items, each with its own amount, description, cost_code_name, AND po_reference (e.g. "2025-923T-0035", "2025-923T-0036", "2025-923T-0027").
 
 VENDOR CONTACT INFORMATION - CRITICAL EXTRACTION RULES:
 ⚠️ ALWAYS extract vendor contact information when visible on the invoice
