@@ -1,4 +1,3 @@
-import { useState } from "react";
 import {
   Dialog,
   DialogContent,
@@ -57,8 +56,6 @@ export function BillPOSummaryDialog({
   matches,
   bill,
 }: BillPOSummaryDialogProps) {
-  const [selectedPoId, setSelectedPoId] = useState<string | null>(null);
-
   const matchedPoIdsArr = matches.map(m => m.po_id);
   const { data: vendorPOs, isLoading: isLoadingPOs } = useVendorPurchaseOrders(
     bill?.project_id,
@@ -181,9 +178,8 @@ export function BillPOSummaryDialog({
   }
 
   return (
-    <>
-      <Dialog open={open && !selectedPoId} onOpenChange={onOpenChange}>
-        <DialogContent className="max-w-4xl">
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="max-w-4xl">
           <DialogHeader>
             <DialogTitle>PO Status Summary</DialogTitle>
             <DialogDescription>
