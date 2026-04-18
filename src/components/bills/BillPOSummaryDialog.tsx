@@ -224,11 +224,7 @@ export function BillPOSummaryDialog({
                   const statusLabel = rowStatus === 'matched' ? 'Matched' : rowStatus === 'draw' ? 'Draw' : 'Over';
                   const statusClass = rowStatus === 'over_po' ? 'bg-red-100 text-red-700' : 'bg-green-100 text-green-700';
                   return (
-                  <TableRow
-                    key={match.po_id}
-                    className="cursor-pointer hover:bg-muted/50"
-                    onClick={() => setSelectedPoId(match.po_id)}
-                  >
+                  <TableRow key={match.po_id}>
                     <TableCell className="whitespace-nowrap font-medium">{match.po_number}</TableCell>
                     <TableCell className="whitespace-nowrap">{match.cost_code_display}</TableCell>
                     <TableCell className="whitespace-nowrap text-right">{formatCurrency(match.po_amount)}</TableCell>
@@ -263,24 +259,7 @@ export function BillPOSummaryDialog({
             </Table>
           </SettingsTableWrapper>
           )}
-        </DialogContent>
-      </Dialog>
-
-      {/* Drill-down into single PO detail */}
-      <PODetailsDialog
-        open={!!selectedPoId}
-        onOpenChange={(isOpen) => {
-          if (!isOpen) setSelectedPoId(null);
-        }}
-        purchaseOrder={selectedPO}
-        projectId={bill?.project_id || null}
-        vendorId={bill?.vendor_id || null}
-        currentBillId={bill?.id}
-        currentBillAmount={bill?.total_amount}
-        currentBillReference={bill?.reference_number || undefined}
-        currentBillStatus={bill?.status}
-        pendingBillLines={derivedPendingBillLines.filter(l => resolveLineToPoId(l as BillLine) === selectedPoId)}
-      />
-    </>
+      </DialogContent>
+    </Dialog>
   );
 }
