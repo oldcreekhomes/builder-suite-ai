@@ -676,24 +676,29 @@ export function BatchBillReviewTable({
                 ? (typeof extractedTotal === 'string' ? parseFloat(extractedTotal) : extractedTotal)
                 : (bill.lines?.reduce((sum, line) => sum + (line.amount || 0), 0) || 0);
               
-              // Calculate cost code display with breakdown for tooltip
+              // Calculate cost code display with per-line breakdown for tooltip (no merging)
               const accountDisplayData = (() => {
                 if (!bill.lines || bill.lines.length === 0) return { display: null as string | null, breakdown: [] as { name: string; amount: number }[], total: 0, count: 0 };
-                
-                // Aggregate amounts by unique cost code / account name
-                const codeMap = new Map<string, number>();
-                for (const line of bill.lines) {
-                  const name = line.line_type === 'job_cost' ? line.cost_code_name : line.line_type === 'expense' ? line.account_name : null;
-                  if (!name) continue;
-                  codeMap.set(name, (codeMap.get(name) || 0) + (line.amount || 0));
-                }
-                
-                if (codeMap.size === 0) return { display: null, breakdown: [], total: 0, count: 0 };
-                
-                const breakdown = Array.from(codeMap.entries()).map(([name, amount]) => ({ name, amount }));
+
+                // One row per line, preserve original order, no aggregation
+                const breakdown = bill.lines
+                  .map((line) => {
+                    const name =
+                      line.line_type === 'job_cost'
+                        ? line.cost_code_name
+                        : line.line_type === 'expense'
+                          ? line.account_name
+                          : null;
+                    if (!name) return null;
+                    return { name, amount: line.amount || 0 };
+                  })
+                  .filter((x): x is { name: string; amount: number } => x !== null);
+
+                if (breakdown.length === 0) return { display: null, breakdown: [], total: 0, count: 0 };
+
                 const total = breakdown.reduce((s, b) => s + b.amount, 0);
                 const count = breakdown.length;
-                
+
                 if (count === 1) return { display: breakdown[0].name, breakdown, total, count };
                 return { display: `${breakdown[0].name} +${count - 1}`, breakdown, total, count };
               })();
