@@ -1223,6 +1223,12 @@ Return ONLY the JSON object, no additional text.`;
             }
           }
           
+          // Normalize PO reference: strip leading "PO", "PO#", "P.O.", "Customer PO:", "Job #", whitespace, and quotes
+          const rawPo = item.po_reference || null;
+          const poReference = rawPo
+            ? String(rawPo).replace(/^(customer\s*po|job\s*#?|p\.?\s*o\.?)\s*[:#]?\s*/i, '').replace(/^#/, '').trim() || null
+            : null;
+
           return {
             pending_upload_id: pendingUploadId,
             owner_id: pendingUpload.owner_id, // Use original owner_id from pending_upload
@@ -1241,6 +1247,7 @@ Return ONLY the JSON object, no additional text.`;
             amount: (item.amount && item.amount > 0)
               ? Number(item.amount.toFixed(2))
               : Number(((item.quantity || 1) * (item.unit_cost || 0)).toFixed(2)),
+            po_reference: poReference,
           };
         });
         
