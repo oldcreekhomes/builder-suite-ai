@@ -82,6 +82,8 @@ export function useBillPOMatching(bills: BillForMatching[]) {
 
       // Fallback: for bill lines without explicit PO, find POs by vendor + project + cost_code
       const unmatchedLines: Array<{ vendorId: string; projectId: string; costCodeId: string }> = [];
+      // Also collect any po_reference strings printed on bill lines so we can look up POs by number
+      const refLookups: Array<{ projectId: string; vendorId: string; ref: string }> = [];
       bills.forEach(bill => {
         (bill.bill_lines || []).forEach(line => {
           const poId = line.purchase_order_id;
@@ -93,9 +95,30 @@ export function useBillPOMatching(bills: BillForMatching[]) {
                 costCodeId: line.cost_code_id,
               });
             }
+            if (bill.project_id && bill.vendor_id && line.po_reference) {
+              refLookups.push({
+                projectId: bill.project_id,
+                vendorId: bill.vendor_id,
+                ref: line.po_reference,
+              });
+            }
           }
         });
       });
+
+      // Fetch POs by po_reference (printed PO number) — highest signal
+      if (refLookups.length > 0) {
+        const projectIds = [...new Set(refLookups.map(r => r.projectId))];
+        const { data: refPos, error: refErr } = await supabase
+          .from('project_purchase_orders')
+          .select(`id, po_number, total_amount, project_id, company_id, cost_code_id`)
+          .in('project_id', projectIds);
+        if (!refErr && refPos) {
+          refPos.forEach(po => {
+            if (!pos.find(p => p.id === po.id)) pos.push(po);
+          });
+        }
+      }
 
       // Fetch POs for unmatched lines by vendor + project
       if (unmatchedLines.length > 0) {
