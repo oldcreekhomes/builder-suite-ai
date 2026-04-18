@@ -1,64 +1,81 @@
 
-Goal: make Enter with AI use the exact same PO-dialog data path as the other tabs, so clicking the row shows the real 3 matched invoice lines instead of an empty “0 matched POs” shell.
+## Goal
+Make **Enter with AI** use the exact same PO-dialog flow as the other tabs, so clicking a matched row opens the same populated PO dialog with the real invoice-to-PO line allocations.
 
-What’s actually broken
-- Enter with AI is not using the same matcher flow as Review/Approved/Paid.
-- `BatchBillReviewTable.tsx` currently opens `BillPOSummaryDialog` from `usePendingBillPOStatus` + an ad-hoc `vendorPOs` filter, which only gives rough PO ids and can lose the actual match rows.
-- It also builds `bill_lines` without reliably carrying `purchase_order_line_id`, so `PODetailsDialog` cannot show the exact invoice-to-PO-line allocation.
-- In the AI/pending flow, auto-matching and save logic are persisting `purchase_order_id` but not consistently persisting `purchase_order_line_id`, so the dialog lacks the line-level linkage it needs.
+## What is actually different today
+Enter with AI is still not following the working pattern from Review / Rejected / Approved / Paid:
 
-Implementation plan
-
-1. Reuse the same matcher as the other tabs
-- In `src/components/bills/BatchBillReviewTable.tsx`, replace the current dialog data flow based on `usePendingBillPOStatus` / `useVendorPurchaseOrders` with the same `useBillPOMatching` pattern used in `BillsApprovalTable.tsx` and `PayBillsTable.tsx`.
-- Drive:
+- `BatchBillReviewTable.tsx` still drives clickability and dialog content from `usePendingBillPOStatus` plus an ad-hoc `useVendorPurchaseOrders` filter.
+- The working tabs use `useBillPOMatching` to produce:
   - row clickability
   - PO badge status
-  - dialog `matches`
-  from `useBillPOMatching`, not from `poStatusMap`.
+  - exact `matches`
+  - the full `bill` payload passed into `BillPOSummaryDialog`
+- Enter with AI is also failing to carry/persist `purchase_order_line_id`, which is what `PODetailsDialog` uses to show the three specific invoice lines instead of a blank/summary-only shell.
 
-2. Open the dialog with the actual bill payload
-- Add the same `poDialogState` structure used on the other tabs:
-  - `open`
-  - `matches`
-  - `bill`
-- On row click / PO badge click, pass the current pending bill plus the exact `matches` from `useBillPOMatching` into `BillPOSummaryDialog`.
+## Implementation
+### 1) Replace the Enter with AI dialog path with the same one used elsewhere
+In `src/components/bills/BatchBillReviewTable.tsx`:
+- remove the PO-dialog state based on `poDialogBillId`, `usePendingBillPOStatus`, and `useVendorPurchaseOrders`
+- build `billsForMatching` from pending bills in the same shape the other tabs use
+- call `useBillPOMatching(billsForMatching)`
+- add `poDialogState = { open, matches, bill }`
+- make row click and PO badge click call `setPoDialogState({ open: true, matches, bill })`
 
-3. Preserve exact pending line linkage
-- Extend the Enter with AI bill-line mapping so `bill.bill_lines` passed to `BillPOSummaryDialog` includes:
+### 2) Pass the real pending bill lines into the dialog
+Still in `BatchBillReviewTable.tsx`, when building `bill` for `BillPOSummaryDialog`, include line-level fields for every pending line:
+- `purchase_order_id`
+- `purchase_order_line_id`
+- `cost_code_id`
+- `amount`
+- `memo`
+
+That gives `BillPOSummaryDialog` / `PODetailsDialog` the same usable payload shape as the working tabs.
+
+### 3) Persist `purchase_order_line_id` during AI auto-matching
+In `src/components/bills/BillsApprovalTabs.tsx`:
+- when initial PO auto-match finds a PO line candidate, store both:
   - `purchase_order_id`
   - `purchase_order_line_id`
-  - `cost_code_id`
-  - `amount`
-  - `memo`
-- This lets `PODetailsDialog` populate the three specific invoice lines under the correct PO instead of showing an empty summary.
+- persist both fields back to `pending_bill_lines`
+- fix the billed lookup query so it uses actual PO line ids, not PO ids, when calculating per-line remaining amounts
 
-4. Persist `purchase_order_line_id` in the pending-bill flow
-- In `src/components/bills/BillsApprovalTabs.tsx`:
-  - during initial auto-match, store both `purchase_order_id` and `purchase_order_line_id` on matched pending lines
-  - persist both fields back to `pending_bill_lines`
-- In `src/components/bills/EditExtractedBillDialog.tsx`:
-  - when auto-matching, persist `purchase_order_line_id` alongside `purchase_order_id`
-  - when saving edited lines, write `purchase_order_line_id` for both inserts and updates
-- This ensures the dialog still works after refresh and doesn’t lose the line-to-PO-line assignment.
+### 4) Persist `purchase_order_line_id` when editing extracted bills
+In `src/components/bills/EditExtractedBillDialog.tsx`:
+- when loading lines, keep `purchase_order_line_id`
+- when auto-matching in the dialog, persist `purchase_order_line_id` together with `purchase_order_id`
+- when saving edited lines, include `purchase_order_line_id` in both inserts and updates
 
-5. Keep existing row UX
-- Preserve the row click behavior already added in Enter with AI.
-- Keep `stopPropagation()` on checkboxes, files, vendor actions, and row actions so only intended clicks open the PO dialog.
+### 5) Carry PO line linkage into approved bills
+Database / function work:
+- keep the new `pending_bill_lines.purchase_order_line_id` column
+- update `approve_pending_bill(...)` so it copies `purchase_order_line_id` from `pending_bill_lines` into `bill_lines`
 
-Files to change
+Without this, the dialog may work before approval but lose the exact line linkage after approval/refresh.
+
+## Files to change
 - `src/components/bills/BatchBillReviewTable.tsx`
 - `src/components/bills/BillsApprovalTabs.tsx`
 - `src/components/bills/EditExtractedBillDialog.tsx`
+- `src/hooks/usePendingBills.ts`
+- database function `approve_pending_bill(...)`
 
-Expected result
-- On Enter with AI, clicking the matched AN EXTERIOR row opens the same PO dialog behavior as the other tabs.
-- The dialog shows the actual three invoice line items tied to that PO/invoice, not “0 matched POs”.
-- The line-level PO attachment survives refresh/edit because `purchase_order_line_id` is persisted.
+## Expected result
+For the Enter with AI bill row:
+- hand cursor + click opens the dialog immediately
+- the PO summary/details are populated from the same matcher path as the other tabs
+- the dialog shows the actual 3 invoice line items tied to that PO/invoice
+- the linkage survives refresh, edit, and approval
 
-Verification
-- Enter with AI → click the matched row → dialog opens immediately
-- For bill `C26019`, confirm the dialog shows the 3 line items for that PO/invoice
-- Click the PO badge directly → same populated result
-- Refresh the page and re-open the same row → still populated
-- Spot-check one simple single-line AI bill to confirm the standard case still works
+## Technical notes
+- Root cause is not UI styling; it is data-path mismatch.
+- The other tabs work because they all use `useBillPOMatching` + `poDialogState`.
+- Enter with AI still uses a lighter status hook that is only good for badge status, not for rich PO drill-down.
+- `PODetailsDialog` specifically prefers `purchase_order_line_id` for exact allocation.
+
+## Verification
+- Enter with AI → click matched AN EXTERIOR row → dialog opens
+- Dialog shows the 3 specific matched invoice lines for that PO
+- Click PO badge → same populated result
+- Refresh and reopen → still populated
+- Approve the bill, open it from the other tabs, and confirm the same line-level linkage remains intact
