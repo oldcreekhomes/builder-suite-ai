@@ -1129,10 +1129,25 @@ Return ONLY the JSON object, no additional text.`;
       
       const extractedTotal = Number(extractedData.total_amount) || 0;
       
-      if (extractedTotal > 0 && Math.abs(lineSum - extractedTotal) > 0.01) {
-        console.log(`⚠️ Line items sum (${lineSum}) doesn't match total_amount (${extractedTotal})`);
-        console.log(`→ Creating single line item with Amount Due: ${extractedTotal}`);
-        
+      // Only collapse to a single line when extraction is genuinely broken:
+      //   - line sum is ZERO (no usable amounts), OR
+      //   - line sum is wildly off (more than the larger of $25 / 5% of total)
+      // Small rounding/tax discrepancies are expected and must NOT nuke a real
+      // multi-line breakdown (that's how multi-PO invoices end up showing as one line).
+      const diff = Math.abs(lineSum - extractedTotal);
+      const tolerance = Math.max(25, extractedTotal * 0.05);
+      const shouldCollapse =
+        extractedTotal > 0 &&
+        (lineSum <= 0.01 || diff > tolerance);
+
+      if (extractedTotal > 0 && diff > 0.01 && !shouldCollapse) {
+        console.log(`ℹ️ Line items sum (${lineSum}) differs from total_amount (${extractedTotal}) by ${diff.toFixed(2)} — within tolerance, keeping ${extractedData.line_items.length} line(s).`);
+      }
+
+      if (shouldCollapse) {
+        console.log(`⚠️ Line items sum (${lineSum}) doesn't match total_amount (${extractedTotal}) — diff ${diff.toFixed(2)} exceeds tolerance ${tolerance.toFixed(2)}`);
+        console.log(`→ Collapsing to single line item with Amount Due: ${extractedTotal}`);
+
         // Look up vendor's default cost code to include in the single line
         let defaultCostCodeName: string | null = null;
         if (extractedData.vendor_id) {
@@ -1144,7 +1159,7 @@ Return ONLY the JSON object, no additional text.`;
                 cost_codes (id, code, name)
               `)
               .eq('company_id', extractedData.vendor_id);
-            
+
             if (vendorCostCodes && vendorCostCodes.length === 1) {
               const cc = (vendorCostCodes[0] as any).cost_codes;
               if (cc) {
@@ -1156,7 +1171,7 @@ Return ONLY the JSON object, no additional text.`;
             console.warn('Could not fetch vendor cost code:', costCodeErr);
           }
         }
-        
+
         // Replace line items with a single line matching the total (with cost code if found)
         extractedData.line_items = [{
           description: extractedData.vendor_name ? `${extractedData.vendor_name} - Invoice` : 'Invoice Total',
@@ -1166,6 +1181,7 @@ Return ONLY the JSON object, no additional text.`;
           memo: null,
           account_name: null,
           cost_code_name: defaultCostCodeName,
+          po_reference: null,
           line_type: 'job_cost'
         }];
       }
