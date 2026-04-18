@@ -25,7 +25,14 @@ interface BillLine {
   amount?: number;
   purchase_order_id?: string | null;
   purchase_order_line_id?: string | null;
+  po_reference?: string | null;
   memo?: string | null;
+}
+
+/** Normalize a PO reference for fuzzy comparison. */
+function normalizePoRef(s: string | null | undefined): string {
+  if (!s) return '';
+  return String(s).toUpperCase().replace(/[^A-Z0-9]/g, '');
 }
 
 interface BillPOSummaryDialogProps {
@@ -67,30 +74,58 @@ export function BillPOSummaryDialog({
   // Build a lookup of PO line -> PO id from vendorPOs so we can resolve lines linked by purchase_order_line_id
   const poLineToPoId = new Map<string, string>();
   (vendorPOs || []).forEach((po: any) => {
-    (po.lines || po.purchase_order_lines || []).forEach((pl: any) => {
+    (po.lines || po.purchase_order_lines || po.line_items || []).forEach((pl: any) => {
       if (pl?.id) poLineToPoId.set(pl.id, po.id);
     });
   });
 
-  // Compute "this bill" amount per PO with strict allocation:
-  // 1) purchase_order_line_id (resolved to its PO) wins
-  // 2) explicit purchase_order_id wins
-  // 3) cost_code fallback only when that cost code is unique among matches
+  // Build a lookup of normalized po_reference -> po_id, restricted to POs in `matches`
+  // so an invoice line printing "PO#2025-923T-0027" maps to that exact PO.
+  const matchedPoIds = new Set(matches.map(m => m.po_id));
+  const refToPoId = new Map<string, string>();
+  (vendorPOs || []).forEach((po: any) => {
+    if (!matchedPoIds.has(po.id)) return;
+    const norm = normalizePoRef(po.po_number);
+    if (norm) refToPoId.set(norm, po.id);
+  });
+
+  /** Resolve a single bill line to a po_id using the strict allocation order:
+   * 1) purchase_order_line_id (resolved to its PO)
+   * 2) explicit purchase_order_id
+   * 3) printed po_reference matched against PO number
+   * 4) unique cost_code fallback (only if no other matched PO shares that cost code)
+   */
+  const resolveLineToPoId = (line: BillLine): string | null => {
+    if (line.purchase_order_line_id) {
+      const poId = poLineToPoId.get(line.purchase_order_line_id);
+      if (poId) return poId;
+    }
+    if (line.purchase_order_id && line.purchase_order_id !== '__auto__' && line.purchase_order_id !== '__none__') {
+      return line.purchase_order_id;
+    }
+    if (line.po_reference) {
+      const target = normalizePoRef(line.po_reference);
+      if (target) {
+        // Exact-or-contains match against any matched PO
+        for (const [norm, poId] of refToPoId.entries()) {
+          if (norm === target || norm.includes(target) || target.includes(norm)) {
+            return poId;
+          }
+        }
+      }
+    }
+    if (line.cost_code_id) {
+      const sameCC = matches.filter(m => m.cost_code_id === line.cost_code_id);
+      if (sameCC.length === 1) return sameCC[0].po_id;
+    }
+    return null;
+  };
+
+  // Compute "this bill" amount per PO using resolveLineToPoId
   const getThisBillAmount = (match: POMatch) => {
     if (!bill?.bill_lines) return 0;
-    const sharedCostCode = matches.filter(m => m.cost_code_id === match.cost_code_id).length > 1;
     return bill.bill_lines
-      .filter(line => {
-        if (line.purchase_order_line_id) {
-          const poId = poLineToPoId.get(line.purchase_order_line_id);
-          if (poId) return poId === match.po_id;
-        }
-        if (line.purchase_order_id && line.purchase_order_id !== '__auto__' && line.purchase_order_id !== '__none__') {
-          return line.purchase_order_id === match.po_id;
-        }
-        if (sharedCostCode) return false;
-        return line.cost_code_id === match.cost_code_id;
-      })
+      .filter(line => resolveLineToPoId(line) === match.po_id)
       .reduce((sum, line) => sum + (line.amount || 0), 0);
   };
 
@@ -101,6 +136,7 @@ export function BillPOSummaryDialog({
       amount: l.amount || 0,
       purchase_order_line_id: l.purchase_order_line_id || undefined,
       purchase_order_id: poId,
+      po_reference: l.po_reference || undefined,
       memo: l.memo || undefined,
     };
   });
@@ -119,16 +155,7 @@ export function BillPOSummaryDialog({
         currentBillAmount={bill?.total_amount}
         currentBillReference={bill?.reference_number || undefined}
         currentBillStatus={bill?.status}
-        pendingBillLines={derivedPendingBillLines.filter(l => {
-          if (l.purchase_order_line_id) {
-            const poId = poLineToPoId.get(l.purchase_order_line_id);
-            if (poId) return poId === matches[0].po_id;
-          }
-          if (l.purchase_order_id && l.purchase_order_id !== '__auto__' && l.purchase_order_id !== '__none__') {
-            return l.purchase_order_id === matches[0].po_id;
-          }
-          return l.cost_code_id === matches[0].cost_code_id;
-        })}
+        pendingBillLines={derivedPendingBillLines.filter(l => resolveLineToPoId(l as BillLine) === matches[0].po_id)}
       />
     );
   }
@@ -220,13 +247,7 @@ export function BillPOSummaryDialog({
         currentBillAmount={bill?.total_amount}
         currentBillReference={bill?.reference_number || undefined}
         currentBillStatus={bill?.status}
-        pendingBillLines={derivedPendingBillLines.filter(l => {
-          if (l.purchase_order_line_id) {
-            const poId = poLineToPoId.get(l.purchase_order_line_id);
-            if (poId) return poId === selectedPoId;
-          }
-          return l.purchase_order_id === selectedPoId;
-        })}
+        pendingBillLines={derivedPendingBillLines.filter(l => resolveLineToPoId(l as BillLine) === selectedPoId)}
       />
     </>
   );

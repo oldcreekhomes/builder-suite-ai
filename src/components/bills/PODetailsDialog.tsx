@@ -9,6 +9,8 @@ import { POStatusBadge, POStatus } from "./POStatusBadge";
 
 export interface PendingBillLine {
   purchase_order_line_id?: string;
+  purchase_order_id?: string;
+  po_reference?: string;
   cost_code_id?: string;
   amount: number;
   memo?: string;
@@ -164,17 +166,43 @@ export function PODetailsDialog({
     return hits;
   };
 
-  // Helper to find pending amount for a PO line
-  // Build a set of cost_code_ids that are already explicitly matched by any pending bill line
-  const explicitlyMatchedCostCodes = new Set<string>();
-  if (hasPending) {
-    for (const pbl of pendingBillLines) {
-      if (pbl.purchase_order_line_id) {
-        const matchedLine = lineItems.find(l => l.id === pbl.purchase_order_line_id);
-        if (matchedLine?.cost_code_id) explicitlyMatchedCostCodes.add(matchedLine.cost_code_id);
+  // Normalize a PO reference for comparison.
+  const normPoRef = (s: string | null | undefined) =>
+    s ? String(s).toUpperCase().replace(/[^A-Z0-9]/g, '') : '';
+
+  const thisPoId = purchaseOrder.id;
+  const thisPoNumberNorm = normPoRef(purchaseOrder.po_number);
+
+  /** True if a pending bill line is explicitly tied to THIS purchase order
+   *  (by purchase_order_id or by printed po_reference matching this PO number). */
+  const isExplicitlyOnThisPO = (pbl: PendingBillLine): boolean => {
+    if (pbl.purchase_order_id && pbl.purchase_order_id === thisPoId) return true;
+    if (pbl.po_reference && thisPoNumberNorm) {
+      const target = normPoRef(pbl.po_reference);
+      if (target && (target === thisPoNumberNorm || thisPoNumberNorm.includes(target) || target.includes(thisPoNumberNorm))) {
+        return true;
       }
     }
-  }
+    return false;
+  };
+
+  /** True if a pending bill line is explicitly tied to a DIFFERENT purchase order.
+   *  Used to exclude it from cost-code/single-line fallbacks on this PO. */
+  const isExplicitlyOnOtherPO = (pbl: PendingBillLine): boolean => {
+    if (pbl.purchase_order_id && pbl.purchase_order_id !== thisPoId) return true;
+    if (pbl.purchase_order_line_id) {
+      const matched = lineItems.find(l => l.id === pbl.purchase_order_line_id);
+      // If the line id doesn't belong to any line on THIS PO, treat as other-PO
+      if (!matched && !pbl.purchase_order_id) return true;
+    }
+    if (pbl.po_reference && thisPoNumberNorm) {
+      const target = normPoRef(pbl.po_reference);
+      if (target && !(target === thisPoNumberNorm || thisPoNumberNorm.includes(target) || target.includes(thisPoNumberNorm))) {
+        return true;
+      }
+    }
+    return false;
+  };
 
   // Helper to find pending amount for a PO line
   const getPendingForLine = (lineId: string, lineCostCodeId?: string, lineDescription?: string): number => {
@@ -183,10 +211,36 @@ export function PODetailsDialog({
       // Tier 1: explicit line match
       if (pbl.purchase_order_line_id === lineId) return sum + pbl.amount;
 
-      // Skip remaining tiers if this pending line already has an explicit line assignment
+      // Skip if this pending line already has an explicit line assignment to ANOTHER line
       if (pbl.purchase_order_line_id) return sum;
 
-      // Tier 2: exact cost code match
+      // Tier 1.5: explicit PO match (purchase_order_id or po_reference) → distribute by cost code on this PO
+      if (isExplicitlyOnThisPO(pbl)) {
+        // If only one line on this PO, attribute to it
+        if (lineItems.length === 1) return sum + pbl.amount;
+        // Prefer matching cost code on this PO
+        if (pbl.cost_code_id && pbl.cost_code_id === lineCostCodeId) {
+          const sameCCLines = lineItems.filter(l => l.cost_code_id === lineCostCodeId);
+          if (sameCCLines.length <= 1) return sum + pbl.amount;
+          // Multiple lines share cost code on this PO — disambiguate by memo keywords
+          let bestScore = 0;
+          let bestLineId: string | null = null;
+          for (const candidate of sameCCLines) {
+            const score = memoMatchScore(pbl.memo, candidate.description);
+            if (score > bestScore) {
+              bestScore = score;
+              bestLineId = candidate.id;
+            }
+          }
+          if (bestLineId === lineId) return sum + pbl.amount;
+        }
+        return sum;
+      }
+
+      // If the pending line is explicitly tied to a different PO, do not consider it here
+      if (isExplicitlyOnOtherPO(pbl)) return sum;
+
+      // Tier 2: exact cost code match (no explicit PO link)
       if (pbl.cost_code_id && pbl.cost_code_id === lineCostCodeId) {
         const sameCCLines = lineItems.filter(l => l.cost_code_id === lineCostCodeId);
         if (sameCCLines.length <= 1) {
@@ -208,13 +262,7 @@ export function PODetailsDialog({
         return sum;
       }
 
-      // Tier 2.5: parent/child cost code match (placeholder for future enhancement)
-      // Would compare bill line's cost code string against PO line's cost code string
-      // e.g., bill "3180.2" starts with PO "3180" — requires cost code strings on pending lines
-
       // Tier 3: single-line PO fallback
-      // If this PO has only one line item and the bill line wasn't matched by any tier above,
-      // attribute it to the single line (safe because bill was already filtered to this PO)
       if (lineItems.length === 1) {
         return sum + pbl.amount;
       }
