@@ -303,7 +303,7 @@ export function BillsApprovalTabs({ projectId, projectIds, reviewOnly = false, o
           });
 
           // Run matching for each bill's unmatched lines
-          const dbUpdates: { id: string; purchase_order_id: string }[] = [];
+          const dbUpdates: { id: string; purchase_order_id: string; purchase_order_line_id: string | null }[] = [];
 
           for (const [vendorId, bills] of vendorMap) {
             const vendorPOs = poByVendor.get(vendorId) || [];
@@ -338,7 +338,7 @@ export function BillsApprovalTabs({ projectId, projectIds, reviewOnly = false, o
                   const byNumber = vendorPOs.find(p => normRef(p.po_number).includes(printedRef));
                   if (byNumber) {
                     line.purchase_order_id = byNumber.id;
-                    dbUpdates.push({ id: line.id, purchase_order_id: byNumber.id });
+                    dbUpdates.push({ id: line.id, purchase_order_id: byNumber.id, purchase_order_line_id: null });
                     continue;
                   }
                 }
@@ -353,7 +353,8 @@ export function BillsApprovalTabs({ projectId, projectIds, reviewOnly = false, o
 
                 if (match) {
                   line.purchase_order_id = match.poId;
-                  dbUpdates.push({ id: line.id, purchase_order_id: match.poId });
+                  (line as any).purchase_order_line_id = match.poLineId;
+                  dbUpdates.push({ id: line.id, purchase_order_id: match.poId, purchase_order_line_id: match.poLineId });
                 }
               }
             }
@@ -365,7 +366,10 @@ export function BillsApprovalTabs({ projectId, projectIds, reviewOnly = false, o
               dbUpdates.map(u =>
                 supabase
                   .from('pending_bill_lines')
-                  .update({ purchase_order_id: u.purchase_order_id })
+                  .update({
+                    purchase_order_id: u.purchase_order_id,
+                    purchase_order_line_id: u.purchase_order_line_id,
+                  })
                   .eq('id', u.id)
               )
             );
