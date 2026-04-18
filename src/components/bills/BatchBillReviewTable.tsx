@@ -81,6 +81,7 @@ interface PendingBillLine {
   lot_id?: string;
   lot_name?: string;
   purchase_order_id?: string;
+  purchase_order_line_id?: string;
 }
 
 interface PendingBill {
@@ -141,7 +142,11 @@ export function BatchBillReviewTable({
   const [addingVendorForBillId, setAddingVendorForBillId] = useState<string | null>(null);
   const [addingVendorName, setAddingVendorName] = useState<string>("");
   const [rematchingBillId, setRematchingBillId] = useState<string | null>(null);
-  const [poDialogBillId, setPoDialogBillId] = useState<string | null>(null);
+  const [poDialogState, setPoDialogState] = useState<{
+    open: boolean;
+    matches: POMatch[];
+    bill: any | null;
+  }>({ open: false, matches: [], bill: null });
   const [vendorInitialData, setVendorInitialData] = useState<{
     phone_number?: string;
     address_line_1?: string;
@@ -191,33 +196,32 @@ export function BatchBillReviewTable({
     }
   };
 
-  // Auto-match PO status by looking up project_purchase_orders
-  const { data: poStatusMap } = usePendingBillPOStatus(bills, projectId);
+  // Build billsForMatching in the same shape used by the other tabs (BillsApprovalTable / PayBillsTable).
+  // This drives row clickability, the PO badge status, and the dialog matches via useBillPOMatching.
+  const billsForMatching = useMemo(() => {
+    return bills.map(b => {
+      const vendorId = (b.vendor_id || b.extracted_data?.vendor_id || b.extracted_data?.vendorId) as string | undefined;
+      const ext = b.extracted_data;
+      const total = ext?.total_amount || ext?.totalAmount;
+      const totalAmount = total
+        ? (typeof total === 'string' ? parseFloat(total) : total)
+        : (b.lines?.reduce((s, l) => s + (l.amount || 0), 0) || 0);
+      return {
+        id: b.id,
+        vendor_id: vendorId || '',
+        project_id: projectId,
+        total_amount: totalAmount,
+        status: 'draft',
+        bill_lines: (b.lines || []).map(l => ({
+          cost_code_id: l.cost_code_id,
+          amount: l.amount,
+          purchase_order_id: l.purchase_order_id,
+        })),
+      };
+    });
+  }, [bills, projectId]);
 
-  // For PO dialog: determine vendor for selected bill and fetch full PO data
-  const poDialogBill = poDialogBillId ? bills.find(b => b.id === poDialogBillId) : null;
-  const poDialogVendorId = poDialogBill
-    ? (poDialogBill.vendor_id || poDialogBill.extracted_data?.vendor_id || poDialogBill.extracted_data?.vendorId) as string | undefined
-    : undefined;
-  const poDialogPoIds = poDialogBillId ? (poStatusMap?.get(poDialogBillId)?.poIds || []) : [];
-  const { data: vendorPOs } = useVendorPurchaseOrders(projectId, poDialogVendorId);
-  const poDialogMatches: POMatch[] = useMemo(() => {
-    if (!vendorPOs || !poDialogPoIds.length) return [];
-    return vendorPOs
-      .filter(po => poDialogPoIds.includes(po.id))
-      .map(po => ({
-        po_id: po.id,
-        po_number: po.po_number || 'Unknown',
-        po_amount: po.total_amount || 0,
-        total_billed: 0,
-        remaining: po.total_amount || 0,
-        status: 'matched' as const,
-        cost_code_id: po.cost_code_id || '',
-        cost_code_display: po.cost_code
-          ? `${po.cost_code.code}: ${po.cost_code.name}`
-          : 'Unknown',
-      }));
-  }, [vendorPOs, poDialogPoIds]);
+  const { data: poMatchingData } = useBillPOMatching(billsForMatching);
 
   // Helper to get extracted values (handles both snake_case and camelCase)
   const getExtractedValue = (bill: PendingBill, snakeCase: string, camelCase: string) => {
