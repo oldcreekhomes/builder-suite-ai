@@ -264,6 +264,7 @@ export function EditExtractedBillDialog({
                 cost_code_id: costCodeToUse || undefined,
                 cost_code_display: costCodeDisplay || undefined,
                 purchase_order_id: poOverrides?.[line.id] || line.purchase_order_id || undefined,
+                purchase_order_line_id: (line as any).purchase_order_line_id || undefined,
                 lot_id: line.lot_id || undefined,
                 quantity: qty,
                 unit_cost: unitCost,
@@ -280,6 +281,7 @@ export function EditExtractedBillDialog({
                   cost_code_id: defaultCostCode,
                   cost_code_display: costCodeDisplay || undefined,
                   purchase_order_id: poOverrides?.[line.id] || line.purchase_order_id || undefined,
+                  purchase_order_line_id: (line as any).purchase_order_line_id || undefined,
                   lot_id: line.lot_id || undefined,
                   quantity: qty,
                   unit_cost: unitCost,
@@ -474,7 +476,10 @@ export function EditExtractedBillDialog({
         matchedLines.map(l =>
           supabase
             .from('pending_bill_lines')
-            .update({ purchase_order_id: l.purchase_order_id })
+            .update({
+              purchase_order_id: l.purchase_order_id,
+              purchase_order_line_id: l.purchase_order_line_id || null,
+            })
             .eq('id', l.id)
         )
       ).then(() => {
@@ -710,6 +715,7 @@ export function EditExtractedBillDialog({
             cost_code_id: line.cost_code_id,
             cost_code_name: costCodeName,
             purchase_order_id: sanitizePoId(line.purchase_order_id),
+            purchase_order_line_id: line.purchase_order_line_id || undefined,
             lot_id: line.lot_id,
             quantity: line.quantity || 1,
             unit_cost: line.unit_cost || 0,
@@ -728,6 +734,7 @@ export function EditExtractedBillDialog({
             cost_code_id: line.cost_code_id,
             cost_code_name: costCodeName,
             purchase_order_id: sanitizePoId(line.purchase_order_id),
+            purchase_order_line_id: line.purchase_order_line_id || undefined,
             lot_id: line.lot_id,
             quantity: line.quantity || 1,
             unit_cost: line.unit_cost || 0,
