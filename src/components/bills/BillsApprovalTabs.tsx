@@ -368,6 +368,7 @@ export function BillsApprovalTabs({ projectId, projectIds, reviewOnly = false, o
                   .update({
                     purchase_order_id: u.purchase_order_id,
                     purchase_order_line_id: u.purchase_order_line_id,
+                    po_reference: u.po_reference,
                   })
                   .eq('id', u.id)
               )
