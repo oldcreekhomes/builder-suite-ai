@@ -60,13 +60,19 @@ export function BillPOSummaryDialog({
   const [selectedPoId, setSelectedPoId] = useState<string | null>(null);
 
   const matchedPoIdsArr = matches.map(m => m.po_id);
-  const { data: vendorPOs } = useVendorPurchaseOrders(
+  const { data: vendorPOs, isLoading: isLoadingPOs } = useVendorPurchaseOrders(
     bill?.project_id,
     bill?.vendor_id,
     bill?.id,
     bill?.bill_date,
     matchedPoIdsArr
   );
+
+  // Wait until every requested matched PO is present in vendorPOs to avoid
+  // a brief flash of wrong allocations during the secondary fetch.
+  const loadedPoIds = new Set((vendorPOs || []).map((p: any) => p.id));
+  const allMatchesLoaded = matchedPoIdsArr.every(id => loadedPoIds.has(id));
+  const poDataReady = !isLoadingPOs && allMatchesLoaded;
 
   const selectedPO = vendorPOs?.find(po => po.id === selectedPoId) || null;
 
@@ -143,8 +149,20 @@ export function BillPOSummaryDialog({
     };
   });
 
-  // If only one match, go directly to the detail dialog
+  // If only one match, go directly to the detail dialog (wait for PO data so we don't flash).
   if (matches.length === 1 && open) {
+    if (!poDataReady) {
+      return (
+        <Dialog open={open} onOpenChange={onOpenChange}>
+          <DialogContent className="max-w-md">
+            <DialogHeader>
+              <DialogTitle>Loading…</DialogTitle>
+              <DialogDescription>Loading purchase order details…</DialogDescription>
+            </DialogHeader>
+          </DialogContent>
+        </Dialog>
+      );
+    }
     const singlePO = vendorPOs?.find(po => po.id === matches[0].po_id) || null;
     return (
       <PODetailsDialog
@@ -175,6 +193,11 @@ export function BillPOSummaryDialog({
             </DialogDescription>
           </DialogHeader>
 
+          {!poDataReady ? (
+            <div className="py-12 text-center text-sm text-muted-foreground">
+              Loading purchase order details…
+            </div>
+          ) : (
           <SettingsTableWrapper>
             <Table>
               <TableHeader>
@@ -192,6 +215,18 @@ export function BillPOSummaryDialog({
                 {[...matches].sort((a, b) => (a.po_number || '').localeCompare(b.po_number || '')).map((match) => {
                   const thisBillAmount = getThisBillAmount(match);
                   const adjustedRemaining = match.po_amount - match.total_billed - thisBillAmount;
+                  // Re-derive status from the resolved allocation, cent-precise.
+                  const projectedBilledCents = Math.round((match.total_billed + thisBillAmount) * 100);
+                  const poAmountCents = Math.round(match.po_amount * 100);
+                  const remainingCents = poAmountCents - projectedBilledCents;
+                  const rowStatus: 'matched' | 'over_po' | 'draw' =
+                    remainingCents < 0
+                      ? 'over_po'
+                      : (thisBillAmount > 0 && thisBillAmount < match.po_amount && match.po_amount > 0 && remainingCents > 0)
+                        ? 'draw'
+                        : 'matched';
+                  const statusLabel = rowStatus === 'matched' ? 'Matched' : rowStatus === 'draw' ? 'Draw' : 'Over';
+                  const statusClass = rowStatus === 'over_po' ? 'bg-red-100 text-red-700' : 'bg-green-100 text-green-700';
                   return (
                   <TableRow
                     key={match.po_id}
@@ -219,12 +254,10 @@ export function BillPOSummaryDialog({
                       <span
                         className={cn(
                           "inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium",
-                          match.status === "matched"
-                            ? "bg-green-100 text-green-700"
-                            : "bg-red-100 text-red-700"
+                          statusClass
                         )}
                       >
-                        {match.status === "matched" ? "Matched" : "Over"}
+                        {statusLabel}
                       </span>
                     </TableCell>
                   </TableRow>
@@ -233,6 +266,7 @@ export function BillPOSummaryDialog({
               </TableBody>
             </Table>
           </SettingsTableWrapper>
+          )}
         </DialogContent>
       </Dialog>
 

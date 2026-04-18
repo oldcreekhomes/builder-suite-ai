@@ -15,7 +15,7 @@ export interface POMatch {
 export interface BillPOMatchResult {
   bill_id: string;
   matches: POMatch[];
-  overall_status: 'matched' | 'over_po' | 'no_po' | 'partial' | 'draw';
+  overall_status: 'matched' | 'over_po' | 'no_po' | 'partial' | 'draw' | 'numerous';
 }
 
 interface BillLine {
@@ -305,13 +305,32 @@ export function useBillPOMatching(bills: BillForMatching[]) {
             const poAmount = matchedPo.total_amount || 0;
             const isDraftBill = (bill.status || 'draft') === 'draft';
 
-            // Current bill's lines allocated to this PO
+            // Current bill's lines allocated to this PO — mirror dialog resolution chain:
+            // 1) explicit purchase_order_id, 2) printed po_reference, 3) unique cost_code fallback.
+            const matchedPoNumNorm = normalizePoRef(matchedPo.po_number);
             const thisBillAmount = allLines
               .filter(l => {
                 let lpId = l.purchase_order_id;
                 if (lpId === '__none__' || lpId === '__auto__') lpId = undefined;
                 if (lpId === matchedPo.id) return true;
-                if (!lpId && l.cost_code_id === matchedPo.cost_code_id) return true;
+                if (lpId && lpId !== matchedPo.id) return false; // explicitly assigned elsewhere
+                if (l.po_reference && matchedPoNumNorm) {
+                  const target = normalizePoRef(l.po_reference);
+                  if (target && (target === matchedPoNumNorm || matchedPoNumNorm.includes(target) || target.includes(matchedPoNumNorm))) {
+                    return true;
+                  }
+                  // printed a different PO — exclude from this PO
+                  if (target) return false;
+                }
+                if (l.cost_code_id === matchedPo.cost_code_id) {
+                  // Only attribute by cost_code if no other matched PO shares it
+                  const sharedPos = pos.filter(p =>
+                    p.company_id === bill.vendor_id &&
+                    p.project_id === bill.project_id &&
+                    p.cost_code_id === matchedPo.cost_code_id
+                  );
+                  if (sharedPos.length <= 1) return true;
+                }
                 return false;
               })
               .reduce((s, l) => s + (l.amount || 0), 0);
@@ -339,20 +358,20 @@ export function useBillPOMatching(bills: BillForMatching[]) {
           }
         });
 
-        // Determine overall status
-        let overall_status: 'matched' | 'over_po' | 'no_po' | 'partial' | 'draw';
+        // Determine overall status:
+        // - 0 matches → no_po
+        // - all POs share the same status → use it
+        // - mixed statuses (e.g. one matched + one over) → 'numerous'
+        let overall_status: 'matched' | 'over_po' | 'no_po' | 'partial' | 'draw' | 'numerous';
         if (matches.length === 0) {
           overall_status = 'no_po';
-        } else if (matches.every(m => m.status === 'matched')) {
-          overall_status = 'matched';
-        } else if (matches.every(m => m.status === 'draw')) {
-          overall_status = 'draw';
-        } else if (matches.every(m => m.status === 'matched' || m.status === 'draw')) {
-          overall_status = 'draw';
-        } else if (matches.some(m => m.status === 'over_po')) {
-          overall_status = 'over_po';
         } else {
-          overall_status = 'partial';
+          const distinct = new Set(matches.map(m => m.status));
+          if (distinct.size === 1) {
+            overall_status = matches[0].status as any;
+          } else {
+            overall_status = 'numerous';
+          }
         }
 
         resultMap.set(bill.id, {

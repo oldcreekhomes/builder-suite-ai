@@ -3,7 +3,7 @@ import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 
-export type POStatus = 'matched' | 'over_po' | 'no_po' | 'partial' | 'draw';
+export type POStatus = 'matched' | 'over_po' | 'no_po' | 'partial' | 'draw' | 'numerous';
 
 interface POStatusBadgeProps {
   status: POStatus;
@@ -37,6 +37,14 @@ export function POStatusBadge({ status, onClick, className }: POStatusBadgeProps
           tooltip: 'Cumulative bills exceed PO amount',
           bgClass: 'bg-red-100 hover:bg-red-200 text-red-700 border-red-200',
           iconClass: 'text-red-600',
+        };
+      case 'numerous':
+        return {
+          icon: AlertTriangle,
+          label: 'Numerous',
+          tooltip: 'Mixed PO statuses — some matched, some over',
+          bgClass: 'bg-amber-100 hover:bg-amber-200 text-amber-700 border-amber-200',
+          iconClass: 'text-amber-600',
         };
       case 'partial':
         return {
