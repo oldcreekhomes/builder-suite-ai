@@ -51,22 +51,39 @@ export function useVendorPurchaseOrders(
   projectId: string | null | undefined,
   vendorId: string | null | undefined,
   excludeBillId?: string,
-  excludeBillDate?: string
+  excludeBillDate?: string,
+  includePoIds?: string[]
 ) {
+  const includeKey = (includePoIds || []).slice().sort().join(',');
   return useQuery({
-    queryKey: ['vendor-pos', projectId, vendorId, excludeBillId, excludeBillDate],
+    queryKey: ['vendor-pos', projectId, vendorId, excludeBillId, excludeBillDate, includeKey],
     queryFn: async (): Promise<VendorPurchaseOrder[]> => {
       if (!projectId || !vendorId) return [];
 
-      // Fetch all approved POs for this vendor + project
-      const { data: pos, error: poError } = await supabase
+      // Fetch approved POs for this vendor + project
+      const { data: approvedPos, error: poError } = await supabase
         .from('project_purchase_orders')
-        .select(`id, po_number, total_amount, cost_code_id`)
+        .select(`id, po_number, total_amount, cost_code_id, status`)
         .eq('project_id', projectId)
         .eq('company_id', vendorId)
         .eq('status', 'approved');
 
       if (poError) throw poError;
+
+      // Also fetch any explicitly requested PO ids regardless of status
+      // (used by the PO Status dialog so rejected/draft matched POs still appear).
+      let extraPos: any[] = [];
+      const approvedIds = new Set((approvedPos || []).map(p => p.id));
+      const missingIds = (includePoIds || []).filter(id => id && !approvedIds.has(id));
+      if (missingIds.length > 0) {
+        const { data: extra } = await supabase
+          .from('project_purchase_orders')
+          .select(`id, po_number, total_amount, cost_code_id, status`)
+          .in('id', missingIds);
+        extraPos = extra || [];
+      }
+
+      const pos = [...(approvedPos || []), ...extraPos];
       if (!pos || pos.length === 0) return [];
 
       const poIds = pos.map(po => po.id);
