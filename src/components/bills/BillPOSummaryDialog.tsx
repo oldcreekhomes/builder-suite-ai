@@ -220,7 +220,13 @@ export function BillPOSummaryDialog({
         currentBillAmount={bill?.total_amount}
         currentBillReference={bill?.reference_number || undefined}
         currentBillStatus={bill?.status}
-        pendingBillLines={derivedPendingBillLines.filter(l => l.purchase_order_id === selectedPoId)}
+        pendingBillLines={derivedPendingBillLines.filter(l => {
+          if (l.purchase_order_line_id) {
+            const poId = poLineToPoId.get(l.purchase_order_line_id);
+            if (poId) return poId === selectedPoId;
+          }
+          return l.purchase_order_id === selectedPoId;
+        })}
       />
     </>
   );
