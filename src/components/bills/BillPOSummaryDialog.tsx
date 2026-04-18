@@ -64,14 +64,31 @@ export function BillPOSummaryDialog({
   const formatCurrency = (amount: number) =>
     new Intl.NumberFormat("en-US", { style: "currency", currency: "USD" }).format(Math.round(amount * 100) === 0 ? 0 : amount);
 
-  // Compute "this bill" amount per PO by matching bill lines to PO cost codes
+  // Build a lookup of PO line -> PO id from vendorPOs so we can resolve lines linked by purchase_order_line_id
+  const poLineToPoId = new Map<string, string>();
+  (vendorPOs || []).forEach((po: any) => {
+    (po.lines || po.purchase_order_lines || []).forEach((pl: any) => {
+      if (pl?.id) poLineToPoId.set(pl.id, po.id);
+    });
+  });
+
+  // Compute "this bill" amount per PO with strict allocation:
+  // 1) purchase_order_line_id (resolved to its PO) wins
+  // 2) explicit purchase_order_id wins
+  // 3) cost_code fallback only when that cost code is unique among matches
   const getThisBillAmount = (match: POMatch) => {
     if (!bill?.bill_lines) return 0;
+    const sharedCostCode = matches.filter(m => m.cost_code_id === match.cost_code_id).length > 1;
     return bill.bill_lines
       .filter(line => {
+        if (line.purchase_order_line_id) {
+          const poId = poLineToPoId.get(line.purchase_order_line_id);
+          if (poId) return poId === match.po_id;
+        }
         if (line.purchase_order_id && line.purchase_order_id !== '__auto__' && line.purchase_order_id !== '__none__') {
           return line.purchase_order_id === match.po_id;
         }
+        if (sharedCostCode) return false;
         return line.cost_code_id === match.cost_code_id;
       })
       .reduce((sum, line) => sum + (line.amount || 0), 0);
@@ -103,6 +120,10 @@ export function BillPOSummaryDialog({
         currentBillReference={bill?.reference_number || undefined}
         currentBillStatus={bill?.status}
         pendingBillLines={derivedPendingBillLines.filter(l => {
+          if (l.purchase_order_line_id) {
+            const poId = poLineToPoId.get(l.purchase_order_line_id);
+            if (poId) return poId === matches[0].po_id;
+          }
           if (l.purchase_order_id && l.purchase_order_id !== '__auto__' && l.purchase_order_id !== '__none__') {
             return l.purchase_order_id === matches[0].po_id;
           }
@@ -199,7 +220,13 @@ export function BillPOSummaryDialog({
         currentBillAmount={bill?.total_amount}
         currentBillReference={bill?.reference_number || undefined}
         currentBillStatus={bill?.status}
-        pendingBillLines={derivedPendingBillLines.filter(l => l.purchase_order_id === selectedPoId)}
+        pendingBillLines={derivedPendingBillLines.filter(l => {
+          if (l.purchase_order_line_id) {
+            const poId = poLineToPoId.get(l.purchase_order_line_id);
+            if (poId) return poId === selectedPoId;
+          }
+          return l.purchase_order_id === selectedPoId;
+        })}
       />
     </>
   );
