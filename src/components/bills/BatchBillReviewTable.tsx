@@ -722,10 +722,16 @@ export function BatchBillReviewTable({
                 return '-';
               };
               
+              const poStatusForRow = poStatusMap?.get(bill.id)?.status || 'no_po';
+              const rowClickable = poStatusForRow !== 'no_po';
               return (
-                <TableRow key={bill.id}>
+                <TableRow
+                  key={bill.id}
+                  onClick={rowClickable ? () => setPoDialogBillId(bill.id) : undefined}
+                  className={rowClickable ? "cursor-pointer hover:bg-muted/50" : undefined}
+                >
                   {/* Checkbox */}
-                  <TableCell className="w-12">
+                  <TableCell className="w-12" onClick={(e) => e.stopPropagation()}>
                     <Checkbox
                       checked={selectedBillIds.has(bill.id)}
                       onCheckedChange={() => onBillSelect(bill.id)}
