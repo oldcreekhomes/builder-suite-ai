@@ -161,19 +161,13 @@ export function useBillPOMatching(bills: BillForMatching[]) {
 
         if (linkedError) throw linkedError;
 
-        // Only exclude DRAFT bills from totalBilled (they aren't in accounting yet).
-        // Posted/paid bills are already accounted for, so we should NOT subtract them again.
-        const draftBillIdsToExclude = new Set(
-          bills.filter(b => (b.status || 'draft') === 'draft').map(b => b.id)
-        );
-
+        // Status-based rule: include only bills committed to the GL (approved or paid).
+        // Review/draft and rejected bills are excluded — they are not committed cost.
         (linkedLines || []).forEach(line => {
-          if (draftBillIdsToExclude.has(line.bill_id)) return;
-
           const billData = line.bills as unknown as { status: string; is_reversal: boolean; reversed_at: string | null };
           if (
             billData &&
-            ['posted', 'paid'].includes(billData.status) &&
+            ['approved', 'paid', 'posted'].includes(billData.status) &&
             !billData.is_reversal &&
             !billData.reversed_at &&
             line.purchase_order_id
