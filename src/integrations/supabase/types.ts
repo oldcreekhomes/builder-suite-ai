@@ -503,6 +503,7 @@ export type Database = {
           lot_id: string | null
           memo: string | null
           owner_id: string
+          po_reference: string | null
           project_id: string | null
           purchase_order_id: string | null
           purchase_order_line_id: string | null
@@ -524,6 +525,7 @@ export type Database = {
           lot_id?: string | null
           memo?: string | null
           owner_id: string
+          po_reference?: string | null
           project_id?: string | null
           purchase_order_id?: string | null
           purchase_order_line_id?: string | null
@@ -545,6 +547,7 @@ export type Database = {
           lot_id?: string | null
           memo?: string | null
           owner_id?: string
+          po_reference?: string | null
           project_id?: string | null
           purchase_order_id?: string | null
           purchase_order_line_id?: string | null
@@ -2903,6 +2906,7 @@ export type Database = {
           memo: string | null
           owner_id: string
           pending_upload_id: string
+          po_reference: string | null
           project_id: string | null
           project_name: string | null
           purchase_order_id: string | null
@@ -2925,6 +2929,7 @@ export type Database = {
           memo?: string | null
           owner_id: string
           pending_upload_id: string
+          po_reference?: string | null
           project_id?: string | null
           project_name?: string | null
           purchase_order_id?: string | null
@@ -2947,6 +2952,7 @@ export type Database = {
           memo?: string | null
           owner_id?: string
           pending_upload_id?: string
+          po_reference?: string | null
           project_id?: string | null
           project_name?: string | null
           purchase_order_id?: string | null

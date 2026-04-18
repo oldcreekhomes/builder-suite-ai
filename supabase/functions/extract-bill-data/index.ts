@@ -708,11 +708,26 @@ Extract the following information and return as valid JSON:
       "amount": number,
       "memo": "string or null",
       "account_name": "string - exact match from available accounts, or null",
-      "cost_code_name": "string - MUST be in format 'CODE: NAME' (e.g., '4020: Project Manager'), or null"
+      "cost_code_name": "string - MUST be in format 'CODE: NAME' (e.g., '4020: Project Manager'), or null",
+      "po_reference": "string - PO number printed ON THIS LINE if visible (e.g. 'PO2025-923T-0036', '2025-923T-0027'), or null"
     }
   ],
   "total_amount": number
 }
+
+PO REFERENCE EXTRACTION (CRITICAL):
+- Many invoices print a Purchase Order number next to each line item, in a "Customer PO", "PO #", "P.O.", "Job #", or memo column.
+- For EACH line item, capture that PO number into "po_reference" EXACTLY as printed.
+- Recognize patterns like: "PO2025-923T-0036", "PO# 2025-923T-0027", "P.O. 1234", "Customer PO: 2025-923T-0035", "Job #2025-923T-0036", or a bare token like "2025-923T-0036" appearing in the description column.
+- If different lines reference different POs, each line gets its OWN po_reference. Do NOT copy one line's PO to another line.
+- If no PO is printed for a line, set po_reference to null.
+
+WORKED EXAMPLE (multi-PO invoice):
+An invoice from "AN EXTERIOR INC." total $27,180 with three rows:
+  Row 1: "Siding - PO2025-923T-0035"   $20,350
+  Row 2: "Exterior Trim - PO2025-923T-0036"   $2,800
+  Row 3: "Cornice - PO#2025-923T-0027"   $4,030
+Must produce THREE separate line_items, each with its own amount, description, cost_code_name, AND po_reference (e.g. "2025-923T-0035", "2025-923T-0036", "2025-923T-0027").
 
 VENDOR CONTACT INFORMATION - CRITICAL EXTRACTION RULES:
 ⚠️ ALWAYS extract vendor contact information when visible on the invoice
@@ -774,16 +789,13 @@ CRITICAL COST CODE FORMAT RULE:
 - CORRECT: "4020: Project Manager"
 - If vendor has exactly one cost code, ALWAYS use it and ignore description-based suggestions.
 
-MULTI-ITEM INVOICE SPLITTING RULES:
-- When an invoice body contains MULTIPLE items with individual dollar amounts 
-  (e.g., "Deck balance - $1032 / Siding draw - $3500 / Framing - $720"), 
-  you MUST create SEPARATE line_items for EACH item.
-- Each line item gets its own description, quantity, unit_cost, and amount.
-- DO NOT combine multiple items into a single line_items entry.
-- The sum of all line item amounts should equal the total_amount.
-- Common patterns: draw schedules, progress billing, multi-scope invoices.
-- Each line item should be categorized with its own cost_code_name based 
-  on its description (e.g., "Deck" -> framing/carpentry code, "Siding" -> siding code).
+MULTI-ITEM INVOICE SPLITTING RULES (STRICT):
+- If the invoice body shows a Description/Amount table (or any structured list) where MULTIPLE rows each have their OWN dollar amount, every row MUST become a SEPARATE line_items entry. NO EXCEPTIONS.
+- This includes: draw schedules, progress billing, multi-scope invoices, lists like "Deck balance $1032 / Siding draw $3500 / Framing $720", and invoices with multiple POs referenced.
+- Each line item gets its own description, quantity, unit_cost, amount, cost_code_name, AND po_reference.
+- The sum of all line item amounts should equal the total_amount (small rounding/tax differences are OK — DO NOT collapse to a single line just because the sum is off by a few dollars).
+- DO NOT combine multiple items into a single line_items entry, even if they share a vendor or cost code.
+- Each line item should be categorized with its own cost_code_name based on its description (e.g., "Deck" -> framing/carpentry code, "Siding" -> siding code).
 
 🔍 FINAL VALIDATION CHECKLIST (before returning JSON):
 ✓ All field names use snake_case (vendor_name, bill_date, NOT vendorName, billDate)
@@ -932,9 +944,12 @@ Return ONLY the JSON object, no additional text.`;
           description: item.description,
           quantity: item.quantity,
           unit_cost: item.unitPrice || item.unit_cost || item.unitCost,
+          amount: item.amount ?? item.total,
           total: item.total,
+          memo: item.memo,
           cost_code_name: item.costCodeName || item.cost_code_name,
           account_name: item.accountName || item.account_name,
+          po_reference: item.poReference || item.po_reference || item.PO || item.po || null,
           line_type: item.line_type || item.lineType || 'job_cost'
         }))
       };
@@ -1114,10 +1129,25 @@ Return ONLY the JSON object, no additional text.`;
       
       const extractedTotal = Number(extractedData.total_amount) || 0;
       
-      if (extractedTotal > 0 && Math.abs(lineSum - extractedTotal) > 0.01) {
-        console.log(`⚠️ Line items sum (${lineSum}) doesn't match total_amount (${extractedTotal})`);
-        console.log(`→ Creating single line item with Amount Due: ${extractedTotal}`);
-        
+      // Only collapse to a single line when extraction is genuinely broken:
+      //   - line sum is ZERO (no usable amounts), OR
+      //   - line sum is wildly off (more than the larger of $25 / 5% of total)
+      // Small rounding/tax discrepancies are expected and must NOT nuke a real
+      // multi-line breakdown (that's how multi-PO invoices end up showing as one line).
+      const diff = Math.abs(lineSum - extractedTotal);
+      const tolerance = Math.max(25, extractedTotal * 0.05);
+      const shouldCollapse =
+        extractedTotal > 0 &&
+        (lineSum <= 0.01 || diff > tolerance);
+
+      if (extractedTotal > 0 && diff > 0.01 && !shouldCollapse) {
+        console.log(`ℹ️ Line items sum (${lineSum}) differs from total_amount (${extractedTotal}) by ${diff.toFixed(2)} — within tolerance, keeping ${extractedData.line_items.length} line(s).`);
+      }
+
+      if (shouldCollapse) {
+        console.log(`⚠️ Line items sum (${lineSum}) doesn't match total_amount (${extractedTotal}) — diff ${diff.toFixed(2)} exceeds tolerance ${tolerance.toFixed(2)}`);
+        console.log(`→ Collapsing to single line item with Amount Due: ${extractedTotal}`);
+
         // Look up vendor's default cost code to include in the single line
         let defaultCostCodeName: string | null = null;
         if (extractedData.vendor_id) {
@@ -1129,7 +1159,7 @@ Return ONLY the JSON object, no additional text.`;
                 cost_codes (id, code, name)
               `)
               .eq('company_id', extractedData.vendor_id);
-            
+
             if (vendorCostCodes && vendorCostCodes.length === 1) {
               const cc = (vendorCostCodes[0] as any).cost_codes;
               if (cc) {
@@ -1141,7 +1171,7 @@ Return ONLY the JSON object, no additional text.`;
             console.warn('Could not fetch vendor cost code:', costCodeErr);
           }
         }
-        
+
         // Replace line items with a single line matching the total (with cost code if found)
         extractedData.line_items = [{
           description: extractedData.vendor_name ? `${extractedData.vendor_name} - Invoice` : 'Invoice Total',
@@ -1151,6 +1181,7 @@ Return ONLY the JSON object, no additional text.`;
           memo: null,
           account_name: null,
           cost_code_name: defaultCostCodeName,
+          po_reference: null,
           line_type: 'job_cost'
         }];
       }
@@ -1192,6 +1223,12 @@ Return ONLY the JSON object, no additional text.`;
             }
           }
           
+          // Normalize PO reference: strip leading "PO", "PO#", "P.O.", "Customer PO:", "Job #", whitespace, and quotes
+          const rawPo = item.po_reference || null;
+          const poReference = rawPo
+            ? String(rawPo).replace(/^(customer\s*po|job\s*#?|p\.?\s*o\.?)\s*[:#]?\s*/i, '').replace(/^#/, '').trim() || null
+            : null;
+
           return {
             pending_upload_id: pendingUploadId,
             owner_id: pendingUpload.owner_id, // Use original owner_id from pending_upload
@@ -1210,6 +1247,7 @@ Return ONLY the JSON object, no additional text.`;
             amount: (item.amount && item.amount > 0)
               ? Number(item.amount.toFixed(2))
               : Number(((item.quantity || 1) * (item.unit_cost || 0)).toFixed(2)),
+            po_reference: poReference,
           };
         });
         
