@@ -39,6 +39,7 @@ interface BillPOSummaryDialogProps {
     total_amount?: number;
     reference_number?: string | null;
     bill_date?: string;
+    status?: string;
     bill_lines?: BillLine[];
   } | null;
 }
