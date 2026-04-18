@@ -1,35 +1,36 @@
 
 
 ## Goal
-Remove the redundant secondary "PO details" dialog that opens when clicking a row in the PO Status Summary table. The summary already shows all the same information.
+Add a "Files" column to the PO Status Summary table and left-align all columns for consistency.
 
-## What's happening now
-In `BillPOSummaryDialog.tsx`:
-- The summary table renders a row per matched PO with PO Number, Cost Code, PO Amount, Billed to Date, This Bill, Remaining, Status.
-- Each row has `onClick={() => setSelectedPoId(match.po_id)}` which opens a second `<PODetailsDialog>` showing essentially the same row data (per screenshot: PO number, cost code, PO Amount, Billed to Date, This Bill, Remaining, Matched badge).
-- This drill-down is redundant.
+## Investigation needed
+- Read `BillPOSummaryDialog.tsx` to see current table structure.
+- Find how PO files are stored on `project_purchase_orders` (likely a `files` jsonb column or a related proposals/attachments structure) and how they are rendered elsewhere (e.g., `FilesCell.tsx` already exists for purchase order files).
+- Confirm `useVendorPurchaseOrders` returns the files field, or extend it.
 
 ## Plan
 
-### 1. Remove drill-down from `BillPOSummaryDialog.tsx`
-- Delete `selectedPoId` state and the `selectedPO` lookup.
-- Remove the `<PODetailsDialog>` instance rendered at the bottom of the component.
-- Remove `onClick` and `cursor-pointer hover:bg-muted/50` from the table rows so rows are not interactive.
-- Remove the `&& !selectedPoId` gate on the outer Dialog's `open` prop (just use `open`).
-- Remove the now-unused `PODetailsDialog` import if no other usage remains in this file.
+### 1. Add Files column
+- In `BillPOSummaryDialog.tsx`:
+  - Add a new `<TableHead>Files</TableHead>` after the Status column.
+  - For each row, render the matched PO's files using the existing `FilesCell` component (from `src/components/purchaseOrders/components/FilesCell.tsx`) so behavior matches the rest of the app (icons, click-to-preview).
+  - Pass `files={po.files}` and `projectId={po.project_id}` (or the bill's project id).
 
-### 2. Preserve single-PO behavior
-- The early-return path for `matches.length === 1` still uses `PODetailsDialog` directly — that is the correct single-PO view and stays unchanged.
+### 2. Ensure PO files are available
+- Update `useVendorPurchaseOrders.ts` select to include `files, project_id` for both the approved query and the `includePoIds` fallback query, so `FilesCell` has what it needs.
 
-### 3. Verify no other callers depend on the drill-down
-- Confirm `PODetailsDialogWrapper` and other entry points to `PODetailsDialog` are untouched.
+### 3. Left-align all columns
+- Remove `text-right` from `PO Amount`, `Billed to Date`, `This Bill`, `Remaining`, `Status` headers and cells.
+- Keep currency formatting unchanged; just change alignment.
+- Files column also left-aligned.
 
-## Files to update
+### Files to update
 - `src/components/bills/BillPOSummaryDialog.tsx`
+- `src/hooks/useVendorPurchaseOrders.ts`
 
 ## Verification
-- Open a bill with multiple matched POs → PO Status Summary opens.
-- Clicking a row does nothing (no second dialog).
-- Open a bill with a single matched PO → still goes directly to PO details (unchanged).
-- No console errors; no unused imports.
+- Open PO Status Summary for bill C26019: 7 columns now (PO Number, Cost Code, PO Amount, Billed to Date, This Bill, Remaining, Status, Files).
+- All headers and cells left-aligned.
+- Files column shows file icons for each PO; clicking previews the file.
+- POs with no files show the dash placeholder.
 
