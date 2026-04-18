@@ -59,11 +59,13 @@ export function BillPOSummaryDialog({
 }: BillPOSummaryDialogProps) {
   const [selectedPoId, setSelectedPoId] = useState<string | null>(null);
 
+  const matchedPoIdsArr = matches.map(m => m.po_id);
   const { data: vendorPOs } = useVendorPurchaseOrders(
     bill?.project_id,
     bill?.vendor_id,
     bill?.id,
-    bill?.bill_date
+    bill?.bill_date,
+    matchedPoIdsArr
   );
 
   const selectedPO = vendorPOs?.find(po => po.id === selectedPoId) || null;
