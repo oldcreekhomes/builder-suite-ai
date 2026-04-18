@@ -18,6 +18,7 @@ import { PODetailsDialog, PendingBillLine } from "./PODetailsDialog";
 import { useVendorPurchaseOrders } from "@/hooks/useVendorPurchaseOrders";
 import { cn } from "@/lib/utils";
 import { SettingsTableWrapper } from "@/components/ui/settings-table-wrapper";
+import { FilesCell } from "@/components/purchaseOrders/components/FilesCell";
 
 interface BillLine {
   cost_code_id?: string | null;
@@ -200,11 +201,12 @@ export function BillPOSummaryDialog({
                 <TableRow>
                   <TableHead className="whitespace-nowrap">PO Number</TableHead>
                   <TableHead className="whitespace-nowrap">Cost Code</TableHead>
-                  <TableHead className="whitespace-nowrap text-right">PO Amount</TableHead>
-                  <TableHead className="whitespace-nowrap text-right">Billed to Date</TableHead>
-                  <TableHead className="whitespace-nowrap text-right">This Bill</TableHead>
-                  <TableHead className="whitespace-nowrap text-right">Remaining</TableHead>
-                  <TableHead className="whitespace-nowrap text-center">Status</TableHead>
+                  <TableHead className="whitespace-nowrap">PO Amount</TableHead>
+                  <TableHead className="whitespace-nowrap">Billed to Date</TableHead>
+                  <TableHead className="whitespace-nowrap">This Bill</TableHead>
+                  <TableHead className="whitespace-nowrap">Remaining</TableHead>
+                  <TableHead className="whitespace-nowrap">Status</TableHead>
+                  <TableHead className="whitespace-nowrap">Files</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -223,26 +225,27 @@ export function BillPOSummaryDialog({
                         : 'matched';
                   const statusLabel = rowStatus === 'matched' ? 'Matched' : rowStatus === 'draw' ? 'Draw' : 'Over';
                   const statusClass = rowStatus === 'over_po' ? 'bg-red-100 text-red-700' : 'bg-green-100 text-green-700';
+                  const poRecord = vendorPOs?.find(p => p.id === match.po_id);
                   return (
                   <TableRow key={match.po_id}>
                     <TableCell className="whitespace-nowrap font-medium">{match.po_number}</TableCell>
                     <TableCell className="whitespace-nowrap">{match.cost_code_display}</TableCell>
-                    <TableCell className="whitespace-nowrap text-right">{formatCurrency(match.po_amount)}</TableCell>
-                    <TableCell className="whitespace-nowrap text-right">{formatCurrency(match.total_billed)}</TableCell>
-                    <TableCell className="whitespace-nowrap text-right">
+                    <TableCell className="whitespace-nowrap">{formatCurrency(match.po_amount)}</TableCell>
+                    <TableCell className="whitespace-nowrap">{formatCurrency(match.total_billed)}</TableCell>
+                    <TableCell className="whitespace-nowrap">
                       <span className="inline-flex items-center rounded px-1.5 py-0.5 text-xs font-medium bg-green-100 text-green-700">
                         {formatCurrency(thisBillAmount)}
                       </span>
                     </TableCell>
                     <TableCell
                       className={cn(
-                        "whitespace-nowrap text-right font-medium",
+                        "whitespace-nowrap font-medium",
                         adjustedRemaining >= 0 ? "text-green-600" : "text-red-600"
                       )}
                     >
                       {formatCurrency(adjustedRemaining)}
                     </TableCell>
-                    <TableCell className="whitespace-nowrap text-center">
+                    <TableCell className="whitespace-nowrap">
                       <span
                         className={cn(
                           "inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium",
@@ -251,6 +254,12 @@ export function BillPOSummaryDialog({
                       >
                         {statusLabel}
                       </span>
+                    </TableCell>
+                    <TableCell className="whitespace-nowrap">
+                      <FilesCell
+                        files={poRecord?.files}
+                        projectId={poRecord?.project_id || bill?.project_id || ''}
+                      />
                     </TableCell>
                   </TableRow>
                   );
