@@ -223,11 +223,10 @@ export function BillsApprovalTabs({ projectId, projectIds, reviewOnly = false, o
                 })
               );
               
-              if (!cancelled) {
-                setBatchBills(refetchedBills);
-                setSelectedBillIds(new Set(refetchedBills.map(b => b.id)));
-                return;
-              }
+              if (cancelled) return;
+              // Replace billsWithLines contents in place so the PO auto-match
+              // step below operates on the freshly-split lines.
+              billsWithLines.splice(0, billsWithLines.length, ...refetchedBills);
             }
           }
         }
