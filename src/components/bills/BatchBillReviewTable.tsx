@@ -729,12 +729,45 @@ export function BatchBillReviewTable({
                 return '-';
               };
               
-              const poStatusForRow = poStatusMap?.get(bill.id)?.status || 'no_po';
-              const rowClickable = poStatusForRow !== 'no_po';
+              const matchResult = poMatchingData?.get(bill.id);
+              const rowAllMatches = matchResult?.matches || [];
+              const poStatusForRow = matchResult?.overall_status || 'no_po';
+              const rowClickable = rowAllMatches.length > 0;
+
+              const buildDialogBill = () => {
+                const vendorIdLocal = (bill.vendor_id || bill.extracted_data?.vendor_id || bill.extracted_data?.vendorId) as string | undefined;
+                const ext = bill.extracted_data;
+                const total = ext?.total_amount || ext?.totalAmount;
+                const totalAmount = total
+                  ? (typeof total === 'string' ? parseFloat(total) : total)
+                  : (bill.lines?.reduce((s, l) => s + (l.amount || 0), 0) || 0);
+                return {
+                  id: bill.id,
+                  project_id: projectId || null,
+                  vendor_id: vendorIdLocal,
+                  total_amount: totalAmount,
+                  reference_number: bill.reference_number || ext?.reference_number || ext?.referenceNumber || null,
+                  bill_date: ext?.bill_date || ext?.billDate || undefined,
+                  status: 'draft',
+                  bill_lines: (bill.lines || []).map(l => ({
+                    cost_code_id: l.cost_code_id,
+                    amount: l.amount || 0,
+                    purchase_order_id: l.purchase_order_id,
+                    purchase_order_line_id: l.purchase_order_line_id,
+                    memo: l.memo || l.description || undefined,
+                  })),
+                };
+              };
+
+              const handleRowClick = () => {
+                if (!rowClickable) return;
+                setPoDialogState({ open: true, matches: rowAllMatches, bill: buildDialogBill() });
+              };
+
               return (
                 <TableRow
                   key={bill.id}
-                  onClick={rowClickable ? () => setPoDialogBillId(bill.id) : undefined}
+                  onClick={rowClickable ? handleRowClick : undefined}
                   className={rowClickable ? "cursor-pointer hover:bg-muted/50" : undefined}
                 >
                   {/* Checkbox */}
