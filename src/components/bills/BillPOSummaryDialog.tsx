@@ -71,7 +71,7 @@ export function BillPOSummaryDialog({
   const allMatchesLoaded = matchedPoIdsArr.every(id => loadedPoIds.has(id));
   const poDataReady = !isLoadingPOs && allMatchesLoaded;
 
-  const selectedPO = vendorPOs?.find(po => po.id === selectedPoId) || null;
+
 
   const formatCurrency = (amount: number) =>
     new Intl.NumberFormat("en-US", { style: "currency", currency: "USD" }).format(Math.round(amount * 100) === 0 ? 0 : amount);
