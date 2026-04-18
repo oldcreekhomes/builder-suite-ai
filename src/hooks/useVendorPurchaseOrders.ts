@@ -41,6 +41,8 @@ export interface VendorPurchaseOrder {
   unallocated_billed: number;
   unallocated_invoices: BilledInvoice[];
   line_items: POLineItem[];
+  files?: any;
+  project_id?: string | null;
 }
 
 /**
@@ -63,7 +65,7 @@ export function useVendorPurchaseOrders(
       // Fetch approved POs for this vendor + project
       const { data: approvedPos, error: poError } = await supabase
         .from('project_purchase_orders')
-        .select(`id, po_number, total_amount, cost_code_id, status`)
+        .select(`id, po_number, total_amount, cost_code_id, status, files, project_id`)
         .eq('project_id', projectId)
         .eq('company_id', vendorId)
         .eq('status', 'approved');
@@ -78,7 +80,7 @@ export function useVendorPurchaseOrders(
       if (missingIds.length > 0) {
         const { data: extra } = await supabase
           .from('project_purchase_orders')
-          .select(`id, po_number, total_amount, cost_code_id, status`)
+          .select(`id, po_number, total_amount, cost_code_id, status, files, project_id`)
           .in('id', missingIds);
         extraPos = extra || [];
       }
@@ -297,6 +299,8 @@ export function useVendorPurchaseOrders(
           unallocated_billed: poLevelOnlyBilled,
           unallocated_invoices: unallocatedInvoicesByPoId.get(po.id) || [],
           line_items: lineItems,
+          files: (po as any).files,
+          project_id: (po as any).project_id ?? null,
         };
       });
     },
