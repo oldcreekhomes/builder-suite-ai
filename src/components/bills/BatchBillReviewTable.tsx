@@ -1090,46 +1090,6 @@ export function BatchBillReviewTable({
         matches={poDialogState.matches}
         bill={poDialogState.bill}
       />
-            project_id: projectId || null,
-            vendor_id: poDialogVendorId,
-            total_amount: (() => {
-              const bill = bills.find(b => b.id === poDialogBillId);
-              const ext = bill?.extracted_data;
-              const total = ext?.total_amount || ext?.totalAmount;
-              return total ? (typeof total === 'string' ? parseFloat(total) : total) :
-                (bill?.lines?.reduce((s, l) => s + (l.amount || 0), 0) || 0);
-            })(),
-            reference_number: (() => {
-              const bill = bills.find(b => b.id === poDialogBillId);
-              return bill?.reference_number || bill?.extracted_data?.reference_number || bill?.extracted_data?.referenceNumber || null;
-            })(),
-            bill_date: (() => {
-              const bill = bills.find(b => b.id === poDialogBillId);
-              return bill?.extracted_data?.bill_date || bill?.extracted_data?.billDate || undefined;
-            })(),
-            bill_lines: (() => {
-              const bill = bills.find(b => b.id === poDialogBillId);
-              return (bill?.lines || []).map(l => {
-                let poId = l.purchase_order_id;
-                // Infer purchase_order_id from vendorPOs cost_code match when not explicitly set
-                if (!poId && l.cost_code_id && vendorPOs) {
-                  const matchedPO = vendorPOs.find(po =>
-                    poDialogPoIds.includes(po.id) &&
-                    po.line_items.some(pli => pli.cost_code_id === l.cost_code_id)
-                  );
-                  if (matchedPO) poId = matchedPO.id;
-                }
-                return {
-                  cost_code_id: l.cost_code_id,
-                  amount: l.amount || 0,
-                  purchase_order_id: poId,
-                  memo: l.memo || l.description || undefined,
-                };
-              });
-            })(),
-          }}
-        />
-      )}
 
       <DeleteConfirmationDialog
         open={!!deletingAttachmentBill}
