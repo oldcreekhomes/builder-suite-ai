@@ -1,45 +1,82 @@
 
-## Recommendation
-I agree with your rule. It's the cleanest, most predictable model and matches how every accounting system I've seen treats "committed" vs. "in-progress" cost.
+## Issue
+The preview/download failure is real, and the error message is misleading. The broken link is trying to use a public Storage URL for a **private** `bill-attachments` bucket, so Supabase returns a 404-style `"Bucket not found"` response even though the actual problem is access/path handling.
 
-**Rule:** A bill counts toward "Billed To Date" on a PO once its status is `approved` OR `paid`. Bills in `review` (draft) or `rejected` are excluded.
+## What I found
+1. **Wrong file path in Review table**
+   - In `src/components/bills/BillsReviewTableRow.tsx`, the preview click is calling:
+     - `openBillAttachment(bill.file_name, displayName)`
+   - That is wrong. It should use `bill.file_path`.
+   - So the Review page is sometimes trying to preview using a filename instead of the storage object path.
 
-## Why this is the right call
-- **Approved = committed cost.** Once approved, the bill has posted journal entries and affects the GL. It should affect PO consumption too — they need to stay in sync.
-- **Paid is just a payment event.** It doesn't change what's owed against the PO; the cost was already committed at approval. So treating approved and paid identically for "Billed To Date" is correct.
-- **Review = not yet committed.** Excluding it prevents premature double-counting and matches the "This Bill" preview column which already shows the in-flight draft separately.
-- **Rejected = never committed.** Correctly excluded.
-- **Order-independent.** No more weirdness from bill_date or ID ordering — status alone decides inclusion. This fixes the TNT case directly.
+2. **Bad fallback for private bill attachments**
+   - In `src/components/files/hooks/useFilePreview.ts`, if blob download / signed URL fails, it falls back to:
+     - `getPublicUrl(file.path)`
+   - But `bill-attachments` is a **private bucket** (`public = false` in migration).
+   - That creates the exact bad link you pasted:
+     - `/storage/v1/object/public/bill-attachments/...`
+   - For private bill files, this fallback should never be used.
 
-## How this fixes your TNT example
-- Paid bill ($1,663.98): status = `paid` → included in Billed To Date ✅
-- Approved bill ($459.31): status = `approved` → included in Billed To Date ✅
-- When viewing the Approved bill's dialog: Billed To Date = $1,663.98 (the paid one), This Bill = $459.31, Remaining = $0.00 → Matched.
-- When viewing the Paid bill's dialog: Billed To Date should exclude itself to avoid double-counting → shows $459.31 (the approved sibling), This Bill is the $1,663.98 paid one (already in total_billed for posted/paid), Remaining = $0.00 → Matched.
+3. **Pending upload access is too strict for team workflows**
+   - Pending bill uploads are stored under:
+     - `pending/{uploaderUserId}/...`
+   - Storage RLS currently allows reading only when folder user id equals `auth.uid()`.
+   - But your app intentionally lets employees/accountants work inside the shared company queue via `owner_id/home_builder_id`.
+   - Result: another team member can see the pending bill row in the app, but cannot read the pending file in storage.
 
-## Plan (to implement after approval)
+4. **Approved/paid bill attachments likely work differently**
+   - Approved bill files use `bill_attachments` rows tied to actual bills and have broader company-based access rules.
+   - The recurring failure is concentrated around **pending/review-stage files** and legacy pending upload file access.
 
-### 1. `src/hooks/useVendorPurchaseOrders.ts`
-- Replace the current `bill_date` + ID chronology filter with a **status-based filter**: include only bills where `status IN ('approved','paid')`.
-- Continue to exclude the `currentBillId` from the sum so the dialog never double-counts the bill being viewed (works for both draft preview and posted/paid review).
-- Remove the now-unused `currentBillDate` ordering logic.
+## Root cause summary
+This keeps happening because there are **two bugs at once**:
+- a frontend bug passing `file_name` instead of `file_path`
+- a Storage/RLS design mismatch where pending files are company-visible in the app but storage-readable only by the original uploader
 
-### 2. `src/components/bills/BillPOSummaryDialog.tsx`
-- Pass `currentBillStatus={bill.status}` through to `PODetailsDialog` (currently missing — this is why posted/paid bills sometimes show wrong totals).
+That combination makes preview fail, then the fallback generates a fake-looking public URL, and then download fails too.
 
-### 3. `src/components/bills/PODetailsDialogWrapper.tsx`
-- Already passes `currentBillStatus` — verify it's being threaded from the table row click on all four tabs (Review, Rejected, Approved, Paid).
+## Plan to fix
 
-### 4. `src/hooks/useBillPOMatching.ts`
-- Mirror the same rule for table-side badge math: when computing `total_billed` for status comparison, count only `approved` + `paid` siblings, exclude the current bill if it's already in that set, then add the current bill's amount once for forward projection.
-- Ensures table badge and dialog header badge always agree.
+### 1. Fix the obvious wrong-path bug
+Update `src/components/bills/BillsReviewTableRow.tsx` so preview uses:
+- `openBillAttachment(bill.file_path, displayName)`
+instead of `bill.file_name`.
 
-### 5. Verify
-- TNT Longview Drive: open both bills' PO dialogs and the table badges — all four views should show consistent numbers and a "Matched" status on the final draw.
-- Spot-check a Review-status bill: it should NOT appear in any sibling's Billed To Date.
-- Spot-check a Rejected bill: same — excluded everywhere.
+### 2. Stop generating public URLs for private bill files
+Update `src/components/files/hooks/useFilePreview.ts`:
+- For `bill-attachments`, do **not** fall back to `getPublicUrl`
+- Prefer:
+  - direct `download()` blob for previewable files
+  - `createSignedUrl()` for viewer rendering when needed
+- If both fail, show the real access/storage error instead of manufacturing a broken public URL.
 
-## Out of scope
-- Changing what "approved" or "paid" means in the workflow
-- Touching the journal-entry posting logic
-- Restyling dialogs or badges
+### 3. Fix Storage RLS for shared pending bill access
+Create a Supabase migration to expand `storage.objects` SELECT/DELETE rules for `bill-attachments` pending files so authenticated users in the same company can access them when the related `pending_bill_uploads.owner_id` belongs to their company.
+- Keep multi-tenant isolation intact
+- Match the existing `owner_id/home_builder_id` access model already used by `pending_bill_uploads` and `pending_bill_lines`
+
+### 4. Align pending attachment DB policies if needed
+Review `bill_attachments` policies for rows with `pending_upload_id` to ensure pending multi-file attachments are also visible/deletable to the same company users, not just owners/uploader edge cases.
+
+### 5. Verify all bill file entry points
+Check and standardize all places that open bill files:
+- Review table
+- Batch bill review table
+- Edit extracted bill dialog
+- Approved/Paid bill dialogs
+- Transaction detail dialog
+Goal: every path should send the correct storage path and use the same preview/download behavior.
+
+## Expected result after fix
+- Opening a pending/review bill PDF should preview correctly
+- If preview cannot render, Download should still work
+- Company teammates should be able to open shared pending bill files, not just the original uploader
+- The fake `.../object/public/bill-attachments/...` broken URL should disappear
+
+## Technical notes
+- `bill-attachments` bucket is private by design; keep it private
+- Do not “fix” this by making the bucket public
+- The correct fix is:
+  - path correctness
+  - signed/blob access
+  - company-aware Storage RLS for pending files
