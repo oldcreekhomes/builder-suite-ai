@@ -1,109 +1,147 @@
 
-User wants to proceed with: Lovable AI Gateway + Project Profile extraction inserted between Phase 2 (Analyzing) and Phase 3 (Review) + historical-cost budget suggestion in the same pass. No new third-party costs beyond existing Roboflow + Lovable AI usage.
 
-Need a tight, concrete plan.
+## Plan: Major upgrade to Project Profile extraction
 
-## Plan: Project Profile + Historical Budget Suggestion on Upload
+### Two root issues
 
-### What gets added to the upload flow
+1. **SF mismatch** — current schema forces drawings into `total_sf / heated_sf / unheated_sf`. Real drawings carry an Area Schedule with named buckets (Main Level, Second Level, Finished Basement, Garage, Covered Porch, Unfinished Basement, Total Finished). We were collapsing/guessing instead of copying.
+2. **Not enough detail** — only profile-level fields existed. User wants per-element detail for every cost code flagged `estimate = true`.
 
-```text
-Phase 1: Upload file
-Phase 2: Analyze pages (title block + scale per page)  ← unchanged
-Phase 2.5: NEW — Extract Project Profile (one AI call over all rendered pages)
-Phase 3: Review screen (sheet table + NEW Project Profile panel + NEW Historical Budget panel)
-Phase 4: Save & Extract  ← unchanged
-```
+### Fix #1 — Area Schedule, captured verbatim
 
-The new step is one extra Lovable AI Gateway call (Gemini 2.5 Flash, vision) that looks at the page thumbnails as a set and returns a structured project profile.
-
-### Project Profile fields extracted
-
-- Total square footage (heated + unheated breakdown if visible)
-- Number of bedrooms, bathrooms (full/half)
-- Number of stories
-- Garage: bay count + attached/detached
-- Basement: none / unfinished / finished + sf
-- Foundation type (slab / crawl / basement)
-- Roof type (gable / hip / etc.)
-- Exterior wall type (if visible)
-- Lot orientation / building footprint dimensions (if site plan present)
-- Confidence per field (high / medium / low)
-
-Returned via tool-calling with a strict JSON schema so it's never free-text.
-
-### Historical Budget Match
-
-Pure SQL — no AI, no external service. Logic:
-
-1. Query `projects` for completed projects belonging to the same `home_builder_id` that have non-zero `actual_amount` rows in `project_budgets` (reuses existing historical-projects pattern)
-2. Score each historical project against the new profile:
-   - bedrooms match: ±1 = high score
-   - SF within ±15% = high score
-   - garage bay match
-   - basement type match
-3. Take top 3 closest matches
-4. Aggregate their actual costs by `cost_code_id` (avg per cost code across the matched projects)
-5. Show as a starter budget table the user can accept / discard / use to seed `project_budgets`
-
-### New DB table
+Replace the rigid SF fields with a flexible **`area_schedule`** array on `takeoff_project_profiles`:
 
 ```text
-takeoff_project_profiles
-  id, takeoff_project_id (FK, unique), owner_id
-  total_sf, heated_sf, unheated_sf
-  bedrooms, full_baths, half_baths, stories
-  garage_bays, garage_type
-  basement_type, basement_sf
-  foundation_type, roof_type, exterior_type
-  footprint_length, footprint_width
-  ai_confidence jsonb  -- per-field confidence
-  raw_extraction jsonb  -- full AI response for debugging
-  created_at, updated_at
+area_schedule: [
+  { label: "Main Level",          sf: 1154 },
+  { label: "Second Level",        sf: 1462 },
+  { label: "Finished Basement",   sf: 1063 },
+  { label: "Total Finished",      sf: 3679 },
+  { label: "Garage",              sf: 330  },
+  { label: "Covered Porch",       sf: 96   },
+  { label: "Unfinished Basement", sf: 26   }
+]
 ```
 
-RLS: same `home_builder_id` pattern as `takeoff_projects`.
+Prompt instructs the AI: *if an "Area Schedule" / "Area Calculations" / "Square Footage" table exists on any sheet, copy it row-for-row exactly as labeled. Do not infer or sum.* Keep `total_sf / heated_sf / unheated_sf` as derived convenience fields (sum of finished rows, sum of unfinished rows) for the historical-budget matching, but they're computed, not guessed.
 
-### New edge function
+Panel UI: editable row-per-bucket table with Add Row button.
 
-`extract-project-profile`
-- Input: `takeoff_project_id`, list of sheet image storage paths
-- Calls Lovable AI Gateway, Gemini 2.5 Flash, with vision + tool-calling for structured output
-- Upserts row in `takeoff_project_profiles`
-- Returns the structured profile
+### Fix #2 — Per-cost-code element extraction
 
-### New components
+New table `takeoff_project_estimate_items` — one row per discovered element, linked to a cost code:
 
-- `ProjectProfilePanel.tsx` — editable card shown in Review step, top of the right column
-- `HistoricalBudgetSuggestion.tsx` — collapsible card under it, shows top 3 matched projects + suggested per-cost-code budget with "Apply to project budget" button
-- Hook `useProjectProfile(takeoffProjectId)` — fetch + update the profile
-- Hook `useHistoricalBudgetMatch(profile)` — pure-SQL scoring + aggregation
+```text
+takeoff_project_estimate_items
+  id, takeoff_project_id (FK), owner_id
+  cost_code_id (FK cost_codes)        -- the matched estimate=true cost code
+  cost_code_label                      -- "Windows - Double", "Garage Door - Single", etc.
+  item_label                           -- "Front entry door", "Bedroom 2 window", etc.
+  size                                 -- "3'-0" x 6'-8"", "16' x 7'", etc. (free text, as drawn)
+  quantity                             -- numeric
+  unit                                 -- "EA", "LF", "SF"
+  spec                                 -- jsonb: { pitch: "8/12", swing: "LH", glazing: "tempered", material: "fiberglass" }
+  source_sheet                         -- "A2.1" (sheet # if known)
+  confidence                           -- high/medium/low
+  notes
+```
 
-### UI changes to existing Review dialog
+### Extraction strategy
 
-- Add a left/right split inside the Review step: sheet table on left (current), profile + historical match on right
-- "Save & Extract" button stays — but if user has clicked "Apply Historical Budget," we additionally seed `project_budgets` rows with `budget_source = 'historical'`
+The edge function `extract-project-profile` is restructured to do **two passes** in one call (still one Lovable AI Gateway request, Gemini 2.5 Flash, vision + tool-calling — no new cost surface):
 
-### Not changing
+**Pass A — Project Profile** (existing fields + new `area_schedule` array):
+- Bedrooms, baths, stories, garage bays/type, basement type/sf, foundation, roof type, exterior type, footprint
+- Area Schedule rows, copied verbatim
 
-- Sheet detection, scale detection, Roboflow takeoff extraction — all unchanged
-- Storage cleanup behavior on cancel — unchanged
-- `takeoff_sheets` / `takeoff_items` schema — unchanged
+**Pass B — Estimate Items**, scoped to the company's `estimate=true` cost codes:
+- Server first queries `cost_codes` filtered by `owner_id = takeoff_project.owner_id AND estimate = true AND has_subcategories = false`
+- Builds an allowed-cost-code list and injects it into the prompt: *"Only extract items that match one of these cost codes. For each, return the cost_code_id."*
+- Tool schema returns `items[]` matching the table above
+- Server upserts: deletes prior `takeoff_project_estimate_items` for that takeoff_project, inserts fresh
 
-### Cost summary (confirmed)
+This keeps the model focused on what the company actually estimates — no wasted tokens on cost codes they don't track.
 
-| Surface | Per-upload impact |
-|---|---|
-| Lovable AI Gateway | +1 Gemini 2.5 Flash vision call (the profile extraction) |
-| Roboflow | unchanged |
-| Lovable Cloud (DB/storage) | +1 row in `takeoff_project_profiles`, no new storage |
-| Anything else | none |
+### Drawing-specific extraction targets (from user's request)
+
+The prompt explicitly directs the model to look for and itemize:
+
+- **Windows** — read window schedule if present; otherwise count from elevations. Return size, type (single/double/triple → maps to 4380.1/.2/.3), location label.
+- **Exterior doors** — door schedule. Size (e.g., 3'-0" x 6'-8"), swing, material, location.
+- **Interior doors** — door schedule. Same fields.
+- **Garage doors** — count, size (single vs double → maps to 4490.1/.2).
+- **Roof pitches** — read from roof plan / building section labels (e.g., "8/12", "12/12"). Stored on profile as `roof_pitches: ["8/12 main", "10/12 porch"]`.
+- **Siding** — Lap vs Board & Batten, with approx LF or SF if elevations are dimensioned.
+- **Concrete elements** — footings, basement slab, garage slab, porch slab, egress windows, drain tile, piers — each as separate items if visible.
+
+### New panel: `EstimateItemsPanel.tsx`
+
+Below the Project Profile panel in the Review step. Grouped by cost code, editable table:
+
+```text
+4380.1 Windows - Single
+  - Bedroom 2          3'-0" x 5'-0"   1 EA   confidence: high
+  - Bedroom 3          3'-0" x 5'-0"   1 EA   confidence: high
+4380.2 Windows - Double
+  - Living room        6'-0" x 5'-0"   1 EA   confidence: medium
+4490.1 Garage Door - Single
+  - Front garage       9'-0" x 7'-0"   1 EA   confidence: high
+4275.3 Garage Slab
+  -                    330 SF          1 SF   confidence: high
+```
+
+Add row, delete row, edit any cell. "Apply to Takeoff" button seeds `takeoff_items` with these as starting quantities (so they show up immediately in the takeoff table on Save & Extract).
+
+### DB migration summary
+
+```sql
+-- 1. Add area_schedule + roof_pitches to existing profile table
+ALTER TABLE takeoff_project_profiles
+  ADD COLUMN area_schedule jsonb DEFAULT '[]'::jsonb,
+  ADD COLUMN roof_pitches jsonb DEFAULT '[]'::jsonb;
+
+-- 2. New table for itemized extractions
+CREATE TABLE takeoff_project_estimate_items (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  takeoff_project_id uuid NOT NULL REFERENCES takeoff_projects(id) ON DELETE CASCADE,
+  owner_id uuid NOT NULL,
+  cost_code_id uuid REFERENCES cost_codes(id),
+  cost_code_label text,
+  item_label text,
+  size text,
+  quantity numeric,
+  unit text DEFAULT 'EA',
+  spec jsonb DEFAULT '{}'::jsonb,
+  source_sheet text,
+  confidence text,
+  notes text,
+  created_at timestamptz DEFAULT now()
+);
+-- + RLS mirroring takeoff_projects, + index on takeoff_project_id
+```
+
+### Edge function changes
+
+`extract-project-profile`:
+- Server queries `cost_codes` for `estimate=true` for this owner before calling AI
+- Updated tool schema with `area_schedule`, `roof_pitches`, and `estimate_items[]`
+- Upserts profile + replaces estimate items
+
+### UI changes
+
+- `ProjectProfilePanel.tsx` — replace the rigid SF grid with an editable Area Schedule table; add Roof Pitches list
+- New `EstimateItemsPanel.tsx` — grouped editable table; "Apply to Takeoff" button
+- Wire into Review step in `UploadSheetDialog` next to existing panels
+
+### Cost impact
+
+**Zero new cost surfaces.** Same single Lovable AI Gateway call per upload — just a richer schema and a richer prompt. Roboflow unchanged.
 
 ### Build order
 
-1. Migration: `takeoff_project_profiles` table + RLS
-2. Edge function: `extract-project-profile`
-3. Hooks: `useProjectProfile`, `useHistoricalBudgetMatch`
-4. Components: `ProjectProfilePanel`, `HistoricalBudgetSuggestion`
-5. Wire into `SheetUploadDialog` Review step between Phase 2 and Phase 3
-6. "Apply Historical Budget" → seed `project_budgets` with `budget_source='historical'`
+1. Migration: `area_schedule`, `roof_pitches`, `takeoff_project_estimate_items` table + RLS
+2. Edge function: query estimate=true cost codes, expand schema, expand prompt, upsert items
+3. Hook: `useEstimateItems(takeoffProjectId)`
+4. UI: rewrite Area Schedule section in `ProjectProfilePanel`; new `EstimateItemsPanel`
+5. Wire into Review step + "Apply to Takeoff" seeding `takeoff_items`
+
