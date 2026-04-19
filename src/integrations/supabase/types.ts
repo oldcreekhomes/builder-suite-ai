@@ -1534,6 +1534,33 @@ export type Database = {
           },
         ]
       }
+      company_feature_access: {
+        Row: {
+          company_name: string
+          enabled: boolean
+          feature: Database["public"]["Enums"]["gated_feature"]
+          id: string
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          company_name: string
+          enabled?: boolean
+          feature: Database["public"]["Enums"]["gated_feature"]
+          id?: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          company_name?: string
+          enabled?: boolean
+          feature?: Database["public"]["Enums"]["gated_feature"]
+          id?: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: []
+      }
       company_insurances: {
         Row: {
           carrier_name: string | null
@@ -4858,6 +4885,42 @@ export type Database = {
           user_type: string
         }[]
       }
+      admin_get_subcontractor_health: {
+        Args: never
+        Returns: {
+          city: string
+          company_name: string
+          days_since_signup: number
+          email: string
+          email_confirmed_at: string
+          last_sign_in: string
+          signup_date: string
+        }[]
+      }
+      admin_list_builder_restrictions: {
+        Args: never
+        Returns: {
+          apartments: boolean
+          builder_count: number
+          company_name: string
+          estimating: boolean
+          marketplace: boolean
+          templates: boolean
+        }[]
+      }
+      admin_set_company_feature:
+        | {
+            Args: {
+              _company: string
+              _enabled: boolean
+              _feature: Database["public"]["Enums"]["gated_feature"]
+            }
+            Returns: undefined
+          }
+        | {
+            Args: { _company: string; _enabled: boolean; _feature: string }
+            Returns: undefined
+          }
       approve_employee: { Args: { employee_id: string }; Returns: undefined }
       approve_pending_bill: {
         Args: {
@@ -5108,6 +5171,7 @@ export type Database = {
       app_role: "owner" | "accountant" | "employee" | "platform_admin"
       bill_line_type: "job_cost" | "expense"
       bill_status: "draft" | "posted" | "void" | "paid" | "reversed"
+      gated_feature: "apartments" | "estimating" | "marketplace" | "templates"
       user_type: "home_builder" | "employee"
     }
     CompositeTypes: {
@@ -5240,6 +5304,7 @@ export const Constants = {
       app_role: ["owner", "accountant", "employee", "platform_admin"],
       bill_line_type: ["job_cost", "expense"],
       bill_status: ["draft", "posted", "void", "paid", "reversed"],
+      gated_feature: ["apartments", "estimating", "marketplace", "templates"],
       user_type: ["home_builder", "employee"],
     },
   },
