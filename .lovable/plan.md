@@ -1,19 +1,30 @@
 
-Approved as previously laid out. Switching to default mode to implement:
+Flip the default in `get_my_company_features()` from `true` to `false`. Everything else stays as-is.
 
-1. **Migration** — `get_my_company_features()` RPC: SECURITY DEFINER, resolves caller's company (owner: own `company_name`; employee/accountant: owner via `home_builder_id`), returns 4 booleans using `COALESCE(... , true)` against `public.company_feature_access`. GRANT EXECUTE to authenticated.
+## Change
 
-2. **New hook** `src/hooks/useCompanyFeatures.ts` — React Query, key `['company-features']`, `staleTime: 5 min`, defaults all true while loading.
+**Migration** — replace the four `COALESCE(..., true)` with `COALESCE(..., false)` in `public.get_my_company_features()`. Same signature, same security, same grants. Re-run as `CREATE OR REPLACE FUNCTION`.
 
-3. **Compose into 4 permission hooks** (AND user pref with company flag):
-   - `useEstimatePermissions` → `&& features.estimating`
-   - `useMarketplacePermissions` → `&& features.marketplace`
-   - `useTemplatePermissions` → both `canAccessTemplates` and `canEditTemplates` AND `features.templates`
-   - `useApartmentPermissions` → `&& features.apartments`
-   - Each returns combined `isLoading` (user prefs OR features still loading)
+```sql
+COALESCE((SELECT cfa.enabled FROM public.company_feature_access cfa
+          WHERE cfa.company_name = co_name AND cfa.feature = 'apartments'),  false) AS apartments,
+-- ...same for estimating, marketplace, templates
+```
 
-4. **Sidebar** `SidebarNavigation.tsx` — Apartments visibility: `currentProject?.apartments_enabled && features.apartments` (pull `useCompanyFeatures` here too).
+## Also update (to keep behavior consistent with new default-OFF semantics)
 
-5. **EmployeeAccessPreferences.tsx** — wrap each of the 4 toggle sections with `{features.X && (...)}` so disabled-at-company features don't appear as grantable.
+**`src/hooks/useCompanyFeatures.ts`** — flip in-app defaults to match, so a failed RPC / loading state doesn't briefly flash gated UI as enabled:
+- `DEFAULT_FEATURES` → all `false`
+- per-field fallbacks `row.X ?? false`
+- `features: data ?? DEFAULT_FEATURES` unchanged (already returns the new defaults)
 
-No realtime; 5-min staleness accepted. Existing route guards inherit gating automatically via the composed hooks.
+## Not changing
+
+- `useEstimatePermissions`, `useMarketplacePermissions`, `useTemplatePermissions`, `useApartmentPermissions` — composition logic is identical
+- `SidebarNavigation.tsx` — Apartments visibility check unchanged
+- `EmployeeAccessPreferences.tsx` — section wrappers unchanged
+- RPC signature, RLS, grants — unchanged
+
+## Behavioral impact (heads-up)
+
+Every existing company without explicit `enabled = true` rows in `company_feature_access` will immediately lose access to Apartments, Estimating, Marketplace, and Templates. Confirm the Platform Admin app has back-filled `enabled = true` rows for current customers before this ships, or expect support tickets.
