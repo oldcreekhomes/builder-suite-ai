@@ -32,6 +32,10 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { ProjectProfilePanel } from "./ProjectProfilePanel";
+import { HistoricalBudgetSuggestion } from "./HistoricalBudgetSuggestion";
+import { useProjectProfile, type TakeoffProjectProfile } from "@/hooks/useProjectProfile";
+import { useHistoricalBudgetMatch } from "@/hooks/useHistoricalBudgetMatch";
 
 const COMMON_SCALES = [
   "1/16\" = 1'-0\"",
