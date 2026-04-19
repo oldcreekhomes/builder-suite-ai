@@ -204,7 +204,7 @@ ${allowedList || "(none configured — skip estimate_items)"}
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        model: "google/gemini-2.5-flash",
+        model: "google/gemini-2.5-pro",
         messages: [{ role: "user", content: userContent }],
         tools: [PROFILE_TOOL],
         tool_choice: { type: "function", function: { name: "record_project_profile" } },
