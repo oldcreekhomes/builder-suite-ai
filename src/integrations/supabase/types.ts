@@ -4826,11 +4826,13 @@ export type Database = {
         Returns: {
           active_30d: number
           active_7d: number
+          builder_users_source: string
           signups_30d: number
           signups_7d: number
-          total_builders: number
-          total_employees: number
-          total_vendors: number
+          subcontractors_source: string
+          total_builder_companies: number
+          total_builder_users: number
+          total_subcontractors: number
         }[]
       }
       admin_get_reengagement_queue: {
