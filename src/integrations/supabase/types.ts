@@ -4440,6 +4440,92 @@ export type Database = {
           },
         ]
       }
+      takeoff_project_profiles: {
+        Row: {
+          ai_confidence: Json | null
+          basement_sf: number | null
+          basement_type: string | null
+          bedrooms: number | null
+          created_at: string
+          exterior_type: string | null
+          footprint_length: number | null
+          footprint_width: number | null
+          foundation_type: string | null
+          full_baths: number | null
+          garage_bays: number | null
+          garage_type: string | null
+          half_baths: number | null
+          heated_sf: number | null
+          id: string
+          owner_id: string
+          raw_extraction: Json | null
+          roof_type: string | null
+          stories: number | null
+          takeoff_project_id: string
+          total_sf: number | null
+          unheated_sf: number | null
+          updated_at: string
+        }
+        Insert: {
+          ai_confidence?: Json | null
+          basement_sf?: number | null
+          basement_type?: string | null
+          bedrooms?: number | null
+          created_at?: string
+          exterior_type?: string | null
+          footprint_length?: number | null
+          footprint_width?: number | null
+          foundation_type?: string | null
+          full_baths?: number | null
+          garage_bays?: number | null
+          garage_type?: string | null
+          half_baths?: number | null
+          heated_sf?: number | null
+          id?: string
+          owner_id: string
+          raw_extraction?: Json | null
+          roof_type?: string | null
+          stories?: number | null
+          takeoff_project_id: string
+          total_sf?: number | null
+          unheated_sf?: number | null
+          updated_at?: string
+        }
+        Update: {
+          ai_confidence?: Json | null
+          basement_sf?: number | null
+          basement_type?: string | null
+          bedrooms?: number | null
+          created_at?: string
+          exterior_type?: string | null
+          footprint_length?: number | null
+          footprint_width?: number | null
+          foundation_type?: string | null
+          full_baths?: number | null
+          garage_bays?: number | null
+          garage_type?: string | null
+          half_baths?: number | null
+          heated_sf?: number | null
+          id?: string
+          owner_id?: string
+          raw_extraction?: Json | null
+          roof_type?: string | null
+          stories?: number | null
+          takeoff_project_id?: string
+          total_sf?: number | null
+          unheated_sf?: number | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "takeoff_project_profiles_takeoff_project_id_fkey"
+            columns: ["takeoff_project_id"]
+            isOneToOne: true
+            referencedRelation: "takeoff_projects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       takeoff_projects: {
         Row: {
           created_at: string
