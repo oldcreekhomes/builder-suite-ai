@@ -4,6 +4,7 @@ import { useAccountingPermissions } from "@/hooks/useAccountingPermissions";
 import { useEstimatePermissions } from "@/hooks/useEstimatePermissions";
 import { useMarketplacePermissions } from "@/hooks/useMarketplacePermissions";
 import { useTemplatePermissions } from "@/hooks/useTemplatePermissions";
+import { useCompanyFeatures } from "@/hooks/useCompanyFeatures";
 import { useProject } from "@/hooks/useProject";
 
 import { 
@@ -119,6 +120,7 @@ export function SidebarNavigation({ unreadCounts }: SidebarNavigationProps) {
   const { canAccessEstimate, isLoading: estimatePermissionsLoading } = useEstimatePermissions();
   const { canAccessMarketplace, isLoading: marketplacePermissionsLoading } = useMarketplacePermissions();
   const { canAccessTemplates, isLoading: templatePermissionsLoading } = useTemplatePermissions();
+  const { features: companyFeatures } = useCompanyFeatures();
   const { data: currentProject } = useProject(projectId || '');
   const { data: issueCounts } = useIssueCounts();
   const { projectContext, goBackToProject, hasProjectContext } = useProjectContextWithData();
@@ -271,8 +273,8 @@ export function SidebarNavigation({ unreadCounts }: SidebarNavigationProps) {
               </Link>
             )}
 
-            {/* Apartments Section - shown only if user has permission and on project pages */}
-            {projectId && currentProject?.apartments_enabled && (
+            {/* Apartments Section - shown only if user has permission, project enables it, and company has the feature */}
+            {projectId && currentProject?.apartments_enabled && companyFeatures.apartments && (
               <div>
                 <Link
                   to={`/project/${projectId}/apartments`}
