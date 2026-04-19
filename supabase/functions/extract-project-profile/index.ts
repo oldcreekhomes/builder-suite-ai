@@ -211,15 +211,27 @@ ${allowedList || "(none configured — skip estimate_items)"}
       }),
     });
 
+    const rawBody = await aiResp.text();
     if (!aiResp.ok) {
-      const txt = await aiResp.text();
-      console.error("AI gateway error", aiResp.status, txt);
+      console.error("AI gateway error", aiResp.status, rawBody.slice(0, 1000));
       if (aiResp.status === 429) return json({ error: "Rate limit exceeded, try again shortly." }, 429);
       if (aiResp.status === 402) return json({ error: "AI credits exhausted. Add funds in workspace settings." }, 402);
-      return json({ error: "AI gateway error" }, 500);
+      return json({ error: `AI gateway error (${aiResp.status})` }, 500);
     }
 
-    const aiJson = await aiResp.json();
+    if (!rawBody || rawBody.trim().length === 0) {
+      console.error("AI gateway returned empty body (likely upstream timeout)");
+      return json({ error: "AI returned an empty response. The model may have timed out — try again with fewer sheets." }, 502);
+    }
+
+    let aiJson: any;
+    try {
+      aiJson = JSON.parse(rawBody);
+    } catch (e) {
+      console.error("AI gateway returned non-JSON body", rawBody.slice(0, 500));
+      return json({ error: "AI returned invalid response. Try again." }, 502);
+    }
+
     const toolCall = aiJson?.choices?.[0]?.message?.tool_calls?.[0];
     if (!toolCall?.function?.arguments) {
       console.error("No tool call in AI response", JSON.stringify(aiJson).slice(0, 1000));
