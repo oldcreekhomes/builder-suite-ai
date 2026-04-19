@@ -32,6 +32,10 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { ProjectProfilePanel } from "./ProjectProfilePanel";
+import { HistoricalBudgetSuggestion } from "./HistoricalBudgetSuggestion";
+import { useProjectProfile, type TakeoffProjectProfile } from "@/hooks/useProjectProfile";
+import { useHistoricalBudgetMatch } from "@/hooks/useHistoricalBudgetMatch";
 
 const COMMON_SCALES = [
   "1/16\" = 1'-0\"",
@@ -86,6 +90,17 @@ export function UploadSheetDialog({ open, onOpenChange, takeoffId, onSuccess }: 
   const [phase, setPhase] = useState<Phase>('upload');
   const [detections, setDetections] = useState<SheetDetection[]>([]);
   const [uploadProgress, setUploadProgress] = useState({ current: 0, total: 0 });
+  const [extractingProfile, setExtractingProfile] = useState(false);
+  const [applying, setApplying] = useState(false);
+  const [applied, setApplied] = useState(false);
+
+  const { data: profile, updateProfile } = useProjectProfile(
+    phase === 'review' || phase === 'extracting' ? takeoffId : null,
+  );
+  const { data: histMatch, isLoading: histLoading } = useHistoricalBudgetMatch(
+    profile,
+    !!profile && (phase === 'review' || phase === 'extracting'),
+  );
 
   const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     setFile(e.target.files?.[0] || null);
@@ -238,6 +253,22 @@ export function UploadSheetDialog({ open, onOpenChange, takeoffId, onSuccess }: 
         }
       }
 
+      // Phase 2.5: Extract project profile from all uploaded pages (one AI call)
+      try {
+        setExtractingProfile(true);
+        const imagePaths = sheetsToProcess.map((s) => s.filePath);
+        const { error: profErr } = await supabase.functions.invoke('extract-project-profile', {
+          body: { takeoff_project_id: takeoffId, image_paths: imagePaths },
+        });
+        if (profErr) {
+          console.warn('Profile extraction failed (non-blocking):', profErr);
+        }
+      } catch (e) {
+        console.warn('Profile extraction failed (non-blocking):', e);
+      } finally {
+        setExtractingProfile(false);
+      }
+
       setPhase('review');
 
     } catch (error) {
@@ -350,6 +381,47 @@ export function UploadSheetDialog({ open, onOpenChange, takeoffId, onSuccess }: 
     setPhase('upload');
     setDetections([]);
     setUploadProgress({ current: 0, total: 0 });
+    setExtractingProfile(false);
+    setApplying(false);
+    setApplied(false);
+  };
+
+  const handleApplyHistoricalBudget = async () => {
+    if (!user || !histMatch || histMatch.suggestedLines.length === 0) return;
+    setApplying(true);
+    try {
+      // Get the project_id from the takeoff
+      const { data: tp, error: tpErr } = await supabase
+        .from('takeoff_projects')
+        .select('project_id')
+        .eq('id', takeoffId)
+        .single();
+      if (tpErr || !tp?.project_id) throw tpErr || new Error('No project linked to takeoff');
+
+      const rows = histMatch.suggestedLines.map((l) => ({
+        project_id: tp.project_id,
+        cost_code_id: l.costCodeId,
+        budget_amount: Math.round(l.avgAmount * 100) / 100,
+        budget_source: 'historical',
+        owner_id: user.id,
+      }));
+
+      const { error: upErr } = await supabase
+        .from('project_budgets')
+        .upsert(rows, { onConflict: 'project_id,lot_id,cost_code_id' });
+      if (upErr) throw upErr;
+
+      setApplied(true);
+      toast({
+        title: 'Historical budget applied',
+        description: `Seeded ${rows.length} cost code${rows.length !== 1 ? 's' : ''} from past projects.`,
+      });
+    } catch (e: any) {
+      console.error('Apply historical budget failed', e);
+      toast({ title: 'Could not apply', description: e?.message || 'Unknown error', variant: 'destructive' });
+    } finally {
+      setApplying(false);
+    }
   };
 
   const handleClose = async () => {
@@ -380,7 +452,7 @@ export function UploadSheetDialog({ open, onOpenChange, takeoffId, onSuccess }: 
 
   return (
     <Dialog open={open} onOpenChange={handleClose}>
-      <DialogContent className={phase === 'review' || phase === 'extracting' ? "max-w-4xl" : ""}>
+      <DialogContent className={phase === 'review' ? "max-w-6xl" : phase === 'extracting' ? "max-w-4xl" : ""}>
         <DialogHeader>
           <DialogTitle>Upload Drawing Sheet</DialogTitle>
           {phase === 'review' && (
@@ -446,78 +518,95 @@ export function UploadSheetDialog({ open, onOpenChange, takeoffId, onSuccess }: 
 
           {/* Phase: Review */}
           {phase === 'review' && (
-            <div className="space-y-4">
-              <div className="border rounded-lg overflow-hidden">
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead className="w-16">Page</TableHead>
-                      <TableHead className="w-32">Sheet #</TableHead>
-                      <TableHead>Title</TableHead>
-                      <TableHead className="w-40">Scale</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {detections.map((d, idx) => (
-                      <TableRow key={idx} className="h-10">
-                        <TableCell className="font-medium py-1">{d.pageNum}</TableCell>
-                        <TableCell className="py-1">
-                          <div className="flex items-center gap-1">
-                            <Input
-                              value={d.userValues.sheet_number}
-                              onChange={(e) => handleFieldChange(idx, 'sheet_number', e.target.value)}
-                              placeholder={d.aiSuggestion.sheet_number || 'e.g., A-1'}
-                              className="h-7"
-                            />
-                            {getConfidenceIcon(d.userValues.sheet_number, d.aiSuggestion.confidence)}
-                          </div>
-                        </TableCell>
-                        <TableCell className="py-1">
-                          <div className="flex items-center gap-1">
-                            <Input
-                              value={d.userValues.sheet_title}
-                              onChange={(e) => handleFieldChange(idx, 'sheet_title', e.target.value)}
-                              placeholder={d.aiSuggestion.sheet_title || 'e.g., FRONT ELEVATION'}
-                              className="h-7"
-                            />
-                            {getConfidenceIcon(d.userValues.sheet_title, d.aiSuggestion.confidence)}
-                          </div>
-                        </TableCell>
-                        <TableCell className="py-1">
-                          <div className="flex items-center gap-1">
-                            <Select
-                              value={d.userValues.scale || ''}
-                              onValueChange={(value) => handleFieldChange(idx, 'scale', value)}
-                            >
-                              <SelectTrigger className="h-7">
-                                <SelectValue placeholder="" />
-                              </SelectTrigger>
-                              <SelectContent className="bg-background border-border z-50">
-                                {COMMON_SCALES.map(scale => (
-                                  <SelectItem key={scale} value={scale}>
-                                    {scale}
-                                  </SelectItem>
-                                ))}
-                              </SelectContent>
-                            </Select>
-                            {getConfidenceIcon(d.userValues.scale, d.aiSuggestion.confidence)}
-                          </div>
-                        </TableCell>
+            <div className="grid grid-cols-1 lg:grid-cols-5 gap-4">
+              <div className="lg:col-span-3 space-y-3">
+                <div className="border rounded-lg overflow-hidden">
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead className="w-16">Page</TableHead>
+                        <TableHead className="w-32">Sheet #</TableHead>
+                        <TableHead>Title</TableHead>
+                        <TableHead className="w-40">Scale</TableHead>
                       </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
+                    </TableHeader>
+                    <TableBody>
+                      {detections.map((d, idx) => (
+                        <TableRow key={idx} className="h-10">
+                          <TableCell className="font-medium py-1">{d.pageNum}</TableCell>
+                          <TableCell className="py-1">
+                            <div className="flex items-center gap-1">
+                              <Input
+                                value={d.userValues.sheet_number}
+                                onChange={(e) => handleFieldChange(idx, 'sheet_number', e.target.value)}
+                                placeholder={d.aiSuggestion.sheet_number || 'e.g., A-1'}
+                                className="h-7"
+                              />
+                              {getConfidenceIcon(d.userValues.sheet_number, d.aiSuggestion.confidence)}
+                            </div>
+                          </TableCell>
+                          <TableCell className="py-1">
+                            <div className="flex items-center gap-1">
+                              <Input
+                                value={d.userValues.sheet_title}
+                                onChange={(e) => handleFieldChange(idx, 'sheet_title', e.target.value)}
+                                placeholder={d.aiSuggestion.sheet_title || 'e.g., FRONT ELEVATION'}
+                                className="h-7"
+                              />
+                              {getConfidenceIcon(d.userValues.sheet_title, d.aiSuggestion.confidence)}
+                            </div>
+                          </TableCell>
+                          <TableCell className="py-1">
+                            <div className="flex items-center gap-1">
+                              <Select
+                                value={d.userValues.scale || ''}
+                                onValueChange={(value) => handleFieldChange(idx, 'scale', value)}
+                              >
+                                <SelectTrigger className="h-7">
+                                  <SelectValue placeholder="" />
+                                </SelectTrigger>
+                                <SelectContent className="bg-background border-border z-50">
+                                  {COMMON_SCALES.map(scale => (
+                                    <SelectItem key={scale} value={scale}>
+                                      {scale}
+                                    </SelectItem>
+                                  ))}
+                                </SelectContent>
+                              </Select>
+                              {getConfidenceIcon(d.userValues.scale, d.aiSuggestion.confidence)}
+                            </div>
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </div>
+
+                <div className="flex items-center gap-3 text-sm text-muted-foreground">
+                  <div className="flex items-center gap-1.5">
+                    <CheckCircle2 className="h-5 w-5 text-green-600" />
+                    <span>High confidence</span>
+                  </div>
+                  <div className="flex items-center gap-1.5">
+                    <AlertCircle className="h-5 w-5 text-red-500" />
+                    <span>Please verify</span>
+                  </div>
+                </div>
               </div>
-              
-              <div className="flex items-center gap-3 text-sm text-muted-foreground">
-                <div className="flex items-center gap-1.5">
-                  <CheckCircle2 className="h-5 w-5 text-green-600" />
-                  <span>High confidence</span>
-                </div>
-                <div className="flex items-center gap-1.5">
-                  <AlertCircle className="h-5 w-5 text-red-500" />
-                  <span>Please verify</span>
-                </div>
+
+              <div className="lg:col-span-2 space-y-3">
+                <ProjectProfilePanel
+                  profile={profile}
+                  loading={extractingProfile}
+                  onChange={(patch) => updateProfile(patch)}
+                />
+                <HistoricalBudgetSuggestion
+                  data={histMatch}
+                  loading={histLoading}
+                  onApply={handleApplyHistoricalBudget}
+                  applying={applying}
+                  applied={applied}
+                />
               </div>
             </div>
           )}
