@@ -518,78 +518,95 @@ export function UploadSheetDialog({ open, onOpenChange, takeoffId, onSuccess }: 
 
           {/* Phase: Review */}
           {phase === 'review' && (
-            <div className="space-y-4">
-              <div className="border rounded-lg overflow-hidden">
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead className="w-16">Page</TableHead>
-                      <TableHead className="w-32">Sheet #</TableHead>
-                      <TableHead>Title</TableHead>
-                      <TableHead className="w-40">Scale</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {detections.map((d, idx) => (
-                      <TableRow key={idx} className="h-10">
-                        <TableCell className="font-medium py-1">{d.pageNum}</TableCell>
-                        <TableCell className="py-1">
-                          <div className="flex items-center gap-1">
-                            <Input
-                              value={d.userValues.sheet_number}
-                              onChange={(e) => handleFieldChange(idx, 'sheet_number', e.target.value)}
-                              placeholder={d.aiSuggestion.sheet_number || 'e.g., A-1'}
-                              className="h-7"
-                            />
-                            {getConfidenceIcon(d.userValues.sheet_number, d.aiSuggestion.confidence)}
-                          </div>
-                        </TableCell>
-                        <TableCell className="py-1">
-                          <div className="flex items-center gap-1">
-                            <Input
-                              value={d.userValues.sheet_title}
-                              onChange={(e) => handleFieldChange(idx, 'sheet_title', e.target.value)}
-                              placeholder={d.aiSuggestion.sheet_title || 'e.g., FRONT ELEVATION'}
-                              className="h-7"
-                            />
-                            {getConfidenceIcon(d.userValues.sheet_title, d.aiSuggestion.confidence)}
-                          </div>
-                        </TableCell>
-                        <TableCell className="py-1">
-                          <div className="flex items-center gap-1">
-                            <Select
-                              value={d.userValues.scale || ''}
-                              onValueChange={(value) => handleFieldChange(idx, 'scale', value)}
-                            >
-                              <SelectTrigger className="h-7">
-                                <SelectValue placeholder="" />
-                              </SelectTrigger>
-                              <SelectContent className="bg-background border-border z-50">
-                                {COMMON_SCALES.map(scale => (
-                                  <SelectItem key={scale} value={scale}>
-                                    {scale}
-                                  </SelectItem>
-                                ))}
-                              </SelectContent>
-                            </Select>
-                            {getConfidenceIcon(d.userValues.scale, d.aiSuggestion.confidence)}
-                          </div>
-                        </TableCell>
+            <div className="grid grid-cols-1 lg:grid-cols-5 gap-4">
+              <div className="lg:col-span-3 space-y-3">
+                <div className="border rounded-lg overflow-hidden">
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead className="w-16">Page</TableHead>
+                        <TableHead className="w-32">Sheet #</TableHead>
+                        <TableHead>Title</TableHead>
+                        <TableHead className="w-40">Scale</TableHead>
                       </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
+                    </TableHeader>
+                    <TableBody>
+                      {detections.map((d, idx) => (
+                        <TableRow key={idx} className="h-10">
+                          <TableCell className="font-medium py-1">{d.pageNum}</TableCell>
+                          <TableCell className="py-1">
+                            <div className="flex items-center gap-1">
+                              <Input
+                                value={d.userValues.sheet_number}
+                                onChange={(e) => handleFieldChange(idx, 'sheet_number', e.target.value)}
+                                placeholder={d.aiSuggestion.sheet_number || 'e.g., A-1'}
+                                className="h-7"
+                              />
+                              {getConfidenceIcon(d.userValues.sheet_number, d.aiSuggestion.confidence)}
+                            </div>
+                          </TableCell>
+                          <TableCell className="py-1">
+                            <div className="flex items-center gap-1">
+                              <Input
+                                value={d.userValues.sheet_title}
+                                onChange={(e) => handleFieldChange(idx, 'sheet_title', e.target.value)}
+                                placeholder={d.aiSuggestion.sheet_title || 'e.g., FRONT ELEVATION'}
+                                className="h-7"
+                              />
+                              {getConfidenceIcon(d.userValues.sheet_title, d.aiSuggestion.confidence)}
+                            </div>
+                          </TableCell>
+                          <TableCell className="py-1">
+                            <div className="flex items-center gap-1">
+                              <Select
+                                value={d.userValues.scale || ''}
+                                onValueChange={(value) => handleFieldChange(idx, 'scale', value)}
+                              >
+                                <SelectTrigger className="h-7">
+                                  <SelectValue placeholder="" />
+                                </SelectTrigger>
+                                <SelectContent className="bg-background border-border z-50">
+                                  {COMMON_SCALES.map(scale => (
+                                    <SelectItem key={scale} value={scale}>
+                                      {scale}
+                                    </SelectItem>
+                                  ))}
+                                </SelectContent>
+                              </Select>
+                              {getConfidenceIcon(d.userValues.scale, d.aiSuggestion.confidence)}
+                            </div>
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </div>
+
+                <div className="flex items-center gap-3 text-sm text-muted-foreground">
+                  <div className="flex items-center gap-1.5">
+                    <CheckCircle2 className="h-5 w-5 text-green-600" />
+                    <span>High confidence</span>
+                  </div>
+                  <div className="flex items-center gap-1.5">
+                    <AlertCircle className="h-5 w-5 text-red-500" />
+                    <span>Please verify</span>
+                  </div>
+                </div>
               </div>
-              
-              <div className="flex items-center gap-3 text-sm text-muted-foreground">
-                <div className="flex items-center gap-1.5">
-                  <CheckCircle2 className="h-5 w-5 text-green-600" />
-                  <span>High confidence</span>
-                </div>
-                <div className="flex items-center gap-1.5">
-                  <AlertCircle className="h-5 w-5 text-red-500" />
-                  <span>Please verify</span>
-                </div>
+
+              <div className="lg:col-span-2 space-y-3">
+                <ProjectProfilePanel
+                  profile={profile}
+                  loading={extractingProfile}
+                  onChange={(patch) => updateProfile(patch)}
+                />
+                <HistoricalBudgetSuggestion
+                  data={histMatch}
+                  loading={histLoading}
+                  onApply={handleApplyHistoricalBudget}
+                  applying={applying}
+                  applied={applied}
+                />
               </div>
             </div>
           )}
