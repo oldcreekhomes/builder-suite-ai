@@ -90,6 +90,17 @@ export function UploadSheetDialog({ open, onOpenChange, takeoffId, onSuccess }: 
   const [phase, setPhase] = useState<Phase>('upload');
   const [detections, setDetections] = useState<SheetDetection[]>([]);
   const [uploadProgress, setUploadProgress] = useState({ current: 0, total: 0 });
+  const [extractingProfile, setExtractingProfile] = useState(false);
+  const [applying, setApplying] = useState(false);
+  const [applied, setApplied] = useState(false);
+
+  const { data: profile, updateProfile } = useProjectProfile(
+    phase === 'review' || phase === 'extracting' ? takeoffId : null,
+  );
+  const { data: histMatch, isLoading: histLoading } = useHistoricalBudgetMatch(
+    profile,
+    !!profile && (phase === 'review' || phase === 'extracting'),
+  );
 
   const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     setFile(e.target.files?.[0] || null);
