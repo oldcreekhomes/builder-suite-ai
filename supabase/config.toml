@@ -131,3 +131,6 @@ verify_jwt = false
 
 [functions.update-payment-method]
 verify_jwt = false
+
+[functions.extract-project-profile]
+verify_jwt = true
