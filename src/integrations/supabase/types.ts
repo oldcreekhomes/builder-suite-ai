@@ -4908,19 +4908,14 @@ export type Database = {
           templates: boolean
         }[]
       }
-      admin_set_company_feature:
-        | {
-            Args: {
-              _company: string
-              _enabled: boolean
-              _feature: Database["public"]["Enums"]["gated_feature"]
-            }
-            Returns: undefined
-          }
-        | {
-            Args: { _company: string; _enabled: boolean; _feature: string }
-            Returns: undefined
-          }
+      admin_set_company_feature: {
+        Args: {
+          _company: string
+          _enabled: boolean
+          _feature: Database["public"]["Enums"]["gated_feature"]
+        }
+        Returns: undefined
+      }
       approve_employee: { Args: { employee_id: string }; Returns: undefined }
       approve_pending_bill: {
         Args: {
