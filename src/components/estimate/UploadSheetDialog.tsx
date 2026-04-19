@@ -381,6 +381,47 @@ export function UploadSheetDialog({ open, onOpenChange, takeoffId, onSuccess }: 
     setPhase('upload');
     setDetections([]);
     setUploadProgress({ current: 0, total: 0 });
+    setExtractingProfile(false);
+    setApplying(false);
+    setApplied(false);
+  };
+
+  const handleApplyHistoricalBudget = async () => {
+    if (!user || !histMatch || histMatch.suggestedLines.length === 0) return;
+    setApplying(true);
+    try {
+      // Get the project_id from the takeoff
+      const { data: tp, error: tpErr } = await supabase
+        .from('takeoff_projects')
+        .select('project_id')
+        .eq('id', takeoffId)
+        .single();
+      if (tpErr || !tp?.project_id) throw tpErr || new Error('No project linked to takeoff');
+
+      const rows = histMatch.suggestedLines.map((l) => ({
+        project_id: tp.project_id,
+        cost_code_id: l.costCodeId,
+        budget_amount: Math.round(l.avgAmount * 100) / 100,
+        budget_source: 'historical',
+        owner_id: user.id,
+      }));
+
+      const { error: upErr } = await supabase
+        .from('project_budgets')
+        .upsert(rows, { onConflict: 'project_id,lot_id,cost_code_id' });
+      if (upErr) throw upErr;
+
+      setApplied(true);
+      toast({
+        title: 'Historical budget applied',
+        description: `Seeded ${rows.length} cost code${rows.length !== 1 ? 's' : ''} from past projects.`,
+      });
+    } catch (e: any) {
+      console.error('Apply historical budget failed', e);
+      toast({ title: 'Could not apply', description: e?.message || 'Unknown error', variant: 'destructive' });
+    } finally {
+      setApplying(false);
+    }
   };
 
   const handleClose = async () => {
