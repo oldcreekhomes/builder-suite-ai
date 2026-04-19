@@ -5054,7 +5054,7 @@ export type Database = {
     }
     Enums: {
       account_type: "asset" | "liability" | "equity" | "revenue" | "expense"
-      app_role: "owner" | "accountant" | "employee"
+      app_role: "owner" | "accountant" | "employee" | "platform_admin"
       bill_line_type: "job_cost" | "expense"
       bill_status: "draft" | "posted" | "void" | "paid" | "reversed"
       user_type: "home_builder" | "employee"
@@ -5186,7 +5186,7 @@ export const Constants = {
   public: {
     Enums: {
       account_type: ["asset", "liability", "equity", "revenue", "expense"],
-      app_role: ["owner", "accountant", "employee"],
+      app_role: ["owner", "accountant", "employee", "platform_admin"],
       bill_line_type: ["job_cost", "expense"],
       bill_status: ["draft", "posted", "void", "paid", "reversed"],
       user_type: ["home_builder", "employee"],
