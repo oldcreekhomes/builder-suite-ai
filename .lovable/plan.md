@@ -1,40 +1,64 @@
 
 
-## Goal
-Add `platform_admin` role + cross-tenant SELECT policies + analytics RPCs in this app, granted only to mgray@oldcreekhomes.com. This is the DB groundwork the separate Platform Admin Lovable project will read from.
+## Status — both sides ready to move
 
-## Migration (single SQL migration)
+```text
+[✓] DB migration in progress (this OCH project)
+    → Step 1 done: ALTER TYPE app_role ADD 'platform_admin'
+    → Steps 2-4 still queued: role grant + RLS + 4 RPCs
+[✓] New workspace: "BuilderSuite ML"
+[✓] New project: "BuilderSuite ML - Admin" (renamed, empty shell)
+[ ] Kickoff prompt pasted into new project
+[ ] Cross-tenant RLS + analytics RPCs migration committed here
+```
 
-### 1. Add enum value
-- `ALTER TYPE app_role ADD VALUE IF NOT EXISTS 'platform_admin';`
+## Two parallel actions — do both now
 
-### 2. Grant role to you
-- Insert into `user_roles` (user_id = mgray@oldcreekhomes.com's auth id, role = 'platform_admin'). Look up id via subquery on `auth.users` by email.
-- Guard: do NOT let the existing `sync_user_role` trigger wipe this. That trigger fires on `public.users` updates and only manages owner/accountant/employee mappings — `platform_admin` rows on `user_roles` are independent and survive. Confirm by reading the trigger logic before migration.
+### Action 1 (in THIS OCH project) — finish the migration
 
-### 3. Cross-tenant admin SELECT policies
-Add additive `FOR SELECT TO authenticated USING (has_role(auth.uid(), 'platform_admin'))` policies on:
-- `users`, `user_roles`, `user_notification_preferences`
-- `projects`, `project_lots`, `project_budgets`
-- `bills`, `bill_lines`, `companies`, `cost_codes`
-- `pending_bill_uploads`
+The migration so far only added the enum value. The remaining pieces still need to land:
+- Insert `user_roles` row granting `platform_admin` to mgray@oldcreekhomes.com
+- Cross-tenant SELECT RLS policies on 11 tables
+- 4 analytics RPCs (`admin_get_platform_overview`, `admin_get_signup_funnel`, `admin_get_builder_health`, `admin_get_reengagement_queue`)
 
-Existing tenant policies stay intact (additive, OR-combined by Postgres).
+**Caveat I just discovered:** Postgres requires `ADD VALUE` on an enum to be committed before the new value can be used in DML. So the role-grant + RPC creation must run as a **second migration**, not in the same transaction as step 1. I'll split it that way when I switch to default mode.
 
-### 4. Analytics RPCs (`SECURITY DEFINER`, gated by `has_role(auth.uid(),'platform_admin')`, raise exception otherwise)
-- `admin_get_platform_overview()` → totals: builders, vendors, employees, signups last 7d / 30d, active last 7d / 30d (via `auth.users.last_sign_in_at`)
-- `admin_get_signup_funnel(start_date date, end_date date)` → daily counts grouped by `user_type`
-- `admin_get_builder_health()` → per builder (owners only): id, email, company_name, signup date, last_sign_in_at, days_since_signup, project_count, bill_count, pending_upload_count
-- `admin_get_reengagement_queue()` → builders with sign_in_count ≤ 1 OR last_sign_in_at older than 7 days, with contact info
+### Action 2 (in the new "BuilderSuite ML - Admin" project) — kick off scaffolding
 
-All read `auth.users` safely via SECURITY DEFINER (no direct client access).
+Switch to that project's editor and paste this verbatim into its chat:
 
-## Verification
-- Run `SELECT has_role(auth.uid(), 'platform_admin')` while logged in as mgray@oldcreekhomes.com → returns `true`.
-- Call `select * from admin_get_platform_overview();` → returns row.
-- Call `select * from admin_get_builder_health();` → returns all home builders across tenants.
-- Existing OCH dashboard still works (no regressions in tenant RLS).
+> Scaffold a Platform Admin dashboard for BuilderSuite ML.
+>
+> **Supabase:** Connect to existing project `nlmnwlvmmkngrgatnzkj`. Anon key: `eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im5sbW53bHZtbWtuZ3JnYXRuemtqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTA2MDU3OTgsImV4cCI6MjA2NjE4MTc5OH0.gleBmte9X1uQWYaTxX-dLWVqk6Hpvb_qjseN_aG6xM0`
+>
+> **Auth gate:** Email/password login. After login, call RPC `has_role(auth.uid(), 'platform_admin')`. If false, sign out and show "Access denied — platform admins only." Test login: mgray@oldcreekhomes.com.
+>
+> **Layout:** Sidebar nav with shadcn/ui. Pages: Overview, Builders, Engagement, Re-engagement, Vendors.
+>
+> **Pages:**
+> - **Overview** — call RPC `admin_get_platform_overview()`. Stat cards: total builders, vendors, employees, signups (7d/30d), active users (7d/30d). Below cards, signup funnel line chart calling `admin_get_signup_funnel(start_date, end_date)`, default last 30 days, grouped by user_type.
+> - **Builders** — call RPC `admin_get_builder_health()`. Sortable shadcn table: email, company_name, signup date, last sign-in, days since signup, project count, bill count, pending uploads.
+> - **Re-engagement** — call RPC `admin_get_reengagement_queue()`. Table with copy-email button.
+> - **Vendors** — placeholder page for now.
+>
+> **Stack:** React + Vite + TypeScript + Tailwind + shadcn/ui + React Query + react-router-dom + recharts.
+>
+> Note: the RPCs above exist in the shared Supabase DB — they'll return empty/error gracefully until I confirm the parent project's migration has fully landed.
 
-## Next step (after this lands)
-You create the new Lovable project ("BuilderSuite ML — Admin"). I scaffold its pages calling these RPCs + share Supabase client config + reuse `ImpersonationContext` for "View as builder."
+## Plan for this OCH project's next migration (what I'll commit when you approve default mode)
+
+Two-statement migration, split because of the enum commit requirement:
+
+1. Insert `user_roles` row → `platform_admin` to mgray@oldcreekhomes.com (lookup by email from `auth.users`)
+2. Cross-tenant SELECT policies on: `users`, `user_roles`, `user_notification_preferences`, `projects`, `project_lots`, `project_budgets`, `bills`, `bill_lines`, `companies`, `cost_codes`, `pending_bill_uploads`
+3. Create 4 analytics RPCs (SECURITY DEFINER, gated by `has_role(auth.uid(),'platform_admin')`)
+
+No changes to existing tenant RLS. Fully additive.
+
+## What I need from you
+
+- Approve switching to default mode so I can commit migration part 2 here
+- Paste the kickoff prompt above into the "BuilderSuite ML - Admin" project's chat (separate browser tab)
+
+Once both fire, you'll have working analytics RPCs in the DB and a scaffolded admin app reading them within ~5 minutes.
 
