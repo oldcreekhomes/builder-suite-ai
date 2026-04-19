@@ -253,6 +253,22 @@ export function UploadSheetDialog({ open, onOpenChange, takeoffId, onSuccess }: 
         }
       }
 
+      // Phase 2.5: Extract project profile from all uploaded pages (one AI call)
+      try {
+        setExtractingProfile(true);
+        const imagePaths = sheetsToProcess.map((s) => s.filePath);
+        const { error: profErr } = await supabase.functions.invoke('extract-project-profile', {
+          body: { takeoff_project_id: takeoffId, image_paths: imagePaths },
+        });
+        if (profErr) {
+          console.warn('Profile extraction failed (non-blocking):', profErr);
+        }
+      } catch (e) {
+        console.warn('Profile extraction failed (non-blocking):', e);
+      } finally {
+        setExtractingProfile(false);
+      }
+
       setPhase('review');
 
     } catch (error) {
