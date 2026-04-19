@@ -452,7 +452,7 @@ export function UploadSheetDialog({ open, onOpenChange, takeoffId, onSuccess }: 
 
   return (
     <Dialog open={open} onOpenChange={handleClose}>
-      <DialogContent className={phase === 'review' || phase === 'extracting' ? "max-w-4xl" : ""}>
+      <DialogContent className={phase === 'review' ? "max-w-6xl" : phase === 'extracting' ? "max-w-4xl" : ""}>
         <DialogHeader>
           <DialogTitle>Upload Drawing Sheet</DialogTitle>
           {phase === 'review' && (
