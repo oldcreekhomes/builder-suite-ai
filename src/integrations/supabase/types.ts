@@ -5021,6 +5021,15 @@ export type Database = {
           is_employee: boolean
         }[]
       }
+      get_my_company_features: {
+        Args: never
+        Returns: {
+          apartments: boolean
+          estimating: boolean
+          marketplace: boolean
+          templates: boolean
+        }[]
+      }
       get_pending_employee_approvals: {
         Args: never
         Returns: {
