@@ -10,10 +10,10 @@ export interface CompanyFeatures {
 }
 
 const DEFAULT_FEATURES: CompanyFeatures = {
-  apartments: true,
-  estimating: true,
-  marketplace: true,
-  templates: true,
+  apartments: false,
+  estimating: false,
+  marketplace: false,
+  templates: false,
 };
 
 /**
@@ -21,7 +21,8 @@ const DEFAULT_FEATURES: CompanyFeatures = {
  * Backed by the `get_my_company_features()` RPC, which reads
  * `public.company_feature_access` (set by the Platform Admin app).
  *
- * Defaults to all-true while loading and when no explicit row exists.
+ * Default-OFF semantics: features are disabled unless an explicit
+ * `enabled = true` row exists for the company.
  */
 export const useCompanyFeatures = () => {
   const { user } = useAuth();
@@ -37,10 +38,10 @@ export const useCompanyFeatures = () => {
       const row = Array.isArray(data) ? data[0] : data;
       if (!row) return DEFAULT_FEATURES;
       return {
-        apartments: row.apartments ?? true,
-        estimating: row.estimating ?? true,
-        marketplace: row.marketplace ?? true,
-        templates: row.templates ?? true,
+        apartments: row.apartments ?? false,
+        estimating: row.estimating ?? false,
+        marketplace: row.marketplace ?? false,
+        templates: row.templates ?? false,
       };
     },
     enabled: !!user?.id,
