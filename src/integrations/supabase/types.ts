@@ -4440,9 +4440,79 @@ export type Database = {
           },
         ]
       }
+      takeoff_project_estimate_items: {
+        Row: {
+          confidence: string | null
+          cost_code_id: string | null
+          cost_code_label: string | null
+          created_at: string
+          id: string
+          item_label: string | null
+          notes: string | null
+          owner_id: string
+          quantity: number | null
+          size: string | null
+          source_sheet: string | null
+          spec: Json
+          takeoff_project_id: string
+          unit: string | null
+          updated_at: string
+        }
+        Insert: {
+          confidence?: string | null
+          cost_code_id?: string | null
+          cost_code_label?: string | null
+          created_at?: string
+          id?: string
+          item_label?: string | null
+          notes?: string | null
+          owner_id: string
+          quantity?: number | null
+          size?: string | null
+          source_sheet?: string | null
+          spec?: Json
+          takeoff_project_id: string
+          unit?: string | null
+          updated_at?: string
+        }
+        Update: {
+          confidence?: string | null
+          cost_code_id?: string | null
+          cost_code_label?: string | null
+          created_at?: string
+          id?: string
+          item_label?: string | null
+          notes?: string | null
+          owner_id?: string
+          quantity?: number | null
+          size?: string | null
+          source_sheet?: string | null
+          spec?: Json
+          takeoff_project_id?: string
+          unit?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "takeoff_project_estimate_items_cost_code_id_fkey"
+            columns: ["cost_code_id"]
+            isOneToOne: false
+            referencedRelation: "cost_codes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "takeoff_project_estimate_items_takeoff_project_id_fkey"
+            columns: ["takeoff_project_id"]
+            isOneToOne: false
+            referencedRelation: "takeoff_projects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       takeoff_project_profiles: {
         Row: {
           ai_confidence: Json | null
+          area_schedule: Json
           basement_sf: number | null
           basement_type: string | null
           bedrooms: number | null
@@ -4459,6 +4529,7 @@ export type Database = {
           id: string
           owner_id: string
           raw_extraction: Json | null
+          roof_pitches: Json
           roof_type: string | null
           stories: number | null
           takeoff_project_id: string
@@ -4468,6 +4539,7 @@ export type Database = {
         }
         Insert: {
           ai_confidence?: Json | null
+          area_schedule?: Json
           basement_sf?: number | null
           basement_type?: string | null
           bedrooms?: number | null
@@ -4484,6 +4556,7 @@ export type Database = {
           id?: string
           owner_id: string
           raw_extraction?: Json | null
+          roof_pitches?: Json
           roof_type?: string | null
           stories?: number | null
           takeoff_project_id: string
@@ -4493,6 +4566,7 @@ export type Database = {
         }
         Update: {
           ai_confidence?: Json | null
+          area_schedule?: Json
           basement_sf?: number | null
           basement_type?: string | null
           bedrooms?: number | null
@@ -4509,6 +4583,7 @@ export type Database = {
           id?: string
           owner_id?: string
           raw_extraction?: Json | null
+          roof_pitches?: Json
           roof_type?: string | null
           stories?: number | null
           takeoff_project_id?: string
