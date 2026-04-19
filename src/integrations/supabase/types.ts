@@ -4807,6 +4807,55 @@ export type Database = {
         }
         Returns: string
       }
+      admin_get_builder_health: {
+        Args: never
+        Returns: {
+          bill_count: number
+          company_name: string
+          days_since_signup: number
+          email: string
+          id: string
+          last_sign_in_at: string
+          pending_upload_count: number
+          project_count: number
+          signup_date: string
+        }[]
+      }
+      admin_get_platform_overview: {
+        Args: never
+        Returns: {
+          active_30d: number
+          active_7d: number
+          signups_30d: number
+          signups_7d: number
+          total_builders: number
+          total_employees: number
+          total_vendors: number
+        }[]
+      }
+      admin_get_reengagement_queue: {
+        Args: never
+        Returns: {
+          company_name: string
+          days_since_last_signin: number
+          email: string
+          first_name: string
+          id: string
+          last_name: string
+          last_sign_in_at: string
+          phone_number: string
+          sign_in_count: number
+          signup_date: string
+        }[]
+      }
+      admin_get_signup_funnel: {
+        Args: { end_date: string; start_date: string }
+        Returns: {
+          signup_count: number
+          signup_date: string
+          user_type: string
+        }[]
+      }
       approve_employee: { Args: { employee_id: string }; Returns: undefined }
       approve_pending_bill: {
         Args: {
