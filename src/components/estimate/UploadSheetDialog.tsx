@@ -34,6 +34,7 @@ import {
 } from "@/components/ui/select";
 import { ProjectProfilePanel } from "./ProjectProfilePanel";
 import { HistoricalBudgetSuggestion } from "./HistoricalBudgetSuggestion";
+import { EstimateItemsPanel } from "./EstimateItemsPanel";
 import { useProjectProfile, type TakeoffProjectProfile } from "@/hooks/useProjectProfile";
 import { useHistoricalBudgetMatch } from "@/hooks/useHistoricalBudgetMatch";
 
@@ -594,11 +595,15 @@ export function UploadSheetDialog({ open, onOpenChange, takeoffId, onSuccess }: 
                 </div>
               </div>
 
-              <div className="lg:col-span-2 space-y-3">
+              <div className="lg:col-span-2 space-y-3 max-h-[70vh] overflow-y-auto pr-1">
                 <ProjectProfilePanel
                   profile={profile}
                   loading={extractingProfile}
                   onChange={(patch) => updateProfile(patch)}
+                />
+                <EstimateItemsPanel
+                  takeoffProjectId={takeoffId}
+                  loading={extractingProfile}
                 />
                 <HistoricalBudgetSuggestion
                   data={histMatch}

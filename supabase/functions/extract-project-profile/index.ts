@@ -8,45 +8,8 @@ const corsHeaders = {
 
 interface RequestBody {
   takeoff_project_id: string;
-  image_paths: string[]; // storage paths in project-files bucket
+  image_paths: string[];
 }
-
-const PROFILE_TOOL = {
-  type: "function",
-  function: {
-    name: "record_project_profile",
-    description:
-      "Record the structured architectural project profile extracted from the drawing sheets.",
-    parameters: {
-      type: "object",
-      properties: {
-        total_sf: { type: ["number", "null"], description: "Total square footage including all conditioned and unconditioned space if shown." },
-        heated_sf: { type: ["number", "null"], description: "Heated/conditioned square footage." },
-        unheated_sf: { type: ["number", "null"], description: "Unheated square footage (garage, porches, unfinished basement)." },
-        bedrooms: { type: ["integer", "null"] },
-        full_baths: { type: ["integer", "null"] },
-        half_baths: { type: ["integer", "null"] },
-        stories: { type: ["integer", "null"] },
-        garage_bays: { type: ["integer", "null"] },
-        garage_type: { type: ["string", "null"], enum: ["attached", "detached", "none", null] },
-        basement_type: { type: ["string", "null"], enum: ["none", "unfinished", "finished", null] },
-        basement_sf: { type: ["number", "null"] },
-        foundation_type: { type: ["string", "null"], enum: ["slab", "crawl", "basement", null] },
-        roof_type: { type: ["string", "null"], description: "e.g., gable, hip, shed, gambrel" },
-        exterior_type: { type: ["string", "null"], description: "e.g., brick, vinyl, fiber cement, stucco" },
-        footprint_length: { type: ["number", "null"], description: "Building footprint length in feet, if visible on site/floor plan." },
-        footprint_width: { type: ["number", "null"] },
-        confidence: {
-          type: "object",
-          description: "Per-field confidence: high, medium, or low. Use low when not visible.",
-          additionalProperties: { type: "string", enum: ["high", "medium", "low"] },
-        },
-      },
-      required: ["confidence"],
-      additionalProperties: false,
-    },
-  },
-};
 
 Deno.serve(async (req: Request) => {
   if (req.method === "OPTIONS") {
@@ -59,47 +22,51 @@ Deno.serve(async (req: Request) => {
     const SERVICE_ROLE = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
 
     if (!LOVABLE_API_KEY) {
-      return new Response(JSON.stringify({ error: "LOVABLE_API_KEY not configured" }), {
-        status: 500,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
+      return json({ error: "LOVABLE_API_KEY not configured" }, 500);
     }
 
     const authHeader = req.headers.get("Authorization") ?? "";
     const token = authHeader.replace("Bearer ", "");
-    if (!token) {
-      return new Response(JSON.stringify({ error: "Missing auth" }), {
-        status: 401,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
-    }
+    if (!token) return json({ error: "Missing auth" }, 401);
 
-    // User-context client to verify identity & for RLS-safe profile upsert
     const userClient = createClient(SUPABASE_URL, Deno.env.get("SUPABASE_ANON_KEY")!, {
       global: { headers: { Authorization: `Bearer ${token}` } },
     });
     const { data: userData, error: userErr } = await userClient.auth.getUser(token);
-    if (userErr || !userData?.user) {
-      return new Response(JSON.stringify({ error: "Invalid token" }), {
-        status: 401,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
-    }
+    if (userErr || !userData?.user) return json({ error: "Invalid token" }, 401);
     const userId = userData.user.id;
 
     const body = (await req.json()) as RequestBody;
     if (!body.takeoff_project_id || !Array.isArray(body.image_paths) || body.image_paths.length === 0) {
-      return new Response(JSON.stringify({ error: "takeoff_project_id and image_paths[] required" }), {
-        status: 400,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
+      return json({ error: "takeoff_project_id and image_paths[] required" }, 400);
     }
 
     const admin = createClient(SUPABASE_URL, SERVICE_ROLE);
 
-    // Generate signed URLs (or use public URLs) for each image so the model can fetch them
+    // Look up takeoff project owner so we can fetch its company's estimate cost codes
+    const { data: tp, error: tpErr } = await admin
+      .from("takeoff_projects")
+      .select("owner_id")
+      .eq("id", body.takeoff_project_id)
+      .maybeSingle();
+    if (tpErr || !tp) return json({ error: "Takeoff project not found" }, 404);
+    const ownerId = tp.owner_id;
+
+    // Fetch estimate-flagged cost codes (leaf nodes only)
+    const { data: costCodes, error: ccErr } = await admin
+      .from("cost_codes")
+      .select("id, code, name, unit_of_measure, category, parent_group, has_subcategories, estimate")
+      .eq("owner_id", ownerId)
+      .eq("estimate", true)
+      .order("code");
+    if (ccErr) console.warn("cost_codes lookup failed", ccErr);
+
+    const leafCodes = (costCodes ?? []).filter((c) => !c.has_subcategories);
+    const allowedIds = leafCodes.map((c) => c.id);
+
+    // Sign URLs
     const imageUrls: string[] = [];
-    for (const path of body.image_paths.slice(0, 12)) {
+    for (const path of body.image_paths.slice(0, 16)) {
       const { data, error } = await admin.storage
         .from("project-files")
         .createSignedUrl(path, 60 * 30);
@@ -109,20 +76,119 @@ Deno.serve(async (req: Request) => {
       }
       imageUrls.push(data.signedUrl);
     }
+    if (imageUrls.length === 0) return json({ error: "No accessible images" }, 400);
 
-    if (imageUrls.length === 0) {
-      return new Response(JSON.stringify({ error: "No accessible images" }), {
-        status: 400,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
-    }
+    // Build dynamic tool schema with enum of allowed cost code ids
+    const PROFILE_TOOL: any = {
+      type: "function",
+      function: {
+        name: "record_project_profile",
+        description:
+          "Record the structured architectural project profile and itemized estimate items extracted from the drawing sheets.",
+        parameters: {
+          type: "object",
+          properties: {
+            area_schedule: {
+              type: "array",
+              description:
+                "Verbatim copy of the Area Schedule / Area Calculations / Square Footage table on the drawings. Copy each labeled bucket (Main Level, Second Level, Finished Basement, Garage, Covered Porch, Unfinished Basement, Total Finished, etc.) exactly as drawn. Do not infer or sum.",
+              items: {
+                type: "object",
+                properties: {
+                  label: { type: "string" },
+                  sf: { type: ["number", "null"] },
+                },
+                required: ["label"],
+                additionalProperties: false,
+              },
+            },
+            roof_pitches: {
+              type: "array",
+              description: "Roof pitches read from roof plan / building section labels, e.g. ['8/12 main', '10/12 porch']",
+              items: { type: "string" },
+            },
+            bedrooms: { type: ["integer", "null"] },
+            full_baths: { type: ["integer", "null"] },
+            half_baths: { type: ["integer", "null"] },
+            stories: { type: ["integer", "null"] },
+            garage_bays: { type: ["integer", "null"] },
+            garage_type: { type: ["string", "null"], enum: ["attached", "detached", "none", null] },
+            basement_type: { type: ["string", "null"], enum: ["none", "unfinished", "finished", null] },
+            basement_sf: { type: ["number", "null"] },
+            foundation_type: { type: ["string", "null"], enum: ["slab", "crawl", "basement", null] },
+            roof_type: { type: ["string", "null"] },
+            exterior_type: { type: ["string", "null"] },
+            footprint_length: { type: ["number", "null"] },
+            footprint_width: { type: ["number", "null"] },
+            confidence: {
+              type: "object",
+              additionalProperties: { type: "string", enum: ["high", "medium", "low"] },
+            },
+            estimate_items: {
+              type: "array",
+              description:
+                "Itemized list of construction elements visible on the drawings (windows, exterior doors, interior doors, garage doors, roof areas/pitches, siding, concrete elements, etc). EACH item MUST be matched to one of the allowed cost_code_id values from the Allowed Cost Codes list provided in the user prompt. Skip items that don't match any allowed cost code.",
+              items: {
+                type: "object",
+                properties: {
+                  cost_code_id: allowedIds.length > 0
+                    ? { type: "string", enum: allowedIds }
+                    : { type: "string" },
+                  cost_code_label: { type: "string", description: "e.g. '4380.2 Windows - Double'" },
+                  item_label: { type: "string", description: "e.g. 'Bedroom 2 window', 'Front entry door'" },
+                  size: { type: ["string", "null"], description: "Verbatim size, e.g. \"3'-0\\\" x 6'-8\\\"\" or '16' x 7''" },
+                  quantity: { type: "number" },
+                  unit: { type: "string", enum: ["EA", "LF", "SF", "CY"], description: "EA for counted items, LF for linear, SF for square footage" },
+                  spec: {
+                    type: "object",
+                    description: "Free-form spec, e.g. { swing: 'LH', material: 'fiberglass', glazing: 'tempered', pitch: '8/12' }",
+                    additionalProperties: true,
+                  },
+                  source_sheet: { type: ["string", "null"] },
+                  confidence: { type: "string", enum: ["high", "medium", "low"] },
+                  notes: { type: ["string", "null"] },
+                },
+                required: ["cost_code_label", "quantity", "unit", "confidence"],
+                additionalProperties: false,
+              },
+            },
+          },
+          required: ["confidence", "area_schedule", "estimate_items"],
+          additionalProperties: false,
+        },
+      },
+    };
+
+    const allowedList = leafCodes
+      .map((c) => `- ${c.id} | ${c.code} ${c.name}${c.unit_of_measure ? ` (${c.unit_of_measure})` : ""}`)
+      .join("\n");
+
+    const promptText =
+`You are an expert construction estimator. Carefully analyze EVERY drawing sheet provided and extract:
+
+PASS A — PROJECT PROFILE
+- Bedrooms, baths (full / half), stories, garage bays + type, basement type + SF, foundation, roof type, exterior, footprint dims.
+- AREA SCHEDULE: If any sheet shows an Area Schedule / Area Calculations / Square Footage / Area Tabulation table, COPY IT VERBATIM into area_schedule[]. Use the exact labels as shown (e.g. 'Main Level', 'Second Level', 'Finished Basement', 'Total Finished', 'Garage', 'Covered Porch', 'Unfinished Basement'). Do not invent labels, do not sum, do not omit rows.
+- ROOF PITCHES: Read from the roof plan or building section labels (e.g. '8/12', '12/12'). Include location qualifiers when shown.
+
+PASS B — ESTIMATE ITEMS
+For EACH item that matches one of the Allowed Cost Codes below, return one row in estimate_items[]. Look hard at:
+  • Window schedules and elevations — return each window: size, count, location, single/double/triple
+  • Exterior door schedules — size (e.g. 3'-0" x 6'-8"), swing, material, location
+  • Interior door schedules — size, swing, location, count by size
+  • Garage doors — count and size (single 9'x7' vs double 16'x7')
+  • Roof pitches and roof areas
+  • Siding (lap vs board & batten) with approx LF/SF when elevations are dimensioned
+  • Concrete: footings, basement slab, garage slab, porch slab, drain tile, piers, egress windows
+  • Anything else that matches an allowed cost code
+Set quantity (numeric) and unit (EA/LF/SF/CY). Use confidence='high' only when the value is clearly readable on the drawing. If you cannot determine quantity precisely, give your best count and mark confidence accordingly.
+
+ALLOWED COST CODES (cost_code_id | code name (unit)) — only emit estimate_items whose cost_code_id is in this list:
+${allowedList || "(none configured — skip estimate_items)"}
+`;
 
     const userContent: any[] = [
-      {
-        type: "text",
-        text:
-          "You are an expert construction estimator. Analyze these architectural drawing sheets and extract a structured project profile. Use only what is clearly visible. For any field you cannot determine, return null and mark its confidence as 'low'. Square footages should be in square feet, dimensions in feet.",
-      },
+      { type: "text", text: promptText },
       ...imageUrls.map((url) => ({ type: "image_url", image_url: { url } })),
     ];
 
@@ -143,67 +209,65 @@ Deno.serve(async (req: Request) => {
     if (!aiResp.ok) {
       const txt = await aiResp.text();
       console.error("AI gateway error", aiResp.status, txt);
-      if (aiResp.status === 429) {
-        return new Response(JSON.stringify({ error: "Rate limit exceeded, try again shortly." }), {
-          status: 429,
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
-        });
-      }
-      if (aiResp.status === 402) {
-        return new Response(JSON.stringify({ error: "AI credits exhausted. Add funds in workspace settings." }), {
-          status: 402,
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
-        });
-      }
-      return new Response(JSON.stringify({ error: "AI gateway error" }), {
-        status: 500,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
+      if (aiResp.status === 429) return json({ error: "Rate limit exceeded, try again shortly." }, 429);
+      if (aiResp.status === 402) return json({ error: "AI credits exhausted. Add funds in workspace settings." }, 402);
+      return json({ error: "AI gateway error" }, 500);
     }
 
     const aiJson = await aiResp.json();
     const toolCall = aiJson?.choices?.[0]?.message?.tool_calls?.[0];
     if (!toolCall?.function?.arguments) {
       console.error("No tool call in AI response", JSON.stringify(aiJson).slice(0, 1000));
-      return new Response(JSON.stringify({ error: "AI did not return structured data" }), {
-        status: 502,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
+      return json({ error: "AI did not return structured data" }, 502);
     }
 
-    let profile: any;
+    let extraction: any;
     try {
-      profile = JSON.parse(toolCall.function.arguments);
-    } catch (e) {
-      console.error("Failed to parse tool args", toolCall.function.arguments);
-      return new Response(JSON.stringify({ error: "Invalid AI output" }), {
-        status: 502,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
+      extraction = JSON.parse(toolCall.function.arguments);
+    } catch {
+      return json({ error: "Invalid AI output" }, 502);
     }
 
-    // Upsert via user client so RLS applies
+    // Compute derived SF for historical matching
+    const areaSchedule: Array<{ label: string; sf: number | null }> = Array.isArray(extraction.area_schedule)
+      ? extraction.area_schedule
+      : [];
+    const isUnheated = (label: string) => /garage|porch|patio|deck|unfinished|unconditioned/i.test(label);
+    const isTotalRow = (label: string) => /^total/i.test(label?.trim() ?? "");
+    let heated = 0, unheated = 0;
+    for (const row of areaSchedule) {
+      if (typeof row?.sf !== "number" || isTotalRow(row.label || "")) continue;
+      if (isUnheated(row.label || "")) unheated += row.sf;
+      else heated += row.sf;
+    }
+    const totalRow = areaSchedule.find((r) => isTotalRow(r.label || "") && /finish/i.test(r.label || ""));
+    const heatedFinal = totalRow?.sf ?? (heated > 0 ? heated : null);
+    const unheatedFinal = unheated > 0 ? unheated : null;
+    const totalFinal = (heatedFinal ?? 0) + (unheatedFinal ?? 0) || null;
+
     const upsertPayload = {
       takeoff_project_id: body.takeoff_project_id,
       owner_id: userId,
-      total_sf: profile.total_sf ?? null,
-      heated_sf: profile.heated_sf ?? null,
-      unheated_sf: profile.unheated_sf ?? null,
-      bedrooms: profile.bedrooms ?? null,
-      full_baths: profile.full_baths ?? null,
-      half_baths: profile.half_baths ?? null,
-      stories: profile.stories ?? null,
-      garage_bays: profile.garage_bays ?? null,
-      garage_type: profile.garage_type ?? null,
-      basement_type: profile.basement_type ?? null,
-      basement_sf: profile.basement_sf ?? null,
-      foundation_type: profile.foundation_type ?? null,
-      roof_type: profile.roof_type ?? null,
-      exterior_type: profile.exterior_type ?? null,
-      footprint_length: profile.footprint_length ?? null,
-      footprint_width: profile.footprint_width ?? null,
-      ai_confidence: profile.confidence ?? {},
-      raw_extraction: profile,
+      total_sf: totalFinal,
+      heated_sf: heatedFinal,
+      unheated_sf: unheatedFinal,
+      bedrooms: extraction.bedrooms ?? null,
+      full_baths: extraction.full_baths ?? null,
+      half_baths: extraction.half_baths ?? null,
+      stories: extraction.stories ?? null,
+      garage_bays: extraction.garage_bays ?? null,
+      garage_type: extraction.garage_type ?? null,
+      basement_type: extraction.basement_type ?? null,
+      basement_sf: extraction.basement_sf ?? null,
+      foundation_type: extraction.foundation_type ?? null,
+      roof_type: extraction.roof_type ?? null,
+      exterior_type: extraction.exterior_type ?? null,
+      footprint_length: extraction.footprint_length ?? null,
+      footprint_width: extraction.footprint_width ?? null,
+      area_schedule: areaSchedule,
+      roof_pitches: Array.isArray(extraction.roof_pitches) ? extraction.roof_pitches : [],
+      ai_confidence: extraction.confidence ?? {},
+      raw_extraction: extraction,
     };
 
     const { data: upserted, error: upsertErr } = await userClient
@@ -213,21 +277,51 @@ Deno.serve(async (req: Request) => {
       .single();
 
     if (upsertErr) {
-      console.error("Upsert error", upsertErr);
-      return new Response(JSON.stringify({ error: upsertErr.message }), {
-        status: 500,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
+      console.error("Profile upsert error", upsertErr);
+      return json({ error: upsertErr.message }, 500);
     }
 
-    return new Response(JSON.stringify({ profile: upserted }), {
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
-    });
+    // Replace estimate items
+    await admin
+      .from("takeoff_project_estimate_items")
+      .delete()
+      .eq("takeoff_project_id", body.takeoff_project_id);
+
+    const items = Array.isArray(extraction.estimate_items) ? extraction.estimate_items : [];
+    const validItems = items
+      .filter((it: any) => it && it.cost_code_label && (it.quantity ?? null) !== null)
+      .map((it: any) => ({
+        takeoff_project_id: body.takeoff_project_id,
+        owner_id: userId,
+        cost_code_id: allowedIds.includes(it.cost_code_id) ? it.cost_code_id : null,
+        cost_code_label: String(it.cost_code_label).slice(0, 200),
+        item_label: it.item_label ?? null,
+        size: it.size ?? null,
+        quantity: Number(it.quantity) || 0,
+        unit: it.unit || "EA",
+        spec: it.spec && typeof it.spec === "object" ? it.spec : {},
+        source_sheet: it.source_sheet ?? null,
+        confidence: it.confidence ?? "low",
+        notes: it.notes ?? null,
+      }));
+
+    if (validItems.length > 0) {
+      const { error: itErr } = await admin
+        .from("takeoff_project_estimate_items")
+        .insert(validItems);
+      if (itErr) console.error("Estimate items insert error", itErr);
+    }
+
+    return json({ profile: upserted, items_inserted: validItems.length });
   } catch (e) {
     console.error("extract-project-profile error", e);
-    return new Response(JSON.stringify({ error: e instanceof Error ? e.message : "Unknown" }), {
-      status: 500,
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
-    });
+    return json({ error: e instanceof Error ? e.message : "Unknown" }, 500);
   }
 });
+
+function json(body: unknown, status = 200) {
+  return new Response(JSON.stringify(body), {
+    status,
+    headers: { ...corsHeaders, "Content-Type": "application/json" },
+  });
+}
