@@ -164,11 +164,16 @@ Deno.serve(async (req: Request) => {
       .join("\n");
 
     const promptText =
-`You are an expert construction estimator. Carefully analyze EVERY drawing sheet provided and extract:
+`You are an expert construction estimator performing PRECISE OCR on architectural drawings. Carefully analyze EVERY drawing sheet provided and extract:
 
 PASS A — PROJECT PROFILE
 - Bedrooms, baths (full / half), stories, garage bays + type, basement type + SF, foundation, roof type, exterior, footprint dims.
-- AREA SCHEDULE: If any sheet shows an Area Schedule / Area Calculations / Square Footage / Area Tabulation table, COPY IT VERBATIM into area_schedule[]. Use the exact labels as shown (e.g. 'Main Level', 'Second Level', 'Finished Basement', 'Total Finished', 'Garage', 'Covered Porch', 'Unfinished Basement'). Do not invent labels, do not sum, do not omit rows.
+- AREA SCHEDULE — CRITICAL OCR TASK:
+  • Find the table titled "Area Schedule", "Area Calculations", "Square Footage", "Area Tabulation", or similar. It is usually on the cover sheet, floor plan sheet, or a dedicated schedule sheet.
+  • For EACH ROW of that table, copy the LABEL exactly as printed and READ THE SF NUMBER DIGIT-BY-DIGIT from the drawing. Do NOT estimate, infer, round, or sum. Do NOT calculate from floor plan dimensions — only read what is printed in the schedule table.
+  • Numbers must be returned as raw integers with NO thousands separators (e.g. 1154 not 1,154 and not 1.154). Do not drop or add digits.
+  • If you cannot clearly read a digit, return null for that row's sf rather than guessing.
+  • Double-check each number you return by re-reading the same cell on the drawing before finalizing.
 - ROOF PITCHES: Read from the roof plan or building section labels (e.g. '8/12', '12/12'). Include location qualifiers when shown.
 
 PASS B — ESTIMATE ITEMS
@@ -199,7 +204,7 @@ ${allowedList || "(none configured — skip estimate_items)"}
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        model: "google/gemini-2.5-flash",
+        model: "google/gemini-2.5-pro",
         messages: [{ role: "user", content: userContent }],
         tools: [PROFILE_TOOL],
         tool_choice: { type: "function", function: { name: "record_project_profile" } },
