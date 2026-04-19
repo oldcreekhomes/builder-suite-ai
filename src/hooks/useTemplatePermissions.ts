@@ -1,11 +1,16 @@
 import { useNotificationPreferences } from "./useNotificationPreferences";
+import { useCompanyFeatures } from "./useCompanyFeatures";
 
 export const useTemplatePermissions = () => {
-  const { preferences, isLoading } = useNotificationPreferences();
+  const { preferences, isLoading: prefsLoading } = useNotificationPreferences();
+  const { features, isLoading: featuresLoading } = useCompanyFeatures();
+
+  const userCanAccess = preferences?.can_access_templates ?? false;
+  const userCanEdit = preferences?.can_edit_templates ?? false;
 
   return {
-    canAccessTemplates: preferences?.can_access_templates ?? false,
-    canEditTemplates: preferences?.can_edit_templates ?? false,
-    isLoading,
+    canAccessTemplates: userCanAccess && features.templates,
+    canEditTemplates: userCanEdit && features.templates,
+    isLoading: prefsLoading || featuresLoading,
   };
 };

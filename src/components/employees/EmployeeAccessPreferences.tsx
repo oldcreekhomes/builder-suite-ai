@@ -1,6 +1,7 @@
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { useNotificationPreferences } from "@/hooks/useNotificationPreferences";
+import { useCompanyFeatures } from "@/hooks/useCompanyFeatures";
 
 interface EmployeeAccessPreferencesProps {
   employeeId: string;
@@ -8,6 +9,7 @@ interface EmployeeAccessPreferencesProps {
 
 export function EmployeeAccessPreferences({ employeeId }: EmployeeAccessPreferencesProps) {
   const { preferences, updatePreferences, isLoading } = useNotificationPreferences(employeeId);
+  const { features } = useCompanyFeatures();
 
   if (isLoading) {
     return (
@@ -161,6 +163,7 @@ export function EmployeeAccessPreferences({ employeeId }: EmployeeAccessPreferen
       </div>
 
       {/* Apartments Section */}
+      {features.apartments && (
       <div className="space-y-4">
         <div>
           <h3 className="text-sm font-medium">Apartments</h3>
@@ -189,6 +192,7 @@ export function EmployeeAccessPreferences({ employeeId }: EmployeeAccessPreferen
           </div>
         </div>
       </div>
+      )}
 
       {/* Budgets Section */}
       <div className="space-y-4">
@@ -347,6 +351,7 @@ export function EmployeeAccessPreferences({ employeeId }: EmployeeAccessPreferen
       </div>
 
       {/* Estimating Section */}
+      {features.estimating && (
       <div className="space-y-4">
         <div>
           <h3 className="text-sm font-medium">Estimating</h3>
@@ -375,8 +380,10 @@ export function EmployeeAccessPreferences({ employeeId }: EmployeeAccessPreferen
           </div>
         </div>
       </div>
+      )}
 
       {/* Marketplace Section */}
+      {features.marketplace && (
       <div className="space-y-4">
         <div>
           <h3 className="text-sm font-medium">Marketplace</h3>
@@ -405,6 +412,7 @@ export function EmployeeAccessPreferences({ employeeId }: EmployeeAccessPreferen
           </div>
         </div>
       </div>
+      )}
 
       {/* Projects Section */}
       <div className="space-y-4">
@@ -437,6 +445,7 @@ export function EmployeeAccessPreferences({ employeeId }: EmployeeAccessPreferen
       </div>
 
       {/* Templates Section */}
+      {features.templates && (
       <div className="space-y-4">
         <div>
           <h3 className="text-sm font-medium">Templates</h3>
@@ -483,6 +492,7 @@ export function EmployeeAccessPreferences({ employeeId }: EmployeeAccessPreferen
           </div>
         </div>
       </div>
+      )}
     </div>
   );
 }
