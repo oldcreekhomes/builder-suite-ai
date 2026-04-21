@@ -41,7 +41,7 @@ export interface PendingBillLine {
   updated_at: string;
 }
 
-export const usePendingBills = () => {
+export const usePendingBills = (projectId?: string) => {
   const queryClient = useQueryClient();
   const { toast } = useToast();
 
@@ -50,13 +50,19 @@ export const usePendingBills = () => {
     isLoading,
     refetch,
   } = useQuery({
-    queryKey: ["pending-bills"],
+    queryKey: ["pending-bills", projectId ?? null],
     queryFn: async () => {
-      const { data, error } = await supabase
+      let query = supabase
         .from("pending_bill_uploads")
         .select("*")
         .in("status", ["extracted", "completed", "reviewing", "error"])
         .order("created_at", { ascending: false });
+
+      if (projectId) {
+        query = query.eq("project_id", projectId);
+      }
+
+      const { data, error } = await query;
 
       if (error) throw error;
       return data as PendingBill[];
