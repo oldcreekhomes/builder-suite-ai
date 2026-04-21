@@ -358,19 +358,26 @@ export function useBillPOMatching(bills: BillForMatching[]) {
           }
         });
 
-        // Determine overall status:
+        // Determine overall status by status mix (not by distinct PO count):
         // - 0 matches → no_po
-        // - all POs share the same status → use it
-        // - mixed statuses (e.g. one matched + one over) → 'numerous'
+        // - any over_po combined with a matched/draw line → numerous (mixed: some fine, some over)
+        // - all over_po → over_po
+        // - all matched/draw → matched (treat draw as a healthy match for rollup)
+        // - otherwise fall back to first status
         let overall_status: 'matched' | 'over_po' | 'no_po' | 'partial' | 'draw' | 'numerous';
         if (matches.length === 0) {
           overall_status = 'no_po';
         } else {
-          const distinct = new Set(matches.map(m => m.status));
-          if (distinct.size === 1) {
-            overall_status = matches[0].status as any;
-          } else {
+          const hasOver = matches.some(m => m.status === 'over_po');
+          const hasHealthy = matches.some(m => m.status === 'matched' || m.status === 'draw');
+          if (hasOver && hasHealthy) {
             overall_status = 'numerous';
+          } else if (hasOver) {
+            overall_status = 'over_po';
+          } else if (hasHealthy) {
+            overall_status = 'matched';
+          } else {
+            overall_status = matches[0].status as any;
           }
         }
 
