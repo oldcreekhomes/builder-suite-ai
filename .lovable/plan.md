@@ -1,100 +1,154 @@
 
 
-## Plan: Fix "new row violates row-level security policy" when uploading to Enter with AI
+## Why it was working before, and why it broke now
 
-### Root cause
+You are right to question this.
 
-The upload code calls:
-
-```ts
-supabase.storage.from('bill-attachments').upload(filePath, file, { upsert: true, ... })
-```
-
-`upsert: true` makes Supabase Storage perform an **upsert** on `storage.objects`. Postgres evaluates BOTH the INSERT `WITH CHECK` policy AND the UPDATE `USING` policy when planning an upsert, even if no row currently exists.
-
-For `bill-attachments`:
-- INSERT policies exist and pass (`auth.uid() IS NOT NULL` and the per-uploader pending folder rule).
-- **There is no UPDATE policy for `bill-attachments` at all.**
-
-So upsert fails with "new row violates row-level security policy for table 'objects'" — exactly what the postgres logs show:
-
-```
-new row violates row-level security policy for table "objects"
-```
-
-This was masked before because the previous workflow may not have hit the same upsert evaluation path; the recent storage policy refactor (replacing the per-user pending SELECT/DELETE with tenant-scoped ones) made the missing UPDATE policy actively block uploads under upsert semantics.
-
-### The fix — add a tenant-scoped UPDATE policy on `storage.objects` for `bill-attachments/pending/*`
-
-Same shape as the SELECT/DELETE tenant policies we just added. This keeps the rule consistent: any confirmed Old Creek user can write to Old Creek pending bill files; nobody from another builder can.
+The upload was working before because the old storage policy had this simple rule:
 
 ```sql
-CREATE POLICY "Pending bill files updatable by tenant"
+pending/<current_user_id>/<file>
+```
+
+If Matt uploaded to:
+
+```text
+pending/2653aba8-d154-4301-99bf-77d559492e19/file.pdf
+```
+
+Matt could immediately read/delete that file because the folder matched his user ID.
+
+When I changed the pending file access so all Old Creek employees could open each other’s uploaded bill PDFs, I removed the old per-uploader read/delete policies and replaced them with company-wide policies that look up the matching row in:
+
+```text
+pending_bill_uploads
+```
+
+That fixed the “Matt cannot open JOle’s PDF” problem after the upload row exists.
+
+But the upload flow works in this order:
+
+```text
+1. Upload PDF to Supabase Storage
+2. Then insert the pending_bill_uploads database row
+3. Then AI extraction starts
+```
+
+So during step 1, there is no `pending_bill_uploads` row yet.
+
+That means the new company-wide policy cannot find the upload record yet, and Supabase Storage blocks the upload with an RLS error.
+
+So the issue is not the AI extraction. It is not the project. It is not the file. It is the storage policy being too strict during the first few milliseconds before the database row exists.
+
+## What should have happened
+
+The policy needed to support both phases:
+
+```text
+Before pending_bill_uploads row exists:
+  allow the uploader to access their own temporary pending folder
+
+After pending_bill_uploads row exists:
+  allow all confirmed employees in the same company/home builder
+```
+
+I changed the second part but removed the first part too aggressively.
+
+## Immediate fix
+
+Restore the “uploader can access their own pending folder” bootstrap policy, while keeping the company-wide Old Creek employee access policy.
+
+This means:
+
+### Keep this rule for new uploads
+
+```sql
+(storage.foldername(name))[2] = auth.uid()::text
+```
+
+That allows the current logged-in user to upload/read/delete their own temporary pending file before the app has inserted the `pending_bill_uploads` row.
+
+### Keep this rule for shared company access
+
+```sql
+pending_bill_uploads.owner_id = current user
+OR pending_bill_uploads.owner_id = current user's home_builder_id
+```
+
+That allows Matt and JOle to open each other’s pending bill PDFs after the upload record exists.
+
+## Database change
+
+Create a migration that re-adds the two old bootstrap policies for `bill-attachments/pending/*`:
+
+```sql
+DROP POLICY IF EXISTS "Users can read from their pending folder" ON storage.objects;
+
+CREATE POLICY "Users can read from their pending folder"
 ON storage.objects
-FOR UPDATE
+FOR SELECT
 TO authenticated
 USING (
   bucket_id = 'bill-attachments'
   AND (storage.foldername(name))[1] = 'pending'
-  AND (
-    -- New uploads (no matching pending_bill_uploads row yet) — allow if path is in user's own folder
-    (storage.foldername(name))[2] = (auth.uid())::text
-    OR EXISTS (
-      SELECT 1 FROM public.pending_bill_uploads pu
-      WHERE pu.file_path = storage.objects.name
-        AND (
-          pu.owner_id = auth.uid()
-          OR pu.owner_id IN (
-            SELECT u.home_builder_id FROM public.users u
-            WHERE u.id = auth.uid() AND u.confirmed = true AND u.home_builder_id IS NOT NULL
-          )
-        )
-    )
-  )
-)
-WITH CHECK (
+  AND (storage.foldername(name))[2] = auth.uid()::text
+);
+
+DROP POLICY IF EXISTS "Users can delete from their pending folder" ON storage.objects;
+
+CREATE POLICY "Users can delete from their pending folder"
+ON storage.objects
+FOR DELETE
+TO authenticated
+USING (
   bucket_id = 'bill-attachments'
   AND (storage.foldername(name))[1] = 'pending'
-  AND (
-    (storage.foldername(name))[2] = (auth.uid())::text
-    OR EXISTS (
-      SELECT 1 FROM public.pending_bill_uploads pu
-      WHERE pu.file_path = storage.objects.name
-        AND (
-          pu.owner_id = auth.uid()
-          OR pu.owner_id IN (
-            SELECT u.home_builder_id FROM public.users u
-            WHERE u.id = auth.uid() AND u.confirmed = true AND u.home_builder_id IS NOT NULL
-          )
-        )
-    )
-  )
+  AND (storage.foldername(name))[2] = auth.uid()::text
 );
 ```
 
-The `(storage.foldername(name))[2] = auth.uid()::text` branch handles the brand-new-upload case where there is no `pending_bill_uploads` row yet (the upload happens before the DB insert). The tenant branch covers the case where a co-tenant overwrites/upserts an existing pending file.
+The existing policies remain:
 
-### Why this respects the rule you set
+- `Users can upload to their pending folder`
+- `Pending bill files viewable by tenant`
+- `Pending bill files deletable by tenant`
+- `Pending bill files updatable by tenant`
 
-- RLS is still tenant-only — no per-employee permission check inside RLS.
-- App-level Manage Bills / Accounting permissions remain controlled in the Employee tab via `user_notification_preferences` / `ManageBillsGuard`.
-- Cross-tenant access still blocked: another builder's user satisfies neither branch.
+Postgres combines permissive policies with `OR`, so this gives the exact intended behavior:
 
-### Verification
+```text
+Brand-new upload:
+  uploader can access pending/<their user id>/<file>
 
-1. Matt uploads a PDF on 923 17th Street → upload succeeds, extraction runs.
-2. JOle uploads a PDF on the same project → upload succeeds.
-3. Matt opens the file JOle uploaded → preview/download works (already fixed by the previous tenant SELECT policy).
-4. A user from a different builder cannot upload into or read from Old Creek's `pending/` paths.
+After DB row exists:
+  all confirmed company employees can access the pending bill PDF
+```
 
-### What's safe / unchanged
+## Why this does not violate your rule
 
-- No file deletions.
-- No changes to the INSERT policy (still permissive on `bill-attachments`).
-- No changes to the SELECT / DELETE tenant policies just added.
-- No app code changes required — the `upload(..., { upsert: true })` call already does the right thing once the missing UPDATE policy is in place.
+This does not put Manage Bills permissions into RLS.
 
-### Files changed
+RLS still only handles the hard storage boundary:
 
-1. New migration — add `"Pending bill files updatable by tenant"` UPDATE policy on `storage.objects` for `bill-attachments/pending/*`.
+- users can bootstrap their own upload path
+- confirmed employees in the same company can access company bill files
+- other companies cannot access those files
+
+Employee access remains controlled in the Employee tab / app layer.
+
+## Verification after the migration
+
+1. Matt uploads `Invoice_C26019.pdf` in Enter with AI.
+2. Storage upload succeeds.
+3. `pending_bill_uploads` row inserts successfully.
+4. AI extraction starts.
+5. Matt can preview/download the pending PDF.
+6. JOle can preview/download the same pending PDF if she has app-level access to Manage Bills.
+7. JOle uploads a bill and Matt can open it.
+8. A different company cannot access Old Creek bill PDFs.
+
+## Files/areas changed
+
+1. New Supabase migration only.
+2. No frontend code change expected.
 
