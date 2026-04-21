@@ -6,7 +6,7 @@ import { useAuth } from "@/hooks/useAuth";
 
 import { Skeleton } from "@/components/ui/skeleton";
 import { Table, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { JobCostBudgetDialog } from "./JobCostBudgetDialog";
+
 import { JobCostActualDialog } from "./JobCostActualDialog";
 import { JobCostGroupHeader } from "./JobCostGroupHeader";
 import { JobCostGroupTotalRow } from "./JobCostGroupTotalRow";
