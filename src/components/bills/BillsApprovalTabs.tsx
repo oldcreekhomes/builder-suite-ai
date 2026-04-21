@@ -100,7 +100,7 @@ export function BillsApprovalTabs({ projectId, projectIds, reviewOnly = false, o
     refetch: refetchPendingBills,
     deletePendingUpload,
     batchApproveBills,
-  } = usePendingBills();
+  } = usePendingBills(effectiveProjectId);
 
   const [batchBills, setBatchBills] = useState<BatchBill[]>([]);
   const [isExtracting, setIsExtracting] = useState(false);
@@ -845,6 +845,7 @@ export function BillsApprovalTabs({ projectId, projectIds, reviewOnly = false, o
             onExtractionStart={(total) => handleExtractionStart()}
             onExtractionComplete={handleExtractionComplete}
             onExtractionProgress={handleExtractionProgress}
+            projectId={effectiveProjectId}
           />
           {batchBills.length > 0 && (
             <Button onClick={handleSubmitAllBills} disabled={isSubmitting || selectedBillIds.size === 0} size="sm" className="bg-black hover:bg-gray-800 text-white">

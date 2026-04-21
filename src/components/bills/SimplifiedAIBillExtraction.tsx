@@ -34,6 +34,7 @@ interface SimplifiedAIBillExtractionProps {
   onExtractionStart?: (total: number) => void;
   onExtractionProgress?: (remaining: number) => void;
   onExtractionComplete?: () => void;
+  projectId?: string;
 }
 
 export interface SimplifiedAIBillExtractionHandle {
@@ -46,7 +47,8 @@ const SimplifiedAIBillExtraction = forwardRef<SimplifiedAIBillExtractionHandle, 
   suppressIndividualToasts = false,
   onExtractionStart,
   onExtractionProgress,
-  onExtractionComplete
+  onExtractionComplete,
+  projectId,
 }, ref) => {
   const [uploading, setUploading] = useState(false);
   const [pendingUploads, setPendingUploads] = useState<PendingUpload[]>([]);

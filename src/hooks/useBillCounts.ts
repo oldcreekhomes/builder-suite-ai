@@ -50,13 +50,13 @@ export function useBillCounts(projectId?: string, projectIds?: string[]) {
         rejectedQuery.in('project_id', projectIds);
         approvedQuery.in('project_id', projectIds);
         payBillsQuery.in('project_id', projectIds);
-        // Note: pending_bill_uploads doesn't have project_id, so no filter for AI
+        aiExtractQuery.in('project_id', projectIds);
       } else if (projectId) {
         pendingQuery.eq('project_id', projectId);
         rejectedQuery.eq('project_id', projectId);
         approvedQuery.eq('project_id', projectId);
         payBillsQuery.eq('project_id', projectId);
-        // Note: pending_bill_uploads doesn't have project_id, so no filter for AI
+        aiExtractQuery.eq('project_id', projectId);
       }
 
       const [pendingResult, rejectedResult, approvedResult, payBillsResult, aiExtractResult] = await Promise.all([
