@@ -3053,6 +3053,7 @@ export type Database = {
           file_size: number
           id: string
           owner_id: string
+          project_id: string | null
           review_notes: string | null
           reviewed_at: string | null
           reviewed_by: string | null
@@ -3070,6 +3071,7 @@ export type Database = {
           file_size: number
           id?: string
           owner_id: string
+          project_id?: string | null
           review_notes?: string | null
           reviewed_at?: string | null
           reviewed_by?: string | null
@@ -3087,6 +3089,7 @@ export type Database = {
           file_size?: number
           id?: string
           owner_id?: string
+          project_id?: string | null
           review_notes?: string | null
           reviewed_at?: string | null
           reviewed_by?: string | null
@@ -3094,7 +3097,15 @@ export type Database = {
           updated_at?: string
           uploaded_by?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "pending_bill_uploads_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       pending_insurance_uploads: {
         Row: {
