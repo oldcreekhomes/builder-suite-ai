@@ -69,6 +69,7 @@ export function JobCostActualDialog({
   const [editingCheckId, setEditingCheckId] = useState<string | null>(null);
   const [descriptionSort, setDescriptionSort] = useState<'asc' | 'desc' | null>(null);
   const { isDateLocked } = useClosedPeriodCheck(projectId);
+  const { deleteCheck } = useChecks();
 
   const { data: journalLines, isLoading } = useQuery({
     queryKey: ['job-cost-actual-details', projectId, costCode, asOfDate, lotId],
