@@ -839,19 +839,6 @@ return parentRows;
       )}
 
       {/* Dialogs */}
-      {dialogType === 'budget' && selectedCostCode && projectId && (
-        <JobCostBudgetDialog
-          isOpen={true}
-          onClose={() => {
-            setDialogType(null);
-            setSelectedCostCode(null);
-          }}
-          costCode={selectedCostCode.costCode}
-          costCodeName={selectedCostCode.costCodeName}
-          projectId={projectId}
-          totalBudget={selectedCostCode.budget}
-        />
-      )}
 
       {dialogType === 'actual' && selectedCostCode && projectId && (
         <JobCostActualDialog
