@@ -29,6 +29,7 @@ import { POSelectionDropdown, useShouldShowPOSelection } from "./POSelectionDrop
 import { sanitizePoId } from "@/utils/poSentinelUtils";
 import { useVendorPurchaseOrders } from "@/hooks/useVendorPurchaseOrders";
 import { getBestPOLineMatch, POLineCandidate } from "@/utils/poLineMatching";
+import { getEffectiveOwnerId } from "@/lib/getEffectiveOwnerId";
 
 // Normalize terms from any format to standardized dropdown values
 function normalizeTermsForUI(terms: string | null | undefined): string {
@@ -385,10 +386,9 @@ export function ManualBillEntry() {
       }
     }
 
-    // Tenant-scope: resolve effective owner (own id for owners, home_builder_id for confirmed employees)
-    const { data: { user: currentUser } } = await supabase.auth.getUser();
-    const { data: hbInfo } = await supabase.rpc('get_current_user_home_builder_info');
-    const effectiveOwnerId = hbInfo?.[0]?.is_employee ? hbInfo[0].home_builder_id : currentUser?.id;
+    // Tenant-scope: resolve effective owner (own id for owners,
+    // home_builder_id for any confirmed company member regardless of role).
+    const effectiveOwnerId = await getEffectiveOwnerId();
 
     const { data: allCostCodes } = await supabase
       .from('cost_codes')
