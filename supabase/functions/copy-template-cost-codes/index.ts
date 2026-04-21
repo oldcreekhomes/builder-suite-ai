@@ -67,6 +67,14 @@ Deno.serve(async (req) => {
       });
     }
 
+    // SAFETY: never copy a template account back into itself
+    if (targetOwnerId === TEMPLATE_OWNER_ID) {
+      return new Response(
+        JSON.stringify({ error: "Cannot copy template into the template owner account" }),
+        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
     // Check if user already has cost codes
     const { count: existingCount } = await adminClient
       .from("cost_codes")
