@@ -516,7 +516,6 @@ const formatCurrency = (value: number) => {
                                 },
                               ]} />
                             ) : null}
-                            ) : null}
                           </div>
                         </TableCell>
                       </TableRow>
