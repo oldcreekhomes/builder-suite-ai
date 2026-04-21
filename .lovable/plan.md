@@ -1,44 +1,119 @@
 
 
-## Plan: Triage 2 orphan bills + implement project-scoping fix
+## Plan: Fix pending bill PDF access the way you want — company boundary only in RLS, employee access controlled in the Employee tab
 
-### Step 1 — Assign the 2 orphan pending uploads (data update)
+### Core rule
+
+For bill PDFs, RLS will **not** decide whether JOle, Matt, or any Old Creek employee has bill access based on individual permissions.
+
+RLS will only enforce the hard company wall:
+
+- Old Creek Homes users can read Old Creek bill PDFs.
+- Other builders cannot read Old Creek bill PDFs.
+- The Employee tab remains the place where you control who can access Manage Bills / Accounting in the app.
+
+That matches the existing product rule in memory: app-level permissions are controlled through `user_notification_preferences`; RLS should be wide for confirmed company members and only protect tenant isolation.
+
+### What is wrong right now
+
+The current pending bill storage policy is too narrow:
 
 ```sql
--- Nob Hill invoice → Nob Hill project
-UPDATE pending_bill_uploads
-SET project_id = '691271e6-e46f-4745-8efb-200500e819f0'
-WHERE id = 'ee249b70-f247-4d98-b96e-fcb95afe59ae';
-
--- C26019 → 923 17th Street project (lookup project_id by address first)
-UPDATE pending_bill_uploads
-SET project_id = (SELECT id FROM projects WHERE address ILIKE '923 17th%' LIMIT 1)
-WHERE id = <C26019 upload id>;
+pending/<uploader_user_id>/<file>
 ```
 
-### Step 2 — Stamp new uploads with the active project
+and the SELECT policy says only the uploader can read that folder.
 
-`src/components/bills/SimplifiedAIBillExtraction.tsx`: include `project_id: projectId` in the `pending_bill_uploads` insert payload.
+So when JOle uploads:
 
-### Step 3 — Filter all "Enter with AI" queries by project
+```text
+pending/JOLE_USER_ID/Invoice_C26019.pdf
+```
 
-- `src/hooks/usePendingBills.ts` — accept `projectId?: string`, add `.eq('owner_id', ownerId)` (tenant safety net via `get_current_user_home_builder_info`) and `.eq('project_id', projectId)` when provided.
-- `src/components/bills/BillsApprovalTabs.tsx` — pass `effectiveProjectId` into `usePendingBills(effectiveProjectId)`.
-- `src/hooks/useBillCounts.ts` — add `.eq('project_id', projectId)` to the `pending_bill_uploads` count query so the "Enter with AI (N)" badge is per-project.
-- `src/components/owner-dashboard/OwnerDashboardSummary.tsx` — audit; scope or aggregate appropriately.
+Matt is blocked by storage RLS even though both users belong to Old Creek Homes.
 
-### Step 4 — Verify
+That is the part I will remove.
 
-1. 923 17th Street → "Enter with AI" shows C26019 only.
-2. Nob Hill → shows the LCS invoice only.
-3. Oceanwatch → empty.
-4. Upload a new bill on any project → appears only in that project.
-5. Tab badge counts are per-project, not global.
+### Database/storage fix
 
-### Why this is safe
+Create a migration that removes the per-uploader pending-folder access rules:
 
-- Schema column already added (prior migration). Existing rows default to NULL; nothing breaks.
-- All filter changes are restrictive — they can only hide other projects' rows, never break your own.
-- `approve_pending_bill` still controls final project assignment at approval time; unchanged.
-- No data deleted.
+```sql
+DROP POLICY IF EXISTS "Users can read from their pending folder" ON storage.objects;
+DROP POLICY IF EXISTS "Users can delete from their pending folder" ON storage.objects;
+```
+
+Then add company-boundary-only policies for `bill-attachments/pending/*`.
+
+The policy will check the matching `pending_bill_uploads.file_path` row and allow access if the logged-in user is either:
+
+1. the owner/home builder for that upload, or
+2. a confirmed user whose `home_builder_id` equals that upload’s `owner_id`
+
+No check for `can_access_manage_bills`.
+No check for `can_access_accounting`.
+No per-employee permission logic inside storage RLS.
+
+Those access toggles stay in the app via:
+
+- `ManageBillsGuard`
+- `useAccountingPermissions`
+- `EmployeeAccessPreferences`
+- `user_notification_preferences`
+
+### Keep tenant isolation intact
+
+I will not make the bucket public.
+
+The URL you pasted is a public storage URL:
+
+```text
+/storage/v1/object/public/bill-attachments/...
+```
+
+That will continue to fail because `bill-attachments` is private. That is correct for security.
+
+The app should open these files through authenticated Supabase storage access, not public links.
+
+### Code fix
+
+Update `src/components/files/hooks/useFilePreview.ts` so private bill PDFs do not fall back to broken public URLs.
+
+Current behavior:
+
+1. signed/download access fails
+2. app falls back to `getPublicUrl()`
+3. browser shows `Bucket not found`
+
+New behavior:
+
+1. signed/download access uses the new company-wide storage policy
+2. Old Creek employees can preview/download pending PDFs uploaded by any Old Creek employee
+3. if access is truly denied, show a clear permission/storage error instead of a fake public link
+
+### What I will not do
+
+- I will not add employee-level bill-file permission checks into RLS.
+- I will not use `can_access_manage_bills` inside storage policies.
+- I will not make `bill-attachments` public.
+- I will not expose Old Creek files to other builders.
+- I will not change the Employee tab permission model.
+
+### Verification
+
+After implementation:
+
+1. JOle uploads a pending bill for 923 17th Street.
+2. Matt opens the same pending bill PDF from Manage Bills.
+3. Preview works.
+4. Download works.
+5. Matt uploads a pending bill and JOle can open it if she has app-level access to Manage Bills.
+6. A user from another builder cannot open the file.
+7. Employee tab access still controls whether an employee can reach Manage Bills in the UI.
+
+### Files/areas changed
+
+1. New migration — replace per-uploader pending storage SELECT/DELETE policies with company-boundary-only policies.
+2. `src/components/files/hooks/useFilePreview.ts` — remove misleading public URL fallback for private `bill-attachments` files and show a real error if authenticated storage access fails.
+3. Project memory — reinforce the rule that employee permissions stay app-level; RLS only enforces tenant/company isolation.
 
