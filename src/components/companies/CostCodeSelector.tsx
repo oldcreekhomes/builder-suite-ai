@@ -23,12 +23,21 @@ export const CostCodeSelector = React.memo(function CostCodeSelector({
   const [costCodeSearch, setCostCodeSearch] = useState("");
 
   // Fetch whole-number cost codes only (exclude decimal subcategories like 4310.1)
+  // Scoped to current tenant via owner_id
   const { data: costCodes = [] } = useQuery({
-    queryKey: ['cost-codes-whole-numbers'],
+    queryKey: ['cost-codes-whole-numbers-scoped'],
     queryFn: async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return [];
+
+      const { data: info } = await supabase.rpc('get_current_user_home_builder_info');
+      const ownerId = info?.[0]?.is_employee ? info[0].home_builder_id : user.id;
+      if (!ownerId) return [];
+
       const { data, error } = await supabase
         .from('cost_codes')
         .select('id, code, name')
+        .eq('owner_id', ownerId)
         .not('code', 'like', '%.%')
         .order('code');
       
