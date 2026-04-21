@@ -1,52 +1,47 @@
 
 
-## Fix the $17.03 discrepancy between A/P Aging and Balance Sheet
+## Fix the third number — Hide Paid filter mishandles partially-paid bills
 
 ### What I found
 
-| Report | Total |
-|---|---|
-| A/P Aging Detail (PDF) — **correct** | $161,894.60 |
-| Balance Sheet AP 2010 — **wrong** | $161,877.57 |
-| Difference | **$17.03** |
+| View | Total | Status |
+|---|---|---|
+| A/P Aging Detail (PDF) as of 2/28 | $161,894.60 | correct |
+| Balance Sheet AP 2010 as of 2/28 | $161,894.60 | correct (now matches) |
+| AP Detail Dialog (Hide Paid ON) as of 2/28 | **$160,882.03** | **wrong — off by $1,012.57** |
 
-The $17.03 traces to a **single bill posted with a wrong journal-entry date**:
+### Root cause — single bill, partially paid as of the as-of date
 
-- **Vendor:** Exxon Express Pay
-- **Bill ID:** `41b62703-35d3-4536-a3cf-9d25cab40f8a`
-- **Reference:** `087435`
-- **Amount:** $17.03
-- **`bills.bill_date`:** 2026-02-24 ✓ (correct, within the report period)
-- **Bill JE `entry_date`:** **2026-03-31** ✗ (wrong — outside the report period)
-- **Payment JE `entry_date`:** 2026-02-24 ✓ (correct)
+Bill **#469748** for **$1,312.57** posted 2/23/2026:
+- Payment 1: **$300.00** on 2/23/2026 ✓ before as-of
+- Payment 2: **$1,012.57** on 3/18/2026 ✗ AFTER 2/28 as-of
 
-As of 2026-02-28, the Balance Sheet sees the **payment** ($17.03 debit to AP) but **not** the bill ($17.03 credit to AP, dated 3/31), so AP is understated by exactly $17.03.
+Today the bill's `bills.status='paid'` and `amount_paid=$1,312.57`, but as of 2/28 only $300 had been paid — **$1,012.57 was still outstanding** on that date.
 
-The A/P Aging is correct because it sums `bill.total_amount − payments` using `bill_date`, not the JE date — so it correctly excludes this paid-off $17.03 bill from the open balance and reflects the right total.
+The bug is in `src/components/accounting/AccountDetailDialog.tsx` around lines 360–388. When an `asOfDate` is provided, the dialog builds a set `billsPaidBeforeAsOf` containing any bill that has *any* `bill_payment` JE on or before the as-of date — even a partial one. Then it marks `isPaid = true` for those bills. With **Hide Paid** ON, the bill ($1,312.57 credit) and its $300 partial payment (debit) are both hidden, but the $1,012.57 remainder simply vanishes from the running balance.
 
-This is the only such mismatch on this project (1 of 227 bills had a JE date later than its bill date).
+A/P Aging and Balance Sheet are both correct because they net actual JE amounts and don't make the binary "paid/unpaid" assumption.
 
-### The fix — one-time data correction
+### Fix
 
-Update the bill's posting journal entry to use the correct date:
+Replace the binary `billsPaidBeforeAsOf` set with a proper **as-of remaining-balance check**. A bill is "paid" as of the as-of date only when total payments before that date ≥ bill amount.
 
-```sql
-UPDATE journal_entries
-SET entry_date = '2026-02-24'
-WHERE id = '95dad7f2-6ca5-44fa-ad23-7739dbfb4dfd';
--- source_type='bill', source_id=41b62703... (Exxon ref 087435)
-```
+In the same `useQuery` block where `paymentEntries` is fetched (~lines 360–378):
 
-This is a single-row update on `journal_entries.entry_date`. It does not change the JE lines, the AP balance long-term, or any other report — it just shifts the recognition date from 3/31 back to the correct bill date of 2/24, which is what the bill itself says.
+1. For each bill, sum the AP debits (payments) on/before `asOfDate` from the JE lines.
+2. Fetch the bill's posted AP credit (already in `bills.total_amount`, but use the actual JE sum to handle credits/reversals correctly).
+3. Mark `isPaid = true` only when `payments_total >= bill_credit_total` (cent-precise compare, per the project's cent-math standard).
+4. The predecessor→successor mapping logic (lines 405–429) already keys off this set; it continues to work unchanged once the set itself is corrected.
 
-### Verification after the fix
+After this fix, partially-paid bills as of the as-of date stay visible in the register (with their partial payments), and the running balance equals the Balance Sheet AP balance for every as-of date.
 
-- Re-run Balance Sheet as of 2026-02-28 → AP 2010 = **$161,894.60** (matches A/P Aging exactly)
-- Re-run Balance Sheet as of 2026-03-31 → AP 2010 unchanged (the entry still falls within range)
-- A/P Aging Detail as of 2026-02-28 → still $161,894.60
-- No other bills, payments, or accounts are touched
+### Verification
 
-### Out of scope (separate items, not affecting this $17.03)
-- The credit memo `OCH-02302` (JZ Structural, -$500) is fully applied and correctly excluded from the printed A/P Aging. It is also already correctly reflected in BS via the JE that applied it. No action needed.
-- Why this bill was posted with a 3/31 JE date in the first place is a workflow question (likely the user backdated `bill_date` after entry but didn't change the JE date). If you want me to investigate the bill-create code path so this can't happen again, that's a separate task — say the word and I'll dig in.
+- AP Detail Dialog as of **2026-02-28** with Hide Paid ON → **$161,894.60** (matches BS and A/P Aging).
+- Bill #469748 visible in the register with the $300 payment and a remaining $1,012.57.
+- AP Detail Dialog with Hide Paid OFF → unchanged (already correct, since nothing is filtered).
+- Other as-of dates with no partial payments → unchanged behavior.
+
+### Files touched
+- `src/components/accounting/AccountDetailDialog.tsx` — only the as-of `isPaid` computation block. No DB changes, no other components.
 
