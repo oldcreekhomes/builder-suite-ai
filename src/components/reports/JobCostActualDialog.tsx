@@ -498,7 +498,24 @@ const formatCurrency = (value: number) => {
                                 ...(line.bill_id ? [{ label: "Edit Bill", onClick: () => handleEditBill(line.bill_id!) }] : []),
                                 ...(line.deposit_id ? [{ label: "Edit Deposit", onClick: () => handleEditDeposit(line.deposit_id!) }] : []),
                                 ...(line.check_id ? [{ label: "Edit Check", onClick: () => handleEditCheck(line.check_id!) }] : []),
+                                {
+                                  label: "Delete",
+                                  variant: 'destructive' as const,
+                                  onClick: () => handleDeleteTransaction(line),
+                                  requiresConfirmation: true,
+                                  confirmTitle: line.bill_id
+                                    ? "Delete this bill?"
+                                    : line.deposit_id
+                                    ? "Delete this deposit?"
+                                    : "Delete this check?",
+                                  confirmDescription: line.bill_id
+                                    ? "This will permanently delete this bill and all of its journal entries. This action cannot be undone."
+                                    : line.deposit_id
+                                    ? "This will permanently delete this deposit and all of its journal entries. This action cannot be undone."
+                                    : "This will permanently delete this check and all of its journal entries. This action cannot be undone.",
+                                },
                               ]} />
+                            ) : null}
                             ) : null}
                           </div>
                         </TableCell>
