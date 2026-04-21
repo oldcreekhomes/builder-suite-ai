@@ -75,7 +75,16 @@ export function useFilePreview({ file, isOpen, onFileDeleted, onClose }: UseFile
           }
         }
 
+        // Private buckets that should NEVER fall back to a public URL
+        // (public URLs against private buckets return "Bucket not found" 404s)
+        const privateBuckets = new Set([
+          'bill-attachments',
+          'insurance-certificates',
+        ]);
+        const isPrivateBucket = privateBuckets.has(file.bucket);
+
         // Try to get signed URL first (for private files)
+        let signedFailureMessage: string | null = null;
         try {
           const { data: signedData, error: signedError } = await supabase.storage
             .from(file.bucket)
@@ -86,11 +95,25 @@ export function useFilePreview({ file, isOpen, onFileDeleted, onClose }: UseFile
             setIsLoading(false);
             return;
           }
-        } catch (signedError) {
-          console.log('Signed URL failed, trying public URL');
+          signedFailureMessage = signedError?.message ?? null;
+        } catch (signedError: any) {
+          signedFailureMessage = signedError?.message ?? 'Signed URL request failed';
+          console.log('Signed URL failed', signedError);
         }
 
-        // Fallback to public URL (for public buckets)
+        // For private buckets, do NOT fall back to a public URL — it produces a
+        // misleading "Bucket not found" error. Surface a real permission error.
+        if (isPrivateBucket) {
+          setError(
+            signedFailureMessage
+              ? `Unable to access this file: ${signedFailureMessage}`
+              : "You don't have permission to view this file."
+          );
+          setIsLoading(false);
+          return;
+        }
+
+        // Fallback to public URL (only for public buckets)
         const { data: publicData } = supabase.storage
           .from(file.bucket)
           .getPublicUrl(file.path);
