@@ -120,7 +120,8 @@ export const useCostCodes = () => {
       } as any;
 
       // Check for an existing child with the same parent + name that has an empty code
-      let query = supabase.from('cost_codes').select('*').eq('name', name);
+      // Tenant-scoped to the active owner so we don't collide with other builders' codes.
+      let query = supabase.from('cost_codes').select('*').eq('name', name).eq('owner_id', ownerId);
       if (parentGroup === null) {
         query = query.is('parent_group', null);
       } else {
