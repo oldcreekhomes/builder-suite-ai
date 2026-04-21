@@ -385,10 +385,9 @@ export function ManualBillEntry() {
       }
     }
 
-    // Tenant-scope: resolve effective owner (own id for owners, home_builder_id for confirmed employees)
-    const { data: { user: currentUser } } = await supabase.auth.getUser();
-    const { data: hbInfo } = await supabase.rpc('get_current_user_home_builder_info');
-    const effectiveOwnerId = hbInfo?.[0]?.is_employee ? hbInfo[0].home_builder_id : currentUser?.id;
+    // Tenant-scope: resolve effective owner (own id for owners,
+    // home_builder_id for any confirmed company member regardless of role).
+    const effectiveOwnerId = await getEffectiveOwnerId();
 
     const { data: allCostCodes } = await supabase
       .from('cost_codes')
