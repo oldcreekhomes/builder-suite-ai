@@ -1,219 +1,54 @@
 
 
-## Plan: Stop cross-home-builder cost code/bid-package leakage and remove the duplicate bid-package choices
+## Bidding tenant isolation — verification result
 
-### What I found
+### Database: confirmed locked down
 
-The duplicate rows in the **Load Bid Packages** modal are not because Old Creek has duplicate `cost_codes` rows.
+I verified live in the database:
 
-The issue is that the modal currently fetches bidding-enabled cost codes like this:
+**`cost_codes` policy** — only owner_id = current user OR owner_id = the user's confirmed home_builder_id. Platform-admin cross-tenant SELECT policy is gone.
 
-```ts
-.from('cost_codes')
-.select('*')
-.eq('has_bidding', true)
-```
+**`company_cost_codes` policy** — both the company AND the cost code must belong to the current builder.
 
-It does **not** filter by the current home builder’s `owner_id`.
+**`cost_code_specifications` policy** — must go through a cost code owned by the current builder.
 
-Normally RLS hides other builders’ cost codes. But Matt’s account has the `platform_admin` role, and there is an additive policy:
+**`project_bids` policy** — must go through a bid package whose project belongs to the current builder.
 
-```sql
-Platform admins can view all cost_codes
-```
+**`project_bid_packages`** — has the unique index `project_bid_packages_project_costcode_unique` on `(project_id, cost_code_id)`. Duplicates cannot be inserted.
 
-So in the operational app, Matt can see:
+**Duplicate check** — zero duplicate `(project_id, cost_code_id)` rows remain in `project_bid_packages`.
 
-```text
-Old Creek Homes cost code 2050 - Civil Engineering
-1907 Homes cost code 2050 - Civil Engineering
-```
+So bidding cross-tenant leakage is fixed and bid-package duplication is structurally impossible going forward.
 
-That is why the modal shows each bid package twice.
+### Frontend: one remaining gap to close
 
-The onboarding/template copy itself is okay in principle: 1907 Homes received its own copied cost code rows with its own `owner_id`. The bug is that the bidding UI is not explicitly scoping to the active builder account, and the platform-admin RLS exception exposes both copies.
+The bidding modal itself (`useAddBiddingModal`), budget hooks, company selector, subcategory hook, cost-code search, takeoff dialogs, and specifications hook are all explicitly scoped by `owner_id`. RLS would also block cross-tenant reads now even if a query forgot to filter.
 
-I also found broader isolation risk policies still present:
-
-```sql
-company_cost_codes:       get_current_user_company() IS NOT NULL
-cost_code_specifications: get_current_user_company() IS NOT NULL
-project_bids:             get_current_user_company() IS NOT NULL
-```
-
-Those are too broad and should be replaced with real tenant-scoped policies.
-
-### Fix 1 — make bid package loading explicitly tenant-scoped
-
-Update `src/hooks/useAddBiddingModal.ts` so it always resolves the effective company owner:
+However there is one remaining frontend query that reads `cost_codes` without an owner filter and without an ID filter:
 
 ```text
-owner account id for owners
-home_builder_id for employees/accountants
+src/components/bills/ManualBillEntry.tsx
+  supabase.from('cost_codes').select('id, code, name')
 ```
 
-Then fetch only that owner’s bidding cost codes:
+RLS still protects this (it only returns the active builder's rows), so it is not a leak. But to match the strict isolation rule and remove ambiguity, I will explicitly scope it by `owner_id` like every other query.
 
-```ts
-.eq('owner_id', ownerId)
-.eq('has_bidding', true)
-```
+All other unscoped reads use `.in('id', costCodeIds)` where the IDs already came from project-owned rows, which is safe under the new RLS.
 
-This ensures the modal never shows another builder’s copied template cost codes, even if the current user is a platform admin.
+### Plan
 
-Also tighten the related bidding queries inside that hook:
+1. Update `src/components/bills/ManualBillEntry.tsx` to resolve effective `ownerId` (own id for owners, `home_builder_id` for confirmed employees) and add `.eq('owner_id', ownerId)` to the cost code fetch.
+2. No database changes needed.
+3. No other code changes needed.
 
-- specifications only for selected tenant cost code IDs
-- company/cost-code associations only for selected tenant cost code IDs
-- sorting by cost code number/name instead of creation time
+### After this change
 
-### Fix 2 — audit and patch every unscoped cost-code query used in the operational app
+- Bidding modal: each cost code appears once per builder. Confirmed.
+- Cross-builder cost codes: blocked by RLS at the database, even for platform admins, in the operational app. Confirmed.
+- Duplicate bid packages: blocked by unique index. Confirmed.
+- Manual bill entry cost code dropdown: explicitly scoped to current builder, matching the rest of the app.
 
-I will update cost-code queries that fetch by `code`, `parent_group`, or all cost codes without an owner filter.
+### Files changed
 
-High-priority areas include:
-
-1. `src/hooks/useAddBiddingModal.ts`
-2. `src/hooks/useAddBudgetModal.ts`
-3. `src/hooks/useBudgetData.ts`
-4. `src/hooks/useBudgetSubcategories.ts`
-5. `src/components/companies/BulkImportDialog.tsx`
-6. Job cost/report cost-code fallback lookups
-7. Any other query found that reads `cost_codes` without either:
-   - `.eq('owner_id', effectiveOwnerId)`, or
-   - a safe lookup by IDs already coming from project-owned rows
-
-Known-ID lookups such as “get the cost code for this bill line/budget row” can stay ID-based, because the owning project/bill row already scopes the relationship. Queries by plain `code` or `parent_group` must be owner-filtered.
-
-### Fix 3 — tighten RLS so copied templates remain isolated by home builder
-
-Create a database migration to remove the overly broad policies and replace them with real company-boundary policies.
-
-#### `company_cost_codes`
-
-Replace:
-
-```sql
-get_current_user_company() IS NOT NULL
-```
-
-with access only when the linked company belongs to the current builder:
-
-```sql
-companies.home_builder_id = auth.uid()
-OR companies.home_builder_id = current user's confirmed home_builder_id
-```
-
-Also require the linked `cost_codes.owner_id` to match the same builder.
-
-#### `cost_code_specifications`
-
-Replace:
-
-```sql
-get_current_user_company() IS NOT NULL
-```
-
-with access only through the linked `cost_codes.owner_id`.
-
-#### `project_bids`
-
-Replace:
-
-```sql
-get_current_user_company() IS NOT NULL
-```
-
-with access only when the bid package’s project belongs to the current builder.
-
-This keeps 1907 Homes’ copied template data completely separate from Old Creek in the operational app.
-
-### Fix 4 — remove raw cross-tenant `platform_admin` leakage from operational cost-code tables
-
-The platform admin dashboard should use admin RPCs / admin-only functions for analytics, not raw table SELECT policies that affect the builder app.
-
-I will remove or narrow the raw platform-admin SELECT policy on `cost_codes` so Matt’s operational BuilderSuite ML session no longer sees every builder’s copied cost codes.
-
-If admin analytics still need cross-tenant cost-code reporting, that should be exposed through explicit `admin_*` security-definer RPCs, not normal app table reads.
-
-### Fix 5 — prevent duplicate project bid packages going forward
-
-There is currently no unique database constraint preventing this:
-
-```text
-same project_id + same cost_code_id inserted twice
-```
-
-I found a few historical duplicate `project_bid_packages` inside Old Creek itself, such as duplicate closed `Driveway` packages on older projects.
-
-I will add protection so this cannot happen again:
-
-1. Add a unique index/constraint on:
-
-```sql
-project_bid_packages(project_id, cost_code_id)
-```
-
-2. Update the Load Bid Packages insert logic to use conflict-safe insertion:
-
-```ts
-.upsert(..., { onConflict: 'project_id,cost_code_id', ignoreDuplicates: true })
-```
-
-or equivalent conflict-safe insert behavior.
-
-### Fix 6 — clean existing duplicate bid packages safely
-
-Before adding the unique constraint, existing duplicates have to be resolved.
-
-I will handle this carefully:
-
-1. Identify duplicate `project_bid_packages` grouped by:
-
-```text
-project_id + cost_code_id
-```
-
-2. Preserve one canonical bid package per duplicate set.
-3. Move or preserve related `project_bids` only where it is safe.
-4. Do not delete meaningful proposal/pricing history blindly.
-5. Remove only true duplicate package rows after checking related bids.
-
-The current duplicate sets I found are old Old Creek duplicates, not cross-builder contamination. The current modal duplicate issue is the platform-admin/cost-code scoping problem.
-
-### Fix 7 — make template import safer
-
-The existing `copy-template-cost-codes` edge function copies Old Creek’s template into the new builder’s own `owner_id`, which is correct.
-
-I will make it safer by ensuring:
-
-- it always writes to the target builder owner id
-- it never writes associations back to Old Creek
-- it does not create duplicate rows if a partial import already exists
-- it preserves copied template data as separate tenant-owned rows
-
-### Verification
-
-After the fix:
-
-1. Open **Bidding → Load Bid Packages** as Matt.
-2. Confirm each cost code appears once, not once for Old Creek and once for 1907 Homes.
-3. Confirm 1907 Homes still has its own copied template cost codes.
-4. Confirm Old Creek cannot see 1907’s operational cost codes in bidding/budget/company assignment flows.
-5. Confirm 1907 cannot see Old Creek’s operational cost codes.
-6. Confirm employees still see their own builder’s cost codes through `home_builder_id`.
-7. Confirm existing bid packages cannot be inserted twice for the same project/cost code.
-8. Confirm the template import still works for a new builder.
-
-### Files/areas to change
-
-1. `src/hooks/useAddBiddingModal.ts`
-2. `src/hooks/useAddBudgetModal.ts`
-3. `src/hooks/useBudgetData.ts`
-4. `src/hooks/useBudgetSubcategories.ts`
-5. `src/components/companies/BulkImportDialog.tsx`
-6. Any remaining operational `cost_codes` queries that need explicit tenant scoping
-7. `supabase/functions/copy-template-cost-codes/index.ts`
-8. New migration for RLS policy cleanup
-9. New migration for bid-package uniqueness after safe duplicate cleanup
+1. `src/components/bills/ManualBillEntry.tsx`
 
