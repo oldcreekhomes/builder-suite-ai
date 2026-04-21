@@ -234,7 +234,8 @@ const SimplifiedAIBillExtraction = forwardRef<SimplifiedAIBillExtractionHandle, 
             file_name: file.name,
             file_size: file.size,
             content_type: file.type || 'application/pdf',
-            status: 'pending'
+            status: 'pending',
+            project_id: projectId ?? null,
           })
           .select()
           .single();
