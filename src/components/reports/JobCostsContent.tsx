@@ -6,7 +6,7 @@ import { useAuth } from "@/hooks/useAuth";
 
 import { Skeleton } from "@/components/ui/skeleton";
 import { Table, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { JobCostBudgetDialog } from "./JobCostBudgetDialog";
+
 import { JobCostActualDialog } from "./JobCostActualDialog";
 import { JobCostGroupHeader } from "./JobCostGroupHeader";
 import { JobCostGroupTotalRow } from "./JobCostGroupTotalRow";
@@ -809,10 +809,6 @@ return parentRows;
                               <JobCostRow
                                 key={row.costCodeId}
                                 row={row}
-                                onBudgetClick={() => {
-                                  setSelectedCostCode(row);
-                                  setDialogType('budget');
-                                }}
                                 onActualClick={() => {
                                   setSelectedCostCode(row);
                                   setDialogType('actual');
@@ -843,19 +839,6 @@ return parentRows;
       )}
 
       {/* Dialogs */}
-      {dialogType === 'budget' && selectedCostCode && projectId && (
-        <JobCostBudgetDialog
-          isOpen={true}
-          onClose={() => {
-            setDialogType(null);
-            setSelectedCostCode(null);
-          }}
-          costCode={selectedCostCode.costCode}
-          costCodeName={selectedCostCode.costCodeName}
-          projectId={projectId}
-          totalBudget={selectedCostCode.budget}
-        />
-      )}
 
       {dialogType === 'actual' && selectedCostCode && projectId && (
         <JobCostActualDialog
