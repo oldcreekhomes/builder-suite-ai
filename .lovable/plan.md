@@ -1,98 +1,37 @@
 
-## Restore employee access to Old Creek cost codes in bill entry
+
+## Fix PO Status: don't show "Numerous" when all PO lines match
 
 ### Problem
-In Manage Bills → Enter Manually → Job Cost, confirmed Old Creek employees must be able to see Old Creek’s company cost codes. They should not see other builders’ cost codes, and other builders’ employees should only see their own builder’s cost codes.
+On Manage Bills → Review, bill C26019 (An Exterior, $27,180) has 3 line items, all 3 matched to POs (2025-923T-0027, 2025-923T-0035, 2025-923T-0036) as confirmed by the PO Status Summary popover. The badge incorrectly shows **Numerous** (amber warning) when it should show **Matched** (green).
 
-The current cost-code loading path is too brittle because parts of the app decide the active company owner using role-specific logic. If that logic resolves an employee/accountant to their own user id instead of Old Creek’s owner id, the query becomes:
+"Numerous" is meant for *mixed* statuses — some matched, some over/no-PO. When every line is matched, the rollup must be **Matched**, regardless of how many distinct POs are involved.
 
-```text
-cost_codes.owner_id = employee_user_id
-```
-
-instead of:
-
-```text
-cost_codes.owner_id = Old Creek owner_id
-```
-
-That returns zero cost codes even though Old Creek has the codes.
+### Root cause (suspected)
+The pending-bill PO status rollup in `src/hooks/usePendingBillPOStatus.ts` currently classifies based on whether lines have a `purchase_order_id` (matched/partial/no_po) but does not produce `numerous`. The `numerous` value is being assigned somewhere downstream — likely a wrapper in `BillsApprovalTabs` / review table that sees "more than 1 distinct PO id" and labels it `numerous`. Distinct-PO-count is the wrong signal; status mix is the right signal.
 
 ### Fix
-Make company cost-code access tenant-based, not role-label-based:
+1. **Locate the bad rule.** Search the codebase for where `'numerous'` is assigned (likely in the review/approval table component or a helper that aggregates per-bill PO results). Confirm it's keying off "distinct PO count > 1" instead of "mixed statuses".
+2. **Replace with status-mix logic:**
+   - All lines matched (1 PO or many) → `matched`
+   - All lines over → `over_po`
+   - All lines no_po → `no_po`
+   - Any mix of matched + over → `numerous`
+   - Any mix of matched + no_po → `partial`
+   - Otherwise fall back to the dominant status
+3. **Keep the PO Status Summary popover unchanged** — it already correctly shows all 3 matched POs.
+4. **Tooltip on `numerous`** stays "Mixed PO statuses — some matched, some over" so the meaning is consistent.
 
-```text
-If user is confirmed and has home_builder_id:
-  use home_builder_id as the cost-code owner
-Else:
-  use the logged-in user's id
-```
-
-That means all confirmed Old Creek company members resolve to Old Creek’s owner id and see Old Creek cost codes.
-
-### Changes
-
-1. **Fix the database owner-resolution functions**
-   - Update `public.get_current_user_home_builder_id()` so it returns `home_builder_id` for any confirmed company member with a `home_builder_id`, not only users whose `role = 'employee'`.
-   - Update `public.get_current_user_home_builder_info()` so `is_employee`/company-member logic is true whenever:
-     ```sql
-     confirmed = true
-     AND home_builder_id IS NOT NULL
-     ```
-   - This keeps the existing RPC shape so current frontend calls do not break.
-
-2. **Normalize cost code RLS**
-   - Replace the current `cost_codes` policy with a clear tenant policy:
-     ```text
-     owner_id = auth.uid()
-     OR owner_id = public.get_current_user_home_builder_id()
-     ```
-   - This preserves tenant isolation:
-     - Old Creek employees see Old Creek cost codes.
-     - Other builders’ employees see only their builder’s cost codes.
-     - No cross-builder leakage.
-
-3. **Add one shared frontend tenant-owner helper**
-   - Add a small shared utility, for example:
-     ```ts
-     getEffectiveOwnerId()
-     ```
-   - It will:
-     - Get the logged-in user.
-     - Call the corrected RPC.
-     - Return `home_builder_id` for confirmed company members.
-     - Return `user.id` for owners.
-   - This avoids repeating the fragile `info?.[0]?.is_employee ? ... : user.id` logic everywhere.
-
-4. **Fix the immediate bill-entry cost-code dropdown**
-   - Update `src/hooks/useCostCodeSearch.ts` to use the shared effective owner helper.
-   - This is the hook powering the Job Cost cost-code field shown in the screenshot.
-   - It will continue to fetch only the active builder’s cost codes and still exclude decimal subcategory codes from the main dropdown as it does today.
-
-5. **Fix bill-save validation**
-   - Update `src/components/bills/ManualBillEntry.tsx` so the save-time cost-code validation uses the same effective owner helper.
-   - This prevents a second failure where the dropdown may show a valid code but saving rejects it because validation looked under the employee’s own user id.
-
-6. **Update other repeated cost-code owner lookups**
-   - Replace the same brittle owner-resolution pattern in related cost-code areas, including:
-     - `useCostCodes.tsx`
-     - `useCostCodeSubcategories.ts`
-     - `useAddBudgetModal.ts`
-     - `useBudgetData.ts`
-     - `useAddBiddingModal.ts`
-     - `CostCodeSelector.tsx`
-     - `useSpecifications.ts`
-     - `AddTakeoffItemDialog.tsx`
-     - `BulkImportDialog.tsx`
-     - `Settings.tsx`
-   - This prevents the same bug from reappearing in Budget, Bidding, Settings, Specifications, and Takeoff.
+### Files likely touched
+- `src/hooks/usePendingBillPOStatus.ts` (or its caller in the Review tab)
+- The component in `src/components/bills/` that renders the Review table badge — to be confirmed during exploration
+- No DB / RLS / migration changes
+- No change to `POStatusBadge.tsx` itself
 
 ### Verification
-- Confirm Old Creek owner id has cost codes, including `4630 - Cabinets`.
-- Confirm Joel/Old Creek employee resolves to Old Creek’s owner id, not her own user id.
-- In Manage Bills → Enter Manually → Job Cost:
-  - Clicking into Cost Code shows Old Creek cost codes.
-  - Searching `cab` or `4630` shows `4630 - Cabinets`.
-  - Saving a bill line with that cost code succeeds.
-- Confirm Expense tab is unchanged.
-- Confirm another builder’s user cannot see Old Creek cost codes.
+- Bill C26019 on Review tab now shows green **Matched** badge.
+- A bill with 2 matched + 1 over still shows amber **Numerous**.
+- A bill with 2 matched + 1 no-PO shows orange **Partial**.
+- A single-line matched bill is unchanged (still **Matched**).
+- Approved/Paid tabs are unaffected.
+
