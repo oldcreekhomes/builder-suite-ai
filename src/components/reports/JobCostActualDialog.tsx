@@ -14,6 +14,8 @@ import { useState, useMemo } from "react";
 import { EditBillDialog } from "@/components/bills/EditBillDialog";
 import { EditDepositDialog } from "@/components/deposits/EditDepositDialog";
 import { EditCheckDialog } from "@/components/checks/EditCheckDialog";
+import { useChecks } from "@/hooks/useChecks";
+import { toast } from "@/hooks/use-toast";
 
 interface JobCostActualDialogProps {
   isOpen: boolean;
@@ -67,6 +69,7 @@ export function JobCostActualDialog({
   const [editingCheckId, setEditingCheckId] = useState<string | null>(null);
   const [descriptionSort, setDescriptionSort] = useState<'asc' | 'desc' | null>(null);
   const { isDateLocked } = useClosedPeriodCheck(projectId);
+  const { deleteCheck } = useChecks();
 
   const { data: journalLines, isLoading } = useQuery({
     queryKey: ['job-cost-actual-details', projectId, costCode, asOfDate, lotId],
@@ -353,6 +356,45 @@ const formatCurrency = (value: number) => {
     }
   };
 
+  const invalidateAfterDelete = () => {
+    queryClient.invalidateQueries({ queryKey: ['job-cost-actual-details'] });
+    queryClient.invalidateQueries({ queryKey: ['job-costs'] });
+    queryClient.invalidateQueries({ queryKey: ['balance-sheet'] });
+    queryClient.invalidateQueries({ queryKey: ['income-statement'] });
+    queryClient.invalidateQueries({ queryKey: ['account-transactions'] });
+    queryClient.invalidateQueries({ queryKey: ['bills-for-payment'] });
+    queryClient.invalidateQueries({ queryKey: ['bill-approval-counts'] });
+  };
+
+  const handleDeleteTransaction = async (line: any) => {
+    try {
+      if (line.bill_id) {
+        const { error } = await supabase.rpc('delete_bill_with_journal_entries', {
+          bill_id_param: line.bill_id,
+        });
+        if (error) throw error;
+        toast({ title: "Bill deleted", description: "The bill and its journal entries have been removed." });
+      } else if (line.deposit_id) {
+        const { error } = await supabase.rpc('delete_deposit_with_journal_entries', {
+          deposit_id_param: line.deposit_id,
+        });
+        if (error) throw error;
+        toast({ title: "Deposit deleted", description: "The deposit and its journal entries have been removed." });
+      } else if (line.check_id) {
+        await deleteCheck.mutateAsync(line.check_id);
+        toast({ title: "Check deleted", description: "The check and its journal entries have been removed." });
+      }
+      invalidateAfterDelete();
+    } catch (error: any) {
+      console.error('Error deleting transaction:', error);
+      toast({
+        title: "Error",
+        description: error?.message || "Failed to delete transaction. Please try again.",
+        variant: "destructive",
+      });
+    }
+  };
+
   return (
     <>
       <Dialog open={isOpen} onOpenChange={onClose}>
@@ -456,6 +498,22 @@ const formatCurrency = (value: number) => {
                                 ...(line.bill_id ? [{ label: "Edit Bill", onClick: () => handleEditBill(line.bill_id!) }] : []),
                                 ...(line.deposit_id ? [{ label: "Edit Deposit", onClick: () => handleEditDeposit(line.deposit_id!) }] : []),
                                 ...(line.check_id ? [{ label: "Edit Check", onClick: () => handleEditCheck(line.check_id!) }] : []),
+                                {
+                                  label: "Delete",
+                                  variant: 'destructive' as const,
+                                  onClick: () => handleDeleteTransaction(line),
+                                  requiresConfirmation: true,
+                                  confirmTitle: line.bill_id
+                                    ? "Delete this bill?"
+                                    : line.deposit_id
+                                    ? "Delete this deposit?"
+                                    : "Delete this check?",
+                                  confirmDescription: line.bill_id
+                                    ? "This will permanently delete this bill and all of its journal entries. This action cannot be undone."
+                                    : line.deposit_id
+                                    ? "This will permanently delete this deposit and all of its journal entries. This action cannot be undone."
+                                    : "This will permanently delete this check and all of its journal entries. This action cannot be undone.",
+                                },
                               ]} />
                             ) : null}
                           </div>
