@@ -40,13 +40,7 @@ export function JobCostRow({ row, onActualClick }: JobCostRowProps) {
       <TableCell>
         {row.costCodeName}
       </TableCell>
-      <TableCell 
-        className="text-right cursor-pointer hover:underline"
-        onClick={(e) => {
-          e.stopPropagation();
-          onBudgetClick();
-        }}
-      >
+      <TableCell className="text-right">
         {formatCurrency(row.budget)}
       </TableCell>
       <TableCell 
