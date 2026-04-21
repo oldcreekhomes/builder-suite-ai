@@ -217,20 +217,37 @@ export function SendSingleCompanyEmailModal({
         throw new Error('Email was not sent successfully');
       }
 
-      // Update sent_on if not already set (preserve first send date)
+      // Update bid package status to 'sent' and set sent_on if not already set
+      const packageUpdate: { status: string; sent_on?: string } = { status: 'sent' };
       if (!bidPackage.sent_on) {
-        const { error: updateError } = await supabase
-          .from('project_bid_packages')
-          .update({ sent_on: new Date().toISOString() })
-          .eq('id', bidPackage.id);
-
-        if (updateError) {
-          console.error('Error updating sent_on date:', updateError);
-        }
-        
-        // Invalidate queries to refresh the data
-        queryClient.invalidateQueries({ queryKey: ['project-bidding'] });
+        packageUpdate.sent_on = new Date().toISOString();
       }
+      const { error: updateError } = await supabase
+        .from('project_bid_packages')
+        .update(packageUpdate)
+        .eq('id', bidPackage.id);
+
+      if (updateError) {
+        console.error('Error updating bid package status:', updateError);
+      }
+
+      // Update per-vendor email_sent_at for this company
+      const { error: bidUpdateError } = await supabase
+        .from('project_bids')
+        .update({ email_sent_at: new Date().toISOString() })
+        .eq('bid_package_id', bidPackage.id)
+        .eq('company_id', companyId);
+
+      if (bidUpdateError) {
+        console.error('Error updating project_bids email_sent_at:', bidUpdateError);
+      }
+
+      // Invalidate all relevant caches so the table refreshes immediately
+      const projectId = bidPackage.project_id;
+      queryClient.invalidateQueries({ queryKey: ['project-bidding', projectId] });
+      queryClient.invalidateQueries({ queryKey: ['all-project-bidding', projectId] });
+      queryClient.invalidateQueries({ queryKey: ['bidding-counts', projectId] });
+      queryClient.invalidateQueries({ queryKey: ['bid-package-companies', bidPackage.id] });
 
       toast({
         title: "Email Sent",
