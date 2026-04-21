@@ -41,14 +41,23 @@ export function useBudgetData(projectId: string, lotId?: string | null) {
     refetchOnReconnect: false,
   });
 
-  // Fetch all cost codes to understand the hierarchy
+  // Fetch all cost codes to understand the hierarchy — STRICTLY tenant scoped
+  // to prevent platform-admin / cross-tenant leakage of other builders' codes.
   const { data: allCostCodes = [] } = useQuery({
-    queryKey: ['cost-codes-hierarchy'],
+    queryKey: ['cost-codes-hierarchy', 'tenant-scoped'],
     queryFn: async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return [];
+
+      const { data: info } = await supabase.rpc('get_current_user_home_builder_info');
+      const ownerId = info?.[0]?.is_employee ? info[0].home_builder_id : user.id;
+      if (!ownerId) return [];
+
       const { data, error } = await supabase
         .from('cost_codes')
-        .select('code, parent_group, name');
-      
+        .select('code, parent_group, name')
+        .eq('owner_id', ownerId);
+
       if (error) throw error;
       return data;
     },

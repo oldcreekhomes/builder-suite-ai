@@ -31,12 +31,23 @@ export const useAddBiddingModal = (projectId: string, existingCostCodeIds: strin
   const { toast } = useToast();
 
   // Fetch cost codes that have bidding enabled and are not already in the project
+  // STRICT tenant scoping: always filter by the active home builder's owner_id
+  // to prevent cross-tenant leakage (e.g. for platform admins).
   const { data: costCodes = [] } = useQuery({
     queryKey: ['cost-codes-for-bidding', projectId, existingCostCodeIds],
     queryFn: async () => {
+      // Resolve effective owner id (own id for owners, home_builder_id for employees)
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return [];
+
+      const { data: info } = await supabase.rpc('get_current_user_home_builder_info');
+      const ownerId = info?.[0]?.is_employee ? info[0].home_builder_id : user.id;
+      if (!ownerId) return [];
+
       let query = supabase
         .from('cost_codes')
         .select('*')
+        .eq('owner_id', ownerId)
         .eq('has_bidding', true);
 
       // Only add the exclusion filter if there are existing cost code IDs
@@ -44,7 +55,7 @@ export const useAddBiddingModal = (projectId: string, existingCostCodeIds: strin
         query = query.not('id', 'in', `(${existingCostCodeIds.join(',')})`);
       }
 
-      const { data, error } = await query.order('created_at', { ascending: true });
+      const { data, error } = await query.order('code', { ascending: true });
 
       if (error) {
         console.error('Error fetching cost codes:', error);
@@ -132,7 +143,7 @@ export const useAddBiddingModal = (projectId: string, existingCostCodeIds: strin
 
       const { data: insertedBiddingItems, error: biddingError } = await supabase
         .from('project_bid_packages')
-        .insert(biddingItems)
+        .upsert(biddingItems, { onConflict: 'project_id,cost_code_id', ignoreDuplicates: true })
         .select('id, cost_code_id');
 
       if (biddingError) throw biddingError;

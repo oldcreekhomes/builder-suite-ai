@@ -23,15 +23,25 @@ export function useAddBudgetModal(projectId: string, existingCostCodeIds: string
   const queryClient = useQueryClient();
   const { toast } = useToast();
 
-  // Fetch cost codes
+  // Fetch cost codes — STRICTLY scoped to the active home builder to prevent
+  // cross-tenant leakage (e.g. for platform admins who can see other builders'
+  // copied template cost codes via additive RLS policies).
   const { data: costCodes = [] } = useQuery({
-    queryKey: ['cost-codes'],
+    queryKey: ['cost-codes', 'tenant-scoped'],
     queryFn: async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return [] as CostCode[];
+
+      const { data: info } = await supabase.rpc('get_current_user_home_builder_info');
+      const ownerId = info?.[0]?.is_employee ? info[0].home_builder_id : user.id;
+      if (!ownerId) return [] as CostCode[];
+
       const { data, error } = await supabase
         .from('cost_codes')
         .select('*')
+        .eq('owner_id', ownerId)
         .order('code');
-      
+
       if (error) throw error;
       return data as CostCode[];
     },
