@@ -60,9 +60,12 @@ export const useCostCodes = () => {
   const cleanupDuplicateEmptyCodes = async () => {
     if (!user) return;
     try {
+      const ownerId = await getCompanyOwnerId();
+      if (!ownerId) return;
       const { data, error } = await supabase
         .from('cost_codes')
-        .select('id,name,parent_group,code');
+        .select('id,name,parent_group,code')
+        .eq('owner_id', ownerId);
       if (error) throw error;
 
       const groups = new Map<string, { nonEmpty: string[]; empty: string[] }>();
