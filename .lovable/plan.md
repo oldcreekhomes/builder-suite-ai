@@ -1,119 +1,100 @@
 
 
-## Plan: Fix pending bill PDF access the way you want — company boundary only in RLS, employee access controlled in the Employee tab
+## Plan: Fix "new row violates row-level security policy" when uploading to Enter with AI
 
-### Core rule
+### Root cause
 
-For bill PDFs, RLS will **not** decide whether JOle, Matt, or any Old Creek employee has bill access based on individual permissions.
+The upload code calls:
 
-RLS will only enforce the hard company wall:
+```ts
+supabase.storage.from('bill-attachments').upload(filePath, file, { upsert: true, ... })
+```
 
-- Old Creek Homes users can read Old Creek bill PDFs.
-- Other builders cannot read Old Creek bill PDFs.
-- The Employee tab remains the place where you control who can access Manage Bills / Accounting in the app.
+`upsert: true` makes Supabase Storage perform an **upsert** on `storage.objects`. Postgres evaluates BOTH the INSERT `WITH CHECK` policy AND the UPDATE `USING` policy when planning an upsert, even if no row currently exists.
 
-That matches the existing product rule in memory: app-level permissions are controlled through `user_notification_preferences`; RLS should be wide for confirmed company members and only protect tenant isolation.
+For `bill-attachments`:
+- INSERT policies exist and pass (`auth.uid() IS NOT NULL` and the per-uploader pending folder rule).
+- **There is no UPDATE policy for `bill-attachments` at all.**
 
-### What is wrong right now
+So upsert fails with "new row violates row-level security policy for table 'objects'" — exactly what the postgres logs show:
 
-The current pending bill storage policy is too narrow:
+```
+new row violates row-level security policy for table "objects"
+```
+
+This was masked before because the previous workflow may not have hit the same upsert evaluation path; the recent storage policy refactor (replacing the per-user pending SELECT/DELETE with tenant-scoped ones) made the missing UPDATE policy actively block uploads under upsert semantics.
+
+### The fix — add a tenant-scoped UPDATE policy on `storage.objects` for `bill-attachments/pending/*`
+
+Same shape as the SELECT/DELETE tenant policies we just added. This keeps the rule consistent: any confirmed Old Creek user can write to Old Creek pending bill files; nobody from another builder can.
 
 ```sql
-pending/<uploader_user_id>/<file>
+CREATE POLICY "Pending bill files updatable by tenant"
+ON storage.objects
+FOR UPDATE
+TO authenticated
+USING (
+  bucket_id = 'bill-attachments'
+  AND (storage.foldername(name))[1] = 'pending'
+  AND (
+    -- New uploads (no matching pending_bill_uploads row yet) — allow if path is in user's own folder
+    (storage.foldername(name))[2] = (auth.uid())::text
+    OR EXISTS (
+      SELECT 1 FROM public.pending_bill_uploads pu
+      WHERE pu.file_path = storage.objects.name
+        AND (
+          pu.owner_id = auth.uid()
+          OR pu.owner_id IN (
+            SELECT u.home_builder_id FROM public.users u
+            WHERE u.id = auth.uid() AND u.confirmed = true AND u.home_builder_id IS NOT NULL
+          )
+        )
+    )
+  )
+)
+WITH CHECK (
+  bucket_id = 'bill-attachments'
+  AND (storage.foldername(name))[1] = 'pending'
+  AND (
+    (storage.foldername(name))[2] = (auth.uid())::text
+    OR EXISTS (
+      SELECT 1 FROM public.pending_bill_uploads pu
+      WHERE pu.file_path = storage.objects.name
+        AND (
+          pu.owner_id = auth.uid()
+          OR pu.owner_id IN (
+            SELECT u.home_builder_id FROM public.users u
+            WHERE u.id = auth.uid() AND u.confirmed = true AND u.home_builder_id IS NOT NULL
+          )
+        )
+    )
+  )
+);
 ```
 
-and the SELECT policy says only the uploader can read that folder.
+The `(storage.foldername(name))[2] = auth.uid()::text` branch handles the brand-new-upload case where there is no `pending_bill_uploads` row yet (the upload happens before the DB insert). The tenant branch covers the case where a co-tenant overwrites/upserts an existing pending file.
 
-So when JOle uploads:
+### Why this respects the rule you set
 
-```text
-pending/JOLE_USER_ID/Invoice_C26019.pdf
-```
-
-Matt is blocked by storage RLS even though both users belong to Old Creek Homes.
-
-That is the part I will remove.
-
-### Database/storage fix
-
-Create a migration that removes the per-uploader pending-folder access rules:
-
-```sql
-DROP POLICY IF EXISTS "Users can read from their pending folder" ON storage.objects;
-DROP POLICY IF EXISTS "Users can delete from their pending folder" ON storage.objects;
-```
-
-Then add company-boundary-only policies for `bill-attachments/pending/*`.
-
-The policy will check the matching `pending_bill_uploads.file_path` row and allow access if the logged-in user is either:
-
-1. the owner/home builder for that upload, or
-2. a confirmed user whose `home_builder_id` equals that upload’s `owner_id`
-
-No check for `can_access_manage_bills`.
-No check for `can_access_accounting`.
-No per-employee permission logic inside storage RLS.
-
-Those access toggles stay in the app via:
-
-- `ManageBillsGuard`
-- `useAccountingPermissions`
-- `EmployeeAccessPreferences`
-- `user_notification_preferences`
-
-### Keep tenant isolation intact
-
-I will not make the bucket public.
-
-The URL you pasted is a public storage URL:
-
-```text
-/storage/v1/object/public/bill-attachments/...
-```
-
-That will continue to fail because `bill-attachments` is private. That is correct for security.
-
-The app should open these files through authenticated Supabase storage access, not public links.
-
-### Code fix
-
-Update `src/components/files/hooks/useFilePreview.ts` so private bill PDFs do not fall back to broken public URLs.
-
-Current behavior:
-
-1. signed/download access fails
-2. app falls back to `getPublicUrl()`
-3. browser shows `Bucket not found`
-
-New behavior:
-
-1. signed/download access uses the new company-wide storage policy
-2. Old Creek employees can preview/download pending PDFs uploaded by any Old Creek employee
-3. if access is truly denied, show a clear permission/storage error instead of a fake public link
-
-### What I will not do
-
-- I will not add employee-level bill-file permission checks into RLS.
-- I will not use `can_access_manage_bills` inside storage policies.
-- I will not make `bill-attachments` public.
-- I will not expose Old Creek files to other builders.
-- I will not change the Employee tab permission model.
+- RLS is still tenant-only — no per-employee permission check inside RLS.
+- App-level Manage Bills / Accounting permissions remain controlled in the Employee tab via `user_notification_preferences` / `ManageBillsGuard`.
+- Cross-tenant access still blocked: another builder's user satisfies neither branch.
 
 ### Verification
 
-After implementation:
+1. Matt uploads a PDF on 923 17th Street → upload succeeds, extraction runs.
+2. JOle uploads a PDF on the same project → upload succeeds.
+3. Matt opens the file JOle uploaded → preview/download works (already fixed by the previous tenant SELECT policy).
+4. A user from a different builder cannot upload into or read from Old Creek's `pending/` paths.
 
-1. JOle uploads a pending bill for 923 17th Street.
-2. Matt opens the same pending bill PDF from Manage Bills.
-3. Preview works.
-4. Download works.
-5. Matt uploads a pending bill and JOle can open it if she has app-level access to Manage Bills.
-6. A user from another builder cannot open the file.
-7. Employee tab access still controls whether an employee can reach Manage Bills in the UI.
+### What's safe / unchanged
 
-### Files/areas changed
+- No file deletions.
+- No changes to the INSERT policy (still permissive on `bill-attachments`).
+- No changes to the SELECT / DELETE tenant policies just added.
+- No app code changes required — the `upload(..., { upsert: true })` call already does the right thing once the missing UPDATE policy is in place.
 
-1. New migration — replace per-uploader pending storage SELECT/DELETE policies with company-boundary-only policies.
-2. `src/components/files/hooks/useFilePreview.ts` — remove misleading public URL fallback for private `bill-attachments` files and show a real error if authenticated storage access fails.
-3. Project memory — reinforce the rule that employee permissions stay app-level; RLS only enforces tenant/company isolation.
+### Files changed
+
+1. New migration — add `"Pending bill files updatable by tenant"` UPDATE policy on `storage.objects` for `bill-attachments/pending/*`.
 
