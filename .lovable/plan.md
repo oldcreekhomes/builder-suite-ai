@@ -1,58 +1,82 @@
 
 
-## Plan: Lock down cost code tenant isolation + fix the duplicate dropdown bug
+## Plan: Fix bills appearing on every project (cross-project leak in "Enter with AI")
 
-### Tenant isolation guarantee (what "crystal clear" means)
+### Root cause
 
-Every cost code row has an `owner_id`. After this fix, the rule is absolute:
+The `pending_bill_uploads` table has **no `project_id` column**. When a user uploads a PDF on Oceanwatch, it lands in a global pool. The "Enter with AI" tab (`usePendingBills` → `BillsReviewTable` / `BatchBillReviewTable`) queries the entire pool with no project filter, so:
 
-- **Old Creek Homes** sees ONLY rows where `cost_codes.owner_id = <Old Creek's owner UUID>`.
-- **New Home Builder X** sees ONLY rows where `cost_codes.owner_id = <X's owner UUID>`.
-- When X's employee adds a cost code, it's stamped with X's owner_id and is invisible to Old Creek (and every other tenant).
-- When X onboards via "copy template," they get their OWN 309 rows (new UUIDs, owner_id = X). Old Creek's originals are untouched. The two sets never mix in any dropdown, list, budget, bill, PO, check, deposit, journal entry, or report.
-- This holds no matter how many tenants sign up.
+- **Same tenant, every project shows the same pending bills.** Open Manage Bills under Oceanwatch → see 2 bills. Open Manage Bills under any other Old Creek project → see the same 2 bills. They aren't "on Oceanwatch" — they're floating, awaiting approval, and currently visible everywhere.
 
-Two layers enforce this:
-1. **Application layer** — every query filters `.eq('owner_id', ownerId)` where `ownerId` resolves to the user's own ID (owner) or their `home_builder_id` (employee/accountant).
-2. **Database layer (RLS)** — `cost_codes` policies only return rows where `owner_id` matches the caller's tenant. Even if app code forgot a filter, the DB would still refuse to leak.
+This is NOT a tenant leak (both bills belong to Old Creek). It's a project-scoping bug. Same class of bug as last week's cost codes issue: a missing `WHERE` clause that worked by accident when only one project was active.
+
+Confirmed in DB:
+- 2 pending uploads exist, both `owner_id = 2653aba8…` (Old Creek)
+- `pending_bill_uploads` has no `project_id` column
+- All `pending_bill_lines.project_id` for these uploads are `NULL` (project gets set later, at approval)
 
 ### The fix — three parts
 
-**Part 1: Clean up the 309 duplicate rows that are causing today's symptom**
+**Part 1: Add `project_id` to `pending_bill_uploads` (migration)**
 
-The duplicates created at `2026-04-20 17:50:53` under `owner_id = cff5f161…` are NOT yours — they belong to the new home builder who onboarded today. We do NOT delete them. They're that tenant's legitimate cost codes.
+```sql
+ALTER TABLE pending_bill_uploads
+  ADD COLUMN project_id uuid REFERENCES projects(id) ON DELETE SET NULL;
 
-What we delete instead: nothing in the data. The duplicates appearing in YOUR dropdown are caused by missing filters (Part 2), not by bad data. Once Part 2 ships, your dropdown shows only your 309 codes; their dropdown shows only their 309 codes. Both tenants are happy, no data loss.
+CREATE INDEX idx_pending_bill_uploads_project_id
+  ON pending_bill_uploads(project_id);
+```
 
-**Part 2: Add `owner_id` filter to every client-side cost code query**
+This stamps each upload with the project it was initiated from. Existing rows get `NULL` (we'll handle them in Part 3).
 
-Files to fix:
+**Part 2: Stamp uploads with the current project + scope the queries**
 
-- `src/hooks/useCostCodeSearch.ts` — currently fetches all rows with no filter. Add owner resolution via `get_current_user_home_builder_info` RPC (same pattern as `useCostCodes.tsx`) and `.eq('owner_id', ownerId)`.
-- `src/components/companies/CostCodeSelector.tsx` — same fix on its inline query.
-- Audit (and fix if found unfiltered): any other file that queries `from('cost_codes')` directly. I'll grep the codebase and patch every one.
+- `SimplifiedAIBillExtraction.tsx` (line 228-ish, where `pending_bill_uploads` is inserted): include the active `projectId` in the insert payload.
+- `usePendingBills.ts`: accept an optional `projectId` argument and add `.eq('project_id', projectId)` (and always `.eq('owner_id', ownerId)` as a tenant safety net mirroring the cost-codes fix).
+- `BillsApprovalTabs.tsx`: pass `effectiveProjectId` into `usePendingBills(effectiveProjectId)`.
+- `useBillCounts.ts` (the "Enter with AI (N)" tab badge): same project filter.
+- `OwnerDashboardSummary.tsx` and any other caller: audit and apply the same filter (or scope to the current project context as appropriate).
 
-**Part 3: Tighten RLS on `cost_codes` as a safety net**
+**Part 3: Backfill / triage existing orphan rows**
 
-Verify the existing RLS policy on `cost_codes` enforces `owner_id = <caller's tenant>` for SELECT/INSERT/UPDATE/DELETE. If it's currently too permissive (e.g., returns rows across tenants), add a migration that replaces it with strict tenant-scoped policies using the existing `get_current_user_home_builder_info()` security-definer function. Same pattern for `cost_code_specifications` and `cost_code_price_history` (which inherit ownership via `cost_code_id`).
+The 2 pending uploads currently in the system have no `project_id`. Two options, presented to the user before the migration runs:
+
+1. Assign them to a specific project now (most likely the project they were originally uploaded under — which the user can confirm), OR
+2. Leave them visible only in a new "Unassigned" view accessible from the company dashboard.
+
+I recommend option 1 with a one-time SQL update once the user tells me which project each belongs to (Nob Hill invoice → Nob Hill project; the C26019 invoice → its true project). That keeps the UI clean.
+
+### Why this matches the cost-codes pattern
+
+Same root pathology: a query that returns more rows than it should because a scoping `WHERE` clause was never added. Fix layers exactly like before — schema constraint + app-level filter + audit of all callers.
 
 ### Verification after deploy
 
-1. Log in as Old Creek → Write Checks → cost code dropdown shows exactly 309 unique codes, all yours.
-2. Log in as the new home builder → same dropdown shows exactly 309 unique codes, all theirs (different UUIDs, same code numbers).
-3. New builder adds cost code "9999 - Test" → appears only in their dropdown, never in Old Creek's.
-4. Same checks on: Bills, Make Deposits, Credit Cards, Journal Entry, Create PO, Companies cost-code selector.
+1. Upload a bill under Project A → appears only in Project A's "Enter with AI" tab.
+2. Open Project B's Manage Bills → "Enter with AI" tab is empty (or shows only B's bills).
+3. The "Enter with AI (N)" badge on each project shows that project's count, not the global count.
+4. Approval flow still works (project at approval time is independent and can override if needed).
 
 ### Files changed
 
-1. `src/hooks/useCostCodeSearch.ts` — add owner_id filter
-2. `src/components/companies/CostCodeSelector.tsx` — add owner_id filter
-3. Any other file found querying `cost_codes` without an owner filter
-4. New migration — strict RLS policies on `cost_codes` (only if audit shows current policies are too loose)
+1. New migration — add `project_id` column + index on `pending_bill_uploads`
+2. `src/components/bills/SimplifiedAIBillExtraction.tsx` — include `project_id` on insert
+3. `src/hooks/usePendingBills.ts` — accept and apply `projectId` filter + `owner_id` filter
+4. `src/components/bills/BillsApprovalTabs.tsx` — pass `effectiveProjectId` into the hook
+5. `src/hooks/useBillCounts.ts` — apply project filter to the AI-extract count
+6. `src/components/owner-dashboard/OwnerDashboardSummary.tsx` — audit/scope appropriately
+7. One-time data triage for the 2 existing orphan uploads (after you confirm their projects)
 
 ### Why this is safe
 
-- No cost code rows are deleted. Both tenants keep all their data.
-- All existing budget/bill/PO/check references stay valid (we're only adding WHERE clauses, never changing IDs).
-- The fix is purely restrictive — it can only hide other tenants' data from you, never break your own.
+- New column defaults to `NULL`; no existing rows break.
+- All filter changes are restrictive (add `WHERE`); no row that should be visible disappears unintentionally.
+- Approval flow is untouched — `approve_pending_bill(project_id_param)` still controls what project the final bill lands on.
+- No data is deleted.
+
+### Question before implementing
+
+For the 2 existing pending uploads — which project should each be assigned to?
+- `Invoice # C26019.PDF` (An Exterior, Inc., $27,180) → ?
+- `Recreate Inv_Nob Hill_0025952.pdf` (LCS Site Services, $30,264.52) → likely Nob Hill, please confirm.
 
