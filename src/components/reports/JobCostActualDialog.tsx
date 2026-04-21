@@ -14,6 +14,8 @@ import { useState, useMemo } from "react";
 import { EditBillDialog } from "@/components/bills/EditBillDialog";
 import { EditDepositDialog } from "@/components/deposits/EditDepositDialog";
 import { EditCheckDialog } from "@/components/checks/EditCheckDialog";
+import { useChecks } from "@/hooks/useChecks";
+import { toast } from "@/hooks/use-toast";
 
 interface JobCostActualDialogProps {
   isOpen: boolean;
