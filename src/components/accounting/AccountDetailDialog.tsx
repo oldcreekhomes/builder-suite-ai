@@ -359,22 +359,59 @@ export function AccountDetailDialog({
           .eq('is_reversal', false)
           .in('id', billIds);
         
-        // If asOfDate is provided, determine which bills were paid before that date
+        // If asOfDate is provided, determine which bills were FULLY paid before that date.
+        // A bill is "paid as of X" only when total AP debits (payments) on/before X
+        // >= total AP credits (bill posting) on/before X — cent-precise compare.
+        // Partially-paid bills must remain visible so the running balance matches BS/A/P Aging.
         let billsPaidBeforeAsOf = new Set<string>();
-        if (asOfDate && billIds.length > 0) {
+        if (asOfDate && billIds.length > 0 && accountId) {
           const asOfDateStr = asOfDate.toISOString().split('T')[0];
-          // Every bill payment creates a journal entry with source_type='bill_payment' and source_id=bill.id
-          const { data: paymentEntries } = await supabase
+
+          const { data: relatedJEs } = await supabase
             .from('journal_entries')
-            .select('source_id')
-            .eq('source_type', 'bill_payment')
+            .select('id, source_id, source_type')
+            .in('source_type', ['bill', 'bill_payment'])
             .in('source_id', billIds)
             .lte('entry_date', asOfDateStr)
             .or('reversed_at.is.null,reversed_at.gt.' + asOfDateStr);
 
-          (paymentEntries || []).forEach((entry: any) => {
-            billsPaidBeforeAsOf.add(entry.source_id);
-          });
+          const jeIds = (relatedJEs || []).map((j: any) => j.id);
+          const jeToBill = new Map<string, string>();
+          (relatedJEs || []).forEach((j: any) => jeToBill.set(j.id, j.source_id));
+
+          if (jeIds.length > 0) {
+            const apLines = await fetchAllRows<any>(() =>
+              supabase
+                .from('journal_entry_lines')
+                .select('journal_entry_id, debit, credit')
+                .eq('account_id', accountId)
+                .in('journal_entry_id', jeIds)
+            );
+
+            const billCreditCents = new Map<string, number>();
+            const billDebitCents = new Map<string, number>();
+            (apLines || []).forEach((line: any) => {
+              const billId = jeToBill.get(line.journal_entry_id);
+              if (!billId) return;
+              const debitCents = Math.round(Number(line.debit || 0) * 100);
+              const creditCents = Math.round(Number(line.credit || 0) * 100);
+              if (creditCents > 0) {
+                billCreditCents.set(billId, (billCreditCents.get(billId) || 0) + creditCents);
+              }
+              if (debitCents > 0) {
+                billDebitCents.set(billId, (billDebitCents.get(billId) || 0) + debitCents);
+              }
+            });
+
+            billIds.forEach((bid) => {
+              const credit = billCreditCents.get(bid) || 0;
+              const debit = billDebitCents.get(bid) || 0;
+              // Fully paid only when payments meet/exceed the posted bill credit
+              if (credit > 0 && debit >= credit) {
+                billsPaidBeforeAsOf.add(bid);
+              }
+            });
+          }
         }
 
         billsData?.forEach((bill: any) => {
