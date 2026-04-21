@@ -1,54 +1,78 @@
 
 
-## Bidding tenant isolation — verification result
+## Why bid status shows "Draft" and "Sent On" looks empty after sending to RC Fields
 
-### Database: confirmed locked down
+### Root cause
 
-I verified live in the database:
+There are two different "Send" code paths in bidding:
 
-**`cost_codes` policy** — only owner_id = current user OR owner_id = the user's confirmed home_builder_id. Platform-admin cross-tenant SELECT policy is gone.
+1. **Send to all companies** — `SendBidPackageModal.tsx`
+   - Updates `project_bid_packages.status = 'sent'`
+   - Sets `sent_on` if not already set
+   - Sets `project_bids.email_sent_at` for each sent company
 
-**`company_cost_codes` policy** — both the company AND the cost code must belong to the current builder.
+2. **Send to a single company** (the row-level "Send Email" you just used for RC Fields) — `SendSingleCompanyEmailModal.tsx`
+   - Sets `sent_on` only
+   - **Does NOT update `status` to `sent`**
+   - **Does NOT update the per-vendor `project_bids.email_sent_at`**
+   - Only invalidates `['project-bidding']`, not `['all-project-bidding', projectId]` or `['bidding-counts', projectId]`
 
-**`cost_code_specifications` policy** — must go through a cost code owned by the current builder.
-
-**`project_bids` policy** — must go through a bid package whose project belongs to the current builder.
-
-**`project_bid_packages`** — has the unique index `project_bid_packages_project_costcode_unique` on `(project_id, cost_code_id)`. Duplicates cannot be inserted.
-
-**Duplicate check** — zero duplicate `(project_id, cost_code_id)` rows remain in `project_bid_packages`.
-
-So bidding cross-tenant leakage is fixed and bid-package duplication is structurally impossible going forward.
-
-### Frontend: one remaining gap to close
-
-The bidding modal itself (`useAddBiddingModal`), budget hooks, company selector, subcategory hook, cost-code search, takeoff dialogs, and specifications hook are all explicitly scoped by `owner_id`. RLS would also block cross-tenant reads now even if a query forgot to filter.
-
-However there is one remaining frontend query that reads `cost_codes` without an owner filter and without an ID filter:
+I confirmed this against the database for "1 East Custis Avenue":
 
 ```text
-src/components/bills/ManualBillEntry.tsx
-  supabase.from('cost_codes').select('id, code, name')
+status:  draft        ← wrong, should be 'sent'
+sent_on: 2026-04-21 17:05:44 UTC   ← actually present
 ```
 
-RLS still protects this (it only returns the active builder's rows), so it is not a leak. But to match the strict isolation rule and remove ambiguity, I will explicitly scope it by `owner_id` like every other query.
+So:
+- Resend confirms the email truly was sent.
+- The DB actually has a `sent_on` timestamp.
+- The package `status` is still `draft`, which is why the row stays under the "Draft" tab and the package still says Draft.
+- The "Sent On" column is blank in the UI because the single-company modal does not invalidate `all-project-bidding`/`bidding-counts`, so the table still shows the cached pre-send state until you hard refresh. The DB has the value; the UI just isn't refetching.
+- The per-vendor row also isn't recording `email_sent_at`, so RC Fields shows "Not sent" even though they were emailed.
 
-All other unscoped reads use `.in('id', costCodeIds)` where the IDs already came from project-owned rows, which is safe under the new RLS.
+This regression is in the single-company send path, which is the one used from the row's per-company "Send Email" action. The all-companies send path still works correctly.
 
-### Plan
+### Fix plan
 
-1. Update `src/components/bills/ManualBillEntry.tsx` to resolve effective `ownerId` (own id for owners, `home_builder_id` for confirmed employees) and add `.eq('owner_id', ownerId)` to the cost code fetch.
-2. No database changes needed.
-3. No other code changes needed.
+Update `src/components/bidding/SendSingleCompanyEmailModal.tsx` so the single-company send mirrors the all-companies send:
 
-### After this change
+1. After a successful email send:
+   - Update `project_bid_packages` with:
+     - `status = 'sent'`
+     - `sent_on = now()` only if not already set (preserve original first-send date)
+2. Update the matching `project_bids` row for this company:
+   - `email_sent_at = now()`
+   - Filtered by `bid_package_id = bidPackage.id` AND `company_id = companyId`
+3. Invalidate the right React Query caches so the table refreshes immediately:
+   - `['project-bidding', projectId]`
+   - `['all-project-bidding', projectId]`
+   - `['bidding-counts', projectId]`
+   - `['bid-package-companies', bidPackage.id]`
 
-- Bidding modal: each cost code appears once per builder. Confirmed.
-- Cross-builder cost codes: blocked by RLS at the database, even for platform admins, in the operational app. Confirmed.
-- Duplicate bid packages: blocked by unique index. Confirmed.
-- Manual bill entry cost code dropdown: explicitly scoped to current builder, matching the rest of the app.
+### Backfill the existing 1 E Custis bid package
 
-### Files changed
+Update the database record for the bid package that just sent so it reflects reality:
 
-1. `src/components/bills/ManualBillEntry.tsx`
+- Set `project_bid_packages.status = 'sent'` for the Civil Engineering package on 1 East Custis Avenue.
+- Set `project_bids.email_sent_at` for RC Fields & Associates on that bid package to the actual send time (1:05 PM UTC).
+
+This restores the row to the correct state without re-sending the email.
+
+### Verification after fix
+
+1. The 1 E Custis Civil Engineering package moves from Draft to Sent.
+2. The "Sent On" column shows 04/21/2026.
+3. The RC Fields row shows the sent timestamp instead of "Not sent".
+4. Sending a bid package to a single new company in the future immediately:
+   - Moves the package to Sent
+   - Records the per-vendor send timestamp
+   - Refreshes the table without a manual reload
+
+### Files / changes
+
+1. `src/components/bidding/SendSingleCompanyEmailModal.tsx` — add status update, per-bid `email_sent_at` update, and full query invalidation.
+2. One small data backfill for the existing 1 E Custis Civil Engineering bid package and its RC Fields bid row.
+
+No RLS, schema, or edge function changes are required.
 
