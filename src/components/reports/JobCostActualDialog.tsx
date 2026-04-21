@@ -356,6 +356,45 @@ const formatCurrency = (value: number) => {
     }
   };
 
+  const invalidateAfterDelete = () => {
+    queryClient.invalidateQueries({ queryKey: ['job-cost-actual-details'] });
+    queryClient.invalidateQueries({ queryKey: ['job-costs'] });
+    queryClient.invalidateQueries({ queryKey: ['balance-sheet'] });
+    queryClient.invalidateQueries({ queryKey: ['income-statement'] });
+    queryClient.invalidateQueries({ queryKey: ['account-transactions'] });
+    queryClient.invalidateQueries({ queryKey: ['bills-for-payment'] });
+    queryClient.invalidateQueries({ queryKey: ['bill-approval-counts'] });
+  };
+
+  const handleDeleteTransaction = async (line: any) => {
+    try {
+      if (line.bill_id) {
+        const { error } = await supabase.rpc('delete_bill_with_journal_entries', {
+          bill_id_param: line.bill_id,
+        });
+        if (error) throw error;
+        toast({ title: "Bill deleted", description: "The bill and its journal entries have been removed." });
+      } else if (line.deposit_id) {
+        const { error } = await supabase.rpc('delete_deposit_with_journal_entries', {
+          deposit_id_param: line.deposit_id,
+        });
+        if (error) throw error;
+        toast({ title: "Deposit deleted", description: "The deposit and its journal entries have been removed." });
+      } else if (line.check_id) {
+        await deleteCheck.mutateAsync(line.check_id);
+        toast({ title: "Check deleted", description: "The check and its journal entries have been removed." });
+      }
+      invalidateAfterDelete();
+    } catch (error: any) {
+      console.error('Error deleting transaction:', error);
+      toast({
+        title: "Error",
+        description: error?.message || "Failed to delete transaction. Please try again.",
+        variant: "destructive",
+      });
+    }
+  };
+
   return (
     <>
       <Dialog open={isOpen} onOpenChange={onClose}>
