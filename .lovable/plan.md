@@ -1,37 +1,52 @@
 
 
-## Fix PO Status: don't show "Numerous" when all PO lines match
+## Fix the $17.03 discrepancy between A/P Aging and Balance Sheet
 
-### Problem
-On Manage Bills → Review, bill C26019 (An Exterior, $27,180) has 3 line items, all 3 matched to POs (2025-923T-0027, 2025-923T-0035, 2025-923T-0036) as confirmed by the PO Status Summary popover. The badge incorrectly shows **Numerous** (amber warning) when it should show **Matched** (green).
+### What I found
 
-"Numerous" is meant for *mixed* statuses — some matched, some over/no-PO. When every line is matched, the rollup must be **Matched**, regardless of how many distinct POs are involved.
+| Report | Total |
+|---|---|
+| A/P Aging Detail (PDF) — **correct** | $161,894.60 |
+| Balance Sheet AP 2010 — **wrong** | $161,877.57 |
+| Difference | **$17.03** |
 
-### Root cause (suspected)
-The pending-bill PO status rollup in `src/hooks/usePendingBillPOStatus.ts` currently classifies based on whether lines have a `purchase_order_id` (matched/partial/no_po) but does not produce `numerous`. The `numerous` value is being assigned somewhere downstream — likely a wrapper in `BillsApprovalTabs` / review table that sees "more than 1 distinct PO id" and labels it `numerous`. Distinct-PO-count is the wrong signal; status mix is the right signal.
+The $17.03 traces to a **single bill posted with a wrong journal-entry date**:
 
-### Fix
-1. **Locate the bad rule.** Search the codebase for where `'numerous'` is assigned (likely in the review/approval table component or a helper that aggregates per-bill PO results). Confirm it's keying off "distinct PO count > 1" instead of "mixed statuses".
-2. **Replace with status-mix logic:**
-   - All lines matched (1 PO or many) → `matched`
-   - All lines over → `over_po`
-   - All lines no_po → `no_po`
-   - Any mix of matched + over → `numerous`
-   - Any mix of matched + no_po → `partial`
-   - Otherwise fall back to the dominant status
-3. **Keep the PO Status Summary popover unchanged** — it already correctly shows all 3 matched POs.
-4. **Tooltip on `numerous`** stays "Mixed PO statuses — some matched, some over" so the meaning is consistent.
+- **Vendor:** Exxon Express Pay
+- **Bill ID:** `41b62703-35d3-4536-a3cf-9d25cab40f8a`
+- **Reference:** `087435`
+- **Amount:** $17.03
+- **`bills.bill_date`:** 2026-02-24 ✓ (correct, within the report period)
+- **Bill JE `entry_date`:** **2026-03-31** ✗ (wrong — outside the report period)
+- **Payment JE `entry_date`:** 2026-02-24 ✓ (correct)
 
-### Files likely touched
-- `src/hooks/usePendingBillPOStatus.ts` (or its caller in the Review tab)
-- The component in `src/components/bills/` that renders the Review table badge — to be confirmed during exploration
-- No DB / RLS / migration changes
-- No change to `POStatusBadge.tsx` itself
+As of 2026-02-28, the Balance Sheet sees the **payment** ($17.03 debit to AP) but **not** the bill ($17.03 credit to AP, dated 3/31), so AP is understated by exactly $17.03.
 
-### Verification
-- Bill C26019 on Review tab now shows green **Matched** badge.
-- A bill with 2 matched + 1 over still shows amber **Numerous**.
-- A bill with 2 matched + 1 no-PO shows orange **Partial**.
-- A single-line matched bill is unchanged (still **Matched**).
-- Approved/Paid tabs are unaffected.
+The A/P Aging is correct because it sums `bill.total_amount − payments` using `bill_date`, not the JE date — so it correctly excludes this paid-off $17.03 bill from the open balance and reflects the right total.
+
+This is the only such mismatch on this project (1 of 227 bills had a JE date later than its bill date).
+
+### The fix — one-time data correction
+
+Update the bill's posting journal entry to use the correct date:
+
+```sql
+UPDATE journal_entries
+SET entry_date = '2026-02-24'
+WHERE id = '95dad7f2-6ca5-44fa-ad23-7739dbfb4dfd';
+-- source_type='bill', source_id=41b62703... (Exxon ref 087435)
+```
+
+This is a single-row update on `journal_entries.entry_date`. It does not change the JE lines, the AP balance long-term, or any other report — it just shifts the recognition date from 3/31 back to the correct bill date of 2/24, which is what the bill itself says.
+
+### Verification after the fix
+
+- Re-run Balance Sheet as of 2026-02-28 → AP 2010 = **$161,894.60** (matches A/P Aging exactly)
+- Re-run Balance Sheet as of 2026-03-31 → AP 2010 unchanged (the entry still falls within range)
+- A/P Aging Detail as of 2026-02-28 → still $161,894.60
+- No other bills, payments, or accounts are touched
+
+### Out of scope (separate items, not affecting this $17.03)
+- The credit memo `OCH-02302` (JZ Structural, -$500) is fully applied and correctly excluded from the printed A/P Aging. It is also already correctly reflected in BS via the JE that applied it. No action needed.
+- Why this bill was posted with a 3/31 JE date in the first place is a workflow question (likely the user backdated `bill_date` after entry but didn't change the JE date). If you want me to investigate the bill-create code path so this can't happen again, that's a separate task — say the word and I'll dig in.
 
