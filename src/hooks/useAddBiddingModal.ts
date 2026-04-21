@@ -143,7 +143,7 @@ export const useAddBiddingModal = (projectId: string, existingCostCodeIds: strin
 
       const { data: insertedBiddingItems, error: biddingError } = await supabase
         .from('project_bid_packages')
-        .insert(biddingItems)
+        .upsert(biddingItems, { onConflict: 'project_id,cost_code_id', ignoreDuplicates: true })
         .select('id, cost_code_id');
 
       if (biddingError) throw biddingError;
