@@ -22,20 +22,24 @@ export function useBudgetSubcategories(
   const { data: subcategories = [], isLoading } = useQuery({
     queryKey: ['budget-subcategories', projectId, costCodeId],
     queryFn: async () => {
-      // First get the parent cost code to find its code
+      // First get the parent cost code to find its code AND owner_id
+      // (we use owner_id to scope subcategory lookup strictly to the same tenant)
       const { data: parentCode } = await supabase
         .from('cost_codes')
-        .select('code')
+        .select('code, owner_id')
         .eq('id', costCodeId)
         .single();
 
       if (!parentCode) return [];
 
-      // Get child cost codes where parent_group matches parent code
+      // Get child cost codes where parent_group matches parent code AND
+      // owner_id matches the parent's owner — prevents cross-tenant leakage
+      // (e.g. platform admins seeing other builders' copied subcategories).
       const { data: childCodes, error } = await supabase
         .from('cost_codes')
         .select('*')
-        .eq('parent_group', parentCode.code);
+        .eq('parent_group', parentCode.code)
+        .eq('owner_id', parentCode.owner_id);
 
       if (error) throw error;
       if (!childCodes || childCodes.length === 0) return [];

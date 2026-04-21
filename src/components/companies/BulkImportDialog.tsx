@@ -47,11 +47,16 @@ export function BulkImportDialog({ open, onOpenChange }: BulkImportDialogProps) 
     
     if (user) {
       try {
+        // Resolve effective owner id (tenant scoping)
+        const { data: info } = await supabase.rpc('get_current_user_home_builder_info');
+        const ownerId = info?.[0]?.is_employee ? info[0].home_builder_id : user.id;
+
         const { data } = await supabase
           .from('cost_codes')
           .select('code, name')
+          .eq('owner_id', ownerId)
           .order('code');
-        
+
         costCodesData = (data || []).map(cc => ({
           Code: cc.code,
           Name: cc.name,
@@ -289,12 +294,12 @@ export function BulkImportDialog({ open, onOpenChange }: BulkImportDialogProps) 
                 ? costCodeStr.split(' - ')[0].trim()
                 : costCodeStr.trim();
               
-              // Find cost code by code
+              // Find cost code by code — scope to tenant owner (handles employees too)
               const { data: costCode } = await supabase
                 .from('cost_codes')
                 .select('id')
                 .eq('code', code)
-                .eq('owner_id', user.id)
+                .eq('owner_id', homeBuilderIdToUse)
                 .maybeSingle();
               
               if (costCode) {
