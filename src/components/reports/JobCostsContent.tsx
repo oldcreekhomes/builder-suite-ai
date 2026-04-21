@@ -809,10 +809,6 @@ return parentRows;
                               <JobCostRow
                                 key={row.costCodeId}
                                 row={row}
-                                onBudgetClick={() => {
-                                  setSelectedCostCode(row);
-                                  setDialogType('budget');
-                                }}
                                 onActualClick={() => {
                                   setSelectedCostCode(row);
                                   setDialogType('actual');
