@@ -380,13 +380,12 @@ export function AccountDetailDialog({
           (relatedJEs || []).forEach((j: any) => jeToBill.set(j.id, j.source_id));
 
           if (jeIds.length > 0) {
-            const apLines = await fetchAllRows<any>((from, to) =>
+            const apLines = await fetchAllRows<any>(() =>
               supabase
                 .from('journal_entry_lines')
                 .select('journal_entry_id, debit, credit')
                 .eq('account_id', accountId)
                 .in('journal_entry_id', jeIds)
-                .range(from, to)
             );
 
             const billCreditCents = new Map<string, number>();
