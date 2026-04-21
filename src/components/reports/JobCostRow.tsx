@@ -12,11 +12,10 @@ interface JobCostRowData {
 
 interface JobCostRowProps {
   row: JobCostRowData;
-  onBudgetClick: () => void;
   onActualClick: () => void;
 }
 
-export function JobCostRow({ row, onBudgetClick, onActualClick }: JobCostRowProps) {
+export function JobCostRow({ row, onActualClick }: JobCostRowProps) {
   const formatCurrency = (amount: number) => {
     const normalized = Math.abs(amount) < 0.005 ? 0 : amount;
     const value = Object.is(normalized, -0) ? 0 : normalized;
