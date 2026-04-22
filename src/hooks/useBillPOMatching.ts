@@ -22,7 +22,9 @@ interface BillLine {
   cost_code_id?: string;
   amount?: number;
   purchase_order_id?: string;
+  purchase_order_line_id?: string;
   po_reference?: string | null;
+  po_assignment?: string | null;
   cost_codes?: {
     code: string;
     name: string;
@@ -88,7 +90,9 @@ export function useBillPOMatching(bills: BillForMatching[]) {
         (bill.bill_lines || []).forEach(line => {
           const poId = line.purchase_order_id;
           // Explicit "No PO" — never fall back to vendor/cost-code or po_reference matching.
-          if (poId === '__none__') return;
+          // Honor BOTH the sentinel AND a persisted po_assignment='none' (in case a stale
+          // UUID survives in the row from an earlier auto-match).
+          if (poId === '__none__' || line.po_assignment === 'none') return;
           if (!poId || poId === '__auto__') {
             if (bill.vendor_id && bill.project_id && line.cost_code_id) {
               unmatchedLines.push({
@@ -228,9 +232,15 @@ export function useBillPOMatching(bills: BillForMatching[]) {
         
         allLines.forEach(line => {
           let resolvedPoId = line.purchase_order_id;
-          
-          // Skip sentinel values
-          if (resolvedPoId === '__none__' || resolvedPoId === '__auto__') {
+
+          // HARD SHORT-CIRCUIT: explicit "No PO" intent always wins, even if a stale
+          // purchase_order_id UUID survives in the row from an earlier auto-match.
+          if (line.po_assignment === 'none' || resolvedPoId === '__none__') {
+            return;
+          }
+
+          // Skip auto sentinel
+          if (resolvedPoId === '__auto__') {
             resolvedPoId = undefined;
           }
 
