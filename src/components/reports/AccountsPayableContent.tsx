@@ -42,6 +42,7 @@ interface BillWithVendor {
   amount_paid: number;
   vendor: { company_name: string } | null;
   bill_lines: { lot_id: string | null; amount: number }[];
+  bill_attachments: BillAttachment[];
 }
 
 export function AccountsPayableContent({ projectId, onHeaderActionChange, asOfDate, onAsOfDateChange }: AccountsPayableContentProps) {
