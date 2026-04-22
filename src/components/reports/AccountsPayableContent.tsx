@@ -16,6 +16,15 @@ import { cn } from "@/lib/utils";
 import { pdf } from "@react-pdf/renderer";
 import { AccountsPayablePdfDocument, APAgingBill } from "./pdf/AccountsPayablePdfDocument";
 import { useToast } from "@/hooks/use-toast";
+import { BillFilesCell } from "@/components/bills/BillFilesCell";
+
+interface BillAttachment {
+  id: string;
+  file_name: string;
+  file_path: string;
+  file_size: number;
+  content_type: string;
+}
 
 interface AccountsPayableContentProps {
   projectId?: string;
