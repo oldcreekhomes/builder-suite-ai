@@ -84,57 +84,164 @@ export function AccountsPayableContent({ projectId, onHeaderActionChange, asOfDa
     enabled: !!selectedLotId,
   });
 
-  // Fetch outstanding bills (GL-derived open balances against account 2010)
+  // Fetch outstanding bills — derived directly from the A/P general ledger,
+  // matching the exact source-of-truth pattern used by the Balance Sheet
+  // and the Account Detail (2010) dialog.
   const { data: billsResult, isLoading, error } = useQuery({
-    queryKey: ['ap-aging-v2', projectId, selectedLotId, asOfDate.toISOString().split('T')[0]],
-    queryFn: async (): Promise<{ bills: BillWithVendor[]; glNet: number }> => {
+    queryKey: ['ap-aging-v3', projectId, selectedLotId, format(asOfDate, 'yyyy-MM-dd')],
+    queryFn: async (): Promise<{ bills: BillWithVendor[]; glNet: number; missingBills: any[]; ledgerOnly: any[] }> => {
       if (!projectId) {
         throw new Error("Project ID is required for A/P Aging report");
       }
 
       const asOfDateStr = format(asOfDate, 'yyyy-MM-dd');
 
-      // Step 0: Resolve A/P account id (code = '2010') — may have multiple rows across tenants under RLS
-      const { data: apAccounts, error: apErr } = await supabase
-        .from('accounts')
-        .select('id, owner_id')
-        .eq('code', '2010');
-      if (apErr) throw apErr;
-      if (!apAccounts || apAccounts.length === 0) return { bills: [], glNet: 0 };
-      const apAccountIds = apAccounts.map(a => a.id);
+      // Step 0: Resolve the project's owner, then resolve the EXACT A/P account id
+      // for that owner. This matches AccountDetailDialog/BalanceSheet exactly and
+      // eliminates "wrong 2010 row" classes of bugs.
+      const { data: project, error: projErr } = await supabase
+        .from('projects')
+        .select('owner_id')
+        .eq('id', projectId)
+        .single();
+      if (projErr) throw projErr;
+      const projectOwnerId = (project as any)?.owner_id as string | undefined;
 
-      // Step 1: Fetch all non-reversed bills (posted/paid) with bill_date <= asOf — paginated, slim
-      const bills = await fetchAllRows<any>(() =>
+      let apAccountId: string | null = null;
+      if (projectOwnerId) {
+        const { data: settings } = await supabase
+          .from('accounting_settings')
+          .select('ap_account_id')
+          .eq('owner_id', projectOwnerId)
+          .maybeSingle();
+        apAccountId = (settings as any)?.ap_account_id ?? null;
+
+        // Fallback: pick the 2010 account belonging to the project owner
+        if (!apAccountId) {
+          const { data: ownerAp } = await supabase
+            .from('accounts')
+            .select('id')
+            .eq('code', '2010')
+            .eq('owner_id', projectOwnerId)
+            .maybeSingle();
+          apAccountId = (ownerAp as any)?.id ?? null;
+        }
+      }
+
+      if (!apAccountId) {
+        return { bills: [], glNet: 0, missingBills: [], ledgerOnly: [] };
+      }
+
+      // Step 1: Pull A/P journal lines for the EXACT A/P account id, project-scoped,
+      // up to as-of, with the canonical reversal filter (same as Balance Sheet/Account Detail).
+      const apJournalLines = await fetchAllRows<any>(() =>
         supabase
-          .from('bills')
-          .select('id, bill_date, reference_number, due_date, total_amount, amount_paid, vendor:companies!vendor_id(company_name)')
+          .from('journal_entry_lines')
+          .select('debit, credit, journal_entries!inner(source_id, source_type, entry_date, reversed_at, reversed_by_id, is_reversal)')
+          .eq('account_id', apAccountId)
           .eq('project_id', projectId)
-          .in('status', ['posted', 'paid'])
-          .eq('is_reversal', false)
-          .is('reversed_by_id', null)
-          .lte('bill_date', asOfDateStr)
-          .order('id')
+          .lte('journal_entries.entry_date', asOfDateStr)
+          .eq('journal_entries.is_reversal', false)
+          .is('journal_entries.reversed_by_id', null)
+          .or(`reversed_at.is.null,reversed_at.gt.${asOfDateStr}`, { referencedTable: 'journal_entries' })
       );
 
-      if (bills.length === 0) return { bills: [], glNet: 0 };
+      // Net G/L on A/P (project-scoped) — must equal Balance Sheet 2010 / detail dialog total.
+      let glNet = 0;
+      const openBySource: Record<string, number> = {};
+      apJournalLines.forEach((l: any) => {
+        const credit = l.credit || 0;
+        const debit = l.debit || 0;
+        glNet += credit - debit;
+        // Supabase embedded relation may come back as object OR array depending on cardinality
+        const je = Array.isArray(l.journal_entries) ? l.journal_entries[0] : l.journal_entries;
+        const srcId = je?.source_id;
+        if (srcId) {
+          openBySource[srcId] = (openBySource[srcId] || 0) + (credit - debit);
+        }
+      });
 
-      const activeBillIds = bills.map(b => b.id);
+      // Step 2: Resolve bill metadata for every source_id that the ledger touched
+      // (both `bill` and `bill_payment` source types reference the bill id as source_id).
+      const sourceIds = Object.keys(openBySource);
+      if (sourceIds.length === 0) {
+        return { bills: [], glNet, missingBills: [], ledgerOnly: [] };
+      }
 
-      // Step 2: Fetch bill_lines & bill_attachments separately, batched to avoid URL overflow
+      const ledgerBills = await batchedIn<any>(
+        (chunk) => supabase
+          .from('bills')
+          .select('id, bill_date, reference_number, due_date, total_amount, amount_paid, reversed_by_id, is_reversal, vendor:companies!vendor_id(company_name)')
+          .in('id', chunk),
+        sourceIds
+      );
+
+      // Step 3: If a bill in the ledger has been reversed/replaced, its successor
+      // bill (same reference_number, not reversed) is the active row to display.
+      const billById: Record<string, any> = {};
+      ledgerBills.forEach(b => { billById[b.id] = b; });
+
+      const reversedRefs = ledgerBills
+        .filter(b => b.reversed_by_id !== null && b.is_reversal === false && b.reference_number)
+        .map(b => b.reference_number as string);
+
+      const successorByRef: Record<string, any> = {};
+      if (reversedRefs.length > 0) {
+        const successors = await batchedIn<any>(
+          (chunk) => supabase
+            .from('bills')
+            .select('id, bill_date, reference_number, due_date, total_amount, amount_paid, vendor:companies!vendor_id(company_name)')
+            .eq('project_id', projectId)
+            .in('reference_number', chunk)
+            .eq('is_reversal', false)
+            .is('reversed_by_id', null),
+          Array.from(new Set(reversedRefs))
+        );
+        successors.forEach(s => { successorByRef[s.reference_number] = s; });
+      }
+
+      // Build the displayable bill list: one entry per active bill with its
+      // ledger-derived open balance.
+      const openByDisplayBill: Record<string, { bill: any; open: number }> = {};
+      Object.entries(openBySource).forEach(([sourceId, value]) => {
+        const ledgerBill = billById[sourceId];
+        if (!ledgerBill) return; // ledger references a missing bill — surfaced below
+        let displayBill = ledgerBill;
+        if (ledgerBill.reversed_by_id !== null && ledgerBill.is_reversal === false) {
+          const successor = ledgerBill.reference_number ? successorByRef[ledgerBill.reference_number] : null;
+          if (successor) displayBill = successor;
+        }
+        const existing = openByDisplayBill[displayBill.id] || { bill: displayBill, open: 0 };
+        existing.open += value;
+        openByDisplayBill[displayBill.id] = existing;
+      });
+
+      // Diagnostics: bills the ledger references but we couldn't find,
+      // and bills present in the ledger but excluded from display.
+      const missingBills = sourceIds
+        .filter(id => !billById[id])
+        .map(id => ({ id, open: openBySource[id] }));
+
+      const ledgerOnly = Object.entries(openBySource)
+        .filter(([id]) => billById[id] && !openByDisplayBill[ (billById[id].reversed_by_id !== null && billById[id].is_reversal === false && successorByRef[billById[id].reference_number]?.id) || id ])
+        .map(([id, v]) => ({ id, open: v }));
+
+      // Step 4: Pull bill_lines + attachments for the active display bills only.
+      const displayBillIds = Object.keys(openByDisplayBill);
       const [billLines, billAttachments] = await Promise.all([
         batchedIn<any>(
           (chunk) => supabase
             .from('bill_lines')
             .select('id, bill_id, lot_id, amount')
             .in('bill_id', chunk),
-          activeBillIds
+          displayBillIds
         ),
         batchedIn<any>(
           (chunk) => supabase
             .from('bill_attachments')
             .select('id, bill_id, file_name, file_path, file_size, content_type')
             .in('bill_id', chunk),
-          activeBillIds
+          displayBillIds
         ),
       ]);
 
@@ -149,103 +256,21 @@ export function AccountsPayableContent({ projectId, onHeaderActionChange, asOfDa
         (attachmentsByBill[a.bill_id] = attachmentsByBill[a.bill_id] || []).push(a);
       });
 
-      // Step 3: Pull all GL lines hitting A/P (account 2010) for this project, up to as-of, with reversal filter
-      const apJournalLines = await fetchAllRows<any>(() =>
-        supabase
-          .from('journal_entry_lines')
-          .select('debit, credit, journal_entries!inner(source_id, entry_date, reversed_at, reversed_by_id, is_reversal)')
-          .in('account_id', apAccountIds)
-          .eq('project_id', projectId)
-          .lte('journal_entries.entry_date', asOfDateStr)
-          .eq('journal_entries.is_reversal', false)
-          .is('journal_entries.reversed_by_id', null)
-          .or(`reversed_at.is.null,reversed_at.gt.${asOfDateStr}`, { referencedTable: 'journal_entries' })
-      );
-
-      // GL net (project-scoped) for reconciliation safeguard
-      let glNet = 0;
-      const openBySource: Record<string, number> = {};
-      apJournalLines.forEach((l: any) => {
-        const credit = l.credit || 0;
-        const debit = l.debit || 0;
-        glNet += credit - debit;
-        const srcId = l.journal_entries?.source_id;
-        if (srcId) {
-          openBySource[srcId] = (openBySource[srcId] || 0) + (credit - debit);
-        }
-      });
-
-      // Step 4: Build active-bill open balances. If a JE source_id maps to a reversed
-      // predecessor bill, credit it to the active successor (matched by reference_number).
-      const activeByRef: Record<string, string> = {};
-      bills.forEach(b => {
-        if (b.reference_number) activeByRef[b.reference_number] = b.id;
-      });
-      const activeIdSet = new Set(activeBillIds);
-
-      // Find reversed predecessors so we can remap their JEs
-      const { data: reversedBills } = await supabase
-        .from('bills')
-        .select('id, reference_number')
-        .eq('project_id', projectId)
-        .not('reversed_by_id', 'is', null)
-        .eq('is_reversal', false);
-
-      const predecessorToActive: Record<string, string> = {};
-      (reversedBills || []).forEach((rb: any) => {
-        if (!activeIdSet.has(rb.id) && rb.reference_number) {
-          const successor = activeByRef[rb.reference_number];
-          if (successor) predecessorToActive[rb.id] = successor;
-        }
-      });
-
-      const openByBill: Record<string, number> = {};
-      Object.entries(openBySource).forEach(([sourceId, value]) => {
-        const target = predecessorToActive[sourceId] || sourceId;
-        if (activeIdSet.has(target)) {
-          openByBill[target] = (openByBill[target] || 0) + value;
-        }
-      });
+      // Step 5: Build the enriched bill objects, where total_amount/amount_paid
+      // are reconstructed so that (total_amount - amount_paid) === ledger open.
+      let enriched: BillWithVendor[] = Object.values(openByDisplayBill).map(({ bill, open }) => ({
+        id: bill.id,
+        bill_date: bill.bill_date,
+        reference_number: bill.reference_number,
+        due_date: bill.due_date,
+        total_amount: bill.total_amount,
+        amount_paid: bill.total_amount - open,
+        vendor: bill.vendor,
+        bill_lines: linesByBill[bill.id] || [],
+        bill_attachments: attachmentsByBill[bill.id] || [],
+      }));
 
       const isLotView = selectedLotId && selectedLotId !== '__total__';
-
-      const billsMissingFromGL: any[] = [];
-      const billsWithDiff: any[] = [];
-
-      let enriched: BillWithVendor[] = bills.map((b: any) => {
-        const lines = linesByBill[b.id] || [];
-        const hasGL = openByBill[b.id] !== undefined;
-        const openGL = openByBill[b.id] || 0;
-        const legacyOpen = b.total_amount - (b.amount_paid || 0);
-        // Fallback: legacy bills with no JE entries hitting A/P keep their bill-table balance
-        const effectiveOpen = hasGL ? openGL : legacyOpen;
-        if (!hasGL && Math.abs(legacyOpen) > 0.01) {
-          billsMissingFromGL.push({ id: b.id, ref: b.reference_number, legacyOpen });
-        }
-        if (hasGL && Math.abs(openGL - legacyOpen) > 0.01) {
-          billsWithDiff.push({ id: b.id, ref: b.reference_number, openGL, legacyOpen, diff: openGL - legacyOpen });
-        }
-        return {
-          ...b,
-          total_amount: b.total_amount,
-          amount_paid: b.total_amount - effectiveOpen,
-          bill_lines: lines,
-          bill_attachments: attachmentsByBill[b.id] || [],
-        };
-      });
-
-      console.debug('[AP Aging diagnostic]', {
-        asOfDate: asOfDateStr,
-        projectId,
-        billCount: bills.length,
-        glNet,
-        legacySum: bills.reduce((s, b) => s + (b.total_amount - (b.amount_paid || 0)), 0),
-        glDerivedSum: enriched.reduce((s, b) => s + (b.total_amount - b.amount_paid), 0),
-        billsMissingFromGL,
-        billsWithDiff,
-        apAccountIds,
-      });
-
       if (isLotView) {
         enriched = enriched
           .filter(bill => {
@@ -268,13 +293,26 @@ export function AccountsPayableContent({ projectId, onHeaderActionChange, asOfDa
           });
       }
 
-      // Filter out zero-balance bills (using effective open)
       enriched = enriched.filter(bill => {
         const openBalance = bill.total_amount - bill.amount_paid;
         return Math.abs(openBalance) > 0.01;
       });
 
-      return { bills: enriched, glNet };
+      const displaySum = enriched.reduce((s, b) => s + (b.total_amount - b.amount_paid), 0);
+      console.debug('[AP Aging v3]', {
+        asOfDate: asOfDateStr,
+        projectId,
+        apAccountId,
+        glNet: Number(glNet.toFixed(2)),
+        displaySum: Number(displaySum.toFixed(2)),
+        diff: Number((glNet - displaySum).toFixed(2)),
+        sourceCount: sourceIds.length,
+        displayedCount: enriched.length,
+        missingBills,
+        ledgerOnly,
+      });
+
+      return { bills: enriched, glNet, missingBills, ledgerOnly };
     },
     enabled: !!user && !!session && !authLoading && !!projectId && (!!selectedLotId || selectedLotId === '__total__'),
   });
