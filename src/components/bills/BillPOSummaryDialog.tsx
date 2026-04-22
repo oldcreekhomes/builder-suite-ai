@@ -9,6 +9,7 @@ import {
   Table,
   TableBody,
   TableCell,
+  TableFooter,
   TableHead,
   TableHeader,
   TableRow,
@@ -300,6 +301,15 @@ export function BillPOSummaryDialog({
                   );
                 })}
               </TableBody>
+              <TableFooter>
+                <TableRow>
+                  <TableCell colSpan={5} className="text-right font-semibold">Total</TableCell>
+                  <TableCell className="whitespace-nowrap font-semibold">
+                    {formatCurrency(billLines.reduce((sum, l) => sum + (l.amount || 0), 0))}
+                  </TableCell>
+                  <TableCell colSpan={3}></TableCell>
+                </TableRow>
+              </TableFooter>
             </Table>
           </SettingsTableWrapper>
           )}
