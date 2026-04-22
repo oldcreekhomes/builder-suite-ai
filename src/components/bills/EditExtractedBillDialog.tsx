@@ -494,12 +494,26 @@ export function EditExtractedBillDialog({
             confidence: match.confidence,
           });
         }
+        // Inherit cost code from the matched PO line when the line currently has none.
+        // This prevents the editor from showing a blank Cost Code while the line is
+        // visibly bound to a PO with a known cost code.
+        const matchedPOLine = allPOLines.find(p => p.id === match.poLineId);
+        const inheritCostCodeId =
+          !line.cost_code_id && matchedPOLine?.cost_code_id
+            ? matchedPOLine.cost_code_id
+            : line.cost_code_id;
+        const inheritCostCodeDisplay =
+          !line.cost_code_display && matchedPOLine?.cost_code_name
+            ? matchedPOLine.cost_code_name
+            : line.cost_code_display;
         return {
           ...line,
           purchase_order_id: match.poId,
           purchase_order_line_id: match.poLineId,
           po_assignment: 'auto' as const,
           poConfidence: match.confidence,
+          cost_code_id: inheritCostCodeId,
+          cost_code_display: inheritCostCodeDisplay,
         };
       }
       return line;
