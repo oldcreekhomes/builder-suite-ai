@@ -419,13 +419,13 @@ const formatCurrency = (value: number) => {
                 <Skeleton className="h-8 w-full" />
               </div>
             ) : journalLines && journalLines.length > 0 ? (
-              <Table className="text-xs" containerClassName="relative w-full">
+              <Table className="text-xs table-fixed" containerClassName="relative w-full">
                 <TableHeader>
                   <TableRow>
-                    <TableHead>Type</TableHead>
-                    <TableHead>Date</TableHead>
-                    <TableHead>Name</TableHead>
-                    <TableHead>
+                    <TableHead className="w-[7%]">Type</TableHead>
+                    <TableHead className="w-[9%]">Date</TableHead>
+                    <TableHead className="w-[18%]">Name</TableHead>
+                    <TableHead className="w-[28%]">
                       <button 
                         className="flex items-center gap-1 hover:text-foreground text-muted-foreground transition-colors"
                         onClick={() => setDescriptionSort(prev => 
