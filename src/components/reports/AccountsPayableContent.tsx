@@ -241,7 +241,7 @@ export function AccountsPayableContent({ projectId, onHeaderActionChange, asOfDa
       const aging = Math.floor(diffTime / (1000 * 60 * 60 * 24));
       const openBalance = bill.total_amount - bill.amount_paid;
 
-      const agingBill: APAgingBill = {
+      const agingBill: APAgingBill & { attachments?: BillAttachment[] } = {
         id: bill.id,
         billDate: bill.bill_date,
         referenceNumber: bill.reference_number,
@@ -249,6 +249,7 @@ export function AccountsPayableContent({ projectId, onHeaderActionChange, asOfDa
         dueDate: bill.due_date,
         aging,
         openBalance,
+        attachments: bill.bill_attachments || [],
       };
 
       if (aging >= 0 && aging <= 30) {
