@@ -230,9 +230,15 @@ export function useBillPOMatching(bills: BillForMatching[]) {
         
         allLines.forEach(line => {
           let resolvedPoId = line.purchase_order_id;
-          
-          // Skip sentinel values
-          if (resolvedPoId === '__none__' || resolvedPoId === '__auto__') {
+
+          // HARD SHORT-CIRCUIT: explicit "No PO" intent always wins, even if a stale
+          // purchase_order_id UUID survives in the row from an earlier auto-match.
+          if (line.po_assignment === 'none' || resolvedPoId === '__none__') {
+            return;
+          }
+
+          // Skip auto sentinel
+          if (resolvedPoId === '__auto__') {
             resolvedPoId = undefined;
           }
 
