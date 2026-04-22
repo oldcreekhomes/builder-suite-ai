@@ -1,27 +1,22 @@
 
 
-## Single-line rows in Job Cost Actual dialog
+## Equalize row heights in Job Cost Actual dialog
 
-### What changes
-In the actual-detail dialog (e.g. 2120 - Permit Fees), force every row onto a single line. Long values like "Department Of Environmental Quality" or "Receipt for Responsible Land Disturber certification" truncate with ellipsis instead of wrapping to two lines.
+### Problem
+Rows with file icons (e.g. Bill rows showing red PDF icons) are visibly taller than rows without (e.g. the "Deposit — Refunding over payment" row). The `BillFilesCell` button uses `p-1` padding around an `h-4 w-4` icon, making those cells ~24px tall vs ~16px for plain-text rows.
 
-### Implementation (one file)
-`src/components/reports/JobCostActualDialog.tsx`, in the body row at lines 451–490:
+### Fix (one file)
+`src/components/reports/JobCostActualDialog.tsx`, the Files `<TableCell>` at lines 464–470:
 
-1. Add `className="whitespace-nowrap"` to the `<TableRow>` so all cells default to no-wrap.
-2. For the **Name** cell (line 458) and **Description** cell (line 461):
-   - Add `className="max-w-0 truncate"` to the `<TableCell>` (the `max-w-0` + table-layout lets flex/percent widths drive truncation rather than content).
-   - Wrap the inner `<span>` in a `title={...}` attribute so the full text shows on hover tooltip.
-   - Use `truncate block` on the span for ellipsis.
-3. Set explicit column widths on the header (line 423) so truncation has a target:
-   - Type 7%, Date 9%, Name 18%, Description 28%, Files 8%, Amount 10%, Balance 10%, Cleared 5%, Actions 5%.
-4. Add `className="table-fixed"` to the `<Table>` (line 422) so the percent widths are honored.
-5. No data, query, or sort changes. Footer unaffected.
+- Wrap `<BillFilesCell>` in a container that neutralizes its vertical footprint so every row matches the height of the "Deposit" (no-files) row:
+  - Cell becomes `<TableCell className="py-0">`.
+  - Apply a fixed line-height container (`h-4 leading-none flex items-center`) so the icon button's `p-1` no longer expands the row.
+- The em-dash branch already renders compact text — leave it as-is.
+- No changes to `BillFilesCell` itself (it's reused on Bills page and A/P Aging report — keep its existing padding for those contexts).
+- No changes to columns, data, sort, totals, or any other row.
 
 ### Verification
-- Open Job Costs → Permit Fees actual dialog: every row is exactly one line tall.
-- "Department Of Environmental Quality" and "Receipt for Responsible Land Disturber certification" show truncated with ellipsis; hovering shows full text.
-- Files / Amount / Balance / Cleared / Actions columns remain aligned and fully visible.
+Open Job Costs → 2120 Permit Fees actual dialog: every row (Bill rows with PDF icons, Deposit, Check, etc.) is the same compact height as the "07/31/2025 Deposit — Refunding over payment" row. File icons remain clickable and open the universal preview.
 
 ### Files touched
 - `src/components/reports/JobCostActualDialog.tsx` only.
