@@ -461,9 +461,11 @@ const formatCurrency = (value: number) => {
                         <TableCell className="max-w-0 truncate">
                           <span className="text-xs truncate block" title={line.memo || line.journal_entries.description || '-'}>{line.memo || line.journal_entries.description || '-'}</span>
                         </TableCell>
-                        <TableCell>
+                        <TableCell className="py-0">
                           {line.bill_id && (line as any).attachments?.length > 0 ? (
-                            <BillFilesCell attachments={(line as any).attachments} />
+                            <div className="h-4 leading-none flex items-center">
+                              <BillFilesCell attachments={(line as any).attachments} />
+                            </div>
                           ) : (
                             <span className="text-xs text-muted-foreground">—</span>
                           )}
