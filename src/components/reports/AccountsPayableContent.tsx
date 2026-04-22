@@ -540,7 +540,7 @@ export function AccountsPayableContent({ projectId, onHeaderActionChange, asOfDa
                                   <TableCell className="font-medium">{bill.vendorName}</TableCell>
                                   <TableCell>{formatDate(bill.dueDate)}</TableCell>
                                   <TableCell className="text-right">{bill.aging}</TableCell>
-                                  <TableCell>
+                                  <TableCell className="pl-8">
                                     {attachments.length > 0 ? (
                                       <BillFilesCell attachments={attachments} />
                                     ) : (
