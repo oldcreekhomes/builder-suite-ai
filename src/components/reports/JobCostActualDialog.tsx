@@ -456,10 +456,24 @@ const formatCurrency = (value: number) => {
                           <span className="text-xs">{formatDateSafe(line.journal_entries.entry_date, 'MM/dd/yyyy')}</span>
                         </TableCell>
                         <TableCell className="max-w-0 truncate">
-                          <span className="text-xs truncate block" title={line.vendor_name || '-'}>{line.vendor_name || '-'}</span>
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <span className="text-xs truncate block">{line.vendor_name || '-'}</span>
+                            </TooltipTrigger>
+                            <TooltipContent side="top" align="start">
+                              {line.vendor_name || '-'}
+                            </TooltipContent>
+                          </Tooltip>
                         </TableCell>
                         <TableCell className="max-w-0 truncate">
-                          <span className="text-xs truncate block" title={line.memo || line.journal_entries.description || '-'}>{line.memo || line.journal_entries.description || '-'}</span>
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <span className="text-xs truncate block">{line.memo || line.journal_entries.description || '-'}</span>
+                            </TooltipTrigger>
+                            <TooltipContent side="top" align="start">
+                              {line.memo || line.journal_entries.description || '-'}
+                            </TooltipContent>
+                          </Tooltip>
                         </TableCell>
                         <TableCell className="py-0">
                           {line.bill_id && (line as any).attachments?.length > 0 ? (
