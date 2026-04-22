@@ -608,6 +608,11 @@ export function AccountsPayableContent({ projectId, onHeaderActionChange, asOfDa
                 <span className="font-bold text-lg">Total Outstanding</span>
                 <span className="font-bold text-lg">{formatCurrency(grandTotal)}</span>
               </div>
+              {selectedLotId === '__total__' && Math.abs(glNet - grandTotal) > 0.01 && (
+                <div className="text-sm text-destructive px-4">
+                  Reconciliation difference vs G/L: {formatCurrency(glNet - grandTotal)} — please contact support
+                </div>
+              )}
             </div>
           )}
         </>
