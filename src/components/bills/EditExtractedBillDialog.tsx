@@ -86,6 +86,7 @@ interface LineItem {
   cost_code_display?: string;
   purchase_order_id?: string;
   purchase_order_line_id?: string;
+  po_assignment?: 'none' | 'auto' | null;
   lot_id?: string;
   quantity: number;
   unit_cost: number;
