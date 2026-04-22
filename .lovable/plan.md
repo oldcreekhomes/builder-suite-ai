@@ -1,83 +1,70 @@
 
-## Fix the real mismatch: Balance Sheet / 2010 detail vs A/P Aging are using different logic
 
-### What the screenshots prove
-The Balance Sheet and the 2010 Accounts Payable detail dialog already agree at **$161,894.60**.  
-So the bug is not in the ledger total. The bug is that the **A/P Aging report is still using its own custom bill-aging pipeline instead of the exact same A/P source-of-truth pattern**.
+## Fix Edit Extracted Bill ↔ PO Status Summary mismatch
 
-### Root cause in code
-There are two separate implementations right now:
+### What's actually broken
 
-- `src/components/reports/BalanceSheetContent.tsx`
-  - totals liabilities from `journal_entry_lines` using the canonical as-of reversal filter
-- `src/components/accounting/AccountDetailDialog.tsx`
-  - shows the 2010 detail from the exact clicked account id and builds the running balance from those same ledger lines
-- `src/components/reports/AccountsPayableContent.tsx`
-  - does a separate “rebuild open bills” flow from `bills` + remapped GL-by-source logic
-  - resolves A/P by `code = '2010'` instead of the exact account row the company is actually using
-  - still has its own fallback / remapping behavior, so it can diverge even when the ledger detail is correct
-- `src/components/accounting/SendReportsDialog.tsx`
-  - still uses the old `total_amount - paidAsOfDate` PDF logic, so exported A/P can also disagree
+You're seeing three separate symptoms from two underlying bugs.
 
-### Implementation plan
+**Symptom A — AI lumped $11,568 onto "Siding" on first open.**  
+The vendor sent a labor-style invoice. The model occasionally collapses multi-row labor invoices into a single dollar bucket on the dominant cost code (Siding here, the biggest line). This is an AI extraction quality problem, not a save/match problem.
 
-#### 1. Make A/P Aging use the same A/P account source as the ledger detail
-In `src/components/reports/AccountsPayableContent.tsx`:
-- stop resolving A/P with a broad `accounts.code = '2010'` lookup
-- resolve the actual A/P account from the company’s accounting setup first (`accounting_settings.ap_account_id`)
-- use that exact account id for all A/P journal-line calculations, just like the 2010 detail dialog does
+**Symptom B — PO Status Summary shows the two `4410 - Exterior Trim Labor` lines auto-attached to PO `2025-115E-0004`, even though in the Edit dialog you set Purchase Order = "No purchase…".**  
+This is the real bug. `BillPOSummaryDialog` and `useBillPOMatching` both run a **fallback "match by vendor + project + cost_code"** any time a line's `purchase_order_id` is empty. They do not honor the `__none__` sentinel that `EditExtractedBillDialog` writes when you explicitly pick "No PO" — because the value being passed into the matcher is `null/undefined`, not `__none__`.
 
-This removes the “maybe it picked the wrong 2010 row” class of bugs completely.
+Where it leaks (`BatchBillReviewTable.tsx`, `billsForMatching` builder):
+```ts
+bill_lines: (b.lines || []).map((l, idx) => ({
+  cost_code_id: l.cost_code_id,
+  amount: l.amount,
+  purchase_order_id: l.purchase_order_id,   // ← the saved __none__ never gets here
+  po_reference: l.po_reference || extLineItems[idx]?.po_reference || null,
+}))
+```
+`pending_bill_lines.purchase_order_id` is a UUID column, so the `__none__` sentinel from the Edit dialog cannot actually be persisted there — it is dropped to `NULL`. The matcher then treats `NULL` as "please auto-match" and silently re-attaches the two trim lines to PO `…0004` because that PO shares the `4410` cost code with the vendor.
 
-#### 2. Derive the report from the A/P ledger, then map back to unpaid bills
-Still in `AccountsPayableContent.tsx`:
-- fetch A/P journal lines for the exact A/P account id, project, and as-of date using the same canonical filters as Balance Sheet / Account Detail
-- separate:
-  - bill postings (`source_type = 'bill'`)
-  - bill payment reductions (`source_type = 'bill_payment'`)
-- compute each bill’s open amount from those ledger movements
-- then join those open amounts back to bill metadata (`bill_date`, vendor, due date, attachments, lot lines) for display
+So: the user said "No PO", the DB stored `NULL`, and the table viewer auto-matched again. That is exactly why Edit shows 1 PO line and Summary shows 3.
 
-That makes the aging report a presentation of the same ledger truth instead of a parallel accounting system.
+**Symptom C — "Repaper house" row in PO Summary has different font and no cost code.**  
+That row's `cost_code_id` resolves through the matcher's "no resolved PO" branch, which renders the description as plain `text-muted-foreground` (italicized-looking, lighter weight) and prints `—` for cost code instead of the saved `4375 – Tyvek Installation`. The cost code IS saved on `pending_bill_lines`; the Summary table just doesn't read it on the "no PO" branch. Pure display bug in `BillPOSummaryDialog`.
 
-#### 3. Remove the custom fallback paths that are masking the real issue
-In `AccountsPayableContent.tsx`:
-- remove the “legacy fallback” path that substitutes `total_amount - amount_paid` when GL data is missing
-- remove the broad `code='2010'` multi-account aggregation
-- keep predecessor-chain mapping only if it is actually needed for reversed/replaced bills after rebuilding from the exact A/P ledger
-- if a bill exists in bills but has no matching A/P ledger posting, surface it as a reconciliation problem instead of silently folding it in
+### Fix
 
-That way the report cannot quietly drift away from the ledger again.
+#### 1. Honor explicit "No PO" across the matcher and the summary dialog
+- Add a new column `pending_bill_lines.po_assignment` (text, nullable) with values `'none' | 'auto' | NULL`. When the user explicitly picks "No purchase…" in the Edit dialog, save `po_assignment = 'none'`. When they pick a real PO, save `po_assignment = NULL` and the UUID. (`__none__` / `__auto__` are UI sentinels and must never round-trip through a UUID column.)
+- In `EditExtractedBillDialog.tsx` `handleSave`, replace the `sanitizePoId(...)` write with: pass `purchase_order_id = realUuidOrNull` and `po_assignment = (user picked None) ? 'none' : null`.
+- In `BatchBillReviewTable.tsx` `billsForMatching`, pass `purchase_order_id = l.po_assignment === 'none' ? '__none__' : l.purchase_order_id`. Same change in `BillsApprovalTable` and `PayBillsTable` for posted bills (they already use `bill_lines`; add the same column there for parity in step 3).
+- `useBillPOMatching` and `BillPOSummaryDialog` already short-circuit on `'__none__'`; once the sentinel actually reaches them, the trim labor rows stay unmatched.
 
-#### 4. Make the reconciliation visible and actionable
-In `AccountsPayableContent.tsx`:
-- compare:
-  - A/P Aging grand total
-  - exact A/P ledger net for the same account / project / as-of date
-- if different by more than $0.01, show a prominent warning with the difference
-- add targeted debug output listing:
-  - bills present in aging but not in ledger
-  - bills present in ledger but missing from aging
-  - bills whose open balance differs between the two calculations
+#### 2. Stop the cost code / font drift on unmatched rows in PO Summary
+In `src/components/bills/BillPOSummaryDialog.tsx`, for the "no resolved PO" branch:
+- Render the saved `cost_code_display` (look up `cost_codes.code/name` for `line.cost_code_id`) instead of `—`.
+- Drop the `text-muted-foreground` styling on the description cell so the font matches every other row. Match the exact `<TableCell>` className used by the matched rows (`whitespace-nowrap`, regular weight, default text color).
 
-This gives a precise bill-level explanation if data is ever inconsistent again.
+To make the cost code lookup work, extend the `BillLine` interface in this file to include `cost_code_display?: string` and have `BatchBillReviewTable` populate it from `cost_code_name` already on `pending_bill_lines`. No extra fetches.
 
-#### 5. Update the emailed/exported A/P report to the same logic
-In `src/components/accounting/SendReportsDialog.tsx`:
-- replace the old A/P PDF generation path that still uses `total_amount - paidAsOfDate`
-- reuse the same ledger-derived aging calculation as the on-screen A/P report
+#### 3. Mirror the same `po_assignment` column on `bill_lines`
+After bills are approved out of the pending queue, the same "No PO" intent has to survive into `bill_lines`. Add `po_assignment` to `bill_lines`, copy it from `pending_bill_lines` in the approve-bill path, and apply the same `'none' → '__none__'` translation in `BillsApprovalTable`/`PayBillsTable` `billsForMatching` builders. This is what guarantees Edit ↔ PO Summary ↔ Manage Bills all agree forever.
 
-This keeps UI and PDF consistent, which is required by the project’s report-integrity rules.
+#### 4. Tighten the AI extraction so $11,568 doesn't collapse to one cost code
+In `supabase/functions/extract-bill-data/index.ts`, after the model returns, add a deterministic post-validator:
+- If `Math.abs(sum(line_items.amount) - total_amount) > 0.01` AND the source text contains more numeric tokens that look like line totals than the model returned line items, flag the extraction as `needs_review = true` on `pending_bill_uploads.extracted_data` and surface a yellow warning chip in `BatchBillReviewTable`.
+- Strengthen the system prompt's "preserve every separately-priced row" rule with one more worked example matching the labor/EXT pattern on this invoice.
 
-### Files to update
-- `src/components/reports/AccountsPayableContent.tsx`
-- `src/components/accounting/SendReportsDialog.tsx`
+This won't make the AI perfect, but it stops a silent $11,568-on-one-line save from looking "approved by default".
 
-### Verification
-After the fix, for the same project and same as-of date:
-- Balance Sheet 2010 A/P total = **$161,894.60**
-- 2010 Accounts Payable detail dialog total = **$161,894.60**
-- A/P Aging report total outstanding = **$161,894.60**
-- exported / emailed A/P PDF = **$161,894.60**
+### Files touched
+- `src/components/bills/EditExtractedBillDialog.tsx`
+- `src/components/bills/BillPOSummaryDialog.tsx`
+- `src/components/bills/BatchBillReviewTable.tsx`
+- `src/components/bills/BillsApprovalTable.tsx`
+- `src/components/bills/PayBillsTable.tsx`
+- `supabase/functions/extract-bill-data/index.ts`
+- DB migration: add `po_assignment text` to `pending_bill_lines` and `bill_lines`; backfill `'none'` for any historical rows where the user clearly chose "no PO" (skipped — only forward-looking).
 
-Also verify that the final bill list in A/P Aging matches the unpaid bill population implied by the 2010 ledger detail for that date.
+### Verification on this exact bill (INV0022 @ 115E Ocean Watch)
+1. Open Edit Extracted Bill, set lines 2 and 3 to "No purchase…", line 4 cost code = `4375 – Tyvek Installation`, save.
+2. Open PO Status Summary: only line 1 (`4470 Siding`) is attached to `2025-115E-0003`; lines 2, 3, 4 all show "No PO", and line 4 shows `4375: Tyvek Installation` in normal font.
+3. Approve the bill. Open it from Manage Bills → PO Status Summary still shows the same three "No PO" rows.
+4. Re-extract a fresh copy of INV0022: extraction returns 4 separate line items totaling $11,568; if the model collapses, a "needs review" warning appears on the row.
+
