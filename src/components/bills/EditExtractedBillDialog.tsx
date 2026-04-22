@@ -432,12 +432,12 @@ export function EditExtractedBillDialog({
     setDueDate(newDueDate);
   }, [billDate, isDueAuto, terms, open]);
 
-  // Auto-match job cost lines to PO lines when both PO data AND lines are ready
+  // Auto-match job cost lines to PO lines when both PO data AND lines are ready.
+  // CRITICAL: must never overwrite a line the user explicitly chose "No PO" for,
+  // a line the user manually picked, or a line we already auto-evaluated this open-cycle.
   useEffect(() => {
-    if (hasAutoMatched.current) return;
     if (!vendorPOs || vendorPOs.length === 0 || jobCostLines.length === 0) return;
-    hasAutoMatched.current = true;
-    
+
     // Build flat list of PO line candidates, using PO header cost code as fallback
     const allPOLines: POLineCandidate[] = vendorPOs.flatMap(po =>
       po.line_items.map(line => ({
@@ -453,54 +453,81 @@ export function EditExtractedBillDialog({
 
     if (allPOLines.length === 0) return;
 
-    // Only run matching on lines that don't already have a PO assigned
-    const needsMatching = jobCostLines.some(l => !l.purchase_order_id);
-    if (!needsMatching) return;
+    // A line is "off-limits" to the auto-matcher if:
+    //   - user explicitly chose "No PO" (sentinel or persisted po_assignment)
+    //   - user manually touched it this session
+    //   - it already has any PO assignment
+    //   - we already auto-evaluated it this open-cycle (prevents loops)
+    const isOffLimits = (l: LineItem): boolean =>
+      l.purchase_order_id === '__none__' ||
+      l.po_assignment === 'none' ||
+      userTouchedPoLineIds.current.has(l.id) ||
+      autoMatchedLineIds.current.has(l.id) ||
+      !!l.purchase_order_id;
+
+    const candidates = jobCostLines.filter(l => !isOffLimits(l));
+    if (candidates.length === 0) return;
+
+    let didChange = false;
+    const newMatches: Array<{ id: string; poId: string; poLineId: string; confidence: number }> = [];
 
     const updatedLines = jobCostLines.map(line => {
-      if (line.purchase_order_id) return line; // Already assigned
-      
+      if (isOffLimits(line)) return line;
+      // Mark as evaluated so we never re-attempt for this line in this open-cycle.
+      autoMatchedLineIds.current.add(line.id);
+
       const match = getBestPOLineMatch(
         line.matchingText || line.memo || '',
         line.amount,
         line.cost_code_id,
         allPOLines,
-        30 // Show matches from 30%+ but user sees confidence
+        30
       );
 
       if (match) {
+        didChange = true;
+        if (!line.id.startsWith('new-')) {
+          newMatches.push({
+            id: line.id,
+            poId: match.poId,
+            poLineId: match.poLineId,
+            confidence: match.confidence,
+          });
+        }
         return {
           ...line,
           purchase_order_id: match.poId,
           purchase_order_line_id: match.poLineId,
+          po_assignment: 'auto' as const,
           poConfidence: match.confidence,
         };
       }
       return line;
     });
 
-    setJobCostLines(updatedLines);
+    if (didChange) {
+      setJobCostLines(updatedLines);
+    }
 
-    // Fire-and-forget: persist PO matches to DB so the table badge updates
-    const matchedLines = updatedLines.filter(l => l.purchase_order_id && !l.id.startsWith('new-'));
-    if (matchedLines.length > 0) {
+    // Fire-and-forget: persist PO matches to DB so the table badge updates.
+    // Always write po_assignment='auto' so PO Summary can distinguish auto from explicit picks.
+    if (newMatches.length > 0) {
       Promise.all(
-        matchedLines.map(l =>
+        newMatches.map(m =>
           supabase
             .from('pending_bill_lines')
             .update({
-              purchase_order_id: l.purchase_order_id,
-              purchase_order_line_id: l.purchase_order_line_id || null,
-            })
-            .eq('id', l.id)
+              purchase_order_id: m.poId,
+              purchase_order_line_id: m.poLineId || null,
+              po_assignment: 'auto',
+            } as any)
+            .eq('id', m.id)
         )
-      ).then(() => {
-        console.log(`Auto-persisted PO matches for ${matchedLines.length} lines`);
-      }).catch(err => {
+      ).catch(err => {
         console.error('Failed to auto-persist PO matches:', err);
       });
     }
-  }, [vendorPOs, jobCostLines]); // Re-fire when EITHER dataset arrives
+  }, [vendorPOs, jobCostLines]);
 
   const createEmptyLine = (type: 'job_cost' | 'expense'): LineItem => ({
     id: `new-${Date.now()}`,
