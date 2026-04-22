@@ -1,24 +1,40 @@
 
 
-## Suppress PO Status Summary when paying a bill
+## Add Files column to Job Cost Actual dialog
 
-### Problem
-Clicking **Pay Bill** on an approved bill opens the **Pay Bill** dialog and *also* auto-opens the **PO Status Summary** dialog on top of it. The PO Status Summary should only appear from its own trigger (the PO Status badge in the table), not as a side effect of starting a payment.
+### What changes
+In the Job Cost actual-detail dialog (e.g. clicking GL Insurance on Oceanwatch), add a **Files** column so you can preview each bill's attached invoice PDF directly from the row.
 
-### Fix
-In `src/components/bills/PayBillsTable.tsx` (and/or wherever the Pay Bill action is wired on the Approved tab), stop triggering the PO summary dialog when the Pay Bill flow opens. Concretely:
+### Layout
+Move "Description" left by narrowing it slightly and inserting a new column to its right:
 
-1. Locate the Pay Bill click handler / `onClick` for the row's "Pay Bill" menu item.
-2. Remove (or guard) the call that sets `poDialogState.open = true` / opens `BillPOSummaryDialog` as part of that flow.
-3. Ensure the PO Status Summary dialog remains reachable only via the explicit **PO Status** badge click in the table row.
-4. Verify the Pay Bill dialog itself opens unchanged.
+```text
+Type | Date | Name | Description | Files | Amount | Balance | Cleared | Actions
+```
+
+- "Description" sits one column further left than today.
+- "Files" sits between Description and Amount.
+- Each bill row's Files cell renders one icon per attachment (PDF / image icon, color-coded), styled like the existing `FilesCell` used in Purchase Orders. Hover shows the file name; click opens it via `openBillAttachment` in the universal preview pane.
+- Non-bill rows (checks, deposits, journal entries) show a muted dash.
+
+### Implementation (single file)
+`src/components/reports/JobCostActualDialog.tsx`:
+1. Extend the existing bill-enrichment query to also pull `bill_attachments(id, file_path, file_name, content_type)` alongside the bill fields already selected at lines 165–174.
+2. Store attachments per bill in `billsMap` and attach them to each bill journal line as `attachments: [...]`.
+3. Add `<TableHead>Files</TableHead>` between Description and Amount in the header (line ~432).
+4. Add a `<TableCell>` in the body (line ~456) that:
+   - For bill rows: maps `line.attachments` to small icon buttons using `getFileIcon` / `getFileIconColor` / `getCleanFileName` from `src/components/bidding/utils/fileIconUtils`, capped at 3 with `+N` overflow (mirroring `FilesCell`).
+   - On click: `openBillAttachment(att.file_path, att.file_name, { ... })` from `useUniversalFilePreviewContext` (already imported pattern in `EditBillDialog`).
+   - For non-bill rows or bills with no attachments: render `—`.
+5. No schema, hook, or other-component changes. Footer/total row unaffected.
 
 ### Verification
-- On Approved tab, row actions → **Pay Bill**: only the **Pay Bill** dialog appears. No PO Status Summary behind/above it.
-- Clicking the **PO Status** badge ("Matched", "Draw", etc.) in the row still opens the **PO Status Summary** as today.
-- Bulk pay / single-PO bills behavior unchanged.
-- No data, hook, or other-component changes.
+- Open Job Costs → Oceanwatch → GL Insurance actual dialog.
+- New **Files** column appears between Description and Amount; Description sits visibly further left.
+- Each Erie Insurance / Palomar / Nicholson bill row shows clickable file icon(s); clicking opens the invoice PDF in the universal preview.
+- Bills with no attachment show `—`. Non-bill rows show `—`.
+- Sorting, running balance, totals, Cleared, and Actions columns continue to work unchanged.
 
 ### Files touched
-- `src/components/bills/PayBillsTable.tsx` only (plus the small wiring file if the Pay action is dispatched from a sibling, e.g. `BillsApprovalTabs` — to be confirmed during implementation; scope stays within the Approved-tab payment trigger).
+- `src/components/reports/JobCostActualDialog.tsx` only.
 
