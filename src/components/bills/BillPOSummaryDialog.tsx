@@ -178,6 +178,10 @@ export function BillPOSummaryDialog({
     );
   }
 
+  // Lookup match by po_id for quick row data access
+  const matchByPoId = new Map(matches.map(m => [m.po_id, m]));
+  const billLines = bill?.bill_lines || [];
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-6xl">
@@ -185,8 +189,8 @@ export function BillPOSummaryDialog({
             <DialogTitle>PO Status Summary</DialogTitle>
             <DialogDescription>
               {bill?.reference_number
-                ? `Bill ${bill.reference_number} — ${matches.length} matched POs`
-                : `${matches.length} matched POs`}
+                ? `Bill ${bill.reference_number} — ${billLines.length} line items across ${matches.length} POs`
+                : `${billLines.length} line items across ${matches.length} POs`}
             </DialogDescription>
           </DialogHeader>
 
@@ -201,6 +205,7 @@ export function BillPOSummaryDialog({
                 <TableRow>
                   <TableHead className="whitespace-nowrap">PO Number</TableHead>
                   <TableHead className="whitespace-nowrap">Cost Code</TableHead>
+                  <TableHead>Description</TableHead>
                   <TableHead className="whitespace-nowrap">PO Amount</TableHead>
                   <TableHead className="whitespace-nowrap">Billed to Date</TableHead>
                   <TableHead className="whitespace-nowrap">This Bill</TableHead>
@@ -210,58 +215,88 @@ export function BillPOSummaryDialog({
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {[...matches].sort((a, b) => (a.po_number || '').localeCompare(b.po_number || '')).map((match) => {
-                  const thisBillAmount = getThisBillAmount(match);
-                  const adjustedRemaining = match.po_amount - match.total_billed - thisBillAmount;
-                  // Re-derive status from the resolved allocation, cent-precise.
-                  const projectedBilledCents = Math.round((match.total_billed + thisBillAmount) * 100);
+                {billLines.map((line, idx) => {
+                  const resolvedPoId = resolveLineToPoId(line);
+                  const match = resolvedPoId ? matchByPoId.get(resolvedPoId) : undefined;
+                  const lineAmount = line.amount || 0;
+
+                  if (!match) {
+                    return (
+                      <TableRow key={`line-${idx}`}>
+                        <TableCell className="whitespace-nowrap font-medium text-muted-foreground">—</TableCell>
+                        <TableCell className="whitespace-nowrap text-muted-foreground">—</TableCell>
+                        <TableCell className="text-muted-foreground">{line.memo || '—'}</TableCell>
+                        <TableCell className="whitespace-nowrap text-muted-foreground">—</TableCell>
+                        <TableCell className="whitespace-nowrap text-muted-foreground">—</TableCell>
+                        <TableCell className="whitespace-nowrap">
+                          <span className="inline-flex items-center rounded px-1.5 py-0.5 text-xs font-medium bg-green-100 text-green-700">
+                            {formatCurrency(lineAmount)}
+                          </span>
+                        </TableCell>
+                        <TableCell className="whitespace-nowrap text-muted-foreground">—</TableCell>
+                        <TableCell className="whitespace-nowrap">—</TableCell>
+                        <TableCell className="whitespace-nowrap">
+                          <span className="inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium bg-muted text-muted-foreground">
+                            No PO
+                          </span>
+                        </TableCell>
+                      </TableRow>
+                    );
+                  }
+
+                  // PO-level totals (same for every line allocated to this PO)
+                  const thisBillPoTotal = getThisBillAmount(match);
+                  const adjustedRemaining = match.po_amount - match.total_billed - thisBillPoTotal;
+                  const projectedBilledCents = Math.round((match.total_billed + thisBillPoTotal) * 100);
                   const poAmountCents = Math.round(match.po_amount * 100);
                   const remainingCents = poAmountCents - projectedBilledCents;
                   const rowStatus: 'matched' | 'over_po' | 'draw' =
                     remainingCents < 0
                       ? 'over_po'
-                      : (thisBillAmount > 0 && thisBillAmount < match.po_amount && match.po_amount > 0 && remainingCents > 0)
+                      : (thisBillPoTotal > 0 && thisBillPoTotal < match.po_amount && match.po_amount > 0 && remainingCents > 0)
                         ? 'draw'
                         : 'matched';
                   const statusLabel = rowStatus === 'matched' ? 'Matched' : rowStatus === 'draw' ? 'Draw' : 'Over';
                   const statusClass = rowStatus === 'over_po' ? 'bg-red-100 text-red-700' : 'bg-green-100 text-green-700';
                   const poRecord = vendorPOs?.find(p => p.id === match.po_id);
+
                   return (
-                  <TableRow key={match.po_id}>
-                    <TableCell className="whitespace-nowrap font-medium">{match.po_number}</TableCell>
-                    <TableCell className="whitespace-nowrap">{match.cost_code_display}</TableCell>
-                    <TableCell className="whitespace-nowrap">{formatCurrency(match.po_amount)}</TableCell>
-                    <TableCell className="whitespace-nowrap">{formatCurrency(match.total_billed)}</TableCell>
-                    <TableCell className="whitespace-nowrap">
-                      <span className="inline-flex items-center rounded px-1.5 py-0.5 text-xs font-medium bg-green-100 text-green-700">
-                        {formatCurrency(thisBillAmount)}
-                      </span>
-                    </TableCell>
-                    <TableCell
-                      className={cn(
-                        "whitespace-nowrap font-medium",
-                        adjustedRemaining >= 0 ? "text-green-600" : "text-red-600"
-                      )}
-                    >
-                      {formatCurrency(adjustedRemaining)}
-                    </TableCell>
-                    <TableCell className="whitespace-nowrap">
-                      <FilesCell
-                        files={poRecord?.files}
-                        projectId={poRecord?.project_id || bill?.project_id || ''}
-                      />
-                    </TableCell>
-                    <TableCell className="whitespace-nowrap">
-                      <span
+                    <TableRow key={`line-${idx}`}>
+                      <TableCell className="whitespace-nowrap font-medium">{match.po_number}</TableCell>
+                      <TableCell className="whitespace-nowrap">{match.cost_code_display}</TableCell>
+                      <TableCell>{line.memo || '—'}</TableCell>
+                      <TableCell className="whitespace-nowrap">{formatCurrency(match.po_amount)}</TableCell>
+                      <TableCell className="whitespace-nowrap">{formatCurrency(match.total_billed)}</TableCell>
+                      <TableCell className="whitespace-nowrap">
+                        <span className="inline-flex items-center rounded px-1.5 py-0.5 text-xs font-medium bg-green-100 text-green-700">
+                          {formatCurrency(lineAmount)}
+                        </span>
+                      </TableCell>
+                      <TableCell
                         className={cn(
-                          "inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium",
-                          statusClass
+                          "whitespace-nowrap font-medium",
+                          adjustedRemaining >= 0 ? "text-green-600" : "text-red-600"
                         )}
                       >
-                        {statusLabel}
-                      </span>
-                    </TableCell>
-                  </TableRow>
+                        {formatCurrency(adjustedRemaining)}
+                      </TableCell>
+                      <TableCell className="whitespace-nowrap">
+                        <FilesCell
+                          files={poRecord?.files}
+                          projectId={poRecord?.project_id || bill?.project_id || ''}
+                        />
+                      </TableCell>
+                      <TableCell className="whitespace-nowrap">
+                        <span
+                          className={cn(
+                            "inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium",
+                            statusClass
+                          )}
+                        >
+                          {statusLabel}
+                        </span>
+                      </TableCell>
+                    </TableRow>
                   );
                 })}
               </TableBody>
