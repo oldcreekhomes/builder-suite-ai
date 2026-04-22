@@ -154,7 +154,7 @@ export function AccountsPayableContent({ projectId, onHeaderActionChange, asOfDa
         supabase
           .from('journal_entry_lines')
           .select('debit, credit, journal_entries!inner(source_id, entry_date, reversed_at, reversed_by_id, is_reversal)')
-          .eq('account_id', apAccountId)
+          .in('account_id', apAccountIds)
           .eq('project_id', projectId)
           .lte('journal_entries.entry_date', asOfDateStr)
           .eq('journal_entries.is_reversal', false)
