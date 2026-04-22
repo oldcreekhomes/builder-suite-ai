@@ -1,48 +1,48 @@
 
-## Show every bill line in the Cost Code hover tooltip
+
+## Fix double-counted "Billed to Date" in PO Status Summary
 
 ### Problem
-On the Manage Bills tables, hovering the Cost Code column shows a popover that **groups bill lines by cost code** and rolls up amounts. For Bill INV0025 the four "4370: Framing Labor" lines collapse into a single `Lot 1: $2,700.00` row, hiding the four individual entries (`$800`, `$100`, `$1,000`, `$800`). The user wants the popover to mirror the Edit Extracted Bill dialog and the PO Status Summary — one row per bill line, in entry order.
+On Bill INV0025 (just approved), the PO Status Summary shows PO `2026-115E-0060`: PO Amount $2,500, Billed to Date $2,500, This Bill $2,500, **Remaining −$2,500, Status "Over"**. Expected: Billed to Date $0, Remaining $0, Status "Matched".
+
+The current bill is being counted twice — once inside `match.total_billed` and again as `thisBillTotal`. The dialog formula is correct:
+```
+adjustedRemaining = po_amount − total_billed − thisBillTotal
+```
+…but `total_billed` is wrong because `useBillPOMatching` does **not** exclude the current bill when summing posted/approved bill lines against each PO. (The sibling hook `useVendorPurchaseOrders` already excludes the current bill via `excludeBillId` — this hook should match.)
+
+This breaks every approved bill viewed in the PO Status Summary, not just INV0025.
 
 ### Fix
 
-In `src/components/bills/BillsApprovalTable.tsx`, change `getCostCodeOrAccountData` (~lines 608–652) and its tooltip renderer (~lines 790–830).
+**File: `src/hooks/useBillPOMatching.ts`** — exclude each iterated bill's own lines from `billedLookup`.
 
-**Data builder (`getCostCodeOrAccountData`):**
-- Stop building the `costCodeMap` / `lotMap` aggregation.
-- Iterate `bill.bill_lines` in their original order, producing one breakdown entry per line:
-  ```
-  { costCode, lotName, description, amount }
-  ```
-  - `costCode`: from `line.cost_codes` or `line.accounts` (same fallback as today).
-  - `lotName`: from `line.project_lots` (same fallback as today; "Unassigned" when missing).
-  - `description`: `line.memo` or `line.description` (trimmed; empty allowed).
-  - `amount`: `line.amount || 0`.
-- Keep `display` collapsed-cell text rules unchanged:
-  - 0 lines → `'-'`.
-  - 1 line → that line's `costCode`.
-  - >1 line → `+${count}` (where `count` is number of bill lines, not unique cost codes).
-- Keep `totalAmount = bill.total_amount` (authoritative).
-- Add `bill_lines` to the SELECT in `BillsApprovalTable` query so `memo` / `description` are available — they may already be present; verify and add only if missing (no schema change either way).
+1. In the `billedLookup` query (~line 176), also select the linked `bill_id` (already selected) — no change needed there.
+2. Stop pre-aggregating `billedLookup` as a flat map. Instead, build a per-PO list of `{ bill_id, amount }` from the approved/paid lines.
+3. When iterating `bills.forEach(bill => …)` (~line 214), compute the PO's `totalBilled` for this bill by summing entries whose `bill_id !== bill.id`.
 
-**Tooltip renderer (the `<TooltipContent>` block at 801–825):**
-- Render one row per breakdown entry, preserving order. Each row shows:
-  - Left: `costCode` — `description` (or just `costCode` when description is empty); small muted "Lot: {lotName}" beneath when `lotName` is meaningful.
-  - Right: line `amount` formatted with the standard 2-fraction-digit currency.
-- Footer row: `Total: {totalAmount}` (unchanged).
-- Cap height with `max-h-80 overflow-y-auto` so very long bills still fit.
-- Keep `max-w-xs` width, font sizes, and divider styling.
+Concretely, replace the current `billedLookup: Map<po_id, number>` with `billedEntriesByPo: Map<po_id, Array<{ bill_id, amount }>>`, then inside the bill loop:
+```ts
+const totalBilled = (billedEntriesByPo.get(matchedPo.id) || [])
+  .filter(e => e.bill_id !== bill.id)
+  .reduce((s, e) => s + e.amount, 0);
+```
 
-**Other call sites:**
-- Line 1436/1440 only reads `display` from this helper for the consolidated paid-tab child rows. Behavior there is unchanged because `display` rules are preserved.
-- The Address-column popover (`getLotAllocationData`, lines 654–702 / 922–960) is untouched — it intentionally groups by lot.
-- `BatchBillReviewTable` (Review tab) already renders one row per line in its Cost Code tooltip and does not need changes.
+4. Remove the `isDraftBill` branching for `projectedBilled` (~line 340). With the current bill always excluded from `totalBilled`, the projection is uniform:
+```ts
+const projectedBilled = totalBilled + thisBillAmount;
+```
+This fixes both draft and approved bills with a single code path and matches `useVendorPurchaseOrders`' behavior. `billedAgainstPo` simplifies to `thisBillAmount`.
+
+5. Also update the candidate PO filter at line 257 (used for auto-resolution): use the same per-PO sum excluding the current bill so auto-resolution doesn't reject POs that look "full" only because the current bill is already on them.
 
 ### Verification
-- Bill INV0025 Cost Code hover shows **5 rows** in entry order: `4370: Framing Labor — Outdoor shower / $800.00`, `… X brace / $100.00`, `… Exterior front stairs / $1,000.00`, `… EXT - Heat pump stand / $800.00`, `4410: Exterior Trim Labor — 3rd floor porch, front porch, lanai and carport / $2,500.00`, then `Total: $5,200.00`.
-- Bills with a single line still display the cost code as collapsed-cell text and a plain tooltip.
-- Address-column popover and the consolidated paid-tab display remain unchanged.
-- No DB or other component changes.
+- Bill INV0025 PO Status Summary, line for PO `2026-115E-0060`: Billed to Date **$0.00**, Remaining **$0.00**, Status **Matched** (green).
+- Lines for PO `2025-115E-0006`: Billed to Date shows only billing from *other* approved bills (not the four INV0025 lines), Remaining = `po_amount − other_bills_billed − $2,700`.
+- Re-opening any other already-approved bill's PO Status Summary shows correct Remaining / Status (no more spurious "Over").
+- Draft bills behave the same as before (current bill was already excluded from their `total_billed` because draft status is filtered out at line 200).
+- Manage Bills "PO Match" status badge column rollups (matched / draw / over_po / numerous) still compute correctly because they consume the same `match.status`, now with accurate `remaining`.
 
 ### Files touched
-- `src/components/bills/BillsApprovalTable.tsx` only.
+- `src/hooks/useBillPOMatching.ts` only. No DB changes, no other components.
+
