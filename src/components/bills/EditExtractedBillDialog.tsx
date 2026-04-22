@@ -222,7 +222,6 @@ export function EditExtractedBillDialog({
 
       if (data) {
           const extractedTotal = Number(extractedData.totalAmount || extractedData.total_amount) || 0;
-          const isSingleLine = data.length === 1;
           
           // Build job cost and expense arrays, promoting expense lines to job_cost when a single default cost code exists
           const poOverrides: Record<string, string> | undefined = extractedData.po_overrides;
@@ -239,11 +238,7 @@ export function EditExtractedBillDialog({
               amt = Math.round(qty * rawUnitCost * 100) / 100;
             }
 
-            // SANITY CHECKS common to both types
-            if (isSingleLine && extractedTotal > 0 && Math.abs(amt - extractedTotal) > 0.01) {
-              console.log(`Correcting line amount from ${amt} to extracted total ${extractedTotal}`);
-              amt = extractedTotal;
-            }
+            // Sanity guard for absurd amounts (preserves legitimate multi-line invoices)
             if (amt > 1000000 && qty > 0) {
               const reasonableUnitCost = extractedTotal > 0 ? extractedTotal / qty : 100;
               console.log(`Correcting absurd amount ${amt} to ${reasonableUnitCost * qty}`);
@@ -316,32 +311,16 @@ export function EditExtractedBillDialog({
           }
           }
 
-          // NORMALIZE LINE AMOUNTS: If extracted total exists and differs from line sum,
-          // replace ALL lines with a single line matching the "Amount Due"
-          // This ensures the AI-extracted total is always authoritative
+          // NOTE: We intentionally DO NOT collapse multi-line bills into a single
+          // "Amount Due" line when the line sum disagrees with the extracted total.
+          // The user must always see the real saved rows so they can correct them;
+          // collapsing destroys legitimate multi-line invoices (e.g. multi-PO bills).
           const allLines = [...jobCost, ...expense];
           const lineSum = allLines.reduce((sum, line) => sum + line.amount, 0);
-          
           if (extractedTotal > 0 && Math.abs(lineSum - extractedTotal) > 0.01) {
-            console.log(`Line sum (${lineSum}) doesn't match extracted total (${extractedTotal})`);
-            console.log(`→ Replacing with single line for Amount Due`);
-            
-            // Get vendor name from extracted data for the description
-            const extractedVendorName = extractedData.vendor_name || extractedData.vendorName || '';
-            
-            // Create single line with the correct Amount Due
-            const singleLine: LineItem = {
-              id: crypto.randomUUID(),
-              line_type: 'job_cost',
-              cost_code_id: defaultCostCode || undefined,
-              quantity: 1,
-              unit_cost: extractedTotal,
-              amount: extractedTotal,
-              memo: extractedVendorName ? `${extractedVendorName} - Invoice` : 'Invoice Total',
-            };
-            
-            jobCost = [singleLine];
-            expense = [];
+            console.warn(
+              `Line sum (${lineSum}) differs from extracted total (${extractedTotal}). Showing line breakdown for user review.`
+            );
           }
           
           // Filter out any $0 lines - they serve no accounting purpose

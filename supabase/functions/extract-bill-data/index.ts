@@ -1175,17 +1175,36 @@ Return ONLY the JSON object, no additional text.`;
           // invoice total within $1 (rounding tolerance).
           if (recovered.length >= 2 && recoveredDiff <= 1) {
             console.log(`🧩 Recovered ${recovered.length} inline line items totaling ${recoveredSum} from collapsed description.`);
-            extractedData.line_items = recovered.map((r, idx) => ({
+            // Build base recovered lines WITHOUT pre-assigning the original line's cost code
+            // to row 0 — we want per-row inference, not "first-line-wins".
+            extractedData.line_items = recovered.map((r) => ({
               description: r.label,
               quantity: 1,
               unit_cost: r.amount,
               amount: r.amount,
               memo: r.label,
-              cost_code_name: idx === 0 ? (onlyLine?.cost_code_name || null) : null,
+              cost_code_name: null,
               account_name: null,
               po_reference: null,
               line_type: 'job_cost',
             }));
+
+            // Per-row cost-code inference: if the vendor was matched, run the
+            // intelligent auto-assign over EACH recovered row so the categorization
+            // doesn't all funnel onto line 1.
+            if (extractedData.vendor_id) {
+              try {
+                extractedData.line_items = await autoAssignCostCode(
+                  extractedData.vendor_id,
+                  extractedData.vendor_name,
+                  extractedData.line_items,
+                  supabase,
+                  effectiveOwnerId
+                );
+              } catch (assignErr) {
+                console.warn('Per-row cost code inference after recovery failed (non-critical):', assignErr);
+              }
+            }
           }
         }
       } catch (recoverErr) {

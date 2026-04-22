@@ -157,8 +157,16 @@ export function BillPOSummaryDialog({
     };
   });
 
-  // If only one match, go directly to the detail dialog (wait for PO data so we don't flash).
-  if (matches.length === 1 && open) {
+  // Only use the single-PO direct detail view when EVERY line truly resolves to that one PO.
+  // If any line is unmatched / "No PO", fall through to the summary table so the user can
+  // see the same lines they see in the editor (matching + unmatched together).
+  const billLinesForShortcut = bill?.bill_lines || [];
+  const allLinesResolveToSinglePO =
+    matches.length === 1 &&
+    billLinesForShortcut.length > 0 &&
+    billLinesForShortcut.every(l => resolveLineToPoId(l) === matches[0].po_id);
+
+  if (allLinesResolveToSinglePO && open) {
     if (!poDataReady) {
       return (
         <Dialog open={open} onOpenChange={onOpenChange}>
@@ -273,7 +281,8 @@ export function BillPOSummaryDialog({
                   return (
                     <TableRow key={`line-${idx}`}>
                       <TableCell className="whitespace-nowrap font-medium">{match.po_number}</TableCell>
-                      <TableCell className="whitespace-nowrap">{match.cost_code_display}</TableCell>
+                      {/* Prefer the bill line's saved cost_code_display so PO summary mirrors the editor */}
+                      <TableCell className="whitespace-nowrap">{line.cost_code_display || match.cost_code_display}</TableCell>
                       <TableCell>{line.memo || '—'}</TableCell>
                       <TableCell className="whitespace-nowrap">{formatCurrency(match.po_amount)}</TableCell>
                       <TableCell className="whitespace-nowrap">{formatCurrency(match.total_billed)}</TableCell>

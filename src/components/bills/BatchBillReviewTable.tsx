@@ -200,14 +200,17 @@ export function BatchBillReviewTable({
 
   // Build billsForMatching in the same shape used by the other tabs (BillsApprovalTable / PayBillsTable).
   // This drives row clickability, the PO badge status, and the dialog matches via useBillPOMatching.
+  // CRITICAL: pending_bill_lines is the single source of truth — only fall back to extracted_data
+  // total_amount when no saved lines exist yet.
   const billsForMatching = useMemo(() => {
     return bills.map(b => {
       const vendorId = (b.vendor_id || b.extracted_data?.vendor_id || b.extracted_data?.vendorId) as string | undefined;
       const ext = b.extracted_data;
-      const total = ext?.total_amount || ext?.totalAmount;
-      const totalAmount = total
-        ? (typeof total === 'string' ? parseFloat(total) : total)
-        : (b.lines?.reduce((s, l) => s + (l.amount || 0), 0) || 0);
+      const lineSum = b.lines?.reduce((s, l) => s + (l.amount || 0), 0) || 0;
+      const extTotal = ext?.total_amount || ext?.totalAmount;
+      const totalAmount = (b.lines && b.lines.length > 0)
+        ? lineSum
+        : (extTotal ? (typeof extTotal === 'string' ? parseFloat(extTotal) : extTotal) : 0);
       const extLineItems: any[] = Array.isArray(ext?.line_items) ? ext.line_items : [];
       return {
         id: b.id,
@@ -682,37 +685,43 @@ export function BatchBillReviewTable({
                 );
               }
               
-              // Get total from extracted data or calculate from line amounts
+              // SINGLE SOURCE OF TRUTH: when saved pending_bill_lines exist, the displayed
+              // bill amount must equal the sum of those lines. Only fall back to extracted_data
+              // total_amount when no rows have been saved yet (still extracting).
               const extractedTotal = getExtractedValue(bill, 'total_amount', 'totalAmount');
-              const totalAmount = extractedTotal 
-                ? (typeof extractedTotal === 'string' ? parseFloat(extractedTotal) : extractedTotal)
-                : (bill.lines?.reduce((sum, line) => sum + (line.amount || 0), 0) || 0);
+              const lineSum = bill.lines?.reduce((sum, line) => sum + (line.amount || 0), 0) || 0;
+              const totalAmount = (bill.lines && bill.lines.length > 0)
+                ? lineSum
+                : (extractedTotal
+                    ? (typeof extractedTotal === 'string' ? parseFloat(extractedTotal) : extractedTotal)
+                    : 0);
               
-              // Calculate cost code display with per-line breakdown for tooltip (no merging)
+              // Tooltip / cost-code breakdown: include EVERY saved line in original order.
+              // Lines without a visible cost-code/account name still appear with a deterministic
+              // fallback label so the tooltip total always equals the row amount.
               const accountDisplayData = (() => {
-                if (!bill.lines || bill.lines.length === 0) return { display: null as string | null, breakdown: [] as { name: string; amount: number }[], total: 0, count: 0 };
+                if (!bill.lines || bill.lines.length === 0) {
+                  return { display: null as string | null, breakdown: [] as { name: string; amount: number }[], total: 0, count: 0 };
+                }
 
-                // One row per line, preserve original order, no aggregation
-                const breakdown = bill.lines
-                  .map((line) => {
-                    const name =
-                      line.line_type === 'job_cost'
-                        ? line.cost_code_name
-                        : line.line_type === 'expense'
-                          ? line.account_name
-                          : null;
-                    if (!name) return null;
-                    return { name, amount: line.amount || 0 };
-                  })
-                  .filter((x): x is { name: string; amount: number } => x !== null);
-
-                if (breakdown.length === 0) return { display: null, breakdown: [], total: 0, count: 0 };
+                const breakdown = bill.lines.map((line) => {
+                  const rawName =
+                    line.line_type === 'job_cost'
+                      ? line.cost_code_name
+                      : line.line_type === 'expense'
+                        ? line.account_name
+                        : null;
+                  const fallback = line.line_type === 'expense' ? 'No Account' : 'No Cost Code';
+                  return { name: rawName?.trim() || fallback, amount: line.amount || 0 };
+                });
 
                 const total = breakdown.reduce((s, b) => s + b.amount, 0);
                 const count = breakdown.length;
-
-                if (count === 1) return { display: breakdown[0].name, breakdown, total, count };
-                return { display: `${breakdown[0].name} +${count - 1}`, breakdown, total, count };
+                // Display label: prefer the first NAMED line so the cell isn't dominated by "No Cost Code"
+                const firstNamed = breakdown.find(b => b.name !== 'No Cost Code' && b.name !== 'No Account');
+                const primary = firstNamed?.name || breakdown[0].name;
+                const display = count === 1 ? primary : `${primary} +${count - 1}`;
+                return { display, breakdown, total, count };
               })();
               
               const vendorName = getExtractedValue(bill, 'vendor_name', 'vendor');
@@ -747,24 +756,29 @@ export function BatchBillReviewTable({
               const buildDialogBill = () => {
                 const vendorIdLocal = (bill.vendor_id || bill.extracted_data?.vendor_id || bill.extracted_data?.vendorId) as string | undefined;
                 const ext = bill.extracted_data;
-                const total = ext?.total_amount || ext?.totalAmount;
-                const totalAmount = total
-                  ? (typeof total === 'string' ? parseFloat(total) : total)
-                  : (bill.lines?.reduce((s, l) => s + (l.amount || 0), 0) || 0);
+                const dialogLineSum = bill.lines?.reduce((s, l) => s + (l.amount || 0), 0) || 0;
+                const extTotal = ext?.total_amount || ext?.totalAmount;
+                const dialogTotal = (bill.lines && bill.lines.length > 0)
+                  ? dialogLineSum
+                  : (extTotal ? (typeof extTotal === 'string' ? parseFloat(extTotal) : extTotal) : 0);
                 return {
                   id: bill.id,
                   project_id: projectId || null,
                   vendor_id: vendorIdLocal,
-                  total_amount: totalAmount,
+                  total_amount: dialogTotal,
                   reference_number: bill.reference_number || ext?.reference_number || ext?.referenceNumber || null,
                   bill_date: ext?.bill_date || ext?.billDate || undefined,
                   status: 'draft',
+                  // Pass full line metadata so the PO summary mirrors the editor exactly:
+                  // cost_code_display, po_assignment, po_reference, and the __none__ sentinel.
                   bill_lines: (bill.lines || []).map((l, idx) => ({
                     cost_code_id: l.cost_code_id,
+                    cost_code_display: l.cost_code_name,
                     amount: l.amount || 0,
-                    purchase_order_id: l.purchase_order_id,
+                    purchase_order_id: l.po_assignment === 'none' ? '__none__' : l.purchase_order_id,
                     purchase_order_line_id: l.purchase_order_line_id,
                     po_reference: l.po_reference || ext?.line_items?.[idx]?.po_reference || null,
+                    po_assignment: l.po_assignment || null,
                     memo: l.memo || l.description || undefined,
                   })),
                 };
