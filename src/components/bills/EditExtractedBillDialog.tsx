@@ -1188,10 +1188,21 @@ export function EditExtractedBillDialog({
                             value={line.purchase_order_id}
                             purchaseOrderLineId={line.purchase_order_line_id}
                             onChange={(poId, poLineId) => {
+                              // User explicitly touched this line — auto-matcher must NEVER overwrite it.
+                              userTouchedPoLineIds.current.add(line.id);
+                              autoMatchedLineIds.current.add(line.id);
+                              const newAssignment: 'none' | 'auto' | null =
+                                poId === '__none__' ? 'none' : null;
                               setJobCostLines(lines =>
-                                lines.map(l => 
-                                  l.id === line.id 
-                                    ? { ...l, purchase_order_id: poId, purchase_order_line_id: poLineId, poConfidence: undefined }
+                                lines.map(l =>
+                                  l.id === line.id
+                                    ? {
+                                        ...l,
+                                        purchase_order_id: poId,
+                                        purchase_order_line_id: poLineId,
+                                        po_assignment: newAssignment,
+                                        poConfidence: undefined,
+                                      }
                                     : l
                                 )
                               );
