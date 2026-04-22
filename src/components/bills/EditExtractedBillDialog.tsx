@@ -494,12 +494,26 @@ export function EditExtractedBillDialog({
             confidence: match.confidence,
           });
         }
+        // Inherit cost code from the matched PO line when the line currently has none.
+        // This prevents the editor from showing a blank Cost Code while the line is
+        // visibly bound to a PO with a known cost code.
+        const matchedPOLine = allPOLines.find(p => p.id === match.poLineId);
+        const inheritCostCodeId =
+          !line.cost_code_id && matchedPOLine?.cost_code_id
+            ? matchedPOLine.cost_code_id
+            : line.cost_code_id;
+        const inheritCostCodeDisplay =
+          !line.cost_code_display && matchedPOLine?.cost_code_name
+            ? matchedPOLine.cost_code_name
+            : line.cost_code_display;
         return {
           ...line,
           purchase_order_id: match.poId,
           purchase_order_line_id: match.poLineId,
           po_assignment: 'auto' as const,
           poConfidence: match.confidence,
+          cost_code_id: inheritCostCodeId,
+          cost_code_display: inheritCostCodeDisplay,
         };
       }
       return line;
@@ -512,6 +526,9 @@ export function EditExtractedBillDialog({
     // Fire-and-forget: persist PO matches to DB so the table badge updates.
     // Always write po_assignment='auto' so PO Summary can distinguish auto from explicit picks.
     if (newMatches.length > 0) {
+      // Snapshot of the post-update lines so we can persist any inherited cost code
+      // alongside the PO ids — keeps DB rows and UI in lockstep.
+      const linesById = new Map(updatedLines.map(l => [l.id, l]));
       Promise.all(
         newMatches.map(m =>
           supabase
@@ -520,6 +537,12 @@ export function EditExtractedBillDialog({
               purchase_order_id: m.poId,
               purchase_order_line_id: m.poLineId || null,
               po_assignment: 'auto',
+              ...(linesById.get(m.id)?.cost_code_id
+                ? {
+                    cost_code_id: linesById.get(m.id)!.cost_code_id,
+                    cost_code_name: linesById.get(m.id)!.cost_code_display || null,
+                  }
+                : {}),
             } as any)
             .eq('id', m.id)
         )
