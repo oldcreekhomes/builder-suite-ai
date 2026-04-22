@@ -39,43 +39,72 @@ export function EditDescriptionDialog({
   const handleSave = async () => {
     setSaving(true);
     try {
-      // Update the source table's first line memo
-      const lineTable = getLineTable(sourceType);
-      const parentColumn = getParentColumn(sourceType);
+      const isConsolidated = sourceType === 'consolidated_bill_payment';
+      const isSyntheticJe = !journalEntryId || journalEntryId.startsWith('consolidated:');
 
-      if (lineTable && parentColumn) {
-        // Get the first line by line_number
+      if (isConsolidated) {
+        // Consolidated bill payment: description lives on bill_payments.memo
+        await supabase
+          .from('bill_payments')
+          .update({ memo: description })
+          .eq('id', sourceId);
+      } else if (sourceType === 'bill_payment') {
+        // Single-bill payment: sourceId is the bill's id; description is read from bill_lines[0].memo
         const { data: lines } = await supabase
-          .from(lineTable as any)
+          .from('bill_lines')
           .select('id, line_number')
-          .eq(parentColumn, sourceId)
+          .eq('bill_id', sourceId)
           .order('line_number', { ascending: true })
           .limit(1);
 
         if (lines && lines.length > 0) {
           await supabase
-            .from(lineTable as any)
-            .update({ memo: description } as any)
+            .from('bill_lines')
+            .update({ memo: description })
             .eq('id', (lines[0] as any).id);
+        }
+      } else {
+        // Default behavior for bill, check, deposit, credit_card, manual
+        const lineTable = getLineTable(sourceType);
+        const parentColumn = getParentColumn(sourceType);
+
+        if (lineTable && parentColumn) {
+          const { data: lines } = await supabase
+            .from(lineTable as any)
+            .select('id, line_number')
+            .eq(parentColumn, sourceId)
+            .order('line_number', { ascending: true })
+            .limit(1);
+
+          if (lines && lines.length > 0) {
+            await supabase
+              .from(lineTable as any)
+              .update({ memo: description } as any)
+              .eq('id', (lines[0] as any).id);
+          }
         }
       }
 
-      // Also update journal_entry_lines memo to keep ledger in sync
-      const { data: jeLines } = await supabase
-        .from('journal_entry_lines')
-        .select('id')
-        .eq('journal_entry_id', journalEntryId)
-        .limit(1);
-
-      if (jeLines && jeLines.length > 0) {
-        // Update all lines for this journal entry with the new memo
-        await supabase
+      // Keep GL ledger memos in sync (skip for synthetic consolidated journal entry ids)
+      if (!isSyntheticJe) {
+        const { data: jeLines } = await supabase
           .from('journal_entry_lines')
-          .update({ memo: description })
-          .eq('journal_entry_id', journalEntryId);
+          .select('id')
+          .eq('journal_entry_id', journalEntryId)
+          .limit(1);
+
+        if (jeLines && jeLines.length > 0) {
+          await supabase
+            .from('journal_entry_lines')
+            .update({ memo: description })
+            .eq('journal_entry_id', journalEntryId);
+        }
       }
 
       await queryClient.invalidateQueries({ queryKey: ['account-transactions'] });
+      if (isConsolidated || sourceType === 'bill_payment') {
+        await queryClient.invalidateQueries({ queryKey: ['bill-payments-reconciliation'] });
+      }
 
       toast({ title: "Description Updated", description: "The transaction description has been updated." });
       onSaved?.(description);
