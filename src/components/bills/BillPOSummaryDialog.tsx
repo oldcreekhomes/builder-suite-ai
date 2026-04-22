@@ -223,7 +223,7 @@ export function BillPOSummaryDialog({
                 <TableRow>
                   <TableHead className="whitespace-nowrap">PO Number</TableHead>
                   <TableHead className="whitespace-nowrap">Cost Code</TableHead>
-                  <TableHead>Description</TableHead>
+                  <TableHead className="whitespace-nowrap">Description</TableHead>
                   <TableHead className="whitespace-nowrap">PO Amount</TableHead>
                   <TableHead className="whitespace-nowrap">Billed to Date</TableHead>
                   <TableHead className="whitespace-nowrap">This Bill</TableHead>
@@ -243,7 +243,7 @@ export function BillPOSummaryDialog({
                       <TableRow key={`line-${idx}`}>
                         <TableCell className="whitespace-nowrap font-medium">—</TableCell>
                         <TableCell className="whitespace-nowrap">{line.cost_code_display || '—'}</TableCell>
-                        <TableCell>{line.memo || '—'}</TableCell>
+                        <TableCell className="max-w-[260px] truncate" title={line.memo || ''}>{line.memo || '—'}</TableCell>
                         <TableCell className="whitespace-nowrap">—</TableCell>
                         <TableCell className="whitespace-nowrap">—</TableCell>
                         <TableCell className="whitespace-nowrap">
@@ -283,7 +283,7 @@ export function BillPOSummaryDialog({
                       <TableCell className="whitespace-nowrap font-medium">{match.po_number}</TableCell>
                       {/* Prefer the bill line's saved cost_code_display so PO summary mirrors the editor */}
                       <TableCell className="whitespace-nowrap">{line.cost_code_display || match.cost_code_display}</TableCell>
-                      <TableCell>{line.memo || '—'}</TableCell>
+                      <TableCell className="max-w-[260px] truncate" title={line.memo || ''}>{line.memo || '—'}</TableCell>
                       <TableCell className="whitespace-nowrap">{formatCurrency(match.po_amount)}</TableCell>
                       <TableCell className="whitespace-nowrap">{formatCurrency(match.total_billed)}</TableCell>
                       <TableCell className="whitespace-nowrap">
