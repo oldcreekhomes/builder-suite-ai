@@ -419,13 +419,13 @@ const formatCurrency = (value: number) => {
                 <Skeleton className="h-8 w-full" />
               </div>
             ) : journalLines && journalLines.length > 0 ? (
-              <Table className="text-xs" containerClassName="relative w-full">
+              <Table className="text-xs table-fixed" containerClassName="relative w-full">
                 <TableHeader>
                   <TableRow>
-                    <TableHead>Type</TableHead>
-                    <TableHead>Date</TableHead>
-                    <TableHead>Name</TableHead>
-                    <TableHead>
+                    <TableHead className="w-[7%]">Type</TableHead>
+                    <TableHead className="w-[9%]">Date</TableHead>
+                    <TableHead className="w-[18%]">Name</TableHead>
+                    <TableHead className="w-[28%]">
                       <button 
                         className="flex items-center gap-1 hover:text-foreground text-muted-foreground transition-colors"
                         onClick={() => setDescriptionSort(prev => 
@@ -436,11 +436,11 @@ const formatCurrency = (value: number) => {
                         <ArrowUpDown className="h-3 w-3" />
                       </button>
                     </TableHead>
-                    <TableHead>Files</TableHead>
-                    <TableHead className="text-right">Amount</TableHead>
-                    <TableHead className="text-right">Balance</TableHead>
-                    <TableHead className="text-center">Cleared</TableHead>
-                    <TableHead className="text-center">Actions</TableHead>
+                    <TableHead className="w-[8%]">Files</TableHead>
+                    <TableHead className="w-[10%] text-right">Amount</TableHead>
+                    <TableHead className="w-[10%] text-right">Balance</TableHead>
+                    <TableHead className="w-[5%] text-center">Cleared</TableHead>
+                    <TableHead className="w-[5%] text-center">Actions</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -448,18 +448,18 @@ const formatCurrency = (value: number) => {
                     const netAmount = line.debit - line.credit;
                     
                     return (
-                      <TableRow key={line.id}>
+                      <TableRow key={line.id} className="whitespace-nowrap">
                         <TableCell className="whitespace-nowrap">
                           <span className="text-xs">{getTypeLabel(line.source_type)}</span>
                         </TableCell>
                         <TableCell>
                           <span className="text-xs">{formatDateSafe(line.journal_entries.entry_date, 'MM/dd/yyyy')}</span>
                         </TableCell>
-                        <TableCell>
-                          <span className="text-xs">{line.vendor_name || '-'}</span>
+                        <TableCell className="max-w-0 truncate">
+                          <span className="text-xs truncate block" title={line.vendor_name || '-'}>{line.vendor_name || '-'}</span>
                         </TableCell>
-                        <TableCell>
-                          <span className="text-xs">{line.memo || line.journal_entries.description || '-'}</span>
+                        <TableCell className="max-w-0 truncate">
+                          <span className="text-xs truncate block" title={line.memo || line.journal_entries.description || '-'}>{line.memo || line.journal_entries.description || '-'}</span>
                         </TableCell>
                         <TableCell>
                           {line.bill_id && (line as any).attachments?.length > 0 ? (
