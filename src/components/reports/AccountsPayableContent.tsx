@@ -92,17 +92,16 @@ export function AccountsPayableContent({ projectId, onHeaderActionChange, asOfDa
         throw new Error("Project ID is required for A/P Aging report");
       }
 
-      const asOfDateStr = asOfDate.toISOString().split('T')[0];
+      const asOfDateStr = format(asOfDate, 'yyyy-MM-dd');
 
-      // Step 0: Resolve A/P account id (code = '2010')
-      const { data: apAccount, error: apErr } = await supabase
+      // Step 0: Resolve A/P account id (code = '2010') — may have multiple rows across tenants under RLS
+      const { data: apAccounts, error: apErr } = await supabase
         .from('accounts')
-        .select('id')
-        .eq('code', '2010')
-        .maybeSingle();
+        .select('id, owner_id')
+        .eq('code', '2010');
       if (apErr) throw apErr;
-      if (!apAccount) return { bills: [], glNet: 0 };
-      const apAccountId = apAccount.id;
+      if (!apAccounts || apAccounts.length === 0) return { bills: [], glNet: 0 };
+      const apAccountIds = apAccounts.map(a => a.id);
 
       // Step 1: Fetch all non-reversed bills (posted/paid) with bill_date <= asOf — paginated, slim
       const bills = await fetchAllRows<any>(() =>
@@ -155,7 +154,7 @@ export function AccountsPayableContent({ projectId, onHeaderActionChange, asOfDa
         supabase
           .from('journal_entry_lines')
           .select('debit, credit, journal_entries!inner(source_id, entry_date, reversed_at, reversed_by_id, is_reversal)')
-          .eq('account_id', apAccountId)
+          .in('account_id', apAccountIds)
           .eq('project_id', projectId)
           .lte('journal_entries.entry_date', asOfDateStr)
           .eq('journal_entries.is_reversal', false)
@@ -210,16 +209,41 @@ export function AccountsPayableContent({ projectId, onHeaderActionChange, asOfDa
 
       const isLotView = selectedLotId && selectedLotId !== '__total__';
 
+      const billsMissingFromGL: any[] = [];
+      const billsWithDiff: any[] = [];
+
       let enriched: BillWithVendor[] = bills.map((b: any) => {
         const lines = linesByBill[b.id] || [];
+        const hasGL = openByBill[b.id] !== undefined;
         const openGL = openByBill[b.id] || 0;
+        const legacyOpen = b.total_amount - (b.amount_paid || 0);
+        // Fallback: legacy bills with no JE entries hitting A/P keep their bill-table balance
+        const effectiveOpen = hasGL ? openGL : legacyOpen;
+        if (!hasGL && Math.abs(legacyOpen) > 0.01) {
+          billsMissingFromGL.push({ id: b.id, ref: b.reference_number, legacyOpen });
+        }
+        if (hasGL && Math.abs(openGL - legacyOpen) > 0.01) {
+          billsWithDiff.push({ id: b.id, ref: b.reference_number, openGL, legacyOpen, diff: openGL - legacyOpen });
+        }
         return {
           ...b,
           total_amount: b.total_amount,
-          amount_paid: b.total_amount - openGL, // synthetic, so total - paid = openGL
+          amount_paid: b.total_amount - effectiveOpen,
           bill_lines: lines,
           bill_attachments: attachmentsByBill[b.id] || [],
         };
+      });
+
+      console.debug('[AP Aging diagnostic]', {
+        asOfDate: asOfDateStr,
+        projectId,
+        billCount: bills.length,
+        glNet,
+        legacySum: bills.reduce((s, b) => s + (b.total_amount - (b.amount_paid || 0)), 0),
+        glDerivedSum: enriched.reduce((s, b) => s + (b.total_amount - b.amount_paid), 0),
+        billsMissingFromGL,
+        billsWithDiff,
+        apAccountIds,
       });
 
       if (isLotView) {
@@ -235,16 +259,16 @@ export function AccountsPayableContent({ projectId, onHeaderActionChange, asOfDa
               .filter(line => line.lot_id === selectedLotId || line.lot_id === null)
               .reduce((sum, line) => sum + line.amount, 0);
             const ratio = bill.total_amount > 0 ? lotAmount / bill.total_amount : 0;
-            const openGL = openByBill[bill.id] || 0;
+            const openEffective = bill.total_amount - bill.amount_paid;
             return {
               ...bill,
               total_amount: lotAmount,
-              amount_paid: lotAmount - openGL * ratio,
+              amount_paid: lotAmount - openEffective * ratio,
             };
           });
       }
 
-      // Filter out zero-balance bills
+      // Filter out zero-balance bills (using effective open)
       enriched = enriched.filter(bill => {
         const openBalance = bill.total_amount - bill.amount_paid;
         return Math.abs(openBalance) > 0.01;
