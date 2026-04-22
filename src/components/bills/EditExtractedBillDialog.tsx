@@ -742,10 +742,23 @@ export function EditExtractedBillDialog({
         costCodeName = costCodeData ? `${costCodeData.code}: ${costCodeData.name}` : '';
       }
 
-      // Determine PO assignment intent: 'none' = explicit "No purchase order",
-      // null = auto-match (default). Sentinels never round-trip into the UUID column.
-      const poAssignment: 'none' | null =
-        line.purchase_order_id === '__none__' ? 'none' : null;
+      // Determine PO assignment intent:
+      //   'none' = explicit "No purchase order"
+      //   'auto' = matched by the auto-matcher (not user-confirmed)
+      //   null   = explicit user pick of a real PO (highest signal)
+      // Sentinels never round-trip into the UUID column.
+      let poAssignment: 'none' | 'auto' | null;
+      if (line.purchase_order_id === '__none__' || line.po_assignment === 'none') {
+        poAssignment = 'none';
+      } else if (userTouchedPoLineIds.current.has(line.id) && line.purchase_order_id) {
+        // User manually picked a real PO this session — explicit pick.
+        poAssignment = null;
+      } else if (line.purchase_order_id) {
+        // PO present but not user-touched — preserve auto flag (or set if missing).
+        poAssignment = line.po_assignment === null ? null : 'auto';
+      } else {
+        poAssignment = null;
+      }
       const realPoId = sanitizePoId(line.purchase_order_id);
 
       if (line.id.startsWith('new-')) {
