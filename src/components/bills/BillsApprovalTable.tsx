@@ -772,7 +772,7 @@ export function BillsApprovalTable({ status, projectId, projectIds, showProjectC
       </TableCell>
       <TableCell className="w-36 max-w-[144px] overflow-hidden">
         {(() => {
-          const { display, costCodeBreakdown, totalAmount, count } = getCostCodeOrAccountData(bill);
+          const { display, lineBreakdown, totalAmount, count } = getCostCodeOrAccountData(bill);
           return (
             <TooltipProvider>
               <Tooltip>
@@ -782,21 +782,22 @@ export function BillsApprovalTable({ status, projectId, projectIds, showProjectC
                   </span>
                 </TooltipTrigger>
                 <TooltipContent className="max-w-xs">
-                  {count <= 1 ? (
+                  {count <= 1 && lineBreakdown.length <= 1 ? (
                     <p>{display}</p>
                   ) : (
-                    <div className="space-y-2">
-                      {costCodeBreakdown.map((cc, i) => (
-                        <div key={i}>
-                          <div className="font-medium text-xs">{cc.costCode}</div>
-                          <div className="pl-2 space-y-0.5">
-                            {cc.lots.map((lot, j) => (
-                              <div key={j} className="flex justify-between gap-4 text-xs">
-                                <span className="text-muted-foreground">{lot.name}:</span>
-                                <span>${lot.amount.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
-                              </div>
-                            ))}
+                    <div className="space-y-2 max-h-80 overflow-y-auto">
+                      {lineBreakdown.map((entry, i) => (
+                        <div key={i} className="flex justify-between gap-4 text-xs">
+                          <div className="min-w-0 flex-1">
+                            <div className="font-medium">
+                              {entry.costCode}
+                              {entry.description ? ` — ${entry.description}` : ''}
+                            </div>
+                            {entry.lotName && entry.lotName !== 'Unassigned' && (
+                              <div className="text-muted-foreground">Lot: {entry.lotName}</div>
+                            )}
                           </div>
+                          <span className="whitespace-nowrap">${entry.amount.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
                         </div>
                       ))}
                       <div className="border-t pt-1 flex justify-between gap-4 font-medium text-xs">
