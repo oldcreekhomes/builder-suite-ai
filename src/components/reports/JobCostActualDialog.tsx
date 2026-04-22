@@ -436,6 +436,7 @@ const formatCurrency = (value: number) => {
                         <ArrowUpDown className="h-3 w-3" />
                       </button>
                     </TableHead>
+                    <TableHead>Files</TableHead>
                     <TableHead className="text-right">Amount</TableHead>
                     <TableHead className="text-right">Balance</TableHead>
                     <TableHead className="text-center">Cleared</TableHead>
@@ -459,6 +460,13 @@ const formatCurrency = (value: number) => {
                         </TableCell>
                         <TableCell>
                           <span className="text-xs">{line.memo || line.journal_entries.description || '-'}</span>
+                        </TableCell>
+                        <TableCell>
+                          {line.bill_id && (line as any).attachments?.length > 0 ? (
+                            <BillFilesCell attachments={(line as any).attachments} />
+                          ) : (
+                            <span className="text-xs text-muted-foreground">—</span>
+                          )}
                         </TableCell>
                         <TableCell className="text-right">
                           <span className="text-xs">{formatCurrency(netAmount)}</span>
