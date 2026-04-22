@@ -1,70 +1,64 @@
 
 
-## Fix Edit Extracted Bill ↔ PO Status Summary mismatch
+## Stop the auto-PO-matching effect from overwriting the user's "No PO" choice
 
-### What's actually broken
+### Root cause (verified in the live DB)
 
-You're seeing three separate symptoms from two underlying bugs.
+The Edit Extracted Bill dialog runs an auto-PO-matching effect (`EditExtractedBillDialog.tsx` ~lines 440–491) that:
 
-**Symptom A — AI lumped $11,568 onto "Siding" on first open.**  
-The vendor sent a labor-style invoice. The model occasionally collapses multi-row labor invoices into a single dollar bucket on the dominant cost code (Siding here, the biggest line). This is an AI extraction quality problem, not a save/match problem.
+1. Recomputes a best PO match for every job-cost line whenever `vendorPOs` OR `jobCostLines` changes.
+2. Fire-and-forgets `supabase.from('pending_bill_lines').update({ purchase_order_id, purchase_order_line_id })` directly into the DB, **without writing `po_assignment`** and **without checking whether the user already explicitly chose "No purchase order"**.
 
-**Symptom B — PO Status Summary shows the two `4410 - Exterior Trim Labor` lines auto-attached to PO `2025-115E-0004`, even though in the Edit dialog you set Purchase Order = "No purchase…".**  
-This is the real bug. `BillPOSummaryDialog` and `useBillPOMatching` both run a **fallback "match by vendor + project + cost_code"** any time a line's `purchase_order_id` is empty. They do not honor the `__none__` sentinel that `EditExtractedBillDialog` writes when you explicitly pick "No PO" — because the value being passed into the matcher is `null/undefined`, not `__none__`.
+For INV0022, the live rows show:
 
-Where it leaks (`BatchBillReviewTable.tsx`, `billsForMatching` builder):
-```ts
-bill_lines: (b.lines || []).map((l, idx) => ({
-  cost_code_id: l.cost_code_id,
-  amount: l.amount,
-  purchase_order_id: l.purchase_order_id,   // ← the saved __none__ never gets here
-  po_reference: l.po_reference || extLineItems[idx]?.po_reference || null,
-}))
-```
-`pending_bill_lines.purchase_order_id` is a UUID column, so the `__none__` sentinel from the Edit dialog cannot actually be persisted there — it is dropped to `NULL`. The matcher then treats `NULL` as "please auto-match" and silently re-attaches the two trim lines to PO `…0004` because that PO shares the `4410` cost code with the vendor.
+| line | cost code | purchase_order_id | po_assignment | updated_at |
+|---|---|---|---|---|
+| 1 Siding | 4470 | 3f63b122… (`…0003`) | NULL | 22:12:00 |
+| 2 Trim | 4410 | 20c8f3ef… (`…0004`) | NULL | **22:15:36** |
+| 3 Trim | 4410 | 20c8f3ef… (`…0004`) | NULL | **22:15:36** |
+| 4 Tyvek | 4375 | NULL | NULL | 22:12:00 |
 
-So: the user said "No PO", the DB stored `NULL`, and the table viewer auto-matched again. That is exactly why Edit shows 1 PO line and Summary shows 3.
-
-**Symptom C — "Repaper house" row in PO Summary has different font and no cost code.**  
-That row's `cost_code_id` resolves through the matcher's "no resolved PO" branch, which renders the description as plain `text-muted-foreground` (italicized-looking, lighter weight) and prints `—` for cost code instead of the saved `4375 – Tyvek Installation`. The cost code IS saved on `pending_bill_lines`; the Summary table just doesn't read it on the "no PO" branch. Pure display bug in `BillPOSummaryDialog`.
+Lines 2/3 were updated by the auto-matcher **after** the user's save, so the previous "honor `__none__`" fix never had a chance — the saved state gets overwritten 3 minutes later by the effect re-firing. `po_assignment` is also still NULL on every row, so PO Summary's "auto-match by cost code" fallback kicks in too.
 
 ### Fix
 
-#### 1. Honor explicit "No PO" across the matcher and the summary dialog
-- Add a new column `pending_bill_lines.po_assignment` (text, nullable) with values `'none' | 'auto' | NULL`. When the user explicitly picks "No purchase…" in the Edit dialog, save `po_assignment = 'none'`. When they pick a real PO, save `po_assignment = NULL` and the UUID. (`__none__` / `__auto__` are UI sentinels and must never round-trip through a UUID column.)
-- In `EditExtractedBillDialog.tsx` `handleSave`, replace the `sanitizePoId(...)` write with: pass `purchase_order_id = realUuidOrNull` and `po_assignment = (user picked None) ? 'none' : null`.
-- In `BatchBillReviewTable.tsx` `billsForMatching`, pass `purchase_order_id = l.po_assignment === 'none' ? '__none__' : l.purchase_order_id`. Same change in `BillsApprovalTable` and `PayBillsTable` for posted bills (they already use `bill_lines`; add the same column there for parity in step 3).
-- `useBillPOMatching` and `BillPOSummaryDialog` already short-circuit on `'__none__'`; once the sentinel actually reaches them, the trim labor rows stay unmatched.
+#### 1. Make the auto-PO-matching effect respect explicit user intent
+In `src/components/bills/EditExtractedBillDialog.tsx` (the effect at ~440–491):
+- Skip any line whose current state is `purchase_order_id === '__none__'` OR whose persisted `po_assignment === 'none'`. Never re-match those, never write to DB for them.
+- Also skip lines the user has manually touched in this session (track a `userTouchedPoLineIds` set updated by the `POSelectionDropdown` onChange).
+- When the effect DOES persist a match, write `po_assignment: 'auto'` alongside the `purchase_order_id` so we can tell auto-matches from explicit ones later.
+- Run the effect **once per dialog open per line**, not on every `jobCostLines` change. Use a ref-guard keyed by `pendingUploadId + lineId` so it can't loop and re-clobber.
 
-#### 2. Stop the cost code / font drift on unmatched rows in PO Summary
-In `src/components/bills/BillPOSummaryDialog.tsx`, for the "no resolved PO" branch:
-- Render the saved `cost_code_display` (look up `cost_codes.code/name` for `line.cost_code_id`) instead of `—`.
-- Drop the `text-muted-foreground` styling on the description cell so the font matches every other row. Match the exact `<TableCell>` className used by the matched rows (`whitespace-nowrap`, regular weight, default text color).
+#### 2. Make the manual save path the single source of truth
+Still in `EditExtractedBillDialog.tsx`:
+- In `handleSave`, for every job-cost line, ALWAYS write both `purchase_order_id` (real UUID or `null`) AND `po_assignment` (`'none' | 'auto' | null`). No more relying on the auto-matcher's separate writes.
+- When `line.purchase_order_id === '__none__'`: write `purchase_order_id = null`, `po_assignment = 'none'`, `purchase_order_line_id = null`.
+- When the user picked a real PO: write `po_assignment = null` (explicit user pick) and the UUID.
+- When still `__auto__` / unset: leave whatever the auto-matcher wrote (`po_assignment = 'auto'`).
 
-To make the cost code lookup work, extend the `BillLine` interface in this file to include `cost_code_display?: string` and have `BatchBillReviewTable` populate it from `cost_code_name` already on `pending_bill_lines`. No extra fetches.
+#### 3. Force PO Summary + matcher to honor `po_assignment = 'none'` even when `purchase_order_id` is non-null
+In `src/hooks/useBillPOMatching.ts` and `src/hooks/usePendingBillPOStatus.ts`:
+- Treat a line as "No PO" if EITHER `purchase_order_id === '__none__'` OR `po_assignment === 'none'`. If both flags disagree (e.g. UUID set but `po_assignment = 'none'`), trust `po_assignment`. This guarantees PO Summary won't show a PO link even if a stale UUID survives in the row.
+- In `BatchBillReviewTable.tsx`, `BillsApprovalTable.tsx`, `PayBillsTable.tsx` `billsForMatching` builders: if `po_assignment === 'none'`, force `purchase_order_id = '__none__'` regardless of the stored UUID.
 
-#### 3. Mirror the same `po_assignment` column on `bill_lines`
-After bills are approved out of the pending queue, the same "No PO" intent has to survive into `bill_lines`. Add `po_assignment` to `bill_lines`, copy it from `pending_bill_lines` in the approve-bill path, and apply the same `'none' → '__none__'` translation in `BillsApprovalTable`/`PayBillsTable` `billsForMatching` builders. This is what guarantees Edit ↔ PO Summary ↔ Manage Bills all agree forever.
+#### 4. Repair the existing INV0022 row
+One-time SQL via migration: for `pending_bill_lines` where `pending_upload_id = '72304b79-…'` and `line_number IN (2,3)`, set `purchase_order_id = NULL`, `purchase_order_line_id = NULL`, `po_assignment = 'none'`. This unwinds the bad state on the bill currently in the user's view so they can verify the fix without re-extracting.
 
-#### 4. Tighten the AI extraction so $11,568 doesn't collapse to one cost code
-In `supabase/functions/extract-bill-data/index.ts`, after the model returns, add a deterministic post-validator:
-- If `Math.abs(sum(line_items.amount) - total_amount) > 0.01` AND the source text contains more numeric tokens that look like line totals than the model returned line items, flag the extraction as `needs_review = true` on `pending_bill_uploads.extracted_data` and surface a yellow warning chip in `BatchBillReviewTable`.
-- Strengthen the system prompt's "preserve every separately-priced row" rule with one more worked example matching the labor/EXT pattern on this invoice.
-
-This won't make the AI perfect, but it stops a silent $11,568-on-one-line save from looking "approved by default".
+#### 5. Backfill `po_assignment = 'auto'` for any row the auto-matcher previously wrote without explicit user intent
+Migration: where `purchase_order_id IS NOT NULL` AND `po_assignment IS NULL`, set `po_assignment = 'auto'`. This makes the new "trust po_assignment" rules behave consistently for older bills.
 
 ### Files touched
 - `src/components/bills/EditExtractedBillDialog.tsx`
-- `src/components/bills/BillPOSummaryDialog.tsx`
+- `src/hooks/useBillPOMatching.ts`
+- `src/hooks/usePendingBillPOStatus.ts`
 - `src/components/bills/BatchBillReviewTable.tsx`
 - `src/components/bills/BillsApprovalTable.tsx`
 - `src/components/bills/PayBillsTable.tsx`
-- `supabase/functions/extract-bill-data/index.ts`
-- DB migration: add `po_assignment text` to `pending_bill_lines` and `bill_lines`; backfill `'none'` for any historical rows where the user clearly chose "no PO" (skipped — only forward-looking).
+- new migration: clear lines 2/3 of `72304b79-…` and backfill `po_assignment`
 
-### Verification on this exact bill (INV0022 @ 115E Ocean Watch)
-1. Open Edit Extracted Bill, set lines 2 and 3 to "No purchase…", line 4 cost code = `4375 – Tyvek Installation`, save.
-2. Open PO Status Summary: only line 1 (`4470 Siding`) is attached to `2025-115E-0003`; lines 2, 3, 4 all show "No PO", and line 4 shows `4375: Tyvek Installation` in normal font.
-3. Approve the bill. Open it from Manage Bills → PO Status Summary still shows the same three "No PO" rows.
-4. Re-extract a fresh copy of INV0022: extraction returns 4 separate line items totaling $11,568; if the model collapses, a "needs review" warning appears on the row.
+### Verification on INV0022
+1. Reload the bill in Edit Extracted Bill: lines 2, 3, 4 already show "No purchase…" and STAY that way; lines are not re-matched on render.
+2. Open PO Status Summary: only line 1 (`4470 Siding`) attached to `2025-115E-0003`; lines 2, 3, 4 show "No PO" with their saved cost codes and standard font.
+3. Manually pick a real PO on line 2, save, reopen — selection persists.
+4. Manually set line 2 back to "No purchase…", save, reopen — still "No PO". PO Summary matches.
 
