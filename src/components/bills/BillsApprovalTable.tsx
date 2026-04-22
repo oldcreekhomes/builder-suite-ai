@@ -616,31 +616,28 @@ export function BillsApprovalTable({ status, projectId, projectIds, showProjectC
 
   const getCostCodeOrAccountData = (bill: BillForApproval) => {
     if (!bill.bill_lines || bill.bill_lines.length === 0) {
-      return { display: '-', lineBreakdown: [] as { costCode: string; lotName: string; description: string; amount: number }[], totalAmount: bill.total_amount, count: 0 };
+      return { display: '-', breakdown: [] as { name: string; amount: number }[], total: 0, count: 0 };
     }
 
-    // One entry per bill line, preserving entry order
-    const lineBreakdown = bill.bill_lines.map(line => {
-      const costCode = line.cost_codes
+    // One entry per saved bill line, in order. Lines without a visible label still
+    // appear with a deterministic fallback so the tooltip total equals the bill total.
+    const breakdown = bill.bill_lines.map(line => {
+      const rawName = line.cost_codes
         ? `${line.cost_codes.code}: ${line.cost_codes.name}`
         : line.accounts
           ? `${line.accounts.code}: ${line.accounts.name}`
           : '';
-      const lotName = line.project_lots?.lot_name ||
-        (line.project_lots ? `Lot ${line.project_lots.lot_number}` : 'Unassigned');
-      const description = (line.memo?.trim() || (line as any).description?.trim() || '');
-      return {
-        costCode,
-        lotName,
-        description,
-        amount: line.amount || 0,
-      };
-    }).filter(b => b.costCode);
+      const fallback = line.line_type === 'expense' ? 'No Account' : 'No Cost Code';
+      return { name: rawName?.trim() || fallback, amount: line.amount || 0 };
+    });
 
-    const count = lineBreakdown.length;
-    if (count === 0) return { display: '-', lineBreakdown: [], totalAmount: bill.total_amount, count: 0 };
-    if (count === 1) return { display: lineBreakdown[0].costCode, lineBreakdown, totalAmount: bill.total_amount, count: 1 };
-    return { display: `+${count}`, lineBreakdown, totalAmount: bill.total_amount, count };
+    const total = breakdown.reduce((s, b) => s + b.amount, 0);
+    const count = breakdown.length;
+    if (count === 0) return { display: '-', breakdown: [], total: 0, count: 0 };
+    const firstNamed = breakdown.find(b => b.name !== 'No Cost Code' && b.name !== 'No Account');
+    const primary = firstNamed?.name || breakdown[0].name;
+    const display = count === 1 ? primary : `${primary} +${count - 1}`;
+    return { display, breakdown, total, count };
   };
 
   const getLotAllocationData = (bill: BillForApproval) => {
@@ -781,7 +778,7 @@ export function BillsApprovalTable({ status, projectId, projectIds, showProjectC
       </TableCell>
       <TableCell className="w-36 max-w-[144px] overflow-hidden">
         {(() => {
-          const { display, lineBreakdown, totalAmount, count } = getCostCodeOrAccountData(bill);
+          const { display, breakdown, total, count } = getCostCodeOrAccountData(bill);
           return (
             <TooltipProvider>
               <Tooltip>
@@ -791,22 +788,19 @@ export function BillsApprovalTable({ status, projectId, projectIds, showProjectC
                   </span>
                 </TooltipTrigger>
                 <TooltipContent className="max-w-xs">
-                  {count <= 1 && lineBreakdown.length <= 1 ? (
+                  {count <= 1 ? (
                     <p>{display}</p>
                   ) : (
-                    <div className="space-y-2 max-h-80 overflow-y-auto">
-                      {lineBreakdown.map((entry, i) => (
-                        <div key={i}>
-                          <div className="font-medium text-xs">{entry.costCode}</div>
-                          <div className="pl-2 flex justify-between gap-4 text-xs">
-                            <span className="text-muted-foreground">{entry.lotName}:</span>
-                            <span>${entry.amount.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
-                          </div>
+                    <div className="space-y-1">
+                      {breakdown.map((item, i) => (
+                        <div key={i} className="flex justify-between gap-4 text-xs">
+                          <span>{item.name}</span>
+                          <span>${item.amount.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
                         </div>
                       ))}
                       <div className="border-t pt-1 flex justify-between gap-4 font-medium text-xs">
                         <span>Total:</span>
-                        <span>${totalAmount.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+                        <span>${total.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
                       </div>
                     </div>
                   )}
