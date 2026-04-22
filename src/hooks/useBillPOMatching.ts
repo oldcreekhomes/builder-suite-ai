@@ -168,9 +168,10 @@ export function useBillPOMatching(bills: BillForMatching[]) {
       });
 
       // Fetch all posted/paid bill lines explicitly linked to the relevant POs
-      // to calculate cumulative billed amounts per PO
+      // to calculate cumulative billed amounts per PO. Store per-bill entries so
+      // we can exclude the currently iterated bill (avoid double-counting).
       const poIds = pos.map(po => po.id);
-      const billedLookup = new Map<string, number>();
+      const billedEntriesByPo = new Map<string, Array<{ bill_id: string; amount: number }>>();
 
       if (poIds.length) {
         const { data: linkedLines, error: linkedError } = await supabase
@@ -202,11 +203,18 @@ export function useBillPOMatching(bills: BillForMatching[]) {
             !billData.reversed_at &&
             line.purchase_order_id
           ) {
-            const current = billedLookup.get(line.purchase_order_id) || 0;
-            billedLookup.set(line.purchase_order_id, current + (line.amount || 0));
+            const arr = billedEntriesByPo.get(line.purchase_order_id) || [];
+            arr.push({ bill_id: line.bill_id, amount: line.amount || 0 });
+            billedEntriesByPo.set(line.purchase_order_id, arr);
           }
         });
       }
+
+      // Helper: sum billed amount for a PO excluding a specific bill id.
+      const sumBilledExcluding = (poId: string, excludeBillId: string): number =>
+        (billedEntriesByPo.get(poId) || [])
+          .filter(e => e.bill_id !== excludeBillId)
+          .reduce((s, e) => s + e.amount, 0);
 
       // Now build the result map for each bill
       const resultMap = new Map<string, BillPOMatchResult>();
@@ -254,7 +262,7 @@ export function useBillPOMatching(bills: BillForMatching[]) {
               const lineAmount = line.amount || 0;
               const fittingPos = candidatePos.filter(p => {
                 const poAmount = p.total_amount || 0;
-                const alreadyBilled = billedLookup.get(p.id) || 0;
+                const alreadyBilled = sumBilledExcluding(p.id, bill.id);
                 return (poAmount - alreadyBilled - lineAmount) >= 0;
               });
               
@@ -301,9 +309,9 @@ export function useBillPOMatching(bills: BillForMatching[]) {
           
           if (!matches.find(m => m.po_id === matchedPo.id)) {
             const ccData = costCodeLookup.get(matchedPo.cost_code_id || '');
-            const totalBilled = billedLookup.get(matchedPo.id) || 0;
+            // Exclude the current bill from historical billed total to avoid double-counting.
+            const totalBilled = sumBilledExcluding(matchedPo.id, bill.id);
             const poAmount = matchedPo.total_amount || 0;
-            const isDraftBill = (bill.status || 'draft') === 'draft';
 
             // Current bill's lines allocated to this PO — mirror dialog resolution chain:
             // 1) explicit purchase_order_id, 2) printed po_reference, 3) unique cost_code fallback.
@@ -335,14 +343,12 @@ export function useBillPOMatching(bills: BillForMatching[]) {
               })
               .reduce((s, l) => s + (l.amount || 0), 0);
 
-            // For draft bills: forecast (totalBilled excludes this bill, so add thisBillAmount).
-            // For posted/paid bills: this bill is already in totalBilled — do NOT double-count.
-            const projectedBilled = isDraftBill ? (totalBilled + thisBillAmount) : totalBilled;
+            // Uniform projection: totalBilled excludes the current bill, so always add thisBillAmount.
+            const projectedBilled = totalBilled + thisBillAmount;
             // Cent-precise to avoid $0.01 floating-point drift causing false "Over"
             const remainingCents = Math.round((poAmount - projectedBilled) * 100);
             const remaining = remainingCents / 100;
-            const billedAgainstPo = isDraftBill ? thisBillAmount : (totalBilled > 0 ? thisBillAmount || totalBilled : thisBillAmount);
-            const isDraw = remainingCents >= 0 && billedAgainstPo < poAmount && poAmount > 0;
+            const isDraw = remainingCents >= 0 && thisBillAmount < poAmount && poAmount > 0;
             const status: 'matched' | 'over_po' | 'draw' = remainingCents < 0 ? 'over_po' : isDraw ? 'draw' : 'matched';
             
             matches.push({
