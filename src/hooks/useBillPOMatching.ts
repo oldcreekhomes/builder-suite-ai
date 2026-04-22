@@ -168,9 +168,10 @@ export function useBillPOMatching(bills: BillForMatching[]) {
       });
 
       // Fetch all posted/paid bill lines explicitly linked to the relevant POs
-      // to calculate cumulative billed amounts per PO
+      // to calculate cumulative billed amounts per PO. Store per-bill entries so
+      // we can exclude the currently iterated bill (avoid double-counting).
       const poIds = pos.map(po => po.id);
-      const billedLookup = new Map<string, number>();
+      const billedEntriesByPo = new Map<string, Array<{ bill_id: string; amount: number }>>();
 
       if (poIds.length) {
         const { data: linkedLines, error: linkedError } = await supabase
@@ -202,11 +203,18 @@ export function useBillPOMatching(bills: BillForMatching[]) {
             !billData.reversed_at &&
             line.purchase_order_id
           ) {
-            const current = billedLookup.get(line.purchase_order_id) || 0;
-            billedLookup.set(line.purchase_order_id, current + (line.amount || 0));
+            const arr = billedEntriesByPo.get(line.purchase_order_id) || [];
+            arr.push({ bill_id: line.bill_id, amount: line.amount || 0 });
+            billedEntriesByPo.set(line.purchase_order_id, arr);
           }
         });
       }
+
+      // Helper: sum billed amount for a PO excluding a specific bill id.
+      const sumBilledExcluding = (poId: string, excludeBillId: string): number =>
+        (billedEntriesByPo.get(poId) || [])
+          .filter(e => e.bill_id !== excludeBillId)
+          .reduce((s, e) => s + e.amount, 0);
 
       // Now build the result map for each bill
       const resultMap = new Map<string, BillPOMatchResult>();
