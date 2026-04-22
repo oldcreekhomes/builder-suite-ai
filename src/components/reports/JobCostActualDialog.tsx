@@ -448,18 +448,18 @@ const formatCurrency = (value: number) => {
                     const netAmount = line.debit - line.credit;
                     
                     return (
-                      <TableRow key={line.id}>
+                      <TableRow key={line.id} className="whitespace-nowrap">
                         <TableCell className="whitespace-nowrap">
                           <span className="text-xs">{getTypeLabel(line.source_type)}</span>
                         </TableCell>
                         <TableCell>
                           <span className="text-xs">{formatDateSafe(line.journal_entries.entry_date, 'MM/dd/yyyy')}</span>
                         </TableCell>
-                        <TableCell>
-                          <span className="text-xs">{line.vendor_name || '-'}</span>
+                        <TableCell className="max-w-0 truncate">
+                          <span className="text-xs truncate block" title={line.vendor_name || '-'}>{line.vendor_name || '-'}</span>
                         </TableCell>
-                        <TableCell>
-                          <span className="text-xs">{line.memo || line.journal_entries.description || '-'}</span>
+                        <TableCell className="max-w-0 truncate">
+                          <span className="text-xs truncate block" title={line.memo || line.journal_entries.description || '-'}>{line.memo || line.journal_entries.description || '-'}</span>
                         </TableCell>
                         <TableCell>
                           {line.bill_id && (line as any).attachments?.length > 0 ? (
