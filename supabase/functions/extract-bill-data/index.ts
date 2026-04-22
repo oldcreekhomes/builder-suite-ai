@@ -1144,7 +1144,66 @@ Return ONLY the JSON object, no additional text.`;
         console.log(`ℹ️ Line items sum (${lineSum}) differs from total_amount (${extractedTotal}) by ${diff.toFixed(2)} — within tolerance, keeping ${extractedData.line_items.length} line(s).`);
       }
 
-      if (shouldCollapse) {
+      // RECOVERY PASS: some invoices stuff multiple "label -$amount" rows into a SINGLE
+      // line_items entry (one row in the PDF table holds the total, descriptive child
+      // rows have empty amount columns). Before we collapse OR insert the lines, try to
+      // split that single row into N real lines using the embedded "label -$amount"
+      // pattern in the description. If the recovered amounts add up to the extracted
+      // total, replace the line items with the recovered breakdown.
+      try {
+        if (
+          extractedData.line_items.length === 1 &&
+          extractedTotal > 0
+        ) {
+          const onlyLine = extractedData.line_items[0];
+          const desc = String(onlyLine?.description || onlyLine?.memo || '');
+          // Match patterns like "Siding labor balance -$10,268" / "PVC ... - $400" /
+          // "Paper re installation around all house - $500".
+          const re = /([^\n\r\-\u2013\u2014]+?)\s*[\-\u2013\u2014]\s*\$?\s*([0-9][0-9,]*(?:\.[0-9]{1,2})?)/g;
+          const recovered: Array<{ label: string; amount: number }> = [];
+          let m: RegExpExecArray | null;
+          while ((m = re.exec(desc)) !== null) {
+            const label = m[1].replace(/[\r\n]+/g, ' ').trim();
+            const amount = parseFloat(m[2].replace(/,/g, ''));
+            if (label && Number.isFinite(amount) && amount > 0) {
+              recovered.push({ label, amount });
+            }
+          }
+          const recoveredSum = recovered.reduce((s, r) => s + r.amount, 0);
+          const recoveredDiff = Math.abs(recoveredSum - extractedTotal);
+          // Accept the split if (a) we found 2+ rows AND (b) they reconstruct the
+          // invoice total within $1 (rounding tolerance).
+          if (recovered.length >= 2 && recoveredDiff <= 1) {
+            console.log(`🧩 Recovered ${recovered.length} inline line items totaling ${recoveredSum} from collapsed description.`);
+            extractedData.line_items = recovered.map((r, idx) => ({
+              description: r.label,
+              quantity: 1,
+              unit_cost: r.amount,
+              amount: r.amount,
+              memo: r.label,
+              cost_code_name: idx === 0 ? (onlyLine?.cost_code_name || null) : null,
+              account_name: null,
+              po_reference: null,
+              line_type: 'job_cost',
+            }));
+          }
+        }
+      } catch (recoverErr) {
+        console.warn('Inline line-item recovery failed (non-critical):', recoverErr);
+      }
+
+      // Recompute the sum/diff/decision after potential recovery so we don't collapse
+      // a freshly-recovered breakdown.
+      const lineSumAfter = extractedData.line_items.reduce((sum: number, item: any) => {
+        const a = item.amount || ((item.quantity || 1) * (item.unit_cost || 0));
+        return sum + a;
+      }, 0);
+      const diffAfter = Math.abs(lineSumAfter - extractedTotal);
+      const shouldCollapseAfter =
+        extractedTotal > 0 &&
+        (lineSumAfter <= 0.01 || diffAfter > tolerance);
+
+      if (shouldCollapseAfter) {
         console.log(`⚠️ Line items sum (${lineSum}) doesn't match total_amount (${extractedTotal}) — diff ${diff.toFixed(2)} exceeds tolerance ${tolerance.toFixed(2)}`);
         console.log(`→ Collapsing to single line item with Amount Due: ${extractedTotal}`);
 
