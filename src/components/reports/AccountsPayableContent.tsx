@@ -16,6 +16,15 @@ import { cn } from "@/lib/utils";
 import { pdf } from "@react-pdf/renderer";
 import { AccountsPayablePdfDocument, APAgingBill } from "./pdf/AccountsPayablePdfDocument";
 import { useToast } from "@/hooks/use-toast";
+import { BillFilesCell } from "@/components/bills/BillFilesCell";
+
+interface BillAttachment {
+  id: string;
+  file_name: string;
+  file_path: string;
+  file_size: number;
+  content_type: string;
+}
 
 interface AccountsPayableContentProps {
   projectId?: string;
@@ -33,6 +42,7 @@ interface BillWithVendor {
   amount_paid: number;
   vendor: { company_name: string } | null;
   bill_lines: { lot_id: string | null; amount: number }[];
+  bill_attachments: BillAttachment[];
 }
 
 export function AccountsPayableContent({ projectId, onHeaderActionChange, asOfDate, onAsOfDateChange }: AccountsPayableContentProps) {
@@ -94,7 +104,8 @@ export function AccountsPayableContent({ projectId, onHeaderActionChange, asOfDa
           total_amount,
           amount_paid,
           vendor:companies!vendor_id(company_name),
-          bill_lines(lot_id, amount)
+          bill_lines(lot_id, amount),
+          bill_attachments(id, file_name, file_path, file_size, content_type)
         `)
         .eq('project_id', projectId)
         .in('status', ['posted', 'paid'])
@@ -230,7 +241,7 @@ export function AccountsPayableContent({ projectId, onHeaderActionChange, asOfDa
       const aging = Math.floor(diffTime / (1000 * 60 * 60 * 24));
       const openBalance = bill.total_amount - bill.amount_paid;
 
-      const agingBill: APAgingBill = {
+      const agingBill: APAgingBill & { attachments?: BillAttachment[] } = {
         id: bill.id,
         billDate: bill.bill_date,
         referenceNumber: bill.reference_number,
@@ -238,6 +249,7 @@ export function AccountsPayableContent({ projectId, onHeaderActionChange, asOfDa
         dueDate: bill.due_date,
         aging,
         openBalance,
+        attachments: bill.bill_attachments || [],
       };
 
       if (aging >= 0 && aging <= 30) {
@@ -509,27 +521,38 @@ export function AccountsPayableContent({ projectId, onHeaderActionChange, asOfDa
                           <Table>
                             <TableHeader>
                               <TableRow>
-                                <TableHead className="w-[14%]">Date</TableHead>
+                                <TableHead className="w-[12%]">Date</TableHead>
                                 <TableHead className="w-[12%]">Num</TableHead>
-                                <TableHead className="w-[28%]">Name</TableHead>
-                                <TableHead className="w-[14%]">Due Date</TableHead>
-                                <TableHead className="w-[10%] text-right">Aging</TableHead>
-                                <TableHead className="w-[22%] text-right">Open Balance</TableHead>
+                                <TableHead className="w-[26%]">Name</TableHead>
+                                <TableHead className="w-[12%]">Due Date</TableHead>
+                                <TableHead className="w-[8%] text-right">Aging</TableHead>
+                                <TableHead className="w-[12%]">Files</TableHead>
+                                <TableHead className="w-[18%] text-right">Open Balance</TableHead>
                               </TableRow>
                             </TableHeader>
                             <TableBody>
-                              {bills.map((bill) => (
+                              {bills.map((bill) => {
+                                const attachments = (bill as APAgingBill & { attachments?: BillAttachment[] }).attachments || [];
+                                return (
                                 <TableRow key={bill.id}>
                                   <TableCell>{formatDate(bill.billDate)}</TableCell>
                                   <TableCell>{bill.referenceNumber || '-'}</TableCell>
                                   <TableCell className="font-medium">{bill.vendorName}</TableCell>
                                   <TableCell>{formatDate(bill.dueDate)}</TableCell>
                                   <TableCell className="text-right">{bill.aging}</TableCell>
+                                  <TableCell>
+                                    {attachments.length > 0 ? (
+                                      <BillFilesCell attachments={attachments} />
+                                    ) : (
+                                      <span className="text-xs text-muted-foreground">—</span>
+                                    )}
+                                  </TableCell>
                                   <TableCell className="text-right font-medium">
                                     {formatCurrency(bill.openBalance)}
                                   </TableCell>
                                 </TableRow>
-                              ))}
+                                );
+                              })}
                             </TableBody>
                           </Table>
                         </div>
