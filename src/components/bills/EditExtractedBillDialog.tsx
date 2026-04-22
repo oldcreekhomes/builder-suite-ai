@@ -703,6 +703,12 @@ export function EditExtractedBillDialog({
         costCodeName = costCodeData ? `${costCodeData.code}: ${costCodeData.name}` : '';
       }
 
+      // Determine PO assignment intent: 'none' = explicit "No purchase order",
+      // null = auto-match (default). Sentinels never round-trip into the UUID column.
+      const poAssignment: 'none' | null =
+        line.purchase_order_id === '__none__' ? 'none' : null;
+      const realPoId = sanitizePoId(line.purchase_order_id);
+
       if (line.id.startsWith('new-')) {
         // Add new line
         await addLine.mutateAsync({
@@ -714,14 +720,15 @@ export function EditExtractedBillDialog({
             account_name: accountName,
             cost_code_id: line.cost_code_id,
             cost_code_name: costCodeName,
-            purchase_order_id: sanitizePoId(line.purchase_order_id),
+            purchase_order_id: realPoId,
             purchase_order_line_id: line.purchase_order_line_id || undefined,
             lot_id: line.lot_id,
             quantity: line.quantity || 1,
             unit_cost: line.unit_cost || 0,
             amount: lineAmount,
             memo: line.memo,
-          },
+            po_assignment: poAssignment,
+          } as any,
         });
       } else {
         // Update existing line
@@ -733,14 +740,15 @@ export function EditExtractedBillDialog({
             account_name: accountName,
             cost_code_id: line.cost_code_id,
             cost_code_name: costCodeName,
-            purchase_order_id: sanitizePoId(line.purchase_order_id),
+            purchase_order_id: realPoId,
             purchase_order_line_id: line.purchase_order_line_id || undefined,
             lot_id: line.lot_id,
             quantity: line.quantity || 1,
             unit_cost: line.unit_cost || 0,
             amount: lineAmount,
             memo: line.memo,
-          },
+            po_assignment: poAssignment,
+          } as any,
         });
       }
     }
