@@ -424,7 +424,7 @@ export function AccountsPayableContent({ projectId, onHeaderActionChange, asOfDa
       const url = URL.createObjectURL(blob);
       const link = document.createElement('a');
       link.href = url;
-      link.download = `AP_Aging_Report-${asOfDate.toISOString().split('T')[0]}.pdf`;
+      link.download = `AP_Aging_Report-${format(asOfDate, 'yyyy-MM-dd')}.pdf`;
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
@@ -671,8 +671,8 @@ export function AccountsPayableContent({ projectId, onHeaderActionChange, asOfDa
                 <span className="font-bold text-lg">{formatCurrency(grandTotal)}</span>
               </div>
               {selectedLotId === '__total__' && Math.abs(glNet - grandTotal) > 0.01 && (
-                <div className="text-sm text-destructive px-4">
-                  Reconciliation difference vs G/L: {formatCurrency(glNet - grandTotal)} — please contact support
+                <div className="text-sm text-destructive px-4 font-medium">
+                  Reconciliation difference vs G/L: {formatCurrency(glNet - grandTotal)} — A/P Aging does not match the General Ledger. Please contact support.
                 </div>
               )}
             </div>
