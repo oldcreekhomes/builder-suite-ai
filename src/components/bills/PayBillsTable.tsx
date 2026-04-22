@@ -950,7 +950,7 @@ export function PayBillsTable({ projectId, projectIds, showProjectColumn = true,
                   </TableCell>
                   <TableCell className="whitespace-nowrap">
                     {(() => {
-                      const { display, costCodeBreakdown, totalAmount, count } = getCostCodeOrAccountData(bill);
+                      const { display, lineBreakdown, totalAmount, count } = getCostCodeOrAccountData(bill);
                       if (count <= 1) {
                         return display;
                       }
@@ -961,17 +961,13 @@ export function PayBillsTable({ projectId, projectIds, showProjectColumn = true,
                               {display}
                             </TooltipTrigger>
                             <TooltipContent className="max-w-xs">
-                              <div className="space-y-2">
-                                {costCodeBreakdown.map((cc, i) => (
+                              <div className="space-y-2 max-h-80 overflow-y-auto">
+                                {lineBreakdown.map((entry, i) => (
                                   <div key={i}>
-                                    <div className="font-medium text-xs">{cc.costCode}</div>
-                                    <div className="pl-2 space-y-0.5">
-                                      {cc.lots.map((lot, j) => (
-                                        <div key={j} className="flex justify-between gap-4 text-xs">
-                                          <span className="text-muted-foreground">{lot.name}:</span>
-                                          <span>${lot.amount.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
-                                        </div>
-                                      ))}
+                                    <div className="font-medium text-xs">{entry.costCode}</div>
+                                    <div className="pl-2 flex justify-between gap-4 text-xs">
+                                      <span className="text-muted-foreground">{entry.lotName}:</span>
+                                      <span>${entry.amount.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
                                     </div>
                                   </div>
                                 ))}
