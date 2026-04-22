@@ -655,146 +655,134 @@ export function SendReportsDialog({ projectId, open, onOpenChange }: SendReports
         console.log(`📊 Job Costs PDF: Generated ${jobCostsPdfs.length} PDF(s) total`);
       }
 
-      // Generate Accounts Payable PDF if selected
+      // Generate Accounts Payable PDF if selected — derived directly from the
+      // A/P general ledger (same source-of-truth as Balance Sheet & 2010 detail).
       if (reports.accountsPayable && projectId) {
         console.log('📊 Generating Accounts Payable PDF for project:', projectId);
 
-        // Step 1: Fetch bills dated on or before the as-of date
-        const { data: bills, error: billsError } = await supabase
-          .from('bills')
-          .select(`
-            id,
-            bill_date,
-            reference_number,
-            due_date,
-            total_amount,
-            amount_paid,
-            vendor:companies!vendor_id(company_name)
-          `)
-          .eq('project_id', projectId)
-          .in('status', ['posted', 'paid'])
-          .eq('is_reversal', false)
-          .is('reversed_by_id', null)
-          .lte('bill_date', asOfDateStr);
+        // Resolve project owner -> exact A/P account id
+        const { data: projOwner } = await supabase
+          .from('projects')
+          .select('owner_id')
+          .eq('id', projectId)
+          .single();
+        const projectOwnerId = (projOwner as any)?.owner_id as string | undefined;
 
-        if (billsError) {
-          console.error('📊 A/P PDF: Bills query failed:', billsError);
-          throw billsError;
+        let apAccountId: string | null = null;
+        if (projectOwnerId) {
+          const { data: settings } = await supabase
+            .from('accounting_settings')
+            .select('ap_account_id')
+            .eq('owner_id', projectOwnerId)
+            .maybeSingle();
+          apAccountId = (settings as any)?.ap_account_id ?? null;
+          if (!apAccountId) {
+            const { data: ownerAp } = await supabase
+              .from('accounts')
+              .select('id')
+              .eq('code', '2010')
+              .eq('owner_id', projectOwnerId)
+              .maybeSingle();
+            apAccountId = (ownerAp as any)?.id ?? null;
+          }
         }
 
-        const allBills = bills || [];
-        const activeBillIds = allBills.map(b => b.id);
-
-        // Step 2: Build predecessor map (old reversed bill -> active bill)
-        const { data: reversedBills } = await supabase
-          .from('bills')
-          .select('id, reversed_by_id, reference_number')
-          .eq('project_id', projectId)
-          .not('reversed_by_id', 'is', null)
-          .eq('is_reversal', false);
-
-        const activeByRef: Record<string, string> = {};
-        allBills.forEach(b => {
-          if (b.reference_number) {
-            activeByRef[b.reference_number] = b.id;
-          }
-        });
-
-        const predecessorToActive: Record<string, string> = {};
-        const predecessorIds: string[] = [];
-        (reversedBills || []).forEach((rb: any) => {
-          if (!activeBillIds.includes(rb.id) && rb.reference_number) {
-            const activeId = activeByRef[rb.reference_number];
-            if (activeId) {
-              predecessorIds.push(rb.id);
-              predecessorToActive[rb.id] = activeId;
-            }
-          }
-        });
-
-        // Step 3: Query payment JEs for active AND predecessor bill IDs
-        const allBillIdsForPayments = [...activeBillIds, ...predecessorIds];
-        let paidAsOfDate: Record<string, number> = {};
-
-        if (allBillIdsForPayments.length > 0) {
-          const { data: paymentEntries, error: payError } = await supabase
-            .from('journal_entries')
-            .select('source_id, journal_entry_lines!inner(debit)')
-            .eq('source_type', 'bill_payment')
-            .in('source_id', allBillIdsForPayments)
-            .lte('entry_date', asOfDateStr)
-            .or('reversed_at.is.null,reversed_at.gt.' + asOfDateStr)
-            .gt('journal_entry_lines.debit', 0);
-
-          if (payError) throw payError;
-
-          (paymentEntries || []).forEach((entry: any) => {
-            const sourceId = entry.source_id;
-            const totalDebit = (entry.journal_entry_lines || []).reduce(
-              (sum: number, line: any) => sum + (line.debit || 0), 0
-            );
-            const targetBillId = predecessorToActive[sourceId] || sourceId;
-            paidAsOfDate[targetBillId] = (paidAsOfDate[targetBillId] || 0) + totalDebit;
-          });
-        }
-
-        // Step 4: Calculate open balance using as-of-date-aware payments
-        const openBills = allBills
-          .map(bill => ({
-            ...bill,
-            amount_paid: paidAsOfDate[bill.id] || 0,
-          }))
-          .filter(bill => (bill.total_amount - bill.amount_paid) > 0.01);
-
-        console.log(`📊 A/P PDF: Found ${openBills.length} open bills as of ${asOfDateStr}`);
-
-        // Calculate aging buckets
         const agingBuckets: {
           '1-30': APAgingBill[];
           '31-60': APAgingBill[];
           '61-90': APAgingBill[];
           '>90': APAgingBill[];
-        } = {
-          '1-30': [],
-          '31-60': [],
-          '61-90': [],
-          '>90': [],
-        };
+        } = { '1-30': [], '31-60': [], '61-90': [], '>90': [] };
+        let grandTotal = 0;
 
-        openBills.forEach(bill => {
-          const billDate = new Date(bill.bill_date + 'T00:00:00');
-          const agingDays = Math.floor((asOfDate.getTime() - billDate.getTime()) / (1000 * 60 * 60 * 24));
-          const openBalance = bill.total_amount - bill.amount_paid;
+        if (apAccountId) {
+          // Pull A/P journal lines for the exact A/P account id (project + as-of, canonical filters)
+          const { data: apJournalLines, error: jeErr } = await supabase
+            .from('journal_entry_lines')
+            .select('debit, credit, journal_entries!inner(source_id, source_type, entry_date, reversed_at, reversed_by_id, is_reversal)')
+            .eq('account_id', apAccountId)
+            .eq('project_id', projectId)
+            .lte('journal_entries.entry_date', asOfDateStr)
+            .eq('journal_entries.is_reversal', false)
+            .is('journal_entries.reversed_by_id', null)
+            .or(`reversed_at.is.null,reversed_at.gt.${asOfDateStr}`, { referencedTable: 'journal_entries' });
+          if (jeErr) throw jeErr;
 
-          const agingBill: APAgingBill = {
-            id: bill.id,
-            billDate: bill.bill_date,
-            referenceNumber: bill.reference_number,
-            vendorName: (bill.vendor as any)?.company_name || 'Unknown Vendor',
-            dueDate: bill.due_date,
-            aging: agingDays,
-            openBalance,
-          };
+          const openBySource: Record<string, number> = {};
+          (apJournalLines || []).forEach((l: any) => {
+            const credit = l.credit || 0;
+            const debit = l.debit || 0;
+            const je = Array.isArray(l.journal_entries) ? l.journal_entries[0] : l.journal_entries;
+            const srcId = je?.source_id;
+            if (srcId) openBySource[srcId] = (openBySource[srcId] || 0) + (credit - debit);
+          });
 
-          if (agingDays >= 0 && agingDays <= 30) {
-            agingBuckets['1-30'].push(agingBill);
-          } else if (agingDays >= 31 && agingDays <= 60) {
-            agingBuckets['31-60'].push(agingBill);
-          } else if (agingDays >= 61 && agingDays <= 90) {
-            agingBuckets['61-90'].push(agingBill);
-          } else if (agingDays > 90) {
-            agingBuckets['>90'].push(agingBill);
+          const sourceIds = Object.keys(openBySource);
+          if (sourceIds.length > 0) {
+            const { data: ledgerBills, error: bErr } = await supabase
+              .from('bills')
+              .select('id, bill_date, reference_number, due_date, total_amount, reversed_by_id, is_reversal, vendor:companies!vendor_id(company_name)')
+              .in('id', sourceIds);
+            if (bErr) throw bErr;
+
+            const billById: Record<string, any> = {};
+            (ledgerBills || []).forEach(b => { billById[b.id] = b; });
+
+            // Successor lookup for reversed bills
+            const reversedRefs = (ledgerBills || [])
+              .filter(b => b.reversed_by_id !== null && b.is_reversal === false && b.reference_number)
+              .map(b => b.reference_number as string);
+            const successorByRef: Record<string, any> = {};
+            if (reversedRefs.length > 0) {
+              const { data: successors } = await supabase
+                .from('bills')
+                .select('id, bill_date, reference_number, due_date, total_amount, vendor:companies!vendor_id(company_name)')
+                .eq('project_id', projectId)
+                .in('reference_number', Array.from(new Set(reversedRefs)))
+                .eq('is_reversal', false)
+                .is('reversed_by_id', null);
+              (successors || []).forEach((s: any) => { successorByRef[s.reference_number] = s; });
+            }
+
+            const openByDisplayBill: Record<string, { bill: any; open: number }> = {};
+            Object.entries(openBySource).forEach(([sourceId, value]) => {
+              const ledgerBill = billById[sourceId];
+              if (!ledgerBill) return;
+              let displayBill = ledgerBill;
+              if (ledgerBill.reversed_by_id !== null && ledgerBill.is_reversal === false) {
+                const successor = ledgerBill.reference_number ? successorByRef[ledgerBill.reference_number] : null;
+                if (successor) displayBill = successor;
+              }
+              const existing = openByDisplayBill[displayBill.id] || { bill: displayBill, open: 0 };
+              existing.open += value;
+              openByDisplayBill[displayBill.id] = existing;
+            });
+
+            Object.values(openByDisplayBill).forEach(({ bill, open }) => {
+              if (Math.abs(open) <= 0.01) return;
+              const billDate = new Date(bill.bill_date + 'T00:00:00');
+              const agingDays = Math.floor((asOfDate.getTime() - billDate.getTime()) / (1000 * 60 * 60 * 24));
+              const agingBill: APAgingBill = {
+                id: bill.id,
+                billDate: bill.bill_date,
+                referenceNumber: bill.reference_number,
+                vendorName: (bill.vendor as any)?.company_name || 'Unknown Vendor',
+                dueDate: bill.due_date,
+                aging: agingDays,
+                openBalance: open,
+              };
+              if (agingDays >= 0 && agingDays <= 30) agingBuckets['1-30'].push(agingBill);
+              else if (agingDays >= 31 && agingDays <= 60) agingBuckets['31-60'].push(agingBill);
+              else if (agingDays >= 61 && agingDays <= 90) agingBuckets['61-90'].push(agingBill);
+              else if (agingDays > 90) agingBuckets['>90'].push(agingBill);
+              grandTotal += open;
+            });
+
+            Object.values(agingBuckets).forEach(bucket => bucket.sort((a, b) => a.aging - b.aging));
           }
-        });
+        }
 
-        // Sort each bucket by aging days ascending (chronological)
-        Object.values(agingBuckets).forEach(bucket => {
-          bucket.sort((a, b) => a.aging - b.aging);
-        });
-
-        const grandTotal = openBills.reduce((sum, bill) => sum + (bill.total_amount - bill.amount_paid), 0);
-
-        console.log('📊 A/P PDF: Grand total:', grandTotal);
+        console.log('📊 A/P PDF (ledger-derived): Grand total:', grandTotal);
 
         const blob = await pdf(
           <AccountsPayablePdfDocument
