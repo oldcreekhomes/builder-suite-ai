@@ -23,10 +23,12 @@ import { FilesCell } from "@/components/purchaseOrders/components/FilesCell";
 
 interface BillLine {
   cost_code_id?: string | null;
+  cost_code_display?: string;
   amount?: number;
   purchase_order_id?: string | null;
   purchase_order_line_id?: string | null;
   po_reference?: string | null;
+  po_assignment?: string | null;
   memo?: string | null;
 }
 
@@ -97,12 +99,17 @@ export function BillPOSummaryDialog({
   });
 
   /** Resolve a single bill line to a po_id using the strict allocation order:
+   * 0) explicit "No PO" intent — never resolve, never fall back
    * 1) purchase_order_line_id (resolved to its PO)
    * 2) explicit purchase_order_id
    * 3) printed po_reference matched against PO number
    * 4) unique cost_code fallback (only if no other matched PO shares that cost code)
    */
   const resolveLineToPoId = (line: BillLine): string | null => {
+    // Hard short-circuit: user explicitly chose "No purchase order" for this line.
+    if (line.po_assignment === 'none' || line.purchase_order_id === '__none__') {
+      return null;
+    }
     if (line.purchase_order_line_id) {
       const poId = poLineToPoId.get(line.purchase_order_line_id);
       if (poId) return poId;
@@ -140,10 +147,12 @@ export function BillPOSummaryDialog({
     const poId = l.purchase_order_id || undefined;
     return {
       cost_code_id: l.cost_code_id || undefined,
+      cost_code_display: l.cost_code_display || undefined,
       amount: l.amount || 0,
       purchase_order_line_id: l.purchase_order_line_id || undefined,
       purchase_order_id: poId,
       po_reference: l.po_reference || undefined,
+      po_assignment: l.po_assignment || undefined,
       memo: l.memo || undefined,
     };
   });
@@ -224,17 +233,17 @@ export function BillPOSummaryDialog({
                   if (!match) {
                     return (
                       <TableRow key={`line-${idx}`}>
-                        <TableCell className="whitespace-nowrap font-medium text-muted-foreground">—</TableCell>
-                        <TableCell className="whitespace-nowrap text-muted-foreground">—</TableCell>
-                        <TableCell className="text-muted-foreground">{line.memo || '—'}</TableCell>
-                        <TableCell className="whitespace-nowrap text-muted-foreground">—</TableCell>
-                        <TableCell className="whitespace-nowrap text-muted-foreground">—</TableCell>
+                        <TableCell className="whitespace-nowrap font-medium">—</TableCell>
+                        <TableCell className="whitespace-nowrap">{line.cost_code_display || '—'}</TableCell>
+                        <TableCell>{line.memo || '—'}</TableCell>
+                        <TableCell className="whitespace-nowrap">—</TableCell>
+                        <TableCell className="whitespace-nowrap">—</TableCell>
                         <TableCell className="whitespace-nowrap">
                           <span className="inline-flex items-center rounded px-1.5 py-0.5 text-xs font-medium bg-green-100 text-green-700">
                             {formatCurrency(lineAmount)}
                           </span>
                         </TableCell>
-                        <TableCell className="whitespace-nowrap text-muted-foreground">—</TableCell>
+                        <TableCell className="whitespace-nowrap">—</TableCell>
                         <TableCell className="whitespace-nowrap">—</TableCell>
                         <TableCell className="whitespace-nowrap">
                           <span className="inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium bg-muted text-muted-foreground">

@@ -5,6 +5,7 @@ import type { POStatus } from "@/components/bills/POStatusBadge";
 interface PendingBillLine {
   cost_code_id?: string;
   purchase_order_id?: string;
+  po_assignment?: string | null;
 }
 
 interface PendingBillForStatus {
@@ -47,19 +48,25 @@ export function usePendingBillPOStatus(
           lines.map(l => l.purchase_order_id).filter(Boolean)
         )] as string[];
 
-        const hasAllLinked = lines.every(l => l.purchase_order_id);
-        const hasSomeLinked = lines.some(l => l.purchase_order_id);
+        // A line is "resolved" if it has an explicit PO OR the user explicitly chose "No PO".
+        const isResolved = (l: PendingBillLine) =>
+          !!l.purchase_order_id || l.po_assignment === 'none';
+        const hasAllLinked = lines.every(isResolved);
+        const hasSomeLinked = lines.some(l => !!l.purchase_order_id);
 
         if (hasAllLinked) {
-          resultMap.set(bill.id, { status: 'matched', poIds: explicitPoIds });
+          resultMap.set(bill.id, {
+            status: explicitPoIds.length > 0 ? 'matched' : 'no_po',
+            poIds: explicitPoIds,
+          });
         } else if (hasSomeLinked) {
           resultMap.set(bill.id, { status: 'partial', poIds: explicitPoIds });
         } else {
-          // Needs fallback matching
+          // Needs fallback matching — but skip lines the user marked "No PO".
           const vendorId = bill.vendor_id || bill.extracted_data?.vendor_id || bill.extracted_data?.vendorId;
           if (vendorId && projectId) {
             lines.forEach(line => {
-              if (!line.purchase_order_id && line.cost_code_id) {
+              if (!line.purchase_order_id && line.po_assignment !== 'none' && line.cost_code_id) {
                 fallbackNeeded.push({ billId: bill.id, vendorId, costCodeId: line.cost_code_id });
               }
             });

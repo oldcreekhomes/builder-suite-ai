@@ -68,6 +68,8 @@ interface BillForPayment {
     memo?: string;
     purchase_order_id?: string;
     purchase_order_line_id?: string;
+    po_reference?: string | null;
+    po_assignment?: string | null;
     project_lots?: {
       id: string;
       lot_name?: string;
@@ -238,6 +240,7 @@ export function PayBillsTable({ projectId, projectIds, showProjectColumn = true,
               amount,
               memo,
               po_reference,
+              po_assignment,
               purchase_order_id,
               purchase_order_line_id,
               project_lots!bill_lines_lot_id_fkey (
@@ -300,6 +303,7 @@ export function PayBillsTable({ projectId, projectIds, showProjectColumn = true,
               amount,
               memo,
               po_reference,
+              po_assignment,
               purchase_order_id,
               purchase_order_line_id,
               project_lots!bill_lines_lot_id_fkey (
@@ -355,6 +359,7 @@ export function PayBillsTable({ projectId, projectIds, showProjectColumn = true,
               amount,
               memo,
               po_reference,
+              po_assignment,
               purchase_order_id,
               purchase_order_line_id,
               project_lots!bill_lines_lot_id_fkey (
@@ -432,6 +437,7 @@ export function PayBillsTable({ projectId, projectIds, showProjectColumn = true,
               amount,
               memo,
               po_reference,
+              po_assignment,
               purchase_order_id,
               purchase_order_line_id,
               project_lots!bill_lines_lot_id_fkey (
@@ -546,8 +552,14 @@ export function PayBillsTable({ projectId, projectIds, showProjectColumn = true,
       status: b.status,
       bill_lines: b.bill_lines?.map(l => ({
         cost_code_id: l.cost_code_id,
+        cost_code_display: l.cost_codes ? `${l.cost_codes.code}: ${l.cost_codes.name}` : undefined,
         amount: l.amount,
-        purchase_order_id: l.purchase_order_id,
+        // Honor explicit "No PO" intent persisted on bill_lines.po_assignment.
+        purchase_order_id: l.po_assignment === 'none' ? '__none__' : l.purchase_order_id,
+        purchase_order_line_id: l.purchase_order_line_id,
+        po_reference: l.po_reference || null,
+        po_assignment: l.po_assignment || null,
+        memo: l.memo,
         cost_codes: l.cost_codes
       }))
     }));

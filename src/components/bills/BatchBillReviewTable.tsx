@@ -83,6 +83,7 @@ interface PendingBillLine {
   purchase_order_id?: string;
   purchase_order_line_id?: string;
   po_reference?: string | null;
+  po_assignment?: string | null;
 }
 
 interface PendingBill {
@@ -216,9 +217,15 @@ export function BatchBillReviewTable({
         status: 'draft',
         bill_lines: (b.lines || []).map((l, idx) => ({
           cost_code_id: l.cost_code_id,
+          cost_code_display: l.cost_code_name,
           amount: l.amount,
-          purchase_order_id: l.purchase_order_id,
+          // Translate persisted "po_assignment = 'none'" back into the UI sentinel
+          // so the matcher and summary dialog honor the explicit "No PO" intent.
+          purchase_order_id: l.po_assignment === 'none' ? '__none__' : l.purchase_order_id,
+          purchase_order_line_id: l.purchase_order_line_id,
           po_reference: l.po_reference || extLineItems[idx]?.po_reference || null,
+          po_assignment: l.po_assignment || null,
+          memo: l.memo,
         })),
       };
     });
