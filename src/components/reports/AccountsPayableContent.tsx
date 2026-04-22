@@ -104,7 +104,8 @@ export function AccountsPayableContent({ projectId, onHeaderActionChange, asOfDa
           total_amount,
           amount_paid,
           vendor:companies!vendor_id(company_name),
-          bill_lines(lot_id, amount)
+          bill_lines(lot_id, amount),
+          bill_attachments(id, file_name, file_path, file_size, content_type)
         `)
         .eq('project_id', projectId)
         .in('status', ['posted', 'paid'])
