@@ -90,7 +90,9 @@ export function useBillPOMatching(bills: BillForMatching[]) {
         (bill.bill_lines || []).forEach(line => {
           const poId = line.purchase_order_id;
           // Explicit "No PO" — never fall back to vendor/cost-code or po_reference matching.
-          if (poId === '__none__') return;
+          // Honor BOTH the sentinel AND a persisted po_assignment='none' (in case a stale
+          // UUID survives in the row from an earlier auto-match).
+          if (poId === '__none__' || line.po_assignment === 'none') return;
           if (!poId || poId === '__auto__') {
             if (bill.vendor_id && bill.project_id && line.cost_code_id) {
               unmatchedLines.push({
