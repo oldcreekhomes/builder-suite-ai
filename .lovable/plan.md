@@ -1,58 +1,40 @@
 
 
-## Fix A/P Aging report to match Balance Sheet ($161,894.60)
+## Investigate the remaining $7,998.71 A/P Aging gap
 
-### Diagnosis
-On project `494d10f1-…` as of 02/28/2026:
+### What the data says
+Verified in the live DB for project `494d10f1-…` as of 02/28/2026:
 
-| Source | Total | Method |
-|---|---|---|
-| Balance Sheet → 2010 A/P | **$161,894.60** | Sum of all journal entry lines posted to account 2010 (debits − credits, as-of date) |
-| Balance Sheet → click 2010 (QB-style detail) | **$161,894.60** | Same, shown line-by-line |
-| A/P Aging report (current) | $153,395.89 | Per-bill: `total_amount − amount_paid_as_of` (broken) |
+- GL on account 2010, project-scoped, with the canonical reversal filter = **$161,894.60** ✅ (matches Balance Sheet)
+- 149 active bills, 28 in the 1-30 bucket totaling **$160,971.95**, 1 in 31-60 ($200), 2 in 61-90 ($722.65) — sum = **$161,894.60**
+- All 269 GL lines have the correct `project_id` populated
+- Every GL `source_id` maps cleanly to one of the 149 active bills (no orphans, no negatives, no zeros)
 
-Discrepancy = **$8,498.71 short** in the A/P Aging report. The Balance Sheet is the source of truth (direct from the general ledger).
+After the last fix the report shows **$153,895.89** — exactly $7,998.71 short. The credit-memo bug ($500) was fixed. Something else is silently dropping ~$8K of bills from the rendered list.
 
-Three confirmed bugs in `src/components/reports/AccountsPayableContent.tsx`:
+### Likely cause
+One of these is silently zeroing out a handful of bills in the new GL-derived open-balance map, after which the "openBalance > $0.01" filter at line 248 quietly removes them:
 
-1. **Credit-memo math is wrong** (≈ $500 off)  
-   Bill `OCH-02302` is a vendor credit with `total_amount = −$500` and a $500 internal application payment. Current code does `−500 − 500 = −$1,000`, then the UI further mis-renders it as `−$500`. Either way the credit memo's "open balance" should simply track its remaining unapplied portion of the −$500, not be reduced by application debits that are themselves part of the credit's accounting.
+1. **`journal_entry_lines.project_id` race**: a bill's credit line has `project_id = null` for a few entries (only payment debits do, which would *raise* the open balance, not lower it). Confirmed not the cause for this dataset, but worth guarding.
+2. **Date-string parsing**: `asOfDate.toISOString().split('T')[0]` shifts to UTC. For users west of UTC late in the day this can move the as-of cutoff back a day, dropping any JEs dated on `asOf`. Balance Sheet uses the same trick, so it would still tie — unless the bill list query (which uses the same string) drops bills the GL keeps, or vice versa.
+3. **`maybeSingle()` on accounts with code `2010`**: there are TWO rows with code=`2010` (one per home builder) globally. RLS scopes per user, but `maybeSingle()` will THROW if RLS ever returns >1 row for cross-tenant employees / accountants. Should be `.eq('owner_id', …).single()` or filtered through the same `home_builder_id` the bills query already implies.
+4. **An active bill with no GL entry hitting account 2010** (e.g. legacy bills imported before the JE writer existed). They'd appear with `openGL = 0` and get filtered out, even though the bill table still says they're unpaid.
 
-2. **Bill-row payload truncation / 1000-row PostgREST cap** (≈ $7,498.71 off)  
-   The bills query embeds `bill_lines(lot_id, amount)` and `bill_attachments(...)`. With ~149 active bills × multiple lines × multiple attachments, the response can be silently truncated by PostgREST's default 1000-row limit, dropping the tail of the bill list (the most recent 1-30-day bills) entirely. This explains why the 1-30 bucket totals $153,973 instead of $160,972.
-
-3. **No reconciliation guard against the GL.**  
-   The report computes from the bills table but never sanity-checks against the GL credits/debits to account 2010. Discrepancies pass silently.
-
-### What changes (one file)
+### Fix (one file, two passes)
 `src/components/reports/AccountsPayableContent.tsx`
 
-**A. Replace the bill-list query with paginated, slim fetch + separate child fetches.**
-- Page through `bills` with `fetchAllRows` (already used in `BalanceSheetContent`) selecting only the parent columns (no embedded `bill_lines` / `bill_attachments`).
-- Fetch `bill_lines (id, bill_id, lot_id, amount)` and `bill_attachments(...)` in separate paginated calls keyed by `bill_id IN (batchedIn(activeBillIds, 200))` per the project's `Supabase batching` memory.
-- Stitch them back into the bill objects in memory. This eliminates the 1000-row embedded-cap truncation.
+**Pass 1 — instrument and surface the diff (immediate):**
+- After computing `glNet` and `grandTotal`, log a structured diagnostic to the console with: total bill count, sum of `bill.total_amount - bill.amount_paid` (legacy method), sum of GL-derived open balances per bill, list of bills where the two methods disagree by > $0.01, and any bills present in the bills list but missing from `openBySource`.
+- Always show the existing reconciliation banner whenever `|glNet − grandTotal| > 0.01` (currently only shown in `__total__` view) so the diff is visible in any lot view too.
 
-**B. Switch the open-balance source of truth to the GL for the aging total.**
-- Compute each bill's open balance as: `creditsToAP(billId) − debitsToAP(billId)` from `journal_entry_lines` joined to `journal_entries` where `account.code = '2010'`, scoped to `source_id = bill.id` regardless of `source_type`. This matches the Balance Sheet exactly and naturally handles credit memos, partial payments, and any future adjustment types.
-- Use the same as-of/reversal filters already used in `BalanceSheetContent` (`is_reversal=false`, `reversed_by_id IS NULL`, `entry_date <= asOf`, `reversed_at IS NULL OR > asOf`) so the two reports can never disagree.
-- Drop the bespoke `paidAsOfDate` / `predecessorToActive` map — no longer needed.
-
-**C. Bucket on `aging` from the bill date as today, but include `aging = 0` rows correctly.**
-- Keep the existing 1-30 / 31-60 / 61-90 / >90 buckets. Bills with `aging < 0` (future-dated relative to as-of) cannot exist because of the `bill_date <= asOf` filter.
-- Negative open balances (credit memos) stay grouped by their bill's aging bucket and reduce that bucket's subtotal — so the report ties to the GL line-for-line.
-
-**D. Add a reconciliation safeguard.**
-- After computing the per-bill open balances, also compute the GL net for account 2010 (project-scoped, same date filters) and compare to `grandTotal`. If they differ by more than $0.01, render a small warning row under the grand total: `"Reconciliation difference vs G/L: $X.XX — please contact support"`. This makes any future regression visible immediately.
-
-**E. Lot view stays correct.**
-- For a specific lot, allocate each bill's GL-derived open balance proportionally by `lot_amount / total_amount` from `bill_lines` (same ratio currently used). Unchanged shape; only the input source changes from `total_amount − paid` to GL-derived open.
-
-### Out of scope
-- No DB schema changes.
-- Balance Sheet, Income Statement, Job Costs, Manage Bills, and PDF export shape are unchanged. Only the data feeding `AccountsPayableContent` (and its PDF) changes.
+**Pass 2 — fix the actual root cause (data-driven from Pass 1 logs):**
+- Resolve the A/P account by `code='2010' AND owner_id = <bill owner>` derived from the first bill, instead of `maybeSingle()` over a global lookup. Fall back to summing all 2010-coded accounts the user can see if the project's owner can't be determined.
+- For any bill that exists in the bills list but has no entry in `openBySource`, fall back to its `total_amount − amount_paid` so legacy bills without journal entries are not silently zeroed.
+- For any bill where `openGL` and `total − amount_paid` disagree, prefer `openGL` (the GL is truth) but include the bill regardless of whether either source is non-zero, and let the $0.01 filter act on the GL-derived value only.
+- Replace the `asOfDate.toISOString().split('T')[0]` calls with a local-time `format(asOfDate, 'yyyy-MM-dd')` to eliminate the UTC drift (Balance Sheet should get the same change in a follow-up if needed; outside this scope).
 
 ### Verification
-On project `494d10f1-…` as of 02/28/2026 the A/P Aging Total Outstanding shows **$161,894.60**, identical to the Balance Sheet 2010 A/P balance and to the QB-style detail click-through. Spot-check the same on three other dates and on a different project.
+On project `494d10f1-…` as of 02/28/2026 the A/P Aging Total Outstanding shows **$161,894.60**, identical to the Balance Sheet 2010 A/P balance. The reconciliation banner is empty. Pass 1 console diagnostics, kept behind a `console.debug`, list zero discrepancies. Spot-check on three other dates and a different project (1907 Homes).
 
 ### Files touched
 - `src/components/reports/AccountsPayableContent.tsx` only.
