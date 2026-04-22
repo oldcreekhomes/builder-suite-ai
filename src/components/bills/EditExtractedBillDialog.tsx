@@ -124,6 +124,11 @@ export function EditExtractedBillDialog({
   const showPOSelection = useShouldShowPOSelection(projectId, vendorId);
   const { data: vendorPOs } = useVendorPurchaseOrders(projectId, vendorId);
   const hasAutoMatched = useRef(false);
+  // Per-line guard: never re-run auto-match for a line we've already evaluated this open-cycle.
+  const autoMatchedLineIds = useRef<Set<string>>(new Set());
+  // Lines the user has manually picked a PO (or "No PO") for during this session.
+  // The auto-matcher must never overwrite these.
+  const userTouchedPoLineIds = useRef<Set<string>>(new Set());
 
   const handleRemoveAttachment = async (attachment: { id: string; file_name: string; file_path: string }) => {
     try {
