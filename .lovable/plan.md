@@ -1,47 +1,34 @@
 
 
-## Fix the third number — Hide Paid filter mishandles partially-paid bills
+## Show one row per bill line in the PO Status Summary
 
-### What I found
-
-| View | Total | Status |
-|---|---|---|
-| A/P Aging Detail (PDF) as of 2/28 | $161,894.60 | correct |
-| Balance Sheet AP 2010 as of 2/28 | $161,894.60 | correct (now matches) |
-| AP Detail Dialog (Hide Paid ON) as of 2/28 | **$160,882.03** | **wrong — off by $1,012.57** |
-
-### Root cause — single bill, partially paid as of the as-of date
-
-Bill **#469748** for **$1,312.57** posted 2/23/2026:
-- Payment 1: **$300.00** on 2/23/2026 ✓ before as-of
-- Payment 2: **$1,012.57** on 3/18/2026 ✗ AFTER 2/28 as-of
-
-Today the bill's `bills.status='paid'` and `amount_paid=$1,312.57`, but as of 2/28 only $300 had been paid — **$1,012.57 was still outstanding** on that date.
-
-The bug is in `src/components/accounting/AccountDetailDialog.tsx` around lines 360–388. When an `asOfDate` is provided, the dialog builds a set `billsPaidBeforeAsOf` containing any bill that has *any* `bill_payment` JE on or before the as-of date — even a partial one. Then it marks `isPaid = true` for those bills. With **Hide Paid** ON, the bill ($1,312.57 credit) and its $300 partial payment (debit) are both hidden, but the $1,012.57 remainder simply vanishes from the running balance.
-
-A/P Aging and Balance Sheet are both correct because they net actual JE amounts and don't make the binary "paid/unpaid" assumption.
+### Problem
+The Edit Extracted Bill dialog shows **5 line items** (4 mapped to PO `2025-115E-0006` for Framing Labor, 1 mapped to PO `2026-115E-0060` for Exterior Trim Labor). The PO Status Summary collapses them into **2 rows** (one per unique PO) and sums each PO's "This Bill" total. The user wants the summary to mirror the bill — one row per bill line, with descriptions, so the two views match 1:1.
 
 ### Fix
 
-Replace the binary `billsPaidBeforeAsOf` set with a proper **as-of remaining-balance check**. A bill is "paid" as of the as-of date only when total payments before that date ≥ bill amount.
+In `src/components/bills/BillPOSummaryDialog.tsx`, change the table from "one row per matched PO" to "one row per bill line", in the same order as the bill.
 
-In the same `useQuery` block where `paymentEntries` is fetched (~lines 360–378):
-
-1. For each bill, sum the AP debits (payments) on/before `asOfDate` from the JE lines.
-2. Fetch the bill's posted AP credit (already in `bills.total_amount`, but use the actual JE sum to handle credits/reversals correctly).
-3. Mark `isPaid = true` only when `payments_total >= bill_credit_total` (cent-precise compare, per the project's cent-math standard).
-4. The predecessor→successor mapping logic (lines 405–429) already keys off this set; it continues to work unchanged once the set itself is corrected.
-
-After this fix, partially-paid bills as of the as-of date stay visible in the register (with their partial payments), and the running balance equals the Balance Sheet AP balance for every as-of date.
-
-### Verification
-
-- AP Detail Dialog as of **2026-02-28** with Hide Paid ON → **$161,894.60** (matches BS and A/P Aging).
-- Bill #469748 visible in the register with the $300 payment and a remaining $1,012.57.
-- AP Detail Dialog with Hide Paid OFF → unchanged (already correct, since nothing is filtered).
-- Other as-of dates with no partial payments → unchanged behavior.
+1. **Subtitle** (line 187-189): change `"… ${matches.length} matched POs"` to `"… ${billLines.length} line items across ${matches.length} POs"`.
+2. **Add a Description column** between Cost Code and PO Amount, so each row shows the line memo from the bill.
+3. **Render rows from `bill.bill_lines`** (not from `matches`):
+   - For each bill line, call `resolveLineToPoId(line)` to find the matched PO.
+   - Pull PO Number, Cost Code, PO Amount, Billed to Date, Files from the resolved PO (via `vendorPOs` and the `match` for that PO).
+   - **This Bill** = that single line's `amount` (no longer a sum across lines).
+   - **Remaining** = `po_amount − total_billed − sumOfAllThisBillLinesAllocatedToThisPO` (so the remaining stays consistent at the PO level — every line allocated to the same PO will display the same Remaining value, which is correct). Alternative: show remaining only on the first row for each PO and blank on subsequent rows. **Going with the first option** (repeat the same Remaining/Billed-to-Date on each line) for simplicity and so each row is self-contained.
+   - **Status** (per row): cent-precise based on the PO's projected billed total (same formula as today, but evaluated per PO and shown on each line).
+   - Lines with **no resolved PO** still render with PO Number = "—", Cost Code from the line, PO Amount/Billed/Remaining = "—", This Bill = line amount, Status = "No PO" (gray badge).
+4. **Single-PO shortcut** (lines 142-167): keep current behavior — if `matches.length === 1`, still open `PODetailsDialog` directly. No change.
+5. **Sort order**: preserve bill-line order (don't sort by PO number anymore), so the summary visually mirrors the Edit Extracted Bill dialog top-to-bottom.
 
 ### Files touched
-- `src/components/accounting/AccountDetailDialog.tsx` — only the as-of `isPaid` computation block. No DB changes, no other components.
+- `src/components/bills/BillPOSummaryDialog.tsx` only. No changes to `useBillPOMatching`, `PODetailsDialog`, DB, or other tabs.
+
+### Verification
+- Bill INV0025 PO Status Summary shows **5 rows** (4 Framing Labor + 1 Exterior Trim Labor), matching the Edit Extracted Bill dialog 1:1, each with its own description and amount.
+- Sum of "This Bill" column equals the bill total ($5,200).
+- Each Framing Labor row displays the same PO Amount / Billed to Date / Remaining (since they share PO 2025-115E-0006).
+- The Exterior Trim Labor row stands alone for PO 2026-115E-0060.
+- Single-PO bills still go straight to `PODetailsDialog` (unchanged).
+- A bill line with no matched PO shows as a "—" row with "No PO" status.
 
