@@ -145,7 +145,11 @@ export function EditExtractedBillDialog({
 
 
   useEffect(() => {
-    if (open) hasAutoMatched.current = false;
+    if (open) {
+      hasAutoMatched.current = false;
+      autoMatchedLineIds.current = new Set();
+      userTouchedPoLineIds.current = new Set();
+    }
   }, [open]);
 
   // Load bill data
