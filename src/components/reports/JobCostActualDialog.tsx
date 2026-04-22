@@ -436,11 +436,11 @@ const formatCurrency = (value: number) => {
                         <ArrowUpDown className="h-3 w-3" />
                       </button>
                     </TableHead>
-                    <TableHead>Files</TableHead>
-                    <TableHead className="text-right">Amount</TableHead>
-                    <TableHead className="text-right">Balance</TableHead>
-                    <TableHead className="text-center">Cleared</TableHead>
-                    <TableHead className="text-center">Actions</TableHead>
+                    <TableHead className="w-[8%]">Files</TableHead>
+                    <TableHead className="w-[10%] text-right">Amount</TableHead>
+                    <TableHead className="w-[10%] text-right">Balance</TableHead>
+                    <TableHead className="w-[5%] text-center">Cleared</TableHead>
+                    <TableHead className="w-[5%] text-center">Actions</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
