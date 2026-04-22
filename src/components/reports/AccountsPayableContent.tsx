@@ -521,12 +521,12 @@ export function AccountsPayableContent({ projectId, onHeaderActionChange, asOfDa
                           <Table>
                             <TableHeader>
                               <TableRow>
-                                <TableHead className="w-[12%]">Date</TableHead>
+                                <TableHead className="w-[11%]">Date</TableHead>
                                 <TableHead className="w-[12%]">Num</TableHead>
-                                <TableHead className="w-[26%]">Name</TableHead>
-                                <TableHead className="w-[12%]">Due Date</TableHead>
-                                <TableHead className="w-[8%] text-right">Aging</TableHead>
-                                <TableHead className="w-[12%]">Files</TableHead>
+                                <TableHead className="w-[24%]">Name</TableHead>
+                                <TableHead className="w-[11%]">Due Date</TableHead>
+                                <TableHead className="w-[10%] text-right">Aging</TableHead>
+                                <TableHead className="w-[14%] pl-8">Files</TableHead>
                                 <TableHead className="w-[18%] text-right">Open Balance</TableHead>
                               </TableRow>
                             </TableHeader>
@@ -540,7 +540,7 @@ export function AccountsPayableContent({ projectId, onHeaderActionChange, asOfDa
                                   <TableCell className="font-medium">{bill.vendorName}</TableCell>
                                   <TableCell>{formatDate(bill.dueDate)}</TableCell>
                                   <TableCell className="text-right">{bill.aging}</TableCell>
-                                  <TableCell>
+                                  <TableCell className="pl-8">
                                     {attachments.length > 0 ? (
                                       <BillFilesCell attachments={attachments} />
                                     ) : (
