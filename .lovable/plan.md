@@ -1,64 +1,69 @@
 
+Fix the pending-bill line-item views so the hover tooltip, PO dialog, and Edit Extracted Bill all render from the same saved line rows and therefore always agree.
 
-## Stop the auto-PO-matching effect from overwriting the user's "No PO" choice
+1. Make `pending_bill_lines` the single source of truth for pending AI bills
+- For the Enter with AI / Review table, stop using `extracted_data.total_amount` as the displayed bill amount whenever `pending_bill_lines` exist.
+- Compute the amount column from the saved line amounts, with `extracted_data.total_amount` only as a fallback when no line rows exist yet.
+- Do the same for tooltip totals so the row amount, tooltip total, and editor total can never diverge.
 
-### Root cause (verified in the live DB)
+2. Fix the hover tooltip so it includes every saved line
+- Replace the current tooltip breakdown logic in `BatchBillReviewTable.tsx`, which only totals rows that have a visible `cost_code_name`/`account_name`.
+- Include all saved lines in original order.
+- For lines missing a visible label, show a deterministic fallback like `No Cost Code` / `No Account` instead of dropping the row.
+- Use the same display formatter everywhere so framing lines show their code numbers when present and blank rows are still counted.
 
-The Edit Extracted Bill dialog runs an auto-PO-matching effect (`EditExtractedBillDialog.tsx` ~lines 440–491) that:
+3. Fix the pending PO dialog to show the same saved lines, not a filtered subset
+- In `BatchBillReviewTable.tsx`, pass full line metadata into `BillPOSummaryDialog`: `cost_code_display`, `po_assignment`, `po_reference`, and the normalized `purchase_order_id` sentinel handling used by matching.
+- In `BillPOSummaryDialog.tsx`, remove the current “single PO = jump straight to PODetailsDialog” shortcut whenever the bill has any unmatched lines.
+- Only use the direct single-PO detail view when every line truly resolves to that one PO.
+- Otherwise render the summary table so unmatched lines 2/3/4 still appear as `No PO`.
+- For each row, prefer the bill line’s saved `cost_code_display` over the PO header match label so the PO summary mirrors the editor exactly.
 
-1. Recomputes a best PO match for every job-cost line whenever `vendorPOs` OR `jobCostLines` changes.
-2. Fire-and-forgets `supabase.from('pending_bill_lines').update({ purchase_order_id, purchase_order_line_id })` directly into the DB, **without writing `po_assignment`** and **without checking whether the user already explicitly chose "No purchase order"**.
+4. Fix initial pending-bill auto-matching so it doesn’t create silent contradictions
+- Update the PO auto-match block in `BillsApprovalTabs.tsx` to honor explicit `po_assignment = 'none'` and skip rematching those rows.
+- When it does auto-match, persist `po_assignment = 'auto'` alongside `purchase_order_id` / `purchase_order_line_id`.
+- If a matched PO line provides the only known cost code, persist the inherited `cost_code_id` and formatted display label so the editor and tooltip don’t show blanks.
+- This aligns the initial review-table state with the later editor logic instead of having two different auto-match behaviors.
 
-For INV0022, the live rows show:
+5. Remove the editor fallback that collapses real multi-line bills into one synthetic line
+- In `EditExtractedBillDialog.tsx`, delete the load-time “replace ALL lines with a single Amount Due line” fallback when saved line totals differ from `extracted_data.total_amount`.
+- Keep the actual saved rows visible even when totals need review.
+- If needed, add a warning banner that the extracted total and line sum disagree, but never destroy the detailed line breakdown the user can correct.
 
-| line | cost code | purchase_order_id | po_assignment | updated_at |
-|---|---|---|---|---|
-| 1 Siding | 4470 | 3f63b122… (`…0003`) | NULL | 22:12:00 |
-| 2 Trim | 4410 | 20c8f3ef… (`…0004`) | NULL | **22:15:36** |
-| 3 Trim | 4410 | 20c8f3ef… (`…0004`) | NULL | **22:15:36** |
-| 4 Tyvek | 4375 | NULL | NULL | 22:12:00 |
+6. Harden extraction recovery for collapsed invoices like INV0022
+- In `supabase/functions/extract-bill-data/index.ts`, keep the recovered multi-line split, but stop assigning a cost code only to the first recovered row.
+- Run cost-code inference per recovered row so all four amounts (`10,268`, `400`, `400`, `500`) survive with row-level categorization.
+- Add a validation pass: if multiple grounded amounts are found in source text, preserve them as separate `line_items`; if row math is suspicious, flag `needs_review` instead of collapsing the invoice.
+- This prevents future extractions from recreating the “one PO line plus blank/partial editor lines” problem.
 
-Lines 2/3 were updated by the auto-matcher **after** the user's save, so the previous "honor `__none__`" fix never had a chance — the saved state gets overwritten 3 minutes later by the effect re-firing. `po_assignment` is also still NULL on every row, so PO Summary's "auto-match by cost code" fallback kicks in too.
+7. Repair the currently broken pending INV0022 record
+- Create a migration to correct the current pending upload for this invoice so the preview matches immediately:
+  - four saved rows
+  - amounts `10,268 / 400 / 400 / 500`
+  - correct cost codes on all four rows
+  - only line 1 attached to the siding PO
+  - lines 2–4 explicitly marked `No PO`
+- If any stale auto-match rows exist on this pending upload, clear them and set `po_assignment` consistently.
 
-### Fix
+Technical details
+- Files to update:
+  - `src/components/bills/BatchBillReviewTable.tsx`
+  - `src/components/bills/BillPOSummaryDialog.tsx`
+  - `src/components/bills/BillsApprovalTabs.tsx`
+  - `src/components/bills/EditExtractedBillDialog.tsx`
+  - `supabase/functions/extract-bill-data/index.ts`
+  - new Supabase migration for the INV0022 repair
+- Core rule for all pending-bill UI:
+  - metadata source: `pending_bill_uploads.extracted_data`
+  - line-item source: `pending_bill_lines`
+  - never mix display totals from one source with line details from the other
+- Matching rule:
+  - `po_assignment = 'none'` always wins
+  - `po_assignment = 'auto'` marks system suggestions
+  - explicit saved line state must render identically in tooltip, PO summary, and editor
 
-#### 1. Make the auto-PO-matching effect respect explicit user intent
-In `src/components/bills/EditExtractedBillDialog.tsx` (the effect at ~440–491):
-- Skip any line whose current state is `purchase_order_id === '__none__'` OR whose persisted `po_assignment === 'none'`. Never re-match those, never write to DB for them.
-- Also skip lines the user has manually touched in this session (track a `userTouchedPoLineIds` set updated by the `POSelectionDropdown` onChange).
-- When the effect DOES persist a match, write `po_assignment: 'auto'` alongside the `purchase_order_id` so we can tell auto-matches from explicit ones later.
-- Run the effect **once per dialog open per line**, not on every `jobCostLines` change. Use a ref-guard keyed by `pendingUploadId + lineId` so it can't loop and re-clobber.
-
-#### 2. Make the manual save path the single source of truth
-Still in `EditExtractedBillDialog.tsx`:
-- In `handleSave`, for every job-cost line, ALWAYS write both `purchase_order_id` (real UUID or `null`) AND `po_assignment` (`'none' | 'auto' | null`). No more relying on the auto-matcher's separate writes.
-- When `line.purchase_order_id === '__none__'`: write `purchase_order_id = null`, `po_assignment = 'none'`, `purchase_order_line_id = null`.
-- When the user picked a real PO: write `po_assignment = null` (explicit user pick) and the UUID.
-- When still `__auto__` / unset: leave whatever the auto-matcher wrote (`po_assignment = 'auto'`).
-
-#### 3. Force PO Summary + matcher to honor `po_assignment = 'none'` even when `purchase_order_id` is non-null
-In `src/hooks/useBillPOMatching.ts` and `src/hooks/usePendingBillPOStatus.ts`:
-- Treat a line as "No PO" if EITHER `purchase_order_id === '__none__'` OR `po_assignment === 'none'`. If both flags disagree (e.g. UUID set but `po_assignment = 'none'`), trust `po_assignment`. This guarantees PO Summary won't show a PO link even if a stale UUID survives in the row.
-- In `BatchBillReviewTable.tsx`, `BillsApprovalTable.tsx`, `PayBillsTable.tsx` `billsForMatching` builders: if `po_assignment === 'none'`, force `purchase_order_id = '__none__'` regardless of the stored UUID.
-
-#### 4. Repair the existing INV0022 row
-One-time SQL via migration: for `pending_bill_lines` where `pending_upload_id = '72304b79-…'` and `line_number IN (2,3)`, set `purchase_order_id = NULL`, `purchase_order_line_id = NULL`, `po_assignment = 'none'`. This unwinds the bad state on the bill currently in the user's view so they can verify the fix without re-extracting.
-
-#### 5. Backfill `po_assignment = 'auto'` for any row the auto-matcher previously wrote without explicit user intent
-Migration: where `purchase_order_id IS NOT NULL` AND `po_assignment IS NULL`, set `po_assignment = 'auto'`. This makes the new "trust po_assignment" rules behave consistently for older bills.
-
-### Files touched
-- `src/components/bills/EditExtractedBillDialog.tsx`
-- `src/hooks/useBillPOMatching.ts`
-- `src/hooks/usePendingBillPOStatus.ts`
-- `src/components/bills/BatchBillReviewTable.tsx`
-- `src/components/bills/BillsApprovalTable.tsx`
-- `src/components/bills/PayBillsTable.tsx`
-- new migration: clear lines 2/3 of `72304b79-…` and backfill `po_assignment`
-
-### Verification on INV0022
-1. Reload the bill in Edit Extracted Bill: lines 2, 3, 4 already show "No purchase…" and STAY that way; lines are not re-matched on render.
-2. Open PO Status Summary: only line 1 (`4470 Siding`) attached to `2025-115E-0003`; lines 2, 3, 4 show "No PO" with their saved cost codes and standard font.
-3. Manually pick a real PO on line 2, save, reopen — selection persists.
-4. Manually set line 2 back to "No purchase…", save, reopen — still "No PO". PO Summary matches.
-
+Verification
+1. Hover the cost code cell: four rows appear, all amounts present, total = `$11,568.00`.
+2. Open PO status: line 1 shows the siding PO; lines 2–4 remain visible as `No PO`.
+3. Open Edit Extracted Bill: same four rows, same amounts, same cost codes, same PO assignments.
+4. Re-extract another invoice in this format: it stays split into separate line items instead of collapsing to one synthetic total row.
