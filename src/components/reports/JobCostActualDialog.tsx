@@ -538,7 +538,7 @@ const formatCurrency = (value: number) => {
                   
                   {/* Total Row */}
                   <TableRow className="font-semibold bg-muted/30">
-                    <TableCell colSpan={4}>
+                    <TableCell colSpan={5}>
                       <span className="text-xs font-semibold">Total</span>
                     </TableCell>
                     <TableCell className="text-right">
