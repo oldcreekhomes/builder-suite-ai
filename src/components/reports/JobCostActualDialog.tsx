@@ -16,6 +16,7 @@ import { EditDepositDialog } from "@/components/deposits/EditDepositDialog";
 import { EditCheckDialog } from "@/components/checks/EditCheckDialog";
 import { useChecks } from "@/hooks/useChecks";
 import { toast } from "@/hooks/use-toast";
+import { BillFilesCell } from "@/components/bills/BillFilesCell";
 
 interface JobCostActualDialogProps {
   isOpen: boolean;
@@ -160,7 +161,7 @@ export function JobCostActualDialog({
         .filter((id): id is string => id !== null);
 
       // Enrich bill entries with vendor and reference info
-      let billsMap = new Map<string, { reference_number: string | null; vendor_name: string | null; reconciled: boolean | null }>();
+      let billsMap = new Map<string, { reference_number: string | null; vendor_name: string | null; reconciled: boolean | null; attachments: any[] }>();
       if (billSourceIds.length > 0) {
         const { data: billsData } = await supabase
           .from('bills')
@@ -169,7 +170,8 @@ export function JobCostActualDialog({
             reference_number,
             reconciled,
             vendor_id,
-            companies!bills_vendor_id_fkey(company_name)
+            companies!bills_vendor_id_fkey(company_name),
+            bill_attachments(id, file_path, file_name, file_size, content_type)
           `)
           .in('id', billSourceIds);
 
@@ -179,7 +181,8 @@ export function JobCostActualDialog({
             {
               reference_number: bill.reference_number,
               vendor_name: (bill.companies as any)?.company_name,
-              reconciled: bill.reconciled
+              reconciled: bill.reconciled,
+              attachments: (bill as any).bill_attachments || []
             }
           ]) || []
         );
@@ -244,6 +247,7 @@ export function JobCostActualDialog({
         let bill_id: string | undefined;
         let deposit_id: string | undefined;
         let check_id: string | undefined;
+        let attachments: any[] = [];
 
         if (sourceType === 'bill') {
           const billData = billsMap.get(sourceId);
@@ -251,6 +255,7 @@ export function JobCostActualDialog({
           reference_number = billData?.reference_number ?? undefined;
           reconciled = billData?.reconciled ?? line.reconciled;
           bill_id = sourceId;
+          attachments = billData?.attachments || [];
         } else if (sourceType === 'check') {
           const checkData = checksMap.get(sourceId);
           vendor_name = checkData?.pay_to;
@@ -272,6 +277,7 @@ export function JobCostActualDialog({
           vendor_name,
           reference_number,
           reconciled,
+          attachments,
         };
       });
     },
@@ -430,6 +436,7 @@ const formatCurrency = (value: number) => {
                         <ArrowUpDown className="h-3 w-3" />
                       </button>
                     </TableHead>
+                    <TableHead>Files</TableHead>
                     <TableHead className="text-right">Amount</TableHead>
                     <TableHead className="text-right">Balance</TableHead>
                     <TableHead className="text-center">Cleared</TableHead>
@@ -453,6 +460,13 @@ const formatCurrency = (value: number) => {
                         </TableCell>
                         <TableCell>
                           <span className="text-xs">{line.memo || line.journal_entries.description || '-'}</span>
+                        </TableCell>
+                        <TableCell>
+                          {line.bill_id && (line as any).attachments?.length > 0 ? (
+                            <BillFilesCell attachments={(line as any).attachments} />
+                          ) : (
+                            <span className="text-xs text-muted-foreground">—</span>
+                          )}
                         </TableCell>
                         <TableCell className="text-right">
                           <span className="text-xs">{formatCurrency(netAmount)}</span>
@@ -524,7 +538,7 @@ const formatCurrency = (value: number) => {
                   
                   {/* Total Row */}
                   <TableRow className="font-semibold bg-muted/30">
-                    <TableCell colSpan={4}>
+                    <TableCell colSpan={5}>
                       <span className="text-xs font-semibold">Total</span>
                     </TableCell>
                     <TableCell className="text-right">
