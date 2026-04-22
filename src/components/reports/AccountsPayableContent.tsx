@@ -92,17 +92,16 @@ export function AccountsPayableContent({ projectId, onHeaderActionChange, asOfDa
         throw new Error("Project ID is required for A/P Aging report");
       }
 
-      const asOfDateStr = asOfDate.toISOString().split('T')[0];
+      const asOfDateStr = format(asOfDate, 'yyyy-MM-dd');
 
-      // Step 0: Resolve A/P account id (code = '2010')
-      const { data: apAccount, error: apErr } = await supabase
+      // Step 0: Resolve A/P account id (code = '2010') — may have multiple rows across tenants under RLS
+      const { data: apAccounts, error: apErr } = await supabase
         .from('accounts')
-        .select('id')
-        .eq('code', '2010')
-        .maybeSingle();
+        .select('id, owner_id')
+        .eq('code', '2010');
       if (apErr) throw apErr;
-      if (!apAccount) return { bills: [], glNet: 0 };
-      const apAccountId = apAccount.id;
+      if (!apAccounts || apAccounts.length === 0) return { bills: [], glNet: 0 };
+      const apAccountIds = apAccounts.map(a => a.id);
 
       // Step 1: Fetch all non-reversed bills (posted/paid) with bill_date <= asOf — paginated, slim
       const bills = await fetchAllRows<any>(() =>
