@@ -721,48 +721,29 @@ export function PayBillsTable({ projectId, projectIds, showProjectColumn = true,
 
   const getCostCodeOrAccountData = (bill: BillForPayment) => {
     if (!bill.bill_lines || bill.bill_lines.length === 0) {
-      return { display: '-', costCodeBreakdown: [] as { costCode: string; lots: { name: string; amount: number }[] }[], totalAmount: bill.total_amount, count: 0 };
+      return { display: '-', lineBreakdown: [] as { costCode: string; lotName: string; amount: number }[], totalAmount: bill.total_amount, count: 0 };
     }
-    
-    // Group by cost code, then by lot
-    const costCodeMap = new Map<string, Map<string, { name: string; amount: number }>>();
-    
-    bill.bill_lines.forEach(line => {
-      const costCodeKey = line.cost_codes 
+
+    // One entry per bill line, preserving entry order
+    const lineBreakdown = bill.bill_lines.map(line => {
+      const costCode = line.cost_codes
         ? `${line.cost_codes.code}: ${line.cost_codes.name}`
-        : line.accounts 
+        : line.accounts
           ? `${line.accounts.code}: ${line.accounts.name}`
-          : null;
-      
-      if (!costCodeKey) return;
-      
-      const lotName = line.project_lots?.lot_name || 
+          : '';
+      const lotName = line.project_lots?.lot_name ||
         (line.project_lots ? `Lot ${line.project_lots.lot_number}` : 'Unassigned');
-      const lotKey = line.lot_id || 'unassigned';
-      
-      if (!costCodeMap.has(costCodeKey)) {
-        costCodeMap.set(costCodeKey, new Map());
-      }
-      
-      const lotMap = costCodeMap.get(costCodeKey)!;
-      const existing = lotMap.get(lotKey);
-      if (existing) {
-        existing.amount += line.amount || 0;
-      } else {
-        lotMap.set(lotKey, { name: lotName, amount: line.amount || 0 });
-      }
-    });
-    
-    const costCodeBreakdown = Array.from(costCodeMap.entries()).map(([costCode, lotMap]) => ({
-      costCode,
-      lots: Array.from(lotMap.values())
-    }));
-    
-    const count = costCodeBreakdown.length;
-    // Use bill.total_amount as the authoritative total to avoid rounding errors
-    if (count === 0) return { display: '-', costCodeBreakdown: [], totalAmount: bill.total_amount, count: 0 };
-    if (count === 1) return { display: costCodeBreakdown[0].costCode, costCodeBreakdown, totalAmount: bill.total_amount, count: 1 };
-    return { display: `${costCodeBreakdown[0].costCode} +${count - 1}`, costCodeBreakdown, totalAmount: bill.total_amount, count };
+      return {
+        costCode,
+        lotName,
+        amount: line.amount || 0,
+      };
+    }).filter(b => b.costCode);
+
+    const count = lineBreakdown.length;
+    if (count === 0) return { display: '-', lineBreakdown: [], totalAmount: bill.total_amount, count: 0 };
+    if (count === 1) return { display: lineBreakdown[0].costCode, lineBreakdown, totalAmount: bill.total_amount, count: 1 };
+    return { display: `${lineBreakdown[0].costCode} +${count - 1}`, lineBreakdown, totalAmount: bill.total_amount, count };
   };
 
   const getLotAllocationData = (bill: BillForPayment) => {
@@ -969,7 +950,7 @@ export function PayBillsTable({ projectId, projectIds, showProjectColumn = true,
                   </TableCell>
                   <TableCell className="whitespace-nowrap">
                     {(() => {
-                      const { display, costCodeBreakdown, totalAmount, count } = getCostCodeOrAccountData(bill);
+                      const { display, lineBreakdown, totalAmount, count } = getCostCodeOrAccountData(bill);
                       if (count <= 1) {
                         return display;
                       }
@@ -980,17 +961,13 @@ export function PayBillsTable({ projectId, projectIds, showProjectColumn = true,
                               {display}
                             </TooltipTrigger>
                             <TooltipContent className="max-w-xs">
-                              <div className="space-y-2">
-                                {costCodeBreakdown.map((cc, i) => (
+                              <div className="space-y-2 max-h-80 overflow-y-auto">
+                                {lineBreakdown.map((entry, i) => (
                                   <div key={i}>
-                                    <div className="font-medium text-xs">{cc.costCode}</div>
-                                    <div className="pl-2 space-y-0.5">
-                                      {cc.lots.map((lot, j) => (
-                                        <div key={j} className="flex justify-between gap-4 text-xs">
-                                          <span className="text-muted-foreground">{lot.name}:</span>
-                                          <span>${lot.amount.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
-                                        </div>
-                                      ))}
+                                    <div className="font-medium text-xs">{entry.costCode}</div>
+                                    <div className="pl-2 flex justify-between gap-4 text-xs">
+                                      <span className="text-muted-foreground">{entry.lotName}:</span>
+                                      <span>${entry.amount.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
                                     </div>
                                   </div>
                                 ))}
