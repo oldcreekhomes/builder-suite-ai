@@ -1129,7 +1129,7 @@ export function PayBillsTable({ projectId, projectIds, showProjectColumn = true,
                       );
                     })()}
                   </TableCell>
-                  <TableCell className="text-center w-16">
+                  <TableCell className="text-center w-16" onClick={(e) => e.stopPropagation()}>
                     <TableRowActions actions={[
                       {
                         label: "Edit",
