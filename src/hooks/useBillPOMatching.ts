@@ -87,7 +87,9 @@ export function useBillPOMatching(bills: BillForMatching[]) {
       bills.forEach(bill => {
         (bill.bill_lines || []).forEach(line => {
           const poId = line.purchase_order_id;
-          if (!poId || poId === '__none__' || poId === '__auto__') {
+          // Explicit "No PO" — never fall back to vendor/cost-code or po_reference matching.
+          if (poId === '__none__') return;
+          if (!poId || poId === '__auto__') {
             if (bill.vendor_id && bill.project_id && line.cost_code_id) {
               unmatchedLines.push({
                 vendorId: bill.vendor_id,
