@@ -22,7 +22,9 @@ interface BillLine {
   cost_code_id?: string;
   amount?: number;
   purchase_order_id?: string;
+  purchase_order_line_id?: string;
   po_reference?: string | null;
+  po_assignment?: string | null;
   cost_codes?: {
     code: string;
     name: string;
