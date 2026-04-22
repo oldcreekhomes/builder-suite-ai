@@ -17,6 +17,7 @@ import { pdf } from "@react-pdf/renderer";
 import { AccountsPayablePdfDocument, APAgingBill } from "./pdf/AccountsPayablePdfDocument";
 import { useToast } from "@/hooks/use-toast";
 import { BillFilesCell } from "@/components/bills/BillFilesCell";
+import { fetchAllRows, batchedIn } from "@/lib/supabasePaginate";
 
 interface BillAttachment {
   id: string;
@@ -83,139 +84,179 @@ export function AccountsPayableContent({ projectId, onHeaderActionChange, asOfDa
     enabled: !!selectedLotId,
   });
 
-  // Fetch outstanding bills
-  const { data: billsData, isLoading, error } = useQuery({
-    queryKey: ['ap-aging', projectId, selectedLotId, asOfDate.toISOString().split('T')[0]],
-    queryFn: async (): Promise<BillWithVendor[]> => {
+  // Fetch outstanding bills (GL-derived open balances against account 2010)
+  const { data: billsResult, isLoading, error } = useQuery({
+    queryKey: ['ap-aging-v2', projectId, selectedLotId, asOfDate.toISOString().split('T')[0]],
+    queryFn: async (): Promise<{ bills: BillWithVendor[]; glNet: number }> => {
       if (!projectId) {
         throw new Error("Project ID is required for A/P Aging report");
       }
 
       const asOfDateStr = asOfDate.toISOString().split('T')[0];
 
-      // Step 1: Fetch ALL non-reversed bills (posted or paid) with bill_date <= asOfDate
-      const { data, error } = await supabase
-        .from('bills')
-        .select(`
-          id,
-          bill_date,
-          reference_number,
-          due_date,
-          total_amount,
-          amount_paid,
-          vendor:companies!vendor_id(company_name),
-          bill_lines(lot_id, amount),
-          bill_attachments(id, file_name, file_path, file_size, content_type)
-        `)
-        .eq('project_id', projectId)
-        .in('status', ['posted', 'paid'])
-        .eq('is_reversal', false)
-        .is('reversed_by_id', null)
-        .lte('bill_date', asOfDateStr);
+      // Step 0: Resolve A/P account id (code = '2010')
+      const { data: apAccount, error: apErr } = await supabase
+        .from('accounts')
+        .select('id')
+        .eq('code', '2010')
+        .maybeSingle();
+      if (apErr) throw apErr;
+      if (!apAccount) return { bills: [], glNet: 0 };
+      const apAccountId = apAccount.id;
 
-      if (error) throw error;
+      // Step 1: Fetch all non-reversed bills (posted/paid) with bill_date <= asOf — paginated, slim
+      const bills = await fetchAllRows<any>(() =>
+        supabase
+          .from('bills')
+          .select('id, bill_date, reference_number, due_date, total_amount, amount_paid, vendor:companies!vendor_id(company_name)')
+          .eq('project_id', projectId)
+          .in('status', ['posted', 'paid'])
+          .eq('is_reversal', false)
+          .is('reversed_by_id', null)
+          .lte('bill_date', asOfDateStr)
+          .order('id')
+      );
 
-      const bills = data || [];
-      if (bills.length === 0) return [];
+      if (bills.length === 0) return { bills: [], glNet: 0 };
 
       const activeBillIds = bills.map(b => b.id);
 
-      // Step 2: Build predecessor map (old reversed bill -> active bill)
-      // Fetch reversed bills with reference_number so we can map payments to successors
+      // Step 2: Fetch bill_lines & bill_attachments separately, batched to avoid URL overflow
+      const [billLines, billAttachments] = await Promise.all([
+        batchedIn<any>(
+          (chunk) => supabase
+            .from('bill_lines')
+            .select('id, bill_id, lot_id, amount')
+            .in('bill_id', chunk),
+          activeBillIds
+        ),
+        batchedIn<any>(
+          (chunk) => supabase
+            .from('bill_attachments')
+            .select('id, bill_id, file_name, file_path, file_size, content_type')
+            .in('bill_id', chunk),
+          activeBillIds
+        ),
+      ]);
+
+      const linesByBill: Record<string, any[]> = {};
+      billLines.forEach(l => {
+        if (!l.bill_id) return;
+        (linesByBill[l.bill_id] = linesByBill[l.bill_id] || []).push(l);
+      });
+      const attachmentsByBill: Record<string, BillAttachment[]> = {};
+      billAttachments.forEach(a => {
+        if (!a.bill_id) return;
+        (attachmentsByBill[a.bill_id] = attachmentsByBill[a.bill_id] || []).push(a);
+      });
+
+      // Step 3: Pull all GL lines hitting A/P (account 2010) for this project, up to as-of, with reversal filter
+      const apJournalLines = await fetchAllRows<any>(() =>
+        supabase
+          .from('journal_entry_lines')
+          .select('debit, credit, journal_entries!inner(source_id, entry_date, reversed_at, reversed_by_id, is_reversal)')
+          .eq('account_id', apAccountId)
+          .eq('project_id', projectId)
+          .lte('journal_entries.entry_date', asOfDateStr)
+          .eq('journal_entries.is_reversal', false)
+          .is('journal_entries.reversed_by_id', null)
+          .or(`reversed_at.is.null,reversed_at.gt.${asOfDateStr}`, { referencedTable: 'journal_entries' })
+      );
+
+      // GL net (project-scoped) for reconciliation safeguard
+      let glNet = 0;
+      const openBySource: Record<string, number> = {};
+      apJournalLines.forEach((l: any) => {
+        const credit = l.credit || 0;
+        const debit = l.debit || 0;
+        glNet += credit - debit;
+        const srcId = l.journal_entries?.source_id;
+        if (srcId) {
+          openBySource[srcId] = (openBySource[srcId] || 0) + (credit - debit);
+        }
+      });
+
+      // Step 4: Build active-bill open balances. If a JE source_id maps to a reversed
+      // predecessor bill, credit it to the active successor (matched by reference_number).
+      const activeByRef: Record<string, string> = {};
+      bills.forEach(b => {
+        if (b.reference_number) activeByRef[b.reference_number] = b.id;
+      });
+      const activeIdSet = new Set(activeBillIds);
+
+      // Find reversed predecessors so we can remap their JEs
       const { data: reversedBills } = await supabase
         .from('bills')
-        .select('id, reversed_by_id, reference_number')
+        .select('id, reference_number')
         .eq('project_id', projectId)
         .not('reversed_by_id', 'is', null)
         .eq('is_reversal', false);
 
-      // Build a lookup: reference_number -> active bill ID
-      const activeByRef: Record<string, string> = {};
-      bills.forEach(b => {
-        if (b.reference_number) {
-          activeByRef[b.reference_number] = b.id;
-        }
-      });
-
-      // Map: predecessor (old) bill ID -> active bill ID by matching reference_number
       const predecessorToActive: Record<string, string> = {};
-      const predecessorIds: string[] = [];
       (reversedBills || []).forEach((rb: any) => {
-        if (!activeBillIds.includes(rb.id) && rb.reference_number) {
-          const activeId = activeByRef[rb.reference_number];
-          if (activeId) {
-            predecessorIds.push(rb.id);
-            predecessorToActive[rb.id] = activeId;
-          }
+        if (!activeIdSet.has(rb.id) && rb.reference_number) {
+          const successor = activeByRef[rb.reference_number];
+          if (successor) predecessorToActive[rb.id] = successor;
         }
       });
 
-      // Step 3: Query payment JEs for BOTH active AND predecessor bill IDs
-      const allBillIdsForPayments = [...activeBillIds, ...predecessorIds];
-      const { data: paymentEntries, error: payError } = await supabase
-        .from('journal_entries')
-        .select('source_id, journal_entry_lines!inner(debit)')
-        .eq('source_type', 'bill_payment')
-        .in('source_id', allBillIdsForPayments)
-        .lte('entry_date', asOfDateStr)
-        .or('reversed_at.is.null,reversed_at.gt.' + asOfDateStr)
-        .gt('journal_entry_lines.debit', 0);
-
-      if (payError) throw payError;
-
-      // Step 4: Sum payments per bill as of the report date
-      const paidAsOfDate: Record<string, number> = {};
-      (paymentEntries || []).forEach((entry: any) => {
-        const sourceId = entry.source_id;
-        const totalDebit = (entry.journal_entry_lines || []).reduce(
-          (sum: number, line: any) => sum + (line.debit || 0), 0
-        );
-        // If this payment references a predecessor bill, credit it to the active bill
-        const targetBillId = predecessorToActive[sourceId] || sourceId;
-        paidAsOfDate[targetBillId] = (paidAsOfDate[targetBillId] || 0) + totalDebit;
+      const openByBill: Record<string, number> = {};
+      Object.entries(openBySource).forEach(([sourceId, value]) => {
+        const target = predecessorToActive[sourceId] || sourceId;
+        if (activeIdSet.has(target)) {
+          openByBill[target] = (openByBill[target] || 0) + value;
+        }
       });
 
-      // Step 4: Calculate open balance and filter
       const isLotView = selectedLotId && selectedLotId !== '__total__';
 
-      let filteredBills = bills.map(bill => ({
-        ...bill,
-        amount_paid: paidAsOfDate[bill.id] || 0,
-      }));
+      let enriched: BillWithVendor[] = bills.map((b: any) => {
+        const lines = linesByBill[b.id] || [];
+        const openGL = openByBill[b.id] || 0;
+        return {
+          ...b,
+          total_amount: b.total_amount,
+          amount_paid: b.total_amount - openGL, // synthetic, so total - paid = openGL
+          bill_lines: lines,
+          bill_attachments: attachmentsByBill[b.id] || [],
+        };
+      });
 
       if (isLotView) {
-        // Filter to bills that have lines for this lot OR unallocated (null lot_id)
-        filteredBills = filteredBills.filter(bill => {
-          const lotLines = bill.bill_lines?.filter(
-            line => line.lot_id === selectedLotId || line.lot_id === null
-          ) || [];
-          return lotLines.length > 0;
-        });
-
-        // Replace total_amount with lot-specific amount and pro-rate payments
-        filteredBills = filteredBills.map(bill => {
-          const lotAmount = bill.bill_lines
-            .filter(line => line.lot_id === selectedLotId || line.lot_id === null)
-            .reduce((sum, line) => sum + line.amount, 0);
-          const ratio = bill.total_amount > 0 ? lotAmount / bill.total_amount : 0;
-          return {
-            ...bill,
-            total_amount: lotAmount,
-            amount_paid: bill.amount_paid * ratio,
-          };
-        });
+        enriched = enriched
+          .filter(bill => {
+            const lotLines = bill.bill_lines?.filter(
+              line => line.lot_id === selectedLotId || line.lot_id === null
+            ) || [];
+            return lotLines.length > 0;
+          })
+          .map(bill => {
+            const lotAmount = (bill.bill_lines || [])
+              .filter(line => line.lot_id === selectedLotId || line.lot_id === null)
+              .reduce((sum, line) => sum + line.amount, 0);
+            const ratio = bill.total_amount > 0 ? lotAmount / bill.total_amount : 0;
+            const openGL = openByBill[bill.id] || 0;
+            return {
+              ...bill,
+              total_amount: lotAmount,
+              amount_paid: lotAmount - openGL * ratio,
+            };
+          });
       }
 
-      // Filter out fully paid bills
-      filteredBills = filteredBills.filter(bill => {
+      // Filter out zero-balance bills
+      enriched = enriched.filter(bill => {
         const openBalance = bill.total_amount - bill.amount_paid;
         return Math.abs(openBalance) > 0.01;
       });
 
-      return filteredBills as BillWithVendor[];
+      return { bills: enriched, glNet };
     },
     enabled: !!user && !!session && !authLoading && !!projectId && (!!selectedLotId || selectedLotId === '__total__'),
   });
+
+  const billsData = billsResult?.bills;
+  const glNet = billsResult?.glNet ?? 0;
 
   // Calculate aging and group into buckets
   const agingBuckets = useMemo(() => {
