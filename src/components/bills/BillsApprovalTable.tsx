@@ -787,17 +787,12 @@ export function BillsApprovalTable({ status, projectId, projectIds, showProjectC
                   ) : (
                     <div className="space-y-2 max-h-80 overflow-y-auto">
                       {lineBreakdown.map((entry, i) => (
-                        <div key={i} className="flex justify-between gap-4 text-xs">
-                          <div className="min-w-0 flex-1">
-                            <div className="font-medium">
-                              {entry.costCode}
-                              {entry.description ? ` — ${entry.description}` : ''}
-                            </div>
-                            {entry.lotName && entry.lotName !== 'Unassigned' && (
-                              <div className="text-muted-foreground">Lot: {entry.lotName}</div>
-                            )}
+                        <div key={i}>
+                          <div className="font-medium text-xs">{entry.costCode}</div>
+                          <div className="pl-2 flex justify-between gap-4 text-xs">
+                            <span className="text-muted-foreground">{entry.lotName}:</span>
+                            <span>${entry.amount.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
                           </div>
-                          <span className="whitespace-nowrap">${entry.amount.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
                         </div>
                       ))}
                       <div className="border-t pt-1 flex justify-between gap-4 font-medium text-xs">
