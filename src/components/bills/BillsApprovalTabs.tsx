@@ -302,7 +302,7 @@ export function BillsApprovalTabs({ projectId, projectIds, reviewOnly = false, o
           });
 
           // Run matching for each bill's unmatched lines
-          const dbUpdates: { id: string; purchase_order_id: string; purchase_order_line_id: string | null; po_reference: string | null }[] = [];
+          const dbUpdates: { id: string; purchase_order_id: string; purchase_order_line_id: string | null; po_reference: string | null; cost_code_id?: string | null; cost_code_name?: string | null }[] = [];
 
           for (const [vendorId, bills] of vendorMap) {
             const vendorPOs = poByVendor.get(vendorId) || [];
@@ -335,6 +335,8 @@ export function BillsApprovalTabs({ projectId, projectIds, reviewOnly = false, o
               for (let idx = 0; idx < lineList.length; idx++) {
                 const line: any = lineList[idx];
                 if (line.purchase_order_id) continue; // already matched
+                // Honor explicit "No PO" intent — never re-match these.
+                if (line.po_assignment === 'none') continue;
 
                 // Hydrate po_reference from extracted_data when the row doesn't have it
                 const fallbackRef = extLineItems[idx]?.po_reference || null;
@@ -353,12 +355,23 @@ export function BillsApprovalTabs({ projectId, projectIds, reviewOnly = false, o
                             (!line.cost_code_id || pl.cost_code_id === line.cost_code_id)
                     ) || vendorPOLines.find(pl => pl.purchase_order_id === byNumber.id);
                     line.purchase_order_id = byNumber.id;
+                    line.po_assignment = 'auto';
                     if (candidatePoLine) line.purchase_order_line_id = candidatePoLine.id;
+                    // Inherit cost code from the matched PO line if the bill line has none.
+                    let inheritedCcId: string | null | undefined;
+                    let inheritedCcName: string | null | undefined;
+                    if (!line.cost_code_id && candidatePoLine?.cost_code_id) {
+                      inheritedCcId = candidatePoLine.cost_code_id;
+                      inheritedCcName = candidatePoLine.cost_code_name || null;
+                      line.cost_code_id = inheritedCcId;
+                      line.cost_code_name = inheritedCcName;
+                    }
                     dbUpdates.push({
                       id: line.id,
                       purchase_order_id: byNumber.id,
                       purchase_order_line_id: candidatePoLine?.id || null,
                       po_reference: line.po_reference,
+                      ...(inheritedCcId ? { cost_code_id: inheritedCcId, cost_code_name: inheritedCcName ?? null } : {}),
                     });
                     continue;
                   }
@@ -375,18 +388,31 @@ export function BillsApprovalTabs({ projectId, projectIds, reviewOnly = false, o
                 if (match) {
                   line.purchase_order_id = match.poId;
                   line.purchase_order_line_id = match.poLineId;
+                  line.po_assignment = 'auto';
+                  // Inherit cost code from matched PO line if missing
+                  const matchedPoLine = vendorPOLines.find(pl => pl.id === match.poLineId);
+                  let inheritedCcId: string | null | undefined;
+                  let inheritedCcName: string | null | undefined;
+                  if (!line.cost_code_id && matchedPoLine?.cost_code_id) {
+                    inheritedCcId = matchedPoLine.cost_code_id;
+                    inheritedCcName = matchedPoLine.cost_code_name || null;
+                    line.cost_code_id = inheritedCcId;
+                    line.cost_code_name = inheritedCcName;
+                  }
                   dbUpdates.push({
                     id: line.id,
                     purchase_order_id: match.poId,
                     purchase_order_line_id: match.poLineId,
                     po_reference: line.po_reference || null,
+                    ...(inheritedCcId ? { cost_code_id: inheritedCcId, cost_code_name: inheritedCcName ?? null } : {}),
                   });
                 }
               }
             }
           }
 
-          // Batch-persist matches to DB
+          // Batch-persist matches to DB. Always write po_assignment='auto' so PO Summary
+          // can distinguish auto matches from explicit user picks.
           if (dbUpdates.length > 0) {
             await Promise.all(
               dbUpdates.map(u =>
@@ -396,7 +422,9 @@ export function BillsApprovalTabs({ projectId, projectIds, reviewOnly = false, o
                     purchase_order_id: u.purchase_order_id,
                     purchase_order_line_id: u.purchase_order_line_id,
                     po_reference: u.po_reference,
-                  })
+                    po_assignment: 'auto',
+                    ...(u.cost_code_id ? { cost_code_id: u.cost_code_id, cost_code_name: u.cost_code_name ?? null } : {}),
+                  } as any)
                   .eq('id', u.id)
               )
             );
