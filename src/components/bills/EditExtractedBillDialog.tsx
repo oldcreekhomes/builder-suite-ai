@@ -526,6 +526,9 @@ export function EditExtractedBillDialog({
     // Fire-and-forget: persist PO matches to DB so the table badge updates.
     // Always write po_assignment='auto' so PO Summary can distinguish auto from explicit picks.
     if (newMatches.length > 0) {
+      // Snapshot of the post-update lines so we can persist any inherited cost code
+      // alongside the PO ids — keeps DB rows and UI in lockstep.
+      const linesById = new Map(updatedLines.map(l => [l.id, l]));
       Promise.all(
         newMatches.map(m =>
           supabase
@@ -534,6 +537,12 @@ export function EditExtractedBillDialog({
               purchase_order_id: m.poId,
               purchase_order_line_id: m.poLineId || null,
               po_assignment: 'auto',
+              ...(linesById.get(m.id)?.cost_code_id
+                ? {
+                    cost_code_id: linesById.get(m.id)!.cost_code_id,
+                    cost_code_name: linesById.get(m.id)!.cost_code_display || null,
+                  }
+                : {}),
             } as any)
             .eq('id', m.id)
         )
