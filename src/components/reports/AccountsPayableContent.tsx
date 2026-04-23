@@ -48,7 +48,7 @@ interface BillWithVendor {
 
 export function AccountsPayableContent({ projectId, onHeaderActionChange, asOfDate, onAsOfDateChange }: AccountsPayableContentProps) {
   const { user, session, loading: authLoading } = useAuth();
-  const [selectedLotId, setSelectedLotId] = useState<string | null>(null);
+  const [selectedLotId, setSelectedLotId] = useState<string | null>("__total__");
   const [isExportingPdf, setIsExportingPdf] = useState(false);
   const [expandedBuckets, setExpandedBuckets] = useState<Set<string>>(new Set(['1-30', '31-60', '61-90', '>90']));
   const { toast } = useToast();
