@@ -48,7 +48,7 @@ interface BillWithVendor {
 
 export function AccountsPayableContent({ projectId, onHeaderActionChange, asOfDate, onAsOfDateChange }: AccountsPayableContentProps) {
   const { user, session, loading: authLoading } = useAuth();
-  const [selectedLotId, setSelectedLotId] = useState<string | null>(null);
+  const [selectedLotId, setSelectedLotId] = useState<string | null>("__total__");
   const [isExportingPdf, setIsExportingPdf] = useState(false);
   const [expandedBuckets, setExpandedBuckets] = useState<Set<string>>(new Set(['1-30', '31-60', '61-90', '>90']));
   const { toast } = useToast();
@@ -667,7 +667,14 @@ export function AccountsPayableContent({ projectId, onHeaderActionChange, asOfDa
 
               {/* Grand Total */}
               <div className="flex items-center justify-between p-4 bg-muted rounded-lg border-2 border-primary/20">
-                <span className="font-bold text-lg">Total Outstanding</span>
+                <div className="flex flex-col">
+                  <span className="font-bold text-lg">Total Outstanding</span>
+                  <span className="text-xs text-muted-foreground font-normal">
+                    Viewing: {selectedLotId === '__total__' || !selectedLotId
+                      ? 'Total (all lots)'
+                      : (lotData ? (lotData.lot_name || `Lot ${lotData.lot_number}`) : 'Lot')}
+                  </span>
+                </div>
                 <span className="font-bold text-lg">{formatCurrency(grandTotal)}</span>
               </div>
               {selectedLotId === '__total__' && Math.abs(glNet - grandTotal) > 0.01 && (
