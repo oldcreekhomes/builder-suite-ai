@@ -66,81 +66,98 @@ serve(async (req) => {
 
     console.log(`Found ${lines.length} lines to split across ${lots.length} lots`);
 
-    // Step 3: Get max line numbers per upload (single query)
-    const { data: maxLines, error: maxError } = await supabase
+    // Step 3: Get max line number per upload from EXISTING (non-split / already-assigned) lines
+    // so we can place grouped-by-lot split rows after them.
+    const { data: allLines, error: maxError } = await supabase
       .from('pending_bill_lines')
-      .select('pending_upload_id, line_number')
-      .in('pending_upload_id', pendingUploadIds)
-      .order('line_number', { ascending: false });
+      .select('pending_upload_id, line_number, lot_id')
+      .in('pending_upload_id', pendingUploadIds);
 
     if (maxError) {
-      throw new Error(`Failed to fetch max line numbers: ${maxError.message}`);
+      throw new Error(`Failed to fetch line numbers: ${maxError.message}`);
     }
 
-    // Build max line number map per upload
-    const maxLineMap: Record<string, number> = {};
-    for (const row of maxLines || []) {
-      if (!maxLineMap[row.pending_upload_id]) {
-        maxLineMap[row.pending_upload_id] = row.line_number;
+    // Max line number among lines that ALREADY have a lot_id (not being split now)
+    const baseMaxMap: Record<string, number> = {};
+    for (const row of allLines || []) {
+      if (row.lot_id) {
+        const cur = baseMaxMap[row.pending_upload_id] || 0;
+        if (row.line_number > cur) baseMaxMap[row.pending_upload_id] = row.line_number;
       }
     }
 
-    // Step 4: Calculate splits and prepare batch operations
-    const updates: { id: string; lot_id: string; amount: number; unit_cost: number }[] = [];
-    const inserts: any[] = [];
-    const lineNumberOffsets: Record<string, number> = {};
-
+    // Group splittable lines by upload, preserving original line_number order
+    const linesByUpload: Record<string, any[]> = {};
     for (const line of lines) {
-      const originalAmount = parseFloat(line.amount) || 0;
-      const lotCount = lots.length;
-      
-      // Calculate even split (pennies)
-      const evenAmountCents = Math.floor((originalAmount * 100) / lotCount);
-      const remainderCents = Math.round(originalAmount * 100) - (evenAmountCents * lotCount);
-      
-      for (let i = 0; i < lots.length; i++) {
-        const lot = lots[i];
-        const isFirst = i === 0;
-        const isLast = i === lots.length - 1;
-        
-        // Last lot gets the remainder to handle rounding
-        const lotAmountCents = isLast ? evenAmountCents + remainderCents : evenAmountCents;
-        const lotAmount = lotAmountCents / 100;
-        
-        if (isFirst) {
-          // Update original line with first lot
-          updates.push({
-            id: line.id,
-            lot_id: lot.id,
-            amount: lotAmount,
-            unit_cost: lotAmount,
-          });
-        } else {
-          // Create new line for this lot
-          const uploadId = line.pending_upload_id;
-          if (!lineNumberOffsets[uploadId]) {
-            lineNumberOffsets[uploadId] = 0;
+      (linesByUpload[line.pending_upload_id] ||= []).push(line);
+    }
+    for (const uploadId of Object.keys(linesByUpload)) {
+      linesByUpload[uploadId].sort((a, b) => a.line_number - b.line_number);
+    }
+
+    // Step 4: Calculate splits and prepare batch operations.
+    // Layout per upload: [base existing lines] then
+    //   Lot 1: original A, B, C, ...
+    //   Lot 2: original A, B, C, ...
+    //   ...
+    const updates: { id: string; lot_id: string; amount: number; unit_cost: number; line_number: number }[] = [];
+    const inserts: any[] = [];
+
+    for (const uploadId of Object.keys(linesByUpload)) {
+      const uploadLines = linesByUpload[uploadId];
+      const base = baseMaxMap[uploadId] || 0;
+      const perLotCount = uploadLines.length;
+
+      // Pre-compute split amounts per original line (cents-precise)
+      const splitsByLineId: Record<string, number[]> = {};
+      for (const line of uploadLines) {
+        const originalAmount = parseFloat(line.amount) || 0;
+        const lotCount = lots.length;
+        const evenCents = Math.floor((originalAmount * 100) / lotCount);
+        const remainderCents = Math.round(originalAmount * 100) - (evenCents * lotCount);
+        const arr: number[] = [];
+        for (let i = 0; i < lotCount; i++) {
+          const isLast = i === lotCount - 1;
+          const cents = isLast ? evenCents + remainderCents : evenCents;
+          arr.push(cents / 100);
+        }
+        splitsByLineId[line.id] = arr;
+      }
+
+      // Build grouped-by-lot output
+      for (let lotIdx = 0; lotIdx < lots.length; lotIdx++) {
+        const lot = lots[lotIdx];
+        for (let originalIdx = 0; originalIdx < uploadLines.length; originalIdx++) {
+          const line = uploadLines[originalIdx];
+          const lotAmount = splitsByLineId[line.id][lotIdx];
+          const newLineNumber = base + lotIdx * perLotCount + originalIdx + 1;
+
+          if (lotIdx === 0) {
+            // Reuse original row for the first lot, but renumber it
+            updates.push({
+              id: line.id,
+              lot_id: lot.id,
+              amount: lotAmount,
+              unit_cost: lotAmount,
+              line_number: newLineNumber,
+            });
+          } else {
+            inserts.push({
+              pending_upload_id: line.pending_upload_id,
+              owner_id: line.owner_id,
+              line_number: newLineNumber,
+              line_type: line.line_type,
+              cost_code_id: line.cost_code_id,
+              account_id: line.account_id,
+              project_id: line.project_id,
+              lot_id: lot.id,
+              quantity: line.quantity,
+              unit_cost: lotAmount,
+              amount: lotAmount,
+              memo: line.memo,
+              description: line.description,
+            });
           }
-          lineNumberOffsets[uploadId]++;
-          
-          const baseMaxLine = maxLineMap[uploadId] || 0;
-          const nextLineNumber = baseMaxLine + lineNumberOffsets[uploadId];
-          
-          inserts.push({
-            pending_upload_id: line.pending_upload_id,
-            owner_id: line.owner_id,
-            line_number: nextLineNumber,
-            line_type: line.line_type,
-            cost_code_id: line.cost_code_id,
-            account_id: line.account_id,
-            project_id: line.project_id,
-            lot_id: lot.id,
-            quantity: line.quantity,
-            unit_cost: lotAmount,
-            amount: lotAmount,
-            memo: line.memo,
-            description: line.description,
-          });
         }
       }
     }
@@ -156,6 +173,7 @@ serve(async (req) => {
           lot_id: update.lot_id,
           amount: update.amount,
           unit_cost: update.unit_cost,
+          line_number: update.line_number,
         })
         .eq('id', update.id);
       
