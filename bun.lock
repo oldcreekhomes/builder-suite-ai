@@ -417,9 +417,9 @@
 
     "@rollup/rollup-win32-x64-msvc": ["@rollup/rollup-win32-x64-msvc@4.55.3", "", { "os": "win32", "cpu": "x64" }, "sha512-aPFONczE4fUFKNXszdvnd2GqKEYQdV5oEsIbKPujJmWlCI9zEsv1Otig8RKK+X9bed9gFUN6LAeN4ZcNuu4zjg=="],
 
-    "@stripe/react-stripe-js": ["@stripe/react-stripe-js@6.2.0", "https://europe-west1-npm.pkg.dev/lovable-core-prod/sandbox-npm-cache/@stripe/react-stripe-js/-/react-stripe-js-6.2.0.tgz", { "dependencies": { "prop-types": "^15.7.2" }, "peerDependencies": { "@stripe/stripe-js": ">=9.2.0 <10.0.0", "react": ">=16.8.0 <20.0.0", "react-dom": ">=16.8.0 <20.0.0" } }, "sha512-GSCErjljZEQv9LaxP30xGOwstcMyyUzb5JyihXwvjOU95yrfhbiPG4K2KkwxYxn+WY0/AyHsRhPPoGRw7urBzg=="],
+    "@stripe/react-stripe-js": ["@stripe/react-stripe-js@6.2.0", "https://europe-west4-npm.pkg.dev/lovable-core-prod/sandbox-npm-cache/@stripe/react-stripe-js/-/react-stripe-js-6.2.0.tgz", { "dependencies": { "prop-types": "^15.7.2" }, "peerDependencies": { "@stripe/stripe-js": ">=9.2.0 <10.0.0", "react": ">=16.8.0 <20.0.0", "react-dom": ">=16.8.0 <20.0.0" } }, "sha512-GSCErjljZEQv9LaxP30xGOwstcMyyUzb5JyihXwvjOU95yrfhbiPG4K2KkwxYxn+WY0/AyHsRhPPoGRw7urBzg=="],
 
-    "@stripe/stripe-js": ["@stripe/stripe-js@9.3.0", "https://europe-west1-npm.pkg.dev/lovable-core-prod/sandbox-npm-cache/@stripe/stripe-js/-/stripe-js-9.3.0.tgz", {}, "sha512-BPiTYrt8OEpvm5W/gyWUfGdHCk2L9DmZ2R8WmsNVhgjNCEl40CAYtyPHFQFic+j9rJbyjxifDkU+MO0sFUGkUQ=="],
+    "@stripe/stripe-js": ["@stripe/stripe-js@9.3.0", "https://europe-west4-npm.pkg.dev/lovable-core-prod/sandbox-npm-cache/@stripe/stripe-js/-/stripe-js-9.3.0.tgz", {}, "sha512-BPiTYrt8OEpvm5W/gyWUfGdHCk2L9DmZ2R8WmsNVhgjNCEl40CAYtyPHFQFic+j9rJbyjxifDkU+MO0sFUGkUQ=="],
 
     "@supabase/auth-js": ["@supabase/auth-js@2.91.0", "", { "dependencies": { "tslib": "2.8.1" } }, "sha512-9ywvsKLsxTwv7fvN5fXzP3UfRreqrX2waylTBDu0lkmeHXa8WtSQS9e0WV9FBduiazYqQbgfBQXBNPRPsRgWOQ=="],
 
