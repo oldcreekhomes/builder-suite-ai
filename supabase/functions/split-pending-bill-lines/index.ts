@@ -173,6 +173,7 @@ serve(async (req) => {
           lot_id: update.lot_id,
           amount: update.amount,
           unit_cost: update.unit_cost,
+          line_number: update.line_number,
         })
         .eq('id', update.id);
       
