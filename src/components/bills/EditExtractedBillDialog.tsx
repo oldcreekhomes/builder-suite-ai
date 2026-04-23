@@ -1105,8 +1105,8 @@ export function EditExtractedBillDialog({
                     <TableRow>
                       <TableHead className="w-[220px]">Cost Code</TableHead>
                       <TableHead className="w-[220px]">Description</TableHead>
-                      <TableHead className="w-[70px]">Quantity</TableHead>
-                      <TableHead className="w-[120px]">Unit Cost</TableHead>
+                      <TableHead className="w-[100px]">Quantity</TableHead>
+                      <TableHead className="w-[100px]">Unit Cost</TableHead>
                       <TableHead className="w-[80px]">Total</TableHead>
                       {showAddressColumn && <TableHead className="w-[130px]">Address</TableHead>}
                       {showPOSelection && <TableHead className="w-[180px]">Purchase Order</TableHead>}
