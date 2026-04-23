@@ -1,48 +1,57 @@
 
-Fix the Reports A/P mismatch by making the Accounts Payable report open in true project-total mode and only diverge when the user explicitly applies a lot filter.
 
-What to change
+## Fix line ordering on Edit Extracted Bill so lots flow chronologically
 
-1. Make the A/P report default to Total, not the first lot
-- File: `src/components/reports/AccountsPayableContent.tsx`
-- Initialize `selectedLotId` to `"__total__"` instead of `null`.
-- Keep the existing lot-filter logic for intentional per-lot views, but ensure the first render is always the full project total.
-- This makes the A/P report match the Balance Sheet 2010 balance and the A/P detail dialog by default.
+When a multi-lot bill is auto-split (Enter with AI), the Edit Extracted Bill dialog currently shows all original lines under Lot 1 first, then re-cycles through Lot 2..N, then Lot 2..N again, for each original line. The user wants a clean chronological flow:
 
-2. Preserve the existing shared source of truth
-- Keep `AccountsPayableContent` using the exact A/P account id from `accounting_settings.ap_account_id` / owner-specific `2010` fallback.
-- Keep the same canonical journal-entry filters already used by Balance Sheet and `AccountDetailDialog`:
-  - `entry_date <= asOfDate`
-  - `is_reversal = false`
-  - `reversed_by_id is null`
-  - `reversed_at is null or reversed_at > asOfDate`
-- No separate math path should be introduced.
+```
+Lot 1  – line A
+Lot 1  – line B
+Lot 1  – line C
+...
+Lot 2  – line A
+Lot 2  – line B
+Lot 2  – line C
+...
+Lot 19 – line A
+Lot 19 – line B
+Lot 19 – line C
+```
 
-3. Make filtered A/P views visibly obvious
-- In `AccountsPayableContent`, add a clear label near the report total/header showing whether the page is:
-  - `Total`
-  - or a specific lot name
-- This prevents a lot-filtered aging total from being mistaken for the full project A/P total.
+### Root cause
 
-4. Keep the reconciliation safeguard active for total mode
-- Continue showing the G/L reconciliation warning when viewing `Total`.
-- After the default changes to `Total`, that warning will correctly surface any true remaining data issue instead of hiding behind an auto-selected lot.
+`supabase/functions/split-pending-bill-lines/index.ts` keeps each original line at its existing `line_number` and assigns it to Lot 1, then appends new rows for lots 2..N at the end of the line_number sequence using a single shared offset counter. The dialog (`EditExtractedBillDialog.tsx`) and `usePendingBills` both order by `line_number ASC`, so the visual order matches the insertion order — which is "all originals as Lot 1, then lot2-of-line1, lot3-of-line1, ..., lot2-of-line2, lot3-of-line2, ...". That's why the screenshot shows ~7 Lot 1 rows, then a 2→19 block, then another 2→19 block, etc.
 
-Files to update
-- `src/components/reports/AccountsPayableContent.tsx`
+### Fix
 
-Why this should fix the issue
-- `ReportsTabs.tsx` already shares the same `asOfDate` across Balance Sheet and A/P.
-- `AccountsPayableContent.tsx` currently auto-starts from a lot selection path because `selectedLotId` begins as `null` and `LotSelector` auto-selects the first lot.
-- That means the A/P report can open on a lot-filtered subtotal while the Balance Sheet and A/P dialog are showing the full project total.
+Renumber `line_number` for ALL split rows so they are stored grouped by lot (lot 1 block first, then lot 2 block, etc.), preserving the original line ordering inside each lot block.
 
-Verification
-1. Open Reports → Balance Sheet with the chosen As Of date and note A/P.
-2. Switch to Accounts Payable without touching any lot filter:
-   - Grand Total must equal the Balance Sheet A/P amount exactly.
-3. Open the A/P account detail dialog from the Balance Sheet:
-   - Running balance total must match the same number.
-4. Change the lot selector to a specific lot:
-   - Total changes, and the UI clearly indicates it is a lot-filtered view rather than project total.
-5. Export the A/P PDF from Total view:
-   - PDF total matches on-screen A/P total and Balance Sheet A/P.
+**File:** `supabase/functions/split-pending-bill-lines/index.ts`
+
+- After fetching the unsplit lines per upload, compute a stable original ordering (current `line_number ASC`).
+- Reassign `line_number` so the final layout per upload is:
+  - Lot 1: original line A, B, C, ...
+  - Lot 2: original line A, B, C, ...
+  - ...
+  - Lot N: original line A, B, C, ...
+- Lines that already had a `lot_id` (not part of the split) keep their existing line numbers; new split rows are placed after them, still grouped by lot in chronological order.
+- For the very first lot, update the existing original row in place (as today) but also update its `line_number` to fit the new grouped sequence.
+- Inserts for lots 2..N use the new grouped line numbers.
+
+No schema or RLS changes. No client-side changes — `usePendingBills` and `EditExtractedBillDialog` already sort by `line_number`, so they'll automatically render chronologically once the edge function writes the right numbers.
+
+### Scope and non-impact
+
+- Only affects future Enter-with-AI auto-splits. Existing already-split pending bills will keep their current order unless re-processed.
+- Address column tooltip on the Manage Bills table is unaffected (still groups by lot — the user already confirmed it looks perfect).
+- Manual Bill Entry, Write Checks, and Credit Cards "Split evenly" actions are unaffected (they build rows in order client-side).
+- Saved bill totals, amounts, lot allocations, and per-lot math are unchanged — only `line_number` ordering changes.
+
+### Verification
+
+1. Upload the attached `Gray_Invoice_12429` PDF on a 19-lot project via Enter with AI.
+2. Open Edit Extracted Bill from the row's Actions menu.
+3. Confirm rows scroll as: all original line items under Lot 1, then all under Lot 2, then Lot 3 ... through Lot 19. No "Lot 1 ×7" cluster, no Lot 2→19 repeats per original line.
+4. Address tooltip on the Manage Bills row still shows Lot 1..19 with $73.79 each (Lot 19 = $74.28), Total $1,402.50 — unchanged.
+5. Approve the bill and confirm allocations and totals are identical to before.
+
