@@ -100,37 +100,45 @@ serve(async (req) => {
     //   Lot 1: original A, B, C, ...
     //   Lot 2: original A, B, C, ...
     //   ...
-    const updates: { id: string; lot_id: string; amount: number; unit_cost: number; line_number: number }[] = [];
+    const updates: { id: string; lot_id: string; amount: number; unit_cost: number; quantity: number; line_number: number }[] = [];
     const inserts: any[] = [];
 
     for (const uploadId of Object.keys(linesByUpload)) {
       const uploadLines = linesByUpload[uploadId];
       const base = baseMaxMap[uploadId] || 0;
-      const perLotCount = uploadLines.length;
+      const lotCount = lots.length;
 
-      // Pre-compute split amounts per original line (cents-precise)
-      const splitsByLineId: Record<string, number[]> = {};
+      // Pre-compute per-lot AMOUNT splits (cents-precise) AND per-lot QUANTITY splits.
+      // We preserve the original unit_cost (rate) and divide the QUANTITY across lots,
+      // so each row reads correctly: perLotQty * unit_cost ≈ perLotAmount.
+      // The persisted `amount` remains cent-precise (last lot absorbs rounder remainder).
+      const splitsByLineId: Record<string, { amount: number; quantity: number }[]> = {};
       for (const line of uploadLines) {
         const originalAmount = parseFloat(line.amount) || 0;
-        const lotCount = lots.length;
+        const originalQty = parseFloat(line.quantity) || 0;
         const evenCents = Math.floor((originalAmount * 100) / lotCount);
         const remainderCents = Math.round(originalAmount * 100) - (evenCents * lotCount);
-        const arr: number[] = [];
+        // Use 6 decimal places of precision on the per-lot quantity so the
+        // displayed math (qty × rate) is visually accurate per row.
+        const evenQty = Math.floor((originalQty * 1e6) / lotCount) / 1e6;
+        const qtyRemainder = Math.round((originalQty - evenQty * lotCount) * 1e6) / 1e6;
+        const arr: { amount: number; quantity: number }[] = [];
         for (let i = 0; i < lotCount; i++) {
           const isLast = i === lotCount - 1;
           const cents = isLast ? evenCents + remainderCents : evenCents;
-          arr.push(cents / 100);
+          const qty = isLast ? Math.round((evenQty + qtyRemainder) * 1e6) / 1e6 : evenQty;
+          arr.push({ amount: cents / 100, quantity: qty });
         }
         splitsByLineId[line.id] = arr;
       }
 
       // Build interleaved output: for each original line, emit one row per lot
-      const lotCount = lots.length;
       for (let originalIdx = 0; originalIdx < uploadLines.length; originalIdx++) {
         const line = uploadLines[originalIdx];
+        const originalUnitCost = parseFloat(line.unit_cost) || 0;
         for (let lotIdx = 0; lotIdx < lotCount; lotIdx++) {
           const lot = lots[lotIdx];
-          const lotAmount = splitsByLineId[line.id][lotIdx];
+          const { amount: lotAmount, quantity: lotQuantity } = splitsByLineId[line.id][lotIdx];
           const newLineNumber = base + originalIdx * lotCount + lotIdx + 1;
 
           if (lotIdx === 0) {
@@ -139,7 +147,8 @@ serve(async (req) => {
               id: line.id,
               lot_id: lot.id,
               amount: lotAmount,
-              unit_cost: lotAmount,
+              unit_cost: originalUnitCost,
+              quantity: lotQuantity,
               line_number: newLineNumber,
             });
           } else {
@@ -152,8 +161,8 @@ serve(async (req) => {
               account_id: line.account_id,
               project_id: line.project_id,
               lot_id: lot.id,
-              quantity: line.quantity,
-              unit_cost: lotAmount,
+              quantity: lotQuantity,
+              unit_cost: originalUnitCost,
               amount: lotAmount,
               memo: line.memo,
               description: line.description,
@@ -177,6 +186,7 @@ serve(async (req) => {
           lot_id: update.lot_id,
           amount: update.amount,
           unit_cost: update.unit_cost,
+          quantity: update.quantity,
           line_number: update.line_number,
         })
         .eq('id', update.id);
