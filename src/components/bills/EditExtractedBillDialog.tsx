@@ -674,6 +674,7 @@ export function EditExtractedBillDialog({
         l.cost_code_id || '',
         Number(l.unit_cost || 0).toFixed(6),
         (l.memo || '').trim(),
+        (l.matchingText || '').trim(),
         l.purchase_order_id || '',
         l.purchase_order_line_id || '',
       ].join('|');
