@@ -1307,7 +1307,7 @@ export function EditExtractedBillDialog({
                       </TableCell>
                       <TableCell>
                         <Input
-                          className="h-8"
+                          className="h-7 px-1 border-0 bg-transparent shadow-none focus-visible:ring-1 focus-visible:ring-ring focus-visible:ring-offset-0 text-sm font-medium"
                           type="number"
                           step="0.01"
                           value={Number.isFinite(group.quantity) ? group.quantity.toFixed(2) : '0.00'}
@@ -1323,7 +1323,7 @@ export function EditExtractedBillDialog({
                       </TableCell>
                       <TableCell>
                         <Input
-                          className="h-8"
+                          className="h-7 px-1 border-0 bg-transparent shadow-none focus-visible:ring-1 focus-visible:ring-ring focus-visible:ring-offset-0 text-sm font-medium"
                           type="number"
                           step="0.01"
                           value={Number.isFinite(group.unit_cost) ? group.unit_cost.toFixed(2) : '0.00'}
