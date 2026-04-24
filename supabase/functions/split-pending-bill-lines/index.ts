@@ -124,13 +124,14 @@ serve(async (req) => {
         splitsByLineId[line.id] = arr;
       }
 
-      // Build grouped-by-lot output
-      for (let lotIdx = 0; lotIdx < lots.length; lotIdx++) {
-        const lot = lots[lotIdx];
-        for (let originalIdx = 0; originalIdx < uploadLines.length; originalIdx++) {
-          const line = uploadLines[originalIdx];
+      // Build interleaved output: for each original line, emit one row per lot
+      const lotCount = lots.length;
+      for (let originalIdx = 0; originalIdx < uploadLines.length; originalIdx++) {
+        const line = uploadLines[originalIdx];
+        for (let lotIdx = 0; lotIdx < lotCount; lotIdx++) {
+          const lot = lots[lotIdx];
           const lotAmount = splitsByLineId[line.id][lotIdx];
-          const newLineNumber = base + lotIdx * perLotCount + originalIdx + 1;
+          const newLineNumber = base + originalIdx * lotCount + lotIdx + 1;
 
           if (lotIdx === 0) {
             // Reuse original row for the first lot, but renumber it
@@ -156,6 +157,9 @@ serve(async (req) => {
               amount: lotAmount,
               memo: line.memo,
               description: line.description,
+              cost_code_name: line.cost_code_name,
+              account_name: line.account_name,
+              project_name: line.project_name,
             });
           }
         }
