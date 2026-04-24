@@ -1,57 +1,42 @@
+## Fix Edit Extracted Bill: interleave by original line and restore Cost Code/Account/Project names
 
+Two issues with the multi-lot auto-split:
 
-## Fix line ordering on Edit Extracted Bill so lots flow chronologically
-
-When a multi-lot bill is auto-split (Enter with AI), the Edit Extracted Bill dialog currently shows all original lines under Lot 1 first, then re-cycles through Lot 2..N, then Lot 2..N again, for each original line. The user wants a clean chronological flow:
-
-```
-Lot 1  – line A
-Lot 1  – line B
-Lot 1  – line C
-...
-Lot 2  – line A
-Lot 2  – line B
-Lot 2  – line C
-...
-Lot 19 – line A
-Lot 19 – line B
-Lot 19 – line C
-```
-
-### Root cause
-
-`supabase/functions/split-pending-bill-lines/index.ts` keeps each original line at its existing `line_number` and assigns it to Lot 1, then appends new rows for lots 2..N at the end of the line_number sequence using a single shared offset counter. The dialog (`EditExtractedBillDialog.tsx`) and `usePendingBills` both order by `line_number ASC`, so the visual order matches the insertion order — which is "all originals as Lot 1, then lot2-of-line1, lot3-of-line1, ..., lot2-of-line2, lot3-of-line2, ...". That's why the screenshot shows ~7 Lot 1 rows, then a 2→19 block, then another 2→19 block, etc.
+1. **Ordering is wrong**: Currently grouped by lot (all of Lot 1's lines, then all of Lot 2's lines, etc.). The user wants the rows to follow the invoice top-to-bottom — for each original invoice line, show one row per lot, then move to the next original line:
+   ```
+   Line A → Lot 1
+   Line A → Lot 2
+   ...
+   Line A → Lot 19
+   Line B → Lot 1
+   Line B → Lot 2
+   ...
+   ```
+2. **Cost Code tooltip shows "No Cost Code"** for split rows. The Address tooltip looks fine because it uses `cost_code_id` joins, but the Edit Extracted Bill table reads the denormalized `cost_code_name` / `account_name` / `project_name` columns. The split insert payload omits those columns, so every newly-inserted split row has them as NULL.
 
 ### Fix
 
-Renumber `line_number` for ALL split rows so they are stored grouped by lot (lot 1 block first, then lot 2 block, etc.), preserving the original line ordering inside each lot block.
-
 **File:** `supabase/functions/split-pending-bill-lines/index.ts`
 
-- After fetching the unsplit lines per upload, compute a stable original ordering (current `line_number ASC`).
-- Reassign `line_number` so the final layout per upload is:
-  - Lot 1: original line A, B, C, ...
-  - Lot 2: original line A, B, C, ...
-  - ...
-  - Lot N: original line A, B, C, ...
-- Lines that already had a `lot_id` (not part of the split) keep their existing line numbers; new split rows are placed after them, still grouped by lot in chronological order.
-- For the very first lot, update the existing original row in place (as today) but also update its `line_number` to fit the new grouped sequence.
-- Inserts for lots 2..N use the new grouped line numbers.
+1. Change the row-emission loops so the OUTER loop iterates `originalIdx` (each invoice line) and the INNER loop iterates `lotIdx` (each lot). New `line_number` formula:
+   ```
+   newLineNumber = base + originalIdx * lotCount + lotIdx + 1
+   ```
+   This produces the interleaved layout above. `usePendingBills` and `EditExtractedBillDialog` already sort by `line_number`, so the UI updates automatically.
 
-No schema or RLS changes. No client-side changes — `usePendingBills` and `EditExtractedBillDialog` already sort by `line_number`, so they'll automatically render chronologically once the edge function writes the right numbers.
+2. In the `inserts.push({...})` payload for lots 2..N, add the three name fields copied from the original line:
+   - `cost_code_name: line.cost_code_name`
+   - `account_name: line.account_name`
+   - `project_name: line.project_name`
 
-### Scope and non-impact
+   The Lot 1 row is updated in place and already has these names.
 
-- Only affects future Enter-with-AI auto-splits. Existing already-split pending bills will keep their current order unless re-processed.
-- Address column tooltip on the Manage Bills table is unaffected (still groups by lot — the user already confirmed it looks perfect).
-- Manual Bill Entry, Write Checks, and Credit Cards "Split evenly" actions are unaffected (they build rows in order client-side).
-- Saved bill totals, amounts, lot allocations, and per-lot math are unchanged — only `line_number` ordering changes.
+No schema, RLS, client, or math changes. Per-lot amounts, cent-precise remainders, totals, and the Address tooltip are all unchanged.
 
 ### Verification
 
-1. Upload the attached `Gray_Invoice_12429` PDF on a 19-lot project via Enter with AI.
-2. Open Edit Extracted Bill from the row's Actions menu.
-3. Confirm rows scroll as: all original line items under Lot 1, then all under Lot 2, then Lot 3 ... through Lot 19. No "Lot 1 ×7" cluster, no Lot 2→19 repeats per original line.
-4. Address tooltip on the Manage Bills row still shows Lot 1..19 with $73.79 each (Lot 19 = $74.28), Total $1,402.50 — unchanged.
-5. Approve the bill and confirm allocations and totals are identical to before.
-
+1. Re-process the `Gray_Invoice_12429` PDF on the 19-lot project via Enter with AI.
+2. Open Edit Extracted Bill: rows should read Line A (Lots 1→19), then Line B (Lots 1→19), etc., matching the invoice top-down.
+3. Hover Cost Code on the row in Manage Bills → tooltip lists the real cost code names (no "No Cost Code") with a per-line total equal to the row amount.
+4. Address tooltip is unchanged — Lot 1..19 with $73.79 each (Lot 19 = $74.28), Total $1,402.50.
+5. Approve the bill — totals and per-lot allocations are identical to before.
