@@ -294,7 +294,7 @@ export function EditExtractedBillDialog({
             quantity: qty,
             unit_cost: unitCost,
             amount: amt,
-            memo: line.memo || (line.description && line.description.length <= 120 ? line.description : "") || "",
+            memo: line.description || line.memo || "",
             matchingText: line.description || line.memo || "",
           });
         } else if (line.line_type === 'expense') {
@@ -311,7 +311,7 @@ export function EditExtractedBillDialog({
               quantity: qty,
               unit_cost: unitCost,
               amount: amt,
-              memo: line.memo || (line.description && line.description.length <= 120 ? line.description : "") || "",
+              memo: line.description || line.memo || "",
               matchingText: line.description || line.memo || "",
             });
           } else {
@@ -322,7 +322,7 @@ export function EditExtractedBillDialog({
               quantity: qty,
               unit_cost: unitCost,
               amount: amt,
-              memo: line.memo || (line.description && line.description.length <= 120 ? line.description : "") || "",
+              memo: line.description || line.memo || "",
               matchingText: line.description || line.memo || "",
             });
           }
