@@ -7,6 +7,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { CostCodeSearchInput } from "@/components/CostCodeSearchInput";
 import { VendorSearchInput } from "@/components/VendorSearchInput";
 import { JobSearchInput } from "@/components/JobSearchInput";
@@ -782,119 +783,124 @@ export function EditBillDialog({ open, onOpenChange, billId }: EditBillDialogPro
                   </div>
                 )}
 
-                <div className="border rounded-lg overflow-hidden w-full">
-                <div className={cn("grid gap-2 p-3 bg-muted font-medium text-sm w-full", showAddressColumn ? "grid-cols-24" : "grid-cols-20")}>
-                    <div className="col-span-5">Cost Code</div>
-                    <div className="col-span-5">Description</div>
-                    <div className="col-span-2">Quantity</div>
-                    <div className="col-span-2">Cost</div>
-                    <div className="col-span-2">Total</div>
-                    {showAddressColumn && <div className="col-span-3">Address</div>}
-                    <div className={showAddressColumn ? (isApprovedBill ? "col-span-5" : "col-span-4") : (isApprovedBill ? "col-span-4" : "col-span-3")}>Purchase Order</div>
-                    {!isApprovedBill && <div className="col-span-1 text-right">Action</div>}
-                  </div>
-
-                  {jobCostRows.map((row) => (
-                    <div key={row.id} className={cn("grid gap-2 p-3 border-t w-full", showAddressColumn ? "grid-cols-24" : "grid-cols-20")}>
-                      <div className="col-span-5">
-                        <CostCodeSearchInput
-                          value={row.account}
-                          onChange={(value) => updateJobCostRow(row.id, 'account', value)}
-                          onCostCodeSelect={(costCode) => {
-                            updateJobCostRow(row.id, 'accountId', costCode.id);
-                            updateJobCostRow(row.id, 'account', `${costCode.code} - ${costCode.name}`);
-                          }}
-                          placeholder="Cost Code"
-                          className="h-8"
-                        />
-                      </div>
-                      <div className="col-span-5">
-                        <Input 
-                          placeholder="Description"
-                          value={row.memo}
-                          onChange={(e) => updateJobCostRow(row.id, 'memo', e.target.value)}
-                          className="h-8"
-                        />
-                      </div>
-                      <div className="col-span-2">
-                        <Input 
-                          type="number"
-                          step="0.01"
-                          placeholder="1"
-                          value={row.quantity}
-                          onChange={(e) => updateJobCostRow(row.id, 'quantity', e.target.value)}
-                          className="h-8 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
-                          disabled={isApprovedBill}
-                        />
-                      </div>
-                      <div className="col-span-2">
-                        <div className="relative">
-                          <span className="absolute left-2 top-1/2 -translate-y-1/2 text-muted-foreground">$</span>
-                          <Input 
-                            type="number"
-                            step="0.01"
-                            placeholder="0.00"
-                            value={row.amount}
-                            onChange={(e) => updateJobCostRow(row.id, 'amount', e.target.value)}
-                            className="h-8 pl-6 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
-                            disabled={isApprovedBill}
-                          />
-                        </div>
-                      </div>
-                      <div className="col-span-2 flex items-center">
-                        <div className="h-8 w-full flex items-center px-2 border rounded-md bg-muted text-sm font-medium">
-                          ${((parseFloat(row.quantity) || 0) * (parseFloat(row.amount) || 0)).toFixed(2)}
-                        </div>
-                      </div>
-                      {showAddressColumn && (
-                        <div className="col-span-3">
-                          <Select
-                            value={row.lotId || ''}
-                            onValueChange={(value) => updateJobCostRow(row.id, 'lotId', value)}
-                            disabled={isApprovedBill}
-                          >
-                            <SelectTrigger className="h-8 w-full">
-                              <SelectValue placeholder="Select" />
-                            </SelectTrigger>
-                            <SelectContent>
-                              {lots.map((lot) => (
-                                <SelectItem key={lot.id} value={lot.id}>
-                                  {lot.lot_name || `Lot ${lot.lot_number}`}
-                                </SelectItem>
-                              ))}
-                            </SelectContent>
-                          </Select>
-                        </div>
-                      )}
-                      <div className={showAddressColumn ? (isApprovedBill ? "col-span-5" : "col-span-4") : (isApprovedBill ? "col-span-4" : "col-span-3")}>
-                        <POSelectionDropdown
-                          projectId={billData?.project_id}
-                          vendorId={vendor}
-                          value={row.purchaseOrderId}
-                          purchaseOrderLineId={row.purchaseOrderLineId}
-                          onChange={(poId, poLineId) => {
-                            updateJobCostRow(row.id, 'purchaseOrderId', poId || '');
-                            updateJobCostRow(row.id, 'purchaseOrderLineId', poLineId || '');
-                          }}
-                          costCodeId={row.accountId}
-                          className="h-8"
-                        />
-                      </div>
-                      {!isApprovedBill && (
-                        <div className="col-span-1 flex items-center justify-end">
-                          <Button
-                            onClick={() => removeJobCostRow(row.id, row.dbId)}
-                            size="sm"
-                            variant="destructive"
-                            disabled={jobCostRows.length === 1}
-                            className="h-8 w-8 p-0"
-                          >
-                            <Trash2 className="h-4 w-4" />
-                          </Button>
-                        </div>
-                      )}
-                    </div>
-                  ))}
+                <div className="border rounded-lg overflow-hidden overflow-x-auto">
+                  <Table containerClassName="relative w-full">
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead className="w-[210px]">Cost Code</TableHead>
+                        <TableHead className="w-[240px]">Description</TableHead>
+                        <TableHead className="w-[90px]">Quantity</TableHead>
+                        <TableHead className="w-[100px]">Unit Cost</TableHead>
+                        <TableHead className="w-[100px]">Total</TableHead>
+                        {showAddressColumn && <TableHead className="w-[130px]">Address</TableHead>}
+                        <TableHead className="w-[180px]">Purchase Order</TableHead>
+                        {!isApprovedBill && <TableHead className="w-[50px] text-center">Actions</TableHead>}
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {jobCostRows.map((row) => {
+                        const qty = parseFloat(row.quantity) || 0;
+                        const cost = parseFloat(row.amount) || 0;
+                        const total = Math.round(qty * cost * 100) / 100;
+                        return (
+                          <TableRow key={row.id}>
+                            <TableCell>
+                              <CostCodeSearchInput
+                                value={row.account}
+                                onChange={(value) => updateJobCostRow(row.id, 'account', value)}
+                                onCostCodeSelect={(costCode) => {
+                                  updateJobCostRow(row.id, 'accountId', costCode.id);
+                                  updateJobCostRow(row.id, 'account', `${costCode.code} - ${costCode.name}`);
+                                }}
+                                placeholder="Cost Code"
+                                className="h-8 truncate"
+                              />
+                            </TableCell>
+                            <TableCell>
+                              <Input
+                                placeholder="Description"
+                                value={row.memo}
+                                onChange={(e) => updateJobCostRow(row.id, 'memo', e.target.value)}
+                                className="h-8 truncate"
+                              />
+                            </TableCell>
+                            <TableCell>
+                              <Input
+                                type="number"
+                                step="0.01"
+                                placeholder="1"
+                                value={row.quantity}
+                                onChange={(e) => updateJobCostRow(row.id, 'quantity', e.target.value)}
+                                className="h-7 px-1 border-0 bg-transparent shadow-none focus-visible:ring-1 focus-visible:ring-ring focus-visible:ring-offset-0 text-sm font-medium [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                                disabled={isApprovedBill}
+                              />
+                            </TableCell>
+                            <TableCell>
+                              <Input
+                                type="number"
+                                step="0.01"
+                                placeholder="0.00"
+                                value={row.amount}
+                                onChange={(e) => updateJobCostRow(row.id, 'amount', e.target.value)}
+                                className="h-7 px-1 border-0 bg-transparent shadow-none focus-visible:ring-1 focus-visible:ring-ring focus-visible:ring-offset-0 text-sm font-medium [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                                disabled={isApprovedBill}
+                              />
+                            </TableCell>
+                            <TableCell>
+                              <span className="font-medium">${total.toFixed(2)}</span>
+                            </TableCell>
+                            {showAddressColumn && (
+                              <TableCell>
+                                <Select
+                                  value={row.lotId || ''}
+                                  onValueChange={(value) => updateJobCostRow(row.id, 'lotId', value)}
+                                  disabled={isApprovedBill}
+                                >
+                                  <SelectTrigger className="h-8 w-full">
+                                    <SelectValue placeholder="Select" />
+                                  </SelectTrigger>
+                                  <SelectContent>
+                                    {lots.map((lot) => (
+                                      <SelectItem key={lot.id} value={lot.id}>
+                                        {lot.lot_name || `Lot ${lot.lot_number}`}
+                                      </SelectItem>
+                                    ))}
+                                  </SelectContent>
+                                </Select>
+                              </TableCell>
+                            )}
+                            <TableCell>
+                              <POSelectionDropdown
+                                projectId={billData?.project_id}
+                                vendorId={vendor}
+                                value={row.purchaseOrderId}
+                                purchaseOrderLineId={row.purchaseOrderLineId}
+                                onChange={(poId, poLineId) => {
+                                  updateJobCostRow(row.id, 'purchaseOrderId', poId || '');
+                                  updateJobCostRow(row.id, 'purchaseOrderLineId', poLineId || '');
+                                }}
+                                costCodeId={row.accountId}
+                                className="h-8"
+                              />
+                            </TableCell>
+                            {!isApprovedBill && (
+                              <TableCell className="text-center">
+                                <Button
+                                  onClick={() => removeJobCostRow(row.id, row.dbId)}
+                                  size="sm"
+                                  variant="ghost"
+                                  disabled={jobCostRows.length === 1}
+                                  className="h-8 w-8 p-0"
+                                >
+                                  <Trash2 className="h-4 w-4" />
+                                </Button>
+                              </TableCell>
+                            )}
+                          </TableRow>
+                        );
+                      })}
+                    </TableBody>
+                  </Table>
 
                   <div className="p-3 bg-muted border-t">
                     <div className="flex items-center justify-between w-full">
@@ -943,91 +949,96 @@ export function EditBillDialog({ open, onOpenChange, billId }: EditBillDialogPro
                   </div>
                 )}
 
-                <div className="border rounded-lg overflow-hidden">
-                  <div className="grid grid-cols-12 gap-2 p-3 bg-muted font-medium text-sm">
-                    <div className="col-span-2">Account</div>
-                    <div className="col-span-2">Project</div>
-                    <div className={isApprovedBill ? "col-span-5" : "col-span-4"}>Description</div>
-                    <div className="col-span-1">Quantity</div>
-                    <div className="col-span-1">Cost</div>
-                    <div className="col-span-1">Total</div>
-                    {!isApprovedBill && <div className="col-span-1 text-center">Action</div>}
-                  </div>
-
-                  {expenseRows.map((row) => (
-                    <div key={row.id} className="grid grid-cols-12 gap-2 p-3 border-t">
-                      <div className="col-span-2">
-                        <AccountSearchInput
-                          value={row.accountId || ""}
-                          onChange={(accountId) => updateExpenseRow(row.id, 'accountId', accountId)}
-                          placeholder="Select account"
-                          accountType="expense"
-                          className="h-8"
-                          disabled={isApprovedBill}
-                        />
-                      </div>
-                      <div className="col-span-2">
-                        <JobSearchInput 
-                          value={row.projectId || ""}
-                          onChange={(projectId) => updateExpenseRow(row.id, 'projectId', projectId)}
-                          placeholder="Select project"
-                          className="h-8"
-                          disabled={isApprovedBill}
-                        />
-                      </div>
-                      <div className={isApprovedBill ? "col-span-5" : "col-span-4"}>
-                        <Input 
-                          placeholder="Description"
-                          value={row.memo}
-                          onChange={(e) => updateExpenseRow(row.id, 'memo', e.target.value)}
-                          className="h-8"
-                        />
-                      </div>
-                      <div className="col-span-1">
-                        <Input 
-                          type="number"
-                          step="0.01"
-                          placeholder="1"
-                          value={row.quantity}
-                          onChange={(e) => updateExpenseRow(row.id, 'quantity', e.target.value)}
-                          className="h-8 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
-                          disabled={isApprovedBill}
-                        />
-                      </div>
-                      <div className="col-span-1">
-                        <div className="relative">
-                          <span className="absolute left-2 top-1/2 -translate-y-1/2 text-muted-foreground">$</span>
-                          <Input 
-                            type="number"
-                            step="0.01"
-                            placeholder="0.00"
-                            value={row.amount}
-                            onChange={(e) => updateExpenseRow(row.id, 'amount', e.target.value)}
-                            className="h-8 pl-6 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
-                            disabled={isApprovedBill}
-                          />
-                        </div>
-                      </div>
-                      <div className="col-span-1 flex items-center">
-                        <span className="text-sm font-medium">
-                          ${((parseFloat(row.quantity) || 0) * (parseFloat(row.amount) || 0)).toFixed(2)}
-                        </span>
-                      </div>
-                      {!isApprovedBill && (
-                        <div className="col-span-1 flex justify-center items-center">
-                          <Button
-                            onClick={() => removeExpenseRow(row.id, row.dbId)}
-                            size="sm"
-                            variant="destructive"
-                            disabled={expenseRows.length === 1}
-                            className="h-8 w-8 p-0"
-                          >
-                            <Trash2 className="h-4 w-4" />
-                          </Button>
-                        </div>
-                      )}
-                    </div>
-                  ))}
+                <div className="border rounded-lg overflow-hidden overflow-x-auto">
+                  <Table containerClassName="relative w-full">
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead className="w-[180px]">Account</TableHead>
+                        <TableHead className="w-[180px]">Project</TableHead>
+                        <TableHead className="w-[260px]">Description</TableHead>
+                        <TableHead className="w-[90px]">Quantity</TableHead>
+                        <TableHead className="w-[100px]">Unit Cost</TableHead>
+                        <TableHead className="w-[100px]">Total</TableHead>
+                        {!isApprovedBill && <TableHead className="w-[50px] text-center">Actions</TableHead>}
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {expenseRows.map((row) => {
+                        const qty = parseFloat(row.quantity) || 0;
+                        const cost = parseFloat(row.amount) || 0;
+                        const total = Math.round(qty * cost * 100) / 100;
+                        return (
+                          <TableRow key={row.id}>
+                            <TableCell>
+                              <AccountSearchInput
+                                value={row.accountId || ""}
+                                onChange={(accountId) => updateExpenseRow(row.id, 'accountId', accountId)}
+                                placeholder="Select account"
+                                accountType="expense"
+                                className="h-8"
+                                disabled={isApprovedBill}
+                              />
+                            </TableCell>
+                            <TableCell>
+                              <JobSearchInput
+                                value={row.projectId || ""}
+                                onChange={(projectId) => updateExpenseRow(row.id, 'projectId', projectId)}
+                                placeholder="Select project"
+                                className="h-8"
+                                disabled={isApprovedBill}
+                              />
+                            </TableCell>
+                            <TableCell>
+                              <Input
+                                placeholder="Description"
+                                value={row.memo}
+                                onChange={(e) => updateExpenseRow(row.id, 'memo', e.target.value)}
+                                className="h-8 truncate"
+                              />
+                            </TableCell>
+                            <TableCell>
+                              <Input
+                                type="number"
+                                step="0.01"
+                                placeholder="1"
+                                value={row.quantity}
+                                onChange={(e) => updateExpenseRow(row.id, 'quantity', e.target.value)}
+                                className="h-7 px-1 border-0 bg-transparent shadow-none focus-visible:ring-1 focus-visible:ring-ring focus-visible:ring-offset-0 text-sm font-medium [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                                disabled={isApprovedBill}
+                              />
+                            </TableCell>
+                            <TableCell>
+                              <Input
+                                type="number"
+                                step="0.01"
+                                placeholder="0.00"
+                                value={row.amount}
+                                onChange={(e) => updateExpenseRow(row.id, 'amount', e.target.value)}
+                                className="h-7 px-1 border-0 bg-transparent shadow-none focus-visible:ring-1 focus-visible:ring-ring focus-visible:ring-offset-0 text-sm font-medium [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                                disabled={isApprovedBill}
+                              />
+                            </TableCell>
+                            <TableCell>
+                              <span className="font-medium">${total.toFixed(2)}</span>
+                            </TableCell>
+                            {!isApprovedBill && (
+                              <TableCell className="text-center">
+                                <Button
+                                  onClick={() => removeExpenseRow(row.id, row.dbId)}
+                                  size="sm"
+                                  variant="ghost"
+                                  disabled={expenseRows.length === 1}
+                                  className="h-8 w-8 p-0"
+                                >
+                                  <Trash2 className="h-4 w-4" />
+                                </Button>
+                              </TableCell>
+                            )}
+                          </TableRow>
+                        );
+                      })}
+                    </TableBody>
+                  </Table>
 
                   <div className="p-3 bg-muted border-t">
                     <div className="flex items-center justify-between w-full">
