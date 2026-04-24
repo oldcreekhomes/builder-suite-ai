@@ -1246,11 +1246,11 @@ export function EditExtractedBillDialog({
               <Table containerClassName="relative w-full">
                   <TableHeader>
                     <TableRow>
-                      <TableHead className="w-[180px]">Cost Code</TableHead>
-                      <TableHead className="w-[200px]">Description</TableHead>
-                      <TableHead className="w-[120px]">Quantity</TableHead>
-                      <TableHead className="w-[120px]">Unit Cost</TableHead>
-                      <TableHead className="w-[110px]">Total</TableHead>
+                      <TableHead className="w-[210px]">Cost Code</TableHead>
+                      <TableHead className="w-[240px]">Description</TableHead>
+                      <TableHead className="w-[90px]">Quantity</TableHead>
+                      <TableHead className="w-[100px]">Unit Cost</TableHead>
+                      <TableHead className="w-[100px]">Total</TableHead>
                       {showAddressColumn && <TableHead className="w-[110px]">Lot Cost</TableHead>}
                       {showAddressColumn && <TableHead className="w-[130px]">Address</TableHead>}
                       {showPOSelection && <TableHead className="w-[180px]">Purchase Order</TableHead>}
@@ -1263,7 +1263,7 @@ export function EditExtractedBillDialog({
                       const singleLine = !group.isGrouped ? group.children[0] : null;
                       return (
                     <TableRow key={group.key}>
-                      <TableCell>
+                      <TableCell title={group.cost_code_display || ''}>
                          <CostCodeSearchInput
                           value={group.cost_code_display || ""}
                           onChange={(value) => {
@@ -1273,7 +1273,7 @@ export function EditExtractedBillDialog({
                               updateJobCostGroup(group, { cost_code_display: value });
                             }
                           }}
-                          className="h-8"
+                          className="h-8 truncate"
                           onCostCodeSelect={(costCode) => {
                             if (!costCode) return;
                             const display = `${costCode.code} - ${costCode.name}`;
@@ -1291,10 +1291,11 @@ export function EditExtractedBillDialog({
                           }}
                         />
                       </TableCell>
-                      <TableCell>
+                      <TableCell title={group.memo || ''}>
                          <Input
-                          className="h-8"
+                          className="h-8 truncate"
                           value={group.memo || ""}
+                          title={group.memo || ''}
                           onChange={(e) => {
                             if (singleLine) {
                               updateJobCostLine(singleLine.id, 'memo', e.target.value);
@@ -1306,7 +1307,7 @@ export function EditExtractedBillDialog({
                       </TableCell>
                       <TableCell>
                         <Input
-                          className="h-8"
+                          className="h-7 px-1 border-0 bg-transparent shadow-none focus-visible:ring-1 focus-visible:ring-ring focus-visible:ring-offset-0 text-sm font-medium"
                           type="number"
                           step="0.01"
                           value={Number.isFinite(group.quantity) ? group.quantity.toFixed(2) : '0.00'}
@@ -1322,7 +1323,7 @@ export function EditExtractedBillDialog({
                       </TableCell>
                       <TableCell>
                         <Input
-                          className="h-8"
+                          className="h-7 px-1 border-0 bg-transparent shadow-none focus-visible:ring-1 focus-visible:ring-ring focus-visible:ring-offset-0 text-sm font-medium"
                           type="number"
                           step="0.01"
                           value={Number.isFinite(group.unit_cost) ? group.unit_cost.toFixed(2) : '0.00'}
