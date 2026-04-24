@@ -234,7 +234,7 @@ Return ONLY the JSON object, no additional text or markdown.`;
       }
     );
 
-  } catch (error) {
+  } catch (error: any) {
     console.error('Error in extract-insurance-certificate-direct:', error);
 
     return new Response(
