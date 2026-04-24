@@ -1308,7 +1308,8 @@ export function EditExtractedBillDialog({
                         <Input
                           className="h-8"
                           type="number"
-                          value={group.quantity}
+                          step="0.01"
+                          value={Number.isFinite(group.quantity) ? group.quantity.toFixed(2) : '0.00'}
                           onChange={(e) => {
                             const v = parseFloat(e.target.value) || 0;
                             if (singleLine) {
@@ -1324,7 +1325,7 @@ export function EditExtractedBillDialog({
                           className="h-8"
                           type="number"
                           step="0.01"
-                          value={group.unit_cost}
+                          value={Number.isFinite(group.unit_cost) ? group.unit_cost.toFixed(2) : '0.00'}
                           onChange={(e) => {
                             const v = parseFloat(e.target.value) || 0;
                             if (singleLine) {
