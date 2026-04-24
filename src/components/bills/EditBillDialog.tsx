@@ -40,6 +40,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import { Textarea } from "@/components/ui/textarea";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import { groupBillLines, rowTotal, sumDisplayedTotal, roundCents, type DisplayGroup } from "@/lib/billLineMath";
 
 interface EditBillDialogProps {
   open: boolean;
