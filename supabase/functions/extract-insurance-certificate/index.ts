@@ -264,7 +264,7 @@ Return ONLY the JSON object, no additional text or markdown.`;
       }
     );
 
-  } catch (error) {
+  } catch (error: any) {
     console.error('Error in extract-insurance-certificate:', error);
 
     // Try to update the pending upload with error status
@@ -273,7 +273,6 @@ Return ONLY the JSON object, no additional text or markdown.`;
       if (pendingUploadId) {
         const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
         const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
-        const _err: any = error;
         const supabase = createClient(supabaseUrl, supabaseKey);
         
         await supabase
