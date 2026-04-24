@@ -670,6 +670,9 @@ export function EditExtractedBillDialog({
       const totalAmt = children.reduce((s, c) => s + (Number(c.amount) || 0), 0);
       const lotIds = children.map((c) => c.lot_id).filter(Boolean) as string[];
       const lotCount = Math.max(lotIds.length, children.length);
+      // Display the invoice's clean 2-decimal quantity (e.g. 0.5, 1, 0.4) instead of
+      // the reconstructed sum of 6-decimal child splits (e.g. 0.499999).
+      const cleanQty = Math.round(totalQty * 100) / 100;
       return {
         key,
         children,
@@ -678,7 +681,7 @@ export function EditExtractedBillDialog({
         cost_code_display: first.cost_code_display,
         memo: first.memo,
         unit_cost: Number(first.unit_cost) || 0,
-        quantity: totalQty,
+        quantity: cleanQty,
         amount: totalAmt,
         lotCost: lotCount > 0 ? totalAmt / lotCount : totalAmt,
         lotIds,
@@ -710,19 +713,24 @@ export function EditExtractedBillDialog({
       const newQty = patch.quantity !== undefined ? Number(patch.quantity) || 0 : group.quantity;
       const newTotal = Math.round(newQty * newUnit * 100) / 100;
 
-      const evenCents = Math.floor((newTotal * 100) / lotCount);
-      const remainderCents = Math.round(newTotal * 100) - evenCents * lotCount;
-      const evenQty = Math.floor((newQty * 1e6) / lotCount) / 1e6;
-      const qtyRemainder = Math.round((newQty - evenQty * lotCount) * 1e6) / 1e6;
+      // Cent-precise per-lot AMOUNT split: a few lots absorb the leftover penny.
+      const totalCents = Math.round(newTotal * 100);
+      const baseCents = Math.floor(totalCents / lotCount);
+      const extraCents = totalCents - baseCents * lotCount;
+
+      // Clean 2-decimal per-lot QUANTITY split: a few lots absorb the leftover hundredth.
+      const totalQtyHundredths = Math.round(newQty * 100);
+      const baseQtyHundredths = Math.floor(totalQtyHundredths / lotCount);
+      const extraQtyHundredths = totalQtyHundredths - baseQtyHundredths * lotCount;
 
       let i = 0;
       return prev.map((l) => {
         if (!childIds.has(l.id)) return l;
-        const isLast = i === lotCount - 1;
-        const childAmt = (isLast ? evenCents + remainderCents : evenCents) / 100;
-        const childQty = isLast
-          ? Math.round((evenQty + qtyRemainder) * 1e6) / 1e6
-          : evenQty;
+        // First `extraCents` children get +1¢; first `extraQtyHundredths` children get +0.01.
+        const childCents = baseCents + (i < extraCents ? 1 : 0);
+        const childQtyHundredths = baseQtyHundredths + (i < extraQtyHundredths ? 1 : 0);
+        const childAmt = childCents / 100;
+        const childQty = childQtyHundredths / 100;
         i += 1;
         return {
           ...l,
@@ -1300,7 +1308,8 @@ export function EditExtractedBillDialog({
                         <Input
                           className="h-8"
                           type="number"
-                          value={group.quantity}
+                          step="0.01"
+                          value={Number.isFinite(group.quantity) ? group.quantity.toFixed(2) : '0.00'}
                           onChange={(e) => {
                             const v = parseFloat(e.target.value) || 0;
                             if (singleLine) {
@@ -1316,7 +1325,7 @@ export function EditExtractedBillDialog({
                           className="h-8"
                           type="number"
                           step="0.01"
-                          value={group.unit_cost}
+                          value={Number.isFinite(group.unit_cost) ? group.unit_cost.toFixed(2) : '0.00'}
                           onChange={(e) => {
                             const v = parseFloat(e.target.value) || 0;
                             if (singleLine) {
