@@ -1242,31 +1242,43 @@ export function EditExtractedBillDialog({
                       <TableHead className="w-[220px]">Description</TableHead>
                       <TableHead className="w-[100px]">Quantity</TableHead>
                       <TableHead className="w-[100px]">Unit Cost</TableHead>
-                      <TableHead className="w-[80px]">Total</TableHead>
-                      {showAddressColumn && <TableHead className="w-[130px]">Address</TableHead>}
+                      <TableHead className="w-[100px]">Total</TableHead>
+                      {showAddressColumn && <TableHead className="w-[110px]">Lot Cost</TableHead>}
+                      {showAddressColumn && <TableHead className="w-[150px]">Address</TableHead>}
                       {showPOSelection && <TableHead className="w-[180px]">Purchase Order</TableHead>}
                       {showPOSelection && <TableHead className="w-[55px] text-center">Match</TableHead>}
                       <TableHead className="w-[50px] text-center">Actions</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {jobCostLines.map((line) => (
-                    <TableRow key={line.id}>
+                    {jobCostDisplayLines.map((group) => {
+                      const singleLine = !group.isGrouped ? group.children[0] : null;
+                      return (
+                    <TableRow key={group.key}>
                       <TableCell>
                          <CostCodeSearchInput
-                          value={line.cost_code_display || ""}
-                          onChange={(value) => updateJobCostLine(line.id, 'cost_code_display', value)}
+                          value={group.cost_code_display || ""}
+                          onChange={(value) => {
+                            if (singleLine) {
+                              updateJobCostLine(singleLine.id, 'cost_code_display', value);
+                            } else {
+                              updateJobCostGroup(group, { cost_code_display: value });
+                            }
+                          }}
                           className="h-8"
                           onCostCodeSelect={(costCode) => {
-                            if (costCode) {
-                              const display = `${costCode.code} - ${costCode.name}`;
+                            if (!costCode) return;
+                            const display = `${costCode.code} - ${costCode.name}`;
+                            if (singleLine) {
                               setJobCostLines(lines =>
-                                lines.map(l => 
-                                  l.id === line.id 
+                                lines.map(l =>
+                                  l.id === singleLine.id
                                     ? { ...l, cost_code_id: costCode.id, cost_code_display: display }
                                     : l
                                 )
                               );
+                            } else {
+                              updateJobCostGroup(group, { cost_code_id: costCode.id, cost_code_display: display });
                             }
                           }}
                         />
@@ -1274,16 +1286,29 @@ export function EditExtractedBillDialog({
                       <TableCell>
                          <Input
                           className="h-8"
-                          value={line.memo || ""}
-                          onChange={(e) => updateJobCostLine(line.id, 'memo', e.target.value)}
+                          value={group.memo || ""}
+                          onChange={(e) => {
+                            if (singleLine) {
+                              updateJobCostLine(singleLine.id, 'memo', e.target.value);
+                            } else {
+                              updateJobCostGroup(group, { memo: e.target.value });
+                            }
+                          }}
                         />
                       </TableCell>
                       <TableCell>
                         <Input
                           className="h-8"
                           type="number"
-                          value={line.quantity}
-                          onChange={(e) => updateJobCostLine(line.id, 'quantity', parseFloat(e.target.value) || 0)}
+                          value={group.quantity}
+                          onChange={(e) => {
+                            const v = parseFloat(e.target.value) || 0;
+                            if (singleLine) {
+                              updateJobCostLine(singleLine.id, 'quantity', v);
+                            } else {
+                              updateJobCostGroup(group, { quantity: v });
+                            }
+                          }}
                         />
                       </TableCell>
                       <TableCell>
@@ -1291,30 +1316,68 @@ export function EditExtractedBillDialog({
                           className="h-8"
                           type="number"
                           step="0.01"
-                          value={line.unit_cost}
-                          onChange={(e) => updateJobCostLine(line.id, 'unit_cost', parseFloat(e.target.value) || 0)}
+                          value={group.unit_cost}
+                          onChange={(e) => {
+                            const v = parseFloat(e.target.value) || 0;
+                            if (singleLine) {
+                              updateJobCostLine(singleLine.id, 'unit_cost', v);
+                            } else {
+                              updateJobCostGroup(group, { unit_cost: v });
+                            }
+                          }}
                         />
                       </TableCell>
                       <TableCell>
-                        <span className="font-medium">${line.amount.toFixed(2)}</span>
+                        <span className="font-medium">${group.amount.toFixed(2)}</span>
                       </TableCell>
                       {showAddressColumn && (
                         <TableCell>
-                          <Select
-                            value={line.lot_id || ''}
-                            onValueChange={(value) => updateJobCostLine(line.id, 'lot_id', value)}
-                          >
-                            <SelectTrigger className="h-8 w-full">
-                              <SelectValue placeholder="Select" />
-                            </SelectTrigger>
-                            <SelectContent>
-                              {lots.map((lot) => (
-                                <SelectItem key={lot.id} value={lot.id}>
-                                  {lot.lot_name || `Lot ${lot.lot_number}`}
-                                </SelectItem>
-                              ))}
-                            </SelectContent>
-                          </Select>
+                          {group.isGrouped ? (
+                            <span className="text-sm font-medium">
+                              ${group.lotCost.toFixed(2)}
+                              <span className="text-muted-foreground font-normal"> /lot</span>
+                            </span>
+                          ) : (
+                            <span className="text-sm text-muted-foreground">—</span>
+                          )}
+                        </TableCell>
+                      )}
+                      {showAddressColumn && (
+                        <TableCell>
+                          {group.isGrouped ? (
+                            <TooltipProvider>
+                              <Tooltip>
+                                <TooltipTrigger asChild>
+                                  <span className="text-sm font-medium underline decoration-dotted cursor-help">
+                                    All {group.children.length} lots
+                                  </span>
+                                </TooltipTrigger>
+                                <TooltipContent>
+                                  <div className="space-y-1 text-xs">
+                                    {group.lotIds.map((id) => (
+                                      <div key={id}>{lotNameById(id)}</div>
+                                    ))}
+                                  </div>
+                                </TooltipContent>
+                              </Tooltip>
+                            </TooltipProvider>
+                          ) : (
+                            <Select
+                              value={singleLine?.lot_id || ''}
+                              onValueChange={(value) => singleLine && updateJobCostLine(singleLine.id, 'lot_id', value)}
+                            >
+                              <SelectTrigger className="h-8 w-full">
+                                <SelectValue placeholder="Select" />
+                              </SelectTrigger>
+                              <SelectContent>
+                                {lots.map((lot) => (
+                                  <SelectItem key={lot.id} value={lot.id}>
+                                    {lot.lot_name || `Lot ${lot.lot_number}`}
+                                  </SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
+                          )}
                         </TableCell>
                       )}
                       {showPOSelection && (
@@ -1322,36 +1385,46 @@ export function EditExtractedBillDialog({
                           <POSelectionDropdown
                             projectId={projectId}
                             vendorId={vendorId}
-                            value={line.purchase_order_id}
-                            purchaseOrderLineId={line.purchase_order_line_id}
+                            value={group.purchase_order_id}
+                            purchaseOrderLineId={group.purchase_order_line_id}
                             onChange={(poId, poLineId) => {
-                              // User explicitly touched this line — auto-matcher must NEVER overwrite it.
-                              userTouchedPoLineIds.current.add(line.id);
-                              autoMatchedLineIds.current.add(line.id);
                               const newAssignment: 'none' | 'auto' | null =
                                 poId === '__none__' ? 'none' : null;
-                              setJobCostLines(lines =>
-                                lines.map(l =>
-                                  l.id === line.id
-                                    ? {
-                                        ...l,
-                                        purchase_order_id: poId,
-                                        purchase_order_line_id: poLineId,
-                                        po_assignment: newAssignment,
-                                        poConfidence: undefined,
-                                      }
-                                    : l
-                                )
-                              );
+                              for (const c of group.children) {
+                                userTouchedPoLineIds.current.add(c.id);
+                                autoMatchedLineIds.current.add(c.id);
+                              }
+                              if (singleLine) {
+                                setJobCostLines(lines =>
+                                  lines.map(l =>
+                                    l.id === singleLine.id
+                                      ? {
+                                          ...l,
+                                          purchase_order_id: poId,
+                                          purchase_order_line_id: poLineId,
+                                          po_assignment: newAssignment,
+                                          poConfidence: undefined,
+                                        }
+                                      : l
+                                  )
+                                );
+                              } else {
+                                updateJobCostGroup(group, {
+                                  purchase_order_id: poId,
+                                  purchase_order_line_id: poLineId,
+                                  po_assignment: newAssignment,
+                                  poConfidence: undefined,
+                                });
+                              }
                             }}
-                            costCodeId={line.cost_code_id}
+                            costCodeId={group.cost_code_id}
                             currentBillId={undefined}
                             currentBillAmount={jobCostLines.reduce((sum, l) => sum + l.amount, 0)}
                             currentBillReference={refNo}
                             pendingBillLines={
-                              line.purchase_order_id
+                              group.purchase_order_id
                                 ? jobCostLines
-                                    .filter(l => l.purchase_order_id === line.purchase_order_id)
+                                    .filter(l => l.purchase_order_id === group.purchase_order_id)
                                     .map(l => ({
                                       purchase_order_line_id: l.purchase_order_line_id || undefined,
                                       cost_code_id: l.cost_code_id || undefined,
@@ -1364,14 +1437,14 @@ export function EditExtractedBillDialog({
                       )}
                       {showPOSelection && (
                         <TableCell className="text-center">
-                          {line.poConfidence !== undefined && line.poConfidence > 0 && line.purchase_order_id ? (
+                          {group.poConfidence !== undefined && group.poConfidence > 0 && group.purchase_order_id ? (
                             <span className={cn(
                               "text-[10px] font-semibold px-1.5 py-0.5 rounded-full whitespace-nowrap",
-                              line.poConfidence >= 80 ? "bg-green-100 text-green-700" :
-                              line.poConfidence >= 50 ? "bg-yellow-100 text-yellow-700" :
+                              group.poConfidence >= 80 ? "bg-green-100 text-green-700" :
+                              group.poConfidence >= 50 ? "bg-yellow-100 text-yellow-700" :
                               "bg-muted text-muted-foreground"
                             )}>
-                              {line.poConfidence}%
+                              {group.poConfidence}%
                             </span>
                           ) : null}
                         </TableCell>
@@ -1380,14 +1453,18 @@ export function EditExtractedBillDialog({
                         <Button
                           variant="ghost"
                           size="sm"
-                          onClick={() => removeJobCostLine(line.id)}
+                          onClick={() => {
+                            if (singleLine) removeJobCostLine(singleLine.id);
+                            else removeJobCostGroup(group);
+                          }}
                           className="text-red-600 hover:text-red-800 hover:bg-red-50"
                         >
                           <Trash2 className="h-4 w-4" />
                         </Button>
                       </TableCell>
                     </TableRow>
-                  ))}
+                      );
+                    })}
                 </TableBody>
               </Table>
               </div>
