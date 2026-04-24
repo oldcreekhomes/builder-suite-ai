@@ -388,7 +388,7 @@ Return ONLY valid JSON: {"sheet_number": "...", "sheet_title": "...", "scale": "
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
 
-  } catch (error) {
+  } catch (error: any) {
     console.error('Error in detect-sheet-info:', error);
     return new Response(
       JSON.stringify({ 
