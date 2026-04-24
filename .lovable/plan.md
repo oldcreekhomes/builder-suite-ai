@@ -1,48 +1,47 @@
 ## Fix plan
 
-The actual issue is not the data or the dialog layout.
-The issue is that the `Quantity` and `Unit Cost` fields in `EditExtractedBillDialog.tsx` are still rendering as native `type="number"` inputs without the spinner-removal classes, so Chrome is still showing the up/down counters.
+I will change only the description sourcing in the Edit Extracted Bill dialog so it reads the actual invoice line notes again.
 
-Do I know what the issue is?
-Yes.
-
-## Files isolated
-- `src/components/bills/EditExtractedBillDialog.tsx`
-- `src/components/ui/input.tsx`
-- Reference pattern already used elsewhere: `src/components/bills/EditBillDialog.tsx`
+## What I found
+- The PDF confirms the real line descriptions are the invoice `Notes` values, such as:
+  - `Time: Transmittal to B. Dofflemyer et al re: Deed of Easement and City execution status.`
+- In `src/components/bills/EditExtractedBillDialog.tsx`, the dialog currently hydrates each line like this:
+  - `memo: line.memo || (line.description && line.description.length <= 120 ? line.description : "") || ""`
+- That means if `pending_bill_lines.memo` contains the rolled-up summary text (`Attorney: Duncan Blair`), the UI shows that instead of the real extracted invoice line description.
+- The file also already keeps the original invoice text separately in `matchingText: line.description || line.memo || ""`, so the source data is still there.
 
 ## What I will change
-1. Update the `Quantity` and `Unit Cost` inputs in the Job Cost table inside `EditExtractedBillDialog.tsx`.
-2. Apply the same spinner-removal classes already used elsewhere in the app:
-   - `[appearance:textfield]`
-   - `[&::-webkit-outer-spin-button]:appearance-none`
-   - `[&::-webkit-inner-spin-button]:appearance-none`
-3. Apply the same treatment to the matching `Quantity` and `Unit Cost` inputs in the Expense section of the same dialog so both areas behave consistently.
+1. Update the line hydration in `src/components/bills/EditExtractedBillDialog.tsx` for:
+   - job cost lines
+   - promoted expense-to-job-cost lines
+   - expense lines
+2. Make the visible Description field prefer the invoice line description first, and only fall back to `memo` if the description is empty.
+3. Leave PO matching, quantity, unit cost, totals, grouping, vendor, dates, and every other behavior unchanged.
+
+## Exact behavior after the fix
+The Description column will load like this:
+- first choice: `line.description`
+- fallback only if missing: `line.memo`
+
+So for this invoice, rows will show values like:
+- `Time: Transmittal to B. Dofflemyer et al re: Deed of Easement and City execution status.`
+- instead of `Attorney: Duncan Blair`
 
 ## What I will not change
-- No description logic
-- No grouping logic
-- No totals/math
-- No PO matching
-- No layout changes
-- No global input component changes unless absolutely necessary
+- No spinner/input changes
+- No PO logic changes
+- No save logic changes
+- No grouping logic changes
+- No extraction pipeline changes
+- No other UI/layout changes
 
 ## Technical details
-I checked the current code and confirmed:
-- `EditExtractedBillDialog.tsx` still has plain `type="number"` inputs for these fields.
-- The shared `Input` component does not remove spinners globally.
-- Other bill-editing screens already use the Tailwind spinner-removal classes successfully.
-- MDN confirms `appearance` and WebKit spin-button pseudo-elements are the relevant CSS hooks for this behavior.
+Target file:
+- `src/components/bills/EditExtractedBillDialog.tsx`
 
-## Why this happened
-The earlier change was not actually applied to the live code, so the dialog is still using the old class names and native browser counters remain visible.
+Target lines are the three current mappings that set:
+- `memo: line.memo || (line.description ... )`
 
-Reply `approve` and I’ll apply only this spinner-removal fix.
+They will be reversed to prefer the invoice description while preserving `matchingText` for PO matching.
 
-<lov-actions>
-  <lov-open-history>View History</lov-open-history>
-</lov-actions>
-
-<lov-actions>
-<lov-link url="https://docs.lovable.dev/tips-tricks/troubleshooting">Troubleshooting docs</lov-link>
-</lov-actions>
+Reply `approve` and I’ll apply only this description fix.
