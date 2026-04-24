@@ -1,55 +1,55 @@
-## Plan
+## Port grouping + tooltips into EditBillDialog
 
-Make the bill editor used in Review, Rejected, Approved, and Paid match the Enter with AI editor as the single visual/template standard.
+Modify only `src/components/bills/EditBillDialog.tsx` so the Review, Rejected, Approved, and Paid editor matches the Enter with AI editor (`EditExtractedBillDialog`). No other files change. No DB / RLS / edge function work.
 
-### What will change
-1. **Use the Enter with AI editor everywhere appropriate**
-   - Repoint the Review tab (`draft`) and Rejected tab (`void`) away from the legacy `EditBillDialog` and into the same editor pattern used by Enter with AI (`EditExtractedBillDialog`).
-   - Keep the dialog title generic as **Edit Bill**.
+### 1. Wrap dialog body in `<TooltipProvider delayDuration={200}>`
+Wrap the inside of `<DialogContent className="max-w-6xl ...">` (line 605) so all hover tooltips render reliably and match the Enter with AI behavior.
 
-2. **Make Approved and Paid match the same layout and line-item experience**
-   - Refactor the posted-bill editor so it renders the same structure as the Enter with AI editor:
-     - same header fields/order
-     - same line-item table layout
-     - same multi-line breakout behavior
-     - same description sourcing (`description || memo` where applicable)
-     - same spinner suppression and table density
-   - Preserve posted-bill guardrails from the existing approved/paid flow:
-     - journal entry / bill update pathway for posted bills
-     - restrictions on fields that cannot be changed after approval/payment
-     - duplicate invoice validation and existing accounting protections
+### 2. Add a display-grouping layer over `jobCostRows`
+Mirror the logic at lines 646–716 of `EditExtractedBillDialog.tsx`:
 
-3. **Standardize all edit entry points**
-   - Update every place that opens a bill editor so the user sees the same UI pattern:
-     - `BatchBillReviewTable.tsx`
-     - `BillsApprovalTable.tsx`
-     - `PayBillsTable.tsx`
-     - plus existing report/detail dialogs that still open posted-bill editing (`AccountDetailDialog.tsx`, `JobCostActualDialog.tsx`)
-   - Result: Enter with AI, Review, Rejected, Approved, and Paid all open the same-looking editor experience.
+- Build `jobCostDisplayGroups` from `jobCostRows`, keyed by:
+  `accountId | unit_cost(6dp) | memo.trim() | purchaseOrderId | purchaseOrderLineId`
+- A group with 2+ children renders as ONE row showing:
+  - summed quantity (clean 2dp)
+  - shared unit_cost
+  - summed amount
+  - `lotCost = amount / lotCount`
+  - "All N lots" address pill with a tooltip listing each lot name
+- A group with 1 child renders exactly like today (single-row editing, lot dropdown, etc.).
 
-4. **Fix the current build blockers before shipping**
-   - Correct the Supabase edge-function type errors caused by relationship fields being treated as single objects when generated types currently expose arrays:
-     - `supabase/functions/rematch-pending-bill/index.ts`
-     - `supabase/functions/send-bid-reminders/index.ts`
-     - `supabase/functions/reverse-duplicate-bills/index.ts`
-   - Fix the Resend import mismatch by aligning `send-accounting-reports` with the project’s working Deno import pattern (`https://esm.sh/resend@4.0.0`) instead of `npm:resend@4.0.0`.
+### 3. Add `updateJobCostGroup` and `removeJobCostGroup`
+Mirror lines 723–781 of `EditExtractedBillDialog.tsx`, but operate on `ExpenseRow[]` in `jobCostRows`:
 
-### Implementation approach
-- Treat **Enter with AI** as the source-of-truth UI.
-- Use that component’s line rendering and grouped breakout behavior as the visual/template base.
-- For posted bills, adapt data loading/saving to `bills`/`bill_lines` while preserving the Enter with AI presentation.
-- Avoid a risky table-schema merge between pending and posted data models; unify the experience at the component/UI layer and routing layer first.
+- Cent-precise per-lot AMOUNT split (extra cents go to first N children)
+- Hundredth-precise per-lot QUANTITY split
+- Mirror `accountId`, `account` (cost code display), `memo`, `purchaseOrderId`, `purchaseOrderLineId` to every child
+- `removeJobCostGroup` → push every child `dbId` into `deletedLineIds` and drop them from `jobCostRows` (so existing save path deletes them)
 
-### Technical details
-- Current divergence:
-  - Enter with AI and batch upload use `EditExtractedBillDialog.tsx` over `pending_bill_uploads` / `pending_bill_lines`.
-  - Review/Rejected/Approved/Paid currently open the legacy `EditBillDialog.tsx` over `bills` / `bill_lines`.
-- The legacy dialog already contains the posted-bill mutation path (`updateApprovedBill`) that must be retained.
-- The Enter with AI dialog already contains the line grouping and richer breakout display the user wants restored.
-- Build issues observed are separate from the editor request, but they must be fixed in the same implementation pass or the project will not typecheck cleanly.
+### 4. Replace the job-cost `<TableBody>` (lines 800–902)
+Iterate `jobCostDisplayGroups` instead of `jobCostRows`. For each group:
 
-### Expected result
-- One consistent **Edit Bill** experience across Enter with AI, Review, Rejected, Approved, and Paid.
-- Multi-line invoices stay visibly broken out instead of collapsing into a simpler legacy layout.
-- Approved/Paid still obey accounting safety rules.
-- Build/typecheck errors are cleared so the changes can ship cleanly.
+- Cost Code cell: wrap `CostCodeSearchInput` in a `<Tooltip>` showing the full `account` text on hover. Single-row groups call `updateJobCostRow`; grouped rows call `updateJobCostGroup`.
+- Description cell: wrap `Input` in a `<Tooltip>` showing the full `memo` on hover. Same single vs grouped routing.
+- Quantity / Unit Cost / Total: read from the group; writes route through `updateJobCostRow` (single) or `updateJobCostGroup` (grouped).
+- Add a new **Lot Cost** column (only when `showAddressColumn`), shown to the LEFT of Address, matching `EditExtractedBillDialog` line 1282. Single-row groups show "—".
+- Address cell: grouped rows show "All N lots" pill with lot-name tooltip; single rows keep today's `<Select>` lot dropdown.
+- Purchase Order cell: unchanged behavior, but writes route through group when grouped.
+- Actions cell: unchanged; calls `removeJobCostGroup` for grouped rows, `removeJobCostRow` for single rows. Disabled state preserved for `isApprovedBill`.
+
+Expense tab is left exactly as-is (it does not have lot splits and already matches the Enter with AI expense layout closely enough).
+
+### 5. Preserve every existing accounting guardrail
+- `updateBill` for draft/void, `updateApprovedBill` for posted/paid, `correctBill` paths — unchanged.
+- `deletedLineIds`, duplicate-invoice check, period-close checks, attachment handling — unchanged.
+- `isApprovedBill` disables inputs and hides Add/Delete exactly as today.
+- No new fields are persisted; grouping is a pure presentation/edit layer over the existing `bill_lines` rows.
+
+### 6. Out of scope
+- No changes to `EditExtractedBillDialog.tsx`.
+- No changes to `useBills`, hooks, Supabase schema, RLS, or edge functions.
+- No changes to expense-tab columns.
+- The two dialog files remain separate (a full one-component merge is a follow-up).
+
+### Result
+On Review, Rejected, Approved, and Paid, opening Edit Bill shows the same grouped multi-lot rows, the same Lot Cost / "All N lots" presentation, and the same hover tooltips on Cost Code and Description as Enter with AI — without disturbing posted-bill accounting safety.
