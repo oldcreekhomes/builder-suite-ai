@@ -15,7 +15,7 @@ import { VendorSearchInput } from "@/components/VendorSearchInput";
 import { JobSearchInput } from "@/components/JobSearchInput";
 import { AccountSearchInput } from "@/components/AccountSearchInput";
 import { format } from "date-fns";
-import { CalendarIcon, Plus, Trash2, StickyNote } from "lucide-react";
+import { CalendarIcon, Plus, Trash2, StickyNote, Loader2 } from "lucide-react";
 import { DeleteConfirmationDialog } from "@/components/ui/delete-confirmation-dialog";
 import { BillNotesDialog } from "./BillNotesDialog";
 import { cn } from "@/lib/utils";
