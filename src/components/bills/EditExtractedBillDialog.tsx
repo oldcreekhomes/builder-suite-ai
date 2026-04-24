@@ -158,29 +158,49 @@ export function EditExtractedBillDialog({
   useEffect(() => {
     if (!open || !pendingUploadId) return;
 
-    const loadBillData = async () => {
-      const bill = pendingBills?.find(b => b.id === pendingUploadId);
-      if (!bill) return;
+    let cancelled = false;
+    setIsLoading(true);
 
-      const extractedData = bill.extracted_data || {};
+    const loadBillData = async () => {
+      // Fetch the pending upload, attachments, and lines in parallel
+      const [
+        { data: bill },
+        { data: attachmentRows },
+        { data: lineData },
+      ] = await Promise.all([
+        supabase
+          .from('pending_bill_uploads')
+          .select('*')
+          .eq('id', pendingUploadId)
+          .maybeSingle(),
+        supabase
+          .from('bill_attachments')
+          .select('id, file_name, file_path')
+          .eq('pending_upload_id', pendingUploadId),
+        supabase
+          .from('pending_bill_lines')
+          .select('*')
+          .eq('pending_upload_id', pendingUploadId)
+          .order('line_number'),
+      ]);
+
+      if (cancelled || !bill) {
+        if (!cancelled) setIsLoading(false);
+        return;
+      }
+
+      const extractedData: any = bill.extracted_data || {};
       const extractedVendorId = extractedData.vendor_id || extractedData.vendorId || "";
-      
+
       setVendorId(extractedVendorId);
       setRefNo(extractedData.reference_number || extractedData.referenceNumber || "");
       setTerms(normalizeTermsForUI(extractedData.terms));
       setInternalNotes(extractedData.notes || "");
 
-      // Load attachments from bill_attachments table (new multi-file path)
-      const { data: attachmentRows } = await supabase
-        .from('bill_attachments')
-        .select('id, file_name, file_path')
-        .eq('pending_upload_id', pendingUploadId);
-
       if (attachmentRows && attachmentRows.length > 0) {
         setAttachments(attachmentRows as Array<{ id: string; file_name: string; file_path: string }>);
-      } else if (bill.file_name) {
-        // Legacy fallback: single file stored on pending_bill_uploads itself
-        setAttachments([{ id: 'legacy', file_name: bill.file_name, file_path: bill.file_path }]);
+      } else if ((bill as any).file_name) {
+        setAttachments([{ id: 'legacy', file_name: (bill as any).file_name, file_path: (bill as any).file_path }]);
       } else {
         setAttachments([]);
       }
@@ -190,12 +210,11 @@ export function EditExtractedBillDialog({
         loadedBillDate = toDateLocal(normalizeToYMD(extractedData.bill_date || extractedData.billDate));
         setBillDate(loadedBillDate);
       }
-      
+
       if (extractedData.due_date || extractedData.dueDate) {
         setDueDate(toDateLocal(normalizeToYMD(extractedData.due_date || extractedData.dueDate)));
-        setIsDueAuto(false); // User or AI provided due date, don't auto-calculate
+        setIsDueAuto(false);
       } else {
-        // No due date provided, compute it from bill date and terms
         const loadedTerms = normalizeTermsForUI(extractedData.terms);
         setDueDate(computeDueDate(loadedBillDate, loadedTerms));
         setIsDueAuto(true);
@@ -209,147 +228,147 @@ export function EditExtractedBillDialog({
           .select('cost_code_id')
           .eq('company_id', extractedVendorId);
 
-        if (costCodeData && costCodeData.length === 1) {
+        if (!cancelled && costCodeData && costCodeData.length === 1) {
           defaultCostCode = costCodeData[0].cost_code_id;
           setDefaultCostCodeId(defaultCostCode);
         }
       }
 
-      // Fetch line items
-      const { data } = await supabase
-        .from('pending_bill_lines')
-        .select('*')
-        .eq('pending_upload_id', pendingUploadId)
-        .order('line_number');
+      if (cancelled) return;
 
-      if (data) {
-          const extractedTotal = Number(extractedData.totalAmount || extractedData.total_amount) || 0;
-          
-          // Build job cost and expense arrays, promoting expense lines to job_cost when a single default cost code exists
-          const poOverrides: Record<string, string> | undefined = extractedData.po_overrides;
-          let jobCost: LineItem[] = [];
-          let expense: LineItem[] = [];
+      const data = lineData || [];
+      const extractedTotal = Number(extractedData.totalAmount || extractedData.total_amount) || 0;
 
-          for (const line of data) {
-            const qty = Number(line.quantity) || 1;
-            const rawUnitCost = Number(line.unit_cost) || 0;
-            let amt = Number(line.amount) || 0;
-
-            // Prefer computing amount from quantity * unit_cost when amount is missing/zero
-            if ((amt <= 0 || !Number.isFinite(amt)) && rawUnitCost > 0) {
-              amt = Math.round(qty * rawUnitCost * 100) / 100;
-            }
-
-            // Sanity guard for absurd amounts (preserves legitimate multi-line invoices)
-            if (amt > 1000000 && qty > 0) {
-              const reasonableUnitCost = extractedTotal > 0 ? extractedTotal / qty : 100;
-              console.log(`Correcting absurd amount ${amt} to ${reasonableUnitCost * qty}`);
-              amt = reasonableUnitCost * qty;
-            }
-
-            // If unit_cost wasn't provided, back-calculate from amount
-            const unitCost = rawUnitCost > 0 ? rawUnitCost : (qty > 0 && amt > 0 ? Math.round((amt / qty) * 100) / 100 : 0);
-
-            // Fetch cost code display string if applicable
-            let costCodeDisplay = '';
-            const costCodeToUse = line.cost_code_id || defaultCostCode;
-            if (costCodeToUse) {
-              const { data: ccData } = await supabase
-                .from('cost_codes')
-                .select('code, name')
-                .eq('id', costCodeToUse)
-                .single();
-              if (ccData) {
-                costCodeDisplay = `${ccData.code} - ${ccData.name}`;
-              }
-            }
-
-            if (line.line_type === 'job_cost') {
-              jobCost.push({
-                id: line.id,
-                line_type: 'job_cost',
-                cost_code_id: costCodeToUse || undefined,
-                cost_code_display: costCodeDisplay || undefined,
-                purchase_order_id: poOverrides?.[line.id] || line.purchase_order_id || undefined,
-                purchase_order_line_id: (line as any).purchase_order_line_id || undefined,
-                po_assignment: ((line as any).po_assignment as 'none' | 'auto' | null) ?? null,
-                lot_id: line.lot_id || undefined,
-                quantity: qty,
-                unit_cost: unitCost,
-                amount: amt,
-                memo: line.memo || (line.description && line.description.length <= 120 ? line.description : "") || "",
-                matchingText: line.description || line.memo || "",
-              });
-            } else if (line.line_type === 'expense') {
-              // If vendor has exactly one cost code and the expense line isn't categorized, promote it to job_cost
-              if (defaultCostCode && !line.account_id && !line.cost_code_id) {
-                jobCost.push({
-                  id: line.id,
-                  line_type: 'job_cost',
-                  cost_code_id: defaultCostCode,
-                  cost_code_display: costCodeDisplay || undefined,
-                  purchase_order_id: poOverrides?.[line.id] || line.purchase_order_id || undefined,
-                  purchase_order_line_id: (line as any).purchase_order_line_id || undefined,
-                  po_assignment: ((line as any).po_assignment as 'none' | 'auto' | null) ?? null,
-                  lot_id: line.lot_id || undefined,
-                  quantity: qty,
-                  unit_cost: unitCost,
-                  amount: amt,
-                  memo: line.memo || (line.description && line.description.length <= 120 ? line.description : "") || "",
-                  matchingText: line.description || line.memo || "",
-                });
-              } else {
-                expense.push({
-                  id: line.id,
-                  line_type: 'expense',
-                  account_id: line.account_id || undefined,
-                  quantity: qty,
-                  unit_cost: unitCost,
-                  amount: amt,
-                  memo: line.memo || (line.description && line.description.length <= 120 ? line.description : "") || "",
-                  matchingText: line.description || line.memo || "",
-                });
-              }
-          }
-          }
-
-          // NOTE: We intentionally DO NOT collapse multi-line bills into a single
-          // "Amount Due" line when the line sum disagrees with the extracted total.
-          // The user must always see the real saved rows so they can correct them;
-          // collapsing destroys legitimate multi-line invoices (e.g. multi-PO bills).
-          const allLines = [...jobCost, ...expense];
-          const lineSum = allLines.reduce((sum, line) => sum + line.amount, 0);
-          if (extractedTotal > 0 && Math.abs(lineSum - extractedTotal) > 0.01) {
-            console.warn(
-              `Line sum (${lineSum}) differs from extracted total (${extractedTotal}). Showing line breakdown for user review.`
-            );
-          }
-          
-          // Filter out any $0 lines - they serve no accounting purpose
-          jobCost = jobCost.filter(line => line.amount > 0);
-          expense = expense.filter(line => line.amount > 0);
-
-          // If any loaded line already has a PO, or user previously saved edits, skip auto-matching
-          const anyLineHasPO = [...jobCost, ...expense].some(l => !!l.purchase_order_id);
-          const userPreviouslyEdited = !!extractedData.user_edited;
-          if (anyLineHasPO || userPreviouslyEdited) {
-            hasAutoMatched.current = true;
-          }
-
-          setJobCostLines(jobCost);
-          setExpenseLines(expense);
-
-          // Default to the tab that has data
-          if (expense.length > 0 && jobCost.length === 0) {
-            setActiveTab("expense");
-          } else if (jobCost.length > 0) {
-            setActiveTab("job-cost");
-          }
+      // BATCHED cost-code lookup: collect every unique id we'll need, then run ONE query.
+      const neededCcIds = Array.from(new Set(
+        data
+          .map((l: any) => l.cost_code_id || defaultCostCode)
+          .filter(Boolean) as string[]
+      ));
+      const ccDisplayMap = new Map<string, string>();
+      if (neededCcIds.length > 0) {
+        const { data: ccRows } = await supabase
+          .from('cost_codes')
+          .select('id, code, name')
+          .in('id', neededCcIds);
+        for (const r of (ccRows || []) as Array<{ id: string; code: string; name: string }>) {
+          ccDisplayMap.set(r.id, `${r.code} - ${r.name}`);
+        }
       }
+
+      if (cancelled) return;
+
+      const poOverrides: Record<string, string> | undefined = extractedData.po_overrides;
+      let jobCost: LineItem[] = [];
+      let expense: LineItem[] = [];
+
+      for (const line of data) {
+        const qty = Number(line.quantity) || 1;
+        const rawUnitCost = Number(line.unit_cost) || 0;
+        let amt = Number(line.amount) || 0;
+
+        if ((amt <= 0 || !Number.isFinite(amt)) && rawUnitCost > 0) {
+          amt = Math.round(qty * rawUnitCost * 100) / 100;
+        }
+
+        if (amt > 1000000 && qty > 0) {
+          const reasonableUnitCost = extractedTotal > 0 ? extractedTotal / qty : 100;
+          amt = reasonableUnitCost * qty;
+        }
+
+        const unitCost = rawUnitCost > 0 ? rawUnitCost : (qty > 0 && amt > 0 ? Math.round((amt / qty) * 100) / 100 : 0);
+
+        const costCodeToUse = line.cost_code_id || defaultCostCode;
+        const costCodeDisplay = costCodeToUse ? (ccDisplayMap.get(costCodeToUse) || '') : '';
+
+        if (line.line_type === 'job_cost') {
+          jobCost.push({
+            id: line.id,
+            line_type: 'job_cost',
+            cost_code_id: costCodeToUse || undefined,
+            cost_code_display: costCodeDisplay || undefined,
+            purchase_order_id: poOverrides?.[line.id] || line.purchase_order_id || undefined,
+            purchase_order_line_id: (line as any).purchase_order_line_id || undefined,
+            po_assignment: ((line as any).po_assignment as 'none' | 'auto' | null) ?? null,
+            lot_id: line.lot_id || undefined,
+            quantity: qty,
+            unit_cost: unitCost,
+            amount: amt,
+            memo: line.memo || (line.description && line.description.length <= 120 ? line.description : "") || "",
+            matchingText: line.description || line.memo || "",
+          });
+        } else if (line.line_type === 'expense') {
+          if (defaultCostCode && !line.account_id && !line.cost_code_id) {
+            jobCost.push({
+              id: line.id,
+              line_type: 'job_cost',
+              cost_code_id: defaultCostCode,
+              cost_code_display: costCodeDisplay || undefined,
+              purchase_order_id: poOverrides?.[line.id] || line.purchase_order_id || undefined,
+              purchase_order_line_id: (line as any).purchase_order_line_id || undefined,
+              po_assignment: ((line as any).po_assignment as 'none' | 'auto' | null) ?? null,
+              lot_id: line.lot_id || undefined,
+              quantity: qty,
+              unit_cost: unitCost,
+              amount: amt,
+              memo: line.memo || (line.description && line.description.length <= 120 ? line.description : "") || "",
+              matchingText: line.description || line.memo || "",
+            });
+          } else {
+            expense.push({
+              id: line.id,
+              line_type: 'expense',
+              account_id: line.account_id || undefined,
+              quantity: qty,
+              unit_cost: unitCost,
+              amount: amt,
+              memo: line.memo || (line.description && line.description.length <= 120 ? line.description : "") || "",
+              matchingText: line.description || line.memo || "",
+            });
+          }
+        }
+      }
+
+      const allLines = [...jobCost, ...expense];
+      const lineSum = allLines.reduce((sum, line) => sum + line.amount, 0);
+      if (extractedTotal > 0 && Math.abs(lineSum - extractedTotal) > 0.01) {
+        console.warn(
+          `Line sum (${lineSum}) differs from extracted total (${extractedTotal}). Showing line breakdown for user review.`
+        );
+      }
+
+      jobCost = jobCost.filter(line => line.amount > 0);
+      expense = expense.filter(line => line.amount > 0);
+
+      const anyLineHasPO = [...jobCost, ...expense].some(l => !!l.purchase_order_id);
+      const userPreviouslyEdited = !!extractedData.user_edited;
+      if (anyLineHasPO || userPreviouslyEdited) {
+        hasAutoMatched.current = true;
+      }
+
+      if (cancelled) return;
+
+      setJobCostLines(jobCost);
+      setExpenseLines(expense);
+
+      if (expense.length > 0 && jobCost.length === 0) {
+        setActiveTab("expense");
+      } else if (jobCost.length > 0) {
+        setActiveTab("job-cost");
+      }
+
+      setIsLoading(false);
     };
 
-    loadBillData();
-  }, [open, pendingUploadId, pendingBills]);
+    loadBillData().catch((err) => {
+      console.error('Failed to load bill data:', err);
+      if (!cancelled) setIsLoading(false);
+    });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [open, pendingUploadId]);
 
   // Re-apply default cost code when vendor changes
   useEffect(() => {
