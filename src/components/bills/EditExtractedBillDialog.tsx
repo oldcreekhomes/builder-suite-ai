@@ -1263,7 +1263,7 @@ export function EditExtractedBillDialog({
                       const singleLine = !group.isGrouped ? group.children[0] : null;
                       return (
                     <TableRow key={group.key}>
-                      <TableCell>
+                      <TableCell title={group.cost_code_display || ''}>
                          <CostCodeSearchInput
                           value={group.cost_code_display || ""}
                           onChange={(value) => {
@@ -1273,7 +1273,7 @@ export function EditExtractedBillDialog({
                               updateJobCostGroup(group, { cost_code_display: value });
                             }
                           }}
-                          className="h-8"
+                          className="h-8 truncate"
                           onCostCodeSelect={(costCode) => {
                             if (!costCode) return;
                             const display = `${costCode.code} - ${costCode.name}`;
@@ -1291,10 +1291,11 @@ export function EditExtractedBillDialog({
                           }}
                         />
                       </TableCell>
-                      <TableCell>
+                      <TableCell title={group.memo || ''}>
                          <Input
-                          className="h-8"
+                          className="h-8 truncate"
                           value={group.memo || ""}
+                          title={group.memo || ''}
                           onChange={(e) => {
                             if (singleLine) {
                               updateJobCostLine(singleLine.id, 'memo', e.target.value);
