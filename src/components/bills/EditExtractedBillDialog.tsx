@@ -713,19 +713,24 @@ export function EditExtractedBillDialog({
       const newQty = patch.quantity !== undefined ? Number(patch.quantity) || 0 : group.quantity;
       const newTotal = Math.round(newQty * newUnit * 100) / 100;
 
-      const evenCents = Math.floor((newTotal * 100) / lotCount);
-      const remainderCents = Math.round(newTotal * 100) - evenCents * lotCount;
-      const evenQty = Math.floor((newQty * 1e6) / lotCount) / 1e6;
-      const qtyRemainder = Math.round((newQty - evenQty * lotCount) * 1e6) / 1e6;
+      // Cent-precise per-lot AMOUNT split: a few lots absorb the leftover penny.
+      const totalCents = Math.round(newTotal * 100);
+      const baseCents = Math.floor(totalCents / lotCount);
+      const extraCents = totalCents - baseCents * lotCount;
+
+      // Clean 2-decimal per-lot QUANTITY split: a few lots absorb the leftover hundredth.
+      const totalQtyHundredths = Math.round(newQty * 100);
+      const baseQtyHundredths = Math.floor(totalQtyHundredths / lotCount);
+      const extraQtyHundredths = totalQtyHundredths - baseQtyHundredths * lotCount;
 
       let i = 0;
       return prev.map((l) => {
         if (!childIds.has(l.id)) return l;
-        const isLast = i === lotCount - 1;
-        const childAmt = (isLast ? evenCents + remainderCents : evenCents) / 100;
-        const childQty = isLast
-          ? Math.round((evenQty + qtyRemainder) * 1e6) / 1e6
-          : evenQty;
+        // First `extraCents` children get +1¢; first `extraQtyHundredths` children get +0.01.
+        const childCents = baseCents + (i < extraCents ? 1 : 0);
+        const childQtyHundredths = baseQtyHundredths + (i < extraQtyHundredths ? 1 : 0);
+        const childAmt = childCents / 100;
+        const childQty = childQtyHundredths / 100;
         i += 1;
         return {
           ...l,
