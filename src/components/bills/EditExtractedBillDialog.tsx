@@ -637,11 +637,14 @@ export function EditExtractedBillDialog({
   };
 
   const calculateTotal = () => {
-    const sumSafe = (arr: LineItem[]) => arr.reduce((s, l) => {
-      const v = Number(l.amount);
-      return s + (Number.isFinite(v) ? v : 0);
-    }, 0);
-    return (sumSafe(jobCostLines) + sumSafe(expenseLines)).toFixed(2);
+    // Sum the SAME displayed group totals shown in the table (qty × unit_cost),
+    // plus expense row totals (also qty × unit_cost). Footer always matches rows.
+    const jobCostSum = jobCostDisplayLines.reduce((s, g) => s + g.amount, 0);
+    const expenseSum = expenseLines.reduce(
+      (s, l) => s + rowTotal(Number(l.quantity) || 0, Number(l.unit_cost) || 0),
+      0,
+    );
+    return roundCents(jobCostSum + expenseSum).toFixed(2);
   };
 
   // Group sibling split rows together. Lines that share the same
