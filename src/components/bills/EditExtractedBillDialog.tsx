@@ -1393,7 +1393,7 @@ export function EditExtractedBillDialog({
                       </TableCell>
                       <TableCell>
                         <Input
-                          className="h-7 px-1 border-0 bg-transparent shadow-none focus-visible:ring-1 focus-visible:ring-ring focus-visible:ring-offset-0 text-sm font-medium"
+                          className="h-7 px-1 border-0 bg-transparent shadow-none focus-visible:ring-1 focus-visible:ring-ring focus-visible:ring-offset-0 text-sm font-medium [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
                           type="number"
                           step="0.01"
                           value={Number.isFinite(group.quantity) ? group.quantity.toFixed(2) : '0.00'}
@@ -1409,7 +1409,7 @@ export function EditExtractedBillDialog({
                       </TableCell>
                       <TableCell>
                         <Input
-                          className="h-7 px-1 border-0 bg-transparent shadow-none focus-visible:ring-1 focus-visible:ring-ring focus-visible:ring-offset-0 text-sm font-medium"
+                          className="h-7 px-1 border-0 bg-transparent shadow-none focus-visible:ring-1 focus-visible:ring-ring focus-visible:ring-offset-0 text-sm font-medium [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
                           type="number"
                           step="0.01"
                           value={Number.isFinite(group.unit_cost) ? group.unit_cost.toFixed(2) : '0.00'}
@@ -1615,7 +1615,7 @@ export function EditExtractedBillDialog({
                       </TableCell>
                       <TableCell>
                         <Input
-                          className="h-8"
+                          className="h-8 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
                           type="number"
                           value={line.quantity}
                           onChange={(e) => updateExpenseLine(line.id, 'quantity', parseFloat(e.target.value) || 0)}
@@ -1623,7 +1623,7 @@ export function EditExtractedBillDialog({
                       </TableCell>
                       <TableCell>
                         <Input
-                          className="h-8"
+                          className="h-8 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
                           type="number"
                           step="0.01"
                           value={line.unit_cost}
