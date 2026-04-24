@@ -979,7 +979,7 @@ export function EditBillDialog({ open, onOpenChange, billId }: EditBillDialogPro
                                 type="number"
                                 step="0.01"
                                 placeholder="0.00"
-                                value={Number.isFinite(group.unit_cost) ? group.unit_cost.toFixed(2) : '0.00'}
+                                value={Number.isFinite(group.unitCost) ? group.unitCost.toFixed(2) : '0.00'}
                                 onChange={(e) => {
                                   const v = parseFloat(e.target.value) || 0;
                                   if (singleRow) {
