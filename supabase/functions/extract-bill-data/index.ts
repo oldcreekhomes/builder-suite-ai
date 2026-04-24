@@ -791,7 +791,8 @@ CRITICAL COST CODE FORMAT RULE:
 
 MULTI-ITEM INVOICE SPLITTING RULES (STRICT):
 - If the invoice body shows a Description/Amount table (or any structured list) where MULTIPLE rows each have their OWN dollar amount, every row MUST become a SEPARATE line_items entry. NO EXCEPTIONS.
-- This includes: draw schedules, progress billing, multi-scope invoices, lists like "Deck balance $1032 / Siding draw $3500 / Framing $720", and invoices with multiple POs referenced.
+- This includes: draw schedules, progress billing, multi-scope invoices, lists like "Deck balance $1032 / Siding draw $3500 / Framing $720", invoices with multiple POs referenced, AND professional services / time-billed invoices (legal, consulting, engineering) with columns like Date / Person / Notes / Quantity / Rate / Total.
+- For professional-services / time-billed invoices: each dated entry row IS its own line item. The "Notes" or "Description" cell is the line description. Do NOT collapse multiple time entries into a single summary row, and do NOT use the timekeeper summary row (e.g., "Duncan Blair  Attorney  3.3  $425.00  $1,402.50") as the only line item — that is a SUMMARY of the detail rows above it, not a substitute for them.
 - Each line item gets its own description, quantity, unit_cost, amount, cost_code_name, AND po_reference.
 - The sum of all line item amounts should equal the total_amount (small rounding/tax differences are OK — DO NOT collapse to a single line just because the sum is off by a few dollars).
 - DO NOT combine multiple items into a single line_items entry, even if they share a vendor or cost code.
