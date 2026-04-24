@@ -623,6 +623,140 @@ export function EditExtractedBillDialog({
     return (sumSafe(jobCostLines) + sumSafe(expenseLines)).toFixed(2);
   };
 
+  // Group sibling split rows together. Lines that share the same
+  // cost_code_id + unit_cost + memo + PO (typical output of
+  // split-pending-bill-lines) collapse into a single visual row that
+  // shows the original invoice math.
+  type DisplayLine = {
+    key: string;
+    children: LineItem[];           // underlying DB rows (one per lot)
+    isGrouped: boolean;             // true when 2+ children
+    cost_code_id?: string;
+    cost_code_display?: string;
+    memo?: string;
+    unit_cost: number;              // original rate (preserved on split)
+    quantity: number;               // SUM of child quantities = invoice qty
+    amount: number;                 // SUM of child amounts = invoice total
+    lotCost: number;                // amount / lotCount
+    lotIds: string[];
+    purchase_order_id?: string;
+    purchase_order_line_id?: string;
+    po_assignment?: 'none' | 'auto' | null;
+    poConfidence?: number;
+    lot_id?: string;                // only meaningful when !isGrouped
+  };
+
+  const buildJobCostDisplayLines = (lines: LineItem[]): DisplayLine[] => {
+    const groups = new Map<string, LineItem[]>();
+    const order: string[] = [];
+    for (const l of lines) {
+      const key = [
+        l.cost_code_id || '',
+        Number(l.unit_cost || 0).toFixed(6),
+        (l.memo || '').trim(),
+        l.purchase_order_id || '',
+        l.purchase_order_line_id || '',
+      ].join('|');
+      if (!groups.has(key)) {
+        groups.set(key, []);
+        order.push(key);
+      }
+      groups.get(key)!.push(l);
+    }
+    return order.map((key) => {
+      const children = groups.get(key)!;
+      const first = children[0];
+      const totalQty = children.reduce((s, c) => s + (Number(c.quantity) || 0), 0);
+      const totalAmt = children.reduce((s, c) => s + (Number(c.amount) || 0), 0);
+      const lotIds = children.map((c) => c.lot_id).filter(Boolean) as string[];
+      const lotCount = Math.max(lotIds.length, children.length);
+      return {
+        key,
+        children,
+        isGrouped: children.length > 1,
+        cost_code_id: first.cost_code_id,
+        cost_code_display: first.cost_code_display,
+        memo: first.memo,
+        unit_cost: Number(first.unit_cost) || 0,
+        quantity: totalQty,
+        amount: totalAmt,
+        lotCost: lotCount > 0 ? totalAmt / lotCount : totalAmt,
+        lotIds,
+        purchase_order_id: first.purchase_order_id,
+        purchase_order_line_id: first.purchase_order_line_id,
+        po_assignment: first.po_assignment,
+        poConfidence: first.poConfidence,
+        lot_id: first.lot_id,
+      };
+    });
+  };
+
+  const jobCostDisplayLines = buildJobCostDisplayLines(jobCostLines);
+
+  // Apply an edit made on a grouped row back to its underlying child rows.
+  // Quantity / unit_cost / amount are split cent-precise across children;
+  // metadata is mirrored to every child.
+  const updateJobCostGroup = (
+    group: DisplayLine,
+    patch: Partial<Pick<LineItem,
+      'cost_code_id' | 'cost_code_display' | 'memo' | 'unit_cost' | 'quantity'
+      | 'purchase_order_id' | 'purchase_order_line_id' | 'po_assignment' | 'poConfidence'>>,
+  ) => {
+    setJobCostLines((prev) => {
+      const childIds = new Set(group.children.map((c) => c.id));
+      const lotCount = Math.max(group.children.length, 1);
+
+      const newUnit = patch.unit_cost !== undefined ? Number(patch.unit_cost) || 0 : group.unit_cost;
+      const newQty = patch.quantity !== undefined ? Number(patch.quantity) || 0 : group.quantity;
+      const newTotal = Math.round(newQty * newUnit * 100) / 100;
+
+      const evenCents = Math.floor((newTotal * 100) / lotCount);
+      const remainderCents = Math.round(newTotal * 100) - evenCents * lotCount;
+      const evenQty = Math.floor((newQty * 1e6) / lotCount) / 1e6;
+      const qtyRemainder = Math.round((newQty - evenQty * lotCount) * 1e6) / 1e6;
+
+      let i = 0;
+      return prev.map((l) => {
+        if (!childIds.has(l.id)) return l;
+        const isLast = i === lotCount - 1;
+        const childAmt = (isLast ? evenCents + remainderCents : evenCents) / 100;
+        const childQty = isLast
+          ? Math.round((evenQty + qtyRemainder) * 1e6) / 1e6
+          : evenQty;
+        i += 1;
+        return {
+          ...l,
+          ...('cost_code_id' in patch ? { cost_code_id: patch.cost_code_id } : {}),
+          ...('cost_code_display' in patch ? { cost_code_display: patch.cost_code_display } : {}),
+          ...('memo' in patch ? { memo: patch.memo } : {}),
+          ...('purchase_order_id' in patch ? { purchase_order_id: patch.purchase_order_id } : {}),
+          ...('purchase_order_line_id' in patch ? { purchase_order_line_id: patch.purchase_order_line_id } : {}),
+          ...('po_assignment' in patch ? { po_assignment: patch.po_assignment ?? null } : {}),
+          ...('poConfidence' in patch ? { poConfidence: patch.poConfidence } : {}),
+          unit_cost: newUnit,
+          quantity: childQty,
+          amount: childAmt,
+        };
+      });
+    });
+  };
+
+  const removeJobCostGroup = (group: DisplayLine) => {
+    const ids = group.children.map((c) => c.id);
+    setJobCostLines((prev) => prev.filter((l) => !ids.includes(l.id)));
+    for (const id of ids) {
+      if (!id.startsWith('new-')) {
+        deleteLine.mutate(id);
+      }
+    }
+  };
+
+  const lotNameById = (lotId: string) => {
+    const lot = lots.find((l) => l.id === lotId);
+    return lot ? (lot.lot_name || `Lot ${lot.lot_number}`) : 'Lot';
+  };
+
+
   const handleSave = async () => {
     if (!vendorId) {
       toast({
