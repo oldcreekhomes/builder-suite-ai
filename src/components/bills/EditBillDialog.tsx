@@ -600,9 +600,134 @@ export function EditBillDialog({ open, onOpenChange, billId }: EditBillDialogPro
     );
   }
 
+  // ---- Job Cost display grouping (mirrors EditExtractedBillDialog) ----
+  type JobCostGroup = {
+    key: string;
+    children: ExpenseRow[];
+    isGrouped: boolean;
+    accountId?: string;
+    account: string;
+    memo: string;
+    unit_cost: number;
+    quantity: number;
+    amount: number;
+    lotCost: number;
+    lotIds: string[];
+    purchaseOrderId?: string;
+    purchaseOrderLineId?: string;
+  };
+
+  const buildJobCostDisplayGroups = (rows: ExpenseRow[]): JobCostGroup[] => {
+    const groups = new Map<string, ExpenseRow[]>();
+    const order: string[] = [];
+    for (const r of rows) {
+      const key = [
+        r.accountId || '',
+        (parseFloat(r.amount) || 0).toFixed(6),
+        (r.memo || '').trim(),
+        r.purchaseOrderId || '',
+        r.purchaseOrderLineId || '',
+      ].join('|');
+      if (!groups.has(key)) {
+        groups.set(key, []);
+        order.push(key);
+      }
+      groups.get(key)!.push(r);
+    }
+    return order.map((key) => {
+      const children = groups.get(key)!;
+      const first = children[0];
+      const unitCost = parseFloat(first.amount) || 0;
+      const totalQty = children.reduce((s, c) => s + (parseFloat(c.quantity) || 0), 0);
+      const totalAmt = children.reduce(
+        (s, c) => s + Math.round((parseFloat(c.quantity) || 0) * (parseFloat(c.amount) || 0) * 100) / 100,
+        0,
+      );
+      const lotIds = children.map((c) => c.lotId).filter(Boolean) as string[];
+      const lotCount = Math.max(lotIds.length, children.length);
+      const cleanQty = Math.round(totalQty * 100) / 100;
+      return {
+        key,
+        children,
+        isGrouped: children.length > 1,
+        accountId: first.accountId,
+        account: first.account,
+        memo: first.memo,
+        unit_cost: unitCost,
+        quantity: cleanQty,
+        amount: totalAmt,
+        lotCost: lotCount > 0 ? totalAmt / lotCount : totalAmt,
+        lotIds,
+        purchaseOrderId: first.purchaseOrderId,
+        purchaseOrderLineId: first.purchaseOrderLineId,
+      };
+    });
+  };
+
+  const jobCostDisplayGroups = buildJobCostDisplayGroups(jobCostRows);
+
+  const updateJobCostGroup = (
+    group: JobCostGroup,
+    patch: Partial<{
+      accountId: string;
+      account: string;
+      memo: string;
+      unit_cost: number;
+      quantity: number;
+      purchaseOrderId: string;
+      purchaseOrderLineId: string;
+    }>,
+  ) => {
+    setJobCostRows((prev) => {
+      const childIds = new Set(group.children.map((c) => c.id));
+      const lotCount = Math.max(group.children.length, 1);
+
+      const newUnit = patch.unit_cost !== undefined ? Number(patch.unit_cost) || 0 : group.unit_cost;
+      const newQty = patch.quantity !== undefined ? Number(patch.quantity) || 0 : group.quantity;
+
+      // Cent-precise per-lot QUANTITY split (hundredths)
+      const totalQtyHundredths = Math.round(newQty * 100);
+      const baseQtyHundredths = Math.floor(totalQtyHundredths / lotCount);
+      const extraQtyHundredths = totalQtyHundredths - baseQtyHundredths * lotCount;
+
+      let i = 0;
+      return prev.map((r) => {
+        if (!childIds.has(r.id)) return r;
+        const childQtyHundredths = baseQtyHundredths + (i < extraQtyHundredths ? 1 : 0);
+        const childQty = childQtyHundredths / 100;
+        i += 1;
+        return {
+          ...r,
+          ...('accountId' in patch ? { accountId: patch.accountId || '' } : {}),
+          ...('account' in patch ? { account: patch.account || '' } : {}),
+          ...('memo' in patch ? { memo: patch.memo || '' } : {}),
+          ...('purchaseOrderId' in patch ? { purchaseOrderId: patch.purchaseOrderId || '' } : {}),
+          ...('purchaseOrderLineId' in patch ? { purchaseOrderLineId: patch.purchaseOrderLineId || '' } : {}),
+          quantity: childQty.toString(),
+          amount: newUnit.toString(),
+        };
+      });
+    });
+  };
+
+  const removeJobCostGroup = (group: JobCostGroup) => {
+    const ids = new Set(group.children.map((c) => c.id));
+    const dbIds = group.children.map((c) => c.dbId).filter(Boolean) as string[];
+    setJobCostRows((prev) => prev.filter((r) => !ids.has(r.id)));
+    if (dbIds.length > 0) {
+      setDeletedLineIds((prev) => [...prev, ...dbIds]);
+    }
+  };
+
+  const lotNameById = (lotId: string) => {
+    const lot = lots.find((l) => l.id === lotId);
+    return lot ? (lot.lot_name || `Lot ${lot.lot_number}`) : 'Lot';
+  };
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-6xl max-h-[90vh] overflow-y-auto">
+        <TooltipProvider delayDuration={200}>
         <DialogHeader>
           <DialogTitle>Edit Bill</DialogTitle>
         <DialogDescription>
