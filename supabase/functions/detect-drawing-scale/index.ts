@@ -158,7 +158,7 @@ Do not include any other text, explanations, or formatting - ONLY the JSON objec
       }
     );
 
-  } catch (error) {
+  } catch (error: any) {
     console.error('Error in detect-drawing-scale:', error);
     return new Response(
       JSON.stringify({ 

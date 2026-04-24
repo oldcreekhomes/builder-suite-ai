@@ -901,7 +901,7 @@ Return ONLY the JSON object, no additional text.`;
 
     console.log(`AI extraction took ${Date.now() - extractionStartTime}ms`);
 
-    const aiData = await response.json();
+    const aiData = await response!.json();
     const extractedText = aiData.choices[0]?.message?.content;
 
     if (!extractedText) {
@@ -917,7 +917,7 @@ Return ONLY the JSON object, no additional text.`;
     }
 
     // Parse the JSON response
-    let extractedData;
+    let extractedData: any;
     try {
       const cleanedText = stripMarkdownCodeBlocks(extractedText);
       console.log('Cleaned text for parsing:', cleanedText.substring(0, 200) + '...');

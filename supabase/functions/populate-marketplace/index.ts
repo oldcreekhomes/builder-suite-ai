@@ -243,7 +243,7 @@ interface CategoryCount {
   count: number;
 }
 
-async function getExistingCounts(supabase: ReturnType<typeof createClient>): Promise<Map<string, number>> {
+async function getExistingCounts(supabase: any): Promise<Map<string, number>> {
   console.log('Fetching existing category counts...');
   
   const { data, error } = await supabase
@@ -258,7 +258,7 @@ async function getExistingCounts(supabase: ReturnType<typeof createClient>): Pro
   
   const counts = new Map<string, number>();
   for (const row of data || []) {
-    const type = row.company_type;
+    const type = (row as any).company_type;
     counts.set(type, (counts.get(type) || 0) + 1);
   }
   

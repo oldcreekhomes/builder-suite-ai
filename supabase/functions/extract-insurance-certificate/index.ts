@@ -264,7 +264,7 @@ Return ONLY the JSON object, no additional text or markdown.`;
       }
     );
 
-  } catch (error) {
+  } catch (error: any) {
     console.error('Error in extract-insurance-certificate:', error);
 
     // Try to update the pending upload with error status

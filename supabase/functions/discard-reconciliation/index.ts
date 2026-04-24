@@ -183,7 +183,7 @@ Deno.serve(async (req) => {
       { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
 
-  } catch (error) {
+  } catch (error: any) {
     console.error('[discard-reconciliation] Error:', error);
     return new Response(
       JSON.stringify({ error: error.message || 'Internal server error' }),
