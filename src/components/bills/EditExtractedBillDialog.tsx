@@ -1035,6 +1035,13 @@ export function EditExtractedBillDialog({
           <DialogTitle>Edit Extracted Bill</DialogTitle>
         </DialogHeader>
 
+        {isLoading ? (
+          <div className="flex flex-col items-center justify-center py-24 gap-3">
+            <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+            <p className="text-sm text-muted-foreground">Loading bill…</p>
+          </div>
+        ) : (
+        <TooltipProvider delayDuration={200}>
         <div className="space-y-6 overflow-y-auto overflow-x-visible flex-1 px-2">
           {/* Header Info */}
           {/* Row 1: Vendor | Bill Date | Terms */}
