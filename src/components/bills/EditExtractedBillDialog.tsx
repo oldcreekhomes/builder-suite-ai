@@ -670,6 +670,9 @@ export function EditExtractedBillDialog({
       const totalAmt = children.reduce((s, c) => s + (Number(c.amount) || 0), 0);
       const lotIds = children.map((c) => c.lot_id).filter(Boolean) as string[];
       const lotCount = Math.max(lotIds.length, children.length);
+      // Display the invoice's clean 2-decimal quantity (e.g. 0.5, 1, 0.4) instead of
+      // the reconstructed sum of 6-decimal child splits (e.g. 0.499999).
+      const cleanQty = Math.round(totalQty * 100) / 100;
       return {
         key,
         children,
@@ -678,7 +681,7 @@ export function EditExtractedBillDialog({
         cost_code_display: first.cost_code_display,
         memo: first.memo,
         unit_cost: Number(first.unit_cost) || 0,
-        quantity: totalQty,
+        quantity: cleanQty,
         amount: totalAmt,
         lotCost: lotCount > 0 ? totalAmt / lotCount : totalAmt,
         lotIds,
