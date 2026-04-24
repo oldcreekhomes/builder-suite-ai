@@ -1285,11 +1285,7 @@ export function EditBillDialog({ open, onOpenChange, billId }: EditBillDialogPro
           onOpenChange={setNotesDialogOpen}
           billInfo={{
             vendor: companies?.find(c => c.id === vendor)?.company_name || 'Unknown Vendor',
-            amount: [...jobCostRows, ...expenseRows].reduce((total, row) => {
-              const q = parseFloat(row.quantity) || 0;
-              const c = parseFloat(row.amount) || 0;
-              return total + Math.round(q * c * 100) / 100;
-            }, 0)
+            amount: roundCents(jobCostSubtotal + expenseSubtotal)
           }}
           initialValue={internalNotes}
           onSave={setInternalNotes}
