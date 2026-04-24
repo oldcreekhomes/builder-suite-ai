@@ -120,6 +120,7 @@ export function EditExtractedBillDialog({
   const [defaultCostCodeId, setDefaultCostCodeId] = useState<string | null>(null);
   const [internalNotes, setInternalNotes] = useState<string>("");
   const [notesDialogOpen, setNotesDialogOpen] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
   const { openBillAttachment } = useUniversalFilePreviewContext();
   const { checkDuplicate } = useReferenceNumberValidation();
   const showPOSelection = useShouldShowPOSelection(projectId, vendorId);
