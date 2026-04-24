@@ -1290,6 +1290,7 @@ export function EditBillDialog({ open, onOpenChange, billId }: EditBillDialogPro
             </DialogFooter>
           </DialogContent>
         </Dialog>
+        </TooltipProvider>
       </DialogContent>
     </Dialog>
   );
