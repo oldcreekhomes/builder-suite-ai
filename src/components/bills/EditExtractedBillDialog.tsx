@@ -1668,6 +1668,8 @@ export function EditExtractedBillDialog({
             </Button>
           </div>
         </div>
+        </TooltipProvider>
+        )}
       </DialogContent>
     </Dialog>
 
