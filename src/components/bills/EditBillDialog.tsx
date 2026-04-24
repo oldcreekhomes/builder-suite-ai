@@ -600,9 +600,134 @@ export function EditBillDialog({ open, onOpenChange, billId }: EditBillDialogPro
     );
   }
 
+  // ---- Job Cost display grouping (mirrors EditExtractedBillDialog) ----
+  type JobCostGroup = {
+    key: string;
+    children: ExpenseRow[];
+    isGrouped: boolean;
+    accountId?: string;
+    account: string;
+    memo: string;
+    unit_cost: number;
+    quantity: number;
+    amount: number;
+    lotCost: number;
+    lotIds: string[];
+    purchaseOrderId?: string;
+    purchaseOrderLineId?: string;
+  };
+
+  const buildJobCostDisplayGroups = (rows: ExpenseRow[]): JobCostGroup[] => {
+    const groups = new Map<string, ExpenseRow[]>();
+    const order: string[] = [];
+    for (const r of rows) {
+      const key = [
+        r.accountId || '',
+        (parseFloat(r.amount) || 0).toFixed(6),
+        (r.memo || '').trim(),
+        r.purchaseOrderId || '',
+        r.purchaseOrderLineId || '',
+      ].join('|');
+      if (!groups.has(key)) {
+        groups.set(key, []);
+        order.push(key);
+      }
+      groups.get(key)!.push(r);
+    }
+    return order.map((key) => {
+      const children = groups.get(key)!;
+      const first = children[0];
+      const unitCost = parseFloat(first.amount) || 0;
+      const totalQty = children.reduce((s, c) => s + (parseFloat(c.quantity) || 0), 0);
+      const totalAmt = children.reduce(
+        (s, c) => s + Math.round((parseFloat(c.quantity) || 0) * (parseFloat(c.amount) || 0) * 100) / 100,
+        0,
+      );
+      const lotIds = children.map((c) => c.lotId).filter(Boolean) as string[];
+      const lotCount = Math.max(lotIds.length, children.length);
+      const cleanQty = Math.round(totalQty * 100) / 100;
+      return {
+        key,
+        children,
+        isGrouped: children.length > 1,
+        accountId: first.accountId,
+        account: first.account,
+        memo: first.memo,
+        unit_cost: unitCost,
+        quantity: cleanQty,
+        amount: totalAmt,
+        lotCost: lotCount > 0 ? totalAmt / lotCount : totalAmt,
+        lotIds,
+        purchaseOrderId: first.purchaseOrderId,
+        purchaseOrderLineId: first.purchaseOrderLineId,
+      };
+    });
+  };
+
+  const jobCostDisplayGroups = buildJobCostDisplayGroups(jobCostRows);
+
+  const updateJobCostGroup = (
+    group: JobCostGroup,
+    patch: Partial<{
+      accountId: string;
+      account: string;
+      memo: string;
+      unit_cost: number;
+      quantity: number;
+      purchaseOrderId: string;
+      purchaseOrderLineId: string;
+    }>,
+  ) => {
+    setJobCostRows((prev) => {
+      const childIds = new Set(group.children.map((c) => c.id));
+      const lotCount = Math.max(group.children.length, 1);
+
+      const newUnit = patch.unit_cost !== undefined ? Number(patch.unit_cost) || 0 : group.unit_cost;
+      const newQty = patch.quantity !== undefined ? Number(patch.quantity) || 0 : group.quantity;
+
+      // Cent-precise per-lot QUANTITY split (hundredths)
+      const totalQtyHundredths = Math.round(newQty * 100);
+      const baseQtyHundredths = Math.floor(totalQtyHundredths / lotCount);
+      const extraQtyHundredths = totalQtyHundredths - baseQtyHundredths * lotCount;
+
+      let i = 0;
+      return prev.map((r) => {
+        if (!childIds.has(r.id)) return r;
+        const childQtyHundredths = baseQtyHundredths + (i < extraQtyHundredths ? 1 : 0);
+        const childQty = childQtyHundredths / 100;
+        i += 1;
+        return {
+          ...r,
+          ...('accountId' in patch ? { accountId: patch.accountId || '' } : {}),
+          ...('account' in patch ? { account: patch.account || '' } : {}),
+          ...('memo' in patch ? { memo: patch.memo || '' } : {}),
+          ...('purchaseOrderId' in patch ? { purchaseOrderId: patch.purchaseOrderId || '' } : {}),
+          ...('purchaseOrderLineId' in patch ? { purchaseOrderLineId: patch.purchaseOrderLineId || '' } : {}),
+          quantity: childQty.toString(),
+          amount: newUnit.toString(),
+        };
+      });
+    });
+  };
+
+  const removeJobCostGroup = (group: JobCostGroup) => {
+    const ids = new Set(group.children.map((c) => c.id));
+    const dbIds = group.children.map((c) => c.dbId).filter(Boolean) as string[];
+    setJobCostRows((prev) => prev.filter((r) => !ids.has(r.id)));
+    if (dbIds.length > 0) {
+      setDeletedLineIds((prev) => [...prev, ...dbIds]);
+    }
+  };
+
+  const lotNameById = (lotId: string) => {
+    const lot = lots.find((l) => l.id === lotId);
+    return lot ? (lot.lot_name || `Lot ${lot.lot_number}`) : 'Lot';
+  };
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-6xl max-h-[90vh] overflow-y-auto">
+        <TooltipProvider delayDuration={200}>
         <DialogHeader>
           <DialogTitle>Edit Bill</DialogTitle>
         <DialogDescription>
@@ -792,45 +917,88 @@ export function EditBillDialog({ open, onOpenChange, billId }: EditBillDialogPro
                         <TableHead className="w-[90px]">Quantity</TableHead>
                         <TableHead className="w-[100px]">Unit Cost</TableHead>
                         <TableHead className="w-[100px]">Total</TableHead>
+                        {showAddressColumn && <TableHead className="w-[110px]">Lot Cost</TableHead>}
                         {showAddressColumn && <TableHead className="w-[130px]">Address</TableHead>}
                         <TableHead className="w-[180px]">Purchase Order</TableHead>
                         {!isApprovedBill && <TableHead className="w-[50px] text-center">Actions</TableHead>}
                       </TableRow>
                     </TableHeader>
                     <TableBody>
-                      {jobCostRows.map((row) => {
-                        const qty = parseFloat(row.quantity) || 0;
-                        const cost = parseFloat(row.amount) || 0;
-                        const total = Math.round(qty * cost * 100) / 100;
+                      {jobCostDisplayGroups.map((group) => {
+                        const singleRow = !group.isGrouped ? group.children[0] : null;
                         return (
-                          <TableRow key={row.id}>
+                          <TableRow key={group.key}>
                             <TableCell>
-                              <CostCodeSearchInput
-                                value={row.account}
-                                onChange={(value) => updateJobCostRow(row.id, 'account', value)}
-                                onCostCodeSelect={(costCode) => {
-                                  updateJobCostRow(row.id, 'accountId', costCode.id);
-                                  updateJobCostRow(row.id, 'account', `${costCode.code} - ${costCode.name}`);
-                                }}
-                                placeholder="Cost Code"
-                                className="h-8 truncate"
-                              />
+                              <Tooltip>
+                                <TooltipTrigger asChild>
+                                  <div className="w-full">
+                                    <CostCodeSearchInput
+                                      value={group.account}
+                                      onChange={(value) => {
+                                        if (singleRow) {
+                                          updateJobCostRow(singleRow.id, 'account', value);
+                                        } else {
+                                          updateJobCostGroup(group, { account: value });
+                                        }
+                                      }}
+                                      onCostCodeSelect={(costCode) => {
+                                        const display = `${costCode.code} - ${costCode.name}`;
+                                        if (singleRow) {
+                                          updateJobCostRow(singleRow.id, 'accountId', costCode.id);
+                                          updateJobCostRow(singleRow.id, 'account', display);
+                                        } else {
+                                          updateJobCostGroup(group, { accountId: costCode.id, account: display });
+                                        }
+                                      }}
+                                      placeholder="Cost Code"
+                                      className="h-8 truncate"
+                                    />
+                                  </div>
+                                </TooltipTrigger>
+                                {group.account && (
+                                  <TooltipContent side="top" className="max-w-md break-words">
+                                    {group.account}
+                                  </TooltipContent>
+                                )}
+                              </Tooltip>
                             </TableCell>
                             <TableCell>
-                              <Input
-                                placeholder="Description"
-                                value={row.memo}
-                                onChange={(e) => updateJobCostRow(row.id, 'memo', e.target.value)}
-                                className="h-8 truncate"
-                              />
+                              <Tooltip>
+                                <TooltipTrigger asChild>
+                                  <Input
+                                    placeholder="Description"
+                                    value={group.memo}
+                                    onChange={(e) => {
+                                      if (singleRow) {
+                                        updateJobCostRow(singleRow.id, 'memo', e.target.value);
+                                      } else {
+                                        updateJobCostGroup(group, { memo: e.target.value });
+                                      }
+                                    }}
+                                    className="h-8 truncate"
+                                  />
+                                </TooltipTrigger>
+                                {group.memo && (
+                                  <TooltipContent side="top" className="max-w-md break-words">
+                                    {group.memo}
+                                  </TooltipContent>
+                                )}
+                              </Tooltip>
                             </TableCell>
                             <TableCell>
                               <Input
                                 type="number"
                                 step="0.01"
                                 placeholder="1"
-                                value={row.quantity}
-                                onChange={(e) => updateJobCostRow(row.id, 'quantity', e.target.value)}
+                                value={Number.isFinite(group.quantity) ? group.quantity.toFixed(2) : '0.00'}
+                                onChange={(e) => {
+                                  const v = parseFloat(e.target.value) || 0;
+                                  if (singleRow) {
+                                    updateJobCostRow(singleRow.id, 'quantity', e.target.value);
+                                  } else {
+                                    updateJobCostGroup(group, { quantity: v });
+                                  }
+                                }}
                                 className="h-7 px-1 border-0 bg-transparent shadow-none focus-visible:ring-1 focus-visible:ring-ring focus-visible:ring-offset-0 text-sm font-medium [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
                                 disabled={isApprovedBill}
                               />
@@ -840,53 +1008,102 @@ export function EditBillDialog({ open, onOpenChange, billId }: EditBillDialogPro
                                 type="number"
                                 step="0.01"
                                 placeholder="0.00"
-                                value={row.amount}
-                                onChange={(e) => updateJobCostRow(row.id, 'amount', e.target.value)}
+                                value={Number.isFinite(group.unit_cost) ? group.unit_cost.toFixed(2) : '0.00'}
+                                onChange={(e) => {
+                                  const v = parseFloat(e.target.value) || 0;
+                                  if (singleRow) {
+                                    updateJobCostRow(singleRow.id, 'amount', e.target.value);
+                                  } else {
+                                    updateJobCostGroup(group, { unit_cost: v });
+                                  }
+                                }}
                                 className="h-7 px-1 border-0 bg-transparent shadow-none focus-visible:ring-1 focus-visible:ring-ring focus-visible:ring-offset-0 text-sm font-medium [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
                                 disabled={isApprovedBill}
                               />
                             </TableCell>
                             <TableCell>
-                              <span className="font-medium">${total.toFixed(2)}</span>
+                              <span className="font-medium">${group.amount.toFixed(2)}</span>
                             </TableCell>
                             {showAddressColumn && (
                               <TableCell>
-                                <Select
-                                  value={row.lotId || ''}
-                                  onValueChange={(value) => updateJobCostRow(row.id, 'lotId', value)}
-                                  disabled={isApprovedBill}
-                                >
-                                  <SelectTrigger className="h-8 w-full">
-                                    <SelectValue placeholder="Select" />
-                                  </SelectTrigger>
-                                  <SelectContent>
-                                    {lots.map((lot) => (
-                                      <SelectItem key={lot.id} value={lot.id}>
-                                        {lot.lot_name || `Lot ${lot.lot_number}`}
-                                      </SelectItem>
-                                    ))}
-                                  </SelectContent>
-                                </Select>
+                                {group.isGrouped ? (
+                                  <span className="text-sm font-medium">
+                                    ${group.lotCost.toFixed(2)}
+                                    <span className="text-muted-foreground font-normal"> /lot</span>
+                                  </span>
+                                ) : (
+                                  <span className="text-sm text-muted-foreground">—</span>
+                                )}
+                              </TableCell>
+                            )}
+                            {showAddressColumn && (
+                              <TableCell>
+                                {group.isGrouped ? (
+                                  <Tooltip>
+                                    <TooltipTrigger asChild>
+                                      <span className="text-sm font-medium underline decoration-dotted cursor-help">
+                                        All {group.children.length} lots
+                                      </span>
+                                    </TooltipTrigger>
+                                    <TooltipContent>
+                                      <div className="space-y-1 text-xs">
+                                        {group.lotIds.map((id) => (
+                                          <div key={id}>{lotNameById(id)}</div>
+                                        ))}
+                                      </div>
+                                    </TooltipContent>
+                                  </Tooltip>
+                                ) : (
+                                  <Select
+                                    value={singleRow?.lotId || ''}
+                                    onValueChange={(value) => singleRow && updateJobCostRow(singleRow.id, 'lotId', value)}
+                                    disabled={isApprovedBill}
+                                  >
+                                    <SelectTrigger className="h-8 w-full">
+                                      <SelectValue placeholder="Select" />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                      {lots.map((lot) => (
+                                        <SelectItem key={lot.id} value={lot.id}>
+                                          {lot.lot_name || `Lot ${lot.lot_number}`}
+                                        </SelectItem>
+                                      ))}
+                                    </SelectContent>
+                                  </Select>
+                                )}
                               </TableCell>
                             )}
                             <TableCell>
                               <POSelectionDropdown
                                 projectId={billData?.project_id}
                                 vendorId={vendor}
-                                value={row.purchaseOrderId}
-                                purchaseOrderLineId={row.purchaseOrderLineId}
+                                value={group.purchaseOrderId}
+                                purchaseOrderLineId={group.purchaseOrderLineId}
                                 onChange={(poId, poLineId) => {
-                                  updateJobCostRow(row.id, 'purchaseOrderId', poId || '');
-                                  updateJobCostRow(row.id, 'purchaseOrderLineId', poLineId || '');
+                                  if (singleRow) {
+                                    updateJobCostRow(singleRow.id, 'purchaseOrderId', poId || '');
+                                    updateJobCostRow(singleRow.id, 'purchaseOrderLineId', poLineId || '');
+                                  } else {
+                                    updateJobCostGroup(group, {
+                                      purchaseOrderId: poId || '',
+                                      purchaseOrderLineId: poLineId || '',
+                                    });
+                                  }
                                 }}
-                                costCodeId={row.accountId}
+                                costCodeId={group.accountId}
                                 className="h-8"
                               />
                             </TableCell>
                             {!isApprovedBill && (
                               <TableCell className="text-center">
                                 <Button
-                                  onClick={() => removeJobCostRow(row.id, row.dbId)}
+                                  onClick={() => {
+                                    if (singleRow) {
+                                      removeJobCostRow(singleRow.id, singleRow.dbId);
+                                    } else {
+                                      removeJobCostGroup(group);
+                                    }
+                                  }}
                                   size="sm"
                                   variant="ghost"
                                   disabled={jobCostRows.length === 1}
@@ -1165,6 +1382,7 @@ export function EditBillDialog({ open, onOpenChange, billId }: EditBillDialogPro
             </DialogFooter>
           </DialogContent>
         </Dialog>
+        </TooltipProvider>
       </DialogContent>
     </Dialog>
   );
