@@ -792,9 +792,13 @@ export function PayBillsTable({ projectId, projectIds, showProjectColumn = true,
       }
     });
     
+    const naturalLotKey = (name: string) => {
+      const m = name.match(/(\d+)/);
+      return m ? parseInt(m[1], 10) : Number.MAX_SAFE_INTEGER;
+    };
     const costCodeBreakdown = Array.from(costCodeMap.entries()).map(([costCode, lotMap]) => ({
       costCode,
-      lots: Array.from(lotMap.values())
+      lots: Array.from(lotMap.values()).sort((a, b) => naturalLotKey(a.name) - naturalLotKey(b.name) || a.name.localeCompare(b.name))
     }));
     
     const uniqueLotCount = uniqueLots.size;
