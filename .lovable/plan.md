@@ -1,24 +1,38 @@
-## Fix: Chronological lot order in Address tooltips (Review/Rejected/Approved/Paid)
+## Unify Edit Bill dialogs into one component
 
-**Problem:** Lot allocations in the Address column tooltip render in insertion order, so a row may show 17, 18, 19, 1, 2, 3... instead of 1...19.
+**Goal:** Single `EditBillDialog` used by Review, Approved, Paid, Account Register, and Job Cost drilldown. Base it on the current `EditExtractedBillDialog` (which has all of today's fixes: descriptions, spinners, natural lot sort, etc.). Header becomes simply **"Edit Bill"**.
 
-**Files to change:**
-1. `src/components/bills/BatchBillReviewTable.tsx` — `getLotAllocationData()` (~line 563)
-2. `src/components/bills/BillsApprovalTable.tsx` — `getLotAllocationData()` (~line 678)
-3. `src/components/bills/PayBillsTable.tsx` — `getLotAllocationData()` (~line 795)
+### Steps
 
-**Change:** Add a `naturalLotKey` helper that extracts the leading number from the lot name and sort the lots array numerically (with `localeCompare` tiebreaker):
+1. **Promote source of truth**
+   - Rename `src/components/bills/EditExtractedBillDialog.tsx` → `src/components/bills/EditBillDialog.tsx`.
+   - Change header title to "Edit Bill".
+   - Extend props: accept either `pendingUploadId` (pending/review mode) or `billId` (posted mode).
 
-```ts
-const naturalLotKey = (name: string) => {
-  const m = name.match(/(\d+)/);
-  return m ? parseInt(m[1], 10) : Number.MAX_SAFE_INTEGER;
-};
-// then: Array.from(lotMap.values()).sort((a, b) =>
-//   naturalLotKey(a.name) - naturalLotKey(b.name) || a.name.localeCompare(b.name)
-// )
-```
+2. **Port posted-bill save logic** from legacy `EditBillDialog.tsx`:
+   - Journal entry regeneration on save for posted bills.
+   - Approved/Paid guardrails (preserve A/P balances, reference-number per-vendor uniqueness, zero-amount line guard).
+   - Re-fetch & cache invalidation for bills, A/P, journal entries, and job costs.
 
-This applies the same fix everywhere the Address tooltip is built, so Review, Rejected, Approved, and Paid all order lots 1, 2, 3... like Enter with AI.
+3. **Repoint all call sites** to the unified dialog:
+   - `src/components/bills/BillsReviewTableRow.tsx`
+   - `src/components/bills/BatchBillReviewTable.tsx`
+   - `src/components/bills/BillsApprovalTable.tsx`
+   - `src/components/bills/PayBillsTable.tsx`
+   - `src/components/accounting/AccountDetailDialog.tsx`
+   - `src/components/reports/JobCostActualDialog.tsx`
+   (Exact paths verified during implementation.)
 
-**Will NOT touch:** descriptions/memo, quantity/unit cost spinners, grouping, PO matching, totals, or anything else.
+4. **Delete** the legacy `src/components/bills/EditBillDialog.tsx` after the rename — handled by writing the new file at the same path so there is only one `EditBillDialog`.
+
+### Will NOT touch
+- Descriptions / memo logic
+- Quantity / Unit Cost spinner styling
+- Address tooltip lot sorting
+- Grouping, PO matching, totals, or any calculations
+- Any unrelated dialogs or pages
+
+### Risk / preservation notes
+- Posted bills (Approved/Paid) must continue to regenerate journal entries on save and respect period-close rules.
+- Pending bills (Review) continue to use existing `usePendingBills` flow.
+- Per-vendor invoice uniqueness check stays intact.
