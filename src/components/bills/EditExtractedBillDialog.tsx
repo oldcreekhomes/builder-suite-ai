@@ -1246,11 +1246,11 @@ export function EditExtractedBillDialog({
               <Table containerClassName="relative w-full">
                   <TableHeader>
                     <TableRow>
-                      <TableHead className="w-[180px]">Cost Code</TableHead>
-                      <TableHead className="w-[200px]">Description</TableHead>
-                      <TableHead className="w-[120px]">Quantity</TableHead>
-                      <TableHead className="w-[120px]">Unit Cost</TableHead>
-                      <TableHead className="w-[110px]">Total</TableHead>
+                      <TableHead className="w-[210px]">Cost Code</TableHead>
+                      <TableHead className="w-[240px]">Description</TableHead>
+                      <TableHead className="w-[90px]">Quantity</TableHead>
+                      <TableHead className="w-[100px]">Unit Cost</TableHead>
+                      <TableHead className="w-[100px]">Total</TableHead>
                       {showAddressColumn && <TableHead className="w-[110px]">Lot Cost</TableHead>}
                       {showAddressColumn && <TableHead className="w-[130px]">Address</TableHead>}
                       {showPOSelection && <TableHead className="w-[180px]">Purchase Order</TableHead>}
