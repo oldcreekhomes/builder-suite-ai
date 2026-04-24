@@ -560,7 +560,11 @@ export function BatchBillReviewTable({
       }
     });
     
-    const breakdown = Array.from(lotMap.values());
+    const naturalLotKey = (name: string) => {
+      const m = name.match(/(\d+)/);
+      return m ? parseInt(m[1], 10) : Number.MAX_SAFE_INTEGER;
+    };
+    const breakdown = Array.from(lotMap.values()).sort((a, b) => naturalLotKey(a.name) - naturalLotKey(b.name) || a.name.localeCompare(b.name));
     const totalAmount = bill.lines.reduce((sum, line) => sum + (line.amount || 0), 0);
     const uniqueLotCount = lotMap.size;
     
