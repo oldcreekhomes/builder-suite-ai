@@ -40,6 +40,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import { Textarea } from "@/components/ui/textarea";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import { groupBillLines, rowTotal, sumDisplayedTotal, roundCents, type DisplayGroup } from "@/lib/billLineMath";
 
 interface EditBillDialogProps {
   open: boolean;
@@ -600,71 +601,41 @@ export function EditBillDialog({ open, onOpenChange, billId }: EditBillDialogPro
     );
   }
 
-  // ---- Job Cost display grouping (mirrors EditExtractedBillDialog) ----
-  type JobCostGroup = {
-    key: string;
-    children: ExpenseRow[];
-    isGrouped: boolean;
+  // ---- Job Cost display grouping (shared math with EditExtractedBillDialog) ----
+  type JobCostGroup = DisplayGroup<ExpenseRow> & {
     accountId?: string;
     account: string;
     memo: string;
-    unit_cost: number;
-    quantity: number;
-    amount: number;
-    lotCost: number;
-    lotIds: string[];
     purchaseOrderId?: string;
     purchaseOrderLineId?: string;
   };
 
-  const buildJobCostDisplayGroups = (rows: ExpenseRow[]): JobCostGroup[] => {
-    const groups = new Map<string, ExpenseRow[]>();
-    const order: string[] = [];
-    for (const r of rows) {
-      const key = [
-        r.accountId || '',
-        (parseFloat(r.amount) || 0).toFixed(6),
-        (r.memo || '').trim(),
-        r.purchaseOrderId || '',
-        r.purchaseOrderLineId || '',
-      ].join('|');
-      if (!groups.has(key)) {
-        groups.set(key, []);
-        order.push(key);
-      }
-      groups.get(key)!.push(r);
-    }
-    return order.map((key) => {
-      const children = groups.get(key)!;
-      const first = children[0];
-      const unitCost = parseFloat(first.amount) || 0;
-      const totalQty = children.reduce((s, c) => s + (parseFloat(c.quantity) || 0), 0);
-      const totalAmt = children.reduce(
-        (s, c) => s + Math.round((parseFloat(c.quantity) || 0) * (parseFloat(c.amount) || 0) * 100) / 100,
-        0,
-      );
-      const lotIds = children.map((c) => c.lotId).filter(Boolean) as string[];
-      const lotCount = Math.max(lotIds.length, children.length);
-      const cleanQty = Math.round(totalQty * 100) / 100;
-      return {
-        key,
-        children,
-        isGrouped: children.length > 1,
-        accountId: first.accountId,
-        account: first.account,
-        memo: first.memo,
-        unit_cost: unitCost,
-        quantity: cleanQty,
-        amount: totalAmt,
-        lotCost: lotCount > 0 ? totalAmt / lotCount : totalAmt,
-        lotIds,
-        purchaseOrderId: first.purchaseOrderId,
-        purchaseOrderLineId: first.purchaseOrderLineId,
-      };
-    });
-  };
+  const jobCostDisplayGroups: JobCostGroup[] = groupBillLines(jobCostRows, (r) => ({
+    id: r.id,
+    costCodeKey: r.accountId || '',
+    memo: r.memo || '',
+    purchaseOrderId: r.purchaseOrderId || '',
+    purchaseOrderLineId: r.purchaseOrderLineId || '',
+    quantity: parseFloat(r.quantity) || 0,
+    unitCost: parseFloat(r.amount) || 0,
+    lotId: r.lotId || undefined,
+  })).map((g) => {
+    const first = g.children[0];
+    return {
+      ...g,
+      accountId: first.accountId,
+      account: first.account,
+      memo: first.memo,
+      purchaseOrderId: first.purchaseOrderId,
+      purchaseOrderLineId: first.purchaseOrderLineId,
+    };
+  });
 
-  const jobCostDisplayGroups = buildJobCostDisplayGroups(jobCostRows);
+  // Footer subtotals derived from the SAME displayed group amounts shown in the rows.
+  const jobCostSubtotal = sumDisplayedTotal(jobCostDisplayGroups);
+  const expenseSubtotal = roundCents(
+    expenseRows.reduce((s, r) => s + rowTotal(parseFloat(r.quantity) || 0, parseFloat(r.amount) || 0), 0),
+  );
 
   const updateJobCostGroup = (
     group: JobCostGroup,
@@ -682,7 +653,7 @@ export function EditBillDialog({ open, onOpenChange, billId }: EditBillDialogPro
       const childIds = new Set(group.children.map((c) => c.id));
       const lotCount = Math.max(group.children.length, 1);
 
-      const newUnit = patch.unit_cost !== undefined ? Number(patch.unit_cost) || 0 : group.unit_cost;
+      const newUnit = patch.unit_cost !== undefined ? Number(patch.unit_cost) || 0 : group.unitCost;
       const newQty = patch.quantity !== undefined ? Number(patch.quantity) || 0 : group.quantity;
 
       // Cent-precise per-lot QUANTITY split (hundredths)
@@ -1008,7 +979,7 @@ export function EditBillDialog({ open, onOpenChange, billId }: EditBillDialogPro
                                 type="number"
                                 step="0.01"
                                 placeholder="0.00"
-                                value={Number.isFinite(group.unit_cost) ? group.unit_cost.toFixed(2) : '0.00'}
+                                value={Number.isFinite(group.unitCost) ? group.unitCost.toFixed(2) : '0.00'}
                                 onChange={(e) => {
                                   const v = parseFloat(e.target.value) || 0;
                                   if (singleRow) {
@@ -1123,24 +1094,10 @@ export function EditBillDialog({ open, onOpenChange, billId }: EditBillDialogPro
                     <div className="flex items-center justify-between w-full">
                       <div className="flex items-center gap-2 font-medium whitespace-nowrap">
                         <span>
-                          {jobCostRows.reduce((total, row) => {
-                            const q = parseFloat(row.quantity) || 0;
-                            const c = parseFloat(row.amount) || 0;
-                            return total + Math.round(q * c * 100) / 100;
-                          }, 0) < 0 ? 'Bill Credit Total:' : 'Job Cost Total:'}
+                          {jobCostSubtotal < 0 ? 'Bill Credit Total:' : 'Job Cost Total:'}
                         </span>
-                        <span className={cn(
-                          jobCostRows.reduce((total, row) => {
-                            const q = parseFloat(row.quantity) || 0;
-                            const c = parseFloat(row.amount) || 0;
-                            return total + Math.round(q * c * 100) / 100;
-                          }, 0) < 0 && "text-green-600"
-                        )}>
-                          ${jobCostRows.reduce((total, row) => {
-                            const q = parseFloat(row.quantity) || 0;
-                            const c = parseFloat(row.amount) || 0;
-                            return total + Math.round(q * c * 100) / 100;
-                          }, 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                        <span className={cn(jobCostSubtotal < 0 && "text-green-600")}>
+                          ${jobCostSubtotal.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                         </span>
                       </div>
                       <div className="flex items-center gap-2">
@@ -1261,24 +1218,10 @@ export function EditBillDialog({ open, onOpenChange, billId }: EditBillDialogPro
                     <div className="flex items-center justify-between w-full">
                       <div className="flex items-center gap-2 font-medium whitespace-nowrap">
                         <span>
-                          {expenseRows.reduce((total, row) => {
-                            const q = parseFloat(row.quantity) || 0;
-                            const c = parseFloat(row.amount) || 0;
-                            return total + Math.round(q * c * 100) / 100;
-                          }, 0) < 0 ? 'Bill Credit Total:' : 'Expense Total:'}
+                          {expenseSubtotal < 0 ? 'Bill Credit Total:' : 'Expense Total:'}
                         </span>
-                        <span className={cn(
-                          expenseRows.reduce((total, row) => {
-                            const q = parseFloat(row.quantity) || 0;
-                            const c = parseFloat(row.amount) || 0;
-                            return total + Math.round(q * c * 100) / 100;
-                          }, 0) < 0 && "text-green-600"
-                        )}>
-                          ${expenseRows.reduce((total, row) => {
-                            const q = parseFloat(row.quantity) || 0;
-                            const c = parseFloat(row.amount) || 0;
-                            return total + Math.round(q * c * 100) / 100;
-                          }, 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                        <span className={cn(expenseSubtotal < 0 && "text-green-600")}>
+                          ${expenseSubtotal.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                         </span>
                       </div>
                       <div className="flex items-center gap-2">
@@ -1342,11 +1285,7 @@ export function EditBillDialog({ open, onOpenChange, billId }: EditBillDialogPro
           onOpenChange={setNotesDialogOpen}
           billInfo={{
             vendor: companies?.find(c => c.id === vendor)?.company_name || 'Unknown Vendor',
-            amount: [...jobCostRows, ...expenseRows].reduce((total, row) => {
-              const q = parseFloat(row.quantity) || 0;
-              const c = parseFloat(row.amount) || 0;
-              return total + Math.round(q * c * 100) / 100;
-            }, 0)
+            amount: roundCents(jobCostSubtotal + expenseSubtotal)
           }}
           initialValue={internalNotes}
           onSave={setInternalNotes}

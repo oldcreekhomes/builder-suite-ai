@@ -1,55 +1,76 @@
-## Port grouping + tooltips into EditBillDialog
+## Fix total mismatch by using one bill-line math path everywhere
 
-Modify only `src/components/bills/EditBillDialog.tsx` so the Review, Rejected, Approved, and Paid editor matches the Enter with AI editor (`EditExtractedBillDialog`). No other files change. No DB / RLS / edge function work.
+The mismatch is coming from `EditBillDialog`: the visible rows are grouped for display, but the bottom-left footer still recomputes totals from the raw underlying rows with separate inline reducers. That means the dialog is not using the same calculation/display pipeline as Enter with AI, and the math is duplicated in multiple places.
 
-### 1. Wrap dialog body in `<TooltipProvider delayDuration={200}>`
-Wrap the inside of `<DialogContent className="max-w-6xl ...">` (line 605) so all hover tooltips render reliably and match the Enter with AI behavior.
+### What I will build
 
-### 2. Add a display-grouping layer over `jobCostRows`
-Mirror the logic at lines 646–716 of `EditExtractedBillDialog.tsx`:
+1. Create one shared bill-line math/display helper used by both editors:
+   - `EditExtractedBillDialog` (Enter with AI + Review pending uploads)
+   - `EditBillDialog` (Rejected, Approved, Paid, and other posted-bill entry points)
 
-- Build `jobCostDisplayGroups` from `jobCostRows`, keyed by:
-  `accountId | unit_cost(6dp) | memo.trim() | purchaseOrderId | purchaseOrderLineId`
-- A group with 2+ children renders as ONE row showing:
-  - summed quantity (clean 2dp)
-  - shared unit_cost
-  - summed amount
-  - `lotCost = amount / lotCount`
-  - "All N lots" address pill with a tooltip listing each lot name
-- A group with 1 child renders exactly like today (single-row editing, lot dropdown, etc.).
+2. Move all grouping + total logic into the shared helper so both dialogs use the same rules for:
+   - grouping split lot rows
+   - per-row displayed total
+   - lot cost
+   - job cost subtotal
+   - expense subtotal
+   - overall bill total
 
-### 3. Add `updateJobCostGroup` and `removeJobCostGroup`
-Mirror lines 723–781 of `EditExtractedBillDialog.tsx`, but operate on `ExpenseRow[]` in `jobCostRows`:
+3. Fix `EditBillDialog` so the Job Cost footer is derived from the same normalized display math as the rows above it, instead of ad hoc inline `reduce()` calls.
 
-- Cent-precise per-lot AMOUNT split (extra cents go to first N children)
-- Hundredth-precise per-lot QUANTITY split
-- Mirror `accountId`, `account` (cost code display), `memo`, `purchaseOrderId`, `purchaseOrderLineId` to every child
-- `removeJobCostGroup` → push every child `dbId` into `deletedLineIds` and drop them from `jobCostRows` (so existing save path deletes them)
+4. Remove duplicated inline total reducers in both dialogs and replace them with shared selectors/computations, so we stop reinventing this every time.
 
-### 4. Replace the job-cost `<TableBody>` (lines 800–902)
-Iterate `jobCostDisplayGroups` instead of `jobCostRows`. For each group:
+5. Keep posted-bill accounting safety intact:
+   - no schema changes
+   - no RLS / edge function changes for this fix
+   - `updateApprovedBill`, `updateBill`, and `correctBill` behavior stays intact
+   - only the UI math/display layer is unified unless a save-path mismatch is confirmed during implementation
 
-- Cost Code cell: wrap `CostCodeSearchInput` in a `<Tooltip>` showing the full `account` text on hover. Single-row groups call `updateJobCostRow`; grouped rows call `updateJobCostGroup`.
-- Description cell: wrap `Input` in a `<Tooltip>` showing the full `memo` on hover. Same single vs grouped routing.
-- Quantity / Unit Cost / Total: read from the group; writes route through `updateJobCostRow` (single) or `updateJobCostGroup` (grouped).
-- Add a new **Lot Cost** column (only when `showAddressColumn`), shown to the LEFT of Address, matching `EditExtractedBillDialog` line 1282. Single-row groups show "—".
-- Address cell: grouped rows show "All N lots" pill with lot-name tooltip; single rows keep today's `<Select>` lot dropdown.
-- Purchase Order cell: unchanged behavior, but writes route through group when grouped.
-- Actions cell: unchanged; calls `removeJobCostGroup` for grouped rows, `removeJobCostRow` for single rows. Disabled state preserved for `isApprovedBill`.
+### Files to update
 
-Expense tab is left exactly as-is (it does not have lot splits and already matches the Enter with AI expense layout closely enough).
+- New shared helper file for bill line grouping/total math
+- `src/components/bills/EditBillDialog.tsx`
+- `src/components/bills/EditExtractedBillDialog.tsx`
+- If needed for consistency, any bill table display that should match the same bill total rules, especially:
+  - `src/components/bills/BillsApprovalTable.tsx`
 
-### 5. Preserve every existing accounting guardrail
-- `updateBill` for draft/void, `updateApprovedBill` for posted/paid, `correctBill` paths — unchanged.
-- `deletedLineIds`, duplicate-invoice check, period-close checks, attachment handling — unchanged.
-- `isApprovedBill` disables inputs and hides Add/Delete exactly as today.
-- No new fields are persisted; grouping is a pure presentation/edit layer over the existing `bill_lines` rows.
+### Technical details
 
-### 6. Out of scope
-- No changes to `EditExtractedBillDialog.tsx`.
-- No changes to `useBills`, hooks, Supabase schema, RLS, or edge functions.
-- No changes to expense-tab columns.
-- The two dialog files remain separate (a full one-component merge is a follow-up).
+Shared helper responsibilities:
+
+```text
+raw lines/rows
+  -> normalize line shape
+  -> build grouped display rows
+  -> compute row totals consistently
+  -> compute job cost subtotal / expense subtotal / grand total
+  -> feed UI in both dialogs
+```
+
+Key normalization rule:
+- `EditBillDialog` currently stores unit cost in the `amount` string field of `ExpenseRow` and derives row total as `quantity * amount`.
+- `EditExtractedBillDialog` uses explicit numeric `unit_cost` and `amount` fields.
+- I will normalize both into one internal shape before grouping or totaling so both dialogs render and subtotal identically.
+
+Footer fix in `EditBillDialog`:
+- replace repeated inline reducers at the Job Cost footer, Expense footer, and notes dialog amount source
+- use shared subtotal values instead
+- ensure grouped-row display and footer always agree
+
+Consistency target:
+- Enter with AI
+- Review
+- Rejected
+- Approved
+- Paid
+all use the same displayed line math and total math, with no separate hand-written reducers.
+
+### Out of scope
+
+- No backend rewrite
+- No database migration
+- No edge-function rewrite unless implementation reveals a persisted line-amount inconsistency that also affects saved totals outside the dialog
 
 ### Result
-On Review, Rejected, Approved, and Paid, opening Edit Bill shows the same grouped multi-lot rows, the same Lot Cost / "All N lots" presentation, and the same hover tooltips on Cost Code and Description as Enter with AI — without disturbing posted-bill accounting safety.
+
+The line-item rows and the bottom totals will match, and the same bill math rules will be used across Enter with AI, Review, Rejected, Approved, and Paid instead of maintaining two drifting implementations.
