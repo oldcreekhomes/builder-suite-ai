@@ -1212,6 +1212,117 @@ Return ONLY the JSON object, no additional text.`;
         console.warn('Inline line-item recovery failed (non-critical):', recoverErr);
       }
 
+      // STRUCTURED-TABLE RECOVERY PASS: handle invoices that came back with a single
+      // collapsed "Vendor - Invoice" line (or a single summary row) when the source PDF
+      // text actually contains a real per-row detail table — e.g. legal/consulting time
+      // billing with columns Date | Person | Notes | Quantity | Rate | Total. Detect those
+      // rows from `pdfText` and rebuild line_items so the editor shows the real breakdown.
+      try {
+        const lineCountNow = extractedData.line_items.length;
+        const looksCollapsed =
+          lineCountNow === 1 &&
+          extractedTotal > 0 &&
+          (() => {
+            const only = extractedData.line_items[0];
+            const desc = String(only?.description || '').toLowerCase();
+            const amt = Number(only?.amount) || 0;
+            return (
+              Math.abs(amt - extractedTotal) < 0.01 &&
+              (desc.includes('invoice') || desc.includes('total') || desc.length < 4)
+            );
+          })();
+
+        if (looksCollapsed && typeof pdfText === 'string' && pdfText.length > 0) {
+          // Match rows like:
+          //   01/05/2026  Duncan Blair  Time: Transmittal ...  0.30  $425.00  $127.50
+          // Tolerate variable whitespace (incl. tabs / newlines inside the Notes cell).
+          // Capture: date, person, notes, qty, rate, total.
+          const rowRe =
+            /(\d{1,2}\/\d{1,2}\/\d{2,4})\s+([A-Z][A-Za-z.\-' ]{1,40}?)\s+([\s\S]{3,400}?)\s+(\d+(?:\.\d+)?)\s+\$?\s*([\d,]+(?:\.\d{1,2})?)\s+\$?\s*([\d,]+(?:\.\d{1,2})?)(?=\s|$)/g;
+
+          const recoveredRows: Array<{
+            date: string;
+            person: string;
+            notes: string;
+            quantity: number;
+            rate: number;
+            total: number;
+          }> = [];
+
+          let m: RegExpExecArray | null;
+          while ((m = rowRe.exec(pdfText)) !== null) {
+            const quantity = parseFloat(m[4]);
+            const rate = parseFloat(m[5].replace(/,/g, ''));
+            const total = parseFloat(m[6].replace(/,/g, ''));
+            const notes = m[3].replace(/\s+/g, ' ').trim();
+            // Sanity: qty * rate should approximate total (within $0.05 or 2%).
+            const expected = quantity * rate;
+            const tol = Math.max(0.05, expected * 0.02);
+            if (
+              Number.isFinite(quantity) &&
+              Number.isFinite(rate) &&
+              Number.isFinite(total) &&
+              total > 0 &&
+              Math.abs(expected - total) <= tol &&
+              notes.length >= 3
+            ) {
+              recoveredRows.push({
+                date: m[1].trim(),
+                person: m[2].trim(),
+                notes,
+                quantity,
+                rate,
+                total,
+              });
+            }
+          }
+
+          if (recoveredRows.length >= 2) {
+            const sum = recoveredRows.reduce((s, r) => s + r.total, 0);
+            const diffStruct = Math.abs(sum - extractedTotal);
+            if (diffStruct <= 1) {
+              console.log(
+                `🧩 Structured-table recovery: rebuilt ${recoveredRows.length} detail rows totaling ${sum} from collapsed extraction.`
+              );
+              extractedData.line_items = recoveredRows.map((r) => ({
+                description: r.notes,
+                quantity: r.quantity,
+                unit_cost: r.rate,
+                amount: Math.round(r.total * 100) / 100,
+                memo: r.notes,
+                cost_code_name: null,
+                account_name: null,
+                po_reference: null,
+                line_type: 'job_cost',
+              }));
+
+              if (extractedData.vendor_id) {
+                try {
+                  extractedData.line_items = await autoAssignCostCode(
+                    extractedData.vendor_id,
+                    extractedData.vendor_name,
+                    extractedData.line_items,
+                    supabase,
+                    effectiveOwnerId
+                  );
+                } catch (assignErr) {
+                  console.warn(
+                    'Per-row cost code inference after structured recovery failed (non-critical):',
+                    assignErr
+                  );
+                }
+              }
+            } else {
+              console.log(
+                `Structured-table recovery found ${recoveredRows.length} rows but sum ${sum} differs from total ${extractedTotal} by ${diffStruct.toFixed(2)} — skipping.`
+              );
+            }
+          }
+        }
+      } catch (structErr) {
+        console.warn('Structured-table line-item recovery failed (non-critical):', structErr);
+      }
+
       // Recompute the sum/diff/decision after potential recovery so we don't collapse
       // a freshly-recovered breakdown.
       const lineSumAfter = extractedData.line_items.reduce((sum: number, item: any) => {
