@@ -917,7 +917,7 @@ Return ONLY the JSON object, no additional text.`;
     }
 
     // Parse the JSON response
-    let extractedData;
+    let extractedData: any;
     try {
       const cleanedText = stripMarkdownCodeBlocks(extractedText);
       console.log('Cleaned text for parsing:', cleanedText.substring(0, 200) + '...');
