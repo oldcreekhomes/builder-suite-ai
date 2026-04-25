@@ -92,6 +92,11 @@ export const usePOMutations = (projectId: string) => {
         console.log('Adding proposal files to PO:', proposalFiles);
       }
 
+      // Merge user-uploaded attachments from the dialog
+      if (files && files.length > 0) {
+        purchaseOrderData.files = [...(purchaseOrderData.files || []), ...files];
+      }
+
       // Add bid package and bid IDs if provided (from bidding page)
       if (bidPackageId) {
         purchaseOrderData.bid_package_id = bidPackageId;
