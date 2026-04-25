@@ -109,7 +109,15 @@ export const CreatePurchaseOrderDialog = ({
         name: bidContext.biddingCompany.companies.company_name,
       });
       setNotes("");
-      setUploadedFiles([]);
+      const proposals = bidContext.biddingCompany.proposals ?? [];
+      setUploadedFiles(
+        proposals.map((fileName) => ({
+          id: `bid-${fileName}`,
+          name: fileName,
+          size: 0,
+          url: `https://nlmnwlvmmkngrgatnzkj.supabase.co/storage/v1/object/public/project-files/proposals/${fileName}`,
+        }))
+      );
       setCustomMessage("");
       setLineItems(
         bidContext.initialLineItems && bidContext.initialLineItems.length > 0
@@ -573,7 +581,6 @@ export const CreatePurchaseOrderDialog = ({
                         <Checkbox
                           checked={line.extra}
                           onCheckedChange={(checked) => updateLine(idx, { extra: checked as boolean })}
-                          className="border-destructive data-[state=checked]:bg-destructive data-[state=checked]:text-destructive-foreground data-[state=checked]:border-destructive"
                         />
                       </TableCell>
                       <TableCell className="p-1 text-center">
@@ -614,17 +621,16 @@ export const CreatePurchaseOrderDialog = ({
               <Label>Custom Message (Optional)</Label>
               <Textarea
                 placeholder="Add a custom message to include in the email..."
-                rows={4}
                 value={customMessage}
                 onChange={(e) => setCustomMessage(e.target.value)}
-                className="resize-none"
+                className="resize-none h-[96px] min-h-[96px]"
               />
             </div>
             <div className="space-y-1.5">
               <Label>Attachments</Label>
               <div
                 {...getRootProps()}
-                className={`border rounded-md p-3 transition-colors cursor-pointer min-h-[80px] flex items-center justify-center ${
+                className={`border rounded-md p-3 transition-colors cursor-pointer h-[96px] flex items-center justify-center ${
                   isDragActive ? 'border-primary/50 bg-primary/5' : 'border-input hover:border-muted-foreground/50'
                 } ${isUploading ? 'opacity-50 cursor-not-allowed' : ''}`}
               >
@@ -654,7 +660,7 @@ export const CreatePurchaseOrderDialog = ({
             </div>
             <div className="space-y-1.5">
               <Label>Sending To</Label>
-              <div className="border rounded-md p-3 min-h-[80px] text-sm">
+              <div className="border rounded-md p-3 h-[96px] overflow-auto text-sm">
                 {!recipientCompanyId ? (
                   <p className="text-xs text-muted-foreground italic">Select a company to see recipients</p>
                 ) : recipients.length === 0 ? (

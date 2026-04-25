@@ -1,31 +1,64 @@
-## Updates to `CreatePurchaseOrderDialog.tsx`
+Three small fixes to `src/components/CreatePurchaseOrderDialog.tsx`:
 
-### 1. Red styling for "Extra" checkbox column and "Actions" trash button
-- **Extra checkbox** (line ~548): add `className="border-destructive data-[state=checked]:bg-destructive data-[state=checked]:text-destructive-foreground"` so the checkbox renders red.
-- **Actions trash button** (line ~553-563): change the `Trash2` icon class from `text-muted-foreground` to `text-destructive`, and add `hover:bg-destructive/10` to the button.
+### 1. Make "Extra" checkbox black (default), not red
+Line 576 currently forces destructive (red) styling. Remove the custom `className` so it uses the default shadcn checkbox (black border, black checked fill). Trash icon stays red per the previous request.
 
-> Note: The user said "status cans" — interpreting that as the "Extra" checkbox column (the only checkbox/status-like control in the line items table). Will confirm via the UI screenshot context where these are the only red-eligible per-row controls.
+```tsx
+// before
+<Checkbox
+  checked={line.extra}
+  onCheckedChange={(checked) => updateLine(idx, { extra: checked as boolean })}
+  className="border-destructive data-[state=checked]:bg-destructive ..."
+/>
+// after
+<Checkbox
+  checked={line.extra}
+  onCheckedChange={(checked) => updateLine(idx, { extra: checked as boolean })}
+/>
+```
 
-### 2. Title Case for Description field
-- Add a small helper `toTitleCase(str)` that lowercases the string then capitalizes the first letter of each word (split on whitespace), e.g. `"CONSTRUCTION SURVEY"` → `"Construction Survey"`.
-- Apply it on description input change so it's stored/displayed in Title Case:
-  ```ts
-  onChange={(e) => updateLine(idx, { description: toTitleCase(e.target.value) })}
-  ```
-- Also normalize any AI-extracted `initialLineItems` and existing edit lines via the same helper when seeding state, so pre-filled descriptions (like the all-caps "12. CONSTRUCTION SURVEY...") render correctly.
+### 2. Align the heights of Custom Message / Attachments / Sending To
+The three footer columns currently don't line up because:
+- Custom Message Textarea uses `rows={4}` (~ ~112px+ tall)
+- Attachments dropzone is `min-h-[80px]`
+- Sending To box is `min-h-[80px]`
 
-### 3. Footer becomes 3 equal columns: Custom Message · Attachments · Sending To
-- Change `<div className="grid grid-cols-2 gap-4">` (line 586) to `<div className="grid grid-cols-3 gap-4">`.
-- Keep Custom Message (col 1) and Attachments (col 2) as-is.
-- Add a new **Sending To** column (col 3):
-  - **Bidding flow (`isBidFlow`)**: query the bidding company's representatives where `receive_bid_notifications = true` (matching the pattern in `SendSingleCompanyEmailModal.tsx` lines 44-77), filtered by project region. Render the company name as a header and each rep's full name as a small chip (`inline-flex bg-muted px-2 py-1 rounded text-xs`).
-  - **Manual flow (no bidContext)**: query the selected company's reps where `receive_po_notifications = true` (or equivalent — will verify the exact column on `company_representatives` for PO notifications; if no PO-specific column exists, reuse `receive_bid_notifications`). Re-run the query whenever `selectedCompany` changes. Show "Select a company to see recipients" when empty.
-  - Use a `useQuery` with key `['po-recipients', companyId, projectId]` and pull `projects.region` for the regional filter (same shape as the existing modal).
+Standardize all three inner boxes to the same fixed height so their bottom edges line up exactly:
+- Change Textarea from `rows={4}` to a fixed `h-[96px]` and keep `resize-none`.
+- Change Attachments dropzone from `min-h-[80px]` to `h-[96px]`.
+- Change Sending To box from `min-h-[80px]` to `h-[96px] overflow-auto`.
 
-### 4. No other changes
-- No DB migrations.
-- No changes to mutation payloads — recipients are already resolved server-side by `send-po-email`; this column is purely informational so the user knows who will receive the PO.
-- No layout changes to header, table, or buttons.
+(96px is enough to comfortably show 2 recipient lines like "Taylor Doyle · tdoyle@…" without clipping; uploaded files / extra recipients render below the box as they do today.)
+
+### 3. Pre-load bid proposals into the Attachments box
+In the bid flow, the proposal PDF the company submitted is already on `bidContext.biddingCompany.proposals` (array of filenames in the `project-files/proposals/` public bucket — same URL pattern used in `usePOMutations.ts` line 88). Today the reset effect sets `setUploadedFiles([])` for the bid flow, so the box looks empty.
+
+Update the bid branch of the open-effect (lines 106–118) to seed `uploadedFiles` from those proposals so they appear as removable chips under the dropzone, exactly like manually-uploaded files:
+
+```tsx
+if (bidContext) {
+  setSelectedCompany({ ... });
+  setNotes("");
+  const proposals = bidContext.biddingCompany.proposals ?? [];
+  setUploadedFiles(
+    proposals.map((fileName) => ({
+      id: `bid-${fileName}`,
+      name: fileName,
+      size: 0,
+      url: `https://nlmnwlvmmkngrgatnzkj.supabase.co/storage/v1/object/public/project-files/proposals/${fileName}`,
+    }))
+  );
+  setCustomMessage("");
+  setLineItems(...);
+}
+```
+
+No changes needed to the submit path — `createPOSendEmailAndUpdateStatus` already merges `biddingCompany.proposals` server-side (per `usePOMutations.ts` lines 83–88), so seeding them here is purely visual. If the user removes a chip, that just removes it from the locally-tracked `uploadedFiles` state, which is fine because the bid flow doesn't pass `uploadedFiles` into the mutation as the source of proposal attachments.
 
 ### Files touched
-- `src/components/CreatePurchaseOrderDialog.tsx` (only file)
+- `src/components/CreatePurchaseOrderDialog.tsx` (only)
+
+### Not changing
+- No DB / mutation / edge function changes
+- No layout / column / button-label changes
+- Trash icon stays red as previously requested
