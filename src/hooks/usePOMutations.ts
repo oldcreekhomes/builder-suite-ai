@@ -307,6 +307,11 @@ export const usePOMutations = (projectId: string) => {
           throw emailError;
         }
 
+        await supabase
+          .from('project_purchase_orders')
+          .update({ sent_at: new Date().toISOString() })
+          .eq('id', existingPO.id);
+
         return { purchaseOrder: existingPO, emailData };
       } else {
         console.log('No existing PO found, creating new one for resend');
