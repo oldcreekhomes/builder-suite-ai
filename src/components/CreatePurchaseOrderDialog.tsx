@@ -149,6 +149,23 @@ export const CreatePurchaseOrderDialog = ({
     }
   }, [existingLines, editOrder]);
 
+  // Recipients for the "Sending To" column
+  const recipientCompanyId = isBidFlow
+    ? bidContext!.biddingCompany.company_id
+    : selectedCompany?.id ?? null;
+
+  const { data: recipients = [] } = useQuery({
+    queryKey: ['po-recipients', recipientCompanyId],
+    enabled: open && !!recipientCompanyId,
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('company_representatives')
+        .select('id, first_name, last_name, email, receive_po_notifications')
+        .eq('company_id', recipientCompanyId as string);
+      if (error) throw error;
+      return (data || []).filter((r: any) => r.receive_po_notifications && r.email);
+    },
+  });
 
 
   const updateLine = (index: number, updates: Partial<LineItemInput>) => {
