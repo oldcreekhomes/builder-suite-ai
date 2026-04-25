@@ -27,6 +27,7 @@ export const usePOMutations = (projectId: string) => {
       bidId?: string;
       customMessage?: string;
       lineItems?: LineItemInput[];
+      files?: Array<{ id: string; name: string; size: number; url: string }>;
     }) => {
       console.log('=== PO CREATION DEBUG ===');
       console.log('Creating PO with params:', { projectId, companyId, costCodeId, totalAmount, bidPackageId, bidId });
