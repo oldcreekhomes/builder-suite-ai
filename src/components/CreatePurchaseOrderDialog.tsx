@@ -136,7 +136,7 @@ export const CreatePurchaseOrderDialog = ({
   // Re-seed lines when AI extraction completes mid-open
   useEffect(() => {
     if (open && bidContext?.initialLineItems && bidContext.initialLineItems.length > 0) {
-      setLineItems(bidContext.initialLineItems.map((l) => ({ ...l })));
+      setLineItems(bidContext.initialLineItems.map((l) => ({ ...l, description: titleCase(l.description || '') })));
     }
   }, [open, bidContext?.initialLineItems]);
 
