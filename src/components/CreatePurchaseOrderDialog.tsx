@@ -113,7 +113,7 @@ export const CreatePurchaseOrderDialog = ({
       setCustomMessage("");
       setLineItems(
         bidContext.initialLineItems && bidContext.initialLineItems.length > 0
-          ? bidContext.initialLineItems.map((l) => ({ ...l }))
+          ? bidContext.initialLineItems.map((l) => ({ ...l, description: titleCase(l.description || '') }))
           : [emptyLine()]
       );
     } else if (editOrder) {
