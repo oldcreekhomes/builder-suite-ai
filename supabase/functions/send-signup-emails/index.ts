@@ -312,7 +312,7 @@ const handler = async (req: Request): Promise<Response> => {
         options: {
           redirectTo: 'https://buildersuiteml.com/auth'
         }
-      });
+      } as any);
 
       if (linkError) {
         console.error("❌ Error generating verification link:", linkError);
