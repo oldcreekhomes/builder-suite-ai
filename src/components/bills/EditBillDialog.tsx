@@ -864,21 +864,26 @@ export function EditBillDialog({ open, onOpenChange, billId }: EditBillDialogPro
           </div>
 
           <div className="space-y-4">
-            <Tabs defaultValue="job-cost" className="w-full">
-              <TabsList className="grid w-full grid-cols-2">
-                <TabsTrigger value="job-cost">Job Cost</TabsTrigger>
-                <TabsTrigger value="expense">Expense</TabsTrigger>
-              </TabsList>
-              
-              <TabsContent value="job-cost" className="space-y-4">
+            <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+              <div className="flex items-center justify-between border-b">
+                <TabsList>
+                  <TabsTrigger value="job-cost">Job Cost</TabsTrigger>
+                  <TabsTrigger value="expense">Expense</TabsTrigger>
+                </TabsList>
                 {!isApprovedBill && (
-                  <div className="flex items-center justify-between">
-                    <Button onClick={addJobCostRow} size="sm" variant="outline">
-                      <Plus className="h-4 w-4 mr-2" />
-                      Add Row
-                    </Button>
-                  </div>
+                  <Button
+                    onClick={activeTab === 'job-cost' ? addJobCostRow : addExpenseRow}
+                    variant="outline"
+                    size="sm"
+                    className="mb-1"
+                  >
+                    <Plus className="h-4 w-4 mr-2" />
+                    Add Line
+                  </Button>
                 )}
+              </div>
+
+              <TabsContent value="job-cost" className="space-y-4 mt-8">
 
                 <div className="border rounded-lg overflow-hidden overflow-x-auto">
                   <Table containerClassName="relative w-full">
