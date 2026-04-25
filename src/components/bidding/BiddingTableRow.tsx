@@ -129,7 +129,7 @@ export function BiddingTableRow({
     try {
       const [lines] = await Promise.all([
         extract(company.proposals, item.cost_code_id),
-        new Promise((r) => setTimeout(r, 3000)),
+        new Promise((r) => setTimeout(r, 5000)),
       ]);
       setExtractedLines(lines);
     } finally {

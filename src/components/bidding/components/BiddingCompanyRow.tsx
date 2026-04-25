@@ -91,7 +91,7 @@ export function BiddingCompanyRow({
     if (!isReadOnly) {
       const [lines] = await Promise.all([
         extract(biddingCompany.proposals, costCodeId),
-        new Promise((r) => setTimeout(r, 3000)),
+        new Promise((r) => setTimeout(r, 5000)),
       ]);
       setExtractedLines(lines);
     }
