@@ -4,7 +4,7 @@ import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Checkbox } from '@/components/ui/checkbox';
 import { ProposalCell } from './ProposalCell';
-import { ConfirmPODialog } from '../ConfirmPODialog';
+import { CreatePurchaseOrderDialog } from '@/components/CreatePurchaseOrderDialog';
 import { usePOStatus } from '@/hooks/usePOStatus';
 import { TableRowActions } from '@/components/ui/table-row-actions';
 import { Badge } from '@/components/ui/badge';
@@ -198,18 +198,23 @@ export function BiddingCompanyRow({
         <TableRowActions actions={actions} disabled={isReadOnly && !awardedPO} />
       </TableCell>
 
-      <ConfirmPODialog
-        isOpen={showConfirmPODialog}
-        onClose={() => { setShowConfirmPODialog(false); setExtractedLines(null); }}
-        biddingCompany={biddingCompany}
-        onConfirm={handleSendPO}
-        bidPackageId={bidPackageId}
-        projectAddress={projectAddress}
+      <CreatePurchaseOrderDialog
+        open={showConfirmPODialog}
+        onOpenChange={(open) => {
+          setShowConfirmPODialog(open);
+          if (!open) setExtractedLines(null);
+        }}
         projectId={projectId}
-        costCodeId={costCodeId}
-        mode={isReadOnly ? 'resend' : 'send'}
-        initialLineItems={extractedLines || undefined}
-        isExtracting={isExtracting}
+        onSuccess={handleSendPO}
+        bidContext={{
+          biddingCompany,
+          bidPackageId,
+          costCodeId,
+          mode: isReadOnly ? 'resend' : 'send',
+          initialLineItems: extractedLines || undefined,
+          isExtracting,
+          onConfirm: handleSendPO,
+        }}
       />
     </TableRow>
   );

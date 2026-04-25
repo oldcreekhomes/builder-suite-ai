@@ -6,7 +6,7 @@ import { SendTestEmailModal } from './SendTestEmailModal';
 import { AddCompaniesToBidPackageModal } from './AddCompaniesToBidPackageModal';
 import { BiddingTableRowContent } from './components/BiddingTableRowContent';
 import { SelectCompanyForPODialog } from './components/SelectCompanyForPODialog';
-import { ConfirmPODialog } from './ConfirmPODialog';
+import { CreatePurchaseOrderDialog } from '@/components/CreatePurchaseOrderDialog';
 import { usePreExtractPOLines } from '@/hooks/usePreExtractPOLines';
 import type { LineItemInput } from '@/hooks/usePurchaseOrderLines';
 import type { Tables } from '@/integrations/supabase/types';
@@ -247,18 +247,26 @@ export function BiddingTableRow({
         onSelectCompany={handleSelectCompanyForPO}
       />
 
-      <ConfirmPODialog
-        isOpen={showConfirmPODialog}
-        onClose={() => { setShowConfirmPODialog(false); setExtractedLines(null); }}
-        biddingCompany={selectedBiddingCompany}
-        onConfirm={handlePOConfirmed}
-        bidPackageId={item.id}
-        projectAddress={projectAddress || ''}
-        projectId={item.project_id}
-        costCodeId={item.cost_code_id}
-        initialLineItems={extractedLines || undefined}
-        isExtracting={isExtractingPO}
-      />
+      {selectedBiddingCompany && (
+        <CreatePurchaseOrderDialog
+          open={showConfirmPODialog}
+          onOpenChange={(open) => {
+            setShowConfirmPODialog(open);
+            if (!open) setExtractedLines(null);
+          }}
+          projectId={item.project_id}
+          onSuccess={handlePOConfirmed}
+          bidContext={{
+            biddingCompany: selectedBiddingCompany,
+            bidPackageId: item.id,
+            costCodeId: item.cost_code_id,
+            initialLineItems: extractedLines || undefined,
+            isExtracting: isExtractingPO,
+            mode: 'send',
+            onConfirm: handlePOConfirmed,
+          }}
+        />
+      )}
     </>
   );
 }
