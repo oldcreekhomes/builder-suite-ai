@@ -19,6 +19,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { POStatusBadge } from "./POStatusBadge";
 import { BillPOSummaryDialog } from "./BillPOSummaryDialog";
 import { useBillPOMatching, POMatch } from "@/hooks/useBillPOMatching";
+import { getBillCostCodeDisplay } from "@/lib/billListDisplay";
 
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 // Helper function to format terms for display
@@ -703,36 +704,14 @@ export function BatchBillReviewTable({
               // Tooltip / cost-code breakdown: GROUP by unique cost code / account name
               // (mirrors the Address tooltip pattern). For a multi-lot split where every
               // line shares the same cost code, this collapses 19 rows into 1 summed row.
-              const accountDisplayData = (() => {
-                if (!bill.lines || bill.lines.length === 0) {
-                  return { display: null as string | null, breakdown: [] as { name: string; amount: number }[], total: 0, count: 0 };
-                }
-
-                // Bucket by display name, preserving first-seen order.
-                const order: string[] = [];
-                const sums = new Map<string, number>();
-                for (const line of bill.lines) {
-                  const rawName =
-                    line.line_type === 'job_cost'
-                      ? line.cost_code_name
-                      : line.line_type === 'expense'
-                        ? line.account_name
-                        : null;
-                  const fallback = line.line_type === 'expense' ? 'No Account' : 'No Cost Code';
-                  const name = rawName?.trim() || fallback;
-                  if (!sums.has(name)) order.push(name);
-                  sums.set(name, (sums.get(name) || 0) + (line.amount || 0));
-                }
-
-                const breakdown = order.map(name => ({ name, amount: sums.get(name) || 0 }));
-                const total = breakdown.reduce((s, b) => s + b.amount, 0);
-                const count = breakdown.length;
-                // Display label: prefer the first NAMED bucket so the cell isn't dominated by "No Cost Code"
-                const firstNamed = breakdown.find(b => b.name !== 'No Cost Code' && b.name !== 'No Account');
-                const primary = firstNamed?.name || breakdown[0].name;
-                const display = count === 1 ? primary : `${primary} +${count - 1}`;
-                return { display, breakdown, total, count };
-              })();
+              const accountDisplayData = getBillCostCodeDisplay(
+                (bill.lines || []).map((l) => ({
+                  line_type: l.line_type,
+                  amount: l.amount,
+                  cost_code_name: l.cost_code_name,
+                  account_name: l.account_name,
+                })),
+              );
               
               const vendorName = getExtractedValue(bill, 'vendor_name', 'vendor');
               const vendorId = bill.vendor_id || getExtractedValue(bill, 'vendor_id', 'vendorId');
