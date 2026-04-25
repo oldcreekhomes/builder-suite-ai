@@ -629,22 +629,23 @@ export const CreatePurchaseOrderDialog = ({
             </div>
             <div className="space-y-1.5">
               <Label>Attachments</Label>
-              <div
-                {...getRootProps()}
-                className={`border rounded-md p-3 transition-colors cursor-pointer h-[80px] flex items-center justify-center ${
-                  isDragActive ? 'border-primary/50 bg-primary/5' : 'border-input hover:border-muted-foreground/50'
-                } ${isUploading ? 'opacity-50 cursor-not-allowed' : ''}`}
-              >
-                <input {...getInputProps()} />
-                <div className="text-center">
-                  <Upload className={`mx-auto h-5 w-5 mb-0.5 ${isDragActive ? 'text-primary' : 'text-muted-foreground'}`} />
-                  <p className="text-xs text-muted-foreground">
-                    {isUploading ? "Uploading..." : isDragActive ? "Drop files here..." : "Click or drag to upload"}
-                  </p>
+              {uploadedFiles.length === 0 ? (
+                <div
+                  {...getRootProps()}
+                  className={`border rounded-md p-3 transition-colors cursor-pointer h-[80px] flex items-center justify-center ${
+                    isDragActive ? 'border-primary/50 bg-primary/5' : 'border-input hover:border-muted-foreground/50'
+                  } ${isUploading ? 'opacity-50 cursor-not-allowed' : ''}`}
+                >
+                  <input {...getInputProps()} />
+                  <div className="text-center">
+                    <Upload className={`mx-auto h-5 w-5 mb-0.5 ${isDragActive ? 'text-primary' : 'text-muted-foreground'}`} />
+                    <p className="text-xs text-muted-foreground">
+                      {isUploading ? "Uploading..." : isDragActive ? "Drop files here..." : "Click or drag to upload"}
+                    </p>
+                  </div>
                 </div>
-              </div>
-              {uploadedFiles.length > 0 && (
-                <div className="flex flex-wrap items-center gap-2 pt-1">
+              ) : (
+                <div className="border border-input rounded-md p-2 h-[80px] flex flex-wrap items-center gap-2 overflow-auto">
                   {uploadedFiles.map((file) => {
                     const Icon = getFileIcon(file.name);
                     const iconColor = getFileIconColor(file.name);
