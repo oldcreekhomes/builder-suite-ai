@@ -1,23 +1,24 @@
-## Remove White Space Between Amount → Proposal → Extra
+## Simplify "Sending To" Display in Confirm PO Dialog
 
-**File:** `src/components/bidding/ConfirmPODialog.tsx`
+The "Sending To" section currently sits beside the Custom Message field (correct), but is wrapped in a bordered, gray-background box and lays the name and email on the same line with an em-dash separator. The user wants a clean, minimal presentation.
 
-### Root Cause
-The visual gaps come from the `Proposal` and `Extra` columns being wider than their tiny contents (an icon and a checkbox). Amount itself is now well sized, so we leave it alone and shrink the two narrow icon/checkbox columns. The unconstrained `Description` column will automatically absorb the freed width, evenly spreading the layout.
+### Changes — `src/components/bidding/ConfirmPODialog.tsx` (lines 441–464)
 
-### Changes (lines 281–282)
-```tsx
-<TableHead className="w-[44px] text-center">Proposal</TableHead>
-<TableHead className="w-[44px] text-center">Extra</TableHead>
-```
+**Remove all chrome around the recipient:**
+- Drop `border rounded-md px-3 py-2 bg-muted/30` and the `min-h-[60px]` from the wrapper.
+- Keep the `Label` ("Sending To") with the same styling as "Custom Message (Optional)" so the two headings align.
 
-- Proposal: `w-[70px]` → `w-[44px]` (icon is ~20px; 44px gives breathing room and centers it)
-- Extra: `w-[60px]` → `w-[44px]` (checkbox is ~16px)
-- Both centered so the icon/checkbox sit directly under their headers
-- Amount (`w-[90px]`) and Actions (`w-[50px]`) untouched
-- Description has no fixed width — it grows to fill the ~42px reclaimed
+**Stack name above email:**
+- Render the representative's first + last name on the first line (`font-medium text-sm`).
+- Render the email directly beneath it on a second line (`text-xs text-muted-foreground`).
+- Remove the em-dash and the `<ul>`/`<li>` structure — use simple stacked `<div>`s.
+
+**Empty state:**
+- Keep a small italic muted message ("No representatives with PO notifications enabled") with no box.
+
+**Layout preserved:**
+- Custom Message remains `w-1/2`, Sending To remains `flex-1`, Add Line button stays on the right.
+- Both columns stay aligned at the top via `items-start` (switch from `items-end` so the stacked recipient doesn't bottom-align awkwardly with the textarea).
 
 ### Result
-- No more large empty gap between Amount and Proposal, or Proposal and Extra
-- Columns appear evenly spaced
-- No alignment, ordering, or behavior changes
+Clean, label-only "Sending To" heading with the recipient's name on one line and email on the next — no border, no background, matching the visual weight of the Custom Message label.
