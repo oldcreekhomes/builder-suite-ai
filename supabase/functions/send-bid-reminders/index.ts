@@ -108,11 +108,11 @@ const handler = async (req: Request): Promise<Response> => {
       
       console.log(`📋 Processing ${fallbackData?.length || 0} bid packages from database`);
       
-      for (const pkg of fallbackData || []) {
+      for (const pkg of (fallbackData || []) as any[]) {
         console.log(`📦 Bid Package: ${pkg.name} (${pkg.id})`);
         
         // Get representatives for companies that need reminders
-        for (const bid of pkg.project_bids) {
+        for (const bid of pkg.project_bids as any[]) {
           const companyName = bid.companies.company_name;
           
           // Skip if they said NO (will_not_bid)
@@ -263,7 +263,7 @@ const handler = async (req: Request): Promise<Response> => {
       let successCount = 0;
       let errorCount = 0;
 
-      for (const [packageId, data] of Object.entries(packageGroups)) {
+      for (const [packageId, data] of Object.entries(packageGroups) as [string, any][]) {
         try {
           console.log(`📧 Sending reminder for bid package ${packageId} to ${data.companies.length} companies`);
           
@@ -320,7 +320,7 @@ const handler = async (req: Request): Promise<Response> => {
     }
 
     // If RPC exists and worked, process the data (future implementation)
-    console.log(`📦 Found ${bidPackages?.length || 0} bid packages needing reminders via RPC`);
+    console.log(`📦 Found ${Array.isArray(bidPackages) ? bidPackages.length : 0} bid packages needing reminders via RPC`);
 
     return new Response(
       JSON.stringify({ 

@@ -74,7 +74,7 @@ serve(async (req) => {
     
     if (aliasMatch?.company_id) {
       vendorId = aliasMatch.company_id;
-      matchedCompanyName = aliasMatch.companies?.company_name || null;
+      matchedCompanyName = (aliasMatch.companies as any)?.company_name || null;
       console.log(`✓ Alias match: "${vendorName}" → "${matchedCompanyName}"`);
     } else {
       // STEP 2: Check for acronym matching
@@ -182,7 +182,7 @@ serve(async (req) => {
           console.error('Error loading vendor cost codes:', ccErr);
         } else if (ccLinks && ccLinks.length === 1 && ccLinks[0].cost_codes) {
           const ccId = ccLinks[0].cost_code_id;
-          const cc = ccLinks[0].cost_codes;
+          const cc = ccLinks[0].cost_codes as any;
           const ccDisplay = `${cc.code}: ${cc.name}`;
           console.log(`Forcing single vendor cost code after rematch: ${ccDisplay}`);
 
@@ -247,7 +247,7 @@ serve(async (req) => {
     console.error('Error in rematch-pending-bill:', error);
     
     return new Response(
-      JSON.stringify({ error: error.message }),
+      JSON.stringify({ error: error instanceof Error ? error.message : String(error) }),
       { 
         status: 500, 
         headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
