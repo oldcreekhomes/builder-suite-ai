@@ -329,6 +329,9 @@ export function ConfirmPODialog({
                             min={0}
                           />
                         </TableCell>
+                        <TableCell className="p-1 text-sm font-medium">
+                          ${line.amount.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                        </TableCell>
                         <TableCell className="p-1 text-center">
                           {idx === 0 && firstProposal ? (
                             <div className="relative inline-flex">
@@ -363,16 +366,13 @@ export function ConfirmPODialog({
                             </div>
                           ) : null}
                         </TableCell>
-                        <TableCell className="p-1 text-sm font-medium">
-                          ${line.amount.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                        </TableCell>
                         <TableCell className="p-1 text-center">
                           <Checkbox
                             checked={line.extra}
                             onCheckedChange={(checked) => updateLine(idx, { extra: checked as boolean })}
                           />
                         </TableCell>
-                        <TableCell className="p-1">
+                        <TableCell className="p-1 text-center">
                           <Button
                             type="button"
                             variant="ghost"
