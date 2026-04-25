@@ -228,6 +228,7 @@ export const CreatePurchaseOrderDialog = ({
             bidPackageId: bidContext.bidPackageId,
             customMessage: customMessage.trim() || undefined,
             lineItems: validLines.length > 0 ? validLines : undefined,
+            files: uploadedFiles.length > 0 ? uploadedFiles : undefined,
           });
         }
         bidContext.onConfirm?.();
