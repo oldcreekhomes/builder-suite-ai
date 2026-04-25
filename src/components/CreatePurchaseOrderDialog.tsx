@@ -645,7 +645,7 @@ export const CreatePurchaseOrderDialog = ({
                   </div>
                 </div>
               ) : (
-                <div className="border border-input rounded-md p-2 h-[80px] flex flex-wrap items-center gap-2 overflow-auto">
+                <div className="h-[80px] flex flex-wrap items-start content-start gap-2 overflow-auto pt-1">
                   {uploadedFiles.map((file) => {
                     const Icon = getFileIcon(file.name);
                     const iconColor = getFileIconColor(file.name);
