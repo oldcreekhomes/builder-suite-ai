@@ -9,8 +9,10 @@ import { usePOStatus } from '@/hooks/usePOStatus';
 import { TableRowActions } from '@/components/ui/table-row-actions';
 import { Badge } from '@/components/ui/badge';
 import { format } from 'date-fns';
-import { CheckCircle } from 'lucide-react';
+import { CheckCircle, Sparkles } from 'lucide-react';
 import type { AwardedPO } from '@/hooks/useBidPackagePO';
+import { usePreExtractPOLines } from '@/hooks/usePreExtractPOLines';
+import type { LineItemInput } from '@/hooks/usePurchaseOrderLines';
 
 interface Company {
   id: string;
