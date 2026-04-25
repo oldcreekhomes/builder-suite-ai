@@ -424,8 +424,8 @@ const formatCurrency = (value: number) => {
                   <TableRow>
                     <TableHead className="w-[7%]">Type</TableHead>
                     <TableHead className="w-[9%]">Date</TableHead>
-                    <TableHead className="w-[18%]">Name</TableHead>
-                    <TableHead className="w-[28%]">
+                    <TableHead className="w-[12%]">Name</TableHead>
+                    <TableHead className="w-[34%]">
                       <button 
                         className="flex items-center gap-1 hover:text-foreground text-muted-foreground transition-colors"
                         onClick={() => setDescriptionSort(prev => 
