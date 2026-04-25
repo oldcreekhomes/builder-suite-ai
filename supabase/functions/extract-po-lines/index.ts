@@ -214,11 +214,14 @@ Deno.serve(async (req) => {
     const rawLines: any[] = Array.isArray(args.lines) ? args.lines : [];
 
     const fallback = fallbackCostCodeId
-      ? costCodes.find((c) => c.id === fallbackCostCodeId) ?? null
+      ? (allCostCodes.find((c) => c.id === fallbackCostCodeId) ?? null)
       : null;
 
     const lines: ExtractedLine[] = rawLines.map((l) => {
-      const matched = matchCostCode(String(l.cost_code_hint || ""), costCodes) ?? fallback;
+      // If a locked cost code is supplied, force every line to it.
+      const matched = lockedCostCode
+        ?? matchCostCode(String(l.cost_code_hint || ""), costCodes)
+        ?? fallback;
       const qty = Number(l.quantity) || 0;
       const unit = Number(l.unit_cost) || 0;
       const amt = Number(l.amount) || Math.round(qty * unit * 100) / 100;
