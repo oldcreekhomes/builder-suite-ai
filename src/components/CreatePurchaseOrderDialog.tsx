@@ -5,7 +5,8 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { Upload, X, FileText, Plus, Trash2, Sparkles } from "lucide-react";
+import { Upload, X, Plus, Trash2, Sparkles } from "lucide-react";
+import { getFileIcon, getFileIconColor, getCleanFileName } from "./bidding/utils/fileIconUtils";
 import { useDropzone } from "react-dropzone";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
@@ -623,14 +624,14 @@ export const CreatePurchaseOrderDialog = ({
                 placeholder="Add a custom message to include in the email..."
                 value={customMessage}
                 onChange={(e) => setCustomMessage(e.target.value)}
-                className="resize-none h-[96px] min-h-[96px]"
+                className="resize-none h-[80px] min-h-[80px]"
               />
             </div>
             <div className="space-y-1.5">
               <Label>Attachments</Label>
               <div
                 {...getRootProps()}
-                className={`border rounded-md p-3 transition-colors cursor-pointer h-[96px] flex items-center justify-center ${
+                className={`border rounded-md p-3 transition-colors cursor-pointer h-[80px] flex items-center justify-center ${
                   isDragActive ? 'border-primary/50 bg-primary/5' : 'border-input hover:border-muted-foreground/50'
                 } ${isUploading ? 'opacity-50 cursor-not-allowed' : ''}`}
               >
@@ -643,24 +644,38 @@ export const CreatePurchaseOrderDialog = ({
                 </div>
               </div>
               {uploadedFiles.length > 0 && (
-                <div className="space-y-1">
-                  {uploadedFiles.map((file) => (
-                    <div key={file.id} className="flex items-center justify-between p-1.5 bg-muted rounded-md">
-                      <div className="flex items-center space-x-1.5">
-                        <FileText className="h-3.5 w-3.5 text-muted-foreground" />
-                        <span className="text-xs font-medium truncate">{file.name}</span>
+                <div className="flex flex-wrap items-center gap-2 pt-1">
+                  {uploadedFiles.map((file) => {
+                    const Icon = getFileIcon(file.name);
+                    const iconColor = getFileIconColor(file.name);
+                    return (
+                      <div key={file.id} className="relative">
+                        <a
+                          href={file.url}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className={`${iconColor} transition-colors p-1 inline-flex`}
+                          title={getCleanFileName(file.name)}
+                        >
+                          <Icon className="h-5 w-5" />
+                        </a>
+                        <button
+                          type="button"
+                          onClick={(e) => { e.stopPropagation(); removeFile(file); }}
+                          className="absolute -top-1 -right-1 bg-red-500 hover:bg-red-600 text-white rounded-full w-3 h-3 flex items-center justify-center"
+                          title="Remove file"
+                        >
+                          <span className="text-[10px] font-bold leading-none">×</span>
+                        </button>
                       </div>
-                      <Button variant="ghost" size="sm" onClick={() => removeFile(file)} className="h-5 w-5 p-0">
-                        <X className="h-3 w-3" />
-                      </Button>
-                    </div>
-                  ))}
+                    );
+                  })}
                 </div>
               )}
             </div>
             <div className="space-y-1.5">
               <Label>Sending To</Label>
-              <div className="border rounded-md p-3 h-[96px] overflow-auto text-sm">
+              <div className="border rounded-md p-3 h-[80px] overflow-auto text-sm">
                 {!recipientCompanyId ? (
                   <p className="text-xs text-muted-foreground italic">Select a company to see recipients</p>
                 ) : recipients.length === 0 ? (
