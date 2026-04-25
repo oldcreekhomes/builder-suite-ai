@@ -227,7 +227,14 @@ export function ConfirmPODialog({
             </div>
           </div>
 
-          {mode === 'send' && (
+          {mode === 'send' && isExtracting && (
+            <div className="flex flex-col items-center justify-center py-16 gap-3">
+              <Sparkles className="h-8 w-8 text-primary animate-pulse" />
+              <p className="text-sm text-muted-foreground">Creating PO with AI…</p>
+            </div>
+          )}
+
+          {mode === 'send' && !isExtracting && (
             <div className="space-y-2">
               <Label>Line Items</Label>
               <div className="border rounded-lg overflow-hidden">
@@ -236,7 +243,7 @@ export function ConfirmPODialog({
                     <TableRow>
                       <TableHead className="w-[200px]">Cost Code</TableHead>
                       <TableHead>Description</TableHead>
-                      <TableHead className="w-[40px] text-right">Qty</TableHead>
+                      <TableHead className="w-[80px] text-right">Qty</TableHead>
                       <TableHead className="w-[110px] text-right">Unit Cost</TableHead>
                       <TableHead className="w-[70px] text-center">Proposal</TableHead>
                       <TableHead className="w-[110px] text-right">Amount</TableHead>
