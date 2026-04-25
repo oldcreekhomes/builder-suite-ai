@@ -107,6 +107,8 @@ export function BiddingTableRow({
   const [showSelectCompanyForPO, setShowSelectCompanyForPO] = useState(false);
   const [showConfirmPODialog, setShowConfirmPODialog] = useState(false);
   const [selectedBiddingCompany, setSelectedBiddingCompany] = useState<BiddingCompany | null>(null);
+  const [extractedLines, setExtractedLines] = useState<LineItemInput[] | null>(null);
+  const { extract } = usePreExtractPOLines();
   const costCode = item.cost_codes as CostCode;
 
   const handleSendEmailToCompany = (biddingItemId: string, companyId: string) => {
@@ -118,8 +120,11 @@ export function BiddingTableRow({
     setShowSelectCompanyForPO(true);
   };
 
-  const handleSelectCompanyForPO = (company: BiddingCompany) => {
+  const handleSelectCompanyForPO = async (company: BiddingCompany) => {
     setSelectedBiddingCompany(company);
+    setShowSelectCompanyForPO(false);
+    const lines = await extract(company.proposals, item.cost_code_id);
+    setExtractedLines(lines);
     setShowConfirmPODialog(true);
   };
 
