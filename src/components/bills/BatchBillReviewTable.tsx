@@ -856,7 +856,7 @@ export function BatchBillReviewTable({
                   
                   {/* Cost Code */}
                   <TableCell className="w-44">
-                    {accountDisplayData.display === null ? (
+                    {accountDisplayData.count === 0 ? (
                       <Badge variant="destructive" className="h-5">Missing</Badge>
                     ) : (
                       <TooltipProvider>
