@@ -212,7 +212,7 @@ export function ConfirmPODialog({
       <Dialog open={isOpen} onOpenChange={onClose}>
         <DialogContent className="max-w-md">
           <DialogHeader className="sr-only">
-            <DialogTitle>Creating PO with AI</DialogTitle>
+            <DialogTitle>Creating PO from machine learning</DialogTitle>
           </DialogHeader>
           <style>{`
             @keyframes po-ai-float {
@@ -237,7 +237,7 @@ export function ConfirmPODialog({
           <div className="flex flex-col items-center justify-center py-16 gap-4">
             <Sparkles className="po-ai-icon h-12 w-12 text-primary" />
             <p className="po-ai-text text-sm font-medium text-muted-foreground">
-              Creating PO with machine learning
+              Creating PO from machine learning
             </p>
           </div>
         </DialogContent>
