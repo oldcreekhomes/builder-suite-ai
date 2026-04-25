@@ -1,66 +1,87 @@
-# Refine Confirm PO Dialog
+## Goal
+Two refinements to the Send PO flow:
 
-Three coordinated changes to the "Send PO" → Confirm PO experience.
+1. **Open the Confirm PO dialog immediately** when the user clicks Send PO — show a spinner inside the dialog while AI extraction runs (minimum 3 seconds). Remove the inline "✨ Creating PO with AI…" indicator from the row's Actions cell.
+2. **Reclaim white space** in the Confirm PO line items table by doubling the **Qty** column width and pushing the **Proposal** column further right.
 
-## 1. Defer the dialog until extraction completes
-- When the user clicks **Send PO**, do NOT open the dialog immediately.
-- Instead, show an inline status next to the row's action with the existing **Sparkles** icon and the text **"Creating PO with AI…"** (same icon as today's "Auto-extracted" hint, just different words; no extra spinner).
-- Run `extract-po-lines` in the background. When it returns (or errors), open `ConfirmPODialog` with the pre-extracted `lineItems` already populated.
-- Remove the in-dialog "Extracting line items from proposal…" spinner row and the "Auto-extracted — review and edit before sending" hint, since extraction is already done by the time the dialog appears.
+---
 
-**Implementation:**
-- Add `initialLineItems?: LineItemInput[]` prop to `ConfirmPODialog`. When present, seed state from it and skip the internal extraction `useEffect`.
-- In `BiddingTableRow.tsx` and `components/BiddingCompanyRow.tsx`, the Send PO handler:
-  1. Sets `creatingPO = true`.
-  2. Calls `supabase.functions.invoke('extract-po-lines', …)` with the bid package's single cost code (see §2).
-  3. On settle, stores the lines, sets `creatingPO = false`, opens the dialog with `initialLineItems` passed in.
-- While `creatingPO` is true, render the Sparkles icon + "Creating PO with AI…" inline beside the action and disable re-clicks.
+## 1. Move the spinner from the row → into the Confirm PO dialog
 
-## 2. Lock extraction to the bid package's cost code
-The bid package is created against ONE cost code (e.g. `2065 Architectural`). The vendor was invited specifically for that scope, so all PO lines must roll up to that single cost code — no AI guessing across the full chart of accounts.
+### `src/components/bidding/components/BiddingCompanyRow.tsx`
+- In `handleOpenConfirmPO`, **open the dialog first**, then run extraction in the background:
+  ```ts
+  const handleOpenConfirmPO = async () => {
+    setShowConfirmPODialog(true);
+    if (!isReadOnly) {
+      // Run extraction + minimum 3s delay in parallel; whichever takes longer wins
+      const [lines] = await Promise.all([
+        extract(biddingCompany.proposals, costCodeId),
+        new Promise((r) => setTimeout(r, 3000)),
+      ]);
+      setExtractedLines(lines);
+    }
+  };
+  ```
+- Remove the `isExtracting` branch in the Actions `<TableCell>` — always render `<TableRowActions />`.
+- Remove the now-unused `Sparkles` import.
+- Pass a new `isExtracting` prop into `<ConfirmPODialog>` so the dialog knows when to show the spinner.
 
-**Edge function (`supabase/functions/extract-po-lines/index.ts`):**
-- Accept a new field `lockedCostCodeId` in the request body.
-- When present, pass ONLY that cost code to the AI and rewrite the prompt: *"All line items belong to this single cost code: `{code} - {name}`. Extract one line per discrete priced task; do not split across multiple cost codes."*
-- In post-processing, force every returned line's `cost_code_id` / `cost_code_display` to the locked cost code regardless of what the model returned.
-- Keep the existing fallback path for any callers that don't supply a locked cost code.
+### `src/components/bidding/BiddingTableRow.tsx`
+- Apply the same pattern in `handleSelectCompanyForPO`:
+  ```ts
+  const handleSelectCompanyForPO = async (company) => {
+    setSelectedBiddingCompany(company);
+    setShowSelectCompanyForPO(false);
+    setShowConfirmPODialog(true);            // open immediately
+    const [lines] = await Promise.all([
+      extract(company.proposals, item.cost_code_id),
+      new Promise((r) => setTimeout(r, 3000)),
+    ]);
+    setExtractedLines(lines);
+  };
+  ```
+- Track `isExtracting` locally (set true before, false in `finally`) and pass to `<ConfirmPODialog>`.
 
-**Client:**
-- Pre-extraction call passes `lockedCostCodeId: costCodeId` (the bid package's cost code).
-- Result: every line opens with `2065 - Architectural` already filled in; user only edits descriptions / amounts.
+### `src/components/bidding/ConfirmPODialog.tsx`
+- Add prop `isExtracting?: boolean`.
+- When `mode === 'send' && isExtracting`, **replace the Line Items table** (and the message+Add Line row, footer buttons stay disabled) with a centered loading state:
+  ```tsx
+  <div className="flex flex-col items-center justify-center py-16 gap-3">
+    <Sparkles className="h-8 w-8 text-primary animate-pulse" />
+    <p className="text-sm text-muted-foreground">Creating PO with AI…</p>
+  </div>
+  ```
+- Disable the **Send PO** button while `isExtracting` is true.
+- When extraction finishes, the dialog seamlessly swaps to the populated line-items table (the existing `useEffect` on `initialLineItems` already handles seeding state).
 
-## 3. Consolidate the dialog layout (`ConfirmPODialog.tsx`)
+---
 
-**Line Items table — add a new Proposal column between Unit Cost and Amount, shrink Qty:**
+## 2. Widen Qty column, push Proposal column right
 
-| Column       | Old   | New      |
-|--------------|-------|----------|
-| Cost Code    | 200px | 200px    |
-| Description  | flex  | flex     |
-| Qty          | 80px  | **40px** |
-| Unit Cost    | 110px | 110px    |
-| **Proposal** | —     | **70px** *(new)* |
-| Amount       | 110px | 110px    |
-| Extra        | 60px  | 60px     |
-| (delete)     | 50px  | 50px     |
+### `src/components/bidding/ConfirmPODialog.tsx` — line items table
+Current column widths (TableHead):
+- Cost Code `w-[200px]`
+- Description (flex)
+- Qty `w-[40px]`
+- Unit Cost `w-[110px]`
+- Proposal `w-[70px]`
+- Amount `w-[110px]`
+- Extra `w-[60px]`
+- Delete `w-[50px]`
 
-- The new **Proposal** cell (shown on row 0 only to avoid clutter) renders the file icon via `getFileIcon` / `getFileIconColor`, clickable to preview through `openFile` (same handler as today), with the existing small ✕ delete affordance.
-- Remove the standalone **Attached Proposals** section at the bottom of the dialog — its functionality moves into the table.
+Updates:
+- **Qty** → `w-[80px]` (double current width). Inputs stay right-aligned.
+- **Proposal** → keep `w-[70px]` but reorder so it sits immediately to the **left of Amount** (it already does in JSX, but verify Header + Body cell order matches: Cost Code → Description → Qty → Unit Cost → **Proposal** → Amount → Extra → Delete). The widening of Qty pushes Proposal visually to the right and eliminates the white space the user flagged.
+- Update the subtotal row's `colSpan={5}` to remain correct (Cost Code + Description + Qty + Unit Cost + Proposal = 5 → unchanged).
 
-**Custom Message + Add Line on the same row:**
-- Wrap them in `flex gap-3 items-start`:
-  - Left (`flex-1`): Custom Message label + `Textarea` (reduce `rows={3}` → `rows={2}`).
-  - Right (`shrink-0 self-end`): the `+ Add Line` button aligned to the bottom edge of the textarea.
+No other layout changes; everything else (custom message + Add Line row, footer) stays as-is.
 
-**Net effect:** dialog drops the standalone proposals strip and the standalone Add Line button row; Qty narrows to make room for the inline proposal icon. Overall vertical height shrinks noticeably.
+---
 
-## Files modified
-- `supabase/functions/extract-po-lines/index.ts` — accept `lockedCostCodeId`, restrict prompt + force mapping.
-- `src/components/bidding/ConfirmPODialog.tsx` — add `initialLineItems` prop, drop in-dialog extraction UI, restructure table (new Proposal column, narrower Qty), merge Custom Message + Add Line row, remove standalone Attached Proposals block.
-- `src/components/bidding/BiddingTableRow.tsx` — pre-extract before opening dialog; show "Creating PO with AI…" inline status.
-- `src/components/bidding/components/BiddingCompanyRow.tsx` — same pre-extract flow.
+## Files touched
+- `src/components/bidding/ConfirmPODialog.tsx` — add `isExtracting` prop, render spinner state, widen Qty column.
+- `src/components/bidding/components/BiddingCompanyRow.tsx` — open dialog immediately, drop in-row spinner, pass `isExtracting`.
+- `src/components/bidding/BiddingTableRow.tsx` — open dialog immediately, track + pass `isExtracting`.
 
-## Out of scope
-- No DB schema changes.
-- No changes to PO persistence, email sending, or post-send behavior.
-- "Resend" mode path is unchanged.
+No edge function or DB changes.

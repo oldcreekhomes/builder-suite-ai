@@ -6,7 +6,7 @@ import { Input } from '@/components/ui/input';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Label } from '@/components/ui/label';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Plus, Trash2 } from 'lucide-react';
+import { Plus, Trash2, Sparkles } from 'lucide-react';
 import { getFileIcon, getFileIconColor, getCleanFileName } from '../bidding/utils/fileIconUtils';
 import { supabase } from '@/integrations/supabase/client';
 import { usePOMutations } from '@/hooks/usePOMutations';
@@ -45,6 +45,8 @@ interface ConfirmPODialogProps {
   mode?: 'send' | 'resend';
   /** Pre-extracted line items from the AI. When provided, dialog skips its own extraction. */
   initialLineItems?: LineItemInput[];
+  /** When true, show in-dialog spinner while AI extraction runs. */
+  isExtracting?: boolean;
 }
 
 const emptyLine = (): LineItemInput => ({
@@ -68,6 +70,7 @@ export function ConfirmPODialog({
   costCodeId,
   mode = 'send',
   initialLineItems,
+  isExtracting = false,
 }: ConfirmPODialogProps) {
   const { createPOSendEmailAndUpdateStatus, resendPOEmail, isLoading } = usePOMutations(projectId);
   const { profile } = useUserProfile();
@@ -224,7 +227,14 @@ export function ConfirmPODialog({
             </div>
           </div>
 
-          {mode === 'send' && (
+          {mode === 'send' && isExtracting && (
+            <div className="flex flex-col items-center justify-center py-16 gap-3">
+              <Sparkles className="h-8 w-8 text-primary animate-pulse" />
+              <p className="text-sm text-muted-foreground">Creating PO with AI…</p>
+            </div>
+          )}
+
+          {mode === 'send' && !isExtracting && (
             <div className="space-y-2">
               <Label>Line Items</Label>
               <div className="border rounded-lg overflow-hidden">
@@ -233,7 +243,7 @@ export function ConfirmPODialog({
                     <TableRow>
                       <TableHead className="w-[200px]">Cost Code</TableHead>
                       <TableHead>Description</TableHead>
-                      <TableHead className="w-[40px] text-right">Qty</TableHead>
+                      <TableHead className="w-[80px] text-right">Qty</TableHead>
                       <TableHead className="w-[110px] text-right">Unit Cost</TableHead>
                       <TableHead className="w-[70px] text-center">Proposal</TableHead>
                       <TableHead className="w-[110px] text-right">Amount</TableHead>
@@ -401,7 +411,7 @@ export function ConfirmPODialog({
           </Button>
           <Button
             onClick={handleConfirm}
-            disabled={isLoading}
+            disabled={isLoading || isExtracting}
             className="bg-green-600 hover:bg-green-700 text-white"
           >
             {isLoading ? 'Sending...' : mode === 'resend' ? 'Resend PO' : 'Send PO'}
