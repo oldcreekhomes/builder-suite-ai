@@ -237,7 +237,7 @@ export function ConfirmPODialog({
           <div className="flex flex-col items-center justify-center py-16 gap-4">
             <Sparkles className="po-ai-icon h-12 w-12 text-primary" />
             <p className="po-ai-text text-sm font-medium text-muted-foreground">
-              Creating PO with AI
+              Creating PO with machine learning
             </p>
           </div>
         </DialogContent>
