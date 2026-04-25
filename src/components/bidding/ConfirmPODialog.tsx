@@ -329,7 +329,7 @@ export function ConfirmPODialog({
                             min={0}
                           />
                         </TableCell>
-                        <TableCell className="p-1 text-center">
+                        <TableCell className="p-1">
                           {idx === 0 && firstProposal ? (
                             <div className="relative inline-flex">
                               <Tooltip>
