@@ -608,13 +608,13 @@ export const CreatePurchaseOrderDialog = ({
             </Button>
           </div>
 
-          {/* Custom Message + Attachments — identical for both flows */}
-          <div className="grid grid-cols-2 gap-4">
+          {/* Custom Message + Attachments + Sending To */}
+          <div className="grid grid-cols-3 gap-4">
             <div className="space-y-1.5">
               <Label>Custom Message (Optional)</Label>
               <Textarea
                 placeholder="Add a custom message to include in the email..."
-                rows={2}
+                rows={4}
                 value={customMessage}
                 onChange={(e) => setCustomMessage(e.target.value)}
                 className="resize-none"
@@ -651,6 +651,28 @@ export const CreatePurchaseOrderDialog = ({
                   ))}
                 </div>
               )}
+            </div>
+            <div className="space-y-1.5">
+              <Label>Sending To</Label>
+              <div className="border rounded-md p-3 min-h-[80px] text-sm">
+                {!recipientCompanyId ? (
+                  <p className="text-xs text-muted-foreground italic">Select a company to see recipients</p>
+                ) : recipients.length === 0 ? (
+                  <p className="text-xs text-muted-foreground italic">No representatives with PO notifications enabled</p>
+                ) : (
+                  <div className="space-y-1">
+                    {recipients.map((r: any) => {
+                      const name = `${r.first_name || ''} ${r.last_name || ''}`.trim() || '(No name)';
+                      return (
+                        <div key={r.id} className="truncate text-xs">
+                          <span className="font-semibold">{name}</span>
+                          <span className="text-muted-foreground"> · {r.email}</span>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
             </div>
           </div>
         </div>
