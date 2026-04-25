@@ -271,6 +271,69 @@ export function PODetailsDialog({
     }, 0);
   };
 
+  // Returns the bill-side memos attributed to this PO line, using the SAME
+  // tier rules as getPendingForLine so Description and "This Bill" stay in sync.
+  const getPendingMemosForLine = (lineId: string, lineCostCodeId?: string, lineDescription?: string): string[] => {
+    if (!hasPending) return [];
+    const memos: string[] = [];
+    const push = (pbl: PendingBillLine) => {
+      const m = (pbl.memo || '').trim();
+      if (m) memos.push(m);
+    };
+    for (const pbl of pendingBillLines) {
+      // Tier 1: explicit line match
+      if (pbl.purchase_order_line_id === lineId) { push(pbl); continue; }
+
+      // Skip if this pending line already has an explicit line assignment to ANOTHER line
+      if (pbl.purchase_order_line_id) continue;
+
+      // Tier 1.5: explicit PO match → distribute by cost code on this PO
+      if (isExplicitlyOnThisPO(pbl)) {
+        if (lineItems.length === 1) { push(pbl); continue; }
+        if (pbl.cost_code_id && pbl.cost_code_id === lineCostCodeId) {
+          const sameCCLines = lineItems.filter(l => l.cost_code_id === lineCostCodeId);
+          if (sameCCLines.length <= 1) { push(pbl); continue; }
+          let bestScore = 0;
+          let bestLineId: string | null = null;
+          for (const candidate of sameCCLines) {
+            const score = memoMatchScore(pbl.memo, candidate.description);
+            if (score > bestScore) {
+              bestScore = score;
+              bestLineId = candidate.id;
+            }
+          }
+          if (bestLineId === lineId) push(pbl);
+        }
+        continue;
+      }
+
+      if (isExplicitlyOnOtherPO(pbl)) continue;
+
+      // Tier 2: exact cost code match
+      if (pbl.cost_code_id && pbl.cost_code_id === lineCostCodeId) {
+        const sameCCLines = lineItems.filter(l => l.cost_code_id === lineCostCodeId);
+        if (sameCCLines.length <= 1) { push(pbl); continue; }
+        let bestScore = 0;
+        let bestLineId: string | null = null;
+        for (const candidate of sameCCLines) {
+          const score = memoMatchScore(pbl.memo, candidate.description);
+          if (score > bestScore) {
+            bestScore = score;
+            bestLineId = candidate.id;
+          }
+        }
+        if (bestScore >= 1 && bestLineId === lineId) push(pbl);
+        continue;
+      }
+
+      // Tier 3: single-line PO fallback
+      if (lineItems.length === 1) push(pbl);
+    }
+    // De-dupe while preserving order
+    return Array.from(new Set(memos));
+  };
+
+
   const totalPending = hasPending ? pendingBillLines.reduce((s, l) => s + l.amount, 0) : 0;
   const projectedRemaining = Math.round((purchaseOrder.remaining - totalPending) * 100) / 100;
   const projectedOverBudget = projectedRemaining < 0;
