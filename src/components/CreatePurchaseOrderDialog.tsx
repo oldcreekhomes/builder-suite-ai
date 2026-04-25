@@ -573,6 +573,7 @@ export const CreatePurchaseOrderDialog = ({
                         <Checkbox
                           checked={line.extra}
                           onCheckedChange={(checked) => updateLine(idx, { extra: checked as boolean })}
+                          className="border-destructive data-[state=checked]:bg-destructive data-[state=checked]:text-destructive-foreground data-[state=checked]:border-destructive"
                         />
                       </TableCell>
                       <TableCell className="p-1 text-center">
@@ -580,11 +581,11 @@ export const CreatePurchaseOrderDialog = ({
                           type="button"
                           variant="ghost"
                           size="sm"
-                          className="h-7 w-7 p-0"
+                          className="h-7 w-7 p-0 hover:bg-destructive/10"
                           onClick={() => removeLine(idx)}
                           disabled={lineItems.length <= 1}
                         >
-                          <Trash2 className="h-3.5 w-3.5 text-muted-foreground" />
+                          <Trash2 className="h-3.5 w-3.5 text-destructive" />
                         </Button>
                       </TableCell>
                     </TableRow>
