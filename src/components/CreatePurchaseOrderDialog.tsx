@@ -109,7 +109,15 @@ export const CreatePurchaseOrderDialog = ({
         name: bidContext.biddingCompany.companies.company_name,
       });
       setNotes("");
-      setUploadedFiles([]);
+      const proposals = bidContext.biddingCompany.proposals ?? [];
+      setUploadedFiles(
+        proposals.map((fileName) => ({
+          id: `bid-${fileName}`,
+          name: fileName,
+          size: 0,
+          url: `https://nlmnwlvmmkngrgatnzkj.supabase.co/storage/v1/object/public/project-files/proposals/${fileName}`,
+        }))
+      );
       setCustomMessage("");
       setLineItems(
         bidContext.initialLineItems && bidContext.initialLineItems.length > 0
