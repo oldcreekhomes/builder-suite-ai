@@ -147,52 +147,7 @@ export const CreatePurchaseOrderDialog = ({
     }
   }, [existingLines, editOrder]);
 
-  // Bid context: fetch cost code, PM name, recipients
-  useEffect(() => {
-    if (!open || !bidContext) return;
 
-    if (bidContext.costCodeId) {
-      supabase
-        .from('cost_codes')
-        .select('code, name')
-        .eq('id', bidContext.costCodeId)
-        .single()
-        .then(({ data }) => { if (data) setCostCodeData(data); });
-    }
-
-    if (projectId) {
-      supabase
-        .from('projects')
-        .select('construction_manager')
-        .eq('id', projectId)
-        .single()
-        .then(({ data: project }) => {
-          if (project?.construction_manager) {
-            supabase
-              .from('users')
-              .select('first_name, last_name')
-              .eq('id', project.construction_manager)
-              .single()
-              .then(({ data: user }) => {
-                if (user) setManagerName(`${user.first_name || ''} ${user.last_name || ''}`.trim());
-              });
-          }
-        });
-    }
-
-    if (bidContext.biddingCompany.company_id) {
-      supabase
-        .from('company_representatives')
-        .select('first_name, last_name, email, receive_po_notifications')
-        .eq('company_id', bidContext.biddingCompany.company_id)
-        .then(({ data }) => {
-          const filtered = (data || []).filter((r: any) => r.receive_po_notifications && r.email);
-          setRecipients(filtered as any);
-        });
-    } else {
-      setRecipients([]);
-    }
-  }, [open, bidContext, projectId]);
 
   const updateLine = (index: number, updates: Partial<LineItemInput>) => {
     setLineItems(prev => {
