@@ -146,7 +146,7 @@ export const CreatePurchaseOrderDialog = ({
       setLineItems(existingLines.map(l => ({
         cost_code_id: l.cost_code_id,
         cost_code_display: l.cost_codes ? `${l.cost_codes.code} - ${l.cost_codes.name}` : "",
-        description: l.description || "",
+        description: titleCase(l.description || ''),
         quantity: l.quantity,
         unit_cost: l.unit_cost,
         amount: l.amount,
