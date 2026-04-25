@@ -83,12 +83,6 @@ export const CreatePurchaseOrderDialog = ({
   const [customMessage, setCustomMessage] = useState("");
   const [lineItems, setLineItems] = useState<LineItemInput[]>([emptyLine()]);
 
-  // Bid context extras
-  const [costCodeData, setCostCodeData] = useState<{ code: string; name: string } | null>(null);
-  const [recipients, setRecipients] = useState<Array<{ first_name: string | null; last_name: string | null; email: string }>>([]);
-  const [managerName, setManagerName] = useState<string>('');
-  const [fileToDelete, setFileToDelete] = useState<string | null>(null);
-
   const isBidFlow = !!bidContext;
   const bidMode = bidContext?.mode ?? 'send';
   const isExtracting = !!bidContext?.isExtracting;
@@ -96,8 +90,6 @@ export const CreatePurchaseOrderDialog = ({
   const { lines: existingLines } = usePurchaseOrderLines(editOrder?.id);
   const { createPOSendEmailAndUpdateStatus, resendPOEmail, isLoading: isBidPOLoading } = usePOMutations(projectId);
   const { profile } = useUserProfile();
-  const { openFile } = useUniversalFilePreviewContext();
-  const { deleteIndividualProposal } = useBiddingCompanyMutations(projectId);
 
   // Pre-populate form when editing or bid context
   useEffect(() => {
