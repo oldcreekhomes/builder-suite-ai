@@ -275,11 +275,11 @@ export function ConfirmPODialog({
                     <TableRow>
                       <TableHead className="w-[200px]">Cost Code</TableHead>
                       <TableHead>Description</TableHead>
-                      <TableHead className="w-[80px] text-right">Qty</TableHead>
-                      <TableHead className="w-[110px] text-right">Unit Cost</TableHead>
-                      <TableHead className="w-[70px] text-center">Proposal</TableHead>
-                      <TableHead className="w-[110px] text-right">Amount</TableHead>
-                      <TableHead className="w-[60px] text-center">Extra</TableHead>
+                      <TableHead className="w-[60px]">Qty</TableHead>
+                      <TableHead className="w-[110px]">Unit Cost</TableHead>
+                      <TableHead className="w-[70px]">Proposal</TableHead>
+                      <TableHead className="w-[110px]">Amount</TableHead>
+                      <TableHead className="w-[60px]">Extra</TableHead>
                       <TableHead className="w-[50px]"></TableHead>
                     </TableRow>
                   </TableHeader>
@@ -315,7 +315,7 @@ export function ConfirmPODialog({
                             type="number"
                             value={line.quantity || ''}
                             onChange={(e) => updateLine(idx, { quantity: parseFloat(e.target.value) || 0 })}
-                            className="h-8 text-sm text-right px-1"
+                            className="h-8 text-sm px-1 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
                             min={0}
                           />
                         </TableCell>
@@ -325,11 +325,11 @@ export function ConfirmPODialog({
                             step="0.01"
                             value={line.unit_cost || ''}
                             onChange={(e) => updateLine(idx, { unit_cost: parseFloat(e.target.value) || 0 })}
-                            className="h-8 text-sm text-right"
+                            className="h-8 text-sm [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
                             min={0}
                           />
                         </TableCell>
-                        <TableCell className="p-1 text-center">
+                        <TableCell className="p-1">
                           {idx === 0 && firstProposal ? (
                             <div className="relative inline-flex">
                               <Tooltip>
@@ -363,10 +363,10 @@ export function ConfirmPODialog({
                             </div>
                           ) : null}
                         </TableCell>
-                        <TableCell className="p-1 text-right text-sm font-medium pr-3">
+                        <TableCell className="p-1 text-sm font-medium">
                           ${line.amount.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                         </TableCell>
-                        <TableCell className="p-1 text-center">
+                        <TableCell className="p-1">
                           <Checkbox
                             checked={line.extra}
                             onCheckedChange={(checked) => updateLine(idx, { extra: checked as boolean })}
