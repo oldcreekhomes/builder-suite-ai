@@ -624,7 +624,7 @@ export const CreatePurchaseOrderDialog = ({
                 placeholder="Add a custom message to include in the email..."
                 value={customMessage}
                 onChange={(e) => setCustomMessage(e.target.value)}
-                className="resize-none h-[96px] min-h-[96px]"
+                className="resize-none h-[80px] min-h-[80px]"
               />
             </div>
             <div className="space-y-1.5">
