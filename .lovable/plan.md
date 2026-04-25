@@ -1,24 +1,40 @@
-## Simplify "Sending To" Display in Confirm PO Dialog
+## Goal
+Reduce vertical space and tighten the layout of the Confirm PO dialog by consolidating the top metadata (Company, Bid Package Cost Code, Custom Message) onto a single row, and moving the recipient ("Sending To") info up next to Company so it's instantly visible.
 
-The "Sending To" section currently sits beside the Custom Message field (correct), but is wrapped in a bordered, gray-background box and lays the name and email on the same line with an em-dash separator. The user wants a clean, minimal presentation.
+## Proposed Layout
 
-### Changes — `src/components/bidding/ConfirmPODialog.tsx` (lines 441–464)
+### New top row (replaces current two-column header + lower message/sending row)
+A single 4-column grid above the Line Items table:
 
-**Remove all chrome around the recipient:**
-- Drop `border rounded-md px-3 py-2 bg-muted/30` and the `min-h-[60px]` from the wrapper.
-- Keep the `Label` ("Sending To") with the same styling as "Custom Message (Optional)" so the two headings align.
+| Col 1 | Col 2 | Col 3 | Col 4 |
+|---|---|---|---|
+| **Company** + name<br/>**Sending To** name + email (stacked below) | **Bid Package Cost Code** + value | **Custom Message (Optional)** Textarea (rows=2) | (empty / spacer) |
 
-**Stack name above email:**
-- Render the representative's first + last name on the first line (`font-medium text-sm`).
-- Render the email directly beneath it on a second line (`text-xs text-muted-foreground`).
-- Remove the em-dash and the `<ul>`/`<li>` structure — use simple stacked `<div>`s.
+This removes the lower `flex gap-3` row entirely. The Custom Message textarea moves UP into the header row, and the Sending To info stacks under Company so the user immediately sees "this PO is for X going to Y at email Z".
 
-**Empty state:**
-- Keep a small italic muted message ("No representatives with PO notifications enabled") with no box.
+### Add Line button
+Move the **+ Add Line** button next to the **Line Items** label (right-aligned in that label row), instead of being floated awkwardly at the bottom of the message row. This is a natural location and removes the strange `mt-6` floating button.
 
-**Layout preserved:**
-- Custom Message remains `w-1/2`, Sending To remains `flex-1`, Add Line button stays on the right.
-- Both columns stay aligned at the top via `items-start` (switch from `items-end` so the stacked recipient doesn't bottom-align awkwardly with the textarea).
+### Resend mode
+The "Amount" block currently shown only in resend mode also moves into the consolidated row (replacing the Custom Message column position when there are no line items), keeping a single header pattern across both modes.
 
-### Result
-Clean, label-only "Sending To" heading with the recipient's name on one line and email on the next — no border, no background, matching the visual weight of the Custom Message label.
+## Files to modify
+- `src/components/bidding/ConfirmPODialog.tsx`
+
+## Specific changes
+1. Replace the existing `grid grid-cols-2 gap-4` header (lines 270-281) with a `grid grid-cols-12 gap-4` row containing:
+   - Company + Sending To stacked (col-span-3)
+   - Bid Package Cost Code (col-span-3)
+   - Custom Message textarea (col-span-6)
+2. Move the **+ Add Line** button into the `<Label>Line Items</Label>` row using `flex items-center justify-between`.
+3. Delete the entire bottom `flex gap-3 items-start` block (lines 427-470).
+4. Keep recipient empty-state styling (italic muted text) unchanged.
+5. Keep the table itself untouched — column widths and alignment from prior iterations remain.
+
+## Visual outcome
+- Saves roughly one full row of vertical space (~80px).
+- All identifying info (company, cost code, recipient) visible in one glance at the top.
+- Custom Message sits inline with metadata rather than below the table.
+- Add Line lives with the table it controls.
+
+No data, queries, or business logic change — purely a layout consolidation.
