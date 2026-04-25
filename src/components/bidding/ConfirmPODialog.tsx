@@ -286,13 +286,13 @@ export function ConfirmPODialog({
                     No representatives with PO notifications enabled
                   </p>
                 ) : (
-                  <div className="space-y-2">
+                  <div className="space-y-0.5">
                     {recipients.map((r, i) => {
                       const name = `${r.first_name || ''} ${r.last_name || ''}`.trim() || '(No name)';
                       return (
-                        <div key={i} className="truncate">
-                          <div className="font-medium text-sm">{name}</div>
-                          <div className="text-xs text-muted-foreground">{r.email}</div>
+                        <div key={i} className="truncate text-sm">
+                          <span className="font-semibold">{name}</span>
+                          <span className="text-muted-foreground"> · {r.email}</span>
                         </div>
                       );
                     })}
@@ -453,20 +453,14 @@ export function ConfirmPODialog({
 
         </div>
 
-        <div className="flex items-end gap-4 mt-6">
-          <div className="flex-1 min-w-0">
-            <Label htmlFor="custom-message" className="text-sm font-medium text-muted-foreground">
-              Custom Message (Optional)
-            </Label>
-            <Textarea
-              id="custom-message"
-              placeholder="Add a custom message to include in the email..."
-              className="w-full mt-1 resize-none focus-visible:ring-offset-0 focus-visible:ring-2 focus-visible:ring-black focus-visible:border-black"
-              rows={2}
-              value={customMessage}
-              onChange={(e) => setCustomMessage(e.target.value)}
-            />
-          </div>
+        <div className="flex items-center gap-3 mt-6">
+          <Input
+            id="custom-message"
+            placeholder="Add a custom message to include in the email..."
+            className="flex-1 h-10 focus-visible:ring-offset-0 focus-visible:ring-2 focus-visible:ring-black focus-visible:border-black"
+            value={customMessage}
+            onChange={(e) => setCustomMessage(e.target.value)}
+          />
           <div className="flex gap-2 shrink-0">
             <Button
               variant="outline"
