@@ -120,6 +120,10 @@ Deno.serve(async (req) => {
       .map((c) => `- ${c.name}`)
       .join("\n");
 
+    const userText = lockedCostCode
+      ? `All extracted line items belong to ONE cost code: "${lockedCostCode.code} - ${lockedCostCode.name}". This vendor was bid for that single scope only — do NOT split across multiple cost codes. Set cost_code_hint to "${lockedCostCode.name}" on every line. Extract one line per discrete priced task and per hourly/as-required item from the attached proposal PDF.`
+      : `Available cost codes (pick closest by name):\n${costCodeList}\n\nExtract every priced task and hourly/as-required line from the attached proposal PDF.`;
+
     const aiResp = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",
       headers: {
@@ -135,7 +139,7 @@ Deno.serve(async (req) => {
             content: [
               {
                 type: "text",
-                text: `Available cost codes (pick closest by name):\n${costCodeList}\n\nExtract every priced task and hourly/as-required line from the attached proposal PDF.`,
+                text: userText,
               },
               {
                 type: "file",
