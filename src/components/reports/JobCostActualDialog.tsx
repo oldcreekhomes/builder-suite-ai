@@ -425,7 +425,7 @@ const formatCurrency = (value: number) => {
                     <TableHead className="w-[7%]">Type</TableHead>
                     <TableHead className="w-[9%]">Date</TableHead>
                     <TableHead className="w-[12%]">Name</TableHead>
-                    <TableHead className="w-[34%]">
+                    <TableHead className="w-[44%]">
                       <button 
                         className="flex items-center gap-1 hover:text-foreground text-muted-foreground transition-colors"
                         onClick={() => setDescriptionSort(prev => 
@@ -436,7 +436,7 @@ const formatCurrency = (value: number) => {
                         <ArrowUpDown className="h-3 w-3" />
                       </button>
                     </TableHead>
-                    <TableHead className="w-[8%]">Files</TableHead>
+                    <TableHead className="w-[6%] text-center">Files</TableHead>
                     <TableHead className="w-[10%] text-right">Amount</TableHead>
                     <TableHead className="w-[10%] text-right">Balance</TableHead>
                     <TableHead className="w-[5%] text-center">Cleared</TableHead>
