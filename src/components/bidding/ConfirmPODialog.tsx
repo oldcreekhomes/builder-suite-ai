@@ -286,13 +286,13 @@ export function ConfirmPODialog({
                     No representatives with PO notifications enabled
                   </p>
                 ) : (
-                  <div className="space-y-2">
+                  <div className="space-y-0.5">
                     {recipients.map((r, i) => {
                       const name = `${r.first_name || ''} ${r.last_name || ''}`.trim() || '(No name)';
                       return (
-                        <div key={i} className="truncate">
-                          <div className="font-medium text-sm">{name}</div>
-                          <div className="text-xs text-muted-foreground">{r.email}</div>
+                        <div key={i} className="truncate text-sm">
+                          <span className="font-semibold">{name}</span>
+                          <span className="text-muted-foreground"> · {r.email}</span>
                         </div>
                       );
                     })}
