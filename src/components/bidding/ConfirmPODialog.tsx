@@ -411,7 +411,7 @@ export function ConfirmPODialog({
           </Button>
           <Button
             onClick={handleConfirm}
-            disabled={isLoading}
+            disabled={isLoading || isExtracting}
             className="bg-green-600 hover:bg-green-700 text-white"
           >
             {isLoading ? 'Sending...' : mode === 'resend' ? 'Resend PO' : 'Send PO'}
