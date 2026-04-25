@@ -108,6 +108,7 @@ export function BiddingTableRow({
   const [showConfirmPODialog, setShowConfirmPODialog] = useState(false);
   const [selectedBiddingCompany, setSelectedBiddingCompany] = useState<BiddingCompany | null>(null);
   const [extractedLines, setExtractedLines] = useState<LineItemInput[] | null>(null);
+  const [isExtractingPO, setIsExtractingPO] = useState(false);
   const { extract } = usePreExtractPOLines();
   const costCode = item.cost_codes as CostCode;
 
@@ -123,9 +124,17 @@ export function BiddingTableRow({
   const handleSelectCompanyForPO = async (company: BiddingCompany) => {
     setSelectedBiddingCompany(company);
     setShowSelectCompanyForPO(false);
-    const lines = await extract(company.proposals, item.cost_code_id);
-    setExtractedLines(lines);
     setShowConfirmPODialog(true);
+    setIsExtractingPO(true);
+    try {
+      const [lines] = await Promise.all([
+        extract(company.proposals, item.cost_code_id),
+        new Promise((r) => setTimeout(r, 3000)),
+      ]);
+      setExtractedLines(lines);
+    } finally {
+      setIsExtractingPO(false);
+    }
   };
 
   const handlePOConfirmed = () => {
@@ -248,6 +257,7 @@ export function BiddingTableRow({
         projectId={item.project_id}
         costCodeId={item.cost_code_id}
         initialLineItems={extractedLines || undefined}
+        isExtracting={isExtractingPO}
       />
     </>
   );
