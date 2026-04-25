@@ -464,50 +464,6 @@ export function ConfirmPODialog({
             </div>
           )}
 
-          <div className="flex gap-3 items-start">
-            <div className="w-1/2">
-              <Label htmlFor="custom-message" className="text-sm font-medium text-muted-foreground">
-                Custom Message (Optional)
-              </Label>
-              <Textarea
-                id="custom-message"
-                placeholder="Add a custom message to include in the email..."
-                className="w-full mt-1 resize-none focus-visible:ring-offset-0 focus-visible:ring-2 focus-visible:ring-black focus-visible:border-black"
-                rows={2}
-                value={customMessage}
-                onChange={(e) => setCustomMessage(e.target.value)}
-              />
-            </div>
-            <div className="flex-1 min-w-0">
-              <Label className="text-sm font-medium text-muted-foreground">
-                Sending To
-              </Label>
-              <div className="mt-1 text-sm">
-                {recipients.length === 0 ? (
-                  <p className="text-muted-foreground italic text-xs">
-                    No representatives with PO notifications enabled
-                  </p>
-                ) : (
-                  <div className="space-y-2">
-                    {recipients.map((r, i) => {
-                      const name = `${r.first_name || ''} ${r.last_name || ''}`.trim() || '(No name)';
-                      return (
-                        <div key={i} className="truncate">
-                          <div className="font-medium text-sm">{name}</div>
-                          <div className="text-xs text-muted-foreground">{r.email}</div>
-                        </div>
-                      );
-                    })}
-                  </div>
-                )}
-              </div>
-            </div>
-            {mode === 'send' && (
-              <Button type="button" variant="outline" size="sm" onClick={addLine} className="gap-1 shrink-0 mt-6">
-                <Plus className="h-3.5 w-3.5" /> Add Line
-              </Button>
-            )}
-          </div>
         </div>
 
         <div className="flex justify-end gap-2 mt-6">
