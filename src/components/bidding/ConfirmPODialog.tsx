@@ -128,7 +128,20 @@ export function ConfirmPODialog({
               });
           }
         });
+
+    if (biddingCompany?.company_id) {
+      supabase
+        .from('company_representatives')
+        .select('first_name, last_name, email, receive_po_notifications')
+        .eq('company_id', biddingCompany.company_id)
+        .then(({ data }) => {
+          const filtered = (data || []).filter((r: any) => r.receive_po_notifications && r.email);
+          setRecipients(filtered as any);
+        });
+    } else {
+      setRecipients([]);
     }
+  }
   }, [isOpen, costCodeId, projectId]);
 
   // Reset on close
