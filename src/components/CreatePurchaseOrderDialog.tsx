@@ -15,11 +15,8 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { usePurchaseOrderLines, type LineItemInput } from "@/hooks/usePurchaseOrderLines";
 import { usePOMutations } from "@/hooks/usePOMutations";
 import { useUserProfile } from "@/hooks/useUserProfile";
-import { useUniversalFilePreviewContext } from "@/components/files/UniversalFilePreviewProvider";
-import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
-import { DeleteConfirmationDialog } from "@/components/ui/delete-confirmation-dialog";
-import { useBiddingCompanyMutations } from "@/hooks/useBiddingCompanyMutations";
-import { getFileIcon, getFileIconColor, getCleanFileName } from "./bidding/utils/fileIconUtils";
+
+
 
 interface BiddingCompanyShape {
   id: string;
