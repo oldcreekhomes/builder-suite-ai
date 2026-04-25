@@ -81,6 +81,7 @@ export function ConfirmPODialog({
   const [costCodeData, setCostCodeData] = useState<{ code: string; name: string } | null>(null);
   const [fileToDelete, setFileToDelete] = useState<string | null>(null);
   const [managerName, setManagerName] = useState<string>('');
+  const [recipients, setRecipients] = useState<Array<{ first_name: string | null; last_name: string | null; email: string }>>([]);
   const [lineItems, setLineItems] = useState<LineItemInput[]>(
     initialLineItems && initialLineItems.length > 0 ? initialLineItems : [emptyLine()]
   );
@@ -128,7 +129,20 @@ export function ConfirmPODialog({
           }
         });
     }
-  }, [isOpen, costCodeId, projectId]);
+
+    if (biddingCompany?.company_id) {
+      supabase
+        .from('company_representatives')
+        .select('first_name, last_name, email, receive_po_notifications')
+        .eq('company_id', biddingCompany.company_id)
+        .then(({ data }) => {
+          const filtered = (data || []).filter((r: any) => r.receive_po_notifications && r.email);
+          setRecipients(filtered as any);
+        });
+    } else {
+      setRecipients([]);
+    }
+  }, [isOpen, costCodeId, projectId, biddingCompany?.company_id]);
 
   // Reset on close
   useEffect(() => {
@@ -411,7 +425,7 @@ export function ConfirmPODialog({
           )}
 
           <div className="flex gap-3 items-end">
-            <div className="flex-1">
+            <div className="w-1/2">
               <Label htmlFor="custom-message" className="text-sm font-medium text-muted-foreground">
                 Custom Message (Optional)
               </Label>
@@ -423,6 +437,30 @@ export function ConfirmPODialog({
                 value={customMessage}
                 onChange={(e) => setCustomMessage(e.target.value)}
               />
+            </div>
+            <div className="flex-1 min-w-0">
+              <Label className="text-sm font-medium text-muted-foreground">
+                Sending To
+              </Label>
+              <div className="mt-1 border rounded-md px-3 py-2 bg-muted/30 min-h-[60px] text-sm">
+                {recipients.length === 0 ? (
+                  <p className="text-muted-foreground italic text-xs">
+                    No representatives with PO notifications enabled
+                  </p>
+                ) : (
+                  <ul className="space-y-0.5">
+                    {recipients.map((r, i) => {
+                      const name = `${r.first_name || ''} ${r.last_name || ''}`.trim() || '(No name)';
+                      return (
+                        <li key={i} className="truncate">
+                          <span className="font-medium">{name}</span>
+                          <span className="text-muted-foreground"> — {r.email}</span>
+                        </li>
+                      );
+                    })}
+                  </ul>
+                )}
+              </div>
             </div>
             {mode === 'send' && (
               <Button type="button" variant="outline" size="sm" onClick={addLine} className="gap-1 shrink-0">
