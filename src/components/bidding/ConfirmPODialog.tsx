@@ -277,10 +277,10 @@ export function ConfirmPODialog({
                       <TableHead>Description</TableHead>
                       <TableHead className="w-[60px]">Qty</TableHead>
                       <TableHead className="w-[110px]">Unit Cost</TableHead>
-                      <TableHead className="w-[70px]">Proposal</TableHead>
                       <TableHead className="w-[110px]">Amount</TableHead>
+                      <TableHead className="w-[70px]">Proposal</TableHead>
                       <TableHead className="w-[60px] text-center">Extra</TableHead>
-                      <TableHead className="w-[50px]">Actions</TableHead>
+                      <TableHead className="w-[50px] text-center">Actions</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
@@ -329,6 +329,9 @@ export function ConfirmPODialog({
                             min={0}
                           />
                         </TableCell>
+                        <TableCell className="p-1 text-sm font-medium">
+                          ${line.amount.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                        </TableCell>
                         <TableCell className="p-1 text-center">
                           {idx === 0 && firstProposal ? (
                             <div className="relative inline-flex">
@@ -363,16 +366,13 @@ export function ConfirmPODialog({
                             </div>
                           ) : null}
                         </TableCell>
-                        <TableCell className="p-1 text-sm font-medium">
-                          ${line.amount.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                        </TableCell>
                         <TableCell className="p-1 text-center">
                           <Checkbox
                             checked={line.extra}
                             onCheckedChange={(checked) => updateLine(idx, { extra: checked as boolean })}
                           />
                         </TableCell>
-                        <TableCell className="p-1">
+                        <TableCell className="p-1 text-center">
                           <Button
                             type="button"
                             variant="ghost"
