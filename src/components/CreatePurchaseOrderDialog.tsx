@@ -573,7 +573,6 @@ export const CreatePurchaseOrderDialog = ({
                         <Checkbox
                           checked={line.extra}
                           onCheckedChange={(checked) => updateLine(idx, { extra: checked as boolean })}
-                          className="border-destructive data-[state=checked]:bg-destructive data-[state=checked]:text-destructive-foreground data-[state=checked]:border-destructive"
                         />
                       </TableCell>
                       <TableCell className="p-1 text-center">
