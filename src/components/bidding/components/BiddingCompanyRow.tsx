@@ -193,12 +193,19 @@ export function BiddingCompanyRow({
         />
       </TableCell>
       <TableCell className="text-center">
-        <TableRowActions actions={actions} disabled={isReadOnly && !awardedPO} />
+        {isExtracting ? (
+          <span className="inline-flex items-center gap-1 text-xs text-muted-foreground whitespace-nowrap">
+            <Sparkles className="h-3.5 w-3.5 animate-pulse" />
+            Creating PO with AI…
+          </span>
+        ) : (
+          <TableRowActions actions={actions} disabled={isReadOnly && !awardedPO} />
+        )}
       </TableCell>
 
       <ConfirmPODialog
         isOpen={showConfirmPODialog}
-        onClose={() => setShowConfirmPODialog(false)}
+        onClose={() => { setShowConfirmPODialog(false); setExtractedLines(null); }}
         biddingCompany={biddingCompany}
         onConfirm={handleSendPO}
         bidPackageId={bidPackageId}
@@ -206,6 +213,7 @@ export function BiddingCompanyRow({
         projectId={projectId}
         costCodeId={costCodeId}
         mode={isReadOnly ? 'resend' : 'send'}
+        initialLineItems={extractedLines || undefined}
       />
     </TableRow>
   );
