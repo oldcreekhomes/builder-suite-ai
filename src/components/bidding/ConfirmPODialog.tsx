@@ -277,7 +277,7 @@ export function ConfirmPODialog({
                       <TableHead>Description</TableHead>
                       <TableHead className="w-[60px]">Qty</TableHead>
                       <TableHead className="w-[90px]">Unit Cost</TableHead>
-                      <TableHead className="w-[90px]">Amount</TableHead>
+                      <TableHead className="w-[90px] text-right pr-3">Amount</TableHead>
                       <TableHead className="w-[44px] text-center">Proposal</TableHead>
                       <TableHead className="w-[44px] text-center">Extra</TableHead>
                       <TableHead className="w-[50px] text-center">Actions</TableHead>
@@ -329,7 +329,7 @@ export function ConfirmPODialog({
                             min={0}
                           />
                         </TableCell>
-                        <TableCell className="p-1 text-sm font-medium">
+                        <TableCell className="p-1 pr-3 text-sm font-medium text-right">
                           ${line.amount.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                         </TableCell>
                         <TableCell className="p-1 text-center">
