@@ -240,13 +240,14 @@ export function BiddingTableRow({
 
       <ConfirmPODialog
         isOpen={showConfirmPODialog}
-        onClose={() => setShowConfirmPODialog(false)}
+        onClose={() => { setShowConfirmPODialog(false); setExtractedLines(null); }}
         biddingCompany={selectedBiddingCompany}
         onConfirm={handlePOConfirmed}
         bidPackageId={item.id}
         projectAddress={projectAddress || ''}
         projectId={item.project_id}
         costCodeId={item.cost_code_id}
+        initialLineItems={extractedLines || undefined}
       />
     </>
   );
