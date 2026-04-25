@@ -212,7 +212,7 @@ export function ConfirmPODialog({
       <Dialog open={isOpen} onOpenChange={onClose}>
         <DialogContent className="max-w-md">
           <DialogHeader className="sr-only">
-            <DialogTitle>Creating PO with AI</DialogTitle>
+            <DialogTitle>Creating PO from machine learning</DialogTitle>
           </DialogHeader>
           <style>{`
             @keyframes po-ai-float {
