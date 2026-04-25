@@ -268,31 +268,9 @@ export function ConfirmPODialog({
 
         <div className="space-y-4">
           <div className="grid grid-cols-12 gap-4 items-start">
-            <div className="col-span-3">
+            <div className="col-span-2">
               <Label className="text-sm font-medium text-muted-foreground">Company</Label>
               <p className="text-sm font-semibold mt-1">{biddingCompany.companies.company_name}</p>
-              <div className="mt-3">
-                <Label className="text-sm font-medium text-muted-foreground">Sending To</Label>
-                <div className="mt-1 text-sm">
-                  {recipients.length === 0 ? (
-                    <p className="text-muted-foreground italic text-xs">
-                      No representatives with PO notifications enabled
-                    </p>
-                  ) : (
-                    <div className="space-y-2">
-                      {recipients.map((r, i) => {
-                        const name = `${r.first_name || ''} ${r.last_name || ''}`.trim() || '(No name)';
-                        return (
-                          <div key={i} className="truncate">
-                            <div className="font-medium text-sm">{name}</div>
-                            <div className="text-xs text-muted-foreground">{r.email}</div>
-                          </div>
-                        );
-                      })}
-                    </div>
-                  )}
-                </div>
-              </div>
             </div>
             <div className="col-span-3">
               <Label className="text-sm font-medium text-muted-foreground">Bid Package Cost Code</Label>
@@ -300,7 +278,29 @@ export function ConfirmPODialog({
                 {costCodeData ? `${costCodeData.code}: ${costCodeData.name}` : 'Loading...'}
               </p>
             </div>
-            <div className="col-span-6">
+            <div className="col-span-3">
+              <Label className="text-sm font-medium text-muted-foreground">Sending To</Label>
+              <div className="mt-1 text-sm">
+                {recipients.length === 0 ? (
+                  <p className="text-muted-foreground italic text-xs">
+                    No representatives with PO notifications enabled
+                  </p>
+                ) : (
+                  <div className="space-y-2">
+                    {recipients.map((r, i) => {
+                      const name = `${r.first_name || ''} ${r.last_name || ''}`.trim() || '(No name)';
+                      return (
+                        <div key={i} className="truncate">
+                          <div className="font-medium text-sm">{name}</div>
+                          <div className="text-xs text-muted-foreground">{r.email}</div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+            </div>
+            <div className="col-span-4">
               <Label htmlFor="custom-message" className="text-sm font-medium text-muted-foreground">
                 Custom Message (Optional)
               </Label>

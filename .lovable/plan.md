@@ -1,40 +1,34 @@
 ## Goal
-Reduce vertical space and tighten the layout of the Confirm PO dialog by consolidating the top metadata (Company, Bid Package Cost Code, Custom Message) onto a single row, and moving the recipient ("Sending To") info up next to Company so it's instantly visible.
+Put **Company**, **Bid Package Cost Code**, and **Sending To** all on the same top row, and shrink the **Custom Message** column so it no longer dominates the dialog width.
 
-## Proposed Layout
+## Current layout (ConfirmPODialog.tsx, lines 270–316)
+A single 12-col grid:
+- col-span-3: Company **with Sending To stacked underneath**
+- col-span-3: Bid Package Cost Code
+- col-span-6: Custom Message (Optional) — too wide
 
-### New top row (replaces current two-column header + lower message/sending row)
-A single 4-column grid above the Line Items table:
+## Proposed new layout
+Same 12-col grid, four columns instead of three:
 
-| Col 1 | Col 2 | Col 3 | Col 4 |
-|---|---|---|---|
-| **Company** + name<br/>**Sending To** name + email (stacked below) | **Bid Package Cost Code** + value | **Custom Message (Optional)** Textarea (rows=2) | (empty / spacer) |
+| Cols | Content |
+|------|---------|
+| col-span-2 | **Company** + name |
+| col-span-3 | **Bid Package Cost Code** + value |
+| col-span-3 | **Sending To** — name + email (unboxed, stacked, same styling as today) |
+| col-span-4 | **Custom Message (Optional)** Textarea (rows=2) |
 
-This removes the lower `flex gap-3` row entirely. The Custom Message textarea moves UP into the header row, and the Sending To info stacks under Company so the user immediately sees "this PO is for X going to Y at email Z".
+This:
+1. Promotes "Sending To" out from beneath Company into its own top-row column.
+2. Reduces Custom Message from col-span-6 → col-span-4 (~33% narrower) so it stops looking oversized.
+3. Keeps the existing empty-state ("No representatives with PO notifications enabled") and recipient styling intact — just relocated.
 
-### Add Line button
-Move the **+ Add Line** button next to the **Line Items** label (right-aligned in that label row), instead of being floated awkwardly at the bottom of the message row. This is a natural location and removes the strange `mt-6` floating button.
+## Specific changes (`src/components/bidding/ConfirmPODialog.tsx`)
+1. Change Company wrapper from `col-span-3` → `col-span-2` and **remove** the inner `<div className="mt-3">…Sending To…</div>` block (lines 274–295).
+2. Keep Bid Package Cost Code as `col-span-3`.
+3. Insert a **new** `col-span-3` block immediately after Cost Code containing the relocated "Sending To" label + recipients list (same markup that was nested under Company).
+4. Change Custom Message wrapper from `col-span-6` → `col-span-4`.
 
-### Resend mode
-The "Amount" block currently shown only in resend mode also moves into the consolidated row (replacing the Custom Message column position when there are no line items), keeping a single header pattern across both modes.
-
-## Files to modify
-- `src/components/bidding/ConfirmPODialog.tsx`
-
-## Specific changes
-1. Replace the existing `grid grid-cols-2 gap-4` header (lines 270-281) with a `grid grid-cols-12 gap-4` row containing:
-   - Company + Sending To stacked (col-span-3)
-   - Bid Package Cost Code (col-span-3)
-   - Custom Message textarea (col-span-6)
-2. Move the **+ Add Line** button into the `<Label>Line Items</Label>` row using `flex items-center justify-between`.
-3. Delete the entire bottom `flex gap-3 items-start` block (lines 427-470).
-4. Keep recipient empty-state styling (italic muted text) unchanged.
-5. Keep the table itself untouched — column widths and alignment from prior iterations remain.
+No logic, data, or query changes — purely a layout reshuffle in one file.
 
 ## Visual outcome
-- Saves roughly one full row of vertical space (~80px).
-- All identifying info (company, cost code, recipient) visible in one glance at the top.
-- Custom Message sits inline with metadata rather than below the table.
-- Add Line lives with the table it controls.
-
-No data, queries, or business logic change — purely a layout consolidation.
+Top row reads left-to-right: **Company | Cost Code | Sending To | Custom Message**, all aligned at the top, with Custom Message at a sensible ~⅓ width.
