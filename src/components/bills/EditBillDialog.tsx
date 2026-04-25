@@ -1190,30 +1190,33 @@ export function EditBillDialog({ open, onOpenChange, billId }: EditBillDialogPro
                       })}
                     </TableBody>
                   </Table>
-
-                  <div className="p-3 bg-muted border-t">
-                    <div className="flex items-center justify-between w-full">
-                      <div className="flex items-center gap-2 font-medium whitespace-nowrap">
-                        <span>
-                          {expenseSubtotal < 0 ? 'Bill Credit Total:' : 'Expense Total:'}
-                        </span>
-                        <span className={cn(expenseSubtotal < 0 && "text-green-600")}>
-                          ${expenseSubtotal.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                        </span>
-                      </div>
-                      <div className="flex items-center gap-2">
-                        <Button variant="outline" size="sm" onClick={() => onOpenChange(false)} disabled={updateBill.isPending || correctBill.isPending}>
-                          Cancel
-                        </Button>
-                        <Button size="sm" onClick={handleSave} disabled={updateBill.isPending || correctBill.isPending}>
-                          {updateBill.isPending || correctBill.isPending ? "Saving..." : "Save Changes"}
-                        </Button>
-                      </div>
-                    </div>
-                  </div>
                 </div>
               </TabsContent>
             </Tabs>
+
+            {/* Total */}
+            <div className="flex justify-end items-center gap-4 pt-4 border-t">
+              <span className="text-lg font-semibold">
+                {(jobCostSubtotal + expenseSubtotal) < 0 ? 'Bill Credit Total:' : 'Total:'}
+              </span>
+              <span className={cn(
+                "text-2xl font-bold",
+                (jobCostSubtotal + expenseSubtotal) < 0 && "text-green-600"
+              )}>
+                {new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', minimumFractionDigits: 2 })
+                  .format(jobCostSubtotal + expenseSubtotal)}
+              </span>
+            </div>
+
+            {/* Actions */}
+            <div className="flex justify-end gap-2">
+              <Button variant="outline" onClick={() => onOpenChange(false)} disabled={updateBill.isPending || correctBill.isPending}>
+                Cancel
+              </Button>
+              <Button onClick={handleSave} disabled={updateBill.isPending || correctBill.isPending}>
+                {updateBill.isPending || correctBill.isPending ? "Saving..." : "Save Changes"}
+              </Button>
+            </div>
           </div>
 
         </div>
