@@ -1095,39 +1095,10 @@ export function EditBillDialog({ open, onOpenChange, billId }: EditBillDialogPro
                       })}
                     </TableBody>
                   </Table>
-
-                  <div className="p-3 bg-muted border-t">
-                    <div className="flex items-center justify-between w-full">
-                      <div className="flex items-center gap-2 font-medium whitespace-nowrap">
-                        <span>
-                          {jobCostSubtotal < 0 ? 'Bill Credit Total:' : 'Job Cost Total:'}
-                        </span>
-                        <span className={cn(jobCostSubtotal < 0 && "text-green-600")}>
-                          ${jobCostSubtotal.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                        </span>
-                      </div>
-                      <div className="flex items-center gap-2">
-                        <Button variant="outline" size="sm" onClick={() => onOpenChange(false)} disabled={updateBill.isPending || correctBill.isPending}>
-                          Cancel
-                        </Button>
-                        <Button size="sm" onClick={handleSave} disabled={updateBill.isPending || correctBill.isPending}>
-                          {updateBill.isPending || correctBill.isPending ? "Saving..." : "Save Changes"}
-                        </Button>
-                      </div>
-                    </div>
-                  </div>
                 </div>
               </TabsContent>
-              
-              <TabsContent value="expense" className="space-y-4">
-                {!isApprovedBill && (
-                  <div className="flex items-center justify-between">
-                    <Button onClick={addExpenseRow} size="sm" variant="outline">
-                      <Plus className="h-4 w-4 mr-2" />
-                      Add Row
-                    </Button>
-                  </div>
-                )}
+
+              <TabsContent value="expense" className="space-y-4 mt-8">
 
                 <div className="border rounded-lg overflow-hidden overflow-x-auto">
                   <Table containerClassName="relative w-full">
