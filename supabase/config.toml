@@ -33,6 +33,9 @@ verify_jwt = true
 [functions.extract-bill-data]
 verify_jwt = false
 
+[functions.extract-po-lines]
+verify_jwt = true
+
 [functions.rematch-pending-bill]
 verify_jwt = false
 
