@@ -1,18 +1,42 @@
 ## Goal
-While the AI is extracting line items, the Confirm PO dialog should show **only** an animated Sparkles icon + "Creating PO with AI…" — nothing else. Bump the minimum wait from 3s to 5s.
+1. Change the spinner text from "Creating PO with AI" to "Creating PO with machine learning" (the animated `...` will continue to append automatically via the existing CSS keyframe).
+2. Verify / harden the 5-second minimum so the spinner is never shorter than 5 seconds, even when there are no proposals to extract from or when the AI returns instantly.
+
+## Why it currently feels "very fast"
+The dialog's `isExtracting` flag is controlled by the parent (`BiddingCompanyRow.tsx` / `BiddingTableRow.tsx`) using:
+
+```ts
+const [lines] = await Promise.all([
+  extract(biddingCompany.proposals, costCodeId),
+  new Promise((r) => setTimeout(r, 5000)),
+]);
+setExtractedLines(lines); // flips isExtracting -> false
+```
+
+So the spinner stays visible for **`max(actual AI time, 5000ms)`**. If `extract()` early-returns `null` instantly (e.g., no proposal files attached to the bidding company), the 5s floor *should* still hold — but if any code path skips the Promise.all wrapper, the dialog flashes by. We will audit both files and ensure the 5s timeout is always awaited.
 
 ## Changes
 
-### 1. `src/components/bidding/ConfirmPODialog.tsx`
-- When `mode === 'send' && isExtracting` is true, **early-return a stripped-down DialogContent** that renders ONLY:
-  - `DialogTitle` set to `"Confirm PO"` but visually hidden (`sr-only`) so the dialog stays accessible
-  - A centered block (`min-h-[300px]`) with the animated Sparkles icon and "Creating PO with AI…" text
-- Hide everything else: header row (Company / Bid Package Cost Code), line items table, custom message, Add Line button, Cancel/Send PO footer.
-- **Animation**: combine `animate-pulse` with `animate-spin` (slow, e.g. `[animation:spin_3s_linear_infinite]`) on the Sparkles icon, plus an animated ellipsis on the text using a small CSS keyframe (e.g. `.thinking-dots::after { content: '…'; animation: dots 1.4s steps(4, end) infinite; }` defined inline via Tailwind arbitrary or a tiny `<style>` block) — or simply use `animate-pulse` on the text. Recommend: Sparkles with a soft pulsing scale + slow rotation, text with pulsing opacity.
+### 1. `src/components/bidding/ConfirmPODialog.tsx` (~line 217)
+Change:
+```tsx
+<p className="po-ai-text text-sm font-medium text-muted-foreground">
+  Creating PO with AI
+</p>
+```
+to:
+```tsx
+<p className="po-ai-text text-sm font-medium text-muted-foreground">
+  Creating PO with machine learning
+</p>
+```
+The `.po-ai-text::after` keyframe appends an animated `...`, so the rendered output is **"Creating PO with machine learning..."** with cycling dots.
 
 ### 2. `src/components/bidding/components/BiddingCompanyRow.tsx` and `src/components/bidding/BiddingTableRow.tsx`
-- Change the minimum extraction-duration `setTimeout` from `3000` → `5000` ms in the `Promise.all` race in `handleOpenConfirmPO`.
+- Audit `handleOpenConfirmPO` in both files.
+- Ensure the `Promise.all([extract(...), new Promise(r => setTimeout(r, 5000))])` pattern wraps **every** extraction path, including when `biddingCompany.proposals` is empty/null.
+- Only call `setExtractedLines(...)` (which flips `isExtracting` to false in the dialog) **after** both promises resolve.
 
 ## Result
-- Clicking **Send PO** opens a clean, almost-empty dialog with just an animated Sparkles + "Creating PO with AI…" for at least 5 seconds.
-- Once extraction completes (and 5s has elapsed), the full Confirm PO UI (company info, line item table, custom message, buttons) appears.
+- Spinner reads **"Creating PO with machine learning..."** with the floating Sparkles icon and animated trailing dots.
+- Spinner is visible for a guaranteed **minimum of 5 seconds** in every scenario — proposals present, no proposals, AI error, instant return — then transitions to the populated Confirm PO dialog (or empty editable table if no proposals existed).
