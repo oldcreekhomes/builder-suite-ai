@@ -1,25 +1,24 @@
-## Confirm PO Dialog Polish
+## Reduce White Space Between Amount and Proposal
 
-File: `src/components/bidding/ConfirmPODialog.tsx`
+**File:** `src/components/bidding/ConfirmPODialog.tsx`
 
-### 1. Add "Actions" header
-The last `<TableHead className="w-[50px]"></TableHead>` (line 283) is empty above the trash can. Change to:
+### Root Cause
+The Description column has no fixed width (it already flexes), so the gap is not from Description being too small. The visual whitespace between "Amount" and "Proposal" is **inside** the Amount column itself — `w-[110px]` is wider than its left-aligned content (`$1,000.00`), so the unused space appears between the value and the next column's content.
+
+### Change
+Tighten the fixed-width numeric columns. Description will automatically absorb the freed width.
+
+Line 280:
 ```tsx
-<TableHead className="w-[50px]">Actions</TableHead>
+<TableHead className="w-[90px]">Amount</TableHead>
 ```
 
-### 2. Center the Proposal cell (PDF icon under "Proposal" header)
-Line 332 — change `<TableCell className="p-1">` to `<TableCell className="p-1 text-center">` for the Proposal column body cell so the file icon centers under its header.
-
-### 3. Center the Extra checkbox under the "Extra" header
-Line 369 — change `<TableCell className="p-1">` to `<TableCell className="p-1 text-center">` for the Extra column body cell.
-
-### 4. Red trash icon (matching app standard)
-Line 384 — change `text-muted-foreground` to `text-red-600` to match the red `X`/delete color used elsewhere (e.g., `ProjectBidsDialog.tsx` uses `text-red-600`).
+Also tighten Unit Cost slightly for visual balance (line 279):
 ```tsx
-<Trash2 className="h-3.5 w-3.5 text-red-600" />
+<TableHead className="w-[90px]">Unit Cost</TableHead>
 ```
 
-### Notes
-- Headers remain left-aligned per prior request; only the Proposal icon and Extra checkbox body cells are centered (so they sit under the visual midpoint of their narrow columns).
-- No other table behavior, widths, or logic changes.
+### Result
+- ~40px reclaimed and given to Description (the flex column).
+- Amount value sits closer to the Proposal icon — no more large empty gap.
+- No alignment, ordering, or behavior changes.
