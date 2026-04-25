@@ -347,7 +347,8 @@ export const usePOMutations = (projectId: string) => {
       biddingCompany,
       bidPackageId,
       bidId,
-      customMessage
+      customMessage,
+      lineItems
     }: { 
       companyId: string;
       costCodeId: string;
@@ -356,6 +357,7 @@ export const usePOMutations = (projectId: string) => {
       bidPackageId: string;
       bidId?: string;
       customMessage?: string;
+      lineItems?: LineItemInput[];
     }) => {
       // First create PO and send email with proper linking
       const result = await createPOAndSendEmail.mutateAsync({
@@ -365,7 +367,8 @@ export const usePOMutations = (projectId: string) => {
         biddingCompany,
         bidPackageId,
         bidId,
-        customMessage
+        customMessage,
+        lineItems
       });
 
       // Then update the bid package status to closed
