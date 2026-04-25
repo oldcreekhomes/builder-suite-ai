@@ -1,0 +1,1 @@
+UPDATE public.project_bid_packages SET status = 'sent', updated_at = now() WHERE id = 'b61bf504-5502-4c92-962b-84552ca8ed47';
