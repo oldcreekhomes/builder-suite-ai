@@ -17,7 +17,8 @@ export const usePOMutations = (projectId: string) => {
       bidPackageId,
       bidId,
       customMessage,
-      lineItems
+      lineItems,
+      files
     }: { 
       companyId: string;
       costCodeId: string;
