@@ -315,7 +315,7 @@ export function ConfirmPODialog({
                             type="number"
                             value={line.quantity || ''}
                             onChange={(e) => updateLine(idx, { quantity: parseFloat(e.target.value) || 0 })}
-                            className="h-8 text-sm text-right px-1"
+                            className="h-8 text-sm px-1 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
                             min={0}
                           />
                         </TableCell>
@@ -325,7 +325,7 @@ export function ConfirmPODialog({
                             step="0.01"
                             value={line.unit_cost || ''}
                             onChange={(e) => updateLine(idx, { unit_cost: parseFloat(e.target.value) || 0 })}
-                            className="h-8 text-sm text-right"
+                            className="h-8 text-sm [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
                             min={0}
                           />
                         </TableCell>
