@@ -81,6 +81,7 @@ export function ConfirmPODialog({
   const [costCodeData, setCostCodeData] = useState<{ code: string; name: string } | null>(null);
   const [fileToDelete, setFileToDelete] = useState<string | null>(null);
   const [managerName, setManagerName] = useState<string>('');
+  const [recipients, setRecipients] = useState<Array<{ first_name: string | null; last_name: string | null; email: string }>>([]);
   const [lineItems, setLineItems] = useState<LineItemInput[]>(
     initialLineItems && initialLineItems.length > 0 ? initialLineItems : [emptyLine()]
   );
