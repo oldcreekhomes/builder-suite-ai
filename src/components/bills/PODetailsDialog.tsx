@@ -496,7 +496,8 @@ export function PODetailsDialog({
                    </TableRow>
                 </TableBody>
               </Table>
-            </div>
+              </div>
+            </TooltipProvider>
           ) : (
             <p className="text-sm text-muted-foreground text-center py-6 border rounded-lg bg-muted/30">
               No line items found for this purchase order.
