@@ -139,7 +139,7 @@ export function PurchaseOrdersTableRowContent({
       </TableCell>
       
       <TableCell>
-        <div className={item.sent_at ? 'text-sm' : 'text-sm text-muted-foreground'}>
+        <div className={item.sent_at ? 'font-medium' : 'font-medium text-muted-foreground'}>
           {item.sent_at
             ? new Date(item.sent_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
             : 'Not sent'}
