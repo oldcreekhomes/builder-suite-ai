@@ -3821,6 +3821,7 @@ export type Database = {
           notes: string | null
           po_number: string | null
           project_id: string
+          sent_at: string | null
           status: string
           total_amount: number | null
           updated_at: string
@@ -3838,6 +3839,7 @@ export type Database = {
           notes?: string | null
           po_number?: string | null
           project_id: string
+          sent_at?: string | null
           status?: string
           total_amount?: number | null
           updated_at?: string
@@ -3855,6 +3857,7 @@ export type Database = {
           notes?: string | null
           po_number?: string | null
           project_id?: string
+          sent_at?: string | null
           status?: string
           total_amount?: number | null
           updated_at?: string

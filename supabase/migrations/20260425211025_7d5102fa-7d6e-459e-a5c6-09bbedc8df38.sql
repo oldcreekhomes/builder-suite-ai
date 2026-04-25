@@ -1,0 +1,2 @@
+ALTER TABLE public.project_purchase_orders
+ADD COLUMN IF NOT EXISTS sent_at TIMESTAMP WITH TIME ZONE;

@@ -68,6 +68,12 @@ export function SendPOEmailModal({
 
       if (error) throw error;
 
+      // Stamp sent_at on the PO
+      await supabase
+        .from('project_purchase_orders')
+        .update({ sent_at: new Date().toISOString() })
+        .eq('id', purchaseOrder.id);
+
       toast({
         title: "Success",
         description: "Purchase order email sent successfully",

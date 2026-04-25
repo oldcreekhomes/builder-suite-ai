@@ -10,6 +10,7 @@ export function PurchaseOrdersTableHeader() {
         <TableHead>Cost Code</TableHead>
         <TableHead>Company</TableHead>
         <TableHead>Amount</TableHead>
+        <TableHead>Sent On</TableHead>
         <TableHead>Files</TableHead>
         <TableHead className="text-center">Actions</TableHead>
       </TableRow>

@@ -154,6 +154,11 @@ export const usePOMutations = (projectId: string) => {
         throw emailError;
       }
 
+      await supabase
+        .from('project_purchase_orders')
+        .update({ sent_at: new Date().toISOString() })
+        .eq('id', purchaseOrder.id);
+
       return { purchaseOrder, emailData };
     },
     onSuccess: (data) => {
@@ -301,6 +306,11 @@ export const usePOMutations = (projectId: string) => {
           console.error('Error resending PO email:', emailError);
           throw emailError;
         }
+
+        await supabase
+          .from('project_purchase_orders')
+          .update({ sent_at: new Date().toISOString() })
+          .eq('id', existingPO.id);
 
         return { purchaseOrder: existingPO, emailData };
       } else {

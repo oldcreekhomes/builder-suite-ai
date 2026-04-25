@@ -17,6 +17,7 @@ export interface PurchaseOrder {
   created_at: string;
   created_by: string;
   updated_at: string;
+  sent_at?: string | null;
   extra: boolean;
   companies?: {
     id: string;
