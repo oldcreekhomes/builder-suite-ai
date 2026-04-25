@@ -304,6 +304,10 @@ export const CreatePurchaseOrderDialog = ({
       if (emailError) {
         toast({ title: "Warning", description: `PO ${isUpdate ? 'updated' : 'created'} but email failed to send`, variant: "destructive" });
       } else {
+        await supabase
+          .from('project_purchase_orders')
+          .update({ sent_at: new Date().toISOString() })
+          .eq('id', poData.id);
         toast({ title: "Success", description: `Purchase order ${isUpdate ? 'updated' : 'created'} and email sent to ${emailData.emailsSent} recipients` });
       }
     } catch (e) {
