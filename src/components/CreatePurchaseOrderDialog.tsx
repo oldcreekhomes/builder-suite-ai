@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { useQuery } from "@tanstack/react-query";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -15,6 +16,13 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { usePurchaseOrderLines, type LineItemInput } from "@/hooks/usePurchaseOrderLines";
 import { usePOMutations } from "@/hooks/usePOMutations";
 import { useUserProfile } from "@/hooks/useUserProfile";
+
+const titleCase = (str: string): string =>
+  str
+    .toLowerCase()
+    .split(/(\s+)/)
+    .map((part) => (/^\s+$/.test(part) ? part : part.charAt(0).toUpperCase() + part.slice(1)))
+    .join('');
 
 
 
@@ -105,7 +113,7 @@ export const CreatePurchaseOrderDialog = ({
       setCustomMessage("");
       setLineItems(
         bidContext.initialLineItems && bidContext.initialLineItems.length > 0
-          ? bidContext.initialLineItems.map((l) => ({ ...l }))
+          ? bidContext.initialLineItems.map((l) => ({ ...l, description: titleCase(l.description || '') }))
           : [emptyLine()]
       );
     } else if (editOrder) {
@@ -128,7 +136,7 @@ export const CreatePurchaseOrderDialog = ({
   // Re-seed lines when AI extraction completes mid-open
   useEffect(() => {
     if (open && bidContext?.initialLineItems && bidContext.initialLineItems.length > 0) {
-      setLineItems(bidContext.initialLineItems.map((l) => ({ ...l })));
+      setLineItems(bidContext.initialLineItems.map((l) => ({ ...l, description: titleCase(l.description || '') })));
     }
   }, [open, bidContext?.initialLineItems]);
 
@@ -138,7 +146,7 @@ export const CreatePurchaseOrderDialog = ({
       setLineItems(existingLines.map(l => ({
         cost_code_id: l.cost_code_id,
         cost_code_display: l.cost_codes ? `${l.cost_codes.code} - ${l.cost_codes.name}` : "",
-        description: l.description || "",
+        description: titleCase(l.description || ''),
         quantity: l.quantity,
         unit_cost: l.unit_cost,
         amount: l.amount,
@@ -147,6 +155,23 @@ export const CreatePurchaseOrderDialog = ({
     }
   }, [existingLines, editOrder]);
 
+  // Recipients for the "Sending To" column
+  const recipientCompanyId = isBidFlow
+    ? bidContext!.biddingCompany.company_id
+    : selectedCompany?.id ?? null;
+
+  const { data: recipients = [] } = useQuery({
+    queryKey: ['po-recipients', recipientCompanyId],
+    enabled: open && !!recipientCompanyId,
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('company_representatives')
+        .select('id, first_name, last_name, email, receive_po_notifications')
+        .eq('company_id', recipientCompanyId as string);
+      if (error) throw error;
+      return (data || []).filter((r: any) => r.receive_po_notifications && r.email);
+    },
+  });
 
 
   const updateLine = (index: number, updates: Partial<LineItemInput>) => {
@@ -517,7 +542,7 @@ export const CreatePurchaseOrderDialog = ({
                       <TableCell className="p-1">
                         <Input
                           value={line.description}
-                          onChange={(e) => updateLine(idx, { description: e.target.value })}
+                          onChange={(e) => updateLine(idx, { description: titleCase(e.target.value) })}
                           placeholder="Description"
                           className="h-8 text-sm"
                         />
@@ -548,6 +573,7 @@ export const CreatePurchaseOrderDialog = ({
                         <Checkbox
                           checked={line.extra}
                           onCheckedChange={(checked) => updateLine(idx, { extra: checked as boolean })}
+                          className="border-destructive data-[state=checked]:bg-destructive data-[state=checked]:text-destructive-foreground data-[state=checked]:border-destructive"
                         />
                       </TableCell>
                       <TableCell className="p-1 text-center">
@@ -555,11 +581,11 @@ export const CreatePurchaseOrderDialog = ({
                           type="button"
                           variant="ghost"
                           size="sm"
-                          className="h-7 w-7 p-0"
+                          className="h-7 w-7 p-0 hover:bg-destructive/10"
                           onClick={() => removeLine(idx)}
                           disabled={lineItems.length <= 1}
                         >
-                          <Trash2 className="h-3.5 w-3.5 text-muted-foreground" />
+                          <Trash2 className="h-3.5 w-3.5 text-destructive" />
                         </Button>
                       </TableCell>
                     </TableRow>
@@ -582,13 +608,13 @@ export const CreatePurchaseOrderDialog = ({
             </Button>
           </div>
 
-          {/* Custom Message + Attachments — identical for both flows */}
-          <div className="grid grid-cols-2 gap-4">
+          {/* Custom Message + Attachments + Sending To */}
+          <div className="grid grid-cols-3 gap-4">
             <div className="space-y-1.5">
               <Label>Custom Message (Optional)</Label>
               <Textarea
                 placeholder="Add a custom message to include in the email..."
-                rows={2}
+                rows={4}
                 value={customMessage}
                 onChange={(e) => setCustomMessage(e.target.value)}
                 className="resize-none"
@@ -625,6 +651,28 @@ export const CreatePurchaseOrderDialog = ({
                   ))}
                 </div>
               )}
+            </div>
+            <div className="space-y-1.5">
+              <Label>Sending To</Label>
+              <div className="border rounded-md p-3 min-h-[80px] text-sm">
+                {!recipientCompanyId ? (
+                  <p className="text-xs text-muted-foreground italic">Select a company to see recipients</p>
+                ) : recipients.length === 0 ? (
+                  <p className="text-xs text-muted-foreground italic">No representatives with PO notifications enabled</p>
+                ) : (
+                  <div className="space-y-1">
+                    {recipients.map((r: any) => {
+                      const name = `${r.first_name || ''} ${r.last_name || ''}`.trim() || '(No name)';
+                      return (
+                        <div key={r.id} className="truncate text-xs">
+                          <span className="font-semibold">{name}</span>
+                          <span className="text-muted-foreground"> · {r.email}</span>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
             </div>
           </div>
         </div>
