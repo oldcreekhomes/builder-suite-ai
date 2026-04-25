@@ -373,8 +373,9 @@ export function PODetailsDialog({
         {/* Line Items Table */}
         <div className="flex-1 overflow-y-auto">
           {lineItems.length > 0 ? (
-            <div className="border rounded-lg overflow-hidden">
-              <Table containerClassName="relative w-full">
+            <TooltipProvider delayDuration={200}>
+              <div className="border rounded-lg overflow-hidden">
+                <Table containerClassName="relative w-full">
                 <TableHeader>
                   <TableRow>
                      <TableHead>Cost Code</TableHead>
@@ -397,13 +398,38 @@ export function PODetailsDialog({
                         ? ((line.total_billed + linePending > 0) && (line.total_billed + linePending < line.amount))
                         : (line.total_billed > 0 && line.total_billed < line.amount);
 
+                      // Description = bill memo(s) attributed to this PO line, falling
+                      // back to the PO line's own description, then '—'. Matches what
+                      // the user sees in the bills table and the Edit Bill dialog.
+                      const billMemos = getPendingMemosForLine(line.id, line.cost_code_id, line.description);
+                      const descriptionText = billMemos.length > 0
+                        ? billMemos.join(', ')
+                        : (line.description || '—');
+                      const costCodeText = line.cost_code
+                        ? `${line.cost_code.code}: ${line.cost_code.name}`
+                        : '—';
+
                       return (
                         <TableRow key={line.id}>
                          <TableCell>
-                            {line.cost_code ? `${line.cost_code.code}: ${line.cost_code.name}` : '—'}
+                           <Tooltip>
+                             <TooltipTrigger asChild>
+                               <span className="block truncate max-w-[200px]">{costCodeText}</span>
+                             </TooltipTrigger>
+                             <TooltipContent className="max-w-md break-words">
+                               {costCodeText}
+                             </TooltipContent>
+                           </Tooltip>
                          </TableCell>
                          <TableCell>
-                           {line.description || '—'}
+                           <Tooltip>
+                             <TooltipTrigger asChild>
+                               <span className="block truncate max-w-[260px]">{descriptionText}</span>
+                             </TooltipTrigger>
+                             <TooltipContent className="max-w-md">
+                               <p className="whitespace-pre-wrap break-words">{descriptionText}</p>
+                             </TooltipContent>
+                           </Tooltip>
                          </TableCell>
                          <TableCell>
                            {formatCurrency(line.amount)}
