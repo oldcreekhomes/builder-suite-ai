@@ -7,6 +7,8 @@ import { AddCompaniesToBidPackageModal } from './AddCompaniesToBidPackageModal';
 import { BiddingTableRowContent } from './components/BiddingTableRowContent';
 import { SelectCompanyForPODialog } from './components/SelectCompanyForPODialog';
 import { ConfirmPODialog } from './ConfirmPODialog';
+import { usePreExtractPOLines } from '@/hooks/usePreExtractPOLines';
+import type { LineItemInput } from '@/hooks/usePurchaseOrderLines';
 import type { Tables } from '@/integrations/supabase/types';
 
 type CostCode = Tables<'cost_codes'>;
