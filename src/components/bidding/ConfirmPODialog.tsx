@@ -128,6 +128,7 @@ export function ConfirmPODialog({
               });
           }
         });
+    }
 
     if (biddingCompany?.company_id) {
       supabase
@@ -141,8 +142,7 @@ export function ConfirmPODialog({
     } else {
       setRecipients([]);
     }
-  }
-  }, [isOpen, costCodeId, projectId]);
+  }, [isOpen, costCodeId, projectId, biddingCompany?.company_id]);
 
   // Reset on close
   useEffect(() => {
