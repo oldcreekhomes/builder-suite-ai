@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { Upload, X, FileText, Plus, Trash2 } from "lucide-react";
+import { Upload, X, FileText, Plus, Trash2, Sparkles } from "lucide-react";
 import { useDropzone } from "react-dropzone";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
@@ -13,6 +13,36 @@ import { CostCodeSearchInput } from "./CostCodeSearchInput";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { usePurchaseOrderLines, type LineItemInput } from "@/hooks/usePurchaseOrderLines";
+import { usePOMutations } from "@/hooks/usePOMutations";
+import { useUserProfile } from "@/hooks/useUserProfile";
+import { useUniversalFilePreviewContext } from "@/components/files/UniversalFilePreviewProvider";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
+import { DeleteConfirmationDialog } from "@/components/ui/delete-confirmation-dialog";
+import { useBiddingCompanyMutations } from "@/hooks/useBiddingCompanyMutations";
+import { getFileIcon, getFileIconColor, getCleanFileName } from "./bidding/utils/fileIconUtils";
+
+interface BiddingCompanyShape {
+  id: string;
+  company_id: string;
+  bid_status: 'will_bid' | 'will_not_bid' | 'submitted' | null;
+  price: number | null;
+  proposals: string[] | null;
+  companies: {
+    id: string;
+    company_name: string;
+    company_type: string;
+  };
+}
+
+export interface BidContext {
+  biddingCompany: BiddingCompanyShape;
+  bidPackageId: string;
+  costCodeId: string;
+  initialLineItems?: LineItemInput[];
+  isExtracting?: boolean;
+  mode?: 'send' | 'resend';
+  onConfirm?: () => void;
+}
 
 interface CreatePurchaseOrderDialogProps {
   open: boolean;
@@ -20,6 +50,7 @@ interface CreatePurchaseOrderDialogProps {
   projectId: string;
   onSuccess: () => void;
   editOrder?: any;
+  bidContext?: BidContext;
 }
 
 interface UploadedFile {
@@ -45,6 +76,7 @@ export const CreatePurchaseOrderDialog = ({
   projectId,
   onSuccess,
   editOrder,
+  bidContext,
 }: CreatePurchaseOrderDialogProps) => {
   const [selectedCompany, setSelectedCompany] = useState<{ id: string; name: string } | null>(null);
   const [notes, setNotes] = useState("");
@@ -54,11 +86,40 @@ export const CreatePurchaseOrderDialog = ({
   const [customMessage, setCustomMessage] = useState("");
   const [lineItems, setLineItems] = useState<LineItemInput[]>([emptyLine()]);
 
-  const { lines: existingLines } = usePurchaseOrderLines(editOrder?.id);
+  // Bid context extras
+  const [costCodeData, setCostCodeData] = useState<{ code: string; name: string } | null>(null);
+  const [recipients, setRecipients] = useState<Array<{ first_name: string | null; last_name: string | null; email: string }>>([]);
+  const [managerName, setManagerName] = useState<string>('');
+  const [fileToDelete, setFileToDelete] = useState<string | null>(null);
 
-  // Pre-populate form when editing
+  const isBidFlow = !!bidContext;
+  const bidMode = bidContext?.mode ?? 'send';
+  const isExtracting = !!bidContext?.isExtracting;
+
+  const { lines: existingLines } = usePurchaseOrderLines(editOrder?.id);
+  const { createPOSendEmailAndUpdateStatus, resendPOEmail, isLoading: isBidPOLoading } = usePOMutations(projectId);
+  const { profile } = useUserProfile();
+  const { openFile } = useUniversalFilePreviewContext();
+  const { deleteIndividualProposal } = useBiddingCompanyMutations(projectId);
+
+  // Pre-populate form when editing or bid context
   useEffect(() => {
-    if (editOrder && open) {
+    if (!open) return;
+
+    if (bidContext) {
+      setSelectedCompany({
+        id: bidContext.biddingCompany.companies.id,
+        name: bidContext.biddingCompany.companies.company_name,
+      });
+      setNotes("");
+      setUploadedFiles([]);
+      setCustomMessage("");
+      setLineItems(
+        bidContext.initialLineItems && bidContext.initialLineItems.length > 0
+          ? bidContext.initialLineItems.map((l) => ({ ...l }))
+          : [emptyLine()]
+      );
+    } else if (editOrder) {
       setSelectedCompany({
         id: editOrder.companies?.id,
         name: editOrder.companies?.company_name,
@@ -66,14 +127,21 @@ export const CreatePurchaseOrderDialog = ({
       setNotes(editOrder.notes || "");
       setUploadedFiles(editOrder.files || []);
       setCustomMessage("");
-    } else if (!editOrder && open) {
+    } else {
       setSelectedCompany(null);
       setNotes("");
       setUploadedFiles([]);
       setCustomMessage("");
       setLineItems([emptyLine()]);
     }
-  }, [editOrder, open]);
+  }, [editOrder, open, bidContext]);
+
+  // Re-seed lines when AI extraction completes mid-open
+  useEffect(() => {
+    if (open && bidContext?.initialLineItems && bidContext.initialLineItems.length > 0) {
+      setLineItems(bidContext.initialLineItems.map((l) => ({ ...l })));
+    }
+  }, [open, bidContext?.initialLineItems]);
 
   // Load existing lines when editing
   useEffect(() => {
@@ -90,11 +158,57 @@ export const CreatePurchaseOrderDialog = ({
     }
   }, [existingLines, editOrder]);
 
+  // Bid context: fetch cost code, PM name, recipients
+  useEffect(() => {
+    if (!open || !bidContext) return;
+
+    if (bidContext.costCodeId) {
+      supabase
+        .from('cost_codes')
+        .select('code, name')
+        .eq('id', bidContext.costCodeId)
+        .single()
+        .then(({ data }) => { if (data) setCostCodeData(data); });
+    }
+
+    if (projectId) {
+      supabase
+        .from('projects')
+        .select('construction_manager')
+        .eq('id', projectId)
+        .single()
+        .then(({ data: project }) => {
+          if (project?.construction_manager) {
+            supabase
+              .from('users')
+              .select('first_name, last_name')
+              .eq('id', project.construction_manager)
+              .single()
+              .then(({ data: user }) => {
+                if (user) setManagerName(`${user.first_name || ''} ${user.last_name || ''}`.trim());
+              });
+          }
+        });
+    }
+
+    if (bidContext.biddingCompany.company_id) {
+      supabase
+        .from('company_representatives')
+        .select('first_name, last_name, email, receive_po_notifications')
+        .eq('company_id', bidContext.biddingCompany.company_id)
+        .then(({ data }) => {
+          const filtered = (data || []).filter((r: any) => r.receive_po_notifications && r.email);
+          setRecipients(filtered as any);
+        });
+    } else {
+      setRecipients([]);
+    }
+  }, [open, bidContext, projectId]);
+
   const updateLine = (index: number, updates: Partial<LineItemInput>) => {
     setLineItems(prev => {
       const next = [...prev];
       next[index] = { ...next[index], ...updates };
-      // Auto-calculate amount
       if ('quantity' in updates || 'unit_cost' in updates) {
         const qty = updates.quantity ?? next[index].quantity;
         const uc = updates.unit_cost ?? next[index].unit_cost;
@@ -147,7 +261,40 @@ export const CreatePurchaseOrderDialog = ({
     } catch { toast({ title: "Error", description: "Failed to remove file", variant: "destructive" }); }
   };
 
+  // === Submit handler: bid flow vs standard flow ===
   const handleSubmit = async () => {
+    if (isBidFlow && bidContext) {
+      const validLines = lineItems.filter((l) => l.cost_code_id || l.amount > 0);
+      try {
+        if (bidMode === 'resend') {
+          await resendPOEmail.mutateAsync({
+            companyId: bidContext.biddingCompany.company_id,
+            costCodeId: bidContext.costCodeId,
+            totalAmount: bidContext.biddingCompany.price || 0,
+            biddingCompany: bidContext.biddingCompany,
+            bidPackageId: bidContext.bidPackageId,
+            customMessage: customMessage.trim() || undefined,
+          });
+        } else {
+          await createPOSendEmailAndUpdateStatus.mutateAsync({
+            companyId: bidContext.biddingCompany.company_id,
+            costCodeId: bidContext.costCodeId,
+            totalAmount: subtotal || bidContext.biddingCompany.price || 0,
+            biddingCompany: bidContext.biddingCompany,
+            bidPackageId: bidContext.bidPackageId,
+            customMessage: customMessage.trim() || undefined,
+            lineItems: validLines.length > 0 ? validLines : undefined,
+          });
+        }
+        bidContext.onConfirm?.();
+        onSuccess();
+        onOpenChange(false);
+      } catch (error) {
+        console.error(`Error ${bidMode === 'resend' ? 'resending' : 'creating'} PO:`, error);
+      }
+      return;
+    }
+
     if (!selectedCompany) {
       toast({ title: "Validation Error", description: "Please select a company", variant: "destructive" });
       return;
@@ -161,11 +308,9 @@ export const CreatePurchaseOrderDialog = ({
     setIsSubmitting(true);
     try {
       const totalAmount = validLines.reduce((sum, l) => sum + l.amount, 0);
-      // Use the first line's cost code for backward compatibility grouping
       const primaryCostCodeId = validLines[0].cost_code_id;
 
       if (editOrder) {
-        // Update PO header
         const { data, error } = await supabase
           .from('project_purchase_orders')
           .update({
@@ -181,14 +326,9 @@ export const CreatePurchaseOrderDialog = ({
           .single();
 
         if (error) throw error;
-
-        // Save lines
         await savePOLines(editOrder.id, validLines);
-
-        // Send update email
         await sendPOEmail(data, selectedCompany, totalAmount, validLines, true);
       } else {
-        // Create PO header
         const { data: purchaseOrder, error } = await supabase
           .from('project_purchase_orders')
           .insert([{
@@ -205,15 +345,10 @@ export const CreatePurchaseOrderDialog = ({
           .single();
 
         if (error) throw error;
-
-        // Save lines
         await savePOLines(purchaseOrder.id, validLines);
-
-        // Send email
         await sendPOEmail(purchaseOrder, selectedCompany, totalAmount, validLines, false);
       }
 
-      // Reset
       setSelectedCompany(null);
       setNotes("");
       setUploadedFiles([]);
@@ -230,9 +365,7 @@ export const CreatePurchaseOrderDialog = ({
   };
 
   const savePOLines = async (poId: string, lines: LineItemInput[]) => {
-    // Delete existing lines
     await supabase.from('purchase_order_lines').delete().eq('purchase_order_id', poId);
-
     if (lines.length === 0) return;
     const rows = lines.map((line, idx) => ({
       purchase_order_id: poId,
@@ -267,7 +400,6 @@ export const CreatePurchaseOrderDialog = ({
         }),
       ]);
 
-      // Resolve cost code names for lines
       const costCodeIds = [...new Set(lines.map(l => l.cost_code_id).filter(Boolean))];
       let costCodeMap = new Map<string, { code: string; name: string }>();
       if (costCodeIds.length > 0) {
@@ -316,134 +448,333 @@ export const CreatePurchaseOrderDialog = ({
     }
   };
 
+  const handleProposalPreview = (fileName: string) => {
+    const today = new Date().toLocaleDateString('en-US', { month: '2-digit', day: '2-digit', year: 'numeric' });
+    openFile({
+      name: fileName,
+      bucket: 'project-files',
+      path: `proposals/${fileName}`,
+      stampInfo: managerName ? { managerName, date: today } : undefined,
+    });
+  };
+
+  // ============ AI extraction loader (bid flow only) ============
+  if (isBidFlow && bidMode === 'send' && isExtracting) {
+    return (
+      <Dialog open={open} onOpenChange={onOpenChange}>
+        <DialogContent className="max-w-md">
+          <DialogHeader className="sr-only">
+            <DialogTitle>Creating PO from machine learning</DialogTitle>
+          </DialogHeader>
+          <style>{`
+            @keyframes po-ai-float {
+              0%, 100% { transform: translateY(0) scale(1) rotate(0deg); opacity: 0.85; }
+              50% { transform: translateY(-6px) scale(1.1) rotate(8deg); opacity: 1; }
+            }
+            @keyframes po-ai-dots {
+              0%, 20% { content: ''; }
+              40% { content: '.'; }
+              60% { content: '..'; }
+              80%, 100% { content: '...'; }
+            }
+            .po-ai-icon { animation: po-ai-float 1.8s ease-in-out infinite; }
+            .po-ai-text::after {
+              display: inline-block;
+              width: 1.25em;
+              text-align: left;
+              content: '';
+              animation: po-ai-dots 1.6s steps(1, end) infinite;
+            }
+          `}</style>
+          <div className="flex flex-col items-center justify-center py-16 gap-4">
+            <Sparkles className="po-ai-icon h-12 w-12 text-primary" />
+            <p className="po-ai-text text-sm font-medium text-muted-foreground">
+              Creating PO from machine learning
+            </p>
+          </div>
+        </DialogContent>
+      </Dialog>
+    );
+  }
+
+  const proposals = bidContext?.biddingCompany.proposals || [];
+  const firstProposal = proposals[0];
+
+  const dialogTitle = isBidFlow
+    ? (bidMode === 'resend' ? 'Resend PO' : 'Confirm PO')
+    : (editOrder ? 'Edit Purchase Order' : 'Create Purchase Order');
+
+  const submitLabel = isBidFlow
+    ? (isBidPOLoading
+        ? (bidMode === 'resend' ? 'Resending...' : 'Sending...')
+        : (bidMode === 'resend' ? 'Resend PO' : 'Send PO'))
+    : (isSubmitting
+        ? (editOrder ? 'Updating...' : 'Creating...')
+        : (editOrder ? 'Update Purchase Order' : 'Create Purchase Order'));
+
+  const isSubmitDisabled = isBidFlow
+    ? (isBidPOLoading || isExtracting)
+    : (isSubmitting || !selectedCompany);
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle>{editOrder ? "Edit Purchase Order" : "Create Purchase Order"}</DialogTitle>
+          <DialogTitle>{dialogTitle}</DialogTitle>
         </DialogHeader>
 
         <div className="space-y-4">
-          {/* Header: Company + Notes row */}
-          <div className="grid grid-cols-2 gap-4">
-            <div className="space-y-1.5">
-              <Label>Company *</Label>
-              <CompanySearchInput
-                value={selectedCompany?.name || ""}
-                onChange={() => {}}
-                onCompanySelect={(c) => setSelectedCompany(c)}
-                placeholder="Search for a company..."
-                className="w-full"
-              />
+          {/* Header row */}
+          {isBidFlow ? (
+            <div className="grid grid-cols-3 gap-6 items-start">
+              <div className="space-y-1.5">
+                <Label className="text-sm font-medium text-muted-foreground">Company</Label>
+                <p className="text-sm font-semibold">{bidContext!.biddingCompany.companies.company_name}</p>
+              </div>
+              <div className="space-y-1.5">
+                <Label className="text-sm font-medium text-muted-foreground">Bid Package Cost Code</Label>
+                <p className="text-sm font-semibold">
+                  {costCodeData ? `${costCodeData.code}: ${costCodeData.name}` : 'Loading...'}
+                </p>
+              </div>
+              <div className="space-y-1.5">
+                <Label className="text-sm font-medium text-muted-foreground">Sending To</Label>
+                <div className="text-sm">
+                  {recipients.length === 0 ? (
+                    <p className="text-muted-foreground italic text-xs">
+                      No representatives with PO notifications enabled
+                    </p>
+                  ) : (
+                    <div className="space-y-0.5">
+                      {recipients.map((r, i) => {
+                        const name = `${r.first_name || ''} ${r.last_name || ''}`.trim() || '(No name)';
+                        return (
+                          <div key={i} className="truncate text-sm">
+                            <span className="font-semibold">{name}</span>
+                            <span className="text-muted-foreground"> · {r.email}</span>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  )}
+                </div>
+              </div>
             </div>
-            <div className="space-y-1.5">
-              <Label>Notes</Label>
-              <Input
-                value={notes}
-                onChange={(e) => setNotes(e.target.value)}
-                placeholder="Enter any additional notes..."
-              />
+          ) : (
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-1.5">
+                <Label>Company *</Label>
+                <CompanySearchInput
+                  value={selectedCompany?.name || ""}
+                  onChange={() => {}}
+                  onCompanySelect={(c) => setSelectedCompany(c)}
+                  placeholder="Search for a company..."
+                  className="w-full"
+                />
+              </div>
+              <div className="space-y-1.5">
+                <Label>Notes</Label>
+                <Input
+                  value={notes}
+                  onChange={(e) => setNotes(e.target.value)}
+                  placeholder="Enter any additional notes..."
+                />
+              </div>
             </div>
-          </div>
+          )}
 
-          {/* Line Items Table */}
-          <div className="space-y-2">
-            <Label>Line Items</Label>
-            <div className="border rounded-lg overflow-hidden">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead className="w-[200px]">Cost Code</TableHead>
-                    <TableHead>Description</TableHead>
-                    <TableHead className="w-[80px] text-right">Qty</TableHead>
-                    <TableHead className="w-[110px] text-right">Unit Cost</TableHead>
-                    <TableHead className="w-[110px] text-right">Amount</TableHead>
-                    <TableHead className="w-[60px] text-center">Extra</TableHead>
-                    <TableHead className="w-[50px]"></TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {lineItems.map((line, idx) => (
-                    <TableRow key={idx}>
-                      <TableCell className="p-1">
-                        <CostCodeSearchInput
-                          value={line.cost_code_display || ""}
-                          onChange={(v) => { if (!v) updateLine(idx, { cost_code_id: null, cost_code_display: "" }); }}
-                          onCostCodeSelect={(cc) => updateLine(idx, { cost_code_id: cc.id, cost_code_display: `${cc.code} - ${cc.name}` })}
-                          placeholder="Cost code"
-                          className="h-8 text-sm"
-                        />
-                      </TableCell>
-                      <TableCell className="p-1">
-                        <Input
-                          value={line.description}
-                          onChange={(e) => updateLine(idx, { description: e.target.value })}
-                          placeholder="Description"
-                          className="h-8 text-sm"
-                        />
-                      </TableCell>
-                      <TableCell className="p-1">
-                        <Input
-                          type="number"
-                          value={line.quantity || ""}
-                          onChange={(e) => updateLine(idx, { quantity: parseFloat(e.target.value) || 0 })}
-                          className="h-8 text-sm text-right"
-                          min={0}
-                        />
-                      </TableCell>
-                      <TableCell className="p-1">
-                        <Input
-                          type="number"
-                          step="0.01"
-                          value={line.unit_cost || ""}
-                          onChange={(e) => updateLine(idx, { unit_cost: parseFloat(e.target.value) || 0 })}
-                          className="h-8 text-sm text-right"
-                          min={0}
-                        />
-                      </TableCell>
-                      <TableCell className="p-1 text-right text-sm font-medium pr-3">
-                        ${line.amount.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                      </TableCell>
-                      <TableCell className="p-1 text-center">
-                        <Checkbox
-                          checked={line.extra}
-                          onCheckedChange={(checked) => updateLine(idx, { extra: checked as boolean })}
-                        />
-                      </TableCell>
-                      <TableCell className="p-1">
-                        <Button
-                          type="button"
-                          variant="ghost"
-                          size="sm"
-                          className="h-7 w-7 p-0"
-                          onClick={() => removeLine(idx)}
-                          disabled={lineItems.length <= 1}
-                        >
-                          <Trash2 className="h-3.5 w-3.5 text-muted-foreground" />
-                        </Button>
-                      </TableCell>
+          {/* Line Items Table — hidden in resend mode */}
+          {!(isBidFlow && bidMode === 'resend') && (
+            <div className="space-y-2">
+              <Label>Line Items</Label>
+              <div className="border rounded-lg overflow-hidden">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead className="w-[200px]">Cost Code</TableHead>
+                      <TableHead>Description</TableHead>
+                      <TableHead className="w-[80px] text-right">Qty</TableHead>
+                      <TableHead className="w-[110px] text-right">Unit Cost</TableHead>
+                      <TableHead className="w-[110px] text-right">Amount</TableHead>
+                      {isBidFlow && <TableHead className="w-[60px] text-center">Proposal</TableHead>}
+                      <TableHead className="w-[60px] text-center">Extra</TableHead>
+                      <TableHead className="w-[60px] text-center">Actions</TableHead>
                     </TableRow>
-                  ))}
-                  {/* Subtotal row */}
-                  <TableRow className="bg-muted/50">
-                    <TableCell colSpan={4} className="text-right font-medium text-sm pr-3">
-                      Subtotal
-                    </TableCell>
-                    <TableCell className="text-right font-semibold text-sm pr-3">
-                      ${subtotal.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                    </TableCell>
-                    <TableCell colSpan={2} />
-                  </TableRow>
-                </TableBody>
-              </Table>
+                  </TableHeader>
+                  <TableBody>
+                    {lineItems.map((line, idx) => (
+                      <TableRow key={idx}>
+                        <TableCell className="p-1">
+                          <CostCodeSearchInput
+                            value={line.cost_code_display || ""}
+                            onChange={(v) => { if (!v) updateLine(idx, { cost_code_id: null, cost_code_display: "" }); }}
+                            onCostCodeSelect={(cc) => updateLine(idx, { cost_code_id: cc.id, cost_code_display: `${cc.code} - ${cc.name}` })}
+                            placeholder="Cost code"
+                            className="h-8 text-sm"
+                          />
+                        </TableCell>
+                        <TableCell className="p-1">
+                          <Input
+                            value={line.description}
+                            onChange={(e) => updateLine(idx, { description: e.target.value })}
+                            placeholder="Description"
+                            className="h-8 text-sm"
+                          />
+                        </TableCell>
+                        <TableCell className="p-1">
+                          <Input
+                            type="number"
+                            value={line.quantity || ""}
+                            onChange={(e) => updateLine(idx, { quantity: parseFloat(e.target.value) || 0 })}
+                            className="h-8 text-sm text-right"
+                            min={0}
+                          />
+                        </TableCell>
+                        <TableCell className="p-1">
+                          <Input
+                            type="number"
+                            step="0.01"
+                            value={line.unit_cost || ""}
+                            onChange={(e) => updateLine(idx, { unit_cost: parseFloat(e.target.value) || 0 })}
+                            className="h-8 text-sm text-right"
+                            min={0}
+                          />
+                        </TableCell>
+                        <TableCell className="p-1 text-right text-sm font-medium pr-3">
+                          ${line.amount.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                        </TableCell>
+                        {isBidFlow && (
+                          <TableCell className="p-1 text-center">
+                            {idx === 0 && firstProposal ? (
+                              <div className="relative inline-flex">
+                                <Tooltip>
+                                  <TooltipTrigger asChild>
+                                    <button
+                                      type="button"
+                                      onClick={() => handleProposalPreview(firstProposal)}
+                                      className="flex items-center justify-center p-1 rounded-md hover:bg-muted transition-colors cursor-pointer"
+                                    >
+                                      {(() => {
+                                        const Icon = getFileIcon(firstProposal);
+                                        return <Icon className={`h-5 w-5 ${getFileIconColor(firstProposal)}`} />;
+                                      })()}
+                                    </button>
+                                  </TooltipTrigger>
+                                  <TooltipContent>
+                                    <p>{getCleanFileName(firstProposal)}</p>
+                                  </TooltipContent>
+                                </Tooltip>
+                                <button
+                                  type="button"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    setFileToDelete(firstProposal);
+                                  }}
+                                  className="absolute -top-0.5 -right-0.5 bg-destructive hover:bg-destructive/80 text-destructive-foreground rounded-full w-3 h-3 flex items-center justify-center"
+                                  title="Delete file"
+                                >
+                                  <span className="text-[9px] font-bold leading-none">×</span>
+                                </button>
+                              </div>
+                            ) : null}
+                          </TableCell>
+                        )}
+                        <TableCell className="p-1 text-center">
+                          <Checkbox
+                            checked={line.extra}
+                            onCheckedChange={(checked) => updateLine(idx, { extra: checked as boolean })}
+                          />
+                        </TableCell>
+                        <TableCell className="p-1 text-center">
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="sm"
+                            className="h-7 w-7 p-0"
+                            onClick={() => removeLine(idx)}
+                            disabled={lineItems.length <= 1}
+                          >
+                            <Trash2 className="h-3.5 w-3.5 text-muted-foreground" />
+                          </Button>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                    {/* Subtotal row */}
+                    <TableRow className="bg-muted/50">
+                      <TableCell colSpan={4} className="text-right font-medium text-sm pr-3">
+                        Subtotal
+                      </TableCell>
+                      <TableCell className="text-right font-semibold text-sm pr-3">
+                        ${subtotal.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                      </TableCell>
+                      <TableCell colSpan={isBidFlow ? 3 : 2} />
+                    </TableRow>
+                  </TableBody>
+                </Table>
+              </div>
+              <Button type="button" variant="outline" size="sm" onClick={addLine} className="gap-1">
+                <Plus className="h-3.5 w-3.5" /> Add Line
+              </Button>
             </div>
-            <Button type="button" variant="outline" size="sm" onClick={addLine} className="gap-1">
-              <Plus className="h-3.5 w-3.5" /> Add Line
-            </Button>
-          </div>
+          )}
 
-          {/* Custom Message + Attachments side by side */}
-          <div className="grid grid-cols-2 gap-4">
+          {/* Resend amount summary */}
+          {isBidFlow && bidMode === 'resend' && (
+            <div>
+              <Label className="text-sm font-medium text-muted-foreground">Amount</Label>
+              <p className="text-sm font-semibold mt-1">
+                {bidContext!.biddingCompany.price ? `$${Number(bidContext!.biddingCompany.price).toLocaleString()}` : 'N/A'}
+              </p>
+            </div>
+          )}
+
+          {/* Custom Message + Attachments — only standard flow gets attachments */}
+          {!isBidFlow ? (
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-1.5">
+                <Label>Custom Message (Optional)</Label>
+                <Textarea
+                  placeholder="Add a custom message to include in the email..."
+                  rows={2}
+                  value={customMessage}
+                  onChange={(e) => setCustomMessage(e.target.value)}
+                  className="resize-none"
+                />
+              </div>
+              <div className="space-y-1.5">
+                <Label>Attachments</Label>
+                <div
+                  {...getRootProps()}
+                  className={`border rounded-md p-3 transition-colors cursor-pointer min-h-[80px] flex items-center justify-center ${
+                    isDragActive ? 'border-primary/50 bg-primary/5' : 'border-input hover:border-muted-foreground/50'
+                  } ${isUploading ? 'opacity-50 cursor-not-allowed' : ''}`}
+                >
+                  <input {...getInputProps()} />
+                  <div className="text-center">
+                    <Upload className={`mx-auto h-5 w-5 mb-0.5 ${isDragActive ? 'text-primary' : 'text-muted-foreground'}`} />
+                    <p className="text-xs text-muted-foreground">
+                      {isUploading ? "Uploading..." : isDragActive ? "Drop files here..." : "Click or drag to upload"}
+                    </p>
+                  </div>
+                </div>
+                {uploadedFiles.length > 0 && (
+                  <div className="space-y-1">
+                    {uploadedFiles.map((file) => (
+                      <div key={file.id} className="flex items-center justify-between p-1.5 bg-muted rounded-md">
+                        <div className="flex items-center space-x-1.5">
+                          <FileText className="h-3.5 w-3.5 text-muted-foreground" />
+                          <span className="text-xs font-medium truncate">{file.name}</span>
+                        </div>
+                        <Button variant="ghost" size="sm" onClick={() => removeFile(file)} className="h-5 w-5 p-0">
+                          <X className="h-3 w-3" />
+                        </Button>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </div>
+          ) : (
             <div className="space-y-1.5">
               <Label>Custom Message (Optional)</Label>
               <Textarea
@@ -454,50 +785,34 @@ export const CreatePurchaseOrderDialog = ({
                 className="resize-none"
               />
             </div>
-            <div className="space-y-1.5">
-              <Label>Attachments</Label>
-              <div
-                {...getRootProps()}
-                className={`border rounded-md p-3 transition-colors cursor-pointer min-h-[80px] flex items-center justify-center ${
-                  isDragActive ? 'border-primary/50 bg-primary/5' : 'border-input hover:border-muted-foreground/50'
-                } ${isUploading ? 'opacity-50 cursor-not-allowed' : ''}`}
-              >
-                <input {...getInputProps()} />
-                <div className="text-center">
-                  <Upload className={`mx-auto h-5 w-5 mb-0.5 ${isDragActive ? 'text-primary' : 'text-muted-foreground'}`} />
-                  <p className="text-xs text-muted-foreground">
-                    {isUploading ? "Uploading..." : isDragActive ? "Drop files here..." : "Click or drag to upload"}
-                  </p>
-                </div>
-              </div>
-              {uploadedFiles.length > 0 && (
-                <div className="space-y-1">
-                  {uploadedFiles.map((file) => (
-                    <div key={file.id} className="flex items-center justify-between p-1.5 bg-muted rounded-md">
-                      <div className="flex items-center space-x-1.5">
-                        <FileText className="h-3.5 w-3.5 text-muted-foreground" />
-                        <span className="text-xs font-medium truncate">{file.name}</span>
-                      </div>
-                      <Button variant="ghost" size="sm" onClick={() => removeFile(file)} className="h-5 w-5 p-0">
-                        <X className="h-3 w-3" />
-                      </Button>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </div>
-          </div>
+          )}
         </div>
 
         {/* Actions */}
         <div className="flex justify-end space-x-2 pt-4 border-t">
-          <Button variant="outline" onClick={() => onOpenChange(false)} disabled={isSubmitting}>
+          <Button variant="outline" onClick={() => onOpenChange(false)} disabled={isBidFlow ? isBidPOLoading : isSubmitting}>
             Cancel
           </Button>
-          <Button onClick={handleSubmit} disabled={isSubmitting || !selectedCompany}>
-            {isSubmitting ? (editOrder ? "Updating..." : "Creating...") : (editOrder ? "Update Purchase Order" : "Create Purchase Order")}
+          <Button onClick={handleSubmit} disabled={isSubmitDisabled}>
+            {submitLabel}
           </Button>
         </div>
+
+        {/* Proposal delete confirmation (bid flow only) */}
+        {isBidFlow && (
+          <DeleteConfirmationDialog
+            open={!!fileToDelete}
+            onOpenChange={(open) => !open && setFileToDelete(null)}
+            title="Delete Proposal File"
+            description={`Are you sure you want to delete "${fileToDelete ? getCleanFileName(fileToDelete) : ''}"? This action cannot be undone.`}
+            onConfirm={() => {
+              if (fileToDelete && bidContext) {
+                deleteIndividualProposal('', bidContext.biddingCompany.id, fileToDelete);
+                setFileToDelete(null);
+              }
+            }}
+          />
+        )}
       </DialogContent>
     </Dialog>
   );
