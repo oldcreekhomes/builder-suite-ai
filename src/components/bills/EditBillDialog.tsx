@@ -97,6 +97,7 @@ export function EditBillDialog({ open, onOpenChange, billId }: EditBillDialogPro
   const [showSaveConfirmation, setShowSaveConfirmation] = useState(false);
   const [responseNote, setResponseNote] = useState('');
   const [internalNotes, setInternalNotes] = useState<string>("");
+  const [activeTab, setActiveTab] = useState<string>("job-cost");
   const [notesDialogOpen, setNotesDialogOpen] = useState(false);
   const [showReviewNotesDialog, setShowReviewNotesDialog] = useState(false);
   
