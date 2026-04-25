@@ -453,22 +453,37 @@ export function ConfirmPODialog({
 
         </div>
 
-        <div className="flex justify-end gap-2 mt-6">
-          <Button
-            variant="outline"
-            onClick={onClose}
-            disabled={isLoading}
-            className="border-red-200 text-red-600 hover:bg-red-50 hover:border-red-300"
-          >
-            Cancel
-          </Button>
-          <Button
-            onClick={handleConfirm}
-            disabled={isLoading || isExtracting}
-            className="bg-green-600 hover:bg-green-700 text-white"
-          >
-            {isLoading ? 'Sending...' : mode === 'resend' ? 'Resend PO' : 'Send PO'}
-          </Button>
+        <div className="flex items-end gap-4 mt-6">
+          <div className="flex-1 min-w-0">
+            <Label htmlFor="custom-message" className="text-sm font-medium text-muted-foreground">
+              Custom Message (Optional)
+            </Label>
+            <Textarea
+              id="custom-message"
+              placeholder="Add a custom message to include in the email..."
+              className="w-full mt-1 resize-none focus-visible:ring-offset-0 focus-visible:ring-2 focus-visible:ring-black focus-visible:border-black"
+              rows={2}
+              value={customMessage}
+              onChange={(e) => setCustomMessage(e.target.value)}
+            />
+          </div>
+          <div className="flex gap-2 shrink-0">
+            <Button
+              variant="outline"
+              onClick={onClose}
+              disabled={isLoading}
+              className="border-red-200 text-red-600 hover:bg-red-50 hover:border-red-300"
+            >
+              Cancel
+            </Button>
+            <Button
+              onClick={handleConfirm}
+              disabled={isLoading || isExtracting}
+              className="bg-green-600 hover:bg-green-700 text-white"
+            >
+              {isLoading ? 'Sending...' : mode === 'resend' ? 'Resend PO' : 'Send PO'}
+            </Button>
+          </div>
         </div>
 
         <DeleteConfirmationDialog
