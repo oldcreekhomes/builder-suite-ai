@@ -97,6 +97,7 @@ export function EditBillDialog({ open, onOpenChange, billId }: EditBillDialogPro
   const [showSaveConfirmation, setShowSaveConfirmation] = useState(false);
   const [responseNote, setResponseNote] = useState('');
   const [internalNotes, setInternalNotes] = useState<string>("");
+  const [activeTab, setActiveTab] = useState<string>("job-cost");
   const [notesDialogOpen, setNotesDialogOpen] = useState(false);
   const [showReviewNotesDialog, setShowReviewNotesDialog] = useState(false);
   
@@ -863,21 +864,26 @@ export function EditBillDialog({ open, onOpenChange, billId }: EditBillDialogPro
           </div>
 
           <div className="space-y-4">
-            <Tabs defaultValue="job-cost" className="w-full">
-              <TabsList className="grid w-full grid-cols-2">
-                <TabsTrigger value="job-cost">Job Cost</TabsTrigger>
-                <TabsTrigger value="expense">Expense</TabsTrigger>
-              </TabsList>
-              
-              <TabsContent value="job-cost" className="space-y-4">
+            <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+              <div className="flex items-center justify-between border-b">
+                <TabsList>
+                  <TabsTrigger value="job-cost">Job Cost</TabsTrigger>
+                  <TabsTrigger value="expense">Expense</TabsTrigger>
+                </TabsList>
                 {!isApprovedBill && (
-                  <div className="flex items-center justify-between">
-                    <Button onClick={addJobCostRow} size="sm" variant="outline">
-                      <Plus className="h-4 w-4 mr-2" />
-                      Add Row
-                    </Button>
-                  </div>
+                  <Button
+                    onClick={activeTab === 'job-cost' ? addJobCostRow : addExpenseRow}
+                    variant="outline"
+                    size="sm"
+                    className="mb-1"
+                  >
+                    <Plus className="h-4 w-4 mr-2" />
+                    Add Line
+                  </Button>
                 )}
+              </div>
+
+              <TabsContent value="job-cost" className="space-y-4 mt-8">
 
                 <div className="border rounded-lg overflow-hidden overflow-x-auto">
                   <Table containerClassName="relative w-full">
@@ -1089,39 +1095,10 @@ export function EditBillDialog({ open, onOpenChange, billId }: EditBillDialogPro
                       })}
                     </TableBody>
                   </Table>
-
-                  <div className="p-3 bg-muted border-t">
-                    <div className="flex items-center justify-between w-full">
-                      <div className="flex items-center gap-2 font-medium whitespace-nowrap">
-                        <span>
-                          {jobCostSubtotal < 0 ? 'Bill Credit Total:' : 'Job Cost Total:'}
-                        </span>
-                        <span className={cn(jobCostSubtotal < 0 && "text-green-600")}>
-                          ${jobCostSubtotal.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                        </span>
-                      </div>
-                      <div className="flex items-center gap-2">
-                        <Button variant="outline" size="sm" onClick={() => onOpenChange(false)} disabled={updateBill.isPending || correctBill.isPending}>
-                          Cancel
-                        </Button>
-                        <Button size="sm" onClick={handleSave} disabled={updateBill.isPending || correctBill.isPending}>
-                          {updateBill.isPending || correctBill.isPending ? "Saving..." : "Save Changes"}
-                        </Button>
-                      </div>
-                    </div>
-                  </div>
                 </div>
               </TabsContent>
-              
-              <TabsContent value="expense" className="space-y-4">
-                {!isApprovedBill && (
-                  <div className="flex items-center justify-between">
-                    <Button onClick={addExpenseRow} size="sm" variant="outline">
-                      <Plus className="h-4 w-4 mr-2" />
-                      Add Row
-                    </Button>
-                  </div>
-                )}
+
+              <TabsContent value="expense" className="space-y-4 mt-8">
 
                 <div className="border rounded-lg overflow-hidden overflow-x-auto">
                   <Table containerClassName="relative w-full">
@@ -1213,30 +1190,33 @@ export function EditBillDialog({ open, onOpenChange, billId }: EditBillDialogPro
                       })}
                     </TableBody>
                   </Table>
-
-                  <div className="p-3 bg-muted border-t">
-                    <div className="flex items-center justify-between w-full">
-                      <div className="flex items-center gap-2 font-medium whitespace-nowrap">
-                        <span>
-                          {expenseSubtotal < 0 ? 'Bill Credit Total:' : 'Expense Total:'}
-                        </span>
-                        <span className={cn(expenseSubtotal < 0 && "text-green-600")}>
-                          ${expenseSubtotal.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                        </span>
-                      </div>
-                      <div className="flex items-center gap-2">
-                        <Button variant="outline" size="sm" onClick={() => onOpenChange(false)} disabled={updateBill.isPending || correctBill.isPending}>
-                          Cancel
-                        </Button>
-                        <Button size="sm" onClick={handleSave} disabled={updateBill.isPending || correctBill.isPending}>
-                          {updateBill.isPending || correctBill.isPending ? "Saving..." : "Save Changes"}
-                        </Button>
-                      </div>
-                    </div>
-                  </div>
                 </div>
               </TabsContent>
             </Tabs>
+
+            {/* Total */}
+            <div className="flex justify-end items-center gap-4 pt-4 border-t">
+              <span className="text-lg font-semibold">
+                {(jobCostSubtotal + expenseSubtotal) < 0 ? 'Bill Credit Total:' : 'Total:'}
+              </span>
+              <span className={cn(
+                "text-2xl font-bold",
+                (jobCostSubtotal + expenseSubtotal) < 0 && "text-green-600"
+              )}>
+                {new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', minimumFractionDigits: 2 })
+                  .format(jobCostSubtotal + expenseSubtotal)}
+              </span>
+            </div>
+
+            {/* Actions */}
+            <div className="flex justify-end gap-2">
+              <Button variant="outline" onClick={() => onOpenChange(false)} disabled={updateBill.isPending || correctBill.isPending}>
+                Cancel
+              </Button>
+              <Button onClick={handleSave} disabled={updateBill.isPending || correctBill.isPending}>
+                {updateBill.isPending || correctBill.isPending ? "Saving..." : "Save Changes"}
+              </Button>
+            </div>
           </div>
 
         </div>
