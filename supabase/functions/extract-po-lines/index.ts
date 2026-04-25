@@ -80,8 +80,16 @@ Deno.serve(async (req) => {
 
     const body = await req.json();
     const proposalPaths: string[] = Array.isArray(body.proposalPaths) ? body.proposalPaths : [];
-    const costCodes: CostCodeRef[] = Array.isArray(body.costCodes) ? body.costCodes : [];
+    const allCostCodes: CostCodeRef[] = Array.isArray(body.costCodes) ? body.costCodes : [];
     const fallbackCostCodeId: string | null = body.fallbackCostCodeId ?? null;
+    const lockedCostCodeId: string | null = body.lockedCostCodeId ?? null;
+
+    // If a locked cost code is provided, restrict the AI to ONLY that one.
+    // The vendor was bid for a single scope, so all extracted lines must roll up to it.
+    const lockedCostCode: CostCodeRef | null = lockedCostCodeId
+      ? allCostCodes.find((c) => c.id === lockedCostCodeId) ?? null
+      : null;
+    const costCodes: CostCodeRef[] = lockedCostCode ? [lockedCostCode] : allCostCodes;
 
     if (proposalPaths.length === 0) {
       return new Response(JSON.stringify({ lines: [] }), {
