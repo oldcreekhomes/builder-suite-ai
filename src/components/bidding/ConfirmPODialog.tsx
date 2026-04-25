@@ -279,7 +279,7 @@ export function ConfirmPODialog({
                       <TableHead className="w-[110px]">Unit Cost</TableHead>
                       <TableHead className="w-[70px]">Proposal</TableHead>
                       <TableHead className="w-[110px]">Amount</TableHead>
-                      <TableHead className="w-[60px]">Extra</TableHead>
+                      <TableHead className="w-[60px] text-center">Extra</TableHead>
                       <TableHead className="w-[50px]">Actions</TableHead>
                     </TableRow>
                   </TableHeader>
