@@ -1,76 +1,70 @@
-## Fix total mismatch by using one bill-line math path everywhere
 
-The mismatch is coming from `EditBillDialog`: the visible rows are grouped for display, but the bottom-left footer still recomputes totals from the raw underlying rows with separate inline reducers. That means the dialog is not using the same calculation/display pipeline as Enter with AI, and the math is duplicated in multiple places.
+## Problem
 
-### What I will build
+In the **PO Status dialog** (opened by clicking the PO Status icon on Review / Rejected / Approved / Paid tabs), the **Description** column shows `—` even though the bill itself clearly has descriptions like `"ASSEMBLY FIREPLACE SF-ALLP..."` and `"TARIFF SURCHARGE TARIFF SU..."` in the bill table and in the Edit Bill dialog.
 
-1. Create one shared bill-line math/display helper used by both editors:
-   - `EditExtractedBillDialog` (Enter with AI + Review pending uploads)
-   - `EditBillDialog` (Rejected, Approved, Paid, and other posted-bill entry points)
+### Root cause
 
-2. Move all grouping + total logic into the shared helper so both dialogs use the same rules for:
-   - grouping split lot rows
-   - per-row displayed total
-   - lot cost
-   - job cost subtotal
-   - expense subtotal
-   - overall bill total
+In `src/components/bills/PODetailsDialog.tsx`, the Description column renders **`line.description`**, which is the **PO line's** description (often empty). The dialog already receives the bill-side memos via the `pendingBillLines` prop (each has a `memo` field), but it never displays them.
 
-3. Fix `EditBillDialog` so the Job Cost footer is derived from the same normalized display math as the rows above it, instead of ad hoc inline `reduce()` calls.
+The data is already wired through correctly:
+- `BillPOSummaryDialog` builds `derivedPendingBillLines` from `bill.bill_lines` (preserving each line's `memo`) and passes them to `PODetailsDialog` as `pendingBillLines` (line 194 of `BillPOSummaryDialog.tsx`).
+- The same `getPendingForLine(...)` helper inside `PODetailsDialog` already determines exactly which pending bill line(s) get attributed to each PO line.
 
-4. Remove duplicated inline total reducers in both dialogs and replace them with shared selectors/computations, so we stop reinventing this every time.
+We just need the dialog to **render the matched pending bill line memos in the Description cell**, the same way the bill table and Edit Bill dialog display them.
 
-5. Keep posted-bill accounting safety intact:
-   - no schema changes
-   - no RLS / edge function changes for this fix
-   - `updateApprovedBill`, `updateBill`, and `correctBill` behavior stays intact
-   - only the UI math/display layer is unified unless a save-path mismatch is confirmed during implementation
+`PODetailsDialogWrapper.tsx` is currently unused at runtime (the Approval/Pay/Review tables use `BillPOSummaryDialog`), so no change is needed there.
 
-### Files to update
+## Plan
 
-- New shared helper file for bill line grouping/total math
-- `src/components/bills/EditBillDialog.tsx`
-- `src/components/bills/EditExtractedBillDialog.tsx`
-- If needed for consistency, any bill table display that should match the same bill total rules, especially:
-  - `src/components/bills/BillsApprovalTable.tsx`
+### File: `src/components/bills/PODetailsDialog.tsx`
 
-### Technical details
+1. **Add a small helper inside the component** (next to the existing `getPendingForLine`):
+   ```ts
+   // Returns the bill-side memos attributed to this PO line, using the SAME
+   // tier rules as getPendingForLine so Description and "This Bill" stay in sync.
+   const getPendingMemosForLine = (lineId: string, lineCostCodeId?: string, lineDescription?: string): string[] => {
+     // mirrors getPendingForLine, but collects pbl.memo strings instead of summing amount
+   };
+   ```
+   This guarantees the Description we show is for the *exact same* pending bill line(s) that contribute to the row's "This Bill" amount — no risk of showing a memo from a different PO's line.
 
-Shared helper responsibilities:
+2. **Update the Description cell** (currently `{line.description || '—'}`):
+   ```tsx
+   <TableCell>
+     {(() => {
+       const billMemos = getPendingMemosForLine(line.id, line.cost_code_id, line.description);
+       const text = billMemos.length > 0
+         ? billMemos.join(', ')
+         : (line.description || '—');
+       return (
+         <Tooltip>
+           <TooltipTrigger asChild>
+             <span className="block truncate max-w-[260px]">{text}</span>
+           </TooltipTrigger>
+           <TooltipContent className="max-w-md">
+             <p className="whitespace-pre-wrap break-words">{text}</p>
+           </TooltipContent>
+         </Tooltip>
+       );
+     })()}
+   </TableCell>
+   ```
+   - **Priority**: bill memo (what user sees in the bill table & Edit Bill dialog) → PO line description → `—`.
+   - **Multiple bill lines on one PO line** (e.g., the screenshot's two-line invoice both mapped to one fireplace PO line): join memos with `, ` and surface the full text in a tooltip — matches the standard tooltip pattern used elsewhere in this dialog (`BilledAmountWithTooltip`) and the rest of the app.
 
-```text
-raw lines/rows
-  -> normalize line shape
-  -> build grouped display rows
-  -> compute row totals consistently
-  -> compute job cost subtotal / expense subtotal / grand total
-  -> feed UI in both dialogs
-```
+3. **Cost Code cell** — for parity with the bill/Edit Bill dialog (which the user just got us to standardize), wrap the cost code text in the same shadcn `Tooltip` so long names don't get clipped silently.
 
-Key normalization rule:
-- `EditBillDialog` currently stores unit cost in the `amount` string field of `ExpenseRow` and derives row total as `quantity * amount`.
-- `EditExtractedBillDialog` uses explicit numeric `unit_cost` and `amount` fields.
-- I will normalize both into one internal shape before grouping or totaling so both dialogs render and subtotal identically.
+4. **No changes to math, totals, status badges, or the underlying queries.** Pure presentation change in one cell, plus a matching helper that re-uses the existing tier logic.
 
-Footer fix in `EditBillDialog`:
-- replace repeated inline reducers at the Job Cost footer, Expense footer, and notes dialog amount source
-- use shared subtotal values instead
-- ensure grouped-row display and footer always agree
+### Files NOT changing
+- `BillPOSummaryDialog.tsx` — already passes `pendingBillLines` with `memo`.
+- `PODetailsDialogWrapper.tsx` — not on this code path.
+- `useVendorPurchaseOrders.ts` — already returns everything we need.
 
-Consistency target:
-- Enter with AI
-- Review
-- Rejected
-- Approved
-- Paid
-all use the same displayed line math and total math, with no separate hand-written reducers.
+## Result
 
-### Out of scope
+The PO Status dialog's Description column will display:
+- `"ASSEMBLY FIREPLACE SF-ALLP10238400Q, TARIFF SURCHARGE TARIFF SURCHARGE"` (full memos available on hover)
 
-- No backend rewrite
-- No database migration
-- No edge-function rewrite unless implementation reveals a persisted line-amount inconsistency that also affects saved totals outside the dialog
-
-### Result
-
-The line-item rows and the bottom totals will match, and the same bill math rules will be used across Enter with AI, Review, Rejected, Approved, and Paid instead of maintaining two drifting implementations.
+…instead of `—`, exactly matching the Description shown in the bills table and the Edit Bill / Edit Extracted Bill dialogs across **Review, Rejected, Approved, and Paid**.

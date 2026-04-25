@@ -271,6 +271,69 @@ export function PODetailsDialog({
     }, 0);
   };
 
+  // Returns the bill-side memos attributed to this PO line, using the SAME
+  // tier rules as getPendingForLine so Description and "This Bill" stay in sync.
+  const getPendingMemosForLine = (lineId: string, lineCostCodeId?: string, lineDescription?: string): string[] => {
+    if (!hasPending) return [];
+    const memos: string[] = [];
+    const push = (pbl: PendingBillLine) => {
+      const m = (pbl.memo || '').trim();
+      if (m) memos.push(m);
+    };
+    for (const pbl of pendingBillLines) {
+      // Tier 1: explicit line match
+      if (pbl.purchase_order_line_id === lineId) { push(pbl); continue; }
+
+      // Skip if this pending line already has an explicit line assignment to ANOTHER line
+      if (pbl.purchase_order_line_id) continue;
+
+      // Tier 1.5: explicit PO match → distribute by cost code on this PO
+      if (isExplicitlyOnThisPO(pbl)) {
+        if (lineItems.length === 1) { push(pbl); continue; }
+        if (pbl.cost_code_id && pbl.cost_code_id === lineCostCodeId) {
+          const sameCCLines = lineItems.filter(l => l.cost_code_id === lineCostCodeId);
+          if (sameCCLines.length <= 1) { push(pbl); continue; }
+          let bestScore = 0;
+          let bestLineId: string | null = null;
+          for (const candidate of sameCCLines) {
+            const score = memoMatchScore(pbl.memo, candidate.description);
+            if (score > bestScore) {
+              bestScore = score;
+              bestLineId = candidate.id;
+            }
+          }
+          if (bestLineId === lineId) push(pbl);
+        }
+        continue;
+      }
+
+      if (isExplicitlyOnOtherPO(pbl)) continue;
+
+      // Tier 2: exact cost code match
+      if (pbl.cost_code_id && pbl.cost_code_id === lineCostCodeId) {
+        const sameCCLines = lineItems.filter(l => l.cost_code_id === lineCostCodeId);
+        if (sameCCLines.length <= 1) { push(pbl); continue; }
+        let bestScore = 0;
+        let bestLineId: string | null = null;
+        for (const candidate of sameCCLines) {
+          const score = memoMatchScore(pbl.memo, candidate.description);
+          if (score > bestScore) {
+            bestScore = score;
+            bestLineId = candidate.id;
+          }
+        }
+        if (bestScore >= 1 && bestLineId === lineId) push(pbl);
+        continue;
+      }
+
+      // Tier 3: single-line PO fallback
+      if (lineItems.length === 1) push(pbl);
+    }
+    // De-dupe while preserving order
+    return Array.from(new Set(memos));
+  };
+
+
   const totalPending = hasPending ? pendingBillLines.reduce((s, l) => s + l.amount, 0) : 0;
   const projectedRemaining = Math.round((purchaseOrder.remaining - totalPending) * 100) / 100;
   const projectedOverBudget = projectedRemaining < 0;
@@ -310,8 +373,9 @@ export function PODetailsDialog({
         {/* Line Items Table */}
         <div className="flex-1 overflow-y-auto">
           {lineItems.length > 0 ? (
-            <div className="border rounded-lg overflow-hidden">
-              <Table containerClassName="relative w-full">
+            <TooltipProvider delayDuration={200}>
+              <div className="border rounded-lg overflow-hidden">
+                <Table containerClassName="relative w-full">
                 <TableHeader>
                   <TableRow>
                      <TableHead>Cost Code</TableHead>
@@ -334,13 +398,38 @@ export function PODetailsDialog({
                         ? ((line.total_billed + linePending > 0) && (line.total_billed + linePending < line.amount))
                         : (line.total_billed > 0 && line.total_billed < line.amount);
 
+                      // Description = bill memo(s) attributed to this PO line, falling
+                      // back to the PO line's own description, then '—'. Matches what
+                      // the user sees in the bills table and the Edit Bill dialog.
+                      const billMemos = getPendingMemosForLine(line.id, line.cost_code_id, line.description);
+                      const descriptionText = billMemos.length > 0
+                        ? billMemos.join(', ')
+                        : (line.description || '—');
+                      const costCodeText = line.cost_code
+                        ? `${line.cost_code.code}: ${line.cost_code.name}`
+                        : '—';
+
                       return (
                         <TableRow key={line.id}>
                          <TableCell>
-                            {line.cost_code ? `${line.cost_code.code}: ${line.cost_code.name}` : '—'}
+                           <Tooltip>
+                             <TooltipTrigger asChild>
+                               <span className="block truncate max-w-[200px]">{costCodeText}</span>
+                             </TooltipTrigger>
+                             <TooltipContent className="max-w-md break-words">
+                               {costCodeText}
+                             </TooltipContent>
+                           </Tooltip>
                          </TableCell>
                          <TableCell>
-                           {line.description || '—'}
+                           <Tooltip>
+                             <TooltipTrigger asChild>
+                               <span className="block truncate max-w-[260px]">{descriptionText}</span>
+                             </TooltipTrigger>
+                             <TooltipContent className="max-w-md">
+                               <p className="whitespace-pre-wrap break-words">{descriptionText}</p>
+                             </TooltipContent>
+                           </Tooltip>
                          </TableCell>
                          <TableCell>
                            {formatCurrency(line.amount)}
@@ -407,7 +496,8 @@ export function PODetailsDialog({
                    </TableRow>
                 </TableBody>
               </Table>
-            </div>
+              </div>
+            </TooltipProvider>
           ) : (
             <p className="text-sm text-muted-foreground text-center py-6 border rounded-lg bg-muted/30">
               No line items found for this purchase order.
