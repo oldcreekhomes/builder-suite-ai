@@ -7,6 +7,8 @@ import { AddCompaniesToBidPackageModal } from './AddCompaniesToBidPackageModal';
 import { BiddingTableRowContent } from './components/BiddingTableRowContent';
 import { SelectCompanyForPODialog } from './components/SelectCompanyForPODialog';
 import { ConfirmPODialog } from './ConfirmPODialog';
+import { usePreExtractPOLines } from '@/hooks/usePreExtractPOLines';
+import type { LineItemInput } from '@/hooks/usePurchaseOrderLines';
 import type { Tables } from '@/integrations/supabase/types';
 
 type CostCode = Tables<'cost_codes'>;
@@ -105,6 +107,8 @@ export function BiddingTableRow({
   const [showSelectCompanyForPO, setShowSelectCompanyForPO] = useState(false);
   const [showConfirmPODialog, setShowConfirmPODialog] = useState(false);
   const [selectedBiddingCompany, setSelectedBiddingCompany] = useState<BiddingCompany | null>(null);
+  const [extractedLines, setExtractedLines] = useState<LineItemInput[] | null>(null);
+  const { extract } = usePreExtractPOLines();
   const costCode = item.cost_codes as CostCode;
 
   const handleSendEmailToCompany = (biddingItemId: string, companyId: string) => {
@@ -116,8 +120,11 @@ export function BiddingTableRow({
     setShowSelectCompanyForPO(true);
   };
 
-  const handleSelectCompanyForPO = (company: BiddingCompany) => {
+  const handleSelectCompanyForPO = async (company: BiddingCompany) => {
     setSelectedBiddingCompany(company);
+    setShowSelectCompanyForPO(false);
+    const lines = await extract(company.proposals, item.cost_code_id);
+    setExtractedLines(lines);
     setShowConfirmPODialog(true);
   };
 
@@ -233,13 +240,14 @@ export function BiddingTableRow({
 
       <ConfirmPODialog
         isOpen={showConfirmPODialog}
-        onClose={() => setShowConfirmPODialog(false)}
+        onClose={() => { setShowConfirmPODialog(false); setExtractedLines(null); }}
         biddingCompany={selectedBiddingCompany}
         onConfirm={handlePOConfirmed}
         bidPackageId={item.id}
         projectAddress={projectAddress || ''}
         projectId={item.project_id}
         costCodeId={item.cost_code_id}
+        initialLineItems={extractedLines || undefined}
       />
     </>
   );

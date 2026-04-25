@@ -9,8 +9,10 @@ import { usePOStatus } from '@/hooks/usePOStatus';
 import { TableRowActions } from '@/components/ui/table-row-actions';
 import { Badge } from '@/components/ui/badge';
 import { format } from 'date-fns';
-import { CheckCircle } from 'lucide-react';
+import { CheckCircle, Sparkles } from 'lucide-react';
 import type { AwardedPO } from '@/hooks/useBidPackagePO';
+import { usePreExtractPOLines } from '@/hooks/usePreExtractPOLines';
+import type { LineItemInput } from '@/hooks/usePurchaseOrderLines';
 
 interface Company {
   id: string;
@@ -74,12 +76,23 @@ export function BiddingCompanyRow({
   awardedPOs = []
 }: BiddingCompanyRowProps) {
   const [showConfirmPODialog, setShowConfirmPODialog] = useState(false);
+  const [extractedLines, setExtractedLines] = useState<LineItemInput[] | null>(null);
+  const { extract, isExtracting } = usePreExtractPOLines();
   const awardedPO = awardedPOs.find(po => po.company_id === biddingCompany.company_id);
   const { getPOStatusForCompany } = usePOStatus(projectId, costCodeId);
 
   const handleSendPO = () => {
     console.log('Send PO confirmed for company:', biddingCompany.company_id);
     // TODO: Implement PO sending logic
+  };
+
+  const handleOpenConfirmPO = async () => {
+    // For "send" mode, run AI extraction first, then open the dialog with results.
+    if (!isReadOnly) {
+      const lines = await extract(biddingCompany.proposals, costCodeId);
+      setExtractedLines(lines);
+    }
+    setShowConfirmPODialog(true);
   };
 
   const actions = [
@@ -90,7 +103,7 @@ export function BiddingCompanyRow({
     }] : []),
     {
       label: isReadOnly ? "Resend PO Email" : "Send PO",
-      onClick: () => setShowConfirmPODialog(true),
+      onClick: handleOpenConfirmPO,
       hidden: isReadOnly && !awardedPO,
     },
     {
@@ -180,12 +193,19 @@ export function BiddingCompanyRow({
         />
       </TableCell>
       <TableCell className="text-center">
-        <TableRowActions actions={actions} disabled={isReadOnly && !awardedPO} />
+        {isExtracting ? (
+          <span className="inline-flex items-center gap-1 text-xs text-muted-foreground whitespace-nowrap">
+            <Sparkles className="h-3.5 w-3.5 animate-pulse" />
+            Creating PO with AI…
+          </span>
+        ) : (
+          <TableRowActions actions={actions} disabled={isReadOnly && !awardedPO} />
+        )}
       </TableCell>
 
       <ConfirmPODialog
         isOpen={showConfirmPODialog}
-        onClose={() => setShowConfirmPODialog(false)}
+        onClose={() => { setShowConfirmPODialog(false); setExtractedLines(null); }}
         biddingCompany={biddingCompany}
         onConfirm={handleSendPO}
         bidPackageId={bidPackageId}
@@ -193,6 +213,7 @@ export function BiddingCompanyRow({
         projectId={projectId}
         costCodeId={costCodeId}
         mode={isReadOnly ? 'resend' : 'send'}
+        initialLineItems={extractedLines || undefined}
       />
     </TableRow>
   );

@@ -6,7 +6,7 @@ import { Input } from '@/components/ui/input';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Label } from '@/components/ui/label';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Plus, Trash2, Loader2, Sparkles } from 'lucide-react';
+import { Plus, Trash2 } from 'lucide-react';
 import { getFileIcon, getFileIconColor, getCleanFileName } from '../bidding/utils/fileIconUtils';
 import { supabase } from '@/integrations/supabase/client';
 import { usePOMutations } from '@/hooks/usePOMutations';
@@ -16,8 +16,6 @@ import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip
 import { DeleteConfirmationDialog } from '@/components/ui/delete-confirmation-dialog';
 import { useBiddingCompanyMutations } from '@/hooks/useBiddingCompanyMutations';
 import { CostCodeSearchInput } from '@/components/CostCodeSearchInput';
-import { useCostCodeSearch } from '@/hooks/useCostCodeSearch';
-import { useToast } from '@/hooks/use-toast';
 import type { LineItemInput } from '@/hooks/usePurchaseOrderLines';
 
 interface Company {
@@ -45,6 +43,8 @@ interface ConfirmPODialogProps {
   projectId: string;
   costCodeId: string;
   mode?: 'send' | 'resend';
+  /** Pre-extracted line items from the AI. When provided, dialog skips its own extraction. */
+  initialLineItems?: LineItemInput[];
 }
 
 const emptyLine = (): LineItemInput => ({
@@ -67,21 +67,27 @@ export function ConfirmPODialog({
   projectId,
   costCodeId,
   mode = 'send',
+  initialLineItems,
 }: ConfirmPODialogProps) {
   const { createPOSendEmailAndUpdateStatus, resendPOEmail, isLoading } = usePOMutations(projectId);
   const { profile } = useUserProfile();
   const { openFile } = useUniversalFilePreviewContext();
   const { deleteIndividualProposal } = useBiddingCompanyMutations(projectId);
-  const { costCodes } = useCostCodeSearch();
-  const { toast } = useToast();
 
   const [customMessage, setCustomMessage] = useState('');
   const [costCodeData, setCostCodeData] = useState<{ code: string; name: string } | null>(null);
   const [fileToDelete, setFileToDelete] = useState<string | null>(null);
   const [managerName, setManagerName] = useState<string>('');
-  const [lineItems, setLineItems] = useState<LineItemInput[]>([emptyLine()]);
-  const [extracting, setExtracting] = useState(false);
-  const [extractedOnce, setExtractedOnce] = useState(false);
+  const [lineItems, setLineItems] = useState<LineItemInput[]>(
+    initialLineItems && initialLineItems.length > 0 ? initialLineItems : [emptyLine()]
+  );
+
+  // When dialog re-opens with new initialLineItems, seed state from them
+  useEffect(() => {
+    if (isOpen && initialLineItems && initialLineItems.length > 0) {
+      setLineItems(initialLineItems.map((l) => ({ ...l })));
+    }
+  }, [isOpen, initialLineItems]);
 
   // Fetch cost code data and PM name
   useEffect(() => {
@@ -121,54 +127,11 @@ export function ConfirmPODialog({
     }
   }, [isOpen, costCodeId, projectId]);
 
-  // Auto-extract line items when dialog opens
-  useEffect(() => {
-    if (!isOpen || mode === 'resend' || extractedOnce) return;
-    if (!biddingCompany?.proposals || biddingCompany.proposals.length === 0) {
-      setExtractedOnce(true);
-      return;
-    }
-    if (costCodes.length === 0) return; // wait for cost codes to load
-
-    const run = async () => {
-      setExtracting(true);
-      try {
-        const { data, error } = await supabase.functions.invoke('extract-po-lines', {
-          body: {
-            proposalPaths: biddingCompany.proposals,
-            costCodes: costCodes.map((c) => ({ id: c.id, code: c.code, name: c.name })),
-            fallbackCostCodeId: costCodeId,
-          },
-        });
-        if (error) throw error;
-        const lines = (data?.lines || []) as LineItemInput[];
-        if (lines.length > 0) {
-          setLineItems(lines.map((l) => ({ ...l })));
-        }
-      } catch (e: any) {
-        console.error('extract-po-lines failed:', e);
-        const msg = e?.message || '';
-        if (msg.includes('429')) {
-          toast({ title: 'Rate limit', description: 'AI rate limit hit, please retry in a moment.', variant: 'destructive' });
-        } else if (msg.includes('402')) {
-          toast({ title: 'Credits exhausted', description: 'Add AI credits in Settings → Workspace → Usage.', variant: 'destructive' });
-        } else {
-          toast({ title: "Couldn't auto-extract", description: 'Enter line items manually.' });
-        }
-      } finally {
-        setExtracting(false);
-        setExtractedOnce(true);
-      }
-    };
-    run();
-  }, [isOpen, mode, biddingCompany, costCodes, costCodeId, extractedOnce, toast]);
-
   // Reset on close
   useEffect(() => {
     if (!isOpen) {
       setCustomMessage('');
       setLineItems([emptyLine()]);
-      setExtractedOnce(false);
     }
   }, [isOpen]);
 
@@ -237,6 +200,9 @@ export function ConfirmPODialog({
 
   if (!biddingCompany) return null;
 
+  const proposals = biddingCompany.proposals || [];
+  const firstProposal = proposals[0];
+
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent className="max-w-5xl max-h-[90vh] overflow-y-auto">
@@ -260,29 +226,16 @@ export function ConfirmPODialog({
 
           {mode === 'send' && (
             <div className="space-y-2">
-              <div className="flex items-center justify-between">
-                <Label>Line Items</Label>
-                {extracting && (
-                  <span className="flex items-center gap-1.5 text-xs text-muted-foreground">
-                    <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                    Extracting line items from proposal…
-                  </span>
-                )}
-                {!extracting && extractedOnce && lineItems.some((l) => l.cost_code_id) && (
-                  <span className="flex items-center gap-1.5 text-xs text-muted-foreground">
-                    <Sparkles className="h-3.5 w-3.5" />
-                    Auto-extracted — review and edit before sending
-                  </span>
-                )}
-              </div>
+              <Label>Line Items</Label>
               <div className="border rounded-lg overflow-hidden">
                 <Table>
                   <TableHeader>
                     <TableRow>
                       <TableHead className="w-[200px]">Cost Code</TableHead>
                       <TableHead>Description</TableHead>
-                      <TableHead className="w-[80px] text-right">Qty</TableHead>
+                      <TableHead className="w-[40px] text-right">Qty</TableHead>
                       <TableHead className="w-[110px] text-right">Unit Cost</TableHead>
+                      <TableHead className="w-[70px] text-center">Proposal</TableHead>
                       <TableHead className="w-[110px] text-right">Amount</TableHead>
                       <TableHead className="w-[60px] text-center">Extra</TableHead>
                       <TableHead className="w-[50px]"></TableHead>
@@ -320,7 +273,7 @@ export function ConfirmPODialog({
                             type="number"
                             value={line.quantity || ''}
                             onChange={(e) => updateLine(idx, { quantity: parseFloat(e.target.value) || 0 })}
-                            className="h-8 text-sm text-right"
+                            className="h-8 text-sm text-right px-1"
                             min={0}
                           />
                         </TableCell>
@@ -333,6 +286,40 @@ export function ConfirmPODialog({
                             className="h-8 text-sm text-right"
                             min={0}
                           />
+                        </TableCell>
+                        <TableCell className="p-1 text-center">
+                          {idx === 0 && firstProposal ? (
+                            <div className="relative inline-flex">
+                              <Tooltip>
+                                <TooltipTrigger asChild>
+                                  <button
+                                    type="button"
+                                    onClick={() => handleFilePreview(firstProposal)}
+                                    className="flex items-center justify-center p-1 rounded-md hover:bg-muted transition-colors cursor-pointer"
+                                  >
+                                    {(() => {
+                                      const Icon = getFileIcon(firstProposal);
+                                      return <Icon className={`h-5 w-5 ${getFileIconColor(firstProposal)}`} />;
+                                    })()}
+                                  </button>
+                                </TooltipTrigger>
+                                <TooltipContent>
+                                  <p>{getCleanFileName(firstProposal)}</p>
+                                </TooltipContent>
+                              </Tooltip>
+                              <button
+                                type="button"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  setFileToDelete(firstProposal);
+                                }}
+                                className="absolute -top-0.5 -right-0.5 bg-destructive hover:bg-destructive/80 text-destructive-foreground rounded-full w-3 h-3 flex items-center justify-center"
+                                title="Delete file"
+                              >
+                                <span className="text-[9px] font-bold leading-none">×</span>
+                              </button>
+                            </div>
+                          ) : null}
                         </TableCell>
                         <TableCell className="p-1 text-right text-sm font-medium pr-3">
                           ${line.amount.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
@@ -358,7 +345,7 @@ export function ConfirmPODialog({
                       </TableRow>
                     ))}
                     <TableRow className="bg-muted/50">
-                      <TableCell colSpan={4} className="text-right font-medium text-sm pr-3">
+                      <TableCell colSpan={5} className="text-right font-medium text-sm pr-3">
                         Subtotal
                       </TableCell>
                       <TableCell className="text-right font-semibold text-sm pr-3">
@@ -369,9 +356,6 @@ export function ConfirmPODialog({
                   </TableBody>
                 </Table>
               </div>
-              <Button type="button" variant="outline" size="sm" onClick={addLine} className="gap-1">
-                <Plus className="h-3.5 w-3.5" /> Add Line
-              </Button>
             </div>
           )}
 
@@ -384,70 +368,26 @@ export function ConfirmPODialog({
             </div>
           )}
 
-          <div>
-            <Label htmlFor="custom-message" className="text-sm font-medium text-muted-foreground">
-              Custom Message (Optional)
-            </Label>
-            <Textarea
-              id="custom-message"
-              placeholder="Add a custom message to include in the email..."
-              className="w-full mt-1 resize-none focus-visible:ring-offset-0 focus-visible:ring-2 focus-visible:ring-black focus-visible:border-black"
-              rows={3}
-              value={customMessage}
-              onChange={(e) => setCustomMessage(e.target.value)}
-            />
+          <div className="flex gap-3 items-end">
+            <div className="flex-1">
+              <Label htmlFor="custom-message" className="text-sm font-medium text-muted-foreground">
+                Custom Message (Optional)
+              </Label>
+              <Textarea
+                id="custom-message"
+                placeholder="Add a custom message to include in the email..."
+                className="w-full mt-1 resize-none focus-visible:ring-offset-0 focus-visible:ring-2 focus-visible:ring-black focus-visible:border-black"
+                rows={2}
+                value={customMessage}
+                onChange={(e) => setCustomMessage(e.target.value)}
+              />
+            </div>
+            {mode === 'send' && (
+              <Button type="button" variant="outline" size="sm" onClick={addLine} className="gap-1 shrink-0">
+                <Plus className="h-3.5 w-3.5" /> Add Line
+              </Button>
+            )}
           </div>
-
-          {biddingCompany.proposals && biddingCompany.proposals.length > 0 ? (
-            <div>
-              <Label className="text-sm font-medium text-muted-foreground">Attached Proposals</Label>
-              <div className="mt-2 flex flex-wrap gap-2">
-                {biddingCompany.proposals.map((fileName, index) => {
-                  const IconComponent = getFileIcon(fileName);
-                  const iconColor = getFileIconColor(fileName);
-                  const cleanName = getCleanFileName(fileName);
-                  return (
-                    <div key={index} className="flex flex-col items-center">
-                      <div className="relative">
-                        <Tooltip>
-                          <TooltipTrigger asChild>
-                            <button
-                              onClick={() => handleFilePreview(fileName)}
-                              className="flex items-center justify-center p-1 rounded-lg hover:bg-muted transition-colors cursor-pointer"
-                            >
-                              <IconComponent className={`h-6 w-6 ${iconColor}`} />
-                            </button>
-                          </TooltipTrigger>
-                          <TooltipContent>
-                            <p>{cleanName}</p>
-                          </TooltipContent>
-                        </Tooltip>
-                        <button
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            setFileToDelete(fileName);
-                          }}
-                          className="absolute -top-1 -right-1 bg-destructive hover:bg-destructive/80 text-destructive-foreground rounded-full w-3 h-3 flex items-center justify-center"
-                          title="Delete file"
-                          type="button"
-                        >
-                          <span className="text-xs font-bold leading-none">×</span>
-                        </button>
-                      </div>
-                      <span className="text-xs text-muted-foreground truncate max-w-[60px] text-center mt-1">
-                        {cleanName}
-                      </span>
-                    </div>
-                  );
-                })}
-              </div>
-            </div>
-          ) : (
-            <div>
-              <Label className="text-sm font-medium text-muted-foreground">Attached Proposals</Label>
-              <p className="text-sm text-muted-foreground mt-1">No proposals attached</p>
-            </div>
-          )}
         </div>
 
         <div className="flex justify-end gap-2 mt-6">
@@ -461,7 +401,7 @@ export function ConfirmPODialog({
           </Button>
           <Button
             onClick={handleConfirm}
-            disabled={isLoading || extracting}
+            disabled={isLoading}
             className="bg-green-600 hover:bg-green-700 text-white"
           >
             {isLoading ? 'Sending...' : mode === 'resend' ? 'Resend PO' : 'Send PO'}

@@ -80,8 +80,16 @@ Deno.serve(async (req) => {
 
     const body = await req.json();
     const proposalPaths: string[] = Array.isArray(body.proposalPaths) ? body.proposalPaths : [];
-    const costCodes: CostCodeRef[] = Array.isArray(body.costCodes) ? body.costCodes : [];
+    const allCostCodes: CostCodeRef[] = Array.isArray(body.costCodes) ? body.costCodes : [];
     const fallbackCostCodeId: string | null = body.fallbackCostCodeId ?? null;
+    const lockedCostCodeId: string | null = body.lockedCostCodeId ?? null;
+
+    // If a locked cost code is provided, restrict the AI to ONLY that one.
+    // The vendor was bid for a single scope, so all extracted lines must roll up to it.
+    const lockedCostCode: CostCodeRef | null = lockedCostCodeId
+      ? allCostCodes.find((c) => c.id === lockedCostCodeId) ?? null
+      : null;
+    const costCodes: CostCodeRef[] = lockedCostCode ? [lockedCostCode] : allCostCodes;
 
     if (proposalPaths.length === 0) {
       return new Response(JSON.stringify({ lines: [] }), {
@@ -112,6 +120,10 @@ Deno.serve(async (req) => {
       .map((c) => `- ${c.name}`)
       .join("\n");
 
+    const userText = lockedCostCode
+      ? `All extracted line items belong to ONE cost code: "${lockedCostCode.code} - ${lockedCostCode.name}". This vendor was bid for that single scope only — do NOT split across multiple cost codes. Set cost_code_hint to "${lockedCostCode.name}" on every line. Extract one line per discrete priced task and per hourly/as-required item from the attached proposal PDF.`
+      : `Available cost codes (pick closest by name):\n${costCodeList}\n\nExtract every priced task and hourly/as-required line from the attached proposal PDF.`;
+
     const aiResp = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",
       headers: {
@@ -127,7 +139,7 @@ Deno.serve(async (req) => {
             content: [
               {
                 type: "text",
-                text: `Available cost codes (pick closest by name):\n${costCodeList}\n\nExtract every priced task and hourly/as-required line from the attached proposal PDF.`,
+                text: userText,
               },
               {
                 type: "file",
@@ -202,11 +214,14 @@ Deno.serve(async (req) => {
     const rawLines: any[] = Array.isArray(args.lines) ? args.lines : [];
 
     const fallback = fallbackCostCodeId
-      ? costCodes.find((c) => c.id === fallbackCostCodeId) ?? null
+      ? (allCostCodes.find((c) => c.id === fallbackCostCodeId) ?? null)
       : null;
 
     const lines: ExtractedLine[] = rawLines.map((l) => {
-      const matched = matchCostCode(String(l.cost_code_hint || ""), costCodes) ?? fallback;
+      // If a locked cost code is supplied, force every line to it.
+      const matched = lockedCostCode
+        ?? matchCostCode(String(l.cost_code_hint || ""), costCodes)
+        ?? fallback;
       const qty = Number(l.quantity) || 0;
       const unit = Number(l.unit_cost) || 0;
       const amt = Number(l.amount) || Math.round(qty * unit * 100) / 100;
