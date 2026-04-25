@@ -280,7 +280,7 @@ export function ConfirmPODialog({
                       <TableHead className="w-[70px]">Proposal</TableHead>
                       <TableHead className="w-[110px]">Amount</TableHead>
                       <TableHead className="w-[60px]">Extra</TableHead>
-                      <TableHead className="w-[50px]"></TableHead>
+                      <TableHead className="w-[50px]">Actions</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
@@ -329,7 +329,7 @@ export function ConfirmPODialog({
                             min={0}
                           />
                         </TableCell>
-                        <TableCell className="p-1">
+                        <TableCell className="p-1 text-center">
                           {idx === 0 && firstProposal ? (
                             <div className="relative inline-flex">
                               <Tooltip>
@@ -366,7 +366,7 @@ export function ConfirmPODialog({
                         <TableCell className="p-1 text-sm font-medium">
                           ${line.amount.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                         </TableCell>
-                        <TableCell className="p-1">
+                        <TableCell className="p-1 text-center">
                           <Checkbox
                             checked={line.extra}
                             onCheckedChange={(checked) => updateLine(idx, { extra: checked as boolean })}
@@ -381,7 +381,7 @@ export function ConfirmPODialog({
                             onClick={() => removeLine(idx)}
                             disabled={lineItems.length <= 1}
                           >
-                            <Trash2 className="h-3.5 w-3.5 text-muted-foreground" />
+                            <Trash2 className="h-3.5 w-3.5 text-red-600" />
                           </Button>
                         </TableCell>
                       </TableRow>
