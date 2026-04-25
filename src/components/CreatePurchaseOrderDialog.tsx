@@ -675,7 +675,7 @@ export const CreatePurchaseOrderDialog = ({
             </div>
             <div className="space-y-1.5">
               <Label>Sending To</Label>
-              <div className="border rounded-md p-3 h-[96px] overflow-auto text-sm">
+              <div className="border rounded-md p-3 h-[80px] overflow-auto text-sm">
                 {!recipientCompanyId ? (
                   <p className="text-xs text-muted-foreground italic">Select a company to see recipients</p>
                 ) : recipients.length === 0 ? (
