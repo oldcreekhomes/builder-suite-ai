@@ -621,17 +621,16 @@ export const CreatePurchaseOrderDialog = ({
               <Label>Custom Message (Optional)</Label>
               <Textarea
                 placeholder="Add a custom message to include in the email..."
-                rows={4}
                 value={customMessage}
                 onChange={(e) => setCustomMessage(e.target.value)}
-                className="resize-none"
+                className="resize-none h-[96px] min-h-[96px]"
               />
             </div>
             <div className="space-y-1.5">
               <Label>Attachments</Label>
               <div
                 {...getRootProps()}
-                className={`border rounded-md p-3 transition-colors cursor-pointer min-h-[80px] flex items-center justify-center ${
+                className={`border rounded-md p-3 transition-colors cursor-pointer h-[96px] flex items-center justify-center ${
                   isDragActive ? 'border-primary/50 bg-primary/5' : 'border-input hover:border-muted-foreground/50'
                 } ${isUploading ? 'opacity-50 cursor-not-allowed' : ''}`}
               >
