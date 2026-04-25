@@ -1,63 +1,62 @@
-
 ## Goal
-Stop maintaining two parallel UIs. Make the bidding "Confirm PO" flow render the same `CreatePurchaseOrderDialog` that the Purchase Orders page uses, so any future UI improvement happens in one place.
+Make the bidding "Confirm PO" dialog **visually identical** to the standard Create Purchase Order dialog. No bidding-specific layout differences. The only thing the bidding flow keeps is its under-the-hood behavior (locked company, AI line items, mutation routing, status close).
 
-## Why we have two today
-Both dialogs do essentially the same thing — collect company + line items + custom message + attachments and create a PO with email — but they evolved in different folders:
+## What's wrong today
+Even though both flows now use `CreatePurchaseOrderDialog`, I left a `bidContext` branch that renders a completely different layout:
 
-- `src/components/CreatePurchaseOrderDialog.tsx` (504 lines) — used from the Purchase Orders page. Clean, shadcn defaults, Company search + Notes + Line Items table + Custom Message + Attachments dropzone. Writes directly to `project_purchase_orders` + `purchase_order_lines` and calls the `send-po-email` edge function.
-- `src/components/bidding/ConfirmPODialog.tsx` (498 lines) — used from `BiddingTableRow` and `BiddingCompanyRow` after a bid is accepted. Same fields plus: pre-filled company (locked), AI-extracted line items, "Sending To" recipients preview, a Proposal column with file preview/delete, an "isExtracting" sparkles loading state, and a `mode='resend'` variant. Uses `usePOMutations` (`createPOSendEmailAndUpdateStatus` / `resendPOEmail`) which also flips the bidding company status and closes the bid package.
+| | Create PO (correct template) | Confirm PO (today, wrong) |
+|---|---|---|
+| Header title | "Create Purchase Order" | "Confirm PO" |
+| Top row | 2 cols: **Company \| Notes** | 3 cols: Company \| Bid Package Cost Code \| Sending To |
+| Line items table | Cost Code, Description, Qty, Unit Cost, Amount, Extra, Actions | adds extra **Proposal** column |
+| Bottom row | 2 cols: **Custom Message (rows=2) \| Attachments dropzone** | 1 full-width Custom Message, no attachments |
+| Submit button | "Create Purchase Order" | "Send PO" |
 
-The visual divergence (locked company text vs search input, different column set, different button colors, etc.) is purely cosmetic — the data model and final actions are nearly identical.
+The user's screenshots confirm: Create PO is the canonical layout. Confirm PO must mirror it exactly.
 
-## Approach: one dialog, two entry modes
+## Changes (all in `src/components/CreatePurchaseOrderDialog.tsx`)
 
-Refactor `CreatePurchaseOrderDialog` to accept an optional `bidContext` prop, then delete `ConfirmPODialog` and point both bidding row components at `CreatePurchaseOrderDialog`.
+### 1. Header title
+Always render "Create Purchase Order" (or "Edit Purchase Order" when `editOrder`). Drop the "Confirm PO" / "Resend PO" titles.
 
-### 1. Extend `CreatePurchaseOrderDialog` props
-Add (all optional, fully back-compat with the existing PO page usage):
-```ts
-bidContext?: {
-  biddingCompany: BiddingCompany;   // pre-fills + locks company, exposes proposals
-  bidPackageId: string;
-  costCodeId: string;               // bid package cost code (shown as a read-only chip)
-  initialLineItems?: LineItemInput[]; // AI-extracted lines
-  isExtracting?: boolean;           // show the sparkles loader instead of the form
-  mode?: 'send' | 'resend';
-  onConfirm?: () => void;           // called after success so the row can refresh bidding state
-};
-```
+### 2. Top row — always 2 columns: Company + Notes
+Remove the bidding 3-column branch entirely. Render the same `CompanySearchInput` + Notes `Input` for both flows.
+- For `bidContext`, pre-select the company on open (already happens) and pass `disabled` to `CompanySearchInput` so the user can't change it (locked but visually identical to a populated search field). If `CompanySearchInput` doesn't support `disabled`, fall back to a regular `<Input value={company.name} disabled />` styled the same — same height, same border, same placeholder slot.
+- The "Bid Package Cost Code" chip and "Sending To" recipients block are **deleted from the dialog**. Recipients are still implicitly used by the edge function via `company_representatives` server-side; the user doesn't need to see them in the dialog (matches Create PO behavior). Remove the `recipients` / `costCodeData` / `managerName` fetches that exist solely to feed those removed UI blocks.
 
-### 2. Behavior changes inside the dialog when `bidContext` is provided
-- Pre-select the company from `biddingCompany.companies` and render the company field as read-only text (matching the current Confirm PO look) instead of `CompanySearchInput`.
-- Seed `lineItems` from `bidContext.initialLineItems` on open; otherwise fall back to one empty line.
-- Render the existing "Sending To" recipients block (fetch `company_representatives` with `receive_po_notifications = true`).
-- Render the existing Proposal column + file preview/delete in the line items table (only when `bidContext` is set).
-- When `isExtracting`, render the existing sparkles loading state (extracted into a tiny inline component) instead of the form — same UX as today.
-- On submit, route through `usePOMutations` (`createPOSendEmailAndUpdateStatus` for `send`, `resendPOEmail` for `resend`) instead of the inline `supabase.from('project_purchase_orders').insert(...)` path. This preserves the bidding-side side effects (status update, package close, etc.). Without `bidContext`, keep the current direct insert/update path unchanged.
-- Title becomes "Confirm PO" / "Resend PO" when `bidContext` is present; otherwise "Create Purchase Order" / "Edit Purchase Order" as today.
-- Submit button styling stays neutral (shadcn default) — no green/red recoloring, per the project's standardization-over-customization rule.
+### 3. Line items table — drop the Proposal column
+Remove the `isBidFlow && <TableHead>Proposal</TableHead>` column and its body cell. The proposal file stays accessible from the bidding row itself (where it already lives) — it doesn't need to be re-rendered inside the PO dialog. Also drop the `DeleteConfirmationDialog` for proposals and the `useBiddingCompanyMutations` import that's only used here.
 
-### 3. Update the two bidding callers
-- `src/components/bidding/BiddingTableRow.tsx` and `src/components/bidding/components/BiddingCompanyRow.tsx`: replace `<ConfirmPODialog ... />` with `<CreatePurchaseOrderDialog bidContext={{ ... }} ... />`. Same props mapped 1:1 (biddingCompany, bidPackageId, costCodeId, initialLineItems, isExtracting, mode, onConfirm).
+After removal: every table column matches Create PO 1:1.
 
-### 4. Delete the old file
-- Remove `src/components/bidding/ConfirmPODialog.tsx`.
+### 4. Bottom row — always 2 columns: Custom Message + Attachments dropzone
+Remove the `isBidFlow ? full-width message : 2-col` branch. Always render the `grid grid-cols-2` layout with Custom Message (Textarea, rows=2) on the left and the Attachments dropzone on the right.
+- Bidding flow currently can't upload attachments because submission goes through `usePOMutations` (which doesn't accept a `files` array). Fix: pass `uploadedFiles` into `createPOSendEmailAndUpdateStatus` by extending the mutation's payload to accept an optional `files` array, then merge it with the proposal-derived files inside `usePOMutations.createPOAndSendEmail` (it already builds `purchaseOrderData.files` from proposals — just concat the user-uploaded files). This is a small, additive change in `src/hooks/usePOMutations.ts` only — no schema or edge-function changes.
+- Remove the resend-only "Amount" summary block; resend mode keeps the same layout (line items already render).
 
-## What stays the same
-- The "Creating PO from machine learning" loader still appears before the dialog form.
-- AI extraction of proposal line items still runs in the row component and is passed in as `initialLineItems`.
-- Resend flow, recipient list, proposal preview, file delete confirmation — all preserved, just rendered by the unified dialog.
-- The Purchase Orders page usage of `CreatePurchaseOrderDialog` is unchanged because every new prop is optional.
+### 5. Submit button label
+Always "Create Purchase Order" / "Updating..." / "Creating...". Drop "Send PO" / "Resend PO" / "Sending..." labels. The bidding flow still routes through `createPOSendEmailAndUpdateStatus` / `resendPOEmail` under the hood — only the visible label changes.
 
-## Out of scope
-- No DB schema changes.
-- No edge function changes.
-- No changes to `usePOMutations`, `usePurchaseOrderLines`, or the bidding mutations.
-- No visual restyling beyond making the bidding flow inherit the Create PO layout.
+### 6. Keep working under the hood (no UX-visible change)
+- AI extraction loader ("Creating PO from machine learning") still shows when `isExtracting`.
+- `bidContext.initialLineItems` still seeds the table.
+- Submit still calls `createPOSendEmailAndUpdateStatus` (send) or `resendPOEmail` (resend) so the bid package is closed and bidding state refreshes.
+- `bidContext.onConfirm?.()` still fires on success.
+
+### 7. Cleanup inside the file
+After the above, these become unused and get removed:
+- `costCodeData`, `recipients`, `managerName`, `fileToDelete` state
+- The `useEffect` that fetches cost code / PM / recipients
+- `useUniversalFilePreviewContext`, `useBiddingCompanyMutations`, `Tooltip*`, `DeleteConfirmationDialog`, `getFileIcon/getFileIconColor/getCleanFileName` imports
+- `handleProposalPreview` function
+- `firstProposal` / `proposals` derivations
 
 ## Files touched
-- `src/components/CreatePurchaseOrderDialog.tsx` — extend with `bidContext` branch.
-- `src/components/bidding/BiddingTableRow.tsx` — swap dialog import + usage.
-- `src/components/bidding/components/BiddingCompanyRow.tsx` — swap dialog import + usage.
-- `src/components/bidding/ConfirmPODialog.tsx` — delete.
+- `src/components/CreatePurchaseOrderDialog.tsx` — collapse the bidding-specific UI branches; both flows render the exact Create PO layout.
+- `src/hooks/usePOMutations.ts` — accept optional `files` on `createPOAndSendEmail` and merge with proposal files so the bidding flow's Attachments dropzone works.
+
+## Out of scope
+- No DB changes.
+- No edge-function changes.
+- No changes to `BiddingTableRow` / `BiddingCompanyRow` callers (they already pass `bidContext`).
+- No restyling of the Create PO dialog itself — it stays as-is and becomes the single source of truth.

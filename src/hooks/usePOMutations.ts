@@ -17,7 +17,8 @@ export const usePOMutations = (projectId: string) => {
       bidPackageId,
       bidId,
       customMessage,
-      lineItems
+      lineItems,
+      files
     }: { 
       companyId: string;
       costCodeId: string;
@@ -27,6 +28,7 @@ export const usePOMutations = (projectId: string) => {
       bidId?: string;
       customMessage?: string;
       lineItems?: LineItemInput[];
+      files?: Array<{ id: string; name: string; size: number; url: string }>;
     }) => {
       console.log('=== PO CREATION DEBUG ===');
       console.log('Creating PO with params:', { projectId, companyId, costCodeId, totalAmount, bidPackageId, bidId });
@@ -88,6 +90,11 @@ export const usePOMutations = (projectId: string) => {
         }));
         purchaseOrderData.files = proposalFiles;
         console.log('Adding proposal files to PO:', proposalFiles);
+      }
+
+      // Merge user-uploaded attachments from the dialog
+      if (files && files.length > 0) {
+        purchaseOrderData.files = [...(purchaseOrderData.files || []), ...files];
       }
 
       // Add bid package and bid IDs if provided (from bidding page)
@@ -358,7 +365,8 @@ export const usePOMutations = (projectId: string) => {
       bidPackageId,
       bidId,
       customMessage,
-      lineItems
+      lineItems,
+      files
     }: { 
       companyId: string;
       costCodeId: string;
@@ -368,6 +376,7 @@ export const usePOMutations = (projectId: string) => {
       bidId?: string;
       customMessage?: string;
       lineItems?: LineItemInput[];
+      files?: Array<{ id: string; name: string; size: number; url: string }>;
     }) => {
       // First create PO and send email with proper linking
       const result = await createPOAndSendEmail.mutateAsync({
@@ -378,7 +387,8 @@ export const usePOMutations = (projectId: string) => {
         bidPackageId,
         bidId,
         customMessage,
-        lineItems
+        lineItems,
+        files
       });
 
       // Then update the bid package status to closed
