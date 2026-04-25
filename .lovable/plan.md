@@ -1,59 +1,53 @@
-I understand the actual issue: after a bill moves out of Enter with AI / Review into Approved, the table cost-code cell is using different display logic and is listing one row per underlying split-lot bill line. For this invoice that means the same cost code appears 132 times. That is wrong. It should collapse the repeated cost code into one summarized display, just like Enter with AI / Review.
+## Goal
 
-There are also still visual differences in the posted `EditBillDialog`: quantity/unit-cost inputs are disabled for approved/paid bills, and the shared shadcn `Input` disabled styling makes them gray/low-opacity. Enter with AI does not look that way, so the dialog still does not appear identical.
+When a user clicks **Send PO** on a bid (Bidding tab), parse the attached proposal PDF(s) with AI, infer line items + cost codes, and let the user **review/edit them in a confirmation step** before the PO is created and the email is sent. This eliminates the current behavior where every PO is lumped into a single line under the bid package's parent cost code.
 
-## Plan
+## Where the change lives
 
-### 1. Create one shared bill table display helper
-Add a shared utility for bill-list cost-code/account summaries so Enter with AI, Review, Rejected, Approved, and Paid all use the same logic.
+**Touched files**
+- `supabase/functions/extract-po-lines/index.ts` *(new edge function)* — Lovable AI Gateway call that reads the proposal PDF(s) and the tenant's cost codes, then returns structured line items.
+- `supabase/functions/extract-po-lines/index.ts` registered in `supabase/config.toml` with `verify_jwt = true`.
+- `src/components/bidding/ConfirmPODialog.tsx` — expand from a 4-field summary modal into a wider review dialog with an editable line-items table (matches the look of `CreatePurchaseOrderDialog` line items: Cost Code, Description, Qty, Unit Cost, Amount, Extra). Adds an "Extracting line items…" loading state on open.
+- `src/hooks/usePOMutations.ts` — `createPOAndSendEmail` accepts an optional `lineItems` array and, after inserting the PO, writes them to `purchase_order_lines` (reusing the existing `usePurchaseOrderLines.saveLinesForPO` pattern).
+- `src/hooks/useProposalExtraction.ts` *(new)* — small hook that POSTs the proposal storage paths + cost-code list to the new edge function and returns `{ lines, isLoading }`.
 
-It will:
-- group bill lines by visible cost code/account name, not by raw line count
-- sum each group amount
-- show one display label when all rows share the same cost code
-- show `Primary Cost Code +N` only when there are genuinely multiple distinct cost codes/accounts
-- preserve the tooltip breakdown with grouped totals, not 132 repeated entries
-- keep fallbacks for missing values (`No Cost Code`, `No Account`)
+**Untouched (intentionally)**
+- `EditBillDialog`, `BillsApprovalTable`, the bidding tabs UI, and all accounting/journal logic.
+- The existing single-line PO fallback still works if AI extraction fails — the dialog will simply show one editable empty row and the user proceeds as today.
 
-### 2. Replace the duplicated table logic in all bill tabs
-Update these components to use the shared helper:
-- `BatchBillReviewTable.tsx` for Enter with AI upload/review queue
-- `BillsApprovalTable.tsx` for Review, Rejected, and Paid
-- `PayBillsTable.tsx` for Approved / ready-to-pay
+## Flow
 
-This directly fixes the Approved tab shown in your screenshot so it will not list the same cost code over and over.
+1. User clicks **Send PO** on a bidding company row → `ConfirmPODialog` opens.
+2. On open, if the bid has `proposals` files, the dialog calls `extract-po-lines` with:
+   - `proposalPaths: string[]` (storage paths under `project-files/proposals/…`)
+   - `costCodes: { id, code, name }[]` (parent codes for this tenant, fetched via existing `useCostCodeSearch`)
+   - `bidPackageCostCodeId` (used as fallback / preferred match)
+3. Edge function:
+   - Downloads each proposal PDF via the service-role client.
+   - Sends to **Lovable AI Gateway** (`google/gemini-3-flash-preview`) with a structured-output schema that returns `{ lines: [{ cost_code_id|null, cost_code_hint, description, quantity, unit_cost, amount, extra }] }`.
+   - Resolves `cost_code_hint` (e.g. "Civil Engineering", "Entitlement", "Surveying") to the closest tenant cost code by name, falling back to the bid-package cost code if no confident match.
+   - Returns the array. Handles 429 (rate limit) and 402 (credits exhausted) with friendly toast messages on the client.
+4. Dialog renders the editable table. Cost Code uses the same searchable picker as `CreatePurchaseOrderDialog`. Subtotal updates live.
+5. On **Send PO**, `createPOSendEmailAndUpdateStatus` is called with the edited `lineItems`. After the PO row is inserted, lines are written via `purchase_order_lines` and `total_amount` is recomputed from the line subtotal (so it stays in sync with what the user just confirmed).
+6. The PO email payload is unchanged in shape — `total_amount` reflects the new subtotal.
 
-### 3. Make posted `EditBillDialog` visually match Enter with AI
-Update `EditBillDialog.tsx` so approved/posted/paid read-only fields do not get the default disabled gray/opacity styling on the line-item table.
+## Data + cost-code resolution
 
-Specifically:
-- Quantity and Unit Cost fields will use the same visual classes as Enter with AI
-- read-only behavior will still be enforced, but without the gray/disabled appearance
-- Total, Lot Cost, Address, Description, Cost Code, and Purchase Order table chrome will remain aligned with the Enter with AI dialog layout
-- the bottom-right total/footer layout stays as previously requested
+- Cost-code matching uses three passes: exact name match → case-insensitive contains → fallback to the bid package's cost code. The AI is instructed to prefer the supplied list verbatim.
+- All amounts go through the existing cent-precise rounding helper to honor the `Cent Math` core memory rule.
+- Extraction is **per-tenant scoped** — the edge function uses `getEffectiveOwnerId` semantics (passed from client) to filter cost codes, matching the `Multi-tenant Data Isolation` core rule.
 
-### 4. Preserve accounting safety
-Do not merge the save paths or remove posted-bill protections.
+## Edge cases
 
-Pending bills and posted bills can share the same UI and display math, but posted bills still need their existing accounting guards:
-- approved/paid date and locked-period rules
-- `updateApprovedBill` / correction behavior
-- journal-entry and payment-allocation protections
+- **No proposal attached** → skip extraction, show a single empty row (today's behavior).
+- **Hourly / "as required" line items** (e.g. items 6, 11, 12 in the sample) → extracted with `unit_cost = 0`, `quantity = 0`, `extra = true`, and a description like "Project Management — Hourly". The user can keep, edit, or delete these before sending.
+- **Multi-rate items** (e.g. construction-survey sub-items) → extracted as separate lines with their lump-sum prices.
+- **AI failure / timeout** → toast "Couldn't auto-extract line items — enter them manually" and fall back to a single empty line. The Send PO flow is never blocked.
 
-## Technical details
+## Out of scope (will not touch in this change)
 
-Current mismatch:
-```text
-Enter with AI / Review table:
-raw lines -> grouped by cost code/account -> one summarized cell
+- Re-extracting after the PO has already been sent (the "Resend PO" mode keeps current behavior).
+- Editing line items from the Bidding tab outside of the Send PO confirmation step.
+- Any bill / approval / journal-entry code paths.
 
-Approved table:
-raw bill_lines -> one tooltip row per database line -> 132 repeated cost-code rows
-```
-
-Target behavior everywhere:
-```text
-raw lines -> normalize display name -> group by name -> sum amount -> render one consistent cell
-```
-
-The helper will be used by every bill-list table, so future changes to cost-code display happen in one place instead of three separate components.
+Ready to implement on approval.

@@ -1,6 +1,7 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
+import type { LineItemInput } from '@/hooks/usePurchaseOrderLines';
 
 export const usePOMutations = (projectId: string) => {
   const queryClient = useQueryClient();
@@ -15,7 +16,8 @@ export const usePOMutations = (projectId: string) => {
       biddingCompany,
       bidPackageId,
       bidId,
-      customMessage
+      customMessage,
+      lineItems
     }: { 
       companyId: string;
       costCodeId: string;
@@ -24,6 +26,7 @@ export const usePOMutations = (projectId: string) => {
       bidPackageId?: string;
       bidId?: string;
       customMessage?: string;
+      lineItems?: LineItemInput[];
     }) => {
       console.log('=== PO CREATION DEBUG ===');
       console.log('Creating PO with params:', { projectId, companyId, costCodeId, totalAmount, bidPackageId, bidId });
@@ -58,12 +61,17 @@ export const usePOMutations = (projectId: string) => {
       if (projectData.error) throw projectData.error;
       if (costCodeData.error) throw costCodeData.error;
 
+      // Compute effective total from line items (if any), else fall back to totalAmount
+      const effectiveTotal = (lineItems && lineItems.length > 0)
+        ? Math.round(lineItems.reduce((s, l) => s + (Number(l.amount) || 0), 0) * 100) / 100
+        : (totalAmount || 0);
+
       // Step 2: Create the Purchase Order with proper linking
       const purchaseOrderData: any = {
         project_id: projectId,
         company_id: companyId,
         cost_code_id: costCodeId,
-        total_amount: totalAmount || 0,
+        total_amount: effectiveTotal,
         status: 'approved',
         notes: `PO created from bid package for ${biddingCompany.companies.company_name}`,
         files: []
@@ -105,6 +113,27 @@ export const usePOMutations = (projectId: string) => {
 
       console.log('Purchase order created:', purchaseOrder);
 
+      // Step 2b: Persist line items if provided
+      if (lineItems && lineItems.length > 0) {
+        const lineRows = lineItems.map((line, idx) => ({
+          purchase_order_id: purchaseOrder.id,
+          cost_code_id: line.cost_code_id,
+          description: line.description || null,
+          quantity: line.quantity,
+          unit_cost: line.unit_cost,
+          amount: line.amount,
+          line_number: idx + 1,
+          extra: line.extra,
+        }));
+        const { error: linesError } = await supabase
+          .from('purchase_order_lines')
+          .insert(lineRows);
+        if (linesError) {
+          console.error('Error inserting PO lines:', linesError);
+          throw linesError;
+        }
+      }
+
       // Step 3: Send the PO email with complete payload (same as manual flow)
       const { data: emailData, error: emailError } = await supabase.functions.invoke('send-po-email', {
         body: {
@@ -114,7 +143,7 @@ export const usePOMutations = (projectId: string) => {
           projectAddress: projectData.data?.address || 'N/A',
           companyName: biddingCompany.companies.company_name || 'N/A',
           customMessage: customMessage,
-          totalAmount: totalAmount || 0,
+          totalAmount: effectiveTotal,
           costCode: costCodeData.data,
           senderCompanyName: senderData?.company_name || 'BuilderSuite ML'
         }
@@ -318,7 +347,8 @@ export const usePOMutations = (projectId: string) => {
       biddingCompany,
       bidPackageId,
       bidId,
-      customMessage
+      customMessage,
+      lineItems
     }: { 
       companyId: string;
       costCodeId: string;
@@ -327,6 +357,7 @@ export const usePOMutations = (projectId: string) => {
       bidPackageId: string;
       bidId?: string;
       customMessage?: string;
+      lineItems?: LineItemInput[];
     }) => {
       // First create PO and send email with proper linking
       const result = await createPOAndSendEmail.mutateAsync({
@@ -336,7 +367,8 @@ export const usePOMutations = (projectId: string) => {
         biddingCompany,
         bidPackageId,
         bidId,
-        customMessage
+        customMessage,
+        lineItems
       });
 
       // Then update the bid package status to closed
