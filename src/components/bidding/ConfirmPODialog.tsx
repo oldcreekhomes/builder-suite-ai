@@ -206,6 +206,45 @@ export function ConfirmPODialog({
   const proposals = biddingCompany.proposals || [];
   const firstProposal = proposals[0];
 
+  // While AI extraction is running, show ONLY the animated loading state.
+  if (mode === 'send' && isExtracting) {
+    return (
+      <Dialog open={isOpen} onOpenChange={onClose}>
+        <DialogContent className="max-w-md">
+          <DialogHeader className="sr-only">
+            <DialogTitle>Creating PO with AI</DialogTitle>
+          </DialogHeader>
+          <style>{`
+            @keyframes po-ai-float {
+              0%, 100% { transform: translateY(0) scale(1) rotate(0deg); opacity: 0.85; }
+              50% { transform: translateY(-6px) scale(1.1) rotate(8deg); opacity: 1; }
+            }
+            @keyframes po-ai-dots {
+              0%, 20% { content: ''; }
+              40% { content: '.'; }
+              60% { content: '..'; }
+              80%, 100% { content: '...'; }
+            }
+            .po-ai-icon { animation: po-ai-float 1.8s ease-in-out infinite; }
+            .po-ai-text::after {
+              display: inline-block;
+              width: 1.25em;
+              text-align: left;
+              content: '';
+              animation: po-ai-dots 1.6s steps(1, end) infinite;
+            }
+          `}</style>
+          <div className="flex flex-col items-center justify-center py-16 gap-4">
+            <Sparkles className="po-ai-icon h-12 w-12 text-primary" />
+            <p className="po-ai-text text-sm font-medium text-muted-foreground">
+              Creating PO with AI
+            </p>
+          </div>
+        </DialogContent>
+      </Dialog>
+    );
+  }
+
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent className="max-w-5xl max-h-[90vh] overflow-y-auto">
@@ -227,14 +266,7 @@ export function ConfirmPODialog({
             </div>
           </div>
 
-          {mode === 'send' && isExtracting && (
-            <div className="flex flex-col items-center justify-center py-16 gap-3">
-              <Sparkles className="h-8 w-8 text-primary animate-pulse" />
-              <p className="text-sm text-muted-foreground">Creating PO with AI…</p>
-            </div>
-          )}
-
-          {mode === 'send' && !isExtracting && (
+          {mode === 'send' && (
             <div className="space-y-2">
               <Label>Line Items</Label>
               <div className="border rounded-lg overflow-hidden">
