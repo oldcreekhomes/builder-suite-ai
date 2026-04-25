@@ -1,6 +1,7 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
+import type { LineItemInput } from '@/hooks/usePurchaseOrderLines';
 
 export const usePOMutations = (projectId: string) => {
   const queryClient = useQueryClient();
@@ -15,7 +16,8 @@ export const usePOMutations = (projectId: string) => {
       biddingCompany,
       bidPackageId,
       bidId,
-      customMessage
+      customMessage,
+      lineItems
     }: { 
       companyId: string;
       costCodeId: string;
@@ -24,6 +26,7 @@ export const usePOMutations = (projectId: string) => {
       bidPackageId?: string;
       bidId?: string;
       customMessage?: string;
+      lineItems?: LineItemInput[];
     }) => {
       console.log('=== PO CREATION DEBUG ===');
       console.log('Creating PO with params:', { projectId, companyId, costCodeId, totalAmount, bidPackageId, bidId });
