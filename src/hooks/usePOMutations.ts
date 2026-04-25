@@ -113,6 +113,27 @@ export const usePOMutations = (projectId: string) => {
 
       console.log('Purchase order created:', purchaseOrder);
 
+      // Step 2b: Persist line items if provided
+      if (lineItems && lineItems.length > 0) {
+        const lineRows = lineItems.map((line, idx) => ({
+          purchase_order_id: purchaseOrder.id,
+          cost_code_id: line.cost_code_id,
+          description: line.description || null,
+          quantity: line.quantity,
+          unit_cost: line.unit_cost,
+          amount: line.amount,
+          line_number: idx + 1,
+          extra: line.extra,
+        }));
+        const { error: linesError } = await supabase
+          .from('purchase_order_lines')
+          .insert(lineRows);
+        if (linesError) {
+          console.error('Error inserting PO lines:', linesError);
+          throw linesError;
+        }
+      }
+
       // Step 3: Send the PO email with complete payload (same as manual flow)
       const { data: emailData, error: emailError } = await supabase.functions.invoke('send-po-email', {
         body: {
@@ -122,7 +143,7 @@ export const usePOMutations = (projectId: string) => {
           projectAddress: projectData.data?.address || 'N/A',
           companyName: biddingCompany.companies.company_name || 'N/A',
           customMessage: customMessage,
-          totalAmount: totalAmount || 0,
+          totalAmount: effectiveTotal,
           costCode: costCodeData.data,
           senderCompanyName: senderData?.company_name || 'BuilderSuite ML'
         }
