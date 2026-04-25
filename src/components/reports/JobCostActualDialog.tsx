@@ -475,9 +475,9 @@ const formatCurrency = (value: number) => {
                             </TooltipContent>
                           </Tooltip>
                         </TableCell>
-                        <TableCell className="py-0">
+                        <TableCell className="py-0 text-center">
                           {line.bill_id && (line as any).attachments?.length > 0 ? (
-                            <div className="h-4 leading-none flex items-center">
+                            <div className="h-4 leading-none flex items-center justify-center">
                               <BillFilesCell attachments={(line as any).attachments} />
                             </div>
                           ) : (
