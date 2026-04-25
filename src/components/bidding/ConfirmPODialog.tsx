@@ -363,10 +363,10 @@ export function ConfirmPODialog({
                             </div>
                           ) : null}
                         </TableCell>
-                        <TableCell className="p-1 text-right text-sm font-medium pr-3">
+                        <TableCell className="p-1 text-sm font-medium">
                           ${line.amount.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                         </TableCell>
-                        <TableCell className="p-1 text-center">
+                        <TableCell className="p-1">
                           <Checkbox
                             checked={line.extra}
                             onCheckedChange={(checked) => updateLine(idx, { extra: checked as boolean })}
