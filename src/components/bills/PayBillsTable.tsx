@@ -30,6 +30,7 @@ import { useBillPOMatching, POMatch } from "@/hooks/useBillPOMatching";
 import { POStatusBadge } from "./POStatusBadge";
 import { BillPOSummaryDialog } from "./BillPOSummaryDialog";
 import { CreditUsageHistoryDialog } from "./CreditUsageHistoryDialog";
+import { getBillCostCodeDisplay } from "@/lib/billListDisplay";
 
 interface BillAttachment {
   id: string;
