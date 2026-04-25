@@ -44,6 +44,7 @@ import { toast } from "@/hooks/use-toast";
 import { useBillPOMatching, POMatch } from "@/hooks/useBillPOMatching";
 import { POStatusBadge } from "./POStatusBadge";
 import { BillPOSummaryDialog } from "./BillPOSummaryDialog";
+import { getBillCostCodeDisplay } from "@/lib/billListDisplay";
 
 interface BillForApproval {
   id: string;
@@ -614,31 +615,8 @@ export function BillsApprovalTable({ status, projectId, projectIds, showProjectC
     return termMap[terms.toLowerCase()] || terms;
   };
 
-  const getCostCodeOrAccountData = (bill: BillForApproval) => {
-    if (!bill.bill_lines || bill.bill_lines.length === 0) {
-      return { display: '-', breakdown: [] as { name: string; amount: number }[], total: 0, count: 0 };
-    }
-
-    // One entry per saved bill line, in order. Lines without a visible label still
-    // appear with a deterministic fallback so the tooltip total equals the bill total.
-    const breakdown = bill.bill_lines.map(line => {
-      const rawName = line.cost_codes
-        ? `${line.cost_codes.code}: ${line.cost_codes.name}`
-        : line.accounts
-          ? `${line.accounts.code}: ${line.accounts.name}`
-          : '';
-      const fallback = line.line_type === 'expense' ? 'No Account' : 'No Cost Code';
-      return { name: rawName?.trim() || fallback, amount: line.amount || 0 };
-    });
-
-    const total = breakdown.reduce((s, b) => s + b.amount, 0);
-    const count = breakdown.length;
-    if (count === 0) return { display: '-', breakdown: [], total: 0, count: 0 };
-    const firstNamed = breakdown.find(b => b.name !== 'No Cost Code' && b.name !== 'No Account');
-    const primary = firstNamed?.name || breakdown[0].name;
-    const display = count === 1 ? primary : `${primary} +${count - 1}`;
-    return { display, breakdown, total, count };
-  };
+  const getCostCodeOrAccountData = (bill: BillForApproval) =>
+    getBillCostCodeDisplay(bill.bill_lines);
 
   const getLotAllocationData = (bill: BillForApproval) => {
     if (!bill.bill_lines || bill.bill_lines.length === 0) {
