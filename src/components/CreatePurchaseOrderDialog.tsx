@@ -16,7 +16,13 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { usePurchaseOrderLines, type LineItemInput } from "@/hooks/usePurchaseOrderLines";
 import { usePOMutations } from "@/hooks/usePOMutations";
 import { useUserProfile } from "@/hooks/useUserProfile";
-import { toTitleCase } from "@/lib/utils";
+
+const titleCase = (str: string): string =>
+  str
+    .toLowerCase()
+    .split(/(\s+)/)
+    .map((part) => (/^\s+$/.test(part) ? part : part.charAt(0).toUpperCase() + part.slice(1)))
+    .join('');
 
 
 
