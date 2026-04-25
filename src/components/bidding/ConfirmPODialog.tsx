@@ -6,7 +6,7 @@ import { Input } from '@/components/ui/input';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Label } from '@/components/ui/label';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Plus, Trash2 } from 'lucide-react';
+import { Plus, Trash2, Sparkles } from 'lucide-react';
 import { getFileIcon, getFileIconColor, getCleanFileName } from '../bidding/utils/fileIconUtils';
 import { supabase } from '@/integrations/supabase/client';
 import { usePOMutations } from '@/hooks/usePOMutations';
@@ -45,6 +45,8 @@ interface ConfirmPODialogProps {
   mode?: 'send' | 'resend';
   /** Pre-extracted line items from the AI. When provided, dialog skips its own extraction. */
   initialLineItems?: LineItemInput[];
+  /** When true, show in-dialog spinner while AI extraction runs. */
+  isExtracting?: boolean;
 }
 
 const emptyLine = (): LineItemInput => ({
@@ -68,6 +70,7 @@ export function ConfirmPODialog({
   costCodeId,
   mode = 'send',
   initialLineItems,
+  isExtracting = false,
 }: ConfirmPODialogProps) {
   const { createPOSendEmailAndUpdateStatus, resendPOEmail, isLoading } = usePOMutations(projectId);
   const { profile } = useUserProfile();
