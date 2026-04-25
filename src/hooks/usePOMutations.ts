@@ -61,12 +61,17 @@ export const usePOMutations = (projectId: string) => {
       if (projectData.error) throw projectData.error;
       if (costCodeData.error) throw costCodeData.error;
 
+      // Compute effective total from line items (if any), else fall back to totalAmount
+      const effectiveTotal = (lineItems && lineItems.length > 0)
+        ? Math.round(lineItems.reduce((s, l) => s + (Number(l.amount) || 0), 0) * 100) / 100
+        : (totalAmount || 0);
+
       // Step 2: Create the Purchase Order with proper linking
       const purchaseOrderData: any = {
         project_id: projectId,
         company_id: companyId,
         cost_code_id: costCodeId,
-        total_amount: totalAmount || 0,
+        total_amount: effectiveTotal,
         status: 'approved',
         notes: `PO created from bid package for ${biddingCompany.companies.company_name}`,
         files: []
