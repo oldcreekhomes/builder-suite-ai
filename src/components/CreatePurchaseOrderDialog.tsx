@@ -675,7 +675,7 @@ export const CreatePurchaseOrderDialog = ({
                         {isOriginalLine(idx) ? (
                           <Tooltip>
                             <TooltipTrigger asChild>
-                              <div className="h-8 px-2 flex items-center text-sm font-medium text-foreground cursor-not-allowed">
+                              <div className="h-8 px-2 flex items-center justify-center text-sm font-medium text-foreground cursor-not-allowed">
                                 {line.quantity || ""}
                               </div>
                             </TooltipTrigger>
