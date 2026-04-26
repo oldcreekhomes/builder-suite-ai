@@ -189,7 +189,7 @@ export const CreatePurchaseOrderDialog = ({
     if (!open) return;
     if (hasInitializedRef.current) return;
     if (editOrder && existingLines.length > 0) {
-      setLineItems(existingLines.map(l => ({
+      const seeded = existingLines.map(l => ({
         cost_code_id: l.cost_code_id,
         cost_code_display: l.cost_codes ? `${l.cost_codes.code} - ${l.cost_codes.name}` : "",
         description: titleCase(l.description || ''),
@@ -197,10 +197,17 @@ export const CreatePurchaseOrderDialog = ({
         unit_cost: l.unit_cost,
         amount: l.amount,
         extra: l.extra,
-      })));
+      }));
+      setLineItems(seeded);
+      setOriginalLinesSnapshot(seeded);
       hasInitializedRef.current = true;
     }
   }, [open, existingLines, editOrder]);
+
+  // Reset snapshot when dialog closes
+  useEffect(() => {
+    if (!open) setOriginalLinesSnapshot([]);
+  }, [open]);
 
   // Recipients for the "Sending To" column
   const recipientCompanyId = isBidFlow
