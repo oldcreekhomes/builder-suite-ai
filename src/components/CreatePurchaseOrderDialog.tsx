@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { Upload, X, Plus, Trash2, Sparkles } from "lucide-react";
+import { Upload, X, Plus, Trash2, Sparkles, Lock } from "lucide-react";
 import { getFileIcon, getFileIconColor, getCleanFileName } from "./bidding/utils/fileIconUtils";
 import { useDropzone } from "react-dropzone";
 import { supabase } from "@/integrations/supabase/client";
