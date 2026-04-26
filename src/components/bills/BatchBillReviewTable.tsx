@@ -912,14 +912,18 @@ export function BatchBillReviewTable({
                   
                   {/* Memo */}
                   <TableCell className="w-12 text-center">
-                    {memoSummary ? (
+                    {memoSummary && memoSummary.length > 0 ? (
                       <TooltipProvider>
                         <Tooltip>
                           <TooltipTrigger asChild>
                             <FileText className="h-4 w-4 text-yellow-600 mx-auto cursor-default" />
                           </TooltipTrigger>
-                          <TooltipContent className="max-w-xs">
-                            <p className="whitespace-pre-wrap">{memoSummary}</p>
+                          <TooltipContent>
+                            <div className="space-y-1">
+                              {memoSummary.map((memo, i) => (
+                                <p key={i} className="whitespace-nowrap text-xs">{memo}</p>
+                              ))}
+                            </div>
                           </TooltipContent>
                         </Tooltip>
                       </TooltipProvider>
