@@ -573,7 +573,7 @@ export const CreatePurchaseOrderDialog = ({
                             <TooltipTrigger asChild>
                               <Input
                                 value={line.description}
-                                onChange={(e) => updateLine(idx, { description: titleCase(e.target.value) })}
+                                onChange={(e) => updateLine(idx, { description: e.target.value })}
                                 placeholder="Description"
                                 className="h-8 text-sm"
                               />
@@ -583,7 +583,7 @@ export const CreatePurchaseOrderDialog = ({
                         ) : (
                           <Input
                             value={line.description}
-                            onChange={(e) => updateLine(idx, { description: titleCase(e.target.value) })}
+                            onChange={(e) => updateLine(idx, { description: e.target.value })}
                             placeholder="Description"
                             className="h-8 text-sm"
                           />
