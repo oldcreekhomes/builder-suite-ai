@@ -1546,7 +1546,7 @@ Return ONLY the JSON object, no additional text.`;
         // Map extracted line items to database format
         const linesToInsert = extractedData.line_items.map((item: any, index: number) => {
           // Parse cost code if present (format: "code: name")
-          let costCodeId = null;
+          let costCodeId: string | null = null;
           let costCodeName = item.cost_code_name || null;
           
           if (item.cost_code_name) {
