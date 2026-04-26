@@ -631,6 +631,7 @@ export const CreatePurchaseOrderDialog = ({
                       </TableCell>
                     </TableRow>
                   ))}
+                  </TooltipProvider>
                   {/* Subtotal row */}
                   <TableRow className="bg-muted/50">
                     <TableCell colSpan={4} className="text-right font-medium text-sm pr-3">
