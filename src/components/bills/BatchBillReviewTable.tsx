@@ -179,10 +179,15 @@ export function BatchBillReviewTable({
       snappedKeys.add(key);
       supabase.functions
         .invoke('rematch-pending-bill', { body: { pendingUploadId: b.id, projectId } })
-        .then(({ data }) => {
+        .then(async ({ data }) => {
           if (data?.snap_applied && data.snap_applied > 0) {
             // Refresh just this bill's lines so the UI reflects snapped cost codes.
-            onLinesUpdate?.(b.id);
+            const { data: refreshed } = await supabase
+              .from('pending_bill_lines')
+              .select('*')
+              .eq('pending_upload_id', b.id)
+              .order('line_number', { ascending: true });
+            if (refreshed) onLinesUpdate?.(b.id, refreshed as any);
           }
         })
         .catch((e) => console.warn('PO snap failed for bill', b.id, e));
