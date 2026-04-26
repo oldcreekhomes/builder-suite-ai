@@ -809,7 +809,7 @@ VENDOR CONTACT EXTRACTION RULES:
 - DO NOT fabricate or guess
 
 Return ONLY the JSON object with these 4 fields, no additional text.`
-      : `You are an AI that extracts and categorizes structured data from construction company bills/invoices.${accountsContext}${costCodesContext}${companyContext}${learningContext}${vendorLearningSummary}
+      : `You are an AI that extracts and categorizes structured data from construction company bills/invoices.${accountsContext}${costCodesContext}${companyContext}${projectPOContext}${learningContext}${vendorLearningSummary}
 
 ⚠️ CRITICAL: FIELD NAMING REQUIREMENT ⚠️
 ALL field names MUST use snake_case (e.g., vendor_name, bill_date).
