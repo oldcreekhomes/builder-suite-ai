@@ -1601,10 +1601,8 @@ Return ONLY the JSON object, no additional text.`;
               if (distinctCCs.size === 1 && onlyPO.lines.length >= 1) {
                 // Force every line to this PO's single cost code
                 const forcedCC = onlyPO.lines[0].cost_code_id!;
-                if (!costCodeId || costCodeId !== forcedCC) {
-                  costCodeId = forcedCC;
-                  costCodeName = onlyPO.lines[0].cost_code_display || costCodeName;
-                }
+                costCodeId = forcedCC;
+                costCodeName = onlyPO.lines[0].cost_code_display || costCodeName;
                 snappedPoId = onlyPO.id;
                 snappedPoLineId = onlyPO.lines[0].id;
               } else {
@@ -1620,7 +1618,9 @@ Return ONLY the JSON object, no additional text.`;
                 if (best && best.score > 0) {
                   snappedPoId = onlyPO.id;
                   snappedPoLineId = best.line.id;
-                  if (!costCodeId && best.line.cost_code_id) {
+                  // PO line is authoritative — overwrite the AI's cost code guess so the
+                  // bill row always shows the PO line's cost code (not "2000 SOFT COSTS").
+                  if (best.line.cost_code_id) {
                     costCodeId = best.line.cost_code_id;
                     costCodeName = best.line.cost_code_display || costCodeName;
                   }
@@ -1641,7 +1641,8 @@ Return ONLY the JSON object, no additional text.`;
               if (best && best.score >= 0.3) {
                 snappedPoId = best.po.id;
                 snappedPoLineId = best.line.id;
-                if (!costCodeId && best.line.cost_code_id) {
+                // PO line is authoritative — overwrite the AI's cost code guess.
+                if (best.line.cost_code_id) {
                   costCodeId = best.line.cost_code_id;
                   costCodeName = best.line.cost_code_display || costCodeName;
                 }

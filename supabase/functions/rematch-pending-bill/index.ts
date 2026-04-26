@@ -231,6 +231,63 @@ serve(async (req) => {
     }
 
     // ─────────────────────────────────────────────────────────────────────
+    // PO LINE SYNC: any pending bill line already linked to a PO line MUST
+    // mirror that PO line's cost code. The PO line is authoritative — if the
+    // AI guessed "2000 SOFT COSTS" but the line is bound to a PO line with
+    // "2030 Entitlement Engineering", overwrite to 2030 so the table, the
+    // edit dialog, and the PO Status dialog all agree.
+    // ─────────────────────────────────────────────────────────────────────
+    let lineSyncApplied = 0;
+    try {
+      const { data: linkedLines } = await supabase
+        .from('pending_bill_lines')
+        .select('id, cost_code_id, purchase_order_line_id')
+        .eq('pending_upload_id', pendingUploadId)
+        .not('purchase_order_line_id', 'is', null);
+
+      const polIds = (linkedLines || [])
+        .map((l: any) => l.purchase_order_line_id)
+        .filter(Boolean);
+      if (polIds.length > 0) {
+        const { data: polRows } = await supabase
+          .from('purchase_order_lines')
+          .select('id, cost_code_id')
+          .in('id', polIds);
+        const polCcMap = new Map<string, string>();
+        (polRows || []).forEach((r: any) => {
+          if (r.cost_code_id) polCcMap.set(r.id, r.cost_code_id);
+        });
+        const ccIdsNeeded = Array.from(new Set(polCcMap.values()));
+        const ccDisplayMap = new Map<string, string>();
+        if (ccIdsNeeded.length > 0) {
+          const { data: ccRows } = await supabase
+            .from('cost_codes')
+            .select('id, code, name')
+            .in('id', ccIdsNeeded);
+          (ccRows || []).forEach((cc: any) => {
+            ccDisplayMap.set(cc.id, `${cc.code}: ${cc.name}`);
+          });
+        }
+        for (const line of linkedLines || []) {
+          const targetCcId = polCcMap.get(line.purchase_order_line_id);
+          if (!targetCcId) continue;
+          if (line.cost_code_id === targetCcId) continue;
+          const display = ccDisplayMap.get(targetCcId);
+          const { error: syncErr } = await supabase
+            .from('pending_bill_lines')
+            .update({ cost_code_id: targetCcId, cost_code_name: display })
+            .eq('id', line.id);
+          if (!syncErr) lineSyncApplied++;
+        }
+        if (lineSyncApplied > 0) {
+          console.log(`✅ PO line cost-code sync applied to ${lineSyncApplied} line(s)`);
+        }
+      }
+    } catch (e) {
+      console.error('Error during PO line cost code sync:', e);
+    }
+
+    // ─────────────────────────────────────────────────────────────────────
     // PO-AWARE SNAP: when both vendor and project are known, snap each
     // pending bill line's cost code to the vendor's PO cost codes on this project.
     // - If line cost_code is a subcategory (e.g. 2030.1) but its parent (2030)
@@ -361,17 +418,20 @@ serve(async (req) => {
           vendor_id: vendorId,
           company_name: matchedCompanyName,
           snap_applied: snapApplied,
+          line_sync_applied: lineSyncApplied,
         }),
         { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
 
-    // No new vendor match, but snap may still have run.
+    // No new vendor match, but snap / line sync may still have run.
+    const anyChange = snapApplied > 0 || lineSyncApplied > 0;
     return new Response(
       JSON.stringify({
-        success: snapApplied > 0,
+        success: anyChange,
         snap_applied: snapApplied,
-        error: snapApplied > 0 ? null : 'No matching vendor found',
+        line_sync_applied: lineSyncApplied,
+        error: anyChange ? null : 'No matching vendor found',
       }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );

@@ -180,8 +180,9 @@ export function BatchBillReviewTable({
       supabase.functions
         .invoke('rematch-pending-bill', { body: { pendingUploadId: b.id, projectId } })
         .then(async ({ data }) => {
-          if (data?.snap_applied && data.snap_applied > 0) {
-            // Refresh just this bill's lines so the UI reflects snapped cost codes.
+          const changed = (data?.snap_applied || 0) + (data?.line_sync_applied || 0);
+          if (changed > 0) {
+            // Refresh just this bill's lines so the UI reflects snapped/synced cost codes.
             const { data: refreshed } = await supabase
               .from('pending_bill_lines')
               .select('*')
