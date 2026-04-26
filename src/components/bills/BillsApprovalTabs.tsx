@@ -1,6 +1,6 @@
 import { useState, useCallback, useEffect, ReactNode, useRef } from "react";
 import { useSearchParams } from "react-router-dom";
-import { Receipt, Upload } from "lucide-react";
+import { Receipt, Upload, Sparkles } from "lucide-react";
 import { useDropzone } from "react-dropzone";
 import { ContentSidebar } from "@/components/ui/ContentSidebar";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -744,7 +744,7 @@ export function BillsApprovalTabs({ projectId, projectIds, reviewOnly = false, o
         case 'manual':
           return "Enter Manually";
         case 'upload':
-          return "Enter with AI";
+          return "Enter with ML";
         case 'review':
           return "Review";
         case 'rejected':
@@ -763,7 +763,7 @@ export function BillsApprovalTabs({ projectId, projectIds, reviewOnly = false, o
       case 'manual':
         return "Enter Manually";
       case 'upload':
-        return `Enter with AI (${displayCount})`;
+        return `Enter with ML (${displayCount})`;
       case 'review':
         return `Review (${displayCount})`;
       case 'rejected':
@@ -909,11 +909,31 @@ export function BillsApprovalTabs({ projectId, projectIds, reviewOnly = false, o
           <div className="space-y-4">
           {isExtracting ? (
             <div className="h-64 flex items-center justify-center rounded-md border bg-muted/30">
-              <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                <Loader2 className="h-5 w-5 animate-spin" />
-                <span>
-                  Processing {extractingCount} PDF{extractingCount !== 1 ? "s" : ""}...
-                </span>
+              <style>{`
+                @keyframes bill-ai-float {
+                  0%, 100% { transform: translateY(0) scale(1) rotate(0deg); opacity: 0.85; }
+                  50% { transform: translateY(-6px) scale(1.1) rotate(8deg); opacity: 1; }
+                }
+                @keyframes bill-ai-dots {
+                  0%, 20% { content: ''; }
+                  40% { content: '.'; }
+                  60% { content: '..'; }
+                  80%, 100% { content: '...'; }
+                }
+                .bill-ai-icon { animation: bill-ai-float 1.8s ease-in-out infinite; }
+                .bill-ai-text::after {
+                  display: inline-block;
+                  width: 1.25em;
+                  text-align: left;
+                  content: '';
+                  animation: bill-ai-dots 1.6s steps(1, end) infinite;
+                }
+              `}</style>
+              <div className="flex flex-col items-center justify-center py-8 gap-4">
+                <Sparkles className="bill-ai-icon h-12 w-12 text-primary" />
+                <p className="bill-ai-text text-sm font-medium text-muted-foreground">
+                  Extracting {extractingCount} bill{extractingCount !== 1 ? "s" : ""} with machine learning
+                </p>
               </div>
             </div>
           ) : batchBills.length === 0 ? (
