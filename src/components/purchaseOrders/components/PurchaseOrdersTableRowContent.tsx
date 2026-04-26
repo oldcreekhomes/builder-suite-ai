@@ -82,16 +82,11 @@ export function PurchaseOrdersTableRowContent({
             {display}
           </TooltipTrigger>
           <TooltipContent className="max-w-xs">
-            <div className="space-y-2">
+            <div className="space-y-1">
               {groupedLines.map((g, i) => (
-                <div key={i}>
-                  <div className="font-medium text-xs">{g.code}: {g.name}</div>
-                  <div className="pl-2 space-y-0.5">
-                    <div className="flex justify-between gap-4 text-xs">
-                      <span className="text-muted-foreground">Unassigned:</span>
-                      <span>${g.total.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
-                    </div>
-                  </div>
+                <div key={i} className="flex justify-between gap-4 text-xs">
+                  <span>{g.code}: {g.name}</span>
+                  <span>${g.total.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
                 </div>
               ))}
               <div className="border-t pt-1 flex justify-between gap-4 font-medium text-xs">
