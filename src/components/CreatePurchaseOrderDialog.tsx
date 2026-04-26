@@ -12,6 +12,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
 import { CompanySearchInput } from "./CompanySearchInput";
 import { CostCodeSearchInput } from "./CostCodeSearchInput";
+import { Tooltip, TooltipTrigger, TooltipContent, TooltipProvider } from "@/components/ui/tooltip";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { usePurchaseOrderLines, type LineItemInput } from "@/hooks/usePurchaseOrderLines";
@@ -537,24 +538,56 @@ export const CreatePurchaseOrderDialog = ({
                   </TableRow>
                 </TableHeader>
                 <TableBody>
+                <TooltipProvider delayDuration={300}>
                   {lineItems.map((line, idx) => (
                     <TableRow key={idx}>
                       <TableCell className="p-1">
-                        <CostCodeSearchInput
-                          value={line.cost_code_display || ""}
-                          onChange={(v) => { if (!v) updateLine(idx, { cost_code_id: null, cost_code_display: "" }); }}
-                          onCostCodeSelect={(cc) => updateLine(idx, { cost_code_id: cc.id, cost_code_display: `${cc.code} - ${cc.name}` })}
-                          placeholder="Cost code"
-                          className="h-8 text-sm"
-                        />
+                        {line.cost_code_display ? (
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <div>
+                                <CostCodeSearchInput
+                                  value={line.cost_code_display || ""}
+                                  onChange={(v) => { if (!v) updateLine(idx, { cost_code_id: null, cost_code_display: "" }); }}
+                                  onCostCodeSelect={(cc) => updateLine(idx, { cost_code_id: cc.id, cost_code_display: `${cc.code} - ${cc.name}` })}
+                                  placeholder="Cost code"
+                                  className="h-8 text-sm"
+                                />
+                              </div>
+                            </TooltipTrigger>
+                            <TooltipContent side="top">{line.cost_code_display}</TooltipContent>
+                          </Tooltip>
+                        ) : (
+                          <CostCodeSearchInput
+                            value={line.cost_code_display || ""}
+                            onChange={(v) => { if (!v) updateLine(idx, { cost_code_id: null, cost_code_display: "" }); }}
+                            onCostCodeSelect={(cc) => updateLine(idx, { cost_code_id: cc.id, cost_code_display: `${cc.code} - ${cc.name}` })}
+                            placeholder="Cost code"
+                            className="h-8 text-sm"
+                          />
+                        )}
                       </TableCell>
                       <TableCell className="p-1">
-                        <Input
-                          value={line.description}
-                          onChange={(e) => updateLine(idx, { description: titleCase(e.target.value) })}
-                          placeholder="Description"
-                          className="h-8 text-sm"
-                        />
+                        {line.description ? (
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <Input
+                                value={line.description}
+                                onChange={(e) => updateLine(idx, { description: titleCase(e.target.value) })}
+                                placeholder="Description"
+                                className="h-8 text-sm"
+                              />
+                            </TooltipTrigger>
+                            <TooltipContent side="top">{line.description}</TooltipContent>
+                          </Tooltip>
+                        ) : (
+                          <Input
+                            value={line.description}
+                            onChange={(e) => updateLine(idx, { description: titleCase(e.target.value) })}
+                            placeholder="Description"
+                            className="h-8 text-sm"
+                          />
+                        )}
                       </TableCell>
                       <TableCell className="p-1">
                         <Input
@@ -598,6 +631,7 @@ export const CreatePurchaseOrderDialog = ({
                       </TableCell>
                     </TableRow>
                   ))}
+                  </TooltipProvider>
                   {/* Subtotal row */}
                   <TableRow className="bg-muted/50">
                     <TableCell colSpan={4} className="text-right font-medium text-sm pr-3">
