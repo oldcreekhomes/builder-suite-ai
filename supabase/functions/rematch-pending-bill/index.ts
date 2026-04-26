@@ -328,7 +328,7 @@ serve(async (req) => {
               const ext = upload.extracted_data || {};
               if (Array.isArray(ext.line_items)) {
                 const newItems = ext.line_items.map((li: any) => {
-                  const m = String(li.cost_code_name || '').match(/^([0-9]+(?:\.[0-9]+)?)\s*:/);
+                  const m = String(li.cost_code_name || '').match(/^([0-9]+(?:\.[0-9]+)?)\s*[:\-]/);
                   if (singleEntry) return { ...li, cost_code_name: singleEntry.display };
                   if (m) {
                     const code = m[1];
