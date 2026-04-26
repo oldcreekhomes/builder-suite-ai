@@ -827,6 +827,14 @@ IMPORTANT CATEGORIZATION: For each line item, analyze the description and match 
 - If you cannot confidently match a line item, leave account_name and/or cost_code_name as null
 - Common patterns: "Job Costs" account is typically for project-related expenses like materials, labor, subcontractors, project management, etc.
 
+⚠️ PARENT CODES ONLY (CRITICAL):
+- NEVER return a subcategory cost code. Subcategory codes contain a "." (e.g. "2030.1: EHO PLat", "2050.3: Stormwater and Environmental").
+- Always roll up to the PARENT code instead. Examples:
+  • "2030.1: EHO PLat" → use "2030: Entitlement Engineering"
+  • "2050.3: Stormwater and Environmental" → use "2050: Civil Engineering"
+- Purchase Orders are written against parent cost codes only, so bill lines must match the parent. Even if a subcategory better describes the line, return its parent code.
+- Only the parent codes are present in the Available Cost Codes list above — do not invent subcategory codes.
+
 SMART COST CODE ASSIGNMENT RULES:
 1. First, identify the vendor company name from the invoice
 2. Check if this vendor is listed in the COMPANY-SPECIFIC COST CODES section above
