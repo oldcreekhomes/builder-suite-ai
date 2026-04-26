@@ -12,6 +12,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
 import { CompanySearchInput } from "./CompanySearchInput";
 import { CostCodeSearchInput } from "./CostCodeSearchInput";
+import { Tooltip, TooltipTrigger, TooltipContent, TooltipProvider } from "@/components/ui/tooltip";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { usePurchaseOrderLines, type LineItemInput } from "@/hooks/usePurchaseOrderLines";
