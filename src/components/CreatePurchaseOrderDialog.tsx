@@ -594,7 +594,7 @@ export const CreatePurchaseOrderDialog = ({
                           type="number"
                           value={line.quantity || ""}
                           onChange={(e) => updateLine(idx, { quantity: parseFloat(e.target.value) || 0 })}
-                          className="h-8 text-sm text-right"
+                          className="h-8 text-sm text-right no-spinner"
                           min={0}
                         />
                       </TableCell>
@@ -604,7 +604,7 @@ export const CreatePurchaseOrderDialog = ({
                           step="0.01"
                           value={line.unit_cost || ""}
                           onChange={(e) => updateLine(idx, { unit_cost: parseFloat(e.target.value) || 0 })}
-                          className="h-8 text-sm text-right"
+                          className="h-8 text-sm text-right no-spinner"
                           min={0}
                         />
                       </TableCell>
