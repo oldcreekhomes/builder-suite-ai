@@ -439,17 +439,23 @@ export function EditExtractedBillDialog({
   useEffect(() => {
     if (!vendorPOs || vendorPOs.length === 0 || jobCostLines.length === 0) return;
 
-    // Build flat list of PO line candidates, using PO header cost code as fallback
+    // Build flat list of PO line candidates, using PO header cost code as fallback.
+    // cost_code_name is set to the FULL "CODE: NAME" display so when we mirror it
+    // back onto the bill row, the table/dialog cost code column reads consistently.
     const allPOLines: POLineCandidate[] = vendorPOs.flatMap(po =>
-      po.line_items.map(line => ({
-        id: line.id,
-        purchase_order_id: po.id,
-        description: line.description,
-        cost_code_id: line.cost_code_id,
-        cost_code_name: line.cost_code?.name || po.cost_code?.name || null,
-        amount: line.amount,
-        remaining: line.remaining,
-      }))
+      po.line_items.map(line => {
+        const cc = line.cost_code || po.cost_code;
+        const display = cc ? `${cc.code}: ${cc.name}` : null;
+        return {
+          id: line.id,
+          purchase_order_id: po.id,
+          description: line.description,
+          cost_code_id: line.cost_code_id,
+          cost_code_name: display,
+          amount: line.amount,
+          remaining: line.remaining,
+        };
+      })
     );
 
     if (allPOLines.length === 0) return;
