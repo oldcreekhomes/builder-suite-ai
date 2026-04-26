@@ -413,7 +413,7 @@ serve(async (req) => {
   let requestBody: any;
   try {
     requestBody = await req.json();
-    const { pendingUploadId, pdfText, pageImages, enrichContactOnly } = requestBody;
+    const { pendingUploadId, pdfText, pageImages, enrichContactOnly, projectId: projectIdFromBody } = requestBody;
 
     if (!pendingUploadId) {
       throw new Error('pendingUploadId is required');
