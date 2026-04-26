@@ -1,4 +1,5 @@
 import { useState, useEffect, useMemo } from "react";
+import { useQueryClient } from "@tanstack/react-query";
 import { useLots } from "@/hooks/useLots";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
@@ -160,6 +161,7 @@ export function BatchBillReviewTable({
     website?: string;
   } | undefined>(undefined);
   const { toast } = useToast();
+  const queryClient = useQueryClient();
   const { openBillAttachment } = useUniversalFilePreviewContext();
   const [deletingAttachmentBill, setDeletingAttachmentBill] = useState<PendingBill | null>(null);
   const [isDeletingAttachment, setIsDeletingAttachment] = useState(false);
@@ -179,16 +181,27 @@ export function BatchBillReviewTable({
       snappedKeys.add(key);
       supabase.functions
         .invoke('rematch-pending-bill', { body: { pendingUploadId: b.id, projectId } })
-        .then(async ({ data }) => {
-          const changed = (data?.snap_applied || 0) + (data?.line_sync_applied || 0);
-          if (changed > 0) {
-            // Refresh just this bill's lines so the UI reflects snapped/synced cost codes.
-            const { data: refreshed } = await supabase
-              .from('pending_bill_lines')
-              .select('*')
-              .eq('pending_upload_id', b.id)
-              .order('line_number', { ascending: true });
-            if (refreshed) onLinesUpdate?.(b.id, refreshed as any);
+        .then(async () => {
+          // ALWAYS refresh this bill's lines after rematch — even when the edge
+          // function reports zero changes, the in-memory `bills` prop may still
+          // be stale from earlier server-side fixes (e.g. a prior PO line sync
+          // that ran before this component mounted). Re-reading guarantees the
+          // table cost code column matches the DB and the Edit dialog.
+          const { data: refreshed } = await supabase
+            .from('pending_bill_lines')
+            .select('*, project_lots(id, lot_number, lot_name)')
+            .eq('pending_upload_id', b.id)
+            .order('line_number', { ascending: true });
+          if (refreshed) {
+            const processed = refreshed.map((line: any) => ({
+              ...line,
+              lot_name:
+                line.project_lots?.lot_name ||
+                (line.project_lots ? `Lot ${line.project_lots.lot_number}` : null),
+            }));
+            onLinesUpdate?.(b.id, processed as any);
+            // Force PO Status to recompute against the fresh line data.
+            queryClient.invalidateQueries({ queryKey: ['bill-po-matching'] });
           }
         })
         .catch((e) => console.warn('PO snap failed for bill', b.id, e));
