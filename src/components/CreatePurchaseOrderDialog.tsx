@@ -612,9 +612,9 @@ export const CreatePurchaseOrderDialog = ({
                   <TableRow>
                     <TableHead className="w-[200px]">Cost Code</TableHead>
                     <TableHead>Description</TableHead>
-                    <TableHead className="w-[80px] text-right">Qty</TableHead>
-                    <TableHead className="w-[110px] text-right">Unit Cost</TableHead>
-                    <TableHead className="w-[110px] text-right">Amount</TableHead>
+                    <TableHead className="w-[100px]">Quantity</TableHead>
+                    <TableHead className="w-[110px]">Unit Cost</TableHead>
+                    <TableHead className="w-[110px]">Amount</TableHead>
                     <TableHead className="w-[60px] text-center">Extra</TableHead>
                     <TableHead className="w-[60px] text-center">Actions</TableHead>
                   </TableRow>
