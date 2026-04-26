@@ -241,18 +241,13 @@ serve(async (req) => {
     let snapApplied = 0;
     if (effectiveVendorId && projectId) {
       try {
-        // Fetch POs for this vendor+project with their lines + cost codes.
+        // Fetch POs for this vendor+project (header + lines).
         const { data: pos, error: poErr } = await supabase
           .from('project_purchase_orders')
           .select(`
             id,
             cost_code_id,
-            cost_codes:cost_code_id ( id, code, name, parent_group ),
-            purchase_order_lines (
-              id,
-              cost_code_id,
-              cost_codes:cost_code_id ( id, code, name, parent_group )
-            )
+            purchase_order_lines ( id, cost_code_id )
           `)
           .eq('project_id', projectId)
           .eq('company_id', effectiveVendorId);
@@ -260,20 +255,25 @@ serve(async (req) => {
         if (poErr) {
           console.error('Error loading vendor POs for snap:', poErr);
         } else if (pos && pos.length > 0) {
-          // Collect every cost code touched by these POs (header + line items).
+          // Collect every cost code id touched by these POs.
+          const ccIds = new Set<string>();
+          pos.forEach((po: any) => {
+            if (po.cost_code_id) ccIds.add(po.cost_code_id);
+            (po.purchase_order_lines || []).forEach((l: any) => {
+              if (l.cost_code_id) ccIds.add(l.cost_code_id);
+            });
+          });
+
+          // Resolve cost code details (code, name) in one query.
+          const { data: ccRows } = await supabase
+            .from('cost_codes')
+            .select('id, code, name')
+            .in('id', Array.from(ccIds));
+
           // Map: code(string) → { id, display "CODE: NAME" }
           const poCostCodes = new Map<string, { id: string; display: string }>();
-          pos.forEach((po: any) => {
-            const collect = (cc: any) => {
-              if (cc?.id && cc?.code) {
-                poCostCodes.set(String(cc.code), {
-                  id: cc.id,
-                  display: `${cc.code}: ${cc.name}`,
-                });
-              }
-            };
-            collect(po.cost_codes);
-            (po.purchase_order_lines || []).forEach((l: any) => collect(l.cost_codes));
+          (ccRows || []).forEach((cc: any) => {
+            poCostCodes.set(String(cc.code), { id: cc.id, display: `${cc.code}: ${cc.name}` });
           });
 
           if (poCostCodes.size > 0) {
