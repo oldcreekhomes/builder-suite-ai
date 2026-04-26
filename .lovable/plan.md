@@ -1,25 +1,26 @@
-## Add hover tooltip on truncated Cost Code / Description inputs
-
 ### Problem
-In `CreatePurchaseOrderDialog`, the Cost Code and Description inputs in the Line Items table are narrow. Long values (e.g. "2050 - Civil Engineering", "1. Boundary & Topographic Survey") get visually cut off with no way to see the full text.
+In the Create Purchase Order dialog, typing in a line item's **Description** field (e.g. trying to put "5. " in front of "Subsequent Bath Fee") types one character then the cursor jumps to the end of the string. You requested earlier that imported descriptions be capitalized, but after the ML/bid import the user must be able to freely edit.
 
-### Fix — `src/components/CreatePurchaseOrderDialog.tsx` (lines ~542–558)
+### Root Cause
+`src/components/CreatePurchaseOrderDialog.tsx` lines 576 and 586 run `titleCase()` inside `onChange` on **every keystroke**:
+```tsx
+onChange={(e) => updateLine(idx, { description: titleCase(e.target.value) })}
+```
+Re-formatting the value on each keypress causes React to write back a transformed string, which destroys the native caret position — so the cursor snaps to the end after each character.
 
-Wrap each of the two inputs in a shadcn `Tooltip` so that on hover, if the value overflows the input width, the full text is shown.
+### Fix
+Apply `titleCase` **only at import time** (already done on lines 126, 149, 159 when seeding from `bidContext.initialLineItems`) and stop transforming on every keystroke. The "best guess" capitalization from the ML/bid import is preserved on load, and subsequent user edits are stored verbatim with normal cursor behavior.
 
-- **Cost Code cell**: Wrap `<CostCodeSearchInput>` in `<Tooltip><TooltipTrigger asChild>...</TooltipTrigger><TooltipContent>{line.cost_code_display}</TooltipContent></Tooltip>`. Only render the tooltip when `line.cost_code_display` is non-empty AND would overflow (detected via a ref + `scrollWidth > clientWidth` check on the underlying input). Simplest reliable approach: always conditionally render the TooltipContent when `cost_code_display` is non-empty — the tooltip only appears on hover anyway, and showing the full value is harmless. Use `delayDuration={300}`.
-- **Description cell**: Same pattern wrapping the `<Input>`. Tooltip content = `line.description`, rendered only when `line.description` is non-empty.
+**Change both Description `onChange` handlers (lines 576 & 586) from:**
+```tsx
+onChange={(e) => updateLine(idx, { description: titleCase(e.target.value) })}
+```
+**to:**
+```tsx
+onChange={(e) => updateLine(idx, { description: e.target.value })}
+```
 
-Both tooltips use `side="top"` and the standard shadcn `TooltipContent` styling (already imported from `@/components/ui/tooltip`).
+No other behavior changes — the imported defaults are still title-cased; the user just regains free editing.
 
-### Implementation details
-- Add imports: `Tooltip, TooltipTrigger, TooltipContent, TooltipProvider` from `@/components/ui/tooltip` (if not already imported).
-- Wrap the `<TableBody>` (or the whole table) once in a single `<TooltipProvider delayDuration={300}>` so we don't create one per row.
-- `TooltipTrigger asChild` directly wraps the input/component — no extra DOM wrapper that would break the table layout.
-- Skip the overflow-detection logic — always show the tooltip when the field has a value. This matches "show the full value on hover" without ref/measurement complexity, and tooltips don't appear unless the user hovers, so there's zero visual cost when not needed.
-
-### Not changing
-- Input widths, table layout, titleCase logic, line-item state, save logic, attachments, custom message, sending-to columns. Only adding hover tooltips on two inputs.
-
-### Files touched
-- `src/components/CreatePurchaseOrderDialog.tsx` only.
+### Files
+- `src/components/CreatePurchaseOrderDialog.tsx` — remove `titleCase()` wrapping inside the two Description `onChange` handlers.
