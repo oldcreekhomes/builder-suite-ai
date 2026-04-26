@@ -673,8 +673,8 @@ export function BillsApprovalTable({ status, projectId, projectIds, showProjectC
     return { display: `+${uniqueLotCount}`, costCodeBreakdown, totalAmount: bill.total_amount, uniqueLotCount };
   };
 
-  // Helper to get bill memo summary from bill_lines
-  const getBillMemoSummary = (bill: BillForApproval): string | null => {
+  // Helper to get bill memo summary from bill_lines (one entry per unique memo)
+  const getBillMemoSummary = (bill: BillForApproval): string[] | null => {
     if (!bill.bill_lines || bill.bill_lines.length === 0) return null;
     
     const memos = bill.bill_lines
@@ -684,8 +684,7 @@ export function BillsApprovalTable({ status, projectId, projectIds, showProjectC
     if (memos.length === 0) return null;
     
     // Deduplicate memos
-    const uniqueMemos = [...new Set(memos)];
-    return uniqueMemos.join(' • ');
+    return [...new Set(memos)];
   };
 
   const isDraftStatus = status === 'draft';
