@@ -12,7 +12,7 @@ serve(async (req) => {
   }
 
   try {
-    const { pendingUploadId } = await req.json();
+    const { pendingUploadId, projectId } = await req.json();
 
     if (!pendingUploadId) {
       throw new Error('Missing pendingUploadId');
