@@ -1,44 +1,33 @@
-# Edit Purchase Order Dialog Polish
+# Hide Vendor-Email UI on Locked PO Edits
 
-Scoped to `src/components/CreatePurchaseOrderDialog.tsx` (Line Items table). No logic changes — purely visual cleanup of changes introduced in the previous lock update.
+When `isLocked` is true (PO has `sent_at`), the dialog already suppresses the vendor email entirely on save. The "Custom Message" and "Sending To" fields are therefore meaningless and misleading in that state. Hide them — keep one dialog, just conditional rendering.
 
-## 1. Rename "Qty" → "Quantity"
-- `TableHead` for the qty column: change label from `Qty` to `Quantity`.
-- Widen the column slightly (`w-[80px]` → `w-[100px]`) so "Quantity" fits without truncation.
+## Change (single file)
 
-## 2. Left-align Quantity, Unit Cost, and Amount
-- Remove `text-right` from the three `TableHead` cells (Quantity, Unit Cost, Amount).
-- Remove `text-right` / `justify-end` from the corresponding body cells:
-  - Quantity input + locked div
-  - Unit Cost input + locked div
-  - Amount cell (`$x,xxx.xx`)
-- Update Subtotal row: keep "Subtotal" label aligned with the new layout (left-align the amount cell to match Amount column).
+**`src/components/CreatePurchaseOrderDialog.tsx`** — around lines 782–862:
 
-## 3. Unify number font across Quantity / Unit Cost / Amount
-- Amount cell currently uses: `text-sm font-medium` and renders `$x,xxx.xx`.
-- Apply the same to the locked Quantity and Unit Cost displays so the row reads visually uniform:
-  - Locked Quantity: `text-sm font-medium text-foreground` (drop `text-muted-foreground`), render `line.quantity` as plain integer/number.
-  - Locked Unit Cost: `text-sm font-medium text-foreground`, render as `$x,xxx.xx` formatted with `toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })`.
-- Editable inputs (unlocked POs) keep current `Input` styling — uniformity requirement applies to the locked, read-only display the user is looking at.
+- When `isLocked`:
+  - Hide the **Custom Message (Optional)** column.
+  - Hide the **Sending To** column.
+  - Keep the **Attachments** column visible (attachments are still editable internally).
+  - Collapse the wrapper from `grid-cols-3` to a single-column layout so Attachments doesn't stretch awkwardly — use `grid-cols-1` (or just render the Attachments block without the grid) constrained to a reasonable max width (e.g. `max-w-sm`) to match the existing column width.
+- When unlocked (creating a new PO or editing an unsent one): render all three columns exactly as today.
 
-## 4. Use the standard red Lock icon
-- Import `Lock` from `lucide-react` (already used app-wide per memory: "Red lock icons for read-only").
-- In the Actions cell, when `isOriginalLine(idx)` is true, replace the disabled `Trash2` button with a `Lock` icon:
-  ```tsx
-  <Tooltip>
-    <TooltipTrigger asChild>
-      <span className="inline-flex h-7 w-7 items-center justify-center">
-        <Lock className="h-3.5 w-3.5 text-destructive" />
-      </span>
-    </TooltipTrigger>
-    <TooltipContent side="top">Locked — PO already sent to vendor</TooltipContent>
-  </Tooltip>
-  ```
-- This matches the pattern used in `BudgetTableRow.tsx`, `AccountDetailDialog.tsx`, and other read-only states across the app.
-
-## Files Modified
-- `src/components/CreatePurchaseOrderDialog.tsx`
+### Sketch
+```tsx
+{isLocked ? (
+  <div className="max-w-sm space-y-1.5">
+    <Label>Attachments</Label>
+    {/* existing attachments block unchanged */}
+  </div>
+) : (
+  <div className="grid grid-cols-3 gap-4">
+    {/* existing Custom Message + Attachments + Sending To unchanged */}
+  </div>
+)}
+```
 
 ## Out of Scope
-- No changes to lock trigger logic, email suppression, or data flow.
-- No changes to other dialogs or pages.
+- No changes to save logic, email suppression, or lock detection (already correct).
+- No second dialog, no new components.
+- No styling changes to the line-items table.
