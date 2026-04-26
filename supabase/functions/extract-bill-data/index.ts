@@ -1610,7 +1610,7 @@ Return ONLY the JSON object, no additional text.`;
               } else {
                 // Multi-line PO: pick the line whose cost_code matches OR description matches best
                 const desc = String(item.description || item.memo || '');
-                let best: { line: POLineCtx; score: number } | null = null;
+                let best = null as { line: POLineCtx; score: number } | null;
                 onlyPO.lines.forEach((l) => {
                   let score = 0;
                   if (costCodeId && l.cost_code_id === costCodeId) score += 0.5;
