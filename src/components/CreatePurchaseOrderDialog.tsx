@@ -672,23 +672,45 @@ export const CreatePurchaseOrderDialog = ({
                         )}
                       </TableCell>
                       <TableCell className="p-1">
-                        <Input
-                          type="number"
-                          value={line.quantity || ""}
-                          onChange={(e) => updateLine(idx, { quantity: parseFloat(e.target.value) || 0 })}
-                          className="h-8 text-sm text-right no-spinner"
-                          min={0}
-                        />
+                        {isOriginalLine(idx) ? (
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <div className="h-8 px-2 flex items-center justify-end text-sm text-muted-foreground cursor-not-allowed">
+                                {line.quantity || ""}
+                              </div>
+                            </TooltipTrigger>
+                            <TooltipContent side="top">Locked — PO already sent to vendor</TooltipContent>
+                          </Tooltip>
+                        ) : (
+                          <Input
+                            type="number"
+                            value={line.quantity || ""}
+                            onChange={(e) => updateLine(idx, { quantity: parseFloat(e.target.value) || 0 })}
+                            className="h-8 text-sm text-right no-spinner"
+                            min={0}
+                          />
+                        )}
                       </TableCell>
                       <TableCell className="p-1">
-                        <Input
-                          type="number"
-                          step="0.01"
-                          value={line.unit_cost || ""}
-                          onChange={(e) => updateLine(idx, { unit_cost: parseFloat(e.target.value) || 0 })}
-                          className="h-8 text-sm text-right no-spinner"
-                          min={0}
-                        />
+                        {isOriginalLine(idx) ? (
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <div className="h-8 px-2 flex items-center justify-end text-sm text-muted-foreground cursor-not-allowed">
+                                {line.unit_cost || ""}
+                              </div>
+                            </TooltipTrigger>
+                            <TooltipContent side="top">Locked — PO already sent to vendor</TooltipContent>
+                          </Tooltip>
+                        ) : (
+                          <Input
+                            type="number"
+                            step="0.01"
+                            value={line.unit_cost || ""}
+                            onChange={(e) => updateLine(idx, { unit_cost: parseFloat(e.target.value) || 0 })}
+                            className="h-8 text-sm text-right no-spinner"
+                            min={0}
+                          />
+                        )}
                       </TableCell>
                       <TableCell className="p-1 text-right text-sm font-medium pr-3">
                         ${line.amount.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
@@ -700,17 +722,37 @@ export const CreatePurchaseOrderDialog = ({
                         />
                       </TableCell>
                       <TableCell className="p-1 text-center">
-                        <Button
-                          type="button"
-                          variant="ghost"
-                          size="sm"
-                          className="h-7 w-7 p-0 hover:bg-destructive/10"
-                          onClick={() => removeLine(idx)}
-                          disabled={lineItems.length <= 1}
-                        >
-                          <Trash2 className="h-3.5 w-3.5 text-destructive" />
-                        </Button>
+                        {isOriginalLine(idx) ? (
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <span className="inline-flex">
+                                <Button
+                                  type="button"
+                                  variant="ghost"
+                                  size="sm"
+                                  className="h-7 w-7 p-0"
+                                  disabled
+                                >
+                                  <Trash2 className="h-3.5 w-3.5 text-muted-foreground" />
+                                </Button>
+                              </span>
+                            </TooltipTrigger>
+                            <TooltipContent side="top">Locked — PO already sent to vendor</TooltipContent>
+                          </Tooltip>
+                        ) : (
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="sm"
+                            className="h-7 w-7 p-0 hover:bg-destructive/10"
+                            onClick={() => removeLine(idx)}
+                            disabled={lineItems.length <= 1}
+                          >
+                            <Trash2 className="h-3.5 w-3.5 text-destructive" />
+                          </Button>
+                        )}
                       </TableCell>
+
                     </TableRow>
                   ))}
                   </TooltipProvider>
