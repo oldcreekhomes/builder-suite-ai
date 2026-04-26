@@ -476,7 +476,37 @@ serve(async (req) => {
       (c: any) => !c.parent_group && !String(c.code || '').includes('.')
     );
 
-    // Fetch companies with their associated cost codes (using effectiveOwnerId)
+
+    // Map of any code → parent display "CODE: NAME" for rolling subcategories up to parent.
+    const parentByCode = new Map<string, string>();
+    const parentCodeByCode = new Map<string, string>();
+    (costCodesRaw || []).forEach((c: any) => {
+      const codeStr = String(c.code || '');
+      const isParent = !c.parent_group && !codeStr.includes('.');
+      if (isParent) {
+        parentByCode.set(codeStr, `${codeStr}: ${c.name}`);
+        parentCodeByCode.set(codeStr, codeStr);
+      }
+    });
+    // Second pass: for subcategories, point them to the parent display when known.
+    (costCodesRaw || []).forEach((c: any) => {
+      const codeStr = String(c.code || '');
+      const parentCode = c.parent_group || (codeStr.includes('.') ? codeStr.split('.')[0] : null);
+      if (parentCode && parentByCode.has(parentCode)) {
+        parentByCode.set(codeStr, parentByCode.get(parentCode)!);
+        parentCodeByCode.set(codeStr, parentCode);
+      }
+    });
+
+    // Roll any "CODE: NAME" string up to its parent display when it's a subcategory.
+    const rollCostCodeNameToParent = (display: string | null | undefined): string | null => {
+      if (!display) return null;
+      const m = String(display).match(/^([0-9]+(?:\.[0-9]+)?)\s*:/);
+      if (!m) return display;
+      const code = m[1];
+      return parentByCode.get(code) || display;
+    };
+
     const { data: companiesWithCostCodes } = await supabase
       .from('companies')
       .select(`
