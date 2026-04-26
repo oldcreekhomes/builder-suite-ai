@@ -495,18 +495,12 @@ export function EditExtractedBillDialog({
             confidence: match.confidence,
           });
         }
-        // Inherit cost code from the matched PO line when the line currently has none.
-        // This prevents the editor from showing a blank Cost Code while the line is
-        // visibly bound to a PO with a known cost code.
+        // PO line is authoritative for cost code: when auto-matched to a PO
+        // line, mirror that PO line's cost code onto the bill row so the table,
+        // edit dialog, and PO Status dialog all show the same cost code.
         const matchedPOLine = allPOLines.find(p => p.id === match.poLineId);
-        const inheritCostCodeId =
-          !line.cost_code_id && matchedPOLine?.cost_code_id
-            ? matchedPOLine.cost_code_id
-            : line.cost_code_id;
-        const inheritCostCodeDisplay =
-          !line.cost_code_display && matchedPOLine?.cost_code_name
-            ? matchedPOLine.cost_code_name
-            : line.cost_code_display;
+        const inheritCostCodeId = matchedPOLine?.cost_code_id || line.cost_code_id;
+        const inheritCostCodeDisplay = matchedPOLine?.cost_code_name || line.cost_code_display;
         return {
           ...line,
           purchase_order_id: match.poId,
