@@ -163,6 +163,32 @@ export function BatchBillReviewTable({
   const { openBillAttachment } = useUniversalFilePreviewContext();
   const [deletingAttachmentBill, setDeletingAttachmentBill] = useState<PendingBill | null>(null);
   const [isDeletingAttachment, setIsDeletingAttachment] = useState(false);
+  // Track which (billId|projectId) pairs we've already requested a PO snap for,
+  // so we don't spam the edge function on every render.
+  const [snappedKeys] = useState<Set<string>>(() => new Set());
+
+  // Auto-snap pending bill cost codes to vendor's PO cost codes whenever
+  // a bill has both a resolved vendor_id and the page-level projectId.
+  useEffect(() => {
+    if (!projectId || !bills?.length) return;
+    bills.forEach((b) => {
+      const vendorId = (b.vendor_id || b.extracted_data?.vendor_id || b.extracted_data?.vendorId) as string | undefined;
+      if (!vendorId) return;
+      const key = `${b.id}|${projectId}|${vendorId}`;
+      if (snappedKeys.has(key)) return;
+      snappedKeys.add(key);
+      supabase.functions
+        .invoke('rematch-pending-bill', { body: { pendingUploadId: b.id, projectId } })
+        .then(({ data }) => {
+          if (data?.snap_applied && data.snap_applied > 0) {
+            // Refresh just this bill's lines so the UI reflects snapped cost codes.
+            onLinesUpdate?.(b.id);
+          }
+        })
+        .catch((e) => console.warn('PO snap failed for bill', b.id, e));
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [bills, projectId]);
 
   const handleRemoveAttachment = async (bill: PendingBill, att: { id: string; file_name: string; file_path: string }) => {
     try {
