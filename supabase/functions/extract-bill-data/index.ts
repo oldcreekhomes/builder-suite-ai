@@ -654,16 +654,34 @@ serve(async (req) => {
       ? `\n\nAvailable Cost Codes:\n${costCodes.map(c => `- ${c.code}: ${c.name}${c.category ? ` (${c.category})` : ''}`).join('\n')}`
       : '';
 
-    // Build company-cost code context for smart assignment
+    // Build company-cost code context for smart assignment.
+    // Roll any subcategory cost code attached to a company up to its parent so the
+    // AI never sees (or returns) a child code.
     const companyContext = companiesWithCostCodes && companiesWithCostCodes.length > 0
       ? `\n\nCOMPANY-SPECIFIC COST CODES:\n${companiesWithCostCodes.map(company => {
+          const seen = new Set<string>();
           const costCodes = company.company_cost_codes
             .map((cc: any) => cc.cost_codes)
-            .filter(Boolean);
-          
+            .filter(Boolean)
+            .map((cc: any) => {
+              const codeStr = String(cc.code || '');
+              const isParent = !codeStr.includes('.');
+              if (isParent) return cc;
+              const parentCode = codeStr.split('.')[0];
+              const parentDisplay = parentByCode.get(codeStr);
+              if (!parentDisplay) return cc; // unknown parent — leave as-is
+              return { ...cc, code: parentCode, name: parentDisplay.replace(/^[^:]+:\s*/, '') };
+            })
+            .filter((cc: any) => {
+              const key = String(cc.code);
+              if (seen.has(key)) return false;
+              seen.add(key);
+              return true;
+            });
+
           if (costCodes.length === 0) return null;
-          
-          return `- ${company.company_name}:\n${costCodes.map((cc: any) => 
+
+          return `- ${company.company_name}:\n${costCodes.map((cc: any) =>
             `  * ${cc.code}: ${cc.name}${cc.category ? ` (${cc.category})` : ''}`
           ).join('\n')}`;
         }).filter(Boolean).join('\n')}`
