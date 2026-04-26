@@ -92,6 +92,16 @@ export const CreatePurchaseOrderDialog = ({
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [customMessage, setCustomMessage] = useState("");
   const [lineItems, setLineItems] = useState<LineItemInput[]>([emptyLine()]);
+  // Snapshot of original lines (taken when dialog initializes) — used to detect
+  // vendor-visible changes and to know which rows are "original" (locked) vs newly added.
+  const [originalLinesSnapshot, setOriginalLinesSnapshot] = useState<LineItemInput[]>([]);
+
+  // A PO is locked once it has been sent to the vendor.
+  // When locked: Qty, Unit Cost, Company, Add Line, and removing existing lines are disabled.
+  // Cost code, description, notes, attachments, and the Extra checkbox remain editable.
+  const isLocked = !!editOrder?.sent_at;
+  const originalLineCount = originalLinesSnapshot.length;
+  const isOriginalLine = (idx: number) => isLocked && idx < originalLineCount;
 
   const isBidFlow = !!bidContext;
   const bidMode = bidContext?.mode ?? 'send';
