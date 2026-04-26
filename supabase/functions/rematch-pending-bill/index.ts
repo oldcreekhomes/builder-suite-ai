@@ -156,7 +156,11 @@ serve(async (req) => {
       }
     }
 
-    // Update the pending upload if we found a match
+    // Resolve effective vendorId — newly matched OR already saved on the upload.
+    const existingVendorId = (upload.extracted_data?.vendor_id || upload.extracted_data?.vendorId) as string | undefined;
+    const effectiveVendorId = vendorId || existingVendorId || null;
+
+    // Update the pending upload if we found a new vendor match
     if (vendorId && matchedCompanyName) {
       let updatedData = {
         ...upload.extracted_data,
@@ -224,21 +228,150 @@ serve(async (req) => {
       if (updateError) {
         throw updateError;
       }
+    }
 
+    // ─────────────────────────────────────────────────────────────────────
+    // PO-AWARE SNAP: when both vendor and project are known, snap each
+    // pending bill line's cost code to the vendor's PO cost codes on this project.
+    // - If line cost_code is a subcategory (e.g. 2030.1) but its parent (2030)
+    //   exists on a PO for this vendor+project → swap to parent.
+    // - If vendor has exactly ONE PO with exactly ONE cost code on this
+    //   project → force every line to that cost code.
+    // ─────────────────────────────────────────────────────────────────────
+    let snapApplied = 0;
+    if (effectiveVendorId && projectId) {
+      try {
+        // Fetch POs for this vendor+project with their lines + cost codes.
+        const { data: pos, error: poErr } = await supabase
+          .from('project_purchase_orders')
+          .select(`
+            id,
+            cost_code_id,
+            cost_codes:cost_code_id ( id, code, name, parent_group ),
+            purchase_order_lines (
+              id,
+              cost_code_id,
+              cost_codes:cost_code_id ( id, code, name, parent_group )
+            )
+          `)
+          .eq('project_id', projectId)
+          .eq('company_id', effectiveVendorId);
+
+        if (poErr) {
+          console.error('Error loading vendor POs for snap:', poErr);
+        } else if (pos && pos.length > 0) {
+          // Collect every cost code touched by these POs (header + line items).
+          // Map: code(string) → { id, display "CODE: NAME" }
+          const poCostCodes = new Map<string, { id: string; display: string }>();
+          pos.forEach((po: any) => {
+            const collect = (cc: any) => {
+              if (cc?.id && cc?.code) {
+                poCostCodes.set(String(cc.code), {
+                  id: cc.id,
+                  display: `${cc.code}: ${cc.name}`,
+                });
+              }
+            };
+            collect(po.cost_codes);
+            (po.purchase_order_lines || []).forEach((l: any) => collect(l.cost_codes));
+          });
+
+          if (poCostCodes.size > 0) {
+            // Single-PO + single-code shortcut.
+            const isSingle = poCostCodes.size === 1;
+            const singleEntry = isSingle ? Array.from(poCostCodes.values())[0] : null;
+
+            // Pull current pending lines.
+            const { data: pendingLines } = await supabase
+              .from('pending_bill_lines')
+              .select('id, cost_code_id, cost_code_name, line_type')
+              .eq('pending_upload_id', pendingUploadId)
+              .eq('line_type', 'job_cost');
+
+            for (const line of pendingLines || []) {
+              let newId: string | null = null;
+              let newDisplay: string | null = null;
+
+              if (singleEntry) {
+                // Force every job-cost line to the single PO cost code.
+                if (line.cost_code_id !== singleEntry.id) {
+                  newId = singleEntry.id;
+                  newDisplay = singleEntry.display;
+                }
+              } else {
+                // Multi-PO/multi-code: try to roll subcategory → parent if parent is on a PO.
+                const m = String(line.cost_code_name || '').match(/^([0-9]+(?:\.[0-9]+)?)\s*:/);
+                if (m) {
+                  const code = m[1];
+                  if (poCostCodes.has(code)) continue; // already on a PO code
+                  // Try parent (strip ".x")
+                  const parentCode = code.includes('.') ? code.split('.')[0] : null;
+                  if (parentCode && poCostCodes.has(parentCode)) {
+                    const parent = poCostCodes.get(parentCode)!;
+                    newId = parent.id;
+                    newDisplay = parent.display;
+                  }
+                }
+              }
+
+              if (newId && newDisplay) {
+                const { error: upErr } = await supabase
+                  .from('pending_bill_lines')
+                  .update({ cost_code_id: newId, cost_code_name: newDisplay })
+                  .eq('id', line.id);
+                if (!upErr) snapApplied++;
+              }
+            }
+
+            // Mirror snap into extracted_data.line_items so the UI reflects it on next read.
+            if (snapApplied > 0) {
+              const ext = upload.extracted_data || {};
+              if (Array.isArray(ext.line_items)) {
+                const newItems = ext.line_items.map((li: any) => {
+                  const m = String(li.cost_code_name || '').match(/^([0-9]+(?:\.[0-9]+)?)\s*:/);
+                  if (singleEntry) return { ...li, cost_code_name: singleEntry.display };
+                  if (m) {
+                    const code = m[1];
+                    if (poCostCodes.has(code)) return li;
+                    const parentCode = code.includes('.') ? code.split('.')[0] : null;
+                    if (parentCode && poCostCodes.has(parentCode)) {
+                      return { ...li, cost_code_name: poCostCodes.get(parentCode)!.display };
+                    }
+                  }
+                  return li;
+                });
+                await supabase
+                  .from('pending_bill_uploads')
+                  .update({ extracted_data: { ...ext, line_items: newItems } })
+                  .eq('id', pendingUploadId);
+              }
+              console.log(`✅ PO snap applied to ${snapApplied} line(s)`);
+            }
+          }
+        }
+      } catch (e) {
+        console.error('Error during PO-aware cost code snap:', e);
+      }
+    }
+
+    if (vendorId && matchedCompanyName) {
       return new Response(
         JSON.stringify({
           success: true,
           vendor_id: vendorId,
-          company_name: matchedCompanyName
+          company_name: matchedCompanyName,
+          snap_applied: snapApplied,
         }),
         { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
 
+    // No new vendor match, but snap may still have run.
     return new Response(
-      JSON.stringify({ 
-        success: false, 
-        error: 'No matching vendor found' 
+      JSON.stringify({
+        success: snapApplied > 0,
+        snap_applied: snapApplied,
+        error: snapApplied > 0 ? null : 'No matching vendor found',
       }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
