@@ -780,17 +780,19 @@ export const CreatePurchaseOrderDialog = ({
           </div>
 
           {/* Custom Message + Attachments + Sending To */}
-          <div className="grid grid-cols-3 gap-4">
-            <div className="space-y-1.5">
-              <Label>Custom Message (Optional)</Label>
-              <Textarea
-                placeholder="Add a custom message to include in the email..."
-                value={customMessage}
-                onChange={(e) => setCustomMessage(e.target.value)}
-                className="resize-none h-[80px] min-h-[80px]"
-              />
-            </div>
-            <div className="space-y-1.5">
+          <div className={isLocked ? "" : "grid grid-cols-3 gap-4"}>
+            {!isLocked && (
+              <div className="space-y-1.5">
+                <Label>Custom Message (Optional)</Label>
+                <Textarea
+                  placeholder="Add a custom message to include in the email..."
+                  value={customMessage}
+                  onChange={(e) => setCustomMessage(e.target.value)}
+                  className="resize-none h-[80px] min-h-[80px]"
+                />
+              </div>
+            )}
+            <div className={`space-y-1.5 ${isLocked ? "max-w-sm" : ""}`}>
               <Label>Attachments</Label>
               {uploadedFiles.length === 0 ? (
                 <div
@@ -837,28 +839,30 @@ export const CreatePurchaseOrderDialog = ({
                 </div>
               )}
             </div>
-            <div className="space-y-1.5">
-              <Label>Sending To</Label>
-              <div className="border rounded-md p-3 h-[80px] overflow-auto text-sm">
-                {!recipientCompanyId ? (
-                  <p className="text-xs text-muted-foreground italic">Select a company to see recipients</p>
-                ) : recipients.length === 0 ? (
-                  <p className="text-xs text-muted-foreground italic">No representatives with PO notifications enabled</p>
-                ) : (
-                  <div className="space-y-1">
-                    {recipients.map((r: any) => {
-                      const name = `${r.first_name || ''} ${r.last_name || ''}`.trim() || '(No name)';
-                      return (
-                        <div key={r.id} className="truncate text-xs">
-                          <span className="font-semibold">{name}</span>
-                          <span className="text-muted-foreground"> · {r.email}</span>
-                        </div>
-                      );
-                    })}
-                  </div>
-                )}
+            {!isLocked && (
+              <div className="space-y-1.5">
+                <Label>Sending To</Label>
+                <div className="border rounded-md p-3 h-[80px] overflow-auto text-sm">
+                  {!recipientCompanyId ? (
+                    <p className="text-xs text-muted-foreground italic">Select a company to see recipients</p>
+                  ) : recipients.length === 0 ? (
+                    <p className="text-xs text-muted-foreground italic">No representatives with PO notifications enabled</p>
+                  ) : (
+                    <div className="space-y-1">
+                      {recipients.map((r: any) => {
+                        const name = `${r.first_name || ''} ${r.last_name || ''}`.trim() || '(No name)';
+                        return (
+                          <div key={r.id} className="truncate text-xs">
+                            <span className="font-semibold">{name}</span>
+                            <span className="text-muted-foreground"> · {r.email}</span>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  )}
+                </div>
               </div>
-            </div>
+            )}
           </div>
         </div>
 
