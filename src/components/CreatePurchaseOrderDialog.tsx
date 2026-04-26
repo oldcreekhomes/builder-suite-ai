@@ -769,9 +769,22 @@ export const CreatePurchaseOrderDialog = ({
                 </TableBody>
               </Table>
             </div>
-            <Button type="button" variant="outline" size="sm" onClick={addLine} className="gap-1">
-              <Plus className="h-3.5 w-3.5" /> Add Line
-            </Button>
+            {isLocked ? (
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <span className="inline-flex">
+                    <Button type="button" variant="outline" size="sm" disabled className="gap-1">
+                      <Plus className="h-3.5 w-3.5" /> Add Line
+                    </Button>
+                  </span>
+                </TooltipTrigger>
+                <TooltipContent side="top">PO already sent — create a new PO for additional work.</TooltipContent>
+              </Tooltip>
+            ) : (
+              <Button type="button" variant="outline" size="sm" onClick={addLine} className="gap-1">
+                <Plus className="h-3.5 w-3.5" /> Add Line
+              </Button>
+            )}
           </div>
 
           {/* Custom Message + Attachments + Sending To */}
