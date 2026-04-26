@@ -1,53 +1,61 @@
-# Smarter "Enter with AI" — Parent-Only Cost Codes + Auto-PO Snap
+# Project-Scoped PO Matching — Use the Context We Already Have
 
-Two related fixes to bill extraction so the AI mirrors how POs are actually written.
+## You were right to push back
 
-## Problem
+My previous plan suggested fetching POs across **all projects** for a vendor. That's wrong. The user uploads bills from inside a project page, and the `project_id` is already saved on `pending_bill_uploads` at upload time. The address on the invoice ("214 N. Granada") confirms the project. There is exactly one RC Fields PO on this project. The match is unambiguous and should be automatic.
 
-On the RC Fields invoice for 214 N Granada:
-1. **Subcategories used instead of parents.** AI picked `2030.1 - EHO PLat` and `2050.3 - Stormwater and Environmental` (children). The PO uses parent codes only: `2030 - Entitlement Engineering` and `2050 - Civil Engineering`.
-2. **Wrong PO logically possible.** RC Fields has only ONE PO on this project, so any extracted line for this vendor+project must roll up to that PO's cost codes — never a child code that doesn't exist on the PO.
+## Root cause (verified)
 
-## Root Cause
+- `SimplifiedAIBillExtraction.tsx` line 240 already writes `project_id` to the `pending_bill_uploads` row.
+- `SimplifiedAIBillExtraction.tsx` line 690 calls `extract-bill-data` but **does not pass `pendingUploadId`'s project context to the AI** — the function never loads the project's POs.
+- Result: AI extracts cost codes blindly, then `rematch-pending-bill` only runs PO-snap on user action — never automatically right after extraction.
 
-- `supabase/functions/extract-bill-data/index.ts` sends the AI **all** cost codes (parents + subcategories like `2030.1`, `2050.3`) and lets it pick any of them.
-- Extraction runs **before** project selection, so the AI has no visibility into which POs exist on the project for this vendor — it can't constrain itself to the PO's cost code set.
-- `rematch-pending-bill` already force-assigns the cost code when a vendor has only ONE company-cost-code link, but does nothing for project/PO context.
+## Fix — three small, scoped changes
 
-## Fix
+### 1. `extract-bill-data/index.ts` — load this project's vendor POs and use them as the source of truth
 
-### 1. Parent-only cost codes in extraction prompt (`extract-bill-data/index.ts`)
+When the function starts, it already loads the `pending_bill_uploads` row (it has the `project_id`). Add:
 
-- When fetching `cost_codes` (line ~467), filter out subcategories: only include rows where `parent_group IS NULL` **AND** `code` does not contain a `.`.
-- Apply the same filter to the per-company cost code list (lines 615-627) — strip any company-attached subcategories from what the AI sees.
-- Add an explicit prompt rule under "SMART COST CODE ASSIGNMENT RULES":
-  > **PARENT CODES ONLY:** Never return a subcategory cost code (codes containing a "." like "2030.1" or "2050.3"). Always roll up to the parent code (e.g. use "2030: Entitlement Engineering" instead of "2030.1: EHO PLat", and "2050: Civil Engineering" instead of "2050.3: Stormwater and Environmental").
-- Also strip subcategories from the `learningExamples` / vendor pattern summary (lines 491-566) so historical bad picks don't re-train it. If `cost_code_name` starts with a code containing `.`, replace it with the parent code's display before showing as an example.
+- After vendor matching succeeds, if `project_id` is set on the upload, query:
+  ```
+  project_purchase_orders + purchase_order_lines
+  WHERE project_id = <upload.project_id> AND company_id = <matched vendor_id>
+  ```
+- Build a "PO context" object containing each PO's lines with their cost code (parent code), description, quantity, and unit cost.
+- Inject this into the AI prompt as a **constraint section**:
+  > **PURCHASE ORDER CONTEXT FOR THIS BILL**
+  > This vendor has the following PO line(s) on this project. Match each invoice line to the closest PO line by description and amount. Use the PO line's cost code — do not invent a different one.
+  > [list of PO lines with code, description, qty, unit cost]
+- If the vendor has **exactly one PO with one cost code** on this project → instruct the AI to use that code for every line and skip the cost-code-list section entirely.
 
-### 2. Auto-snap to vendor's PO cost codes once project is set
+This gives the AI direct visibility into the answer instead of guessing from the global cost code list.
 
-When the user picks the project during review, the existing `rematch-pending-bill` flow should be extended (or a sibling reconcile step added) to:
+### 2. `extract-bill-data/index.ts` — write `purchase_order_id` onto each pending bill line
 
-- Look up `project_purchase_orders` for `(project_id, vendor_id)` with their `purchase_order_lines` and cost codes.
-- Build the set of cost codes present on those PO(s).
-- For each `pending_bill_lines` row:
-  - If the current `cost_code_id` is **not** in the PO cost-code set, but its **parent code** IS → swap to the parent (the most common case here: `2030.1` → `2030`, `2050.3` → `2050`).
-  - If the vendor has exactly **one PO** on the project and that PO has exactly **one cost code** → force every line to that cost code (mirrors the existing single-vendor-cost-code logic).
-  - If the vendor has **one PO** with multiple cost codes → keep the AI's choice only if it (or its parent) matches one of the PO's codes; otherwise leave as-is for manual review.
-- This snap runs server-side in `rematch-pending-bill` (extend it to accept an optional `projectId`) and is invoked from the review UI whenever `project_id` changes on a pending bill.
+When the AI returns line items, after the existing parent-code rollup logic, run a final pass:
+- For each pending line, find the best PO line match (by cost code + description similarity) within the project-scoped PO set.
+- Write `purchase_order_id` and `purchase_order_line_id` onto the `pending_bill_lines` row so `usePendingBillPOStatus` immediately resolves to "Matched" without any user interaction.
 
-### 3. Where to invoke from the UI
+### 3. `SimplifiedAIBillExtraction.tsx` — pass project context in the invoke body (defense in depth)
 
-`BillsReviewTable` / row-level project selector already updates `pending_bill_uploads.project_id`. After that update succeeds, call the extended `rematch-pending-bill` with the new `projectId` so cost codes snap immediately and the existing `usePendingBillPOStatus` fallback can resolve the row to "Matched".
+Even though the function can read it from the upload row, also pass `projectId` directly in the `supabase.functions.invoke('extract-bill-data', { body })` call (line 690-696). This avoids a round-trip and makes the contract explicit.
 
-## Out of scope
+## What this does NOT change
 
-- No changes to the PO entry/edit flow.
-- No schema changes — `parent_group` and code-format conventions already encode parent vs child.
-- Not touching `usePendingBillPOStatus` matching logic; once cost codes are corrected to parents, its existing vendor+project+cost_code fallback will resolve the match correctly.
+- No cross-project search. Ever. PO lookup is strictly `WHERE project_id = upload.project_id`.
+- No changes to `rematch-pending-bill` — the existing PO-snap logic stays as a safety net for when the user later changes the project.
+- No schema changes.
+- Parent-only cost code rule from the previous plan stays in place.
 
-## Files to modify
+## Files modified
 
-- `supabase/functions/extract-bill-data/index.ts` — parent-only filter + prompt rule + sanitize learning examples.
-- `supabase/functions/rematch-pending-bill/index.ts` — accept optional `projectId`, add PO-aware cost-code reconciliation step.
-- `src/components/bills/BillsReviewTable.tsx` (and/or the row-level project picker it uses) — invoke `rematch-pending-bill` with `projectId` after project change.
+- `supabase/functions/extract-bill-data/index.ts` — add project-scoped PO loading, inject PO context into prompt, write `purchase_order_id` onto pending lines.
+- `src/components/bills/SimplifiedAIBillExtraction.tsx` — pass `projectId` explicitly in the invoke body.
+
+## Expected outcome on the RC Fields bill
+
+- Upload happens on the 214 N. Granada project page → `project_id` is set.
+- Extraction loads the one RC Fields PO for this project, sees its lines (`2030 Entitlement Engineering`, `2050 Civil Engineering`, etc.).
+- AI matches "Expanded Housing Option" → 2030 PO line, "Stormwater and Environmental Management" → 2050 PO line — using the PO's exact wording as a guide.
+- `purchase_order_id` is stamped on each line during extraction.
+- The bill row in the review table shows "Matched" immediately, no user action required.
