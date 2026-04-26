@@ -416,7 +416,7 @@ export function BatchBillReviewTable({
     
     try {
       const { data, error } = await supabase.functions.invoke('rematch-pending-bill', {
-        body: { pendingUploadId: billId }
+        body: { pendingUploadId: billId, projectId: projectId || null }
       });
       
       if (error) throw error;
