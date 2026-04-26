@@ -413,7 +413,7 @@ serve(async (req) => {
   let requestBody: any;
   try {
     requestBody = await req.json();
-    const { pendingUploadId, pdfText, pageImages, enrichContactOnly } = requestBody;
+    const { pendingUploadId, pdfText, pageImages, enrichContactOnly, projectId: projectIdFromBody } = requestBody;
 
     if (!pendingUploadId) {
       throw new Error('pendingUploadId is required');
@@ -610,6 +610,94 @@ serve(async (req) => {
 
     console.log(`Found ${accounts?.length || 0} accounts, ${costCodes?.length || 0} cost codes, and ${learningExamples?.length || 0} past categorizations for AI learning`);
 
+    // ============================================================
+    // PROJECT-SCOPED PO CONTEXT
+    // The user uploaded this bill from a specific project page. Load every PO on
+    // that project (with lines, vendor names, and cost codes) so the AI can match
+    // invoice line items directly to PO lines for THIS project's vendors only.
+    // No cross-project search — POs are strictly filtered by project_id.
+    // ============================================================
+    const effectiveProjectId: string | null = projectIdFromBody || pendingUpload.project_id || null;
+    type POLineCtx = { id: string; cost_code_id: string | null; cost_code_display: string | null; description: string | null; quantity: number | null; unit_cost: number | null; amount: number | null };
+    type POCtx = { id: string; po_number: string | null; vendor_id: string; vendor_name: string; lines: POLineCtx[] };
+    let projectPOs: POCtx[] = [];
+    let projectPOContext = '';
+
+    if (effectiveProjectId) {
+      const { data: poRows, error: poErr } = await supabase
+        .from('project_purchase_orders')
+        .select(`
+          id, po_number, company_id, cost_code_id, status,
+          companies:company_id ( id, company_name ),
+          purchase_order_lines ( id, cost_code_id, description, quantity, unit_cost, amount, line_number )
+        `)
+        .eq('project_id', effectiveProjectId);
+
+      if (poErr) {
+        console.warn('Could not load project POs for context:', poErr.message);
+      } else if (poRows && poRows.length > 0) {
+        // Build cost-code id → display lookup using the already-loaded costCodesRaw set
+        const ccById = new Map<string, string>();
+        (costCodesRaw || []).forEach((c: any) => {
+          // Roll up subcategories to parent display so PO context shows parents only
+          const codeStr = String(c.code || '');
+          const isParent = !c.parent_group && !codeStr.includes('.');
+          const display = isParent ? `${codeStr}: ${c.name}` : (parentByCode.get(codeStr) || `${codeStr}: ${c.name}`);
+          ccById.set(c.id, display);
+        });
+
+        projectPOs = poRows.map((po: any) => {
+          const headerCC = po.cost_code_id;
+          const lines: POLineCtx[] = (po.purchase_order_lines && po.purchase_order_lines.length > 0)
+            ? po.purchase_order_lines.map((l: any) => ({
+                id: l.id,
+                cost_code_id: l.cost_code_id || headerCC || null,
+                cost_code_display: ccById.get(l.cost_code_id || headerCC || '') || null,
+                description: l.description || null,
+                quantity: l.quantity ?? null,
+                unit_cost: l.unit_cost ?? null,
+                amount: l.amount ?? null,
+              }))
+            : (headerCC ? [{
+                id: po.id, // synthetic line id == po id when no lines exist
+                cost_code_id: headerCC,
+                cost_code_display: ccById.get(headerCC) || null,
+                description: null,
+                quantity: null,
+                unit_cost: null,
+                amount: po.total_amount ?? null,
+              }] : []);
+
+          return {
+            id: po.id,
+            po_number: po.po_number || null,
+            vendor_id: po.company_id,
+            vendor_name: po.companies?.company_name || 'Unknown vendor',
+            lines,
+          };
+        });
+
+        if (projectPOs.length > 0) {
+          const poBlocks = projectPOs.map((po) => {
+            const linesTxt = po.lines.map((l) => {
+              const parts = [
+                l.cost_code_display ? `cost_code="${l.cost_code_display}"` : null,
+                l.description ? `desc="${l.description}"` : null,
+                l.amount != null ? `amount=${l.amount}` : null,
+              ].filter(Boolean).join(', ');
+              return `    - ${parts}`;
+            }).join('\n');
+            return `  PO ${po.po_number || po.id} — Vendor: ${po.vendor_name}\n${linesTxt}`;
+          }).join('\n');
+
+          projectPOContext = `\n\n📌 PURCHASE ORDERS ON THIS PROJECT (the bill was uploaded inside this project; match line items to these PO lines whenever the vendor matches):\n${poBlocks}\n\nRULES FOR PO MATCHING:\n- If the bill's vendor matches a vendor above, every bill line MUST use a cost code that appears on that vendor's PO line(s).\n- Match each bill line to the PO line whose description most closely matches (e.g. invoice line "Stormwater and Environmental Management" → PO line with the same/similar description).\n- If a vendor has only ONE PO with ONE cost code on this project, use that cost code for every bill line from that vendor — no exceptions.\n- Never invent a cost code that is not on this vendor's PO when a PO exists on this project for them.\n`;
+          console.log(`✓ Loaded ${projectPOs.length} project PO(s) for AI context (project ${effectiveProjectId})`);
+        }
+      }
+    } else {
+      console.log('No project_id available — skipping project-scoped PO context');
+    }
+
     // Update status to processing
     await supabase
       .from('pending_bill_uploads')
@@ -721,7 +809,7 @@ VENDOR CONTACT EXTRACTION RULES:
 - DO NOT fabricate or guess
 
 Return ONLY the JSON object with these 4 fields, no additional text.`
-      : `You are an AI that extracts and categorizes structured data from construction company bills/invoices.${accountsContext}${costCodesContext}${companyContext}${learningContext}${vendorLearningSummary}
+      : `You are an AI that extracts and categorizes structured data from construction company bills/invoices.${accountsContext}${costCodesContext}${companyContext}${projectPOContext}${learningContext}${vendorLearningSummary}
 
 ⚠️ CRITICAL: FIELD NAMING REQUIREMENT ⚠️
 ALL field names MUST use snake_case (e.g., vendor_name, bill_date).
@@ -1447,10 +1535,18 @@ Return ONLY the JSON object, no additional text.`;
       console.log(`Inserting ${extractedData.line_items.length} line items into pending_bill_lines...`);
       
       try {
+        // Pre-build POs scoped to the matched vendor for this project (if any)
+        const vendorPOsForProject: POCtx[] = (extractedData.vendor_id && projectPOs.length > 0)
+          ? projectPOs.filter(po => po.vendor_id === extractedData.vendor_id)
+          : [];
+        if (vendorPOsForProject.length > 0) {
+          console.log(`🔗 PO snap: vendor ${extractedData.vendor_id} has ${vendorPOsForProject.length} PO(s) on project ${effectiveProjectId}`);
+        }
+
         // Map extracted line items to database format
         const linesToInsert = extractedData.line_items.map((item: any, index: number) => {
           // Parse cost code if present (format: "code: name")
-          let costCodeId = null;
+          let costCodeId: string | null = null;
           let costCodeName = item.cost_code_name || null;
           
           if (item.cost_code_name) {
@@ -1488,6 +1584,77 @@ Return ONLY the JSON object, no additional text.`;
             ? String(rawPo).replace(/^(customer\s*po|job\s*#?|p\.?\s*o\.?)\s*[:#]?\s*/i, '').replace(/^#/, '').trim() || null
             : null;
 
+          // ============================================================
+          // PO SNAP: stamp purchase_order_id / purchase_order_line_id when this
+          // bill line clearly maps to a PO line on this project for this vendor.
+          // ============================================================
+          let snappedPoId: string | null = null;
+          let snappedPoLineId: string | null = null;
+          let snappedProjectId: string | null = null;
+
+          if (vendorPOsForProject.length > 0) {
+            // Single PO + single cost code → force-snap (highest confidence)
+            if (vendorPOsForProject.length === 1) {
+              const onlyPO = vendorPOsForProject[0];
+              const distinctCCs = new Set(onlyPO.lines.map(l => l.cost_code_id).filter(Boolean));
+
+              if (distinctCCs.size === 1 && onlyPO.lines.length >= 1) {
+                // Force every line to this PO's single cost code
+                const forcedCC = onlyPO.lines[0].cost_code_id!;
+                if (!costCodeId || costCodeId !== forcedCC) {
+                  costCodeId = forcedCC;
+                  costCodeName = onlyPO.lines[0].cost_code_display || costCodeName;
+                }
+                snappedPoId = onlyPO.id;
+                snappedPoLineId = onlyPO.lines[0].id;
+              } else {
+                // Multi-line PO: pick the line whose cost_code matches OR description matches best
+                const desc = String(item.description || item.memo || '');
+                let best = null as { line: POLineCtx; score: number } | null;
+                onlyPO.lines.forEach((l) => {
+                  let score = 0;
+                  if (costCodeId && l.cost_code_id === costCodeId) score += 0.5;
+                  if (l.description) score += descriptionSimilarity(desc, l.description);
+                  if (!best || score > best.score) best = { line: l, score };
+                });
+                if (best && best.score > 0) {
+                  snappedPoId = onlyPO.id;
+                  snappedPoLineId = best.line.id;
+                  if (!costCodeId && best.line.cost_code_id) {
+                    costCodeId = best.line.cost_code_id;
+                    costCodeName = best.line.cost_code_display || costCodeName;
+                  }
+                }
+              }
+            } else {
+              // Multiple POs for this vendor on this project → match by (cost_code, description)
+              const desc = String(item.description || item.memo || '');
+              let best = null as { po: POCtx; line: POLineCtx; score: number } | null;
+              vendorPOsForProject.forEach((po) => {
+                po.lines.forEach((l) => {
+                  let score = 0;
+                  if (costCodeId && l.cost_code_id === costCodeId) score += 0.5;
+                  if (l.description) score += descriptionSimilarity(desc, l.description);
+                  if (!best || score > best.score) best = { po, line: l, score };
+                });
+              });
+              if (best && best.score >= 0.3) {
+                snappedPoId = best.po.id;
+                snappedPoLineId = best.line.id;
+                if (!costCodeId && best.line.cost_code_id) {
+                  costCodeId = best.line.cost_code_id;
+                  costCodeName = best.line.cost_code_display || costCodeName;
+                }
+              }
+            }
+
+            // If we snapped a PO line, also stamp the project so the bill is
+            // immediately scoped without the user re-picking it during review.
+            if (snappedPoId) {
+              snappedProjectId = effectiveProjectId;
+            }
+          }
+
           return {
             pending_upload_id: pendingUploadId,
             owner_id: pendingUpload.owner_id, // Use original owner_id from pending_upload
@@ -1499,7 +1666,7 @@ Return ONLY the JSON object, no additional text.`;
             account_name: accountName,
             cost_code_id: costCodeId,
             cost_code_name: costCodeName,
-            project_id: null, // Project will be selected during review
+            project_id: snappedProjectId, // Set when PO-snap succeeded; otherwise selected during review
             project_name: null,
             quantity: item.quantity || 1,
             unit_cost: item.unit_cost || 0,
@@ -1507,9 +1674,11 @@ Return ONLY the JSON object, no additional text.`;
               ? Number(item.amount.toFixed(2))
               : Number(((item.quantity || 1) * (item.unit_cost || 0)).toFixed(2)),
             po_reference: poReference,
+            purchase_order_id: snappedPoId,
+            purchase_order_line_id: snappedPoLineId,
           };
         });
-        
+
         // Insert all line items
         const { error: linesError } = await supabase
           .from('pending_bill_lines')

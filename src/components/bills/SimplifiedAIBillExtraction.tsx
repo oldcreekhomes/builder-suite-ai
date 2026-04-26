@@ -690,6 +690,7 @@ const SimplifiedAIBillExtraction = forwardRef<SimplifiedAIBillExtractionHandle, 
       const { error: aiError } = await supabase.functions.invoke('extract-bill-data', {
         body: { 
           pendingUploadId: upload.id,
+          projectId: projectId ?? undefined,
           pdfText: pdfText || undefined,
           pageImages: pageImages.length > 0 ? pageImages : undefined
         }
