@@ -753,7 +753,7 @@ export const CreatePurchaseOrderDialog = ({
                     <TableCell colSpan={4} className="text-right font-medium text-sm pr-3">
                       Subtotal
                     </TableCell>
-                    <TableCell className="text-right font-semibold text-sm pr-3">
+                    <TableCell className="font-semibold text-sm pl-3">
                       ${subtotal.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                     </TableCell>
                     <TableCell colSpan={2} />
