@@ -725,16 +725,8 @@ export const CreatePurchaseOrderDialog = ({
                         {isOriginalLine(idx) ? (
                           <Tooltip>
                             <TooltipTrigger asChild>
-                              <span className="inline-flex">
-                                <Button
-                                  type="button"
-                                  variant="ghost"
-                                  size="sm"
-                                  className="h-7 w-7 p-0"
-                                  disabled
-                                >
-                                  <Trash2 className="h-3.5 w-3.5 text-muted-foreground" />
-                                </Button>
+                              <span className="inline-flex h-7 w-7 items-center justify-center">
+                                <Lock className="h-3.5 w-3.5 text-destructive" />
                               </span>
                             </TooltipTrigger>
                             <TooltipContent side="top">Locked — PO already sent to vendor</TooltipContent>
