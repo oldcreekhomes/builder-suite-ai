@@ -577,6 +577,12 @@ export const CreatePurchaseOrderDialog = ({
                   disabled
                   className="w-full"
                 />
+              ) : isLocked ? (
+                <Input
+                  value={selectedCompany?.name || ""}
+                  disabled
+                  className="w-full"
+                />
               ) : (
                 <CompanySearchInput
                   value={selectedCompany?.name || ""}
