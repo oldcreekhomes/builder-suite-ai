@@ -418,17 +418,20 @@ serve(async (req) => {
           vendor_id: vendorId,
           company_name: matchedCompanyName,
           snap_applied: snapApplied,
+          line_sync_applied: lineSyncApplied,
         }),
         { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
 
-    // No new vendor match, but snap may still have run.
+    // No new vendor match, but snap / line sync may still have run.
+    const anyChange = snapApplied > 0 || lineSyncApplied > 0;
     return new Response(
       JSON.stringify({
-        success: snapApplied > 0,
+        success: anyChange,
         snap_applied: snapApplied,
-        error: snapApplied > 0 ? null : 'No matching vendor found',
+        line_sync_applied: lineSyncApplied,
+        error: anyChange ? null : 'No matching vendor found',
       }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
