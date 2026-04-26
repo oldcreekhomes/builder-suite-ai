@@ -527,8 +527,8 @@ export function BatchBillReviewTable({
   const allSelected = bills.length > 0 && bills.every(bill => selectedBillIds.has(bill.id));
   const someSelected = bills.some(bill => selectedBillIds.has(bill.id)) && !allSelected;
 
-  // Helper to get memo summary from pending bill lines
-  const getMemoSummary = (bill: PendingBill): string | null => {
+  // Helper to get memo summary from pending bill lines (one row per unique description)
+  const getMemoSummary = (bill: PendingBill): string[] | null => {
     if (!bill.lines || bill.lines.length === 0) return null;
     
     const memos = bill.lines
@@ -537,8 +537,7 @@ export function BatchBillReviewTable({
     
     if (memos.length === 0) return null;
     
-    const uniqueMemos = [...new Set(memos)];
-    return uniqueMemos.join(' • ');
+    return [...new Set(memos)];
   };
 
   // Helper to get lot/address allocation data from pending bill lines
