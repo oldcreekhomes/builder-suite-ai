@@ -612,7 +612,7 @@ export const CreatePurchaseOrderDialog = ({
                   <TableRow>
                     <TableHead className="w-[200px]">Cost Code</TableHead>
                     <TableHead>Description</TableHead>
-                    <TableHead className="w-[100px]">Quantity</TableHead>
+                    <TableHead className="w-[100px] text-center">Quantity</TableHead>
                     <TableHead className="w-[110px]">Unit Cost</TableHead>
                     <TableHead className="w-[110px]">Amount</TableHead>
                     <TableHead className="w-[60px] text-center">Extra</TableHead>
@@ -675,7 +675,7 @@ export const CreatePurchaseOrderDialog = ({
                         {isOriginalLine(idx) ? (
                           <Tooltip>
                             <TooltipTrigger asChild>
-                              <div className="h-8 px-2 flex items-center text-sm font-medium text-foreground cursor-not-allowed">
+                              <div className="h-8 px-2 flex items-center justify-center text-sm font-medium text-foreground cursor-not-allowed">
                                 {line.quantity || ""}
                               </div>
                             </TooltipTrigger>
@@ -686,7 +686,7 @@ export const CreatePurchaseOrderDialog = ({
                             type="number"
                             value={line.quantity || ""}
                             onChange={(e) => updateLine(idx, { quantity: parseFloat(e.target.value) || 0 })}
-                            className="h-8 text-sm no-spinner"
+                            className="h-8 text-sm text-center no-spinner"
                             min={0}
                           />
                         )}
