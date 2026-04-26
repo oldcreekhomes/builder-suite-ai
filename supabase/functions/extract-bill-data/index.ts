@@ -1535,6 +1535,14 @@ Return ONLY the JSON object, no additional text.`;
       console.log(`Inserting ${extractedData.line_items.length} line items into pending_bill_lines...`);
       
       try {
+        // Pre-build POs scoped to the matched vendor for this project (if any)
+        const vendorPOsForProject: POCtx[] = (extractedData.vendor_id && projectPOs.length > 0)
+          ? projectPOs.filter(po => po.vendor_id === extractedData.vendor_id)
+          : [];
+        if (vendorPOsForProject.length > 0) {
+          console.log(`🔗 PO snap: vendor ${extractedData.vendor_id} has ${vendorPOsForProject.length} PO(s) on project ${effectiveProjectId}`);
+        }
+
         // Map extracted line items to database format
         const linesToInsert = extractedData.line_items.map((item: any, index: number) => {
           // Parse cost code if present (format: "code: name")
@@ -1576,6 +1584,77 @@ Return ONLY the JSON object, no additional text.`;
             ? String(rawPo).replace(/^(customer\s*po|job\s*#?|p\.?\s*o\.?)\s*[:#]?\s*/i, '').replace(/^#/, '').trim() || null
             : null;
 
+          // ============================================================
+          // PO SNAP: stamp purchase_order_id / purchase_order_line_id when this
+          // bill line clearly maps to a PO line on this project for this vendor.
+          // ============================================================
+          let snappedPoId: string | null = null;
+          let snappedPoLineId: string | null = null;
+          let snappedProjectId: string | null = null;
+
+          if (vendorPOsForProject.length > 0) {
+            // Single PO + single cost code → force-snap (highest confidence)
+            if (vendorPOsForProject.length === 1) {
+              const onlyPO = vendorPOsForProject[0];
+              const distinctCCs = new Set(onlyPO.lines.map(l => l.cost_code_id).filter(Boolean));
+
+              if (distinctCCs.size === 1 && onlyPO.lines.length >= 1) {
+                // Force every line to this PO's single cost code
+                const forcedCC = onlyPO.lines[0].cost_code_id!;
+                if (!costCodeId || costCodeId !== forcedCC) {
+                  costCodeId = forcedCC;
+                  costCodeName = onlyPO.lines[0].cost_code_display || costCodeName;
+                }
+                snappedPoId = onlyPO.id;
+                snappedPoLineId = onlyPO.lines[0].id;
+              } else {
+                // Multi-line PO: pick the line whose cost_code matches OR description matches best
+                const desc = String(item.description || item.memo || '');
+                let best: { line: POLineCtx; score: number } | null = null;
+                onlyPO.lines.forEach((l) => {
+                  let score = 0;
+                  if (costCodeId && l.cost_code_id === costCodeId) score += 0.5;
+                  if (l.description) score += descriptionSimilarity(desc, l.description);
+                  if (!best || score > best.score) best = { line: l, score };
+                });
+                if (best && best.score > 0) {
+                  snappedPoId = onlyPO.id;
+                  snappedPoLineId = best.line.id;
+                  if (!costCodeId && best.line.cost_code_id) {
+                    costCodeId = best.line.cost_code_id;
+                    costCodeName = best.line.cost_code_display || costCodeName;
+                  }
+                }
+              }
+            } else {
+              // Multiple POs for this vendor on this project → match by (cost_code, description)
+              const desc = String(item.description || item.memo || '');
+              let best: { po: POCtx; line: POLineCtx; score: number } | null = null;
+              vendorPOsForProject.forEach((po) => {
+                po.lines.forEach((l) => {
+                  let score = 0;
+                  if (costCodeId && l.cost_code_id === costCodeId) score += 0.5;
+                  if (l.description) score += descriptionSimilarity(desc, l.description);
+                  if (!best || score > best.score) best = { po, line: l, score };
+                });
+              });
+              if (best && best.score >= 0.3) {
+                snappedPoId = best.po.id;
+                snappedPoLineId = best.line.id;
+                if (!costCodeId && best.line.cost_code_id) {
+                  costCodeId = best.line.cost_code_id;
+                  costCodeName = best.line.cost_code_display || costCodeName;
+                }
+              }
+            }
+
+            // If we snapped a PO line, also stamp the project so the bill is
+            // immediately scoped without the user re-picking it during review.
+            if (snappedPoId) {
+              snappedProjectId = effectiveProjectId;
+            }
+          }
+
           return {
             pending_upload_id: pendingUploadId,
             owner_id: pendingUpload.owner_id, // Use original owner_id from pending_upload
@@ -1587,7 +1666,7 @@ Return ONLY the JSON object, no additional text.`;
             account_name: accountName,
             cost_code_id: costCodeId,
             cost_code_name: costCodeName,
-            project_id: null, // Project will be selected during review
+            project_id: snappedProjectId, // Set when PO-snap succeeded; otherwise selected during review
             project_name: null,
             quantity: item.quantity || 1,
             unit_cost: item.unit_cost || 0,
@@ -1595,9 +1674,11 @@ Return ONLY the JSON object, no additional text.`;
               ? Number(item.amount.toFixed(2))
               : Number(((item.quantity || 1) * (item.unit_cost || 0)).toFixed(2)),
             po_reference: poReference,
+            purchase_order_id: snappedPoId,
+            purchase_order_line_id: snappedPoLineId,
           };
         });
-        
+
         // Insert all line items
         const { error: linesError } = await supabase
           .from('pending_bill_lines')
