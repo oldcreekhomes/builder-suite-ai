@@ -335,6 +335,30 @@ export const CreatePurchaseOrderDialog = ({
       const primaryCostCodeId = validLines[0].cost_code_id;
 
       if (editOrder) {
+        // Detect whether anything VENDOR-VISIBLE changed.
+        // Vendor-visible: company, line count, qty, unit_cost, amount, extra flag.
+        // Internal-only (no email): cost_code, description, notes, attachments, custom message.
+        const companyChanged = editOrder.company_id !== selectedCompany.id;
+        const lineCountChanged = validLines.length !== originalLinesSnapshot.length;
+        let perLineChanged = false;
+        if (!lineCountChanged) {
+          for (let i = 0; i < validLines.length; i++) {
+            const a = validLines[i];
+            const b = originalLinesSnapshot[i];
+            if (!b) { perLineChanged = true; break; }
+            if (
+              Number(a.quantity) !== Number(b.quantity) ||
+              Number(a.unit_cost) !== Number(b.unit_cost) ||
+              Number(a.amount) !== Number(b.amount) ||
+              !!a.extra !== !!b.extra
+            ) {
+              perLineChanged = true;
+              break;
+            }
+          }
+        }
+        const vendorVisibleChanged = companyChanged || lineCountChanged || perLineChanged;
+
         const { data, error } = await supabase
           .from('project_purchase_orders')
           .update({
@@ -351,7 +375,15 @@ export const CreatePurchaseOrderDialog = ({
 
         if (error) throw error;
         await savePOLines(editOrder.id, validLines);
-        await sendPOEmail(data, selectedCompany, totalAmount, validLines, true);
+
+        if (vendorVisibleChanged) {
+          await sendPOEmail(data, selectedCompany, totalAmount, validLines, true);
+        } else {
+          toast({
+            title: "Purchase order updated",
+            description: "Internal change only — vendor was not notified.",
+          });
+        }
       } else {
         const { data: purchaseOrder, error } = await supabase
           .from('project_purchase_orders')
