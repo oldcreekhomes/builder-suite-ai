@@ -686,7 +686,7 @@ export const CreatePurchaseOrderDialog = ({
                             type="number"
                             value={line.quantity || ""}
                             onChange={(e) => updateLine(idx, { quantity: parseFloat(e.target.value) || 0 })}
-                            className="h-8 text-sm no-spinner"
+                            className="h-8 text-sm text-center no-spinner"
                             min={0}
                           />
                         )}
