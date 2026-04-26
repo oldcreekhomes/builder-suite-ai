@@ -464,11 +464,17 @@ serve(async (req) => {
       .eq('is_active', true)
       .order('code');
 
-    const { data: costCodes } = await supabase
+    const { data: costCodesRaw } = await supabase
       .from('cost_codes')
-      .select('id, code, name, category')
+      .select('id, code, name, category, parent_group')
       .eq('owner_id', effectiveOwnerId)
       .order('code');
+
+    // PARENT-ONLY: never expose subcategory cost codes (codes like "2030.1") to the AI.
+    // POs are written against parent codes only, so bill lines must roll up to parents.
+    const costCodes = (costCodesRaw || []).filter(
+      (c: any) => !c.parent_group && !String(c.code || '').includes('.')
+    );
 
     // Fetch companies with their associated cost codes (using effectiveOwnerId)
     const { data: companiesWithCostCodes } = await supabase
