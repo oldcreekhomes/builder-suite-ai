@@ -1629,7 +1629,7 @@ Return ONLY the JSON object, no additional text.`;
             } else {
               // Multiple POs for this vendor on this project → match by (cost_code, description)
               const desc = String(item.description || item.memo || '');
-              let best: { po: POCtx; line: POLineCtx; score: number } | null = null;
+              let best = null as { po: POCtx; line: POLineCtx; score: number } | null;
               vendorPOsForProject.forEach((po) => {
                 po.lines.forEach((l) => {
                   let score = 0;
