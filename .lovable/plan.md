@@ -1,26 +1,40 @@
-### Problem
-In the Create Purchase Order dialog, typing in a line item's **Description** field (e.g. trying to put "5. " in front of "Subsequent Bath Fee") types one character then the cursor jumps to the end of the string. You requested earlier that imported descriptions be capitalized, but after the ML/bid import the user must be able to freely edit.
+## Problem
 
-### Root Cause
-`src/components/CreatePurchaseOrderDialog.tsx` lines 576 and 586 run `titleCase()` inside `onChange` on **every keystroke**:
-```tsx
-onChange={(e) => updateLine(idx, { description: titleCase(e.target.value) })}
-```
-Re-formatting the value on each keypress causes React to write back a transformed string, which destroys the native caret position — so the cursor snaps to the end after each character.
+In the Create Purchase Order dialog (bid flow), edits to cost codes, descriptions, quantities, and unit costs disappear whenever the user switches browser tabs/windows and comes back. This is why the rows in your screenshot revert (e.g., 2050 - Civil Engineering reappears where you had changed them to 2055 - Surveying).
 
-### Fix
-Apply `titleCase` **only at import time** (already done on lines 126, 149, 159 when seeding from `bidContext.initialLineItems`) and stop transforming on every keystroke. The "best guess" capitalization from the ML/bid import is preserved on load, and subsequent user edits are stored verbatim with normal cursor behavior.
+## Root cause
 
-**Change both Description `onChange` handlers (lines 576 & 586) from:**
-```tsx
-onChange={(e) => updateLine(idx, { description: titleCase(e.target.value) })}
-```
-**to:**
-```tsx
-onChange={(e) => updateLine(idx, { description: e.target.value })}
-```
+`src/components/CreatePurchaseOrderDialog.tsx` has two effects that re-seed `lineItems` from `bidContext`:
 
-No other behavior changes — the imported defaults are still title-cased; the user just regains free editing.
+- **Line 105 effect** depends on `[editOrder, open, bidContext]`. The parent (`BiddingTableRow` / `BiddingCompanyRow`) builds `bidContext` as a **new inline object literal** on every render (lines 263 / 214). When the window regains focus, React Query refetches bidding data (default `refetchOnWindowFocus: true`), the parent re-renders, a brand-new `bidContext` reference is passed in, and this effect fires — overwriting all your edits with the original extracted lines.
+- **Line 147 effect** depends on `[open, bidContext?.initialLineItems]` and does the same re-seed if the array reference changes.
 
-### Files
-- `src/components/CreatePurchaseOrderDialog.tsx` — remove `titleCase()` wrapping inside the two Description `onChange` handlers.
+So every focus/refetch silently resets the table to the AI's initial guess.
+
+## Fix
+
+Make the seeding effects run **only on dialog open / true input changes**, not on every parent re-render.
+
+### 1. `src/components/CreatePurchaseOrderDialog.tsx`
+
+- Add a ref (`hasInitializedRef`) that flips to `true` the first time the dialog opens with a given `editOrder?.id` / `bidContext?.bidPackageId + biddingCompany.id`, and resets when the dialog closes.
+- The "pre-populate" effect (line 105) should only seed `selectedCompany`, `notes`, `uploadedFiles`, `customMessage`, and `lineItems` when `hasInitializedRef.current === false`. After that, user edits are preserved across re-renders.
+- The "re-seed on AI extraction" effect (line 147) should only run when `isExtracting` transitions from `true` → `false` (i.e., the AI just finished). Track previous `isExtracting` with a ref so subsequent parent re-renders don't re-seed.
+- The "load existing lines when editing" effect (line 154) should also be guarded by `hasInitializedRef` so a refetch of `existingLines` doesn't clobber edits.
+- On dialog close (`open === false`), reset `hasInitializedRef.current = false` so the next open re-seeds correctly.
+
+### 2. No parent changes required
+
+We do not need to memoize `bidContext` in `BiddingTableRow` / `BiddingCompanyRow` — the ref-guarded effects make the dialog robust to any parent re-render frequency.
+
+## What this does NOT change
+
+- Initial seeding from the AI extraction still works.
+- The title-case capitalization of the initial guess still works.
+- Editing the description (cursor fix from the previous change) is preserved.
+- Closing and reopening the dialog still loads fresh data.
+- Nothing about email sending, recipients, or the "no recipients enabled" guard changes.
+
+## Files to modify
+
+- `src/components/CreatePurchaseOrderDialog.tsx` (only file)

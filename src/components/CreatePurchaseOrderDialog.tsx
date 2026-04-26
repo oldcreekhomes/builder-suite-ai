@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
@@ -101,9 +101,22 @@ export const CreatePurchaseOrderDialog = ({
   const { createPOSendEmailAndUpdateStatus, resendPOEmail, isLoading: isBidPOLoading } = usePOMutations(projectId);
   const { profile } = useUserProfile();
 
-  // Pre-populate form when editing or bid context
+  // Guards: only seed once per dialog open, don't clobber user edits on parent re-renders
+  const hasInitializedRef = useRef(false);
+  const prevIsExtractingRef = useRef(false);
+
+  // Reset init guard when dialog closes
+  useEffect(() => {
+    if (!open) {
+      hasInitializedRef.current = false;
+      prevIsExtractingRef.current = false;
+    }
+  }, [open]);
+
+  // Pre-populate form when editing or bid context — ONLY on first open
   useEffect(() => {
     if (!open) return;
+    if (hasInitializedRef.current) return;
 
     if (bidContext) {
       setSelectedCompany({
@@ -126,6 +139,10 @@ export const CreatePurchaseOrderDialog = ({
           ? bidContext.initialLineItems.map((l) => ({ ...l, description: titleCase(l.description || '') }))
           : [emptyLine()]
       );
+      // Only mark initialized once extraction is done; otherwise the extraction-finish effect will seed
+      if (!bidContext.isExtracting) {
+        hasInitializedRef.current = true;
+      }
     } else if (editOrder) {
       setSelectedCompany({
         id: editOrder.companies?.id,
@@ -134,24 +151,33 @@ export const CreatePurchaseOrderDialog = ({
       setNotes(editOrder.notes || "");
       setUploadedFiles(editOrder.files || []);
       setCustomMessage("");
+      // Lines load via the existingLines effect below; mark initialized there
     } else {
       setSelectedCompany(null);
       setNotes("");
       setUploadedFiles([]);
       setCustomMessage("");
       setLineItems([emptyLine()]);
+      hasInitializedRef.current = true;
     }
   }, [editOrder, open, bidContext]);
 
-  // Re-seed lines when AI extraction completes mid-open
+  // Re-seed lines when AI extraction transitions from in-progress -> done
   useEffect(() => {
-    if (open && bidContext?.initialLineItems && bidContext.initialLineItems.length > 0) {
-      setLineItems(bidContext.initialLineItems.map((l) => ({ ...l, description: titleCase(l.description || '') })));
-    }
-  }, [open, bidContext?.initialLineItems]);
+    if (!open) return;
+    const wasExtracting = prevIsExtractingRef.current;
+    prevIsExtractingRef.current = isExtracting;
 
-  // Load existing lines when editing
+    if (wasExtracting && !isExtracting && bidContext?.initialLineItems && bidContext.initialLineItems.length > 0) {
+      setLineItems(bidContext.initialLineItems.map((l) => ({ ...l, description: titleCase(l.description || '') })));
+      hasInitializedRef.current = true;
+    }
+  }, [open, isExtracting, bidContext?.initialLineItems]);
+
+  // Load existing lines when editing — only once
   useEffect(() => {
+    if (!open) return;
+    if (hasInitializedRef.current) return;
     if (editOrder && existingLines.length > 0) {
       setLineItems(existingLines.map(l => ({
         cost_code_id: l.cost_code_id,
@@ -162,8 +188,9 @@ export const CreatePurchaseOrderDialog = ({
         amount: l.amount,
         extra: l.extra,
       })));
+      hasInitializedRef.current = true;
     }
-  }, [existingLines, editOrder]);
+  }, [open, existingLines, editOrder]);
 
   // Recipients for the "Sending To" column
   const recipientCompanyId = isBidFlow
