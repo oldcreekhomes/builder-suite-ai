@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { Upload, X, Plus, Trash2, Sparkles } from "lucide-react";
+import { Upload, X, Plus, Trash2, Sparkles, Lock } from "lucide-react";
 import { getFileIcon, getFileIconColor, getCleanFileName } from "./bidding/utils/fileIconUtils";
 import { useDropzone } from "react-dropzone";
 import { supabase } from "@/integrations/supabase/client";
@@ -612,9 +612,9 @@ export const CreatePurchaseOrderDialog = ({
                   <TableRow>
                     <TableHead className="w-[200px]">Cost Code</TableHead>
                     <TableHead>Description</TableHead>
-                    <TableHead className="w-[80px] text-right">Qty</TableHead>
-                    <TableHead className="w-[110px] text-right">Unit Cost</TableHead>
-                    <TableHead className="w-[110px] text-right">Amount</TableHead>
+                    <TableHead className="w-[100px]">Quantity</TableHead>
+                    <TableHead className="w-[110px]">Unit Cost</TableHead>
+                    <TableHead className="w-[110px]">Amount</TableHead>
                     <TableHead className="w-[60px] text-center">Extra</TableHead>
                     <TableHead className="w-[60px] text-center">Actions</TableHead>
                   </TableRow>
@@ -675,7 +675,7 @@ export const CreatePurchaseOrderDialog = ({
                         {isOriginalLine(idx) ? (
                           <Tooltip>
                             <TooltipTrigger asChild>
-                              <div className="h-8 px-2 flex items-center justify-end text-sm text-muted-foreground cursor-not-allowed">
+                              <div className="h-8 px-2 flex items-center text-sm font-medium text-foreground cursor-not-allowed">
                                 {line.quantity || ""}
                               </div>
                             </TooltipTrigger>
@@ -686,7 +686,7 @@ export const CreatePurchaseOrderDialog = ({
                             type="number"
                             value={line.quantity || ""}
                             onChange={(e) => updateLine(idx, { quantity: parseFloat(e.target.value) || 0 })}
-                            className="h-8 text-sm text-right no-spinner"
+                            className="h-8 text-sm no-spinner"
                             min={0}
                           />
                         )}
@@ -695,8 +695,8 @@ export const CreatePurchaseOrderDialog = ({
                         {isOriginalLine(idx) ? (
                           <Tooltip>
                             <TooltipTrigger asChild>
-                              <div className="h-8 px-2 flex items-center justify-end text-sm text-muted-foreground cursor-not-allowed">
-                                {line.unit_cost || ""}
+                              <div className="h-8 px-2 flex items-center text-sm font-medium text-foreground cursor-not-allowed">
+                                {line.unit_cost ? `$${line.unit_cost.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` : ""}
                               </div>
                             </TooltipTrigger>
                             <TooltipContent side="top">Locked — PO already sent to vendor</TooltipContent>
@@ -707,12 +707,12 @@ export const CreatePurchaseOrderDialog = ({
                             step="0.01"
                             value={line.unit_cost || ""}
                             onChange={(e) => updateLine(idx, { unit_cost: parseFloat(e.target.value) || 0 })}
-                            className="h-8 text-sm text-right no-spinner"
+                            className="h-8 text-sm no-spinner"
                             min={0}
                           />
                         )}
                       </TableCell>
-                      <TableCell className="p-1 text-right text-sm font-medium pr-3">
+                      <TableCell className="p-1 text-sm font-medium pl-3">
                         ${line.amount.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                       </TableCell>
                       <TableCell className="p-1 text-center">
@@ -725,16 +725,8 @@ export const CreatePurchaseOrderDialog = ({
                         {isOriginalLine(idx) ? (
                           <Tooltip>
                             <TooltipTrigger asChild>
-                              <span className="inline-flex">
-                                <Button
-                                  type="button"
-                                  variant="ghost"
-                                  size="sm"
-                                  className="h-7 w-7 p-0"
-                                  disabled
-                                >
-                                  <Trash2 className="h-3.5 w-3.5 text-muted-foreground" />
-                                </Button>
+                              <span className="inline-flex h-7 w-7 items-center justify-center">
+                                <Lock className="h-3.5 w-3.5 text-destructive" />
                               </span>
                             </TooltipTrigger>
                             <TooltipContent side="top">Locked — PO already sent to vendor</TooltipContent>
@@ -761,7 +753,7 @@ export const CreatePurchaseOrderDialog = ({
                     <TableCell colSpan={4} className="text-right font-medium text-sm pr-3">
                       Subtotal
                     </TableCell>
-                    <TableCell className="text-right font-semibold text-sm pr-3">
+                    <TableCell className="font-semibold text-sm pl-3">
                       ${subtotal.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                     </TableCell>
                     <TableCell colSpan={2} />
