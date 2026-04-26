@@ -300,7 +300,7 @@ serve(async (req) => {
                 }
               } else {
                 // Multi-PO/multi-code: try to roll subcategory → parent if parent is on a PO.
-                const m = String(line.cost_code_name || '').match(/^([0-9]+(?:\.[0-9]+)?)\s*:/);
+                const m = String(line.cost_code_name || '').match(/^([0-9]+(?:\.[0-9]+)?)\s*[:\-]/);
                 if (m) {
                   const code = m[1];
                   if (poCostCodes.has(code)) continue; // already on a PO code
