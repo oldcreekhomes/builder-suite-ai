@@ -673,8 +673,8 @@ export function BillsApprovalTable({ status, projectId, projectIds, showProjectC
     return { display: `+${uniqueLotCount}`, costCodeBreakdown, totalAmount: bill.total_amount, uniqueLotCount };
   };
 
-  // Helper to get bill memo summary from bill_lines
-  const getBillMemoSummary = (bill: BillForApproval): string | null => {
+  // Helper to get bill memo summary from bill_lines (one entry per unique memo)
+  const getBillMemoSummary = (bill: BillForApproval): string[] | null => {
     if (!bill.bill_lines || bill.bill_lines.length === 0) return null;
     
     const memos = bill.bill_lines
@@ -684,8 +684,7 @@ export function BillsApprovalTable({ status, projectId, projectIds, showProjectC
     if (memos.length === 0) return null;
     
     // Deduplicate memos
-    const uniqueMemos = [...new Set(memos)];
-    return uniqueMemos.join(' • ');
+    return [...new Set(memos)];
   };
 
   const isDraftStatus = status === 'draft';
@@ -714,7 +713,7 @@ export function BillsApprovalTable({ status, projectId, projectIds, showProjectC
   const showPOStatusColumn = true;
   const baseColCount = 11 + (showAddressColumn ? 1 : 0) + (showProjectColumn ? 1 : 0) + (showPayBillButton ? 1 : 0) + (canShowDeleteButton ? 1 : 0) + (showPOStatusColumn ? 1 : 0);
 
-  const renderBillRow = (bill: BillForApproval, memoSummary: string | null) => {
+  const renderBillRow = (bill: BillForApproval, memoSummary: string[] | null) => {
     const matchResult = poMatchingData?.get(bill.id);
     const rowAllMatches = matchResult?.matches || [];
     const rowClickable = rowAllMatches.length > 0;
@@ -868,14 +867,18 @@ export function BillsApprovalTable({ status, projectId, projectIds, showProjectC
       </TableCell>
       {/* Memo column */}
       <TableCell className="w-10 text-center">
-        {memoSummary ? (
+        {memoSummary && memoSummary.length > 0 ? (
           <TooltipProvider>
             <Tooltip>
               <TooltipTrigger asChild>
                 <FileText className="h-4 w-4 text-yellow-600 mx-auto cursor-default" />
               </TooltipTrigger>
-              <TooltipContent className="max-w-xs">
-                <p className="whitespace-pre-wrap">{memoSummary}</p>
+              <TooltipContent>
+                <div className="space-y-1">
+                  {memoSummary.map((memo, i) => (
+                    <p key={i} className="whitespace-nowrap text-xs">{memo}</p>
+                  ))}
+                </div>
               </TooltipContent>
             </Tooltip>
           </TooltipProvider>
