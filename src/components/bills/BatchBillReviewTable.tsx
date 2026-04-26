@@ -163,6 +163,37 @@ export function BatchBillReviewTable({
   const { openBillAttachment } = useUniversalFilePreviewContext();
   const [deletingAttachmentBill, setDeletingAttachmentBill] = useState<PendingBill | null>(null);
   const [isDeletingAttachment, setIsDeletingAttachment] = useState(false);
+  // Track which (billId|projectId) pairs we've already requested a PO snap for,
+  // so we don't spam the edge function on every render.
+  const [snappedKeys] = useState<Set<string>>(() => new Set());
+
+  // Auto-snap pending bill cost codes to vendor's PO cost codes whenever
+  // a bill has both a resolved vendor_id and the page-level projectId.
+  useEffect(() => {
+    if (!projectId || !bills?.length) return;
+    bills.forEach((b) => {
+      const vendorId = (b.vendor_id || b.extracted_data?.vendor_id || b.extracted_data?.vendorId) as string | undefined;
+      if (!vendorId) return;
+      const key = `${b.id}|${projectId}|${vendorId}`;
+      if (snappedKeys.has(key)) return;
+      snappedKeys.add(key);
+      supabase.functions
+        .invoke('rematch-pending-bill', { body: { pendingUploadId: b.id, projectId } })
+        .then(async ({ data }) => {
+          if (data?.snap_applied && data.snap_applied > 0) {
+            // Refresh just this bill's lines so the UI reflects snapped cost codes.
+            const { data: refreshed } = await supabase
+              .from('pending_bill_lines')
+              .select('*')
+              .eq('pending_upload_id', b.id)
+              .order('line_number', { ascending: true });
+            if (refreshed) onLinesUpdate?.(b.id, refreshed as any);
+          }
+        })
+        .catch((e) => console.warn('PO snap failed for bill', b.id, e));
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [bills, projectId]);
 
   const handleRemoveAttachment = async (bill: PendingBill, att: { id: string; file_name: string; file_path: string }) => {
     try {
@@ -416,7 +447,7 @@ export function BatchBillReviewTable({
     
     try {
       const { data, error } = await supabase.functions.invoke('rematch-pending-bill', {
-        body: { pendingUploadId: billId }
+        body: { pendingUploadId: billId, projectId: projectId || null }
       });
       
       if (error) throw error;

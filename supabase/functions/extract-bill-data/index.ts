@@ -464,13 +464,49 @@ serve(async (req) => {
       .eq('is_active', true)
       .order('code');
 
-    const { data: costCodes } = await supabase
+    const { data: costCodesRaw } = await supabase
       .from('cost_codes')
-      .select('id, code, name, category')
+      .select('id, code, name, category, parent_group')
       .eq('owner_id', effectiveOwnerId)
       .order('code');
 
-    // Fetch companies with their associated cost codes (using effectiveOwnerId)
+    // PARENT-ONLY: never expose subcategory cost codes (codes like "2030.1") to the AI.
+    // POs are written against parent codes only, so bill lines must roll up to parents.
+    const costCodes = (costCodesRaw || []).filter(
+      (c: any) => !c.parent_group && !String(c.code || '').includes('.')
+    );
+
+
+    // Map of any code → parent display "CODE: NAME" for rolling subcategories up to parent.
+    const parentByCode = new Map<string, string>();
+    const parentCodeByCode = new Map<string, string>();
+    (costCodesRaw || []).forEach((c: any) => {
+      const codeStr = String(c.code || '');
+      const isParent = !c.parent_group && !codeStr.includes('.');
+      if (isParent) {
+        parentByCode.set(codeStr, `${codeStr}: ${c.name}`);
+        parentCodeByCode.set(codeStr, codeStr);
+      }
+    });
+    // Second pass: for subcategories, point them to the parent display when known.
+    (costCodesRaw || []).forEach((c: any) => {
+      const codeStr = String(c.code || '');
+      const parentCode = c.parent_group || (codeStr.includes('.') ? codeStr.split('.')[0] : null);
+      if (parentCode && parentByCode.has(parentCode)) {
+        parentByCode.set(codeStr, parentByCode.get(parentCode)!);
+        parentCodeByCode.set(codeStr, parentCode);
+      }
+    });
+
+    // Roll any "CODE: NAME" string up to its parent display when it's a subcategory.
+    const rollCostCodeNameToParent = (display: string | null | undefined): string | null => {
+      if (!display) return null;
+      const m = String(display).match(/^([0-9]+(?:\.[0-9]+)?)\s*:/);
+      if (!m) return display;
+      const code = m[1];
+      return parentByCode.get(code) || display;
+    };
+
     const { data: companiesWithCostCodes } = await supabase
       .from('companies')
       .select(`
@@ -490,15 +526,22 @@ serve(async (req) => {
 
     // Fetch categorization examples for AI learning with smart prioritization
     // Strategy: Get more examples and let the AI see vendor-specific patterns
-    const { data: allLearningExamples } = await supabase
+    const { data: allLearningExamplesRaw } = await supabase
       .from('bill_categorization_examples')
       .select('vendor_name, description, account_name, cost_code_name, created_at')
       .eq('owner_id', effectiveOwnerId)
       .order('created_at', { ascending: false })
       .limit(100); // Fetch more to allow smart filtering
 
+    // Sanitize learning examples: roll any subcategory cost codes up to their parent
+    // so historical mis-picks don't re-train the AI on child codes.
+    const allLearningExamples = (allLearningExamplesRaw || []).map((ex: any) => ({
+      ...ex,
+      cost_code_name: rollCostCodeNameToParent(ex.cost_code_name),
+    }));
+
     // Smart prioritization: Group by vendor and description similarity
-    const learningExamples = allLearningExamples?.slice(0, 50) || []; // Will use top 50 in prompt
+    const learningExamples = allLearningExamples.slice(0, 50); // Will use top 50 in prompt
     
     // Create vendor-specific learning summary for the AI
     const vendorPatterns = new Map<string, Array<any>>();
@@ -611,16 +654,34 @@ serve(async (req) => {
       ? `\n\nAvailable Cost Codes:\n${costCodes.map(c => `- ${c.code}: ${c.name}${c.category ? ` (${c.category})` : ''}`).join('\n')}`
       : '';
 
-    // Build company-cost code context for smart assignment
+    // Build company-cost code context for smart assignment.
+    // Roll any subcategory cost code attached to a company up to its parent so the
+    // AI never sees (or returns) a child code.
     const companyContext = companiesWithCostCodes && companiesWithCostCodes.length > 0
       ? `\n\nCOMPANY-SPECIFIC COST CODES:\n${companiesWithCostCodes.map(company => {
+          const seen = new Set<string>();
           const costCodes = company.company_cost_codes
             .map((cc: any) => cc.cost_codes)
-            .filter(Boolean);
-          
+            .filter(Boolean)
+            .map((cc: any) => {
+              const codeStr = String(cc.code || '');
+              const isParent = !codeStr.includes('.');
+              if (isParent) return cc;
+              const parentCode = codeStr.split('.')[0];
+              const parentDisplay = parentByCode.get(codeStr);
+              if (!parentDisplay) return cc; // unknown parent — leave as-is
+              return { ...cc, code: parentCode, name: parentDisplay.replace(/^[^:]+:\s*/, '') };
+            })
+            .filter((cc: any) => {
+              const key = String(cc.code);
+              if (seen.has(key)) return false;
+              seen.add(key);
+              return true;
+            });
+
           if (costCodes.length === 0) return null;
-          
-          return `- ${company.company_name}:\n${costCodes.map((cc: any) => 
+
+          return `- ${company.company_name}:\n${costCodes.map((cc: any) =>
             `  * ${cc.code}: ${cc.name}${cc.category ? ` (${cc.category})` : ''}`
           ).join('\n')}`;
         }).filter(Boolean).join('\n')}`
@@ -765,6 +826,14 @@ IMPORTANT CATEGORIZATION: For each line item, analyze the description and match 
 - For "cost_code_name", return the cost code in format "CODE: NAME" exactly as shown in the available cost codes list (e.g., "4020: Project Manager")
 - If you cannot confidently match a line item, leave account_name and/or cost_code_name as null
 - Common patterns: "Job Costs" account is typically for project-related expenses like materials, labor, subcontractors, project management, etc.
+
+⚠️ PARENT CODES ONLY (CRITICAL):
+- NEVER return a subcategory cost code. Subcategory codes contain a "." (e.g. "2030.1: EHO PLat", "2050.3: Stormwater and Environmental").
+- Always roll up to the PARENT code instead. Examples:
+  • "2030.1: EHO PLat" → use "2030: Entitlement Engineering"
+  • "2050.3: Stormwater and Environmental" → use "2050: Civil Engineering"
+- Purchase Orders are written against parent cost codes only, so bill lines must match the parent. Even if a subcategory better describes the line, return its parent code.
+- Only the parent codes are present in the Available Cost Codes list above — do not invent subcategory codes.
 
 SMART COST CODE ASSIGNMENT RULES:
 1. First, identify the vendor company name from the invoice
