@@ -78,7 +78,7 @@ export function PurchaseOrdersTableRowContent({
     return (
       <TooltipProvider>
         <Tooltip>
-          <TooltipTrigger className="cursor-default">
+          <TooltipTrigger className="cursor-default font-medium text-left text-sm">
             {display}
           </TooltipTrigger>
           <TooltipContent className="max-w-xs">
