@@ -92,6 +92,16 @@ export const CreatePurchaseOrderDialog = ({
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [customMessage, setCustomMessage] = useState("");
   const [lineItems, setLineItems] = useState<LineItemInput[]>([emptyLine()]);
+  // Snapshot of original lines (taken when dialog initializes) — used to detect
+  // vendor-visible changes and to know which rows are "original" (locked) vs newly added.
+  const [originalLinesSnapshot, setOriginalLinesSnapshot] = useState<LineItemInput[]>([]);
+
+  // A PO is locked once it has been sent to the vendor.
+  // When locked: Qty, Unit Cost, Company, Add Line, and removing existing lines are disabled.
+  // Cost code, description, notes, attachments, and the Extra checkbox remain editable.
+  const isLocked = !!editOrder?.sent_at;
+  const originalLineCount = originalLinesSnapshot.length;
+  const isOriginalLine = (idx: number) => isLocked && idx < originalLineCount;
 
   const isBidFlow = !!bidContext;
   const bidMode = bidContext?.mode ?? 'send';
@@ -179,7 +189,7 @@ export const CreatePurchaseOrderDialog = ({
     if (!open) return;
     if (hasInitializedRef.current) return;
     if (editOrder && existingLines.length > 0) {
-      setLineItems(existingLines.map(l => ({
+      const seeded = existingLines.map(l => ({
         cost_code_id: l.cost_code_id,
         cost_code_display: l.cost_codes ? `${l.cost_codes.code} - ${l.cost_codes.name}` : "",
         description: titleCase(l.description || ''),
@@ -187,10 +197,17 @@ export const CreatePurchaseOrderDialog = ({
         unit_cost: l.unit_cost,
         amount: l.amount,
         extra: l.extra,
-      })));
+      }));
+      setLineItems(seeded);
+      setOriginalLinesSnapshot(seeded);
       hasInitializedRef.current = true;
     }
   }, [open, existingLines, editOrder]);
+
+  // Reset snapshot when dialog closes
+  useEffect(() => {
+    if (!open) setOriginalLinesSnapshot([]);
+  }, [open]);
 
   // Recipients for the "Sending To" column
   const recipientCompanyId = isBidFlow
@@ -318,6 +335,30 @@ export const CreatePurchaseOrderDialog = ({
       const primaryCostCodeId = validLines[0].cost_code_id;
 
       if (editOrder) {
+        // Detect whether anything VENDOR-VISIBLE changed.
+        // Vendor-visible: company, line count, qty, unit_cost, amount, extra flag.
+        // Internal-only (no email): cost_code, description, notes, attachments, custom message.
+        const companyChanged = editOrder.company_id !== selectedCompany.id;
+        const lineCountChanged = validLines.length !== originalLinesSnapshot.length;
+        let perLineChanged = false;
+        if (!lineCountChanged) {
+          for (let i = 0; i < validLines.length; i++) {
+            const a = validLines[i];
+            const b = originalLinesSnapshot[i];
+            if (!b) { perLineChanged = true; break; }
+            if (
+              Number(a.quantity) !== Number(b.quantity) ||
+              Number(a.unit_cost) !== Number(b.unit_cost) ||
+              Number(a.amount) !== Number(b.amount) ||
+              !!a.extra !== !!b.extra
+            ) {
+              perLineChanged = true;
+              break;
+            }
+          }
+        }
+        const vendorVisibleChanged = companyChanged || lineCountChanged || perLineChanged;
+
         const { data, error } = await supabase
           .from('project_purchase_orders')
           .update({
@@ -334,7 +375,15 @@ export const CreatePurchaseOrderDialog = ({
 
         if (error) throw error;
         await savePOLines(editOrder.id, validLines);
-        await sendPOEmail(data, selectedCompany, totalAmount, validLines, true);
+
+        if (vendorVisibleChanged) {
+          await sendPOEmail(data, selectedCompany, totalAmount, validLines, true);
+        } else {
+          toast({
+            title: "Purchase order updated",
+            description: "Internal change only — vendor was not notified.",
+          });
+        }
       } else {
         const { data: purchaseOrder, error } = await supabase
           .from('project_purchase_orders')
@@ -528,6 +577,12 @@ export const CreatePurchaseOrderDialog = ({
                   disabled
                   className="w-full"
                 />
+              ) : isLocked ? (
+                <Input
+                  value={selectedCompany?.name || ""}
+                  disabled
+                  className="w-full"
+                />
               ) : (
                 <CompanySearchInput
                   value={selectedCompany?.name || ""}
@@ -617,23 +672,45 @@ export const CreatePurchaseOrderDialog = ({
                         )}
                       </TableCell>
                       <TableCell className="p-1">
-                        <Input
-                          type="number"
-                          value={line.quantity || ""}
-                          onChange={(e) => updateLine(idx, { quantity: parseFloat(e.target.value) || 0 })}
-                          className="h-8 text-sm text-right no-spinner"
-                          min={0}
-                        />
+                        {isOriginalLine(idx) ? (
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <div className="h-8 px-2 flex items-center justify-end text-sm text-muted-foreground cursor-not-allowed">
+                                {line.quantity || ""}
+                              </div>
+                            </TooltipTrigger>
+                            <TooltipContent side="top">Locked — PO already sent to vendor</TooltipContent>
+                          </Tooltip>
+                        ) : (
+                          <Input
+                            type="number"
+                            value={line.quantity || ""}
+                            onChange={(e) => updateLine(idx, { quantity: parseFloat(e.target.value) || 0 })}
+                            className="h-8 text-sm text-right no-spinner"
+                            min={0}
+                          />
+                        )}
                       </TableCell>
                       <TableCell className="p-1">
-                        <Input
-                          type="number"
-                          step="0.01"
-                          value={line.unit_cost || ""}
-                          onChange={(e) => updateLine(idx, { unit_cost: parseFloat(e.target.value) || 0 })}
-                          className="h-8 text-sm text-right no-spinner"
-                          min={0}
-                        />
+                        {isOriginalLine(idx) ? (
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <div className="h-8 px-2 flex items-center justify-end text-sm text-muted-foreground cursor-not-allowed">
+                                {line.unit_cost || ""}
+                              </div>
+                            </TooltipTrigger>
+                            <TooltipContent side="top">Locked — PO already sent to vendor</TooltipContent>
+                          </Tooltip>
+                        ) : (
+                          <Input
+                            type="number"
+                            step="0.01"
+                            value={line.unit_cost || ""}
+                            onChange={(e) => updateLine(idx, { unit_cost: parseFloat(e.target.value) || 0 })}
+                            className="h-8 text-sm text-right no-spinner"
+                            min={0}
+                          />
+                        )}
                       </TableCell>
                       <TableCell className="p-1 text-right text-sm font-medium pr-3">
                         ${line.amount.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
@@ -645,17 +722,37 @@ export const CreatePurchaseOrderDialog = ({
                         />
                       </TableCell>
                       <TableCell className="p-1 text-center">
-                        <Button
-                          type="button"
-                          variant="ghost"
-                          size="sm"
-                          className="h-7 w-7 p-0 hover:bg-destructive/10"
-                          onClick={() => removeLine(idx)}
-                          disabled={lineItems.length <= 1}
-                        >
-                          <Trash2 className="h-3.5 w-3.5 text-destructive" />
-                        </Button>
+                        {isOriginalLine(idx) ? (
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <span className="inline-flex">
+                                <Button
+                                  type="button"
+                                  variant="ghost"
+                                  size="sm"
+                                  className="h-7 w-7 p-0"
+                                  disabled
+                                >
+                                  <Trash2 className="h-3.5 w-3.5 text-muted-foreground" />
+                                </Button>
+                              </span>
+                            </TooltipTrigger>
+                            <TooltipContent side="top">Locked — PO already sent to vendor</TooltipContent>
+                          </Tooltip>
+                        ) : (
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="sm"
+                            className="h-7 w-7 p-0 hover:bg-destructive/10"
+                            onClick={() => removeLine(idx)}
+                            disabled={lineItems.length <= 1}
+                          >
+                            <Trash2 className="h-3.5 w-3.5 text-destructive" />
+                          </Button>
+                        )}
                       </TableCell>
+
                     </TableRow>
                   ))}
                   </TooltipProvider>
@@ -672,9 +769,22 @@ export const CreatePurchaseOrderDialog = ({
                 </TableBody>
               </Table>
             </div>
-            <Button type="button" variant="outline" size="sm" onClick={addLine} className="gap-1">
-              <Plus className="h-3.5 w-3.5" /> Add Line
-            </Button>
+            {isLocked ? (
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <span className="inline-flex">
+                    <Button type="button" variant="outline" size="sm" disabled className="gap-1">
+                      <Plus className="h-3.5 w-3.5" /> Add Line
+                    </Button>
+                  </span>
+                </TooltipTrigger>
+                <TooltipContent side="top">PO already sent — create a new PO for additional work.</TooltipContent>
+              </Tooltip>
+            ) : (
+              <Button type="button" variant="outline" size="sm" onClick={addLine} className="gap-1">
+                <Plus className="h-3.5 w-3.5" /> Add Line
+              </Button>
+            )}
           </div>
 
           {/* Custom Message + Attachments + Sending To */}
