@@ -526,15 +526,22 @@ serve(async (req) => {
 
     // Fetch categorization examples for AI learning with smart prioritization
     // Strategy: Get more examples and let the AI see vendor-specific patterns
-    const { data: allLearningExamples } = await supabase
+    const { data: allLearningExamplesRaw } = await supabase
       .from('bill_categorization_examples')
       .select('vendor_name, description, account_name, cost_code_name, created_at')
       .eq('owner_id', effectiveOwnerId)
       .order('created_at', { ascending: false })
       .limit(100); // Fetch more to allow smart filtering
 
+    // Sanitize learning examples: roll any subcategory cost codes up to their parent
+    // so historical mis-picks don't re-train the AI on child codes.
+    const allLearningExamples = (allLearningExamplesRaw || []).map((ex: any) => ({
+      ...ex,
+      cost_code_name: rollCostCodeNameToParent(ex.cost_code_name),
+    }));
+
     // Smart prioritization: Group by vendor and description similarity
-    const learningExamples = allLearningExamples?.slice(0, 50) || []; // Will use top 50 in prompt
+    const learningExamples = allLearningExamples.slice(0, 50); // Will use top 50 in prompt
     
     // Create vendor-specific learning summary for the AI
     const vendorPatterns = new Map<string, Array<any>>();
