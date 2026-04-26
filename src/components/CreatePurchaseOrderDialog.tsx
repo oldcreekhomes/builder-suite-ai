@@ -839,28 +839,30 @@ export const CreatePurchaseOrderDialog = ({
                 </div>
               )}
             </div>
-            <div className="space-y-1.5">
-              <Label>Sending To</Label>
-              <div className="border rounded-md p-3 h-[80px] overflow-auto text-sm">
-                {!recipientCompanyId ? (
-                  <p className="text-xs text-muted-foreground italic">Select a company to see recipients</p>
-                ) : recipients.length === 0 ? (
-                  <p className="text-xs text-muted-foreground italic">No representatives with PO notifications enabled</p>
-                ) : (
-                  <div className="space-y-1">
-                    {recipients.map((r: any) => {
-                      const name = `${r.first_name || ''} ${r.last_name || ''}`.trim() || '(No name)';
-                      return (
-                        <div key={r.id} className="truncate text-xs">
-                          <span className="font-semibold">{name}</span>
-                          <span className="text-muted-foreground"> · {r.email}</span>
-                        </div>
-                      );
-                    })}
-                  </div>
-                )}
+            {!isLocked && (
+              <div className="space-y-1.5">
+                <Label>Sending To</Label>
+                <div className="border rounded-md p-3 h-[80px] overflow-auto text-sm">
+                  {!recipientCompanyId ? (
+                    <p className="text-xs text-muted-foreground italic">Select a company to see recipients</p>
+                  ) : recipients.length === 0 ? (
+                    <p className="text-xs text-muted-foreground italic">No representatives with PO notifications enabled</p>
+                  ) : (
+                    <div className="space-y-1">
+                      {recipients.map((r: any) => {
+                        const name = `${r.first_name || ''} ${r.last_name || ''}`.trim() || '(No name)';
+                        return (
+                          <div key={r.id} className="truncate text-xs">
+                            <span className="font-semibold">{name}</span>
+                            <span className="text-muted-foreground"> · {r.email}</span>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  )}
+                </div>
               </div>
-            </div>
+            )}
           </div>
         </div>
 
