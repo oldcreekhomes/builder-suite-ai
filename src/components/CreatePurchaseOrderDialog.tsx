@@ -675,7 +675,7 @@ export const CreatePurchaseOrderDialog = ({
                         {isOriginalLine(idx) ? (
                           <Tooltip>
                             <TooltipTrigger asChild>
-                              <div className="h-8 px-2 flex items-center justify-end text-sm text-muted-foreground cursor-not-allowed">
+                              <div className="h-8 px-2 flex items-center text-sm font-medium text-foreground cursor-not-allowed">
                                 {line.quantity || ""}
                               </div>
                             </TooltipTrigger>
@@ -686,7 +686,7 @@ export const CreatePurchaseOrderDialog = ({
                             type="number"
                             value={line.quantity || ""}
                             onChange={(e) => updateLine(idx, { quantity: parseFloat(e.target.value) || 0 })}
-                            className="h-8 text-sm text-right no-spinner"
+                            className="h-8 text-sm no-spinner"
                             min={0}
                           />
                         )}
@@ -695,8 +695,8 @@ export const CreatePurchaseOrderDialog = ({
                         {isOriginalLine(idx) ? (
                           <Tooltip>
                             <TooltipTrigger asChild>
-                              <div className="h-8 px-2 flex items-center justify-end text-sm text-muted-foreground cursor-not-allowed">
-                                {line.unit_cost || ""}
+                              <div className="h-8 px-2 flex items-center text-sm font-medium text-foreground cursor-not-allowed">
+                                {line.unit_cost ? `$${line.unit_cost.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` : ""}
                               </div>
                             </TooltipTrigger>
                             <TooltipContent side="top">Locked — PO already sent to vendor</TooltipContent>
@@ -707,12 +707,12 @@ export const CreatePurchaseOrderDialog = ({
                             step="0.01"
                             value={line.unit_cost || ""}
                             onChange={(e) => updateLine(idx, { unit_cost: parseFloat(e.target.value) || 0 })}
-                            className="h-8 text-sm text-right no-spinner"
+                            className="h-8 text-sm no-spinner"
                             min={0}
                           />
                         )}
                       </TableCell>
-                      <TableCell className="p-1 text-right text-sm font-medium pr-3">
+                      <TableCell className="p-1 text-sm font-medium pl-3">
                         ${line.amount.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                       </TableCell>
                       <TableCell className="p-1 text-center">
