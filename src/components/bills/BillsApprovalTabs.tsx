@@ -461,13 +461,24 @@ export function BillsApprovalTabs({ projectId, projectIds, reviewOnly = false, o
   }, [pendingBills, lots, effectiveProjectId]);
 
   const handleExtractionStart = useCallback(() => {
-    setIsExtracting(true);
+    setIsExtractingML(true);
+    // Mark that the next pending-bills enrichment pass is for a fresh upload,
+    // so the spinner stays on through PO auto-matching.
+    justExtractedRef.current = true;
   }, []);
 
   const handleExtractionComplete = useCallback(async () => {
-    setIsExtracting(false);
+    // Don't drop the spinner yet — keep it on until the enrichment pass
+    // (lot split + PO auto-match + cost-code inheritance) finishes.
+    setIsExtractingML(false);
     setExtractingCount(0);
-    // Refetch pending bills after extraction completes
+    // Pre-emptively flip enriching on so there's no gap between ML done and
+    // the pending-bills useEffect kicking in.
+    if (justExtractedRef.current) {
+      setIsEnriching(true);
+    }
+    // Refetch pending bills after extraction completes — this triggers the
+    // enrichment useEffect below.
     await refetchPendingBills();
   }, [refetchPendingBills]);
 
