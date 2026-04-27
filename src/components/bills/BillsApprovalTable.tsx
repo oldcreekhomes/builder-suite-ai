@@ -34,7 +34,7 @@ import { BillFilesCell } from "./BillFilesCell";
 import { DeleteButton } from "@/components/ui/delete-button";
 import { PayBillDialog } from "@/components/PayBillDialog";
 import { formatDisplayFromAny, normalizeToYMD } from "@/utils/dateOnly";
-import { ArrowUpDown, ArrowUp, ArrowDown, StickyNote, Edit, Check, FileText } from 'lucide-react';
+import { ArrowUpDown, ArrowUp, ArrowDown, StickyNote, Edit, Check, FileText, X } from 'lucide-react';
 import { EditBillDialog } from './EditBillDialog';
 import { useClosedPeriodCheck } from "@/hooks/useClosedPeriodCheck";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
@@ -44,6 +44,8 @@ import { toast } from "@/hooks/use-toast";
 import { useBillPOMatching, POMatch } from "@/hooks/useBillPOMatching";
 import { POStatusBadge } from "./POStatusBadge";
 import { BillPOSummaryDialog } from "./BillPOSummaryDialog";
+import { CreditUsageHistoryDialog } from "./CreditUsageHistoryDialog";
+import { MinimalCheckbox } from "@/components/ui/minimal-checkbox";
 import { getBillCostCodeDisplay } from "@/lib/billListDisplay";
 
 interface BillForApproval {
@@ -53,6 +55,7 @@ interface BillForApproval {
   bill_date: string;
   due_date?: string;
   total_amount: number;
+  amount_paid?: number;
   reference_number?: string;
   terms?: string;
   notes?: string;
@@ -109,12 +112,17 @@ interface BillsApprovalTableProps {
   showPayBillButton?: boolean;
   searchQuery?: string;
   showEditButton?: boolean;
+  /** Enable multi-select + batch payment toolbar (Approved tab only). */
+  enableBatchPayment?: boolean;
+  /** Filter rows by due date <= filterDate when set to "due-on-or-before". */
+  dueDateFilter?: "all" | "due-on-or-before";
+  filterDate?: Date;
 }
 
-export function BillsApprovalTable({ status, projectId, projectIds, showProjectColumn = true, defaultSortBy, sortOrder, enableSorting = false, showPayBillButton = false, searchQuery, showEditButton = false }: BillsApprovalTableProps) {
+export function BillsApprovalTable({ status, projectId, projectIds, showProjectColumn = true, defaultSortBy, sortOrder, enableSorting = false, showPayBillButton = false, searchQuery, showEditButton = false, enableBatchPayment = false, dueDateFilter = "all", filterDate }: BillsApprovalTableProps) {
   const { lots } = useLots(projectId);
   const showAddressColumn = lots.length > 1;
-  const { approveBill, rejectBill, deleteBill, payBill } = useBills();
+  const { approveBill, rejectBill, deleteBill, payBill, payMultipleBills } = useBills();
   const { isOwner } = useUserRole();
   const { canDeleteBills } = useAccountingPermissions();
   const { isDateLocked, latestClosedDate } = useClosedPeriodCheck(projectId);
@@ -164,6 +172,15 @@ export function BillsApprovalTable({ status, projectId, projectIds, showProjectC
     matches: [],
     bill: null,
   });
+  // Batch payment selection (Approved tab only). Keeps state regardless of
+  // enableBatchPayment so the column structure stays stable across tabs.
+  const [selectedBillIds, setSelectedBillIds] = useState<Set<string>>(new Set());
+  const [batchPayDialogOpen, setBatchPayDialogOpen] = useState(false);
+  // Credit usage history dialog (clickable CR badge).
+  const [creditHistoryDialog, setCreditHistoryDialog] = useState<{
+    open: boolean;
+    bill: BillForApproval | null;
+  }>({ open: false, bill: null });
   const updateNotesMutation = useMutation({
     mutationFn: async ({ billId, newNote, existingNotes }: { billId: string; newNote: string; existingNotes: string }) => {
       // Get user profile for attribution
@@ -233,17 +250,16 @@ export function BillsApprovalTable({ status, projectId, projectIds, showProjectC
     queryKey: ['bills-for-approval-v3', status, projectId, projectIds],
     queryFn: async () => {
       const statusArray = Array.isArray(status) ? status : [status];
-      
-      // Get all bills matching the status
-      let directQuery = supabase
-        .from('bills')
-        .select(`
+      const includesPosted = statusArray.includes('posted');
+
+      const BILL_SELECT = `
           id,
           vendor_id,
           project_id,
           bill_date,
           due_date,
           total_amount,
+          amount_paid,
           reference_number,
           terms,
           notes,
@@ -287,7 +303,12 @@ export function BillsApprovalTable({ status, projectId, projectIds, showProjectC
               lot_number
             )
           )
-        `)
+        `;
+
+      // Get all bills matching the status
+      let directQuery = supabase
+        .from('bills')
+        .select(BILL_SELECT)
         .in('status', statusArray)
         .eq('is_reversal', false)
         .is('reversed_at', null);
@@ -303,9 +324,85 @@ export function BillsApprovalTable({ status, projectId, projectIds, showProjectC
 
       if (directError) throw directError;
 
-      // Return all bills
-      const allBills = directBills || [];
-      
+      // For Approved (posted) bills scoped to a single project, also pick up
+      // bills whose header has no project_id but whose bill_lines reference
+      // the project (parity with the legacy PayBillsTable behavior).
+      let indirectBills: any[] = [];
+      if (includesPosted && projectId && (!projectIds || projectIds.length === 0)) {
+        const indirectSelect = `
+          id,
+          vendor_id,
+          project_id,
+          bill_date,
+          due_date,
+          total_amount,
+          amount_paid,
+          reference_number,
+          terms,
+          notes,
+          status,
+          reconciled,
+          companies:vendor_id (
+            company_name
+          ),
+          projects:project_id (
+            address
+          ),
+          bill_lines!inner(
+            project_id,
+            line_type,
+            cost_code_id,
+            account_id,
+            lot_id,
+            amount,
+            memo,
+            po_reference,
+            po_assignment,
+            purchase_order_id,
+            purchase_order_line_id,
+            project_lots!bill_lines_lot_id_fkey (
+              id,
+              lot_name,
+              lot_number
+            ),
+            cost_codes!bill_lines_cost_code_id_fkey (
+              code,
+              name
+            ),
+            accounts!bill_lines_account_id_fkey (
+              code,
+              name
+            )
+          ),
+          bill_attachments (
+            id,
+            file_name,
+            file_path,
+            file_size,
+            content_type
+          )
+        `;
+        const { data: indirect, error: indirectError } = await supabase
+          .from('bills')
+          .select(indirectSelect)
+          .eq('status', 'posted')
+          .eq('is_reversal', false)
+          .is('reversed_at', null)
+          .is('project_id', null)
+          .eq('bill_lines.project_id', projectId);
+        if (indirectError) throw indirectError;
+        indirectBills = indirect || [];
+      }
+
+      // Merge + dedupe by id
+      const merged = [...(directBills || []), ...indirectBills];
+      const seen = new Set<string>();
+      const allBills = merged.filter((b: any) => {
+        if (seen.has(b.id)) return false;
+        seen.add(b.id);
+        return true;
+      });
+
       return allBills as BillForApproval[];
     },
   });
@@ -502,28 +599,39 @@ export function BillsApprovalTable({ status, projectId, projectIds, showProjectC
   }, [bills, enableSorting, sortColumn, sortDirection, defaultSortBy, sortOrder]);
 
   const filteredBills = useMemo(() => {
-    if (!searchQuery?.trim()) return sortedBills;
-    
+    let filtered = sortedBills;
+
+    // Apply due-date filter (Approved tab "Due on or before" picker)
+    if (dueDateFilter === "due-on-or-before" && filterDate && filtered) {
+      const filterYMD = normalizeToYMD(filterDate.toISOString());
+      filtered = filtered.filter(bill => {
+        if (!bill.due_date) return false;
+        return normalizeToYMD(bill.due_date) <= filterYMD;
+      });
+    }
+
+    if (!searchQuery?.trim()) return filtered;
+
     const query = searchQuery.toLowerCase();
-    return sortedBills.filter(bill => {
+    return filtered.filter(bill => {
       // Check project address
       if (bill.projects?.address?.toLowerCase().includes(query)) return true;
-      
+
       // Check vendor name
       if (bill.companies?.company_name?.toLowerCase().includes(query)) return true;
-      
+
       // Check reference number
       if (bill.reference_number?.toLowerCase().includes(query)) return true;
-      
+
       // Check cost codes in bill lines
-      if (bill.bill_lines?.some(line => 
+      if (bill.bill_lines?.some(line =>
         line.cost_codes?.name?.toLowerCase().includes(query) ||
         line.cost_codes?.code?.toLowerCase().includes(query)
       )) return true;
-      
+
       return false;
     });
-  }, [sortedBills, searchQuery]);
+  }, [sortedBills, searchQuery, dueDateFilter, filterDate]);
 
   const handleActionChange = (billId: string, action: string) => {
     if (action === 'edit') {
@@ -565,16 +673,71 @@ export function BillsApprovalTable({ status, projectId, projectIds, showProjectC
     setPayBillDialogOpen(true);
   };
 
-  const handleConfirmPayment = (billIds: string[], paymentAccountId: string, paymentDate: string, memo?: string) => {
-    payBill.mutate(
-      { billId: billIds[0], paymentAccountId, paymentDate, memo },
-      {
-        onSuccess: () => {
-          setPayBillDialogOpen(false);
-          setSelectedBillForPayment(null);
+  const handleConfirmPayment = (billIds: string[], paymentAccountId: string, paymentDate: string, memo?: string, paymentAmount?: number) => {
+    if (billIds.length <= 1) {
+      payBill.mutate(
+        { billId: billIds[0], paymentAccountId, paymentDate, memo, paymentAmount },
+        {
+          onSuccess: () => {
+            setPayBillDialogOpen(false);
+            setBatchPayDialogOpen(false);
+            setSelectedBillForPayment(null);
+            setSelectedBillIds(new Set());
+          }
         }
+      );
+    } else {
+      payMultipleBills.mutate(
+        { billIds, paymentAccountId, paymentDate, memo },
+        {
+          onSuccess: () => {
+            setPayBillDialogOpen(false);
+            setBatchPayDialogOpen(false);
+            setSelectedBillForPayment(null);
+            setSelectedBillIds(new Set());
+          }
+        }
+      );
+    }
+  };
+
+  // ===== Batch payment selection helpers (Approved tab only) =====
+  const getVendorForBill = (billId: string) => bills.find(b => b.id === billId)?.vendor_id;
+  const getSelectedVendor = () => {
+    if (selectedBillIds.size === 0) return null;
+    return getVendorForBill(Array.from(selectedBillIds)[0]);
+  };
+  const canSelectBill = (billId: string) => {
+    if (selectedBillIds.size === 0) return true;
+    return getSelectedVendor() === getVendorForBill(billId);
+  };
+  const handleCheckboxChange = (billId: string, e: React.ChangeEvent<HTMLInputElement>) => {
+    const checked = e.target.checked;
+    if (checked) {
+      if (!canSelectBill(billId)) {
+        const vendorName = bills.find(b => b.id === Array.from(selectedBillIds)[0])?.companies?.company_name || 'Unknown';
+        toast({
+          title: "Cannot select bill",
+          description: `You can only select bills from the same vendor. Currently selected: ${vendorName}`,
+          variant: "destructive",
+        });
+        return;
       }
-    );
+      setSelectedBillIds(prev => new Set([...prev, billId]));
+    } else {
+      setSelectedBillIds(prev => {
+        const next = new Set(prev);
+        next.delete(billId);
+        return next;
+      });
+    }
+  };
+  const clearSelection = () => setSelectedBillIds(new Set());
+  const handlePaySelectedBills = () => {
+    if (selectedBillIds.size === 0) return;
+    const selected = bills.filter(b => selectedBillIds.has(b.id));
+    setSelectedBillForPayment(selected.length === 1 ? selected[0] : null);
+    setBatchPayDialogOpen(true);
   };
 
   const formatCurrency = (amount: number) => {
@@ -711,7 +874,45 @@ export function BillsApprovalTable({ status, projectId, projectIds, showProjectC
   // + Delete(1) if shown
   // + PO Status(1) - always shown on all tabs
   const showPOStatusColumn = true;
-  const baseColCount = 11 + (showAddressColumn ? 1 : 0) + (showProjectColumn ? 1 : 0) + (showPayBillButton ? 1 : 0) + (canShowDeleteButton ? 1 : 0) + (showPOStatusColumn ? 1 : 0);
+  const baseColCount = 11 + (showAddressColumn ? 1 : 0) + (showProjectColumn ? 1 : 0) + (showPayBillButton ? 1 : 0) + (canShowDeleteButton ? 1 : 0) + (showPOStatusColumn ? 1 : 0) + (enableBatchPayment ? 1 : 0);
+
+  // ===== Batch payment toolbar derived state =====
+  const selectedBillsForBatch = useMemo(
+    () => filteredBills.filter(b => selectedBillIds.has(b.id)),
+    [filteredBills, selectedBillIds]
+  );
+  const selectedVendorName = selectedBillsForBatch.length > 0
+    ? (selectedBillsForBatch[0].companies?.company_name || 'Unknown Vendor')
+    : '';
+  const selectedTotal = selectedBillsForBatch.reduce((sum, bill) => {
+    const ob = bill.total_amount < 0
+      ? bill.total_amount + (bill.amount_paid || 0)
+      : bill.total_amount - (bill.amount_paid || 0);
+    return sum + Math.round(ob * 100) / 100;
+  }, 0);
+  const hasOnlyCredits = selectedBillsForBatch.length > 0 && selectedBillsForBatch.every(bill => {
+    const ob = bill.total_amount < 0
+      ? bill.total_amount + (bill.amount_paid || 0)
+      : bill.total_amount - (bill.amount_paid || 0);
+    return ob < 0;
+  });
+  const headerTargetVendor = getSelectedVendor() || filteredBills[0]?.vendor_id;
+  const headerSameVendorBills = filteredBills.filter(b => b.vendor_id === headerTargetVendor);
+  const isHeaderChecked = enableBatchPayment && headerSameVendorBills.length > 0
+    && headerSameVendorBills.every(b => selectedBillIds.has(b.id));
+  const isHeaderIndeterminate = enableBatchPayment && (() => {
+    const cnt = headerSameVendorBills.filter(b => selectedBillIds.has(b.id)).length;
+    return cnt > 0 && cnt < headerSameVendorBills.length;
+  })();
+  const handleHeaderCheckboxChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.checked) {
+      if (headerTargetVendor) {
+        setSelectedBillIds(new Set(headerSameVendorBills.map(b => b.id)));
+      }
+    } else {
+      setSelectedBillIds(new Set());
+    }
+  };
 
   const renderBillRow = (bill: BillForApproval, memoSummary: string[] | null) => {
     const matchResult = poMatchingData?.get(bill.id);
@@ -727,6 +928,14 @@ export function BillsApprovalTable({ status, projectId, projectIds, showProjectC
       className={`h-11 ${rowClickable ? 'cursor-pointer' : ''}`}
       onClick={rowClickable ? handleRowClick : undefined}
     >
+      {enableBatchPayment && (
+        <TableCell className="w-10" onClick={(e) => e.stopPropagation()}>
+          <MinimalCheckbox
+            checked={selectedBillIds.has(bill.id)}
+            onChange={(e) => handleCheckboxChange(bill.id, e)}
+          />
+        </TableCell>
+      )}
       {showProjectColumn && (
         <TableCell className="w-44">
           <TooltipProvider>
@@ -813,13 +1022,28 @@ export function BillsApprovalTable({ status, projectId, projectIds, showProjectC
       </TableCell>
       <TableCell className="w-20">
         {(() => {
+          const isPostedStatus = status === 'posted' || (Array.isArray(status) && status.includes('posted'));
           const displayAmount = getBillDisplayAmount(bill);
-          if (!isPaidStatus || displayAmount < 0) {
+          // For Approved (posted) bills, show open balance (total - amount_paid)
+          // so partial payments are reflected, matching the legacy PayBillsTable.
+          const openBalance = isPostedStatus
+            ? (bill.total_amount < 0
+                ? bill.total_amount + (bill.amount_paid || 0)
+                : bill.total_amount - (bill.amount_paid || 0))
+            : displayAmount;
+          if (!isPaidStatus || openBalance < 0) {
             return (
               <div className="flex items-center gap-1">
-                {formatCurrency(displayAmount)}
-                {displayAmount < 0 && (
-                  <Badge variant="outline" className="text-green-600 border-green-600 text-[10px] px-1">
+                {formatCurrency(openBalance)}
+                {openBalance < 0 && (
+                  <Badge
+                    variant="outline"
+                    className="text-green-600 border-green-600 text-[10px] px-1 cursor-pointer hover:bg-green-50"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setCreditHistoryDialog({ open: true, bill });
+                    }}
+                  >
                     CR
                   </Badge>
                 )}
@@ -1070,11 +1294,49 @@ export function BillsApprovalTable({ status, projectId, projectIds, showProjectC
   return (
     <>
       <div className="flex flex-col min-w-0">
+        {/* Batch payment toolbar (Approved tab only) */}
+        {enableBatchPayment && selectedBillIds.size > 0 && (
+          <div className="mb-4 p-3 border rounded-lg bg-muted/50 flex items-center justify-between">
+            <div className="flex items-center gap-4">
+              <div className="text-sm font-medium">
+                {selectedBillIds.size} bill{selectedBillIds.size > 1 ? 's' : ''} selected from {selectedVendorName}
+              </div>
+              <div className="text-sm text-muted-foreground">
+                Total: {formatCurrency(selectedTotal)}
+              </div>
+            </div>
+            <div className="flex items-center gap-2">
+              {hasOnlyCredits && (
+                <span className="text-sm text-muted-foreground italic">Credits can only be applied alongside bills</span>
+              )}
+              <Button
+                size="sm"
+                onClick={handlePaySelectedBills}
+                disabled={payBill.isPending || payMultipleBills.isPending || hasOnlyCredits}
+              >
+                Pay Selected Bills
+              </Button>
+              <Button size="sm" variant="outline" onClick={clearSelection}>
+                <X className="h-4 w-4 mr-1" />
+                Clear Selection
+              </Button>
+            </div>
+          </div>
+        )}
         {/* Scrollable table container */}
         <div className="border rounded-lg">
             <Table>
               <TableHeader>
                 <TableRow>
+                  {enableBatchPayment && (
+                    <TableHead className="w-10">
+                      <MinimalCheckbox
+                        checked={isHeaderChecked}
+                        indeterminate={isHeaderIndeterminate}
+                        onChange={handleHeaderCheckboxChange}
+                      />
+                    </TableHead>
+                  )}
                   {showProjectColumn && (
                     <TableHead className="w-44">
                       {enableSorting ? (
@@ -1653,9 +1915,24 @@ export function BillsApprovalTable({ status, projectId, projectIds, showProjectC
       <PayBillDialog
         open={payBillDialogOpen}
         onOpenChange={setPayBillDialogOpen}
-        bills={selectedBillForPayment}
+        bills={selectedBillForPayment as any}
         onConfirm={handleConfirmPayment}
         isLoading={payBill.isPending}
+      />
+
+      {/* Batch payment dialog (Approved tab multi-select) */}
+      <PayBillDialog
+        open={batchPayDialogOpen}
+        onOpenChange={setBatchPayDialogOpen}
+        bills={selectedBillsForBatch as any}
+        onConfirm={handleConfirmPayment}
+        isLoading={payBill.isPending || payMultipleBills.isPending}
+      />
+
+      <CreditUsageHistoryDialog
+        open={creditHistoryDialog.open}
+        onOpenChange={(open) => { if (!open) setCreditHistoryDialog({ open: false, bill: null }); }}
+        credit={creditHistoryDialog.bill as any}
       />
 
       <BillNotesDialog
