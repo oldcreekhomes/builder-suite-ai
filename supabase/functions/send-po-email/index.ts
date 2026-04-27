@@ -570,14 +570,15 @@ const handler = async (req: Request): Promise<Response> => {
       console.log(`👥 Found ${notificationRecipients.length} representatives with PO notifications enabled`);
 
       if (notificationRecipients.length === 0) {
+        console.warn("⚠️ No representatives with PO notifications enabled — returning gracefully");
         return new Response(
-          JSON.stringify({ 
-            error: "No representatives found with PO notifications enabled",
-            success: false,
-            emailsSent: 0
+          JSON.stringify({
+            success: true,
+            emailsSent: 0,
+            warning: "No representatives found with PO notifications enabled",
           }),
           {
-            status: 400,
+            status: 200,
             headers: { "Content-Type": "application/json", ...corsHeaders },
           }
         );
