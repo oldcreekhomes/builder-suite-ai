@@ -14,7 +14,7 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { format } from "date-fns";
 import { cn } from "@/lib/utils";
 import { BillsApprovalTable } from "./BillsApprovalTable";
-import { PayBillsTable } from "./PayBillsTable";
+// PayBillsTable retired — Approved tab now uses BillsApprovalTable for UI parity.
 import SimplifiedAIBillExtraction, { type SimplifiedAIBillExtractionHandle } from "./SimplifiedAIBillExtraction";
 import { BatchBillReviewTable } from "./BatchBillReviewTable";
 import { ManualBillEntry } from "./ManualBillEntry";
@@ -1089,11 +1089,15 @@ export function BillsApprovalTabs({ projectId, projectIds, reviewOnly = false, o
       )}
 
       {activeTab === "approve" && (
-        <PayBillsTable 
-          projectId={effectiveProjectId} 
+        <BillsApprovalTable
+          status="posted"
+          projectId={effectiveProjectId}
           projectIds={projectIds}
           showProjectColumn={false}
+          enableSorting={true}
           searchQuery={searchQuery}
+          showPayBillButton={true}
+          enableBatchPayment={true}
           dueDateFilter={dueDateFilter}
           filterDate={filterDate}
         />
