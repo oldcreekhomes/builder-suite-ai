@@ -407,7 +407,12 @@ export const CreatePurchaseOrderDialog = ({
 
         if (error) throw error;
         await savePOLines(purchaseOrder.id, validLines);
-        await sendPOEmail(purchaseOrder, selectedCompany, totalAmount, validLines, false);
+        // Fire-and-forget: don't block UI on the email send
+        toast({
+          title: "Purchase order created",
+          description: "Sending email to vendor in the background…",
+        });
+        void sendPOEmail(purchaseOrder, selectedCompany, totalAmount, validLines, false);
       }
 
       setSelectedCompany(null);
