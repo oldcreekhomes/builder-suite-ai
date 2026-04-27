@@ -976,13 +976,28 @@ export function BillsApprovalTable({ status, projectId, projectIds, showProjectC
       </TableCell>
       <TableCell className="w-20">
         {(() => {
+          const isPostedStatus = status === 'posted' || (Array.isArray(status) && status.includes('posted'));
           const displayAmount = getBillDisplayAmount(bill);
-          if (!isPaidStatus || displayAmount < 0) {
+          // For Approved (posted) bills, show open balance (total - amount_paid)
+          // so partial payments are reflected, matching the legacy PayBillsTable.
+          const openBalance = isPostedStatus
+            ? (bill.total_amount < 0
+                ? bill.total_amount + (bill.amount_paid || 0)
+                : bill.total_amount - (bill.amount_paid || 0))
+            : displayAmount;
+          if (!isPaidStatus || openBalance < 0) {
             return (
               <div className="flex items-center gap-1">
-                {formatCurrency(displayAmount)}
-                {displayAmount < 0 && (
-                  <Badge variant="outline" className="text-green-600 border-green-600 text-[10px] px-1">
+                {formatCurrency(openBalance)}
+                {openBalance < 0 && (
+                  <Badge
+                    variant="outline"
+                    className="text-green-600 border-green-600 text-[10px] px-1 cursor-pointer hover:bg-green-50"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setCreditHistoryDialog({ open: true, bill });
+                    }}
+                  >
                     CR
                   </Badge>
                 )}
