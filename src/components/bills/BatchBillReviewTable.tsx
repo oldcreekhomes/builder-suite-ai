@@ -169,45 +169,13 @@ export function BatchBillReviewTable({
   // so we don't spam the edge function on every render.
   const [snappedKeys] = useState<Set<string>>(() => new Set());
 
-  // Auto-snap pending bill cost codes to vendor's PO cost codes whenever
-  // a bill has both a resolved vendor_id and the page-level projectId.
-  useEffect(() => {
-    if (!projectId || !bills?.length) return;
-    bills.forEach((b) => {
-      const vendorId = (b.vendor_id || b.extracted_data?.vendor_id || b.extracted_data?.vendorId) as string | undefined;
-      if (!vendorId) return;
-      const key = `${b.id}|${projectId}|${vendorId}`;
-      if (snappedKeys.has(key)) return;
-      snappedKeys.add(key);
-      supabase.functions
-        .invoke('rematch-pending-bill', { body: { pendingUploadId: b.id, projectId } })
-        .then(async () => {
-          // ALWAYS refresh this bill's lines after rematch — even when the edge
-          // function reports zero changes, the in-memory `bills` prop may still
-          // be stale from earlier server-side fixes (e.g. a prior PO line sync
-          // that ran before this component mounted). Re-reading guarantees the
-          // table cost code column matches the DB and the Edit dialog.
-          const { data: refreshed } = await supabase
-            .from('pending_bill_lines')
-            .select('*, project_lots(id, lot_number, lot_name)')
-            .eq('pending_upload_id', b.id)
-            .order('line_number', { ascending: true });
-          if (refreshed) {
-            const processed = refreshed.map((line: any) => ({
-              ...line,
-              lot_name:
-                line.project_lots?.lot_name ||
-                (line.project_lots ? `Lot ${line.project_lots.lot_number}` : null),
-            }));
-            onLinesUpdate?.(b.id, processed as any);
-            // Force PO Status to recompute against the fresh line data.
-            queryClient.invalidateQueries({ queryKey: ['bill-po-matching'] });
-          }
-        })
-        .catch((e) => console.warn('PO snap failed for bill', b.id, e));
-    });
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [bills, projectId]);
+  // NOTE: The post-render PO auto-snap previously lived here. It caused a visible
+  // flicker (e.g. "4000 → 4275") because the table was already mounted when the
+  // edge function returned and re-wrote the cost code. The parent BillsApprovalTabs
+  // now runs `rematch-pending-bill` and re-reads lines BEFORE rendering this
+  // table during a fresh ML upload, so the final cost codes are present on first
+  // paint. Manual rematch (handleRematchVendor) and edit-dialog refresh paths
+  // are preserved below and remain user-initiated.
 
   const handleRemoveAttachment = async (bill: PendingBill, att: { id: string; file_name: string; file_path: string }) => {
     try {
