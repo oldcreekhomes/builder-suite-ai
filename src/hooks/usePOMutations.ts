@@ -362,14 +362,14 @@ export const usePOMutations = (projectId: string) => {
       }
     },
     onSuccess: (data) => {
-      console.log('PO email resent successfully:', data);
+      console.log('PO resend kicked off, email sending in background:', data);
       queryClient.invalidateQueries({ queryKey: ['purchase-orders', projectId] });
       queryClient.invalidateQueries({ queryKey: ['project-bidding', projectId] });
       queryClient.invalidateQueries({ queryKey: ['bidding-counts', projectId] });
-      
+
       toast({
-        title: "PO Email Resent",
-        description: data.emailData.message || `PO notification resent to ${data.emailData.emailsSent} recipients`,
+        title: "Resending PO",
+        description: "Sending email to vendor in the background…",
       });
     },
     onError: (error: any) => {
