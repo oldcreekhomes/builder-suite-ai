@@ -377,7 +377,12 @@ export const CreatePurchaseOrderDialog = ({
         await savePOLines(editOrder.id, validLines);
 
         if (vendorVisibleChanged) {
-          await sendPOEmail(data, selectedCompany, totalAmount, validLines, true);
+          // Fire-and-forget: don't block UI on the email send
+          toast({
+            title: "Purchase order updated",
+            description: "Sending email to vendor in the background…",
+          });
+          void sendPOEmail(data, selectedCompany, totalAmount, validLines, true);
         } else {
           toast({
             title: "Purchase order updated",
@@ -402,7 +407,12 @@ export const CreatePurchaseOrderDialog = ({
 
         if (error) throw error;
         await savePOLines(purchaseOrder.id, validLines);
-        await sendPOEmail(purchaseOrder, selectedCompany, totalAmount, validLines, false);
+        // Fire-and-forget: don't block UI on the email send
+        toast({
+          title: "Purchase order created",
+          description: "Sending email to vendor in the background…",
+        });
+        void sendPOEmail(purchaseOrder, selectedCompany, totalAmount, validLines, false);
       }
 
       setSelectedCompany(null);
