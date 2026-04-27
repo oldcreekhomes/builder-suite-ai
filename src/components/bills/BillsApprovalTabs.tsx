@@ -455,8 +455,25 @@ export function BillsApprovalTabs({ projectId, projectIds, reviewOnly = false, o
       }
     };
 
-    fetchAllLines();
-    
+    // If this enrichment pass is for a fresh ML upload, keep the spinner up
+    // through PO auto-matching so the user never sees the intermediate
+    // (pre-PO-match) cost codes.
+    const wasJustExtracted = justExtractedRef.current;
+    if (wasJustExtracted) {
+      setIsEnriching(true);
+    }
+
+    fetchAllLines()
+      .catch((err) => {
+        console.error('Bill enrichment failed:', err);
+      })
+      .finally(() => {
+        if (!cancelled && wasJustExtracted) {
+          setIsEnriching(false);
+          justExtractedRef.current = false;
+        }
+      });
+
     // Cleanup function to prevent state updates after unmount
     return () => {
       cancelled = true;
