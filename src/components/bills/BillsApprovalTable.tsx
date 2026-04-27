@@ -874,7 +874,45 @@ export function BillsApprovalTable({ status, projectId, projectIds, showProjectC
   // + Delete(1) if shown
   // + PO Status(1) - always shown on all tabs
   const showPOStatusColumn = true;
-  const baseColCount = 11 + (showAddressColumn ? 1 : 0) + (showProjectColumn ? 1 : 0) + (showPayBillButton ? 1 : 0) + (canShowDeleteButton ? 1 : 0) + (showPOStatusColumn ? 1 : 0);
+  const baseColCount = 11 + (showAddressColumn ? 1 : 0) + (showProjectColumn ? 1 : 0) + (showPayBillButton ? 1 : 0) + (canShowDeleteButton ? 1 : 0) + (showPOStatusColumn ? 1 : 0) + (enableBatchPayment ? 1 : 0);
+
+  // ===== Batch payment toolbar derived state =====
+  const selectedBillsForBatch = useMemo(
+    () => filteredBills.filter(b => selectedBillIds.has(b.id)),
+    [filteredBills, selectedBillIds]
+  );
+  const selectedVendorName = selectedBillsForBatch.length > 0
+    ? (selectedBillsForBatch[0].companies?.company_name || 'Unknown Vendor')
+    : '';
+  const selectedTotal = selectedBillsForBatch.reduce((sum, bill) => {
+    const ob = bill.total_amount < 0
+      ? bill.total_amount + (bill.amount_paid || 0)
+      : bill.total_amount - (bill.amount_paid || 0);
+    return sum + Math.round(ob * 100) / 100;
+  }, 0);
+  const hasOnlyCredits = selectedBillsForBatch.length > 0 && selectedBillsForBatch.every(bill => {
+    const ob = bill.total_amount < 0
+      ? bill.total_amount + (bill.amount_paid || 0)
+      : bill.total_amount - (bill.amount_paid || 0);
+    return ob < 0;
+  });
+  const headerTargetVendor = getSelectedVendor() || filteredBills[0]?.vendor_id;
+  const headerSameVendorBills = filteredBills.filter(b => b.vendor_id === headerTargetVendor);
+  const isHeaderChecked = enableBatchPayment && headerSameVendorBills.length > 0
+    && headerSameVendorBills.every(b => selectedBillIds.has(b.id));
+  const isHeaderIndeterminate = enableBatchPayment && (() => {
+    const cnt = headerSameVendorBills.filter(b => selectedBillIds.has(b.id)).length;
+    return cnt > 0 && cnt < headerSameVendorBills.length;
+  })();
+  const handleHeaderCheckboxChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.checked) {
+      if (headerTargetVendor) {
+        setSelectedBillIds(new Set(headerSameVendorBills.map(b => b.id)));
+      }
+    } else {
+      setSelectedBillIds(new Set());
+    }
+  };
 
   const renderBillRow = (bill: BillForApproval, memoSummary: string[] | null) => {
     const matchResult = poMatchingData?.get(bill.id);
@@ -890,6 +928,14 @@ export function BillsApprovalTable({ status, projectId, projectIds, showProjectC
       className={`h-11 ${rowClickable ? 'cursor-pointer' : ''}`}
       onClick={rowClickable ? handleRowClick : undefined}
     >
+      {enableBatchPayment && (
+        <TableCell className="w-10" onClick={(e) => e.stopPropagation()}>
+          <MinimalCheckbox
+            checked={selectedBillIds.has(bill.id)}
+            onChange={(e) => handleCheckboxChange(bill.id, e)}
+          />
+        </TableCell>
+      )}
       {showProjectColumn && (
         <TableCell className="w-44">
           <TooltipProvider>
