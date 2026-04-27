@@ -908,7 +908,7 @@ export function BillsApprovalTabs({ projectId, projectIds, reviewOnly = false, o
       {!reviewOnly && activeTab === "upload" && (
           <div className="space-y-4">
           {isExtracting ? (
-            <>
+            <div className="rounded-md border bg-muted/30">
               <style>{`
                 @keyframes bill-ai-float {
                   0%, 100% { transform: translateY(0) scale(1) rotate(0deg); opacity: 0.85; }
@@ -935,7 +935,7 @@ export function BillsApprovalTabs({ projectId, projectIds, reviewOnly = false, o
                   Extracting {extractingCount} bill{extractingCount !== 1 ? "s" : ""} from machine learning
                 </p>
               </div>
-            </>
+            </div>
           ) : batchBills.length === 0 ? (
             <UploadDropzone onDrop={(files) => extractionRef.current?.dropFiles(files)} />
           ) : (
