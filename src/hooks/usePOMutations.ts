@@ -141,43 +141,56 @@ export const usePOMutations = (projectId: string) => {
         }
       }
 
-      // Step 3: Send the PO email with complete payload (same as manual flow)
-      const { data: emailData, error: emailError } = await supabase.functions.invoke('send-po-email', {
-        body: {
-          purchaseOrderId: purchaseOrder.id,
-          companyId: companyId,
-          poNumber: purchaseOrder.po_number, // Include PO number for consistent emails
-          projectAddress: projectData.data?.address || 'N/A',
-          companyName: biddingCompany.companies.company_name || 'N/A',
-          customMessage: customMessage,
-          totalAmount: effectiveTotal,
-          costCode: costCodeData.data,
-          senderCompanyName: senderData?.company_name || 'BuilderSuite ML'
+      // Step 3: Fire-and-forget PO email — don't block the UI on the send
+      void (async () => {
+        try {
+          const { data: emailData, error: emailError } = await supabase.functions.invoke('send-po-email', {
+            body: {
+              purchaseOrderId: purchaseOrder.id,
+              companyId: companyId,
+              poNumber: purchaseOrder.po_number,
+              projectAddress: projectData.data?.address || 'N/A',
+              companyName: biddingCompany.companies.company_name || 'N/A',
+              customMessage: customMessage,
+              totalAmount: effectiveTotal,
+              costCode: costCodeData.data,
+              senderCompanyName: senderData?.company_name || 'BuilderSuite ML'
+            }
+          });
+
+          if (emailError) throw emailError;
+
+          await supabase
+            .from('project_purchase_orders')
+            .update({ sent_at: new Date().toISOString() })
+            .eq('id', purchaseOrder.id);
+
+          toast({
+            title: "PO Email Sent",
+            description: emailData?.message || `PO notification sent to ${emailData?.emailsSent ?? 0} recipients`,
+          });
+        } catch (err: any) {
+          console.error('Background PO email send failed:', err);
+          toast({
+            title: "Email failed",
+            description: err?.message || "PO created but email failed to send",
+            variant: "destructive",
+          });
         }
-      });
+      })();
 
-      if (emailError) {
-        console.error('Error sending PO email:', emailError);
-        throw emailError;
-      }
-
-      await supabase
-        .from('project_purchase_orders')
-        .update({ sent_at: new Date().toISOString() })
-        .eq('id', purchaseOrder.id);
-
-      return { purchaseOrder, emailData };
+      return { purchaseOrder, emailData: { emailsSent: 0, message: 'Email is sending in the background' } };
     },
     onSuccess: (data) => {
-      console.log('PO created and email sent successfully:', data);
+      console.log('PO created, email sending in background:', data);
       // Invalidate both purchase orders and bidding queries
       queryClient.invalidateQueries({ queryKey: ['purchase-orders', projectId] });
       queryClient.invalidateQueries({ queryKey: ['project-bidding', projectId] });
       queryClient.invalidateQueries({ queryKey: ['bidding-counts', projectId] });
-      
+
       toast({
-        title: "PO Email Sent",
-        description: data.emailData.message || `PO notification sent to ${data.emailData.emailsSent} recipients`,
+        title: "PO Created",
+        description: "Sending email to vendor in the background…",
       });
     },
     onError: (error: any) => {
