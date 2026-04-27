@@ -34,7 +34,7 @@ import { BillFilesCell } from "./BillFilesCell";
 import { DeleteButton } from "@/components/ui/delete-button";
 import { PayBillDialog } from "@/components/PayBillDialog";
 import { formatDisplayFromAny, normalizeToYMD } from "@/utils/dateOnly";
-import { ArrowUpDown, ArrowUp, ArrowDown, StickyNote, Edit, Check, FileText } from 'lucide-react';
+import { ArrowUpDown, ArrowUp, ArrowDown, StickyNote, Edit, Check, FileText, X } from 'lucide-react';
 import { EditBillDialog } from './EditBillDialog';
 import { useClosedPeriodCheck } from "@/hooks/useClosedPeriodCheck";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
@@ -44,6 +44,8 @@ import { toast } from "@/hooks/use-toast";
 import { useBillPOMatching, POMatch } from "@/hooks/useBillPOMatching";
 import { POStatusBadge } from "./POStatusBadge";
 import { BillPOSummaryDialog } from "./BillPOSummaryDialog";
+import { CreditUsageHistoryDialog } from "./CreditUsageHistoryDialog";
+import { MinimalCheckbox } from "@/components/ui/minimal-checkbox";
 import { getBillCostCodeDisplay } from "@/lib/billListDisplay";
 
 interface BillForApproval {
@@ -53,6 +55,7 @@ interface BillForApproval {
   bill_date: string;
   due_date?: string;
   total_amount: number;
+  amount_paid?: number;
   reference_number?: string;
   terms?: string;
   notes?: string;
@@ -109,9 +112,14 @@ interface BillsApprovalTableProps {
   showPayBillButton?: boolean;
   searchQuery?: string;
   showEditButton?: boolean;
+  /** Enable multi-select + batch payment toolbar (Approved tab only). */
+  enableBatchPayment?: boolean;
+  /** Filter rows by due date <= filterDate when set to "due-on-or-before". */
+  dueDateFilter?: "all" | "due-on-or-before";
+  filterDate?: Date;
 }
 
-export function BillsApprovalTable({ status, projectId, projectIds, showProjectColumn = true, defaultSortBy, sortOrder, enableSorting = false, showPayBillButton = false, searchQuery, showEditButton = false }: BillsApprovalTableProps) {
+export function BillsApprovalTable({ status, projectId, projectIds, showProjectColumn = true, defaultSortBy, sortOrder, enableSorting = false, showPayBillButton = false, searchQuery, showEditButton = false, enableBatchPayment = false, dueDateFilter = "all", filterDate }: BillsApprovalTableProps) {
   const { lots } = useLots(projectId);
   const showAddressColumn = lots.length > 1;
   const { approveBill, rejectBill, deleteBill, payBill } = useBills();
