@@ -172,6 +172,15 @@ export function BillsApprovalTable({ status, projectId, projectIds, showProjectC
     matches: [],
     bill: null,
   });
+  // Batch payment selection (Approved tab only). Keeps state regardless of
+  // enableBatchPayment so the column structure stays stable across tabs.
+  const [selectedBillIds, setSelectedBillIds] = useState<Set<string>>(new Set());
+  const [batchPayDialogOpen, setBatchPayDialogOpen] = useState(false);
+  // Credit usage history dialog (clickable CR badge).
+  const [creditHistoryDialog, setCreditHistoryDialog] = useState<{
+    open: boolean;
+    bill: BillForApproval | null;
+  }>({ open: false, bill: null });
   const updateNotesMutation = useMutation({
     mutationFn: async ({ billId, newNote, existingNotes }: { billId: string; newNote: string; existingNotes: string }) => {
       // Get user profile for attribution
