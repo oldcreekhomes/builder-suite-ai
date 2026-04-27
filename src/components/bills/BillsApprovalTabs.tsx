@@ -103,10 +103,22 @@ export function BillsApprovalTabs({ projectId, projectIds, reviewOnly = false, o
   } = usePendingBills(effectiveProjectId);
 
   const [batchBills, setBatchBills] = useState<BatchBill[]>([]);
-  const [isExtracting, setIsExtracting] = useState(false);
+  const [isExtractingML, setIsExtractingML] = useState(false);
+  const [isEnriching, setIsEnriching] = useState(false);
+  // Tracks whether the current pending-bills enrichment pass was triggered by
+  // a brand-new ML upload. Only then should we keep the spinner visible while
+  // PO auto-matching / cost-code inheritance runs — otherwise existing bills
+  // already on the tab would flash a spinner on every mount.
+  const justExtractedRef = useRef(false);
   const [extractingCount, setExtractingCount] = useState(0);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [selectedBillIds, setSelectedBillIds] = useState<Set<string>>(new Set());
+
+  // Combined spinner state: stay on while ML is running OR while we're
+  // enriching freshly-extracted bills (lot split + PO auto-match + cost-code
+  // inheritance). This prevents the user from ever seeing the intermediate
+  // "wrong cost code" state before PO matching corrects it.
+  const isExtracting = isExtractingML || isEnriching;
   
   // Multi-lot allocation dialog state (kept for future custom allocation feature)
   const [showLotAllocationDialog, setShowLotAllocationDialog] = useState(false);
