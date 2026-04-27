@@ -1294,11 +1294,49 @@ export function BillsApprovalTable({ status, projectId, projectIds, showProjectC
   return (
     <>
       <div className="flex flex-col min-w-0">
+        {/* Batch payment toolbar (Approved tab only) */}
+        {enableBatchPayment && selectedBillIds.size > 0 && (
+          <div className="mb-4 p-3 border rounded-lg bg-muted/50 flex items-center justify-between">
+            <div className="flex items-center gap-4">
+              <div className="text-sm font-medium">
+                {selectedBillIds.size} bill{selectedBillIds.size > 1 ? 's' : ''} selected from {selectedVendorName}
+              </div>
+              <div className="text-sm text-muted-foreground">
+                Total: {formatCurrency(selectedTotal)}
+              </div>
+            </div>
+            <div className="flex items-center gap-2">
+              {hasOnlyCredits && (
+                <span className="text-sm text-muted-foreground italic">Credits can only be applied alongside bills</span>
+              )}
+              <Button
+                size="sm"
+                onClick={handlePaySelectedBills}
+                disabled={payBill.isPending || payMultipleBills.isPending || hasOnlyCredits}
+              >
+                Pay Selected Bills
+              </Button>
+              <Button size="sm" variant="outline" onClick={clearSelection}>
+                <X className="h-4 w-4 mr-1" />
+                Clear Selection
+              </Button>
+            </div>
+          </div>
+        )}
         {/* Scrollable table container */}
         <div className="border rounded-lg">
             <Table>
               <TableHeader>
                 <TableRow>
+                  {enableBatchPayment && (
+                    <TableHead className="w-10">
+                      <MinimalCheckbox
+                        checked={isHeaderChecked}
+                        indeterminate={isHeaderIndeterminate}
+                        onChange={handleHeaderCheckboxChange}
+                      />
+                    </TableHead>
+                  )}
                   {showProjectColumn && (
                     <TableHead className="w-44">
                       {enableSorting ? (
