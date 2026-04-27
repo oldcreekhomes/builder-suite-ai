@@ -307,32 +307,46 @@ export const usePOMutations = (projectId: string) => {
         if (projectData.error) throw projectData.error;
         if (costCodeData.error) throw costCodeData.error;
         
-        // Send email using existing PO with complete payload (same as manual flow)
-        const { data: emailData, error: emailError } = await supabase.functions.invoke('send-po-email', {
-          body: {
-            purchaseOrderId: existingPO.id,
-            companyId: companyId,
-            poNumber: existingPO.po_number, // Include PO number for consistent emails
-            projectAddress: projectData.data?.address || 'N/A',
-            companyName: biddingCompany.companies.company_name || 'N/A',
-            customMessage: customMessage,
-            totalAmount: totalAmount || 0,
-            costCode: costCodeData.data,
-            senderCompanyName: senderData?.company_name || 'BuilderSuite ML'
+        // Fire-and-forget resend — don't block UI on the email send
+        const poForBackground = existingPO;
+        void (async () => {
+          try {
+            const { data: emailData, error: emailError } = await supabase.functions.invoke('send-po-email', {
+              body: {
+                purchaseOrderId: poForBackground.id,
+                companyId: companyId,
+                poNumber: poForBackground.po_number,
+                projectAddress: projectData.data?.address || 'N/A',
+                companyName: biddingCompany.companies.company_name || 'N/A',
+                customMessage: customMessage,
+                totalAmount: totalAmount || 0,
+                costCode: costCodeData.data,
+                senderCompanyName: senderData?.company_name || 'BuilderSuite ML'
+              }
+            });
+
+            if (emailError) throw emailError;
+
+            await supabase
+              .from('project_purchase_orders')
+              .update({ sent_at: new Date().toISOString() })
+              .eq('id', poForBackground.id);
+
+            toast({
+              title: "PO Email Resent",
+              description: emailData?.message || `PO notification resent to ${emailData?.emailsSent ?? 0} recipients`,
+            });
+          } catch (err: any) {
+            console.error('Background PO resend failed:', err);
+            toast({
+              title: "Email failed",
+              description: err?.message || "Failed to resend PO email",
+              variant: "destructive",
+            });
           }
-        });
+        })();
 
-        if (emailError) {
-          console.error('Error resending PO email:', emailError);
-          throw emailError;
-        }
-
-        await supabase
-          .from('project_purchase_orders')
-          .update({ sent_at: new Date().toISOString() })
-          .eq('id', existingPO.id);
-
-        return { purchaseOrder: existingPO, emailData };
+        return { purchaseOrder: existingPO, emailData: { emailsSent: 0, message: 'Email is sending in the background' } };
       } else {
         console.log('No existing PO found, creating new one for resend');
         
