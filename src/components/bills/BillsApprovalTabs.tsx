@@ -103,10 +103,22 @@ export function BillsApprovalTabs({ projectId, projectIds, reviewOnly = false, o
   } = usePendingBills(effectiveProjectId);
 
   const [batchBills, setBatchBills] = useState<BatchBill[]>([]);
-  const [isExtracting, setIsExtracting] = useState(false);
+  const [isExtractingML, setIsExtractingML] = useState(false);
+  const [isEnriching, setIsEnriching] = useState(false);
+  // Tracks whether the current pending-bills enrichment pass was triggered by
+  // a brand-new ML upload. Only then should we keep the spinner visible while
+  // PO auto-matching / cost-code inheritance runs — otherwise existing bills
+  // already on the tab would flash a spinner on every mount.
+  const justExtractedRef = useRef(false);
   const [extractingCount, setExtractingCount] = useState(0);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [selectedBillIds, setSelectedBillIds] = useState<Set<string>>(new Set());
+
+  // Combined spinner state: stay on while ML is running OR while we're
+  // enriching freshly-extracted bills (lot split + PO auto-match + cost-code
+  // inheritance). This prevents the user from ever seeing the intermediate
+  // "wrong cost code" state before PO matching corrects it.
+  const isExtracting = isExtractingML || isEnriching;
   
   // Multi-lot allocation dialog state (kept for future custom allocation feature)
   const [showLotAllocationDialog, setShowLotAllocationDialog] = useState(false);
@@ -119,12 +131,15 @@ export function BillsApprovalTabs({ projectId, projectIds, reviewOnly = false, o
     if (!pendingBills || pendingBills.length === 0) {
       setBatchBills([]);
       setSelectedBillIds(new Set());
+      // Nothing to enrich — make sure spinner doesn't get stuck on.
+      setIsEnriching(false);
+      justExtractedRef.current = false;
       return;
     }
 
     // Create an abortable async effect
     let cancelled = false;
-    
+
     const fetchAllLines = async () => {
       // First fetch all lines with lot info
       const billsWithLines: BatchBill[] = await Promise.all(
@@ -440,8 +455,25 @@ export function BillsApprovalTabs({ projectId, projectIds, reviewOnly = false, o
       }
     };
 
-    fetchAllLines();
-    
+    // If this enrichment pass is for a fresh ML upload, keep the spinner up
+    // through PO auto-matching so the user never sees the intermediate
+    // (pre-PO-match) cost codes.
+    const wasJustExtracted = justExtractedRef.current;
+    if (wasJustExtracted) {
+      setIsEnriching(true);
+    }
+
+    fetchAllLines()
+      .catch((err) => {
+        console.error('Bill enrichment failed:', err);
+      })
+      .finally(() => {
+        if (!cancelled && wasJustExtracted) {
+          setIsEnriching(false);
+          justExtractedRef.current = false;
+        }
+      });
+
     // Cleanup function to prevent state updates after unmount
     return () => {
       cancelled = true;
@@ -449,13 +481,24 @@ export function BillsApprovalTabs({ projectId, projectIds, reviewOnly = false, o
   }, [pendingBills, lots, effectiveProjectId]);
 
   const handleExtractionStart = useCallback(() => {
-    setIsExtracting(true);
+    setIsExtractingML(true);
+    // Mark that the next pending-bills enrichment pass is for a fresh upload,
+    // so the spinner stays on through PO auto-matching.
+    justExtractedRef.current = true;
   }, []);
 
   const handleExtractionComplete = useCallback(async () => {
-    setIsExtracting(false);
+    // Don't drop the spinner yet — keep it on until the enrichment pass
+    // (lot split + PO auto-match + cost-code inheritance) finishes.
+    setIsExtractingML(false);
     setExtractingCount(0);
-    // Refetch pending bills after extraction completes
+    // Pre-emptively flip enriching on so there's no gap between ML done and
+    // the pending-bills useEffect kicking in.
+    if (justExtractedRef.current) {
+      setIsEnriching(true);
+    }
+    // Refetch pending bills after extraction completes — this triggers the
+    // enrichment useEffect below.
     await refetchPendingBills();
   }, [refetchPendingBills]);
 
