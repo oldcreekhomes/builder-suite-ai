@@ -1915,9 +1915,24 @@ export function BillsApprovalTable({ status, projectId, projectIds, showProjectC
       <PayBillDialog
         open={payBillDialogOpen}
         onOpenChange={setPayBillDialogOpen}
-        bills={selectedBillForPayment}
+        bills={selectedBillForPayment as any}
         onConfirm={handleConfirmPayment}
         isLoading={payBill.isPending}
+      />
+
+      {/* Batch payment dialog (Approved tab multi-select) */}
+      <PayBillDialog
+        open={batchPayDialogOpen}
+        onOpenChange={setBatchPayDialogOpen}
+        bills={selectedBillsForBatch as any}
+        onConfirm={handleConfirmPayment}
+        isLoading={payBill.isPending || payMultipleBills.isPending}
+      />
+
+      <CreditUsageHistoryDialog
+        open={creditHistoryDialog.open}
+        onOpenChange={(open) => { if (!open) setCreditHistoryDialog({ open: false, bill: null }); }}
+        credit={creditHistoryDialog.bill as any}
       />
 
       <BillNotesDialog
