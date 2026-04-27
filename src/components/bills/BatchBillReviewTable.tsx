@@ -165,9 +165,7 @@ export function BatchBillReviewTable({
   const { openBillAttachment } = useUniversalFilePreviewContext();
   const [deletingAttachmentBill, setDeletingAttachmentBill] = useState<PendingBill | null>(null);
   const [isDeletingAttachment, setIsDeletingAttachment] = useState(false);
-  // Track which (billId|projectId) pairs we've already requested a PO snap for,
-  // so we don't spam the edge function on every render.
-  const [snappedKeys] = useState<Set<string>>(() => new Set());
+  // (Auto-snap state removed — parent now handles the rematch pre-render.)
 
   // NOTE: The post-render PO auto-snap previously lived here. It caused a visible
   // flicker (e.g. "4000 → 4275") because the table was already mounted when the
