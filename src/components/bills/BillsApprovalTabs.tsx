@@ -131,12 +131,15 @@ export function BillsApprovalTabs({ projectId, projectIds, reviewOnly = false, o
     if (!pendingBills || pendingBills.length === 0) {
       setBatchBills([]);
       setSelectedBillIds(new Set());
+      // Nothing to enrich — make sure spinner doesn't get stuck on.
+      setIsEnriching(false);
+      justExtractedRef.current = false;
       return;
     }
 
     // Create an abortable async effect
     let cancelled = false;
-    
+
     const fetchAllLines = async () => {
       // First fetch all lines with lot info
       const billsWithLines: BatchBill[] = await Promise.all(
