@@ -111,6 +111,7 @@ export function BillsApprovalTabs({ projectId, projectIds, reviewOnly = false, o
   // already on the tab would flash a spinner on every mount.
   const justExtractedRef = useRef(false);
   const [extractingCount, setExtractingCount] = useState(0);
+  const [extractingTotal, setExtractingTotal] = useState(0);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [selectedBillIds, setSelectedBillIds] = useState<Set<string>>(new Set());
 
@@ -133,6 +134,7 @@ export function BillsApprovalTabs({ projectId, projectIds, reviewOnly = false, o
       setSelectedBillIds(new Set());
       // Nothing to enrich — make sure spinner doesn't get stuck on.
       setIsEnriching(false);
+      setExtractingTotal(0);
       justExtractedRef.current = false;
       return;
     }
@@ -530,6 +532,7 @@ export function BillsApprovalTabs({ projectId, projectIds, reviewOnly = false, o
       .finally(() => {
         if (!cancelled && wasJustExtracted) {
           setIsEnriching(false);
+          setExtractingTotal(0);
           justExtractedRef.current = false;
         }
       });
@@ -540,7 +543,8 @@ export function BillsApprovalTabs({ projectId, projectIds, reviewOnly = false, o
     };
   }, [pendingBills, lots, effectiveProjectId]);
 
-  const handleExtractionStart = useCallback(() => {
+  const handleExtractionStart = useCallback((total: number) => {
+    setExtractingTotal(total);
     setIsExtractingML(true);
     // Mark that the next pending-bills enrichment pass is for a fresh upload,
     // so the spinner stays on through PO auto-matching.
@@ -552,6 +556,8 @@ export function BillsApprovalTabs({ projectId, projectIds, reviewOnly = false, o
     // (lot split + PO auto-match + cost-code inheritance) finishes.
     setIsExtractingML(false);
     setExtractingCount(0);
+    // NOTE: do not reset extractingTotal here — keep the uniform spinner label
+    // ("Extracting X bills from machine learning...") visible through enrichment.
     // Pre-emptively flip enriching on so there's no gap between ML done and
     // the pending-bills useEffect kicking in.
     if (justExtractedRef.current) {
@@ -973,7 +979,7 @@ export function BillsApprovalTabs({ projectId, projectIds, reviewOnly = false, o
             onDataExtracted={() => {}}
             onSwitchToManual={() => setActiveTab("manual")}
             suppressIndividualToasts={true}
-            onExtractionStart={(total) => handleExtractionStart()}
+            onExtractionStart={(total) => handleExtractionStart(total)}
             onExtractionComplete={handleExtractionComplete}
             onExtractionProgress={handleExtractionProgress}
             projectId={effectiveProjectId}
@@ -1035,7 +1041,7 @@ export function BillsApprovalTabs({ projectId, projectIds, reviewOnly = false, o
               <div className="flex flex-col items-center justify-center py-16 gap-4">
                 <Sparkles className="bill-ai-icon h-12 w-12 text-primary" />
                 <p className="bill-ai-text text-sm font-medium text-muted-foreground">
-                  Extracting {extractingCount} bill{extractingCount !== 1 ? "s" : ""} from machine learning
+                  Extracting {extractingTotal} bill{extractingTotal !== 1 ? "s" : ""} from machine learning
                 </p>
               </div>
             </div>
