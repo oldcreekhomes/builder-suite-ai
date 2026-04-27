@@ -908,7 +908,7 @@ export function BillsApprovalTabs({ projectId, projectIds, reviewOnly = false, o
       {!reviewOnly && activeTab === "upload" && (
           <div className="space-y-4">
           {isExtracting ? (
-            <div className="h-64 flex items-center justify-center rounded-md border bg-muted/30">
+            <>
               <style>{`
                 @keyframes bill-ai-float {
                   0%, 100% { transform: translateY(0) scale(1) rotate(0deg); opacity: 0.85; }
@@ -929,13 +929,13 @@ export function BillsApprovalTabs({ projectId, projectIds, reviewOnly = false, o
                   animation: bill-ai-dots 1.6s steps(1, end) infinite;
                 }
               `}</style>
-              <div className="flex flex-col items-center justify-center py-8 gap-4">
+              <div className="flex flex-col items-center justify-center py-16 gap-4">
                 <Sparkles className="bill-ai-icon h-12 w-12 text-primary" />
                 <p className="bill-ai-text text-sm font-medium text-muted-foreground">
-                  Extracting {extractingCount} bill{extractingCount !== 1 ? "s" : ""} with machine learning
+                  Extracting {extractingCount} bill{extractingCount !== 1 ? "s" : ""} from machine learning
                 </p>
               </div>
-            </div>
+            </>
           ) : batchBills.length === 0 ? (
             <UploadDropzone onDrop={(files) => extractionRef.current?.dropFiles(files)} />
           ) : (

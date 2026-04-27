@@ -1,43 +1,43 @@
-I found the core issue: the database is now corrected, but the Enter with ML table is showing stale local React state until the Edit Extracted Bill dialog closes and forces a line refetch. That is why simply opening/closing the dialog makes the table change from `2000: SOFT COSTS` to `2030/2050` without you editing anything.
+## Goal
 
-There is a second issue: the PO Status matcher is still largely header-cost-code based, so it can show `No PO` even when pending bill lines have valid `purchase_order_id` / `purchase_order_line_id` links.
+Make the "Enter with ML" extraction loader on the Manage Bills page **pixel-identical** to the loader shown when converting a bid into a Purchase Order ("Creating PO from machine learning"). Same logo, font, color, sizing, padding, and animation — just different wording for the bill context.
 
-Plan:
+## What's different today
 
-1. Make the initial Enter with ML load use authoritative PO line cost codes immediately
-   - In `BillsApprovalTabs.tsx`, update the initial PO auto-match step so when it finds a PO line match, it always overwrites the local line's cost code/name from the matched PO line.
-   - This removes the current bug where it only inherits the PO cost code when the bill line has no cost code.
+The two loaders already share the same Sparkles icon and animation keyframes, but they render in different containers, which makes them look "off":
 
-2. Refresh local table rows after server-side PO snap/rematch
-   - Keep the existing `rematch-pending-bill` call, but after it returns any snap/sync result, refetch that bill's `pending_bill_lines` with lot joins and push them into `batchBills`.
-   - This makes the table update as soon as the background sync finishes, without needing to open the Edit Extracted Bill dialog.
-   - Also make the parent `handleLinesUpdate` invalidate the PO matching query so PO Status recomputes immediately.
+| | PO loader (reference) | Bills loader (current) |
+|---|---|---|
+| Container | Centered modal, no border, plain background | Bordered box (`border bg-muted/30`), fixed `h-64` |
+| Vertical padding | `py-16` | `py-8` |
+| Text | "Creating PO from machine learning" | "Extracting N bill(s) with machine learning" |
 
-3. Fix PO Status to recognize explicit pending PO links
-   - In `useBillPOMatching.ts`, include POs from `purchase_order_id` and also from `purchase_order_line_id`.
-   - Fetch `purchase_order_lines` for linked line IDs and use their `purchase_order_id` and `cost_code_id` as authoritative.
-   - When a pending line is linked to a PO line, treat it as matched even if the PO header `cost_code_id` is different or null.
+Same icon size (`h-12 w-12 text-primary`), same text class (`text-sm font-medium text-muted-foreground`), same float + dots animations.
 
-4. Ensure PO summary/dialog totals remain line-aware
-   - Update the matching calculation so current bill amounts allocated to a PO include lines whose `purchase_order_line_id` belongs to that PO.
-   - This keeps the PO badge, row click behavior, and PO summary dialog aligned with the Edit Extracted Bill dialog.
+## Changes
 
-5. Add a one-time safety repair for existing extracted bills if needed
-   - Add a migration or repair step that syncs any remaining `pending_bill_lines.cost_code_id/cost_code_name` from linked `purchase_order_lines`.
-   - This is idempotent and protects bills already uploaded before the UI refresh fix.
+**File: `src/components/bills/BillsApprovalTabs.tsx`** (the `isExtracting` block around lines 910–938)
 
-Technical details:
+1. Remove the bordered/muted wrapper (`h-64 ... rounded-md border bg-muted/30`). Render the loader inline on the plain page background, exactly like the PO dialog's body.
+2. Change the inner padding from `py-8` to `py-16` to match the PO loader's vertical breathing room.
+3. Keep the Sparkles icon, animations, font, color, and dot-cycling exactly as they are (they already match the PO version).
+4. Update the wording to mirror the PO phrasing style: **"Extracting bill from machine learning"** (singular) or **"Extracting N bills from machine learning"** (plural) — using "from" to match "Creating PO from machine learning".
+
+### Resulting markup (conceptual)
 
 ```text
-Current behavior:
-Extraction/rematch updates DB -> table keeps old batchBills state -> dialog close refetches lines -> table suddenly corrects
-
-New behavior:
-Extraction/rematch updates DB -> Enter with ML refetches affected lines immediately -> table + edit dialog + PO status all show the same PO-line-backed values
+<div className="flex flex-col items-center justify-center py-16 gap-4">
+  <Sparkles className="bill-ai-icon h-12 w-12 text-primary" />
+  <p className="bill-ai-text text-sm font-medium text-muted-foreground">
+    Extracting {n} bill{s} from machine learning
+  </p>
+</div>
 ```
 
-Files to update:
-- `src/components/bills/BillsApprovalTabs.tsx`
-- `src/components/bills/BatchBillReviewTable.tsx`
-- `src/hooks/useBillPOMatching.ts`
-- optional migration/repair SQL for existing pending lines
+Identical font weight, size, color, icon, and animation as the PO loader — only the verb/object differ.
+
+## Out of scope
+
+- The small "Extracting 1 file…" indicator in the page header (top-right). That's a separate upload-progress chip, not the ML loader, and the user's screenshot shows it is fine.
+- No changes to the PO loader.
+- No logic changes — purely visual alignment.
