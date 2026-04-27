@@ -250,17 +250,16 @@ export function BillsApprovalTable({ status, projectId, projectIds, showProjectC
     queryKey: ['bills-for-approval-v3', status, projectId, projectIds],
     queryFn: async () => {
       const statusArray = Array.isArray(status) ? status : [status];
-      
-      // Get all bills matching the status
-      let directQuery = supabase
-        .from('bills')
-        .select(`
+      const includesPosted = statusArray.includes('posted');
+
+      const BILL_SELECT = `
           id,
           vendor_id,
           project_id,
           bill_date,
           due_date,
           total_amount,
+          amount_paid,
           reference_number,
           terms,
           notes,
@@ -304,7 +303,12 @@ export function BillsApprovalTable({ status, projectId, projectIds, showProjectC
               lot_number
             )
           )
-        `)
+        `;
+
+      // Get all bills matching the status
+      let directQuery = supabase
+        .from('bills')
+        .select(BILL_SELECT)
         .in('status', statusArray)
         .eq('is_reversal', false)
         .is('reversed_at', null);
@@ -320,9 +324,85 @@ export function BillsApprovalTable({ status, projectId, projectIds, showProjectC
 
       if (directError) throw directError;
 
-      // Return all bills
-      const allBills = directBills || [];
-      
+      // For Approved (posted) bills scoped to a single project, also pick up
+      // bills whose header has no project_id but whose bill_lines reference
+      // the project (parity with the legacy PayBillsTable behavior).
+      let indirectBills: any[] = [];
+      if (includesPosted && projectId && (!projectIds || projectIds.length === 0)) {
+        const indirectSelect = `
+          id,
+          vendor_id,
+          project_id,
+          bill_date,
+          due_date,
+          total_amount,
+          amount_paid,
+          reference_number,
+          terms,
+          notes,
+          status,
+          reconciled,
+          companies:vendor_id (
+            company_name
+          ),
+          projects:project_id (
+            address
+          ),
+          bill_lines!inner(
+            project_id,
+            line_type,
+            cost_code_id,
+            account_id,
+            lot_id,
+            amount,
+            memo,
+            po_reference,
+            po_assignment,
+            purchase_order_id,
+            purchase_order_line_id,
+            project_lots!bill_lines_lot_id_fkey (
+              id,
+              lot_name,
+              lot_number
+            ),
+            cost_codes!bill_lines_cost_code_id_fkey (
+              code,
+              name
+            ),
+            accounts!bill_lines_account_id_fkey (
+              code,
+              name
+            )
+          ),
+          bill_attachments (
+            id,
+            file_name,
+            file_path,
+            file_size,
+            content_type
+          )
+        `;
+        const { data: indirect, error: indirectError } = await supabase
+          .from('bills')
+          .select(indirectSelect)
+          .eq('status', 'posted')
+          .eq('is_reversal', false)
+          .is('reversed_at', null)
+          .is('project_id', null)
+          .eq('bill_lines.project_id', projectId);
+        if (indirectError) throw indirectError;
+        indirectBills = indirect || [];
+      }
+
+      // Merge + dedupe by id
+      const merged = [...(directBills || []), ...indirectBills];
+      const seen = new Set<string>();
+      const allBills = merged.filter((b: any) => {
+        if (seen.has(b.id)) return false;
+        seen.add(b.id);
+        return true;
+      });
+
       return allBills as BillForApproval[];
     },
   });
