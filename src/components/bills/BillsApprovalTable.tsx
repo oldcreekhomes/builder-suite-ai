@@ -673,16 +673,71 @@ export function BillsApprovalTable({ status, projectId, projectIds, showProjectC
     setPayBillDialogOpen(true);
   };
 
-  const handleConfirmPayment = (billIds: string[], paymentAccountId: string, paymentDate: string, memo?: string) => {
-    payBill.mutate(
-      { billId: billIds[0], paymentAccountId, paymentDate, memo },
-      {
-        onSuccess: () => {
-          setPayBillDialogOpen(false);
-          setSelectedBillForPayment(null);
+  const handleConfirmPayment = (billIds: string[], paymentAccountId: string, paymentDate: string, memo?: string, paymentAmount?: number) => {
+    if (billIds.length <= 1) {
+      payBill.mutate(
+        { billId: billIds[0], paymentAccountId, paymentDate, memo, paymentAmount },
+        {
+          onSuccess: () => {
+            setPayBillDialogOpen(false);
+            setBatchPayDialogOpen(false);
+            setSelectedBillForPayment(null);
+            setSelectedBillIds(new Set());
+          }
         }
+      );
+    } else {
+      payMultipleBills.mutate(
+        { billIds, paymentAccountId, paymentDate, memo },
+        {
+          onSuccess: () => {
+            setPayBillDialogOpen(false);
+            setBatchPayDialogOpen(false);
+            setSelectedBillForPayment(null);
+            setSelectedBillIds(new Set());
+          }
+        }
+      );
+    }
+  };
+
+  // ===== Batch payment selection helpers (Approved tab only) =====
+  const getVendorForBill = (billId: string) => bills.find(b => b.id === billId)?.vendor_id;
+  const getSelectedVendor = () => {
+    if (selectedBillIds.size === 0) return null;
+    return getVendorForBill(Array.from(selectedBillIds)[0]);
+  };
+  const canSelectBill = (billId: string) => {
+    if (selectedBillIds.size === 0) return true;
+    return getSelectedVendor() === getVendorForBill(billId);
+  };
+  const handleCheckboxChange = (billId: string, e: React.ChangeEvent<HTMLInputElement>) => {
+    const checked = e.target.checked;
+    if (checked) {
+      if (!canSelectBill(billId)) {
+        const vendorName = bills.find(b => b.id === Array.from(selectedBillIds)[0])?.companies?.company_name || 'Unknown';
+        toast({
+          title: "Cannot select bill",
+          description: `You can only select bills from the same vendor. Currently selected: ${vendorName}`,
+          variant: "destructive",
+        });
+        return;
       }
-    );
+      setSelectedBillIds(prev => new Set([...prev, billId]));
+    } else {
+      setSelectedBillIds(prev => {
+        const next = new Set(prev);
+        next.delete(billId);
+        return next;
+      });
+    }
+  };
+  const clearSelection = () => setSelectedBillIds(new Set());
+  const handlePaySelectedBills = () => {
+    if (selectedBillIds.size === 0) return;
+    const selected = bills.filter(b => selectedBillIds.has(b.id));
+    setSelectedBillForPayment(selected.length === 1 ? selected[0] : null);
+    setBatchPayDialogOpen(true);
   };
 
   const formatCurrency = (amount: number) => {
