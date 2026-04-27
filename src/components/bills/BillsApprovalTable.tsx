@@ -599,28 +599,39 @@ export function BillsApprovalTable({ status, projectId, projectIds, showProjectC
   }, [bills, enableSorting, sortColumn, sortDirection, defaultSortBy, sortOrder]);
 
   const filteredBills = useMemo(() => {
-    if (!searchQuery?.trim()) return sortedBills;
-    
+    let filtered = sortedBills;
+
+    // Apply due-date filter (Approved tab "Due on or before" picker)
+    if (dueDateFilter === "due-on-or-before" && filterDate && filtered) {
+      const filterYMD = normalizeToYMD(filterDate.toISOString());
+      filtered = filtered.filter(bill => {
+        if (!bill.due_date) return false;
+        return normalizeToYMD(bill.due_date) <= filterYMD;
+      });
+    }
+
+    if (!searchQuery?.trim()) return filtered;
+
     const query = searchQuery.toLowerCase();
-    return sortedBills.filter(bill => {
+    return filtered.filter(bill => {
       // Check project address
       if (bill.projects?.address?.toLowerCase().includes(query)) return true;
-      
+
       // Check vendor name
       if (bill.companies?.company_name?.toLowerCase().includes(query)) return true;
-      
+
       // Check reference number
       if (bill.reference_number?.toLowerCase().includes(query)) return true;
-      
+
       // Check cost codes in bill lines
-      if (bill.bill_lines?.some(line => 
+      if (bill.bill_lines?.some(line =>
         line.cost_codes?.name?.toLowerCase().includes(query) ||
         line.cost_codes?.code?.toLowerCase().includes(query)
       )) return true;
-      
+
       return false;
     });
-  }, [sortedBills, searchQuery]);
+  }, [sortedBills, searchQuery, dueDateFilter, filterDate]);
 
   const handleActionChange = (billId: string, action: string) => {
     if (action === 'edit') {
