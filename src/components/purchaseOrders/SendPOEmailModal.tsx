@@ -52,33 +52,49 @@ export function SendPOEmailModal({
         .eq('id', userData.user?.id)
         .single();
 
-      const { data, error } = await supabase.functions.invoke('send-po-email', {
-        body: {
-          purchaseOrderId: purchaseOrder.id,
-          companyId: purchaseOrder.company_id,
-          poNumber: purchaseOrder.po_number,
-          projectAddress: projectAddress || 'N/A',
-          companyName: purchaseOrder.companies?.company_name || 'N/A',
-          customMessage: customMessage.trim() || undefined,
-          totalAmount: purchaseOrder.total_amount,
-          costCode: purchaseOrder.cost_codes,
-          senderCompanyName: userDetails?.company_name || 'BuilderSuite ML'
+      // Fire-and-forget: kick off email send + sent_at stamp in the background
+      void (async () => {
+        try {
+          const { error } = await supabase.functions.invoke('send-po-email', {
+            body: {
+              purchaseOrderId: purchaseOrder.id,
+              companyId: purchaseOrder.company_id,
+              poNumber: purchaseOrder.po_number,
+              projectAddress: projectAddress || 'N/A',
+              companyName: purchaseOrder.companies?.company_name || 'N/A',
+              customMessage: customMessage.trim() || undefined,
+              totalAmount: purchaseOrder.total_amount,
+              costCode: purchaseOrder.cost_codes,
+              senderCompanyName: userDetails?.company_name || 'BuilderSuite ML'
+            }
+          });
+
+          if (error) throw error;
+
+          await supabase
+            .from('project_purchase_orders')
+            .update({ sent_at: new Date().toISOString() })
+            .eq('id', purchaseOrder.id);
+
+          toast({
+            title: "Success",
+            description: "Purchase order email sent successfully",
+          });
+        } catch (err) {
+          console.error('Background PO email send failed:', err);
+          toast({
+            title: "Error",
+            description: "Failed to send purchase order email",
+            variant: "destructive",
+          });
         }
-      });
-
-      if (error) throw error;
-
-      // Stamp sent_at on the PO
-      await supabase
-        .from('project_purchase_orders')
-        .update({ sent_at: new Date().toISOString() })
-        .eq('id', purchaseOrder.id);
+      })();
 
       toast({
-        title: "Success",
-        description: "Purchase order email sent successfully",
+        title: "Sending…",
+        description: "Purchase order email is being sent in the background.",
       });
-      
+
       onOpenChange(false);
       setCustomMessage('');
     } catch (error: any) {
