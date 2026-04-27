@@ -456,14 +456,74 @@ export function BillsApprovalTabs({ projectId, projectIds, reviewOnly = false, o
     };
 
     // If this enrichment pass is for a fresh ML upload, keep the spinner up
-    // through PO auto-matching so the user never sees the intermediate
-    // (pre-PO-match) cost codes.
+    // through PO auto-matching AND the final rematch-pending-bill snap so the
+    // user never sees the intermediate (pre-PO-match) cost codes.
     const wasJustExtracted = justExtractedRef.current;
     if (wasJustExtracted) {
       setIsEnriching(true);
     }
 
+    const runFinalRematch = async () => {
+      if (!wasJustExtracted || !effectiveProjectId || !pendingBills?.length) return;
+      // Run the same rematch-pending-bill edge function that BatchBillReviewTable
+      // used to call after render — but do it BEFORE the table is shown, so the
+      // final cost codes (e.g. 4275 instead of the AI's 4000 guess) are present
+      // on first paint.
+      try {
+        await Promise.all(
+          pendingBills.map(async (bill: any) => {
+            const vendorId =
+              bill.vendor_id ||
+              bill.extracted_data?.vendor_id ||
+              bill.extracted_data?.vendorId;
+            if (!vendorId) return;
+            try {
+              await supabase.functions.invoke('rematch-pending-bill', {
+                body: { pendingUploadId: bill.id, projectId: effectiveProjectId },
+              });
+            } catch (e) {
+              console.warn('Final PO snap failed for bill', bill.id, e);
+            }
+          })
+        );
+
+        if (cancelled) return;
+
+        // Re-read all lines after rematch so batchBills reflects the snapped
+        // cost codes before the table renders.
+        const refreshed = await Promise.all(
+          pendingBills.map(async (bill: any) => {
+            const { data: lines } = await supabase
+              .from('pending_bill_lines')
+              .select('*, project_lots(id, lot_number, lot_name)')
+              .eq('pending_upload_id', bill.id)
+              .order('line_number');
+            const processedLines = (lines || []).map((line: any) => ({
+              ...line,
+              lot_name:
+                line.project_lots?.lot_name ||
+                (line.project_lots ? `Lot ${line.project_lots.lot_number}` : null),
+            })) as PendingBillLine[];
+            return { billId: bill.id, lines: processedLines };
+          })
+        );
+
+        if (cancelled) return;
+
+        setBatchBills((prev) =>
+          prev.map((b) => {
+            const hit = refreshed.find((r) => r.billId === b.id);
+            return hit ? { ...b, lines: hit.lines } : b;
+          })
+        );
+        queryClient.invalidateQueries({ queryKey: ['bill-po-matching'] });
+      } catch (err) {
+        console.warn('Final rematch pass failed:', err);
+      }
+    };
+
     fetchAllLines()
+      .then(runFinalRematch)
       .catch((err) => {
         console.error('Bill enrichment failed:', err);
       })
