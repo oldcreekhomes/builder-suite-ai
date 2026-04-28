@@ -863,6 +863,12 @@ export function BillsApprovalTable({ status, projectId, projectIds, showProjectC
       (Array.isArray(status) && (status.includes('void') || status.includes('posted') || status.includes('paid')))
     ));
 
+  // ===== Batch payment toolbar derived state (must be before any early return to keep hook order stable) =====
+  const selectedBillsForBatch = useMemo(
+    () => filteredBills.filter(b => selectedBillIds.has(b.id)),
+    [filteredBills, selectedBillIds]
+  );
+
   if (isLoading) {
     return <div className="p-8 text-center">Loading bills...</div>;
   }
@@ -875,12 +881,6 @@ export function BillsApprovalTable({ status, projectId, projectIds, showProjectC
   // + PO Status(1) - always shown on all tabs
   const showPOStatusColumn = true;
   const baseColCount = 11 + (showAddressColumn ? 1 : 0) + (showProjectColumn ? 1 : 0) + (showPayBillButton ? 1 : 0) + (canShowDeleteButton ? 1 : 0) + (showPOStatusColumn ? 1 : 0) + (enableBatchPayment ? 1 : 0);
-
-  // ===== Batch payment toolbar derived state =====
-  const selectedBillsForBatch = useMemo(
-    () => filteredBills.filter(b => selectedBillIds.has(b.id)),
-    [filteredBills, selectedBillIds]
-  );
   const selectedVendorName = selectedBillsForBatch.length > 0
     ? (selectedBillsForBatch[0].companies?.company_name || 'Unknown Vendor')
     : '';
