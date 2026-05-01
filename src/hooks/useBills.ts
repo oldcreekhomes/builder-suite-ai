@@ -874,9 +874,12 @@ export const useBills = () => {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['bills'] });
+      queryClient.invalidateQueries({ queryKey: ['bills-for-approval-v3'] });
       queryClient.invalidateQueries({ queryKey: ['bills-for-payment'] });
       queryClient.invalidateQueries({ queryKey: ['bill-approval-counts'] });
       queryClient.invalidateQueries({ queryKey: ['balance-sheet'] });
+      queryClient.invalidateQueries({ queryKey: ['bill-payments-reconciliation'] });
+      queryClient.invalidateQueries({ queryKey: ['account-transactions'] });
       toast({
         title: "Success",
         description: "Bill payment recorded and posted to General Ledger",

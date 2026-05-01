@@ -1,46 +1,41 @@
-# Fix React error #310 on Review tab (Manage Bills)
+# Why a refresh was needed
+
+You weren't imagining it — this is a real bug, not a one-time glitch. The single-bill payment path forgets to refresh the new unified table.
 
 ## Root cause
 
-In `src/components/bills/BillsApprovalTable.tsx`, the recently-added batch payment logic introduced a `useMemo` call at **line 880** — but the component performs an early `return` for the loading state at **line 866**:
+Since we consolidated Approved/Paid into the unified `BillsApprovalTable`, that table reads from React Query key **`bills-for-approval-v3`**.
 
-```tsx
-if (isLoading) {
-  return <div className="p-8 text-center">Loading bills...</div>;
-}
+In `src/hooks/useBills.ts`:
 
-// ...
+- **`payMultipleBills.onSuccess`** (batch pay) correctly invalidates `bills-for-approval-v3` → batch payments refresh instantly. ✅
+- **`payBill.onSuccess`** (single pay, line 875–884) invalidates `bills`, `bills-for-payment`, `bill-approval-counts`, `balance-sheet` — but **NOT** `bills-for-approval-v3`. ❌
 
-const selectedBillsForBatch = useMemo(   // ← hook called conditionally
-  () => filteredBills.filter(b => selectedBillIds.has(b.id)),
-  [filteredBills, selectedBillIds]
-);
-```
-
-On first render `isLoading` is `true`, React records 0 hooks past that line. When data arrives and `isLoading` flips to `false`, the `useMemo` runs — React sees a different hook count → **Minified React error #310** ("Rendered more hooks than during the previous render").
-
-This explains the session replay flow:
-1. Tab loads → "Loading bills..." renders (early return path).
-2. Bills query resolves → component re-renders with new hook present → crash → ErrorBoundary shows "Something went wrong".
+So after a single Pay Bill, the bill's status updates in the DB, but the table keeps showing the cached "Approved" snapshot until you manually refresh (which forces a refetch).
 
 ## Fix
 
-Move the batch-payment derived state (`selectedBillsForBatch`, `selectedVendorName`, `selectedTotal`, `hasOnlyCredits`, plus the colSpan computation) **above** the `if (isLoading)` early return, so all hooks run unconditionally on every render.
+Add the missing invalidations to `payBill.onSuccess` so it matches `payMultipleBills`:
 
-Specifically in `src/components/bills/BillsApprovalTable.tsx`:
-- Relocate the `useMemo` for `selectedBillsForBatch` and the plain-derived constants from lines 877–~900 to a position before line 866.
-- Keep the `if (isLoading) return …` guard, but it must come *after* every hook call.
-- Verify no other hooks (`useMemo`, `useCallback`, `useEffect`) sit below the early return; if any do, hoist them too.
+```ts
+onSuccess: () => {
+  queryClient.invalidateQueries({ queryKey: ['bills'] });
+  queryClient.invalidateQueries({ queryKey: ['bills-for-approval-v3'] }); // NEW
+  queryClient.invalidateQueries({ queryKey: ['bills-for-payment'] });
+  queryClient.invalidateQueries({ queryKey: ['bill-approval-counts'] });
+  queryClient.invalidateQueries({ queryKey: ['balance-sheet'] });
+  queryClient.invalidateQueries({ queryKey: ['bill-payments-reconciliation'] }); // NEW (parity with batch)
+  queryClient.invalidateQueries({ queryKey: ['account-transactions'] });        // NEW (parity with batch)
+  toast({ title: "Success", description: "Bill payment recorded and posted to General Ledger" });
+}
+```
 
-## Files to modify
+## Files
 
-- `src/components/bills/BillsApprovalTable.tsx`
+- `src/hooks/useBills.ts` — extend `payBill.onSuccess` invalidations (single-line additions)
 
-## Verification
+## Result
 
-After the fix, opening the Review tab on Oceanwatch Court should:
-- Show "Loading bills..." briefly, then render the table without throwing.
-- No React #310 in the console.
-- Batch payment toolbar still works on the Approved tab.
+After approval, paying a single bill will immediately move it from the Approved tab to the Paid tab, update the tab counts, and refresh the bank register — no manual refresh required. So no, you should not have to refresh next time.
 
-Reply **approve** to apply the fix.
+Reply **approve** to apply.
