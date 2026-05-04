@@ -470,10 +470,46 @@ export function EditCompanyDialog({ company, open, onOpenChange }: EditCompanyDi
         
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6 px-1">
+            {/* Engagement Type selector */}
+            <FormField
+              control={form.control}
+              name="engagement_type"
+              render={({ field }) => (
+                <FormItem className="space-y-2 rounded-md border p-3 bg-muted/30">
+                  <FormLabel className="text-sm font-semibold">
+                    How will you work with this company?
+                  </FormLabel>
+                  <div className="grid grid-cols-2 gap-2">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        field.onChange("trade_partner");
+                      }}
+                      className={`text-left rounded-md border p-3 transition ${field.value === "trade_partner" ? "border-primary bg-background ring-2 ring-primary" : "border-border bg-background hover:bg-muted"}`}
+                    >
+                      <div className="text-sm font-medium">Trade Partner</div>
+                      <div className="text-xs text-muted-foreground mt-0.5">Subcontractors & vendors we bid, send POs, and notify. Requires a contact.</div>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        field.onChange("supplier");
+                        if (activeTab === "representatives") setActiveTab("company-info");
+                      }}
+                      className={`text-left rounded-md border p-3 transition ${field.value === "supplier" ? "border-primary bg-background ring-2 ring-primary" : "border-border bg-background hover:bg-muted"}`}
+                    >
+                      <div className="text-sm font-medium">Supplier / Retail</div>
+                      <div className="text-xs text-muted-foreground mt-0.5">Places we just buy from or pay bills (e.g. Home Depot). No contact needed.</div>
+                    </button>
+                  </div>
+                </FormItem>
+              )}
+            />
+
             <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as typeof activeTab)} className="w-full">
-              <TabsList className="w-full grid grid-cols-3">
+              <TabsList className={`w-full grid ${isSupplier ? "grid-cols-2" : "grid-cols-3"}`}>
                 <TabsTrigger value="company-info">Company Information</TabsTrigger>
-                <TabsTrigger value="representatives">Representatives</TabsTrigger>
+                {!isSupplier && <TabsTrigger value="representatives">Representatives</TabsTrigger>}
                 <TabsTrigger value="insurance">Insurance</TabsTrigger>
               </TabsList>
               
