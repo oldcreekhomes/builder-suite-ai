@@ -1428,6 +1428,7 @@ export type Database = {
           company_name: string
           company_type: string
           created_at: string
+          engagement_type: string
           home_builder_id: string
           id: string
           insurance_required: boolean
@@ -1450,6 +1451,7 @@ export type Database = {
           company_name: string
           company_type: string
           created_at?: string
+          engagement_type?: string
           home_builder_id: string
           id?: string
           insurance_required?: boolean
@@ -1472,6 +1474,7 @@ export type Database = {
           company_name?: string
           company_type?: string
           created_at?: string
+          engagement_type?: string
           home_builder_id?: string
           id?: string
           insurance_required?: boolean
