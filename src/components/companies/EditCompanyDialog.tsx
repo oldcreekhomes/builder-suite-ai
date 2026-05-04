@@ -646,9 +646,11 @@ export function EditCompanyDialog({ company, open, onOpenChange }: EditCompanyDi
 
               </TabsContent>
               
-              <TabsContent value="representatives" className="space-y-6 mt-6">
-                <RepresentativeContent companyId={company.id} />
-              </TabsContent>
+              {!isSupplier && (
+                <TabsContent value="representatives" className="space-y-6 mt-6">
+                  <RepresentativeContent companyId={company.id} />
+                </TabsContent>
+              )}
               
               <TabsContent value="insurance" className="space-y-6 mt-6">
                 {company.insurance_required === false && (
