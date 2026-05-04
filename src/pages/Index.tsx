@@ -12,6 +12,7 @@ import { ProjectBidsCard } from "@/components/ProjectBidsCard";
 import { OnboardingChecklist } from "@/components/OnboardingChecklist";
 import { ActiveJobsTable } from "@/components/owner-dashboard/ActiveJobsTable";
 import { AccountantJobsTable } from "@/components/accountant-dashboard/AccountantJobsTable";
+import { EmployeeActivitySection } from "@/components/owner-dashboard/EmployeeActivitySection";
 import { UniversalFilePreviewProvider } from "@/components/files/UniversalFilePreviewProvider";
 
 import { useProjects } from "@/hooks/useProjects";
