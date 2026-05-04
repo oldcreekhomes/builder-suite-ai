@@ -527,39 +527,53 @@ export function AddCompanyDialog({
         <ScrollArea className="max-h-[calc(90vh-120px)] pr-6">
           <Form {...form}>
             <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6 px-1">
-              {/* Engagement Type selector */}
+              {/* Engagement Type selector (compact) */}
               <FormField
                 control={form.control}
                 name="engagement_type"
                 render={({ field }) => (
-                  <FormItem className="space-y-2 rounded-md border p-3 bg-muted/30">
-                    <FormLabel className="text-sm font-semibold">
-                      How will you work with this company? <span className="text-destructive">*</span>
-                    </FormLabel>
-                    <div className="grid grid-cols-2 gap-2">
-                      <button
-                        type="button"
-                        onClick={() => field.onChange("trade_partner")}
-                        className={`text-left rounded-md border p-3 transition ${field.value === "trade_partner" ? "border-primary bg-background ring-2 ring-primary" : "border-border bg-background hover:bg-muted"}`}
-                      >
-                        <div className="text-sm font-medium">Trade Partner</div>
-                        <div className="text-xs text-muted-foreground mt-0.5">Subcontractors & vendors we bid, send POs, and notify (e.g. plumber, electrician). Requires a contact.</div>
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => field.onChange("supplier")}
-                        className={`text-left rounded-md border p-3 transition ${field.value === "supplier" ? "border-primary bg-background ring-2 ring-primary" : "border-border bg-background hover:bg-muted"}`}
-                      >
-                        <div className="text-sm font-medium">Supplier / Retail</div>
-                        <div className="text-xs text-muted-foreground mt-0.5">Places we just buy from or pay bills (e.g. Home Depot, CVS, gas station). No contact needed.</div>
-                      </button>
-                    </div>
+                  <FormItem className="space-y-0">
+                    <TooltipProvider delayDuration={150}>
+                      <div className="flex items-center gap-3 flex-wrap">
+                        <FormLabel className="text-sm font-semibold m-0">
+                          How will you work with this company? <span className="text-destructive">*</span>
+                        </FormLabel>
+                        <div className="flex gap-2">
+                          {[
+                            { value: "trade_partner", label: "Trade Partner", desc: "Subcontractors & vendors we bid, send POs, and notify (e.g. plumber, electrician). Requires a contact." },
+                            { value: "supplier", label: "Supplier / Retail", desc: "Places we just buy from or pay bills (e.g. Home Depot, CVS, gas station). No contact needed." },
+                          ].map((opt) => (
+                            <button
+                              key={opt.value}
+                              type="button"
+                              onClick={() => field.onChange(opt.value)}
+                              className={`inline-flex items-center gap-1.5 rounded-md border px-3 py-1.5 text-sm transition ${field.value === opt.value ? "border-primary bg-background ring-2 ring-primary" : "border-border bg-background hover:bg-muted"}`}
+                            >
+                              <span>{opt.label}</span>
+                              <Tooltip>
+                                <TooltipTrigger asChild>
+                                  <span
+                                    role="button"
+                                    tabIndex={0}
+                                    onClick={(e) => e.stopPropagation()}
+                                    className="inline-flex"
+                                  >
+                                    <HelpCircle className="h-3.5 w-3.5 text-muted-foreground" />
+                                  </span>
+                                </TooltipTrigger>
+                                <TooltipContent className="max-w-xs">{opt.desc}</TooltipContent>
+                              </Tooltip>
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+                    </TooltipProvider>
                   </FormItem>
                 )}
               />
 
               <Tabs defaultValue="company-info" className="w-full">
-                <TabsList className={`w-full grid ${isSupplier ? "grid-cols-2" : "grid-cols-3"}`}>
+                <TabsList className={`w-full grid ${isSupplier ? "grid-cols-1" : "grid-cols-3"}`}>
                   <TabsTrigger value="company-info">
                     Company Information <span className="text-destructive ml-1">*</span>
                   </TabsTrigger>
@@ -568,7 +582,7 @@ export function AddCompanyDialog({
                       Representatives <span className="text-destructive ml-1">*</span>
                     </TabsTrigger>
                   )}
-                  <TabsTrigger value="insurance">Insurance</TabsTrigger>
+                  {!isSupplier && <TabsTrigger value="insurance">Insurance</TabsTrigger>}
                 </TabsList>
                 
                 <TabsContent value="company-info" forceMount className="data-[state=inactive]:hidden space-y-6 mt-6">
