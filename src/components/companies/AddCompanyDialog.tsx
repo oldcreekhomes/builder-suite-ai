@@ -744,13 +744,15 @@ export function AddCompanyDialog({
                   </TabsContent>
                 )}
                 
-              <TabsContent value="insurance" forceMount className="data-[state=inactive]:hidden space-y-6 mt-6">
+              {!isSupplier && (
+                <TabsContent value="insurance" forceMount className="data-[state=inactive]:hidden space-y-6 mt-6">
                   <InsuranceContent 
                     companyId={null}
                     homeBuilder=""
                     onExtractedDataChange={handleExtractedDataChange}
                   />
                 </TabsContent>
+              )}
               </Tabs>
 
               <div className="flex justify-end space-x-4 pt-4 border-t">
