@@ -80,6 +80,7 @@ const parseAddressComponents = (addressComponents: google.maps.GeocoderAddressCo
 const companySchema = z.object({
   company_name: z.string().min(1, "Company name is required"),
   company_type: z.enum(["Subcontractor", "Vendor", "Consultant", "Lender", "Municipality", "Utility"]),
+  engagement_type: z.enum(["trade_partner", "supplier"]).default("trade_partner"),
   address_line_1: z.string().min(1, "Street address is required"),
   address_line_2: z.string().optional(),
   city: z.string().optional(),
