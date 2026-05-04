@@ -667,23 +667,25 @@ export function EditCompanyDialog({ company, open, onOpenChange }: EditCompanyDi
                 </TabsContent>
               )}
               
-              <TabsContent value="insurance" className="space-y-6 mt-6">
-                {company.insurance_required === false && (
-                  <Alert>
-                    <ShieldOff className="h-4 w-4" />
-                    <AlertTitle>Insurance Not Required</AlertTitle>
-                    <AlertDescription>
-                      This company has been marked as not requiring insurance documentation.
-                    </AlertDescription>
-                  </Alert>
-                )}
-                <InsuranceContent 
-                  companyId={company.id}
-                  homeBuilder={company.home_builder_id}
-                  showUploadUI={showInsuranceUpload}
-                  onShowUploadChange={setShowInsuranceUpload}
-                />
-              </TabsContent>
+              {!isSupplier && (
+                <TabsContent value="insurance" className="space-y-6 mt-6">
+                  {company.insurance_required === false && (
+                    <Alert>
+                      <ShieldOff className="h-4 w-4" />
+                      <AlertTitle>Insurance Not Required</AlertTitle>
+                      <AlertDescription>
+                        This company has been marked as not requiring insurance documentation.
+                      </AlertDescription>
+                    </Alert>
+                  )}
+                  <InsuranceContent 
+                    companyId={company.id}
+                    homeBuilder={company.home_builder_id}
+                    showUploadUI={showInsuranceUpload}
+                    onShowUploadChange={setShowInsuranceUpload}
+                  />
+                </TabsContent>
+              )}
             </Tabs>
 
             <div className="flex justify-between pt-4 border-t">
