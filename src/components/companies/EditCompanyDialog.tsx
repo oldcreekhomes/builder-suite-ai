@@ -393,6 +393,7 @@ export function EditCompanyDialog({ company, open, onOpenChange }: EditCompanyDi
       const updateData = {
         company_name: data.company_name,
         company_type: data.company_type,
+        engagement_type: data.engagement_type,
         address_line_1: data.address_line_1,
         address_line_2: data.address_line_2,
         city: data.city,
