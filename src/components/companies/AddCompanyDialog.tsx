@@ -153,6 +153,7 @@ export function AddCompanyDialog({
     defaultValues: {
       company_name: initialCompanyName || "",
       company_type: "Subcontractor",
+      engagement_type: "trade_partner",
       address_line_1: initialData?.address_line_1 || "",
       address_line_2: initialData?.address_line_2 || "",
       city: initialData?.city || "",
@@ -162,6 +163,9 @@ export function AddCompanyDialog({
       website: initialData?.website || "",
     },
   });
+
+  const engagementType = form.watch("engagement_type");
+  const isSupplier = engagementType === "supplier";
 
   // Handle place selection from Google Places
   const handlePlaceSelected = useCallback((place: google.maps.places.PlaceResult) => {
