@@ -287,6 +287,7 @@ export function EditCompanyDialog({ company, open, onOpenChange }: EditCompanyDi
       form.reset({
         company_name: company.company_name,
         company_type: (company.company_type || 'Subcontractor') as any,
+        engagement_type: ((company.engagement_type as any) || 'trade_partner'),
         ...addressFields,
         phone_number: company.phone_number || "",
         website: company.website || "",
