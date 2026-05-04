@@ -196,6 +196,7 @@ export function EditCompanyDialog({ company, open, onOpenChange }: EditCompanyDi
     defaultValues: {
       company_name: "",
       company_type: "Subcontractor",
+      engagement_type: "trade_partner",
       address_line_1: "",
       address_line_2: "",
       city: "",
@@ -205,6 +206,9 @@ export function EditCompanyDialog({ company, open, onOpenChange }: EditCompanyDi
       website: "",
     },
   });
+
+  const engagementType = form.watch("engagement_type");
+  const isSupplier = engagementType === "supplier";
 
   // Handle Google Places selection
   const handlePlaceSelected = useCallback((place: google.maps.places.PlaceResult) => {
