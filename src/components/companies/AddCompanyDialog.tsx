@@ -520,20 +520,53 @@ export function AddCompanyDialog({
         </DialogHeader>
         
         <p className="text-sm text-muted-foreground">
-          <span className="text-destructive">*</span> Company Information and Representatives are required
+          <span className="text-destructive">*</span> {isSupplier ? "Company Information is required" : "Company Information and Representatives are required"}
         </p>
-        
+
         <ScrollArea className="max-h-[calc(90vh-120px)] pr-6">
           <Form {...form}>
             <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6 px-1">
+              {/* Engagement Type selector */}
+              <FormField
+                control={form.control}
+                name="engagement_type"
+                render={({ field }) => (
+                  <FormItem className="space-y-2 rounded-md border p-3 bg-muted/30">
+                    <FormLabel className="text-sm font-semibold">
+                      How will you work with this company? <span className="text-destructive">*</span>
+                    </FormLabel>
+                    <div className="grid grid-cols-2 gap-2">
+                      <button
+                        type="button"
+                        onClick={() => field.onChange("trade_partner")}
+                        className={`text-left rounded-md border p-3 transition ${field.value === "trade_partner" ? "border-primary bg-background ring-2 ring-primary" : "border-border bg-background hover:bg-muted"}`}
+                      >
+                        <div className="text-sm font-medium">Trade Partner</div>
+                        <div className="text-xs text-muted-foreground mt-0.5">Subcontractors & vendors we bid, send POs, and notify (e.g. plumber, electrician). Requires a contact.</div>
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => field.onChange("supplier")}
+                        className={`text-left rounded-md border p-3 transition ${field.value === "supplier" ? "border-primary bg-background ring-2 ring-primary" : "border-border bg-background hover:bg-muted"}`}
+                      >
+                        <div className="text-sm font-medium">Supplier / Retail</div>
+                        <div className="text-xs text-muted-foreground mt-0.5">Places we just buy from or pay bills (e.g. Home Depot, CVS, gas station). No contact needed.</div>
+                      </button>
+                    </div>
+                  </FormItem>
+                )}
+              />
+
               <Tabs defaultValue="company-info" className="w-full">
-                <TabsList className="w-full grid grid-cols-3">
+                <TabsList className={`w-full grid ${isSupplier ? "grid-cols-2" : "grid-cols-3"}`}>
                   <TabsTrigger value="company-info">
                     Company Information <span className="text-destructive ml-1">*</span>
                   </TabsTrigger>
-                  <TabsTrigger value="representatives">
-                    Representatives <span className="text-destructive ml-1">*</span>
-                  </TabsTrigger>
+                  {!isSupplier && (
+                    <TabsTrigger value="representatives">
+                      Representatives <span className="text-destructive ml-1">*</span>
+                    </TabsTrigger>
+                  )}
                   <TabsTrigger value="insurance">Insurance</TabsTrigger>
                 </TabsList>
                 
