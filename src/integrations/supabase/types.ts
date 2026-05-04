@@ -20,6 +20,7 @@ export type Database = {
           closed_by: string
           closure_notes: string | null
           created_at: string
+          created_by: string | null
           id: string
           owner_id: string
           period_end_date: string
@@ -29,12 +30,14 @@ export type Database = {
           reopened_by: string | null
           status: string
           updated_at: string
+          updated_by: string | null
         }
         Insert: {
           closed_at?: string
           closed_by: string
           closure_notes?: string | null
           created_at?: string
+          created_by?: string | null
           id?: string
           owner_id: string
           period_end_date: string
@@ -44,12 +47,14 @@ export type Database = {
           reopened_by?: string | null
           status?: string
           updated_at?: string
+          updated_by?: string | null
         }
         Update: {
           closed_at?: string
           closed_by?: string
           closure_notes?: string | null
           created_at?: string
+          created_by?: string | null
           id?: string
           owner_id?: string
           period_end_date?: string
@@ -59,29 +64,51 @@ export type Database = {
           reopened_by?: string | null
           status?: string
           updated_at?: string
+          updated_by?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "accounting_periods_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "accounting_periods_updated_by_fkey"
+            columns: ["updated_by"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       accounting_settings: {
         Row: {
           ap_account_id: string | null
           created_at: string
+          created_by: string | null
           owner_id: string
           updated_at: string
+          updated_by: string | null
           wip_account_id: string | null
         }
         Insert: {
           ap_account_id?: string | null
           created_at?: string
+          created_by?: string | null
           owner_id: string
           updated_at?: string
+          updated_by?: string | null
           wip_account_id?: string | null
         }
         Update: {
           ap_account_id?: string | null
           created_at?: string
+          created_by?: string | null
           owner_id?: string
           updated_at?: string
+          updated_by?: string | null
           wip_account_id?: string | null
         }
         Relationships: [
@@ -90,6 +117,20 @@ export type Database = {
             columns: ["ap_account_id"]
             isOneToOne: false
             referencedRelation: "accounts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "accounting_settings_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "accounting_settings_updated_by_fkey"
+            columns: ["updated_by"]
+            isOneToOne: false
+            referencedRelation: "users"
             referencedColumns: ["id"]
           },
           {
@@ -105,6 +146,7 @@ export type Database = {
         Row: {
           code: string
           created_at: string
+          created_by: string | null
           description: string | null
           id: string
           is_active: boolean
@@ -113,10 +155,12 @@ export type Database = {
           parent_id: string | null
           type: Database["public"]["Enums"]["account_type"]
           updated_at: string
+          updated_by: string | null
         }
         Insert: {
           code: string
           created_at?: string
+          created_by?: string | null
           description?: string | null
           id?: string
           is_active?: boolean
@@ -125,10 +169,12 @@ export type Database = {
           parent_id?: string | null
           type: Database["public"]["Enums"]["account_type"]
           updated_at?: string
+          updated_by?: string | null
         }
         Update: {
           code?: string
           created_at?: string
+          created_by?: string | null
           description?: string | null
           id?: string
           is_active?: boolean
@@ -137,13 +183,28 @@ export type Database = {
           parent_id?: string | null
           type?: Database["public"]["Enums"]["account_type"]
           updated_at?: string
+          updated_by?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "accounts_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "accounts_parent_id_fkey"
             columns: ["parent_id"]
             isOneToOne: false
             referencedRelation: "accounts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "accounts_updated_by_fkey"
+            columns: ["updated_by"]
+            isOneToOne: false
+            referencedRelation: "users"
             referencedColumns: ["id"]
           },
         ]
@@ -158,6 +219,7 @@ export type Database = {
           closing_costs: number
           construction_costs: number
           created_at: string | null
+          created_by: string | null
           estimated_value: number
           exit_cap_rate: number
           expense_growth_rate: number
@@ -197,6 +259,7 @@ export type Database = {
           taxes: number
           trash_removal: number
           updated_at: string | null
+          updated_by: string | null
           utilities: number
           vacancy_rate: number
         }
@@ -209,6 +272,7 @@ export type Database = {
           closing_costs?: number
           construction_costs?: number
           created_at?: string | null
+          created_by?: string | null
           estimated_value?: number
           exit_cap_rate?: number
           expense_growth_rate?: number
@@ -248,6 +312,7 @@ export type Database = {
           taxes?: number
           trash_removal?: number
           updated_at?: string | null
+          updated_by?: string | null
           utilities?: number
           vacancy_rate?: number
         }
@@ -260,6 +325,7 @@ export type Database = {
           closing_costs?: number
           construction_costs?: number
           created_at?: string | null
+          created_by?: string | null
           estimated_value?: number
           exit_cap_rate?: number
           expense_growth_rate?: number
@@ -299,10 +365,18 @@ export type Database = {
           taxes?: number
           trash_removal?: number
           updated_at?: string | null
+          updated_by?: string | null
           utilities?: number
           vacancy_rate?: number
         }
         Relationships: [
+          {
+            foreignKeyName: "apartment_inputs_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "apartment_inputs_project_id_fkey"
             columns: ["project_id"]
@@ -310,34 +384,62 @@ export type Database = {
             referencedRelation: "projects"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "apartment_inputs_updated_by_fkey"
+            columns: ["updated_by"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
         ]
       }
       apartment_pro_formas: {
         Row: {
           created_at: string
+          created_by: string | null
           id: string
           inputs: Json
           name: string
           owner_id: string
           updated_at: string
+          updated_by: string | null
         }
         Insert: {
           created_at?: string
+          created_by?: string | null
           id?: string
           inputs?: Json
           name: string
           owner_id: string
           updated_at?: string
+          updated_by?: string | null
         }
         Update: {
           created_at?: string
+          created_by?: string | null
           id?: string
           inputs?: Json
           name?: string
           owner_id?: string
           updated_at?: string
+          updated_by?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "apartment_pro_formas_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "apartment_pro_formas_updated_by_fkey"
+            columns: ["updated_by"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       bank_reconciliations: {
         Row: {
@@ -346,6 +448,7 @@ export type Database = {
           completed_at: string | null
           completed_by: string | null
           created_at: string
+          created_by: string | null
           difference: number
           id: string
           notes: string | null
@@ -357,6 +460,7 @@ export type Database = {
           statement_ending_balance: number
           status: string
           updated_at: string
+          updated_by: string | null
         }
         Insert: {
           bank_account_id: string
@@ -364,6 +468,7 @@ export type Database = {
           completed_at?: string | null
           completed_by?: string | null
           created_at?: string
+          created_by?: string | null
           difference?: number
           id?: string
           notes?: string | null
@@ -375,6 +480,7 @@ export type Database = {
           statement_ending_balance: number
           status?: string
           updated_at?: string
+          updated_by?: string | null
         }
         Update: {
           bank_account_id?: string
@@ -382,6 +488,7 @@ export type Database = {
           completed_at?: string | null
           completed_by?: string | null
           created_at?: string
+          created_by?: string | null
           difference?: number
           id?: string
           notes?: string | null
@@ -393,20 +500,38 @@ export type Database = {
           statement_ending_balance?: number
           status?: string
           updated_at?: string
+          updated_by?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "bank_reconciliations_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "bank_reconciliations_updated_by_fkey"
+            columns: ["updated_by"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       bill_attachments: {
         Row: {
           bill_id: string | null
           content_type: string | null
           created_at: string
+          created_by: string | null
           file_name: string
           file_path: string
           file_size: number
           id: string
           pending_upload_id: string | null
           updated_at: string
+          updated_by: string | null
           uploaded_at: string
           uploaded_by: string
         }
@@ -414,12 +539,14 @@ export type Database = {
           bill_id?: string | null
           content_type?: string | null
           created_at?: string
+          created_by?: string | null
           file_name: string
           file_path: string
           file_size: number
           id?: string
           pending_upload_id?: string | null
           updated_at?: string
+          updated_by?: string | null
           uploaded_at?: string
           uploaded_by: string
         }
@@ -427,12 +554,14 @@ export type Database = {
           bill_id?: string | null
           content_type?: string | null
           created_at?: string
+          created_by?: string | null
           file_name?: string
           file_path?: string
           file_size?: number
           id?: string
           pending_upload_id?: string | null
           updated_at?: string
+          updated_by?: string | null
           uploaded_at?: string
           uploaded_by?: string
         }
@@ -445,10 +574,24 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "bill_attachments_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "bill_attachments_pending_upload_id_fkey"
             columns: ["pending_upload_id"]
             isOneToOne: false
             referencedRelation: "pending_bill_uploads"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "bill_attachments_updated_by_fkey"
+            columns: ["updated_by"]
+            isOneToOne: false
+            referencedRelation: "users"
             referencedColumns: ["id"]
           },
         ]
@@ -460,9 +603,11 @@ export type Database = {
           cost_code_id: string | null
           cost_code_name: string | null
           created_at: string
+          created_by: string | null
           description: string
           id: string
           owner_id: string
+          updated_by: string | null
           vendor_name: string
         }
         Insert: {
@@ -471,9 +616,11 @@ export type Database = {
           cost_code_id?: string | null
           cost_code_name?: string | null
           created_at?: string
+          created_by?: string | null
           description: string
           id?: string
           owner_id: string
+          updated_by?: string | null
           vendor_name: string
         }
         Update: {
@@ -482,12 +629,29 @@ export type Database = {
           cost_code_id?: string | null
           cost_code_name?: string | null
           created_at?: string
+          created_by?: string | null
           description?: string
           id?: string
           owner_id?: string
+          updated_by?: string | null
           vendor_name?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "bill_categorization_examples_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "bill_categorization_examples_updated_by_fkey"
+            columns: ["updated_by"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       bill_lines: {
         Row: {
@@ -496,6 +660,7 @@ export type Database = {
           bill_id: string
           cost_code_id: string | null
           created_at: string
+          created_by: string | null
           id: string
           is_reversal: boolean
           line_number: number
@@ -512,6 +677,7 @@ export type Database = {
           reverses_line_id: string | null
           unit_cost: number
           updated_at: string
+          updated_by: string | null
         }
         Insert: {
           account_id?: string | null
@@ -519,6 +685,7 @@ export type Database = {
           bill_id: string
           cost_code_id?: string | null
           created_at?: string
+          created_by?: string | null
           id?: string
           is_reversal?: boolean
           line_number?: number
@@ -535,6 +702,7 @@ export type Database = {
           reverses_line_id?: string | null
           unit_cost?: number
           updated_at?: string
+          updated_by?: string | null
         }
         Update: {
           account_id?: string | null
@@ -542,6 +710,7 @@ export type Database = {
           bill_id?: string
           cost_code_id?: string | null
           created_at?: string
+          created_by?: string | null
           id?: string
           is_reversal?: boolean
           line_number?: number
@@ -558,6 +727,7 @@ export type Database = {
           reverses_line_id?: string | null
           unit_cost?: number
           updated_at?: string
+          updated_by?: string | null
         }
         Relationships: [
           {
@@ -579,6 +749,13 @@ export type Database = {
             columns: ["cost_code_id"]
             isOneToOne: false
             referencedRelation: "cost_codes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "bill_lines_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "users"
             referencedColumns: ["id"]
           },
           {
@@ -614,6 +791,13 @@ export type Database = {
             columns: ["reverses_line_id"]
             isOneToOne: false
             referencedRelation: "bill_lines"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "bill_lines_updated_by_fkey"
+            columns: ["updated_by"]
+            isOneToOne: false
+            referencedRelation: "users"
             referencedColumns: ["id"]
           },
         ]
@@ -673,6 +857,7 @@ export type Database = {
           reconciliation_id: string | null
           total_amount: number
           updated_at: string | null
+          updated_by: string | null
           vendor_id: string
         }
         Insert: {
@@ -690,6 +875,7 @@ export type Database = {
           reconciliation_id?: string | null
           total_amount: number
           updated_at?: string | null
+          updated_by?: string | null
           vendor_id: string
         }
         Update: {
@@ -707,6 +893,7 @@ export type Database = {
           reconciliation_id?: string | null
           total_amount?: number
           updated_at?: string | null
+          updated_by?: string | null
           vendor_id?: string
         }
         Relationships: [
@@ -729,6 +916,13 @@ export type Database = {
             columns: ["reconciliation_id"]
             isOneToOne: false
             referencedRelation: "bank_reconciliations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "bill_payments_updated_by_fkey"
+            columns: ["updated_by"]
+            isOneToOne: false
+            referencedRelation: "users"
             referencedColumns: ["id"]
           },
           {
@@ -765,6 +959,7 @@ export type Database = {
           terms: string | null
           total_amount: number
           updated_at: string
+          updated_by: string | null
           vendor_id: string
         }
         Insert: {
@@ -791,6 +986,7 @@ export type Database = {
           terms?: string | null
           total_amount?: number
           updated_at?: string
+          updated_by?: string | null
           vendor_id: string
         }
         Update: {
@@ -817,6 +1013,7 @@ export type Database = {
           terms?: string | null
           total_amount?: number
           updated_at?: string
+          updated_by?: string | null
           vendor_id?: string
         }
         Relationships: [
@@ -856,6 +1053,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "bills_updated_by_fkey"
+            columns: ["updated_by"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "bills_vendor_id_fkey"
             columns: ["vendor_id"]
             isOneToOne: false
@@ -868,26 +1072,32 @@ export type Database = {
         Row: {
           cost_code_id: string
           created_at: string
+          created_by: string | null
           id: string
           included: boolean
           project_budget_id: string
           updated_at: string
+          updated_by: string | null
         }
         Insert: {
           cost_code_id: string
           created_at?: string
+          created_by?: string | null
           id?: string
           included?: boolean
           project_budget_id: string
           updated_at?: string
+          updated_by?: string | null
         }
         Update: {
           cost_code_id?: string
           created_at?: string
+          created_by?: string | null
           id?: string
           included?: boolean
           project_budget_id?: string
           updated_at?: string
+          updated_by?: string | null
         }
         Relationships: [
           {
@@ -898,10 +1108,24 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "budget_subcategory_selections_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "budget_subcategory_selections_project_budget_id_fkey"
             columns: ["project_budget_id"]
             isOneToOne: false
             referencedRelation: "project_budgets"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "budget_subcategory_selections_updated_by_fkey"
+            columns: ["updated_by"]
+            isOneToOne: false
+            referencedRelation: "users"
             referencedColumns: ["id"]
           },
         ]
@@ -910,45 +1134,68 @@ export type Database = {
         Row: {
           company_name: string
           created_at: string | null
+          created_by: string | null
           enabled: boolean | null
           id: string
           rule_type: string
           threshold_value: number | null
           updated_at: string | null
+          updated_by: string | null
           user_id: string
         }
         Insert: {
           company_name: string
           created_at?: string | null
+          created_by?: string | null
           enabled?: boolean | null
           id?: string
           rule_type: string
           threshold_value?: number | null
           updated_at?: string | null
+          updated_by?: string | null
           user_id: string
         }
         Update: {
           company_name?: string
           created_at?: string | null
+          created_by?: string | null
           enabled?: boolean | null
           id?: string
           rule_type?: string
           threshold_value?: number | null
           updated_at?: string | null
+          updated_by?: string | null
           user_id?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "budget_warning_rules_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "budget_warning_rules_updated_by_fkey"
+            columns: ["updated_by"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       check_attachments: {
         Row: {
           check_id: string
           content_type: string | null
           created_at: string | null
+          created_by: string | null
           file_name: string
           file_path: string
           file_size: number
           id: string
           updated_at: string | null
+          updated_by: string | null
           uploaded_at: string | null
           uploaded_by: string | null
         }
@@ -956,11 +1203,13 @@ export type Database = {
           check_id: string
           content_type?: string | null
           created_at?: string | null
+          created_by?: string | null
           file_name: string
           file_path: string
           file_size: number
           id?: string
           updated_at?: string | null
+          updated_by?: string | null
           uploaded_at?: string | null
           uploaded_by?: string | null
         }
@@ -968,11 +1217,13 @@ export type Database = {
           check_id?: string
           content_type?: string | null
           created_at?: string | null
+          created_by?: string | null
           file_name?: string
           file_path?: string
           file_size?: number
           id?: string
           updated_at?: string | null
+          updated_by?: string | null
           uploaded_at?: string | null
           uploaded_by?: string | null
         }
@@ -984,6 +1235,20 @@ export type Database = {
             referencedRelation: "checks"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "check_attachments_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "check_attachments_updated_by_fkey"
+            columns: ["updated_by"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
         ]
       }
       check_lines: {
@@ -993,6 +1258,7 @@ export type Database = {
           check_id: string
           cost_code_id: string | null
           created_at: string
+          created_by: string | null
           id: string
           is_reversal: boolean
           line_number: number
@@ -1003,6 +1269,7 @@ export type Database = {
           project_id: string | null
           reverses_line_id: string | null
           updated_at: string
+          updated_by: string | null
         }
         Insert: {
           account_id?: string | null
@@ -1010,6 +1277,7 @@ export type Database = {
           check_id: string
           cost_code_id?: string | null
           created_at?: string
+          created_by?: string | null
           id?: string
           is_reversal?: boolean
           line_number?: number
@@ -1020,6 +1288,7 @@ export type Database = {
           project_id?: string | null
           reverses_line_id?: string | null
           updated_at?: string
+          updated_by?: string | null
         }
         Update: {
           account_id?: string | null
@@ -1027,6 +1296,7 @@ export type Database = {
           check_id?: string
           cost_code_id?: string | null
           created_at?: string
+          created_by?: string | null
           id?: string
           is_reversal?: boolean
           line_number?: number
@@ -1037,6 +1307,7 @@ export type Database = {
           project_id?: string | null
           reverses_line_id?: string | null
           updated_at?: string
+          updated_by?: string | null
         }
         Relationships: [
           {
@@ -1061,6 +1332,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "check_lines_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "check_lines_lot_id_fkey"
             columns: ["lot_id"]
             isOneToOne: false
@@ -1072,6 +1350,13 @@ export type Database = {
             columns: ["reverses_line_id"]
             isOneToOne: false
             referencedRelation: "check_lines"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "check_lines_updated_by_fkey"
+            columns: ["updated_by"]
+            isOneToOne: false
+            referencedRelation: "users"
             referencedColumns: ["id"]
           },
         ]
@@ -1106,6 +1391,7 @@ export type Database = {
           company_name_x: number | null
           company_name_y: number | null
           created_at: string | null
+          created_by: string | null
           date_label_x: number | null
           date_label_y: number | null
           date_x: number | null
@@ -1153,6 +1439,7 @@ export type Database = {
           to_the_label_x: number | null
           to_the_label_y: number | null
           updated_at: string | null
+          updated_by: string | null
         }
         Insert: {
           amount_numeric_x?: number | null
@@ -1183,6 +1470,7 @@ export type Database = {
           company_name_x?: number | null
           company_name_y?: number | null
           created_at?: string | null
+          created_by?: string | null
           date_label_x?: number | null
           date_label_y?: number | null
           date_x?: number | null
@@ -1230,6 +1518,7 @@ export type Database = {
           to_the_label_x?: number | null
           to_the_label_y?: number | null
           updated_at?: string | null
+          updated_by?: string | null
         }
         Update: {
           amount_numeric_x?: number | null
@@ -1260,6 +1549,7 @@ export type Database = {
           company_name_x?: number | null
           company_name_y?: number | null
           created_at?: string | null
+          created_by?: string | null
           date_label_x?: number | null
           date_label_y?: number | null
           date_x?: number | null
@@ -1307,13 +1597,28 @@ export type Database = {
           to_the_label_x?: number | null
           to_the_label_y?: number | null
           updated_at?: string | null
+          updated_by?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "check_print_settings_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "check_print_settings_project_id_fkey"
             columns: ["project_id"]
             isOneToOne: false
             referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "check_print_settings_updated_by_fkey"
+            columns: ["updated_by"]
+            isOneToOne: false
+            referencedRelation: "users"
             referencedColumns: ["id"]
           },
         ]
@@ -1345,6 +1650,7 @@ export type Database = {
           reverses_id: string | null
           status: string
           updated_at: string
+          updated_by: string | null
         }
         Insert: {
           amount?: number
@@ -1372,6 +1678,7 @@ export type Database = {
           reverses_id?: string | null
           status?: string
           updated_at?: string
+          updated_by?: string | null
         }
         Update: {
           amount?: number
@@ -1399,6 +1706,7 @@ export type Database = {
           reverses_id?: string | null
           status?: string
           updated_at?: string
+          updated_by?: string | null
         }
         Relationships: [
           {
@@ -1415,6 +1723,13 @@ export type Database = {
             referencedRelation: "checks"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "checks_updated_by_fkey"
+            columns: ["updated_by"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
         ]
       }
       companies: {
@@ -1428,6 +1743,7 @@ export type Database = {
           company_name: string
           company_type: string
           created_at: string
+          created_by: string | null
           engagement_type: string
           home_builder_id: string
           id: string
@@ -1438,6 +1754,7 @@ export type Database = {
           state: string | null
           terms: string | null
           updated_at: string
+          updated_by: string | null
           website: string | null
           zip_code: string | null
         }
@@ -1451,6 +1768,7 @@ export type Database = {
           company_name: string
           company_type: string
           created_at?: string
+          created_by?: string | null
           engagement_type?: string
           home_builder_id: string
           id?: string
@@ -1461,6 +1779,7 @@ export type Database = {
           state?: string | null
           terms?: string | null
           updated_at?: string
+          updated_by?: string | null
           website?: string | null
           zip_code?: string | null
         }
@@ -1474,6 +1793,7 @@ export type Database = {
           company_name?: string
           company_type?: string
           created_at?: string
+          created_by?: string | null
           engagement_type?: string
           home_builder_id?: string
           id?: string
@@ -1484,15 +1804,30 @@ export type Database = {
           state?: string | null
           terms?: string | null
           updated_at?: string
+          updated_by?: string | null
           website?: string | null
           zip_code?: string | null
         }
         Relationships: [
           {
+            foreignKeyName: "companies_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "companies_marketplace_company_id_fkey"
             columns: ["marketplace_company_id"]
             isOneToOne: false
             referencedRelation: "marketplace_companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "companies_updated_by_fkey"
+            columns: ["updated_by"]
+            isOneToOne: false
+            referencedRelation: "users"
             referencedColumns: ["id"]
           },
         ]
@@ -1543,6 +1878,7 @@ export type Database = {
       company_feature_access: {
         Row: {
           company_name: string
+          created_by: string | null
           enabled: boolean
           feature: Database["public"]["Enums"]["gated_feature"]
           id: string
@@ -1551,6 +1887,7 @@ export type Database = {
         }
         Insert: {
           company_name: string
+          created_by?: string | null
           enabled?: boolean
           feature: Database["public"]["Enums"]["gated_feature"]
           id?: string
@@ -1559,13 +1896,22 @@ export type Database = {
         }
         Update: {
           company_name?: string
+          created_by?: string | null
           enabled?: boolean
           feature?: Database["public"]["Enums"]["gated_feature"]
           id?: string
           updated_at?: string
           updated_by?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "company_feature_access_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       company_insurances: {
         Row: {
@@ -1632,6 +1978,7 @@ export type Database = {
           status: string
           title: string
           updated_at: string
+          updated_by: string | null
         }
         Insert: {
           category: string
@@ -1647,6 +1994,7 @@ export type Database = {
           status?: string
           title: string
           updated_at?: string
+          updated_by?: string | null
         }
         Update: {
           category?: string
@@ -1662,13 +2010,23 @@ export type Database = {
           status?: string
           title?: string
           updated_at?: string
+          updated_by?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "company_issues_updated_by_fkey"
+            columns: ["updated_by"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       company_representatives: {
         Row: {
           company_id: string
           created_at: string
+          created_by: string | null
           email: string
           first_name: string
           home_builder_id: string
@@ -1681,10 +2039,12 @@ export type Database = {
           service_areas: string[]
           title: string
           updated_at: string
+          updated_by: string | null
         }
         Insert: {
           company_id: string
           created_at?: string
+          created_by?: string | null
           email: string
           first_name: string
           home_builder_id: string
@@ -1697,10 +2057,12 @@ export type Database = {
           service_areas?: string[]
           title: string
           updated_at?: string
+          updated_by?: string | null
         }
         Update: {
           company_id?: string
           created_at?: string
+          created_by?: string | null
           email?: string
           first_name?: string
           home_builder_id?: string
@@ -1713,6 +2075,7 @@ export type Database = {
           service_areas?: string[]
           title?: string
           updated_at?: string
+          updated_by?: string | null
         }
         Relationships: [
           {
@@ -1720,6 +2083,20 @@ export type Database = {
             columns: ["company_id"]
             isOneToOne: false
             referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "company_representatives_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "company_representatives_updated_by_fkey"
+            columns: ["updated_by"]
+            isOneToOne: false
+            referencedRelation: "users"
             referencedColumns: ["id"]
           },
           {
@@ -1737,33 +2114,39 @@ export type Database = {
           changed_by: string | null
           cost_code_id: string
           created_at: string
+          created_by: string | null
           file_path: string | null
           id: string
           notes: string | null
           owner_id: string
           price: number
+          updated_by: string | null
         }
         Insert: {
           changed_at?: string
           changed_by?: string | null
           cost_code_id: string
           created_at?: string
+          created_by?: string | null
           file_path?: string | null
           id?: string
           notes?: string | null
           owner_id: string
           price: number
+          updated_by?: string | null
         }
         Update: {
           changed_at?: string
           changed_by?: string | null
           cost_code_id?: string
           created_at?: string
+          created_by?: string | null
           file_path?: string | null
           id?: string
           notes?: string | null
           owner_id?: string
           price?: number
+          updated_by?: string | null
         }
         Relationships: [
           {
@@ -1774,8 +2157,22 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "cost_code_price_history_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "cost_code_price_history_owner_id_fkey"
             columns: ["owner_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "cost_code_price_history_updated_by_fkey"
+            columns: ["updated_by"]
             isOneToOne: false
             referencedRelation: "users"
             referencedColumns: ["id"]
@@ -1786,26 +2183,32 @@ export type Database = {
         Row: {
           cost_code_id: string
           created_at: string
+          created_by: string | null
           description: string | null
           files: string[] | null
           id: string
           updated_at: string
+          updated_by: string | null
         }
         Insert: {
           cost_code_id: string
           created_at?: string
+          created_by?: string | null
           description?: string | null
           files?: string[] | null
           id?: string
           updated_at?: string
+          updated_by?: string | null
         }
         Update: {
           cost_code_id?: string
           created_at?: string
+          created_by?: string | null
           description?: string | null
           files?: string[] | null
           id?: string
           updated_at?: string
+          updated_by?: string | null
         }
         Relationships: [
           {
@@ -1815,6 +2218,20 @@ export type Database = {
             referencedRelation: "cost_codes"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "cost_code_specifications_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "cost_code_specifications_updated_by_fkey"
+            columns: ["updated_by"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
         ]
       }
       cost_codes: {
@@ -1822,6 +2239,7 @@ export type Database = {
           category: string | null
           code: string
           created_at: string
+          created_by: string | null
           estimate: boolean | null
           has_bidding: boolean | null
           has_specifications: boolean | null
@@ -1834,11 +2252,13 @@ export type Database = {
           quantity: string | null
           unit_of_measure: string | null
           updated_at: string
+          updated_by: string | null
         }
         Insert: {
           category?: string | null
           code: string
           created_at?: string
+          created_by?: string | null
           estimate?: boolean | null
           has_bidding?: boolean | null
           has_specifications?: boolean | null
@@ -1851,11 +2271,13 @@ export type Database = {
           quantity?: string | null
           unit_of_measure?: string | null
           updated_at?: string
+          updated_by?: string | null
         }
         Update: {
           category?: string | null
           code?: string
           created_at?: string
+          created_by?: string | null
           estimate?: boolean | null
           has_bidding?: boolean | null
           has_specifications?: boolean | null
@@ -1868,52 +2290,88 @@ export type Database = {
           quantity?: string | null
           unit_of_measure?: string | null
           updated_at?: string
+          updated_by?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "cost_codes_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "cost_codes_updated_by_fkey"
+            columns: ["updated_by"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       credit_card_attachments: {
         Row: {
           content_type: string | null
           created_at: string | null
+          created_by: string | null
           credit_card_id: string
           file_name: string
           file_path: string
           file_size: number
           id: string
           updated_at: string | null
+          updated_by: string | null
           uploaded_at: string | null
           uploaded_by: string | null
         }
         Insert: {
           content_type?: string | null
           created_at?: string | null
+          created_by?: string | null
           credit_card_id: string
           file_name: string
           file_path: string
           file_size: number
           id?: string
           updated_at?: string | null
+          updated_by?: string | null
           uploaded_at?: string | null
           uploaded_by?: string | null
         }
         Update: {
           content_type?: string | null
           created_at?: string | null
+          created_by?: string | null
           credit_card_id?: string
           file_name?: string
           file_path?: string
           file_size?: number
           id?: string
           updated_at?: string | null
+          updated_by?: string | null
           uploaded_at?: string | null
           uploaded_by?: string | null
         }
         Relationships: [
           {
+            foreignKeyName: "credit_card_attachments_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "credit_card_attachments_credit_card_id_fkey"
             columns: ["credit_card_id"]
             isOneToOne: false
             referencedRelation: "credit_cards"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "credit_card_attachments_updated_by_fkey"
+            columns: ["updated_by"]
+            isOneToOne: false
+            referencedRelation: "users"
             referencedColumns: ["id"]
           },
         ]
@@ -1924,6 +2382,7 @@ export type Database = {
           amount: number
           cost_code_id: string | null
           created_at: string
+          created_by: string | null
           credit_card_id: string
           id: string
           is_reversal: boolean
@@ -1935,12 +2394,14 @@ export type Database = {
           project_id: string | null
           reverses_line_id: string | null
           updated_at: string
+          updated_by: string | null
         }
         Insert: {
           account_id?: string | null
           amount?: number
           cost_code_id?: string | null
           created_at?: string
+          created_by?: string | null
           credit_card_id: string
           id?: string
           is_reversal?: boolean
@@ -1952,12 +2413,14 @@ export type Database = {
           project_id?: string | null
           reverses_line_id?: string | null
           updated_at?: string
+          updated_by?: string | null
         }
         Update: {
           account_id?: string | null
           amount?: number
           cost_code_id?: string | null
           created_at?: string
+          created_by?: string | null
           credit_card_id?: string
           id?: string
           is_reversal?: boolean
@@ -1969,8 +2432,16 @@ export type Database = {
           project_id?: string | null
           reverses_line_id?: string | null
           updated_at?: string
+          updated_by?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "credit_card_lines_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "credit_card_lines_credit_card_id_fkey"
             columns: ["credit_card_id"]
@@ -1990,6 +2461,13 @@ export type Database = {
             columns: ["reverses_line_id"]
             isOneToOne: false
             referencedRelation: "credit_card_lines"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "credit_card_lines_updated_by_fkey"
+            columns: ["updated_by"]
+            isOneToOne: false
+            referencedRelation: "users"
             referencedColumns: ["id"]
           },
         ]
@@ -2016,6 +2494,7 @@ export type Database = {
           transaction_date: string
           transaction_type: string
           updated_at: string
+          updated_by: string | null
           vendor: string
         }
         Insert: {
@@ -2039,6 +2518,7 @@ export type Database = {
           transaction_date?: string
           transaction_type: string
           updated_at?: string
+          updated_by?: string | null
           vendor: string
         }
         Update: {
@@ -2062,6 +2542,7 @@ export type Database = {
           transaction_date?: string
           transaction_type?: string
           updated_at?: string
+          updated_by?: string | null
           vendor?: string
         }
         Relationships: [
@@ -2079,6 +2560,13 @@ export type Database = {
             referencedRelation: "credit_cards"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "credit_cards_updated_by_fkey"
+            columns: ["updated_by"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
         ]
       }
       dashboard_card_settings: {
@@ -2086,77 +2574,118 @@ export type Database = {
           card_type: string
           company_name: string
           created_at: string | null
+          created_by: string | null
           dashboard_type: string
           enabled: boolean | null
           id: string
           updated_at: string | null
+          updated_by: string | null
           user_id: string
         }
         Insert: {
           card_type: string
           company_name: string
           created_at?: string | null
+          created_by?: string | null
           dashboard_type: string
           enabled?: boolean | null
           id?: string
           updated_at?: string | null
+          updated_by?: string | null
           user_id: string
         }
         Update: {
           card_type?: string
           company_name?: string
           created_at?: string | null
+          created_by?: string | null
           dashboard_type?: string
           enabled?: boolean | null
           id?: string
           updated_at?: string | null
+          updated_by?: string | null
           user_id?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "dashboard_card_settings_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "dashboard_card_settings_updated_by_fkey"
+            columns: ["updated_by"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       deposit_attachments: {
         Row: {
           content_type: string | null
           created_at: string | null
+          created_by: string | null
           deposit_id: string
           file_name: string
           file_path: string
           file_size: number
           id: string
           updated_at: string | null
+          updated_by: string | null
           uploaded_at: string | null
           uploaded_by: string | null
         }
         Insert: {
           content_type?: string | null
           created_at?: string | null
+          created_by?: string | null
           deposit_id: string
           file_name: string
           file_path: string
           file_size: number
           id?: string
           updated_at?: string | null
+          updated_by?: string | null
           uploaded_at?: string | null
           uploaded_by?: string | null
         }
         Update: {
           content_type?: string | null
           created_at?: string | null
+          created_by?: string | null
           deposit_id?: string
           file_name?: string
           file_path?: string
           file_size?: number
           id?: string
           updated_at?: string | null
+          updated_by?: string | null
           uploaded_at?: string | null
           uploaded_by?: string | null
         }
         Relationships: [
           {
+            foreignKeyName: "deposit_attachments_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "deposit_attachments_deposit_id_fkey"
             columns: ["deposit_id"]
             isOneToOne: false
             referencedRelation: "deposits"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "deposit_attachments_updated_by_fkey"
+            columns: ["updated_by"]
+            isOneToOne: false
+            referencedRelation: "users"
             referencedColumns: ["id"]
           },
         ]
@@ -2167,6 +2696,7 @@ export type Database = {
           amount: number
           cost_code_id: string | null
           created_at: string
+          created_by: string | null
           deposit_id: string
           id: string
           is_reversal: boolean
@@ -2178,12 +2708,14 @@ export type Database = {
           project_id: string | null
           reverses_line_id: string | null
           updated_at: string
+          updated_by: string | null
         }
         Insert: {
           account_id?: string | null
           amount?: number
           cost_code_id?: string | null
           created_at?: string
+          created_by?: string | null
           deposit_id: string
           id?: string
           is_reversal?: boolean
@@ -2195,12 +2727,14 @@ export type Database = {
           project_id?: string | null
           reverses_line_id?: string | null
           updated_at?: string
+          updated_by?: string | null
         }
         Update: {
           account_id?: string | null
           amount?: number
           cost_code_id?: string | null
           created_at?: string
+          created_by?: string | null
           deposit_id?: string
           id?: string
           is_reversal?: boolean
@@ -2212,6 +2746,7 @@ export type Database = {
           project_id?: string | null
           reverses_line_id?: string | null
           updated_at?: string
+          updated_by?: string | null
         }
         Relationships: [
           {
@@ -2226,6 +2761,13 @@ export type Database = {
             columns: ["cost_code_id"]
             isOneToOne: false
             referencedRelation: "cost_codes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "deposit_lines_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "users"
             referencedColumns: ["id"]
           },
           {
@@ -2247,6 +2789,13 @@ export type Database = {
             columns: ["reverses_line_id"]
             isOneToOne: false
             referencedRelation: "deposit_lines"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "deposit_lines_updated_by_fkey"
+            columns: ["updated_by"]
+            isOneToOne: false
+            referencedRelation: "users"
             referencedColumns: ["id"]
           },
         ]
@@ -2280,6 +2829,7 @@ export type Database = {
           routing_number: string | null
           status: string
           updated_at: string
+          updated_by: string | null
         }
         Insert: {
           account_number?: string | null
@@ -2309,6 +2859,7 @@ export type Database = {
           routing_number?: string | null
           status?: string
           updated_at?: string
+          updated_by?: string | null
         }
         Update: {
           account_number?: string | null
@@ -2338,6 +2889,7 @@ export type Database = {
           routing_number?: string | null
           status?: string
           updated_at?: string
+          updated_by?: string | null
         }
         Relationships: [
           {
@@ -2361,45 +2913,72 @@ export type Database = {
             referencedRelation: "deposits"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "deposits_updated_by_fkey"
+            columns: ["updated_by"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
         ]
       }
       issue_files: {
         Row: {
+          created_by: string | null
           file_name: string
           file_path: string
           file_size: number | null
           file_type: string | null
           id: string
           issue_id: string
+          updated_by: string | null
           uploaded_at: string
           uploaded_by: string | null
         }
         Insert: {
+          created_by?: string | null
           file_name: string
           file_path: string
           file_size?: number | null
           file_type?: string | null
           id?: string
           issue_id: string
+          updated_by?: string | null
           uploaded_at?: string
           uploaded_by?: string | null
         }
         Update: {
+          created_by?: string | null
           file_name?: string
           file_path?: string
           file_size?: number | null
           file_type?: string | null
           id?: string
           issue_id?: string
+          updated_by?: string | null
           uploaded_at?: string
           uploaded_by?: string | null
         }
         Relationships: [
           {
+            foreignKeyName: "issue_files_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "issue_files_issue_id_fkey"
             columns: ["issue_id"]
             isOneToOne: false
             referencedRelation: "company_issues"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "issue_files_updated_by_fkey"
+            columns: ["updated_by"]
+            isOneToOne: false
+            referencedRelation: "users"
             referencedColumns: ["id"]
           },
         ]
@@ -2408,6 +2987,7 @@ export type Database = {
         Row: {
           correction_reason: string | null
           created_at: string
+          created_by: string | null
           description: string | null
           entry_date: string
           id: string
@@ -2420,10 +3000,12 @@ export type Database = {
           source_id: string
           source_type: string
           updated_at: string
+          updated_by: string | null
         }
         Insert: {
           correction_reason?: string | null
           created_at?: string
+          created_by?: string | null
           description?: string | null
           entry_date?: string
           id?: string
@@ -2436,10 +3018,12 @@ export type Database = {
           source_id: string
           source_type: string
           updated_at?: string
+          updated_by?: string | null
         }
         Update: {
           correction_reason?: string | null
           created_at?: string
+          created_by?: string | null
           description?: string | null
           entry_date?: string
           id?: string
@@ -2452,8 +3036,16 @@ export type Database = {
           source_id?: string
           source_type?: string
           updated_at?: string
+          updated_by?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "journal_entries_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "journal_entries_reversed_by_id_fkey"
             columns: ["reversed_by_id"]
@@ -2468,51 +3060,78 @@ export type Database = {
             referencedRelation: "journal_entries"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "journal_entries_updated_by_fkey"
+            columns: ["updated_by"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
         ]
       }
       journal_entry_attachments: {
         Row: {
           content_type: string | null
           created_at: string | null
+          created_by: string | null
           file_name: string
           file_path: string
           file_size: number
           id: string
           journal_entry_id: string
           updated_at: string | null
+          updated_by: string | null
           uploaded_at: string | null
           uploaded_by: string | null
         }
         Insert: {
           content_type?: string | null
           created_at?: string | null
+          created_by?: string | null
           file_name: string
           file_path: string
           file_size: number
           id?: string
           journal_entry_id: string
           updated_at?: string | null
+          updated_by?: string | null
           uploaded_at?: string | null
           uploaded_by?: string | null
         }
         Update: {
           content_type?: string | null
           created_at?: string | null
+          created_by?: string | null
           file_name?: string
           file_path?: string
           file_size?: number
           id?: string
           journal_entry_id?: string
           updated_at?: string | null
+          updated_by?: string | null
           uploaded_at?: string | null
           uploaded_by?: string | null
         }
         Relationships: [
           {
+            foreignKeyName: "journal_entry_attachments_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "journal_entry_attachments_journal_entry_id_fkey"
             columns: ["journal_entry_id"]
             isOneToOne: false
             referencedRelation: "journal_entries"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "journal_entry_attachments_updated_by_fkey"
+            columns: ["updated_by"]
+            isOneToOne: false
+            referencedRelation: "users"
             referencedColumns: ["id"]
           },
         ]
@@ -2522,6 +3141,7 @@ export type Database = {
           account_id: string
           cost_code_id: string | null
           created_at: string
+          created_by: string | null
           credit: number
           debit: number
           id: string
@@ -2537,11 +3157,13 @@ export type Database = {
           reconciliation_id: string | null
           reverses_line_id: string | null
           updated_at: string
+          updated_by: string | null
         }
         Insert: {
           account_id: string
           cost_code_id?: string | null
           created_at?: string
+          created_by?: string | null
           credit?: number
           debit?: number
           id?: string
@@ -2557,11 +3179,13 @@ export type Database = {
           reconciliation_id?: string | null
           reverses_line_id?: string | null
           updated_at?: string
+          updated_by?: string | null
         }
         Update: {
           account_id?: string
           cost_code_id?: string | null
           created_at?: string
+          created_by?: string | null
           credit?: number
           debit?: number
           id?: string
@@ -2577,6 +3201,7 @@ export type Database = {
           reconciliation_id?: string | null
           reverses_line_id?: string | null
           updated_at?: string
+          updated_by?: string | null
         }
         Relationships: [
           {
@@ -2591,6 +3216,13 @@ export type Database = {
             columns: ["cost_code_id"]
             isOneToOne: false
             referencedRelation: "cost_codes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "journal_entry_lines_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "users"
             referencedColumns: ["id"]
           },
           {
@@ -2628,6 +3260,13 @@ export type Database = {
             referencedRelation: "journal_entry_lines"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "journal_entry_lines_updated_by_fkey"
+            columns: ["updated_by"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
         ]
       }
       marketplace_companies: {
@@ -2636,6 +3275,7 @@ export type Database = {
           company_name: string
           company_type: string
           created_at: string
+          created_by: string | null
           description: string | null
           id: string
           insurance_verified: boolean | null
@@ -2649,6 +3289,7 @@ export type Database = {
           service_areas: string[] | null
           source: string | null
           updated_at: string
+          updated_by: string | null
           user_id: string | null
           website: string | null
         }
@@ -2657,6 +3298,7 @@ export type Database = {
           company_name: string
           company_type: string
           created_at?: string
+          created_by?: string | null
           description?: string | null
           id?: string
           insurance_verified?: boolean | null
@@ -2670,6 +3312,7 @@ export type Database = {
           service_areas?: string[] | null
           source?: string | null
           updated_at?: string
+          updated_by?: string | null
           user_id?: string | null
           website?: string | null
         }
@@ -2678,6 +3321,7 @@ export type Database = {
           company_name?: string
           company_type?: string
           created_at?: string
+          created_by?: string | null
           description?: string | null
           id?: string
           insurance_verified?: boolean | null
@@ -2691,10 +3335,26 @@ export type Database = {
           service_areas?: string[] | null
           source?: string | null
           updated_at?: string
+          updated_by?: string | null
           user_id?: string | null
           website?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "marketplace_companies_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "marketplace_companies_updated_by_fkey"
+            columns: ["updated_by"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       marketplace_company_representatives: {
         Row: {
@@ -2829,6 +3489,7 @@ export type Database = {
         Row: {
           allowed_service_areas: string[] | null
           created_at: string | null
+          created_by: string | null
           current_period_end: string | null
           current_period_start: string | null
           id: string
@@ -2838,10 +3499,12 @@ export type Database = {
           stripe_subscription_id: string | null
           tier: string
           updated_at: string | null
+          updated_by: string | null
         }
         Insert: {
           allowed_service_areas?: string[] | null
           created_at?: string | null
+          created_by?: string | null
           current_period_end?: string | null
           current_period_start?: string | null
           id?: string
@@ -2851,10 +3514,12 @@ export type Database = {
           stripe_subscription_id?: string | null
           tier?: string
           updated_at?: string | null
+          updated_by?: string | null
         }
         Update: {
           allowed_service_areas?: string[] | null
           created_at?: string | null
+          created_by?: string | null
           current_period_end?: string | null
           current_period_start?: string | null
           id?: string
@@ -2864,8 +3529,24 @@ export type Database = {
           stripe_subscription_id?: string | null
           tier?: string
           updated_at?: string | null
+          updated_by?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "marketplace_subscriptions_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "marketplace_subscriptions_updated_by_fkey"
+            columns: ["updated_by"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       onboarding_progress: {
         Row: {
@@ -2931,6 +3612,7 @@ export type Database = {
           cost_code_id: string | null
           cost_code_name: string | null
           created_at: string
+          created_by: string | null
           description: string | null
           id: string
           line_number: number
@@ -2948,6 +3630,7 @@ export type Database = {
           quantity: number | null
           unit_cost: number | null
           updated_at: string
+          updated_by: string | null
         }
         Insert: {
           account_id?: string | null
@@ -2956,6 +3639,7 @@ export type Database = {
           cost_code_id?: string | null
           cost_code_name?: string | null
           created_at?: string
+          created_by?: string | null
           description?: string | null
           id?: string
           line_number?: number
@@ -2973,6 +3657,7 @@ export type Database = {
           quantity?: number | null
           unit_cost?: number | null
           updated_at?: string
+          updated_by?: string | null
         }
         Update: {
           account_id?: string | null
@@ -2981,6 +3666,7 @@ export type Database = {
           cost_code_id?: string | null
           cost_code_name?: string | null
           created_at?: string
+          created_by?: string | null
           description?: string | null
           id?: string
           line_number?: number
@@ -2998,6 +3684,7 @@ export type Database = {
           quantity?: number | null
           unit_cost?: number | null
           updated_at?: string
+          updated_by?: string | null
         }
         Relationships: [
           {
@@ -3012,6 +3699,13 @@ export type Database = {
             columns: ["cost_code_id"]
             isOneToOne: false
             referencedRelation: "cost_codes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pending_bill_lines_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "users"
             referencedColumns: ["id"]
           },
           {
@@ -3049,12 +3743,20 @@ export type Database = {
             referencedRelation: "purchase_order_lines"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "pending_bill_lines_updated_by_fkey"
+            columns: ["updated_by"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
         ]
       }
       pending_bill_uploads: {
         Row: {
           content_type: string | null
           created_at: string
+          created_by: string | null
           error_message: string | null
           extracted_data: Json | null
           file_name: string
@@ -3068,11 +3770,13 @@ export type Database = {
           reviewed_by: string | null
           status: string
           updated_at: string
+          updated_by: string | null
           uploaded_by: string
         }
         Insert: {
           content_type?: string | null
           created_at?: string
+          created_by?: string | null
           error_message?: string | null
           extracted_data?: Json | null
           file_name: string
@@ -3086,11 +3790,13 @@ export type Database = {
           reviewed_by?: string | null
           status?: string
           updated_at?: string
+          updated_by?: string | null
           uploaded_by: string
         }
         Update: {
           content_type?: string | null
           created_at?: string
+          created_by?: string | null
           error_message?: string | null
           extracted_data?: Json | null
           file_name?: string
@@ -3104,14 +3810,29 @@ export type Database = {
           reviewed_by?: string | null
           status?: string
           updated_at?: string
+          updated_by?: string | null
           uploaded_by?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "pending_bill_uploads_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "pending_bill_uploads_project_id_fkey"
             columns: ["project_id"]
             isOneToOne: false
             referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pending_bill_uploads_updated_by_fkey"
+            columns: ["updated_by"]
+            isOneToOne: false
+            referencedRelation: "users"
             referencedColumns: ["id"]
           },
         ]
@@ -3121,6 +3842,7 @@ export type Database = {
           company_id: string
           content_type: string | null
           created_at: string
+          created_by: string | null
           error_message: string | null
           extracted_data: Json | null
           file_name: string
@@ -3130,12 +3852,14 @@ export type Database = {
           owner_id: string
           status: string
           updated_at: string
+          updated_by: string | null
           uploaded_by: string
         }
         Insert: {
           company_id: string
           content_type?: string | null
           created_at?: string
+          created_by?: string | null
           error_message?: string | null
           extracted_data?: Json | null
           file_name: string
@@ -3145,12 +3869,14 @@ export type Database = {
           owner_id: string
           status?: string
           updated_at?: string
+          updated_by?: string | null
           uploaded_by: string
         }
         Update: {
           company_id?: string
           content_type?: string | null
           created_at?: string
+          created_by?: string | null
           error_message?: string | null
           extracted_data?: Json | null
           file_name?: string
@@ -3160,6 +3886,7 @@ export type Database = {
           owner_id?: string
           status?: string
           updated_at?: string
+          updated_by?: string | null
           uploaded_by?: string
         }
         Relationships: [
@@ -3168,6 +3895,20 @@ export type Database = {
             columns: ["company_id"]
             isOneToOne: false
             referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pending_insurance_uploads_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pending_insurance_uploads_updated_by_fkey"
+            columns: ["updated_by"]
+            isOneToOne: false
+            referencedRelation: "users"
             referencedColumns: ["id"]
           },
         ]
@@ -3212,6 +3953,7 @@ export type Database = {
         Row: {
           cost_code_id: string
           created_at: string
+          created_by: string | null
           due_date: string | null
           files: string[] | null
           id: string
@@ -3223,10 +3965,12 @@ export type Database = {
           specifications: string | null
           status: string
           updated_at: string
+          updated_by: string | null
         }
         Insert: {
           cost_code_id: string
           created_at?: string
+          created_by?: string | null
           due_date?: string | null
           files?: string[] | null
           id?: string
@@ -3238,10 +3982,12 @@ export type Database = {
           specifications?: string | null
           status?: string
           updated_at?: string
+          updated_by?: string | null
         }
         Update: {
           cost_code_id?: string
           created_at?: string
+          created_by?: string | null
           due_date?: string | null
           files?: string[] | null
           id?: string
@@ -3253,8 +3999,23 @@ export type Database = {
           specifications?: string | null
           status?: string
           updated_at?: string
+          updated_by?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "project_bid_packages_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "project_bid_packages_updated_by_fkey"
+            columns: ["updated_by"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "project_bidding_bid_packages_cost_code_id_fkey"
             columns: ["cost_code_id"]
@@ -3278,6 +4039,7 @@ export type Database = {
           bid_status: string | null
           company_id: string
           created_at: string
+          created_by: string | null
           due_date: string | null
           email_sent_at: string | null
           id: string
@@ -3287,6 +4049,7 @@ export type Database = {
           reminder_sent_at: string | null
           submitted_late: boolean | null
           updated_at: string
+          updated_by: string | null
           will_bid_acknowledged_by: string | null
           will_bid_at: string | null
         }
@@ -3296,6 +4059,7 @@ export type Database = {
           bid_status?: string | null
           company_id: string
           created_at?: string
+          created_by?: string | null
           due_date?: string | null
           email_sent_at?: string | null
           id?: string
@@ -3305,6 +4069,7 @@ export type Database = {
           reminder_sent_at?: string | null
           submitted_late?: boolean | null
           updated_at?: string
+          updated_by?: string | null
           will_bid_acknowledged_by?: string | null
           will_bid_at?: string | null
         }
@@ -3314,6 +4079,7 @@ export type Database = {
           bid_status?: string | null
           company_id?: string
           created_at?: string
+          created_by?: string | null
           due_date?: string | null
           email_sent_at?: string | null
           id?: string
@@ -3323,6 +4089,7 @@ export type Database = {
           reminder_sent_at?: string | null
           submitted_late?: boolean | null
           updated_at?: string
+          updated_by?: string | null
           will_bid_acknowledged_by?: string | null
           will_bid_at?: string | null
         }
@@ -3341,12 +4108,27 @@ export type Database = {
             referencedRelation: "companies"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "project_bids_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "project_bids_updated_by_fkey"
+            columns: ["updated_by"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
         ]
       }
       project_budget_manual_lines: {
         Row: {
           cost_code_id: string
           created_at: string
+          created_by: string | null
           description: string | null
           id: string
           notes: string | null
@@ -3357,10 +4139,12 @@ export type Database = {
           unit_of_measure: string | null
           unit_price: number
           updated_at: string
+          updated_by: string | null
         }
         Insert: {
           cost_code_id: string
           created_at?: string
+          created_by?: string | null
           description?: string | null
           id?: string
           notes?: string | null
@@ -3371,10 +4155,12 @@ export type Database = {
           unit_of_measure?: string | null
           unit_price?: number
           updated_at?: string
+          updated_by?: string | null
         }
         Update: {
           cost_code_id?: string
           created_at?: string
+          created_by?: string | null
           description?: string | null
           id?: string
           notes?: string | null
@@ -3385,6 +4171,7 @@ export type Database = {
           unit_of_measure?: string | null
           unit_price?: number
           updated_at?: string
+          updated_by?: string | null
         }
         Relationships: [
           {
@@ -3395,10 +4182,24 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "project_budget_manual_lines_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "project_budget_manual_lines_project_id_fkey"
             columns: ["project_id"]
             isOneToOne: false
             referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "project_budget_manual_lines_updated_by_fkey"
+            columns: ["updated_by"]
+            isOneToOne: false
+            referencedRelation: "users"
             referencedColumns: ["id"]
           },
         ]
@@ -3410,6 +4211,7 @@ export type Database = {
           comment: string | null
           cost_code_id: string
           created_at: string
+          created_by: string | null
           historical_lot_id: string | null
           historical_project_id: string | null
           id: string
@@ -3420,6 +4222,7 @@ export type Database = {
           selected_bid_id: string | null
           unit_price: number | null
           updated_at: string
+          updated_by: string | null
         }
         Insert: {
           actual_amount?: number | null
@@ -3427,6 +4230,7 @@ export type Database = {
           comment?: string | null
           cost_code_id: string
           created_at?: string
+          created_by?: string | null
           historical_lot_id?: string | null
           historical_project_id?: string | null
           id?: string
@@ -3437,6 +4241,7 @@ export type Database = {
           selected_bid_id?: string | null
           unit_price?: number | null
           updated_at?: string
+          updated_by?: string | null
         }
         Update: {
           actual_amount?: number | null
@@ -3444,6 +4249,7 @@ export type Database = {
           comment?: string | null
           cost_code_id?: string
           created_at?: string
+          created_by?: string | null
           historical_lot_id?: string | null
           historical_project_id?: string | null
           id?: string
@@ -3454,6 +4260,7 @@ export type Database = {
           selected_bid_id?: string | null
           unit_price?: number | null
           updated_at?: string
+          updated_by?: string | null
         }
         Relationships: [
           {
@@ -3461,6 +4268,13 @@ export type Database = {
             columns: ["cost_code_id"]
             isOneToOne: false
             referencedRelation: "cost_codes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "project_budgets_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "users"
             referencedColumns: ["id"]
           },
           {
@@ -3498,6 +4312,13 @@ export type Database = {
             referencedRelation: "project_bids"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "project_budgets_updated_by_fkey"
+            columns: ["updated_by"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
         ]
       }
       project_check_settings: {
@@ -3506,35 +4327,48 @@ export type Database = {
           company_city_state: string | null
           company_name: string | null
           created_at: string
+          created_by: string | null
           id: string
           last_check_number: number | null
           owner_id: string
           project_id: string
           updated_at: string
+          updated_by: string | null
         }
         Insert: {
           company_address?: string | null
           company_city_state?: string | null
           company_name?: string | null
           created_at?: string
+          created_by?: string | null
           id?: string
           last_check_number?: number | null
           owner_id: string
           project_id: string
           updated_at?: string
+          updated_by?: string | null
         }
         Update: {
           company_address?: string | null
           company_city_state?: string | null
           company_name?: string | null
           created_at?: string
+          created_by?: string | null
           id?: string
           last_check_number?: number | null
           owner_id?: string
           project_id?: string
           updated_at?: string
+          updated_by?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "project_check_settings_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "project_check_settings_project_id_fkey"
             columns: ["project_id"]
@@ -3542,10 +4376,18 @@ export type Database = {
             referencedRelation: "projects"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "project_check_settings_updated_by_fkey"
+            columns: ["updated_by"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
         ]
       }
       project_files: {
         Row: {
+          created_by: string | null
           description: string | null
           file_size: number
           file_type: string
@@ -3558,10 +4400,12 @@ export type Database = {
           statement_date: string | null
           storage_path: string
           updated_at: string
+          updated_by: string | null
           uploaded_at: string
           uploaded_by: string
         }
         Insert: {
+          created_by?: string | null
           description?: string | null
           file_size: number
           file_type: string
@@ -3574,10 +4418,12 @@ export type Database = {
           statement_date?: string | null
           storage_path: string
           updated_at?: string
+          updated_by?: string | null
           uploaded_at?: string
           uploaded_by: string
         }
         Update: {
+          created_by?: string | null
           description?: string | null
           file_size?: number
           file_type?: string
@@ -3590,10 +4436,18 @@ export type Database = {
           statement_date?: string | null
           storage_path?: string
           updated_at?: string
+          updated_by?: string | null
           uploaded_at?: string
           uploaded_by?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "project_files_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "project_files_project_id_fkey"
             columns: ["project_id"]
@@ -3601,39 +4455,66 @@ export type Database = {
             referencedRelation: "projects"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "project_files_updated_by_fkey"
+            columns: ["updated_by"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
         ]
       }
       project_folder_access_grants: {
         Row: {
           created_at: string
+          created_by: string | null
           folder_path: string
           granted_by: string
           id: string
           project_id: string
+          updated_by: string | null
           user_id: string
         }
         Insert: {
           created_at?: string
+          created_by?: string | null
           folder_path: string
           granted_by: string
           id?: string
           project_id: string
+          updated_by?: string | null
           user_id: string
         }
         Update: {
           created_at?: string
+          created_by?: string | null
           folder_path?: string
           granted_by?: string
           id?: string
           project_id?: string
+          updated_by?: string | null
           user_id?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "project_folder_access_grants_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "project_folder_access_grants_project_id_fkey"
             columns: ["project_id"]
             isOneToOne: false
             referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "project_folder_access_grants_updated_by_fkey"
+            columns: ["updated_by"]
+            isOneToOne: false
+            referencedRelation: "users"
             referencedColumns: ["id"]
           },
         ]
@@ -3680,6 +4561,7 @@ export type Database = {
           parent_path: string | null
           project_id: string
           updated_at: string
+          updated_by: string | null
         }
         Insert: {
           created_at?: string
@@ -3690,6 +4572,7 @@ export type Database = {
           parent_path?: string | null
           project_id: string
           updated_at?: string
+          updated_by?: string | null
         }
         Update: {
           created_at?: string
@@ -3700,6 +4583,7 @@ export type Database = {
           parent_path?: string | null
           project_id?: string
           updated_at?: string
+          updated_by?: string | null
         }
         Relationships: [
           {
@@ -3709,34 +4593,54 @@ export type Database = {
             referencedRelation: "projects"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "project_folders_updated_by_fkey"
+            columns: ["updated_by"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
         ]
       }
       project_lots: {
         Row: {
           created_at: string
+          created_by: string | null
           id: string
           lot_name: string | null
           lot_number: number
           project_id: string
           updated_at: string
+          updated_by: string | null
         }
         Insert: {
           created_at?: string
+          created_by?: string | null
           id?: string
           lot_name?: string | null
           lot_number: number
           project_id: string
           updated_at?: string
+          updated_by?: string | null
         }
         Update: {
           created_at?: string
+          created_by?: string | null
           id?: string
           lot_name?: string | null
           lot_number?: number
           project_id?: string
           updated_at?: string
+          updated_by?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "project_lots_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "project_lots_project_id_fkey"
             columns: ["project_id"]
@@ -3744,39 +4648,66 @@ export type Database = {
             referencedRelation: "projects"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "project_lots_updated_by_fkey"
+            columns: ["updated_by"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
         ]
       }
       project_photos: {
         Row: {
+          created_by: string | null
           description: string | null
           id: string
           project_id: string
+          updated_by: string | null
           uploaded_at: string
           uploaded_by: string
           url: string
         }
         Insert: {
+          created_by?: string | null
           description?: string | null
           id?: string
           project_id: string
+          updated_by?: string | null
           uploaded_at?: string
           uploaded_by: string
           url: string
         }
         Update: {
+          created_by?: string | null
           description?: string | null
           id?: string
           project_id?: string
+          updated_by?: string | null
           uploaded_at?: string
           uploaded_by?: string
           url?: string
         }
         Relationships: [
           {
+            foreignKeyName: "project_photos_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "project_photos_project_id_fkey"
             columns: ["project_id"]
             isOneToOne: false
             referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "project_photos_updated_by_fkey"
+            columns: ["updated_by"]
+            isOneToOne: false
+            referencedRelation: "users"
             referencedColumns: ["id"]
           },
         ]
@@ -3828,6 +4759,7 @@ export type Database = {
           status: string
           total_amount: number | null
           updated_at: string
+          updated_by: string | null
         }
         Insert: {
           bid_package_id?: string | null
@@ -3846,6 +4778,7 @@ export type Database = {
           status?: string
           total_amount?: number | null
           updated_at?: string
+          updated_by?: string | null
         }
         Update: {
           bid_package_id?: string | null
@@ -3864,6 +4797,7 @@ export type Database = {
           status?: string
           total_amount?: number | null
           updated_at?: string
+          updated_by?: string | null
         }
         Relationships: [
           {
@@ -3880,12 +4814,20 @@ export type Database = {
             referencedRelation: "project_lots"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "project_purchase_orders_updated_by_fkey"
+            columns: ["updated_by"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
         ]
       }
       project_schedule_tasks: {
         Row: {
           confirmed: boolean | null
           created_at: string
+          created_by: string | null
           duration: number
           end_date: string
           hierarchy_number: string | null
@@ -3898,10 +4840,12 @@ export type Database = {
           start_date: string
           task_name: string
           updated_at: string
+          updated_by: string | null
         }
         Insert: {
           confirmed?: boolean | null
           created_at?: string
+          created_by?: string | null
           duration?: number
           end_date: string
           hierarchy_number?: string | null
@@ -3914,10 +4858,12 @@ export type Database = {
           start_date: string
           task_name: string
           updated_at?: string
+          updated_by?: string | null
         }
         Update: {
           confirmed?: boolean | null
           created_at?: string
+          created_by?: string | null
           duration?: number
           end_date?: string
           hierarchy_number?: string | null
@@ -3930,13 +4876,28 @@ export type Database = {
           start_date?: string
           task_name?: string
           updated_at?: string
+          updated_by?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "project_schedule_tasks_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "project_schedule_tasks_project_id_fkey"
             columns: ["project_id"]
             isOneToOne: false
             referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "project_schedule_tasks_updated_by_fkey"
+            columns: ["updated_by"]
+            isOneToOne: false
+            referencedRelation: "users"
             referencedColumns: ["id"]
           },
         ]
@@ -3953,6 +4914,7 @@ export type Database = {
           budget_locked_by: string | null
           construction_manager: string | null
           created_at: string
+          created_by: string | null
           display_order: number | null
           id: string
           last_schedule_published_at: string | null
@@ -3965,6 +4927,7 @@ export type Database = {
           status: string
           total_lots: number | null
           updated_at: string
+          updated_by: string | null
         }
         Insert: {
           accounting_manager?: string | null
@@ -3977,6 +4940,7 @@ export type Database = {
           budget_locked_by?: string | null
           construction_manager?: string | null
           created_at?: string
+          created_by?: string | null
           display_order?: number | null
           id?: string
           last_schedule_published_at?: string | null
@@ -3989,6 +4953,7 @@ export type Database = {
           status: string
           total_lots?: number | null
           updated_at?: string
+          updated_by?: string | null
         }
         Update: {
           accounting_manager?: string | null
@@ -4001,6 +4966,7 @@ export type Database = {
           budget_locked_by?: string | null
           construction_manager?: string | null
           created_at?: string
+          created_by?: string | null
           display_order?: number | null
           id?: string
           last_schedule_published_at?: string | null
@@ -4013,11 +4979,26 @@ export type Database = {
           status?: string
           total_lots?: number | null
           updated_at?: string
+          updated_by?: string | null
         }
         Relationships: [
           {
             foreignKeyName: "fk_projects_manager_user"
             columns: ["construction_manager"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "projects_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "projects_updated_by_fkey"
+            columns: ["updated_by"]
             isOneToOne: false
             referencedRelation: "users"
             referencedColumns: ["id"]
@@ -4087,6 +5068,7 @@ export type Database = {
           amount: number
           cost_code_id: string | null
           created_at: string
+          created_by: string | null
           id: string
           line_number: number
           line_type: string
@@ -4097,12 +5079,14 @@ export type Database = {
           quantity: number
           recurring_transaction_id: string
           updated_at: string
+          updated_by: string | null
         }
         Insert: {
           account_id?: string | null
           amount?: number
           cost_code_id?: string | null
           created_at?: string
+          created_by?: string | null
           id?: string
           line_number?: number
           line_type?: string
@@ -4113,12 +5097,14 @@ export type Database = {
           quantity?: number
           recurring_transaction_id: string
           updated_at?: string
+          updated_by?: string | null
         }
         Update: {
           account_id?: string | null
           amount?: number
           cost_code_id?: string | null
           created_at?: string
+          created_by?: string | null
           id?: string
           line_number?: number
           line_type?: string
@@ -4129,6 +5115,7 @@ export type Database = {
           quantity?: number
           recurring_transaction_id?: string
           updated_at?: string
+          updated_by?: string | null
         }
         Relationships: [
           {
@@ -4143,6 +5130,13 @@ export type Database = {
             columns: ["cost_code_id"]
             isOneToOne: false
             referencedRelation: "cost_codes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "recurring_transaction_lines_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "users"
             referencedColumns: ["id"]
           },
           {
@@ -4166,12 +5160,20 @@ export type Database = {
             referencedRelation: "recurring_transactions"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "recurring_transaction_lines_updated_by_fkey"
+            columns: ["updated_by"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
         ]
       }
       recurring_transactions: {
         Row: {
           auto_enter: boolean
           created_at: string
+          created_by: string | null
           end_date: string | null
           frequency: string
           id: string
@@ -4182,10 +5184,12 @@ export type Database = {
           template_data: Json
           transaction_type: string
           updated_at: string
+          updated_by: string | null
         }
         Insert: {
           auto_enter?: boolean
           created_at?: string
+          created_by?: string | null
           end_date?: string | null
           frequency?: string
           id?: string
@@ -4196,10 +5200,12 @@ export type Database = {
           template_data?: Json
           transaction_type: string
           updated_at?: string
+          updated_by?: string | null
         }
         Update: {
           auto_enter?: boolean
           created_at?: string
+          created_by?: string | null
           end_date?: string | null
           frequency?: string
           id?: string
@@ -4210,8 +5216,24 @@ export type Database = {
           template_data?: Json
           transaction_type?: string
           updated_at?: string
+          updated_by?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "recurring_transactions_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "recurring_transactions_updated_by_fkey"
+            columns: ["updated_by"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       shared_links: {
         Row: {
@@ -4223,6 +5245,7 @@ export type Database = {
           share_id: string
           share_type: string
           updated_at: string
+          updated_by: string | null
         }
         Insert: {
           created_at?: string
@@ -4233,6 +5256,7 @@ export type Database = {
           share_id: string
           share_type: string
           updated_at?: string
+          updated_by?: string | null
         }
         Update: {
           created_at?: string
@@ -4243,8 +5267,17 @@ export type Database = {
           share_id?: string
           share_type?: string
           updated_at?: string
+          updated_by?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "shared_links_updated_by_fkey"
+            columns: ["updated_by"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       subscription_events: {
         Row: {
@@ -4285,6 +5318,7 @@ export type Database = {
         Row: {
           billing_interval: string | null
           created_at: string
+          created_by: string | null
           current_period_end: string | null
           current_period_start: string | null
           id: string
@@ -4294,11 +5328,13 @@ export type Database = {
           stripe_subscription_id: string | null
           trial_ends_at: string | null
           updated_at: string
+          updated_by: string | null
           user_count: number
         }
         Insert: {
           billing_interval?: string | null
           created_at?: string
+          created_by?: string | null
           current_period_end?: string | null
           current_period_start?: string | null
           id?: string
@@ -4308,11 +5344,13 @@ export type Database = {
           stripe_subscription_id?: string | null
           trial_ends_at?: string | null
           updated_at?: string
+          updated_by?: string | null
           user_count?: number
         }
         Update: {
           billing_interval?: string | null
           created_at?: string
+          created_by?: string | null
           current_period_end?: string | null
           current_period_start?: string | null
           id?: string
@@ -4322,13 +5360,28 @@ export type Database = {
           stripe_subscription_id?: string | null
           trial_ends_at?: string | null
           updated_at?: string
+          updated_by?: string | null
           user_count?: number
         }
         Relationships: [
           {
+            foreignKeyName: "subscriptions_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "subscriptions_owner_id_fkey"
             columns: ["owner_id"]
             isOneToOne: true
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "subscriptions_updated_by_fkey"
+            columns: ["updated_by"]
+            isOneToOne: false
             referencedRelation: "users"
             referencedColumns: ["id"]
           },
@@ -4339,6 +5392,7 @@ export type Database = {
           annotation_type: string
           color: string | null
           created_at: string
+          created_by: string | null
           geometry: Json
           id: string
           label: string | null
@@ -4347,12 +5401,14 @@ export type Database = {
           takeoff_item_id: string | null
           takeoff_sheet_id: string
           updated_at: string
+          updated_by: string | null
           visible: boolean | null
         }
         Insert: {
           annotation_type: string
           color?: string | null
           created_at?: string
+          created_by?: string | null
           geometry: Json
           id?: string
           label?: string | null
@@ -4361,12 +5417,14 @@ export type Database = {
           takeoff_item_id?: string | null
           takeoff_sheet_id: string
           updated_at?: string
+          updated_by?: string | null
           visible?: boolean | null
         }
         Update: {
           annotation_type?: string
           color?: string | null
           created_at?: string
+          created_by?: string | null
           geometry?: Json
           id?: string
           label?: string | null
@@ -4375,9 +5433,17 @@ export type Database = {
           takeoff_item_id?: string | null
           takeoff_sheet_id?: string
           updated_at?: string
+          updated_by?: string | null
           visible?: boolean | null
         }
         Relationships: [
+          {
+            foreignKeyName: "takeoff_annotations_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "takeoff_annotations_takeoff_item_id_fkey"
             columns: ["takeoff_item_id"]
@@ -4392,6 +5458,13 @@ export type Database = {
             referencedRelation: "takeoff_sheets"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "takeoff_annotations_updated_by_fkey"
+            columns: ["updated_by"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
         ]
       }
       takeoff_items: {
@@ -4400,6 +5473,7 @@ export type Database = {
           color: string | null
           cost_code_id: string | null
           created_at: string
+          created_by: string | null
           description: string | null
           id: string
           item_type: string
@@ -4411,12 +5485,14 @@ export type Database = {
           unit_of_measure: string | null
           unit_price: number | null
           updated_at: string
+          updated_by: string | null
         }
         Insert: {
           category: string
           color?: string | null
           cost_code_id?: string | null
           created_at?: string
+          created_by?: string | null
           description?: string | null
           id?: string
           item_type: string
@@ -4428,12 +5504,14 @@ export type Database = {
           unit_of_measure?: string | null
           unit_price?: number | null
           updated_at?: string
+          updated_by?: string | null
         }
         Update: {
           category?: string
           color?: string | null
           cost_code_id?: string | null
           created_at?: string
+          created_by?: string | null
           description?: string | null
           id?: string
           item_type?: string
@@ -4445,6 +5523,7 @@ export type Database = {
           unit_of_measure?: string | null
           unit_price?: number | null
           updated_at?: string
+          updated_by?: string | null
         }
         Relationships: [
           {
@@ -4455,10 +5534,24 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "takeoff_items_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "takeoff_items_takeoff_sheet_id_fkey"
             columns: ["takeoff_sheet_id"]
             isOneToOne: false
             referencedRelation: "takeoff_sheets"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "takeoff_items_updated_by_fkey"
+            columns: ["updated_by"]
+            isOneToOne: false
+            referencedRelation: "users"
             referencedColumns: ["id"]
           },
         ]
@@ -4469,6 +5562,7 @@ export type Database = {
           cost_code_id: string | null
           cost_code_label: string | null
           created_at: string
+          created_by: string | null
           id: string
           item_label: string | null
           notes: string | null
@@ -4480,12 +5574,14 @@ export type Database = {
           takeoff_project_id: string
           unit: string | null
           updated_at: string
+          updated_by: string | null
         }
         Insert: {
           confidence?: string | null
           cost_code_id?: string | null
           cost_code_label?: string | null
           created_at?: string
+          created_by?: string | null
           id?: string
           item_label?: string | null
           notes?: string | null
@@ -4497,12 +5593,14 @@ export type Database = {
           takeoff_project_id: string
           unit?: string | null
           updated_at?: string
+          updated_by?: string | null
         }
         Update: {
           confidence?: string | null
           cost_code_id?: string | null
           cost_code_label?: string | null
           created_at?: string
+          created_by?: string | null
           id?: string
           item_label?: string | null
           notes?: string | null
@@ -4514,6 +5612,7 @@ export type Database = {
           takeoff_project_id?: string
           unit?: string | null
           updated_at?: string
+          updated_by?: string | null
         }
         Relationships: [
           {
@@ -4524,10 +5623,24 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "takeoff_project_estimate_items_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "takeoff_project_estimate_items_takeoff_project_id_fkey"
             columns: ["takeoff_project_id"]
             isOneToOne: false
             referencedRelation: "takeoff_projects"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "takeoff_project_estimate_items_updated_by_fkey"
+            columns: ["updated_by"]
+            isOneToOne: false
+            referencedRelation: "users"
             referencedColumns: ["id"]
           },
         ]
@@ -4540,6 +5653,7 @@ export type Database = {
           basement_type: string | null
           bedrooms: number | null
           created_at: string
+          created_by: string | null
           exterior_type: string | null
           footprint_length: number | null
           footprint_width: number | null
@@ -4559,6 +5673,7 @@ export type Database = {
           total_sf: number | null
           unheated_sf: number | null
           updated_at: string
+          updated_by: string | null
         }
         Insert: {
           ai_confidence?: Json | null
@@ -4567,6 +5682,7 @@ export type Database = {
           basement_type?: string | null
           bedrooms?: number | null
           created_at?: string
+          created_by?: string | null
           exterior_type?: string | null
           footprint_length?: number | null
           footprint_width?: number | null
@@ -4586,6 +5702,7 @@ export type Database = {
           total_sf?: number | null
           unheated_sf?: number | null
           updated_at?: string
+          updated_by?: string | null
         }
         Update: {
           ai_confidence?: Json | null
@@ -4594,6 +5711,7 @@ export type Database = {
           basement_type?: string | null
           bedrooms?: number | null
           created_at?: string
+          created_by?: string | null
           exterior_type?: string | null
           footprint_length?: number | null
           footprint_width?: number | null
@@ -4613,8 +5731,16 @@ export type Database = {
           total_sf?: number | null
           unheated_sf?: number | null
           updated_at?: string
+          updated_by?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "takeoff_project_profiles_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "takeoff_project_profiles_takeoff_project_id_fkey"
             columns: ["takeoff_project_id"]
@@ -4622,42 +5748,69 @@ export type Database = {
             referencedRelation: "takeoff_projects"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "takeoff_project_profiles_updated_by_fkey"
+            columns: ["updated_by"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
         ]
       }
       takeoff_projects: {
         Row: {
           created_at: string
+          created_by: string | null
           description: string | null
           id: string
           name: string
           owner_id: string
           project_id: string
           updated_at: string
+          updated_by: string | null
         }
         Insert: {
           created_at?: string
+          created_by?: string | null
           description?: string | null
           id?: string
           name: string
           owner_id: string
           project_id: string
           updated_at?: string
+          updated_by?: string | null
         }
         Update: {
           created_at?: string
+          created_by?: string | null
           description?: string | null
           id?: string
           name?: string
           owner_id?: string
           project_id?: string
           updated_at?: string
+          updated_by?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "takeoff_projects_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "takeoff_projects_project_id_fkey"
             columns: ["project_id"]
             isOneToOne: false
             referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "takeoff_projects_updated_by_fkey"
+            columns: ["updated_by"]
+            isOneToOne: false
+            referencedRelation: "users"
             referencedColumns: ["id"]
           },
         ]
@@ -4667,6 +5820,7 @@ export type Database = {
           ai_processing_height: number | null
           ai_processing_width: number | null
           created_at: string
+          created_by: string | null
           drawing_scale: string | null
           file_name: string
           file_path: string
@@ -4679,11 +5833,13 @@ export type Database = {
           sheet_title: string | null
           takeoff_project_id: string
           updated_at: string
+          updated_by: string | null
         }
         Insert: {
           ai_processing_height?: number | null
           ai_processing_width?: number | null
           created_at?: string
+          created_by?: string | null
           drawing_scale?: string | null
           file_name: string
           file_path: string
@@ -4696,11 +5852,13 @@ export type Database = {
           sheet_title?: string | null
           takeoff_project_id: string
           updated_at?: string
+          updated_by?: string | null
         }
         Update: {
           ai_processing_height?: number | null
           ai_processing_width?: number | null
           created_at?: string
+          created_by?: string | null
           drawing_scale?: string | null
           file_name?: string
           file_path?: string
@@ -4713,13 +5871,28 @@ export type Database = {
           sheet_title?: string | null
           takeoff_project_id?: string
           updated_at?: string
+          updated_by?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "takeoff_sheets_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "takeoff_sheets_takeoff_project_id_fkey"
             columns: ["takeoff_project_id"]
             isOneToOne: false
             referencedRelation: "takeoff_projects"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "takeoff_sheets_updated_by_fkey"
+            columns: ["updated_by"]
+            isOneToOne: false
+            referencedRelation: "users"
             referencedColumns: ["id"]
           },
         ]
@@ -4728,6 +5901,7 @@ export type Database = {
         Row: {
           content: Json
           created_at: string
+          created_by: string | null
           id: string
           owner_id: string
           template_key: string
@@ -4737,6 +5911,7 @@ export type Database = {
         Insert: {
           content?: Json
           created_at?: string
+          created_by?: string | null
           id?: string
           owner_id: string
           template_key: string
@@ -4746,13 +5921,22 @@ export type Database = {
         Update: {
           content?: Json
           created_at?: string
+          created_by?: string | null
           id?: string
           owner_id?: string
           template_key?: string
           updated_at?: string
           updated_by?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "template_content_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       user_chat_messages: {
         Row: {
@@ -4813,10 +5997,12 @@ export type Database = {
           can_lock_budgets: boolean | null
           can_undo_reconciliation: boolean
           created_at: string
+          created_by: string | null
           dashboard_type: string
           id: string
           receive_bill_payment_alerts: boolean
           updated_at: string
+          updated_by: string | null
           user_id: string
         }
         Insert: {
@@ -4841,10 +6027,12 @@ export type Database = {
           can_lock_budgets?: boolean | null
           can_undo_reconciliation?: boolean
           created_at?: string
+          created_by?: string | null
           dashboard_type?: string
           id?: string
           receive_bill_payment_alerts?: boolean
           updated_at?: string
+          updated_by?: string | null
           user_id: string
         }
         Update: {
@@ -4869,13 +6057,30 @@ export type Database = {
           can_lock_budgets?: boolean | null
           can_undo_reconciliation?: boolean
           created_at?: string
+          created_by?: string | null
           dashboard_type?: string
           id?: string
           receive_bill_payment_alerts?: boolean
           updated_at?: string
+          updated_by?: string | null
           user_id?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "user_notification_preferences_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "user_notification_preferences_updated_by_fkey"
+            columns: ["updated_by"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       user_roles: {
         Row: {
@@ -4969,25 +6174,31 @@ export type Database = {
           alias: string
           company_id: string
           created_at: string
+          created_by: string | null
           id: string
           normalized_alias: string
           owner_id: string
+          updated_by: string | null
         }
         Insert: {
           alias: string
           company_id: string
           created_at?: string
+          created_by?: string | null
           id?: string
           normalized_alias: string
           owner_id: string
+          updated_by?: string | null
         }
         Update: {
           alias?: string
           company_id?: string
           created_at?: string
+          created_by?: string | null
           id?: string
           normalized_alias?: string
           owner_id?: string
+          updated_by?: string | null
         }
         Relationships: [
           {
@@ -4995,6 +6206,20 @@ export type Database = {
             columns: ["company_id"]
             isOneToOne: false
             referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "vendor_aliases_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "vendor_aliases_updated_by_fkey"
+            columns: ["updated_by"]
+            isOneToOne: false
+            referencedRelation: "users"
             referencedColumns: ["id"]
           },
         ]
@@ -5187,6 +6412,7 @@ export type Database = {
       delete_project_task: { Args: { task_id_param: string }; Returns: boolean }
       extract_address_code: { Args: { address_text: string }; Returns: string }
       generate_po_number: { Args: { p_project_id: string }; Returns: string }
+      get_caller_tenant_id: { Args: never; Returns: string }
       get_conversation_unread_count: {
         Args: { other_user_id_param: string }
         Returns: number
@@ -5198,6 +6424,26 @@ export type Database = {
         Returns: {
           home_builder_id: string
           is_employee: boolean
+        }[]
+      }
+      get_employee_activity_summary: {
+        Args: { end_date?: string; start_date?: string }
+        Returns: {
+          avatar_url: string
+          bids_count: number
+          bills_count: number
+          budgets_count: number
+          email: string
+          files_count: number
+          first_name: string
+          jes_count: number
+          last_action: string
+          last_name: string
+          pos_count: number
+          role: string
+          schedule_count: number
+          total_actions: number
+          user_id: string
         }[]
       }
       get_my_company_features: {
@@ -5252,6 +6498,13 @@ export type Database = {
         Returns: {
           user_home_builder_id: string
           user_role: string
+        }[]
+      }
+      get_users_last_sign_in: {
+        Args: { user_ids: string[] }
+        Returns: {
+          last_sign_in_at: string
+          user_id: string
         }[]
       }
       has_role: {
