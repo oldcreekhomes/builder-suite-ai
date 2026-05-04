@@ -547,7 +547,7 @@ export function AddCompanyDialog({
                               key={opt.value}
                               type="button"
                               onClick={() => field.onChange(opt.value)}
-                              className={`inline-flex items-center gap-1.5 rounded-md border px-3 py-1.5 text-sm transition ${field.value === opt.value ? "border-primary bg-background ring-2 ring-primary" : "border-border bg-background hover:bg-muted"}`}
+                              className={`inline-flex items-center gap-1.5 rounded-md px-3 py-1.5 text-sm transition border-2 ${field.value === opt.value ? "border-primary bg-background" : "border-border bg-background hover:bg-muted"}`}
                             >
                               <span>{opt.label}</span>
                               <Tooltip>
