@@ -476,7 +476,7 @@ export function EditCompanyDialog({ company, open, onOpenChange }: EditCompanyDi
               control={form.control}
               name="engagement_type"
               render={({ field }) => (
-                <FormItem className="space-y-0">
+                <FormItem className="space-y-0 py-1">
                   <TooltipProvider delayDuration={150}>
                     <div className="flex items-center gap-3 flex-wrap">
                       <FormLabel className="text-sm font-semibold m-0">
