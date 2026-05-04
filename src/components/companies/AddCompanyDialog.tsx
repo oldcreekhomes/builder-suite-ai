@@ -40,7 +40,8 @@ import { InlineRepresentativeForm, InlineRepresentativeFormRef, InlineRepresenta
 import { useGooglePlaces } from "@/hooks/useGooglePlaces";
 import { useDuplicateCompanyDetection } from "@/hooks/useDuplicateCompanyDetection";
 import { DuplicateCompanyWarning } from "@/components/companies/DuplicateCompanyWarning";
-import { Search } from "lucide-react";
+import { Search, HelpCircle } from "lucide-react";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import type { Json } from "@/integrations/supabase/types";
 import { normalizeServiceAreas, inferServiceAreaFromAddress } from "@/lib/serviceArea";
 
