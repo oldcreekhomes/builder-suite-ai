@@ -37,7 +37,8 @@ import { ServiceAreaSelector } from "./ServiceAreaSelector";
 import { RepresentativeContent } from "./RepresentativeSelector";
 import { InsuranceContent } from "./CompanyInsuranceSection";
 import { useGooglePlaces } from "@/hooks/useGooglePlaces";
-import { Search, ShieldOff, Info, Upload } from "lucide-react";
+import { Search, ShieldOff, Info, Upload, HelpCircle } from "lucide-react";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { normalizeServiceAreas, getCompanyServiceAreasOrDefault } from "@/lib/serviceArea";
 
