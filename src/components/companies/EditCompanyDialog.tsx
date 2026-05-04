@@ -44,6 +44,7 @@ import { normalizeServiceAreas, getCompanyServiceAreasOrDefault } from "@/lib/se
 const companySchema = z.object({
   company_name: z.string().min(1, "Company name is required"),
   company_type: z.enum(["Subcontractor", "Vendor", "Consultant", "Lender", "Municipality", "Utility"]),
+  engagement_type: z.enum(["trade_partner", "supplier"]).default("trade_partner"),
   address_line_1: z.string().optional(),
   address_line_2: z.string().optional(),
   city: z.string().optional(),
@@ -59,6 +60,7 @@ interface Company {
   id: string;
   company_name: string;
   company_type: string;
+  engagement_type?: string;
   address?: string;
   address_line_1?: string;
   address_line_2?: string;
@@ -194,6 +196,7 @@ export function EditCompanyDialog({ company, open, onOpenChange }: EditCompanyDi
     defaultValues: {
       company_name: "",
       company_type: "Subcontractor",
+      engagement_type: "trade_partner",
       address_line_1: "",
       address_line_2: "",
       city: "",
@@ -203,6 +206,9 @@ export function EditCompanyDialog({ company, open, onOpenChange }: EditCompanyDi
       website: "",
     },
   });
+
+  const engagementType = form.watch("engagement_type");
+  const isSupplier = engagementType === "supplier";
 
   // Handle Google Places selection
   const handlePlaceSelected = useCallback((place: google.maps.places.PlaceResult) => {
@@ -281,6 +287,7 @@ export function EditCompanyDialog({ company, open, onOpenChange }: EditCompanyDi
       form.reset({
         company_name: company.company_name,
         company_type: (company.company_type || 'Subcontractor') as any,
+        engagement_type: ((company.engagement_type as any) || 'trade_partner'),
         ...addressFields,
         phone_number: company.phone_number || "",
         website: company.website || "",
@@ -386,6 +393,7 @@ export function EditCompanyDialog({ company, open, onOpenChange }: EditCompanyDi
       const updateData = {
         company_name: data.company_name,
         company_type: data.company_type,
+        engagement_type: data.engagement_type,
         address_line_1: data.address_line_1,
         address_line_2: data.address_line_2,
         city: data.city,
@@ -462,10 +470,46 @@ export function EditCompanyDialog({ company, open, onOpenChange }: EditCompanyDi
         
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6 px-1">
+            {/* Engagement Type selector */}
+            <FormField
+              control={form.control}
+              name="engagement_type"
+              render={({ field }) => (
+                <FormItem className="space-y-2 rounded-md border p-3 bg-muted/30">
+                  <FormLabel className="text-sm font-semibold">
+                    How will you work with this company?
+                  </FormLabel>
+                  <div className="grid grid-cols-2 gap-2">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        field.onChange("trade_partner");
+                      }}
+                      className={`text-left rounded-md border p-3 transition ${field.value === "trade_partner" ? "border-primary bg-background ring-2 ring-primary" : "border-border bg-background hover:bg-muted"}`}
+                    >
+                      <div className="text-sm font-medium">Trade Partner</div>
+                      <div className="text-xs text-muted-foreground mt-0.5">Subcontractors & vendors we bid, send POs, and notify. Requires a contact.</div>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        field.onChange("supplier");
+                        if (activeTab === "representatives") setActiveTab("company-info");
+                      }}
+                      className={`text-left rounded-md border p-3 transition ${field.value === "supplier" ? "border-primary bg-background ring-2 ring-primary" : "border-border bg-background hover:bg-muted"}`}
+                    >
+                      <div className="text-sm font-medium">Supplier / Retail</div>
+                      <div className="text-xs text-muted-foreground mt-0.5">Places we just buy from or pay bills (e.g. Home Depot). No contact needed.</div>
+                    </button>
+                  </div>
+                </FormItem>
+              )}
+            />
+
             <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as typeof activeTab)} className="w-full">
-              <TabsList className="w-full grid grid-cols-3">
+              <TabsList className={`w-full grid ${isSupplier ? "grid-cols-2" : "grid-cols-3"}`}>
                 <TabsTrigger value="company-info">Company Information</TabsTrigger>
-                <TabsTrigger value="representatives">Representatives</TabsTrigger>
+                {!isSupplier && <TabsTrigger value="representatives">Representatives</TabsTrigger>}
                 <TabsTrigger value="insurance">Insurance</TabsTrigger>
               </TabsList>
               
@@ -602,9 +646,11 @@ export function EditCompanyDialog({ company, open, onOpenChange }: EditCompanyDi
 
               </TabsContent>
               
-              <TabsContent value="representatives" className="space-y-6 mt-6">
-                <RepresentativeContent companyId={company.id} />
-              </TabsContent>
+              {!isSupplier && (
+                <TabsContent value="representatives" className="space-y-6 mt-6">
+                  <RepresentativeContent companyId={company.id} />
+                </TabsContent>
+              )}
               
               <TabsContent value="insurance" className="space-y-6 mt-6">
                 {company.insurance_required === false && (

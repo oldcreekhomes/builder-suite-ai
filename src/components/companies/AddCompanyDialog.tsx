@@ -80,6 +80,7 @@ const parseAddressComponents = (addressComponents: google.maps.GeocoderAddressCo
 const companySchema = z.object({
   company_name: z.string().min(1, "Company name is required"),
   company_type: z.enum(["Subcontractor", "Vendor", "Consultant", "Lender", "Municipality", "Utility"]),
+  engagement_type: z.enum(["trade_partner", "supplier"]).default("trade_partner"),
   address_line_1: z.string().min(1, "Street address is required"),
   address_line_2: z.string().optional(),
   city: z.string().optional(),
@@ -152,6 +153,7 @@ export function AddCompanyDialog({
     defaultValues: {
       company_name: initialCompanyName || "",
       company_type: "Subcontractor",
+      engagement_type: "trade_partner",
       address_line_1: initialData?.address_line_1 || "",
       address_line_2: initialData?.address_line_2 || "",
       city: initialData?.city || "",
@@ -161,6 +163,9 @@ export function AddCompanyDialog({
       website: initialData?.website || "",
     },
   });
+
+  const engagementType = form.watch("engagement_type");
+  const isSupplier = engagementType === "supplier";
 
   // Handle place selection from Google Places
   const handlePlaceSelected = useCallback((place: google.maps.places.PlaceResult) => {
@@ -270,6 +275,7 @@ export function AddCompanyDialog({
       const insertData = {
         company_name: data.company_name.trim(),
         company_type: data.company_type,
+        engagement_type: data.engagement_type,
         address_line_1: data.address_line_1 || null,
         address_line_2: data.address_line_2 || null,
         city: data.city || null,
@@ -419,8 +425,10 @@ export function AddCompanyDialog({
   });
 
   const onSubmit = async (data: CompanyFormData) => {
-    // Validate cost codes
-    if (selectedCostCodes.length === 0) {
+    const supplierMode = data.engagement_type === "supplier";
+
+    // Validate cost codes (only required for trade partners)
+    if (!supplierMode && selectedCostCodes.length === 0) {
       setCostCodeError("Associated cost codes are required");
       toast({
         title: "Error",
@@ -429,32 +437,34 @@ export function AddCompanyDialog({
       });
       return;
     }
-    
-    // Validate representative form
-    if (!representativeFormRef.current) {
-      setRepresentativeError("Please fill in the representative information");
-      toast({
-        title: "Representative Required",
-        description: "Please fill in the representative information.",
-        variant: "destructive",
-      });
-      return;
+
+    // Representative is only required for trade partners
+    let repData: InlineRepresentativeData | undefined;
+    if (!supplierMode) {
+      if (!representativeFormRef.current) {
+        setRepresentativeError("Please fill in the representative information");
+        toast({
+          title: "Representative Required",
+          description: "Please fill in the representative information.",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      const isValid = await representativeFormRef.current.validate();
+      if (!isValid) {
+        setRepresentativeError("Please fill in all required representative fields");
+        toast({
+          title: "Representative Required",
+          description: "Please fill in First Name, Email, and Title for the representative.",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      repData = representativeFormRef.current.getValues();
     }
-    
-    const isValid = await representativeFormRef.current.validate();
-    if (!isValid) {
-      setRepresentativeError("Please fill in all required representative fields");
-      toast({
-        title: "Representative Required",
-        description: "Please fill in First Name, Email, and Title for the representative.",
-        variant: "destructive",
-      });
-      return;
-    }
-    
-    // Get representative data
-    const repData = representativeFormRef.current.getValues();
-    
+
     // Get user info for determining home_builder_id
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) {
@@ -510,20 +520,53 @@ export function AddCompanyDialog({
         </DialogHeader>
         
         <p className="text-sm text-muted-foreground">
-          <span className="text-destructive">*</span> Company Information and Representatives are required
+          <span className="text-destructive">*</span> {isSupplier ? "Company Information is required" : "Company Information and Representatives are required"}
         </p>
-        
+
         <ScrollArea className="max-h-[calc(90vh-120px)] pr-6">
           <Form {...form}>
             <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6 px-1">
+              {/* Engagement Type selector */}
+              <FormField
+                control={form.control}
+                name="engagement_type"
+                render={({ field }) => (
+                  <FormItem className="space-y-2 rounded-md border p-3 bg-muted/30">
+                    <FormLabel className="text-sm font-semibold">
+                      How will you work with this company? <span className="text-destructive">*</span>
+                    </FormLabel>
+                    <div className="grid grid-cols-2 gap-2">
+                      <button
+                        type="button"
+                        onClick={() => field.onChange("trade_partner")}
+                        className={`text-left rounded-md border p-3 transition ${field.value === "trade_partner" ? "border-primary bg-background ring-2 ring-primary" : "border-border bg-background hover:bg-muted"}`}
+                      >
+                        <div className="text-sm font-medium">Trade Partner</div>
+                        <div className="text-xs text-muted-foreground mt-0.5">Subcontractors & vendors we bid, send POs, and notify (e.g. plumber, electrician). Requires a contact.</div>
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => field.onChange("supplier")}
+                        className={`text-left rounded-md border p-3 transition ${field.value === "supplier" ? "border-primary bg-background ring-2 ring-primary" : "border-border bg-background hover:bg-muted"}`}
+                      >
+                        <div className="text-sm font-medium">Supplier / Retail</div>
+                        <div className="text-xs text-muted-foreground mt-0.5">Places we just buy from or pay bills (e.g. Home Depot, CVS, gas station). No contact needed.</div>
+                      </button>
+                    </div>
+                  </FormItem>
+                )}
+              />
+
               <Tabs defaultValue="company-info" className="w-full">
-                <TabsList className="w-full grid grid-cols-3">
+                <TabsList className={`w-full grid ${isSupplier ? "grid-cols-2" : "grid-cols-3"}`}>
                   <TabsTrigger value="company-info">
                     Company Information <span className="text-destructive ml-1">*</span>
                   </TabsTrigger>
-                  <TabsTrigger value="representatives">
-                    Representatives <span className="text-destructive ml-1">*</span>
-                  </TabsTrigger>
+                  {!isSupplier && (
+                    <TabsTrigger value="representatives">
+                      Representatives <span className="text-destructive ml-1">*</span>
+                    </TabsTrigger>
+                  )}
                   <TabsTrigger value="insurance">Insurance</TabsTrigger>
                 </TabsList>
                 
@@ -657,7 +700,7 @@ export function AddCompanyDialog({
 
                   <div className="space-y-2">
                     <FormLabel className={costCodeError ? "text-destructive" : ""}>
-                      Associated Cost Codes <span className="text-destructive">*</span>
+                      Associated Cost Codes {!isSupplier && <span className="text-destructive">*</span>}
                     </FormLabel>
                     <CostCodeSelector 
                       selectedCostCodes={selectedCostCodes}
@@ -670,19 +713,21 @@ export function AddCompanyDialog({
 
                 </TabsContent>
                 
-                <TabsContent value="representatives" forceMount className="data-[state=inactive]:hidden space-y-6 mt-6">
-                  <div className="space-y-4">
-                    <p className="text-sm text-muted-foreground">
-                      Fill in the representative information below. Required fields: First Name, Email, and Title.
-                    </p>
+                {!isSupplier && (
+                  <TabsContent value="representatives" forceMount className="data-[state=inactive]:hidden space-y-6 mt-6">
+                    <div className="space-y-4">
+                      <p className="text-sm text-muted-foreground">
+                        Fill in the representative information below. Required fields: First Name, Email, and Title.
+                      </p>
 
-                    {representativeError && (
-                      <p className="text-sm font-medium text-destructive">{representativeError}</p>
-                    )}
+                      {representativeError && (
+                        <p className="text-sm font-medium text-destructive">{representativeError}</p>
+                      )}
 
-                    <InlineRepresentativeForm ref={representativeFormRef} />
-                  </div>
-                </TabsContent>
+                      <InlineRepresentativeForm ref={representativeFormRef} />
+                    </div>
+                  </TabsContent>
+                )}
                 
               <TabsContent value="insurance" forceMount className="data-[state=inactive]:hidden space-y-6 mt-6">
                   <InsuranceContent 

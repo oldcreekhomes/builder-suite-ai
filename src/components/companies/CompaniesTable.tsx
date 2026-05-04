@@ -33,6 +33,7 @@ interface Company {
   id: string;
   company_name: string;
   company_type: string;
+  engagement_type?: string;
   address?: string;
   address_line_1?: string;
   address_line_2?: string;
@@ -76,6 +77,7 @@ export function CompaniesTable({ searchQuery = "" }: CompaniesTableProps) {
           id,
           company_name,
           company_type,
+          engagement_type,
           address,
           address_line_1,
           address_line_2,
@@ -246,9 +248,16 @@ export function CompaniesTable({ searchQuery = "" }: CompaniesTableProps) {
                   </Tooltip>
                 </TableCell>
                 <TableCell className="w-28">
-                  <Badge className={getTypeColor(company.company_type)}>
-                    {company.company_type}
-                  </Badge>
+                  <div className="flex flex-col gap-1">
+                    <Badge className={getTypeColor(company.company_type)}>
+                      {company.company_type}
+                    </Badge>
+                    {company.engagement_type === 'supplier' && (
+                      <Badge variant="outline" className="w-fit text-[10px] px-1 py-0">
+                        Supplier
+                      </Badge>
+                    )}
+                  </div>
                 </TableCell>
                 <TableCell className="max-w-0">
                   {company.address ? (
