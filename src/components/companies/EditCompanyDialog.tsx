@@ -60,6 +60,7 @@ interface Company {
   id: string;
   company_name: string;
   company_type: string;
+  engagement_type?: string;
   address?: string;
   address_line_1?: string;
   address_line_2?: string;
