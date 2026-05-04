@@ -700,7 +700,7 @@ export function AddCompanyDialog({
 
                   <div className="space-y-2">
                     <FormLabel className={costCodeError ? "text-destructive" : ""}>
-                      Associated Cost Codes <span className="text-destructive">*</span>
+                      Associated Cost Codes {!isSupplier && <span className="text-destructive">*</span>}
                     </FormLabel>
                     <CostCodeSelector 
                       selectedCostCodes={selectedCostCodes}
@@ -713,19 +713,21 @@ export function AddCompanyDialog({
 
                 </TabsContent>
                 
-                <TabsContent value="representatives" forceMount className="data-[state=inactive]:hidden space-y-6 mt-6">
-                  <div className="space-y-4">
-                    <p className="text-sm text-muted-foreground">
-                      Fill in the representative information below. Required fields: First Name, Email, and Title.
-                    </p>
+                {!isSupplier && (
+                  <TabsContent value="representatives" forceMount className="data-[state=inactive]:hidden space-y-6 mt-6">
+                    <div className="space-y-4">
+                      <p className="text-sm text-muted-foreground">
+                        Fill in the representative information below. Required fields: First Name, Email, and Title.
+                      </p>
 
-                    {representativeError && (
-                      <p className="text-sm font-medium text-destructive">{representativeError}</p>
-                    )}
+                      {representativeError && (
+                        <p className="text-sm font-medium text-destructive">{representativeError}</p>
+                      )}
 
-                    <InlineRepresentativeForm ref={representativeFormRef} />
-                  </div>
-                </TabsContent>
+                      <InlineRepresentativeForm ref={representativeFormRef} />
+                    </div>
+                  </TabsContent>
+                )}
                 
               <TabsContent value="insurance" forceMount className="data-[state=inactive]:hidden space-y-6 mt-6">
                   <InsuranceContent 
