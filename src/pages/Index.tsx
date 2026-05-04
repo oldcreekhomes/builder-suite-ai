@@ -88,7 +88,10 @@ export default function Index() {
                   </div>
                 </>
               ) : dashboardView === "owner" ? (
-                <ActiveJobsTable />
+                <>
+                  <ActiveJobsTable />
+                  <EmployeeActivitySection />
+                </>
               ) : (
                 <AccountantJobsTable />
               )}
