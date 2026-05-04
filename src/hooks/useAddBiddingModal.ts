@@ -20,8 +20,8 @@ interface CostCode {
   quantity: string;
   created_at: string;
   updated_at: string;
-  created_by?: string | null;
-  updated_by?: string | null;
+  created_by: string;
+  updated_by: string;
 }
 
 export const useAddBiddingModal = (projectId: string, existingCostCodeIds: string[]) => {
