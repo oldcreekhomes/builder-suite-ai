@@ -425,8 +425,10 @@ export function AddCompanyDialog({
   });
 
   const onSubmit = async (data: CompanyFormData) => {
-    // Validate cost codes
-    if (selectedCostCodes.length === 0) {
+    const supplierMode = data.engagement_type === "supplier";
+
+    // Validate cost codes (only required for trade partners)
+    if (!supplierMode && selectedCostCodes.length === 0) {
       setCostCodeError("Associated cost codes are required");
       toast({
         title: "Error",
@@ -435,32 +437,34 @@ export function AddCompanyDialog({
       });
       return;
     }
-    
-    // Validate representative form
-    if (!representativeFormRef.current) {
-      setRepresentativeError("Please fill in the representative information");
-      toast({
-        title: "Representative Required",
-        description: "Please fill in the representative information.",
-        variant: "destructive",
-      });
-      return;
+
+    // Representative is only required for trade partners
+    let repData: InlineRepresentativeData | undefined;
+    if (!supplierMode) {
+      if (!representativeFormRef.current) {
+        setRepresentativeError("Please fill in the representative information");
+        toast({
+          title: "Representative Required",
+          description: "Please fill in the representative information.",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      const isValid = await representativeFormRef.current.validate();
+      if (!isValid) {
+        setRepresentativeError("Please fill in all required representative fields");
+        toast({
+          title: "Representative Required",
+          description: "Please fill in First Name, Email, and Title for the representative.",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      repData = representativeFormRef.current.getValues();
     }
-    
-    const isValid = await representativeFormRef.current.validate();
-    if (!isValid) {
-      setRepresentativeError("Please fill in all required representative fields");
-      toast({
-        title: "Representative Required",
-        description: "Please fill in First Name, Email, and Title for the representative.",
-        variant: "destructive",
-      });
-      return;
-    }
-    
-    // Get representative data
-    const repData = representativeFormRef.current.getValues();
-    
+
     // Get user info for determining home_builder_id
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) {
