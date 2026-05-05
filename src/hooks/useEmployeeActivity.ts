@@ -26,7 +26,10 @@ export const useEmployeeActivity = (enabled: boolean) => {
     enabled,
     queryFn: async (): Promise<EmployeeActivityRow[]> => {
       const { data, error } = await supabase.rpc("get_employee_activity_summary", {});
-      if (error) throw error;
+      if (error) {
+        console.error("get_employee_activity_summary failed:", error);
+        throw error;
+      }
       const rows = (data ?? []) as EmployeeActivityRow[];
       if (rows.length === 0) return rows;
 

@@ -6427,7 +6427,7 @@ export type Database = {
         }[]
       }
       get_employee_activity_summary: {
-        Args: { end_date?: string; start_date?: string }
+        Args: { p_end_date?: string; p_start_date?: string }
         Returns: {
           avatar_url: string
           bids_count: number
