@@ -34,7 +34,7 @@ export function EmployeeActivitySection() {
   const { preferences } = useNotificationPreferences();
   const canSee = !!preferences?.can_access_employees;
   const [expanded, setExpanded] = useState<string | null>(null);
-  const { data, isLoading } = useEmployeeActivity(canSee);
+  const { data, isLoading, error } = useEmployeeActivity(canSee);
 
   if (!canSee) return null;
 
@@ -52,6 +52,10 @@ export function EmployeeActivitySection() {
       <CardContent>
         {isLoading ? (
           <div className="text-sm text-muted-foreground py-4">Loading…</div>
+        ) : error ? (
+          <div className="text-sm text-destructive py-4">
+            Unable to load employee activity: {(error as Error)?.message ?? "Unknown error"}
+          </div>
         ) : !data || data.length === 0 ? (
           <div className="text-sm text-muted-foreground py-4">No employees found.</div>
         ) : (
