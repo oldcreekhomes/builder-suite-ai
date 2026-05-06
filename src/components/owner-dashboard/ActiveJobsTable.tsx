@@ -315,9 +315,6 @@ export function ActiveJobsTable() {
                         <span className="text-muted-foreground">-</span>
                       )}
                     </TableCell>
-                    <TableCell className="text-muted-foreground">
-                      {progress?.nextMilestone || "-"}
-                    </TableCell>
                     <TableCell className={cn(
                       project.last_schedule_published_at 
                         ? isScheduleStale(project.last_schedule_published_at) 
