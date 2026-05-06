@@ -82,7 +82,7 @@ export function OnboardingChecklist() {
   }, [emailStep?.completed, welcomeStep?.completed, allComplete, dismissed, isLoading]);
 
   if (isLoading) return null;
-  if (allComplete && dismissed) return null;
+  if (dismissed) return null;
 
   if (allComplete && !dismissed) {
     const handleCongratsClose = () => {
