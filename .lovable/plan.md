@@ -1,32 +1,29 @@
-I found the current blocker: the employee activity RPC is still returning HTTP 400. The error is no longer the `project_files.created_at` issue; it is now:
+# Why the onboarding checklist is back
 
-```text
-column reference "start_date" is ambiguous
-```
+Your `onboarding_progress` row shows **7 of 8 complete** — every milestone is done, `dismissed = true`, but `welcome_confirmed = false`. The checklist component only hides itself when `allComplete && dismissed`. Since the welcome step never got flipped to true (it was added/changed after you already onboarded months ago), `allComplete` is false, so the dismissal is ignored and the card reappears.
 
-This happens because the PL/pgSQL function parameters are named `start_date` / `end_date`, and `project_schedule_tasks` also has columns named `start_date` / `end_date`. PostgreSQL cannot tell which one the function means in the `BETWEEN start_date AND end_date` filters.
+In short: a step was added retroactively, your row was never backfilled, and the "dismissed" flag isn't respected unless every step is complete.
 
-I also verified that the tenant/user data is present. For the logged-in Old Creek Homes owner, the underlying activity query should return 7 rows, including Erica, Raymond, Jole Ann, Lex, Matt, Danny, and Steven, with recent activity counts.
+# Fix
 
-Plan:
+**1. Backfill the welcome flag for existing users**
+Migration: set `welcome_confirmed = true` on every `onboarding_progress` row created before today where the user has already completed substantive setup (e.g. `company_profile_completed = true` OR `dismissed = true`). This clears the false-positive for you and any other long-time owner in the same boat.
 
-1. Create a database migration replacing `public.get_employee_activity_summary`
-   - Rename the function parameters to unambiguous names, e.g. `p_start_date` and `p_end_date`.
-   - Update every date filter to use `p_start_date` / `p_end_date`.
-   - Keep the prior `project_files` fix using `uploaded_by` and `uploaded_at`.
-   - Keep the existing permission check: only users with `user_notification_preferences.can_access_employees = true` can call it.
-   - Keep tenant isolation through `get_caller_tenant_id()` and the `tenant_users` join.
+**2. Respect prior dismissal**
+Update `OnboardingChecklist.tsx` so a row with `dismissed = true` stays hidden even if `allComplete` is false. Rationale: if the owner explicitly dismissed the checklist, adding a new step later shouldn't resurrect it. New steps can surface through other UX (banners, settings) without re-pestering established users.
 
-2. Tighten tenant filtering for non-owner-scoped tables where needed
-   - `project_purchase_orders`, `project_bids`, `project_budgets`, `project_schedule_tasks`, and `project_files` are currently filtered by actor only after the union.
-   - I will preserve the tenant-user actor filter, and if the table has `project_id`, also join/filter through `projects.owner_id = caller_tenant` where safe. This prevents unrelated rows created by the same user in another tenant context from leaking into counts.
+# Technical details
 
-3. Improve the UI error state
-   - Update `EmployeeActivitySection` to read the query `error` from `useEmployeeActivity`.
-   - Instead of silently falling through to “No employees found” when the RPC fails, show a small destructive/error message like “Unable to load employee activity.”
-   - Add a concise console error in the hook/component so future RPC issues are visible during debugging.
+- File: `supabase/migrations/<new>.sql`
+  ```sql
+  UPDATE public.onboarding_progress
+     SET welcome_confirmed = true
+   WHERE welcome_confirmed = false
+     AND (dismissed = true OR company_profile_completed = true);
+  ```
+- File: `src/components/OnboardingChecklist.tsx`
+  - Early-return `null` when `dismissed` is true (regardless of `allComplete`).
+  - Keep the "all complete + not dismissed" congrats dialog branch unchanged.
+- No changes to `useOnboardingProgress` API.
 
-4. Verify after migration
-   - Re-run the RPC path through the app/session.
-   - Confirm the Owner Dashboard shows the Old Creek Homes employees instead of “No employees found.”
-   - Confirm the counts match the expected recent activity rows and the section remains hidden for users without employee access.
+After this, your dashboard will stop showing the onboarding card. New owners still see the full 8-step flow.
