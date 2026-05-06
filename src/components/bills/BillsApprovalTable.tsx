@@ -660,6 +660,11 @@ export function BillsApprovalTable({ status, projectId, projectIds, showProjectC
         billId: confirmDialog.billId,
         notes: confirmDialog.notes 
       });
+    } else if (confirmDialog.action === 'resend') {
+      resendBillToReview.mutate({
+        billId: confirmDialog.billId,
+        notes: confirmDialog.notes,
+      });
     }
     setConfirmDialog({ open: false, action: '', billId: '', billInfo: undefined, notes: '' });
   };
