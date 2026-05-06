@@ -20,6 +20,10 @@ export interface Project {
     first_name: string;
     last_name: string;
   } | null;
+  construction_manager_user?: {
+    first_name: string;
+    last_name: string;
+  } | null;
 }
 
 export const useProjects = () => {
