@@ -1881,37 +1881,58 @@ export function BillsApprovalTable({ status, projectId, projectIds, showProjectC
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>
-              {confirmDialog.action === 'approve' ? 'Confirm Bill Approval' : 'Confirm Bill Rejection'}
+              {confirmDialog.action === 'approve'
+                ? 'Confirm Bill Approval'
+                : confirmDialog.action === 'resend'
+                  ? 'Resend Bill to Review'
+                  : 'Confirm Bill Rejection'}
             </AlertDialogTitle>
             <AlertDialogDescription>
-              Are you sure you want to {confirmDialog.action} this bill from{' '}
-              <strong>{confirmDialog.billInfo?.companies?.company_name}</strong> for{' '}
-              <strong>{formatCurrency(confirmDialog.billInfo?.total_amount || 0)}</strong>?
-              {confirmDialog.action === 'reject' && ' This action cannot be undone.'}
+              {confirmDialog.action === 'resend' ? (
+                <>
+                  Send this bill from{' '}
+                  <strong>{confirmDialog.billInfo?.companies?.company_name}</strong> for{' '}
+                  <strong>{formatCurrency(confirmDialog.billInfo?.total_amount || 0)}</strong>{' '}
+                  back to the Review queue?
+                </>
+              ) : (
+                <>
+                  Are you sure you want to {confirmDialog.action} this bill from{' '}
+                  <strong>{confirmDialog.billInfo?.companies?.company_name}</strong> for{' '}
+                  <strong>{formatCurrency(confirmDialog.billInfo?.total_amount || 0)}</strong>?
+                  {confirmDialog.action === 'reject' && ' This action cannot be undone.'}
+                </>
+              )}
             </AlertDialogDescription>
           </AlertDialogHeader>
           
           <div className="space-y-2 py-4">
             <label htmlFor="approval-notes" className="text-sm font-medium">
-              {confirmDialog.action === 'approve' 
-                ? 'Approval Notes (Optional)' 
-                : <>Rejection Notes <span className="text-destructive">*</span></>
+              {confirmDialog.action === 'approve'
+                ? 'Approval Notes (Optional)'
+                : confirmDialog.action === 'resend'
+                  ? <>Response Note <span className="text-destructive">*</span></>
+                  : <>Rejection Notes <span className="text-destructive">*</span></>
               }
             </label>
             <Textarea
               id="approval-notes"
-              placeholder={confirmDialog.action === 'approve' 
-                ? "Add any notes about this approval..." 
-                : "Add reason for rejection..."
+              placeholder={confirmDialog.action === 'approve'
+                ? "Add any notes about this approval..."
+                : confirmDialog.action === 'resend'
+                  ? "Explain what was fixed or changed..."
+                  : "Add reason for rejection..."
               }
               value={confirmDialog.notes}
               onChange={(e) => setConfirmDialog(prev => ({ ...prev, notes: e.target.value }))}
               rows={3}
               className="resize-none"
             />
-            {confirmDialog.action === 'reject' && (
+            {(confirmDialog.action === 'reject' || confirmDialog.action === 'resend') && (
               <p className="text-xs text-muted-foreground">
-                This note will be visible to the accountant to help them understand the rejection.
+                {confirmDialog.action === 'resend'
+                  ? 'Required: This note will be visible to the reviewer to help them understand your changes.'
+                  : 'This note will be visible to the accountant to help them understand the rejection.'}
               </p>
             )}
           </div>
@@ -1920,10 +1941,20 @@ export function BillsApprovalTable({ status, projectId, projectIds, showProjectC
             <AlertDialogCancel onClick={handleCancelAction}>Cancel</AlertDialogCancel>
             <AlertDialogAction 
               onClick={handleConfirmedAction}
-              disabled={confirmDialog.action === 'reject' && !confirmDialog.notes?.trim()}
-              className={confirmDialog.action === 'approve' ? 'bg-green-600 hover:bg-green-700' : 'bg-red-600 hover:bg-red-700'}
+              disabled={(confirmDialog.action === 'reject' || confirmDialog.action === 'resend') && !confirmDialog.notes?.trim()}
+              className={
+                confirmDialog.action === 'approve'
+                  ? 'bg-green-600 hover:bg-green-700'
+                  : confirmDialog.action === 'resend'
+                    ? 'bg-primary hover:bg-primary/90'
+                    : 'bg-red-600 hover:bg-red-700'
+              }
             >
-              {confirmDialog.action === 'approve' ? 'Approve Bill' : 'Reject Bill'}
+              {confirmDialog.action === 'approve'
+                ? 'Approve Bill'
+                : confirmDialog.action === 'resend'
+                  ? 'Send to Review'
+                  : 'Reject Bill'}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
