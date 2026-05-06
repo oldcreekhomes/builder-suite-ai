@@ -48,14 +48,14 @@ export const useProjects = () => {
         throw projectsError;
       }
 
-      // Get unique accounting manager IDs
+      // Get unique manager IDs (accounting + construction)
       const managerIds = [...new Set(
-        projectsData
-          ?.map(p => p.accounting_manager)
+        (projectsData || [])
+          .flatMap(p => [p.accounting_manager, p.construction_manager])
           .filter((id): id is string => !!id)
       )];
 
-      // Fetch user names for accounting managers
+      // Fetch user names for managers
       let managersMap: Record<string, { first_name: string; last_name: string }> = {};
       if (managerIds.length > 0) {
         const { data: usersData } = await supabase
@@ -76,6 +76,9 @@ export const useProjects = () => {
         ...p,
         accounting_manager_user: p.accounting_manager 
           ? managersMap[p.accounting_manager] || null 
+          : null,
+        construction_manager_user: p.construction_manager
+          ? managersMap[p.construction_manager] || null
           : null,
       }));
 
