@@ -1,29 +1,20 @@
-# Why the onboarding checklist is back
+# Owner Dashboard – Active Jobs table tweaks
 
-Your `onboarding_progress` row shows **7 of 8 complete** — every milestone is done, `dismissed = true`, but `welcome_confirmed = false`. The checklist component only hides itself when `allComplete && dismissed`. Since the welcome step never got flipped to true (it was added/changed after you already onboarded months ago), `allComplete` is false, so the dismissal is ignored and the card reappears.
+Scope is limited to `src/components/owner-dashboard/ActiveJobsTable.tsx` and `src/hooks/useProjects.tsx`.
 
-In short: a step was added retroactively, your row was never backfilled, and the "dismissed" flag isn't respected unless every step is complete.
+## Changes
 
-# Fix
+1. **Address column shows street only**
+   - Display `project.address.split(',')[0].trim()` instead of the full address. Falls back to "No address" if empty.
 
-**1. Backfill the welcome flag for existing users**
-Migration: set `welcome_confirmed = true` on every `onboarding_progress` row created before today where the user has already completed substantive setup (e.g. `company_profile_completed = true` OR `dismissed = true`). This clears the false-positive for you and any other long-time owner in the same boat.
+2. **Add "Manager" column** (between Status and Schedule Progress)
+   - Source: `projects.construction_manager` (UUID → users table).
+   - Extend `useProjects` to also fetch first/last name for `construction_manager` IDs (same pattern already used for `accounting_manager`), exposing `construction_manager_user: { first_name, last_name } | null` on the `Project` type.
+   - Render `${first_name} ${last_name}`.trim() or `-` when unset.
+   - Update colSpan for the empty state row.
 
-**2. Respect prior dismissal**
-Update `OnboardingChecklist.tsx` so a row with `dismissed = true` stays hidden even if `allComplete` is false. Rationale: if the owner explicitly dismissed the checklist, adding a new step later shouldn't resurrect it. New steps can surface through other UX (banners, settings) without re-pestering established users.
+3. **Remove the "Next Milestone" column**
+   - Delete the `<TableHead>Next Milestone</TableHead>` and the matching `<TableCell>{progress?.nextMilestone || "-"}</TableCell>`.
 
-# Technical details
-
-- File: `supabase/migrations/<new>.sql`
-  ```sql
-  UPDATE public.onboarding_progress
-     SET welcome_confirmed = true
-   WHERE welcome_confirmed = false
-     AND (dismissed = true OR company_profile_completed = true);
-  ```
-- File: `src/components/OnboardingChecklist.tsx`
-  - Early-return `null` when `dismissed` is true (regardless of `allComplete`).
-  - Keep the "all complete + not dismissed" congrats dialog branch unchanged.
-- No changes to `useOnboardingProgress` API.
-
-After this, your dashboard will stop showing the onboarding card. New owners still see the full 8-step flow.
+## Out of scope
+No changes to filtering, sorting, drag/reorder, schedule progress, or other dashboards.

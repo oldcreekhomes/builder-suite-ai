@@ -231,10 +231,10 @@ export function ActiveJobsTable() {
                   {getSortIcon('status')}
                 </div>
               </TableHead>
+              <TableHead>Manager</TableHead>
               <TableHead>Schedule Progress</TableHead>
               <TableHead className="text-center">Review</TableHead>
               <TableHead className="text-center">Pay</TableHead>
-              <TableHead>Next Milestone</TableHead>
               <TableHead>Schedule Update</TableHead>
             </TableRow>
           </TableHeader>
@@ -275,7 +275,7 @@ export function ActiveJobsTable() {
                       </TableCell>
                     )}
                     <TableCell className="font-medium">
-                      {project.address || "No address"}
+                      {project.address ? project.address.split(',')[0].trim() : "No address"}
                     </TableCell>
                     <TableCell>
                       <Badge 
@@ -284,6 +284,11 @@ export function ActiveJobsTable() {
                       >
                         {project.status || "In Design"}
                       </Badge>
+                    </TableCell>
+                    <TableCell className="text-muted-foreground">
+                      {project.construction_manager_user
+                        ? `${project.construction_manager_user.first_name} ${project.construction_manager_user.last_name}`.trim() || "-"
+                        : "-"}
                     </TableCell>
                     <TableCell>
                       <div className="flex items-center gap-2 min-w-[120px]">
@@ -309,9 +314,6 @@ export function ActiveJobsTable() {
                       ) : (
                         <span className="text-muted-foreground">-</span>
                       )}
-                    </TableCell>
-                    <TableCell className="text-muted-foreground">
-                      {progress?.nextMilestone || "-"}
                     </TableCell>
                     <TableCell className={cn(
                       project.last_schedule_published_at 
