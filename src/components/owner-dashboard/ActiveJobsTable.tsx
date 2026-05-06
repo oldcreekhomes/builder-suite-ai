@@ -12,13 +12,14 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { Switch } from "@/components/ui/switch";
 import { GripVertical } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { format } from "date-fns";
 
-// Check if schedule publish date is more than 7 days old
 const isScheduleStale = (dateString: string | null | undefined): boolean => {
   if (!dateString) return false;
   const publishDate = new Date(dateString);
@@ -27,29 +28,31 @@ const isScheduleStale = (dateString: string | null | undefined): boolean => {
   return publishDate < sevenDaysAgo;
 };
 
-const STATUS_GROUPS: Array<{ key: string; label: string }> = [
-  { key: "Under Construction", label: "Under Construction" },
-  { key: "Permitting", label: "Permitting" },
-  { key: "In Design", label: "In Design" },
-];
-
-const groupAccent: Record<string, string> = {
-  "Under Construction": "border-l-orange-500",
-  "Permitting": "border-l-blue-500",
-  "In Design": "border-l-yellow-500",
+const statusColors: Record<string, string> = {
+  "In Design": "bg-yellow-500/20 text-yellow-700 border-yellow-500/30",
+  "Permitting": "bg-blue-500/20 text-blue-700 border-blue-500/30",
+  "Under Construction": "bg-orange-500/20 text-orange-700 border-orange-500/30",
 };
+
+const statusPriority: Record<string, number> = {
+  "Under Construction": 1,
+  "Permitting": 2,
+  "In Design": 3,
+};
+
+type TabKey = "all" | "Under Construction" | "Permitting" | "In Design";
 
 export function ActiveJobsTable() {
   const navigate = useNavigate();
   const { data: projects = [] } = useProjects();
   const { updateDisplayOrder } = useProjectDisplayOrder();
+  const [activeTab, setActiveTab] = useState<TabKey>("Under Construction");
   const [isReorderEnabled, setIsReorderEnabled] = useState(false);
   const [draggedProjectId, setDraggedProjectId] = useState<string | null>(null);
   const [dropTargetId, setDropTargetId] = useState<string | null>(null);
   const [dropPosition, setDropPosition] = useState<'before' | 'after' | null>(null);
   const dragRowRef = useRef<HTMLTableRowElement | null>(null);
 
-  // Filter to active projects only
   const activeProjects = projects.filter(
     p => p.status !== "Completed" && p.status !== "Template" && p.status !== "Permanently Closed"
   );
@@ -58,19 +61,32 @@ export function ActiveJobsTable() {
   const { data: scheduleProgress = {} } = useProjectScheduleProgress(projectIds);
   const { data: billCounts = {} } = useBillCountsByProject(projectIds);
 
-  // Build groups: status -> sorted projects
-  const groups = STATUS_GROUPS.map(g => {
-    const items = activeProjects
-      .filter(p => (p.status || "In Design") === g.key)
-      .sort((a, b) => (a.display_order ?? 999) - (b.display_order ?? 999));
-    return { ...g, items };
-  });
+  const counts = {
+    all: activeProjects.length,
+    "Under Construction": activeProjects.filter(p => (p.status || "In Design") === "Under Construction").length,
+    "Permitting": activeProjects.filter(p => (p.status || "In Design") === "Permitting").length,
+    "In Design": activeProjects.filter(p => (p.status || "In Design") === "In Design").length,
+  };
 
-  const colCount = isReorderEnabled ? 6 : 5;
+  const isAll = activeTab === "all";
+  const filtered = isAll
+    ? [...activeProjects].sort((a, b) => {
+        const pa = statusPriority[a.status || "In Design"] || 4;
+        const pb = statusPriority[b.status || "In Design"] || 4;
+        if (pa !== pb) return pa - pb;
+        return (a.display_order ?? 999) - (b.display_order ?? 999);
+      })
+    : activeProjects
+        .filter(p => (p.status || "In Design") === activeTab)
+        .sort((a, b) => (a.display_order ?? 999) - (b.display_order ?? 999));
 
-  // Drag handlers
+  const reorderAllowed = !isAll;
+  const showStatusColumn = isAll;
+  const baseCols = showStatusColumn ? 6 : 5;
+  const colCount = isReorderEnabled && reorderAllowed ? baseCols + 1 : baseCols;
+
   const handleDragStart = (e: React.DragEvent, projectId: string) => {
-    if (!isReorderEnabled) return;
+    if (!isReorderEnabled || !reorderAllowed) return;
     setDraggedProjectId(projectId);
     e.dataTransfer.effectAllowed = 'move';
     e.dataTransfer.setData('text/plain', projectId);
@@ -91,12 +107,7 @@ export function ActiveJobsTable() {
   };
 
   const handleDragOver = (e: React.DragEvent, projectId: string) => {
-    if (!isReorderEnabled || !draggedProjectId || draggedProjectId === projectId) return;
-    // Only allow drop within the same status group
-    const dragged = activeProjects.find(p => p.id === draggedProjectId);
-    const target = activeProjects.find(p => p.id === projectId);
-    if (!dragged || !target || (dragged.status || "In Design") !== (target.status || "In Design")) return;
-
+    if (!isReorderEnabled || !reorderAllowed || !draggedProjectId || draggedProjectId === projectId) return;
     e.preventDefault();
     e.dataTransfer.dropEffect = 'move';
     const rect = (e.currentTarget as HTMLElement).getBoundingClientRect();
@@ -112,20 +123,13 @@ export function ActiveJobsTable() {
 
   const handleDrop = async (e: React.DragEvent, targetProjectId: string) => {
     e.preventDefault();
-    if (!isReorderEnabled || !draggedProjectId || draggedProjectId === targetProjectId) return;
+    if (!isReorderEnabled || !reorderAllowed || !draggedProjectId || draggedProjectId === targetProjectId) return;
 
-    const dragged = activeProjects.find(p => p.id === draggedProjectId);
-    const target = activeProjects.find(p => p.id === targetProjectId);
-    if (!dragged || !target) return;
-    const groupKey = dragged.status || "In Design";
-    if (groupKey !== (target.status || "In Design")) return;
-
-    const groupItems = groups.find(g => g.key === groupKey)?.items || [];
-    const draggedIndex = groupItems.findIndex(p => p.id === draggedProjectId);
-    const targetIndex = groupItems.findIndex(p => p.id === targetProjectId);
+    const draggedIndex = filtered.findIndex(p => p.id === draggedProjectId);
+    const targetIndex = filtered.findIndex(p => p.id === targetProjectId);
     if (draggedIndex === -1 || targetIndex === -1) return;
 
-    const newOrder = [...groupItems];
+    const newOrder = [...filtered];
     const [item] = newOrder.splice(draggedIndex, 1);
     let insertIndex = targetIndex;
     if (dropPosition === 'after') {
@@ -148,90 +152,38 @@ export function ActiveJobsTable() {
     navigate(`/project/${projectId}`);
   };
 
-  const renderProjectRow = (project: typeof activeProjects[number]) => {
-    const progress = scheduleProgress[project.id];
-    const bills = billCounts[project.id];
-    const reviewCount = (bills?.currentCount || 0) + (bills?.lateCount || 0);
-    const payCount = bills?.payCount || 0;
-    const isDragging = draggedProjectId === project.id;
-    const isDropTarget = dropTargetId === project.id;
-
-    return (
-      <TableRow
-        key={project.id}
-        className={cn(
-          "cursor-pointer hover:bg-muted/50 transition-all",
-          isDragging && "opacity-50",
-          isDropTarget && dropPosition === 'before' && "border-t-2 border-t-primary",
-          isDropTarget && dropPosition === 'after' && "border-b-2 border-b-primary"
-        )}
-        onClick={() => !isReorderEnabled && handleRowClick(project.id)}
-        draggable={isReorderEnabled}
-        onDragStart={(e) => handleDragStart(e, project.id)}
-        onDragEnd={handleDragEnd}
-        onDragOver={(e) => handleDragOver(e, project.id)}
-        onDragLeave={handleDragLeave}
-        onDrop={(e) => handleDrop(e, project.id)}
-      >
-        {isReorderEnabled && (
-          <TableCell className="w-10 cursor-grab active:cursor-grabbing">
-            <GripVertical className="h-4 w-4 text-muted-foreground" />
-          </TableCell>
-        )}
-        <TableCell className="font-medium">
-          {project.address ? project.address.split(',')[0].trim() : "No address"}
-        </TableCell>
-        <TableCell className="text-muted-foreground">
-          {project.construction_manager_user
-            ? `${project.construction_manager_user.first_name} ${project.construction_manager_user.last_name}`.trim() || "-"
-            : "-"}
-        </TableCell>
-        <TableCell>
-          <div className="flex items-center gap-2 min-w-[120px]">
-            <Progress value={progress?.overallProgress || 0} className="h-2 flex-1" />
-            <span className="text-sm text-muted-foreground w-10">
-              {progress?.overallProgress || 0}%
-            </span>
-          </div>
-        </TableCell>
-        <TableCell className="text-center">
-          {reviewCount === 0 && payCount === 0 ? (
-            <span className="text-muted-foreground">—</span>
-          ) : (
-            <span className="inline-flex items-center justify-center rounded-md bg-muted px-2 py-0.5 text-sm font-medium tabular-nums">
-              {reviewCount} / {payCount}
-            </span>
-          )}
-        </TableCell>
-        <TableCell className={cn(
-          project.last_schedule_published_at
-            ? isScheduleStale(project.last_schedule_published_at)
-              ? "text-red-500 font-medium"
-              : "text-muted-foreground"
-            : "text-muted-foreground"
-        )}>
-          {project.last_schedule_published_at
-            ? format(new Date(project.last_schedule_published_at), "MMM dd, yyyy")
-            : "-"}
-        </TableCell>
-      </TableRow>
-    );
-  };
-
   return (
     <div className="rounded-lg border bg-card">
-      <div className="p-4 border-b flex items-center justify-between">
+      <div className="p-4 border-b flex items-center justify-between gap-4 flex-wrap">
         <h3 className="text-lg font-semibold">Active Jobs</h3>
+        <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as TabKey)}>
+          <TabsList>
+            <TabsTrigger value="all">All ({counts.all})</TabsTrigger>
+            <TabsTrigger value="Under Construction">Under Construction ({counts["Under Construction"]})</TabsTrigger>
+            <TabsTrigger value="Permitting">Permitting ({counts.Permitting})</TabsTrigger>
+            <TabsTrigger value="In Design">In Design ({counts["In Design"]})</TabsTrigger>
+          </TabsList>
+        </Tabs>
         <div className="flex items-center gap-2">
           <span className="text-sm text-muted-foreground">Reorder</span>
-          <Switch checked={isReorderEnabled} onCheckedChange={setIsReorderEnabled} />
+          <Switch
+            checked={isReorderEnabled}
+            onCheckedChange={setIsReorderEnabled}
+            disabled={!reorderAllowed}
+          />
         </div>
       </div>
+      {isReorderEnabled && !reorderAllowed && (
+        <div className="px-4 py-2 text-xs text-muted-foreground border-b bg-muted/30">
+          Switch to a status tab to reorder.
+        </div>
+      )}
       <Table>
         <TableHeader>
           <TableRow>
-            {isReorderEnabled && <TableHead className="w-10"></TableHead>}
+            {isReorderEnabled && reorderAllowed && <TableHead className="w-10"></TableHead>}
             <TableHead>Address</TableHead>
+            {showStatusColumn && <TableHead>Status</TableHead>}
             <TableHead>Manager</TableHead>
             <TableHead>Schedule Progress</TableHead>
             <TableHead className="text-center">Bills</TableHead>
@@ -239,30 +191,87 @@ export function ActiveJobsTable() {
           </TableRow>
         </TableHeader>
         <TableBody>
-          {activeProjects.length === 0 ? (
+          {filtered.length === 0 ? (
             <TableRow>
               <TableCell colSpan={colCount} className="text-center text-muted-foreground py-8">
-                No active projects
+                No projects in this view
               </TableCell>
             </TableRow>
           ) : (
-            groups.map(group => {
-              if (group.items.length === 0) return null;
+            filtered.map((project) => {
+              const progress = scheduleProgress[project.id];
+              const bills = billCounts[project.id];
+              const reviewCount = (bills?.currentCount || 0) + (bills?.lateCount || 0);
+              const payCount = bills?.payCount || 0;
+              const isDragging = draggedProjectId === project.id;
+              const isDropTarget = dropTargetId === project.id;
+
               return (
-                <>
-                  <TableRow key={`group-${group.key}`} className="hover:bg-transparent">
-                    <TableCell
-                      colSpan={colCount}
-                      className={cn(
-                        "bg-muted/50 py-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground border-l-4",
-                        groupAccent[group.key]
-                      )}
-                    >
-                      {group.label} ({group.items.length})
+                <TableRow
+                  key={project.id}
+                  className={cn(
+                    "cursor-pointer hover:bg-muted/50 transition-all",
+                    isDragging && "opacity-50",
+                    isDropTarget && dropPosition === 'before' && "border-t-2 border-t-primary",
+                    isDropTarget && dropPosition === 'after' && "border-b-2 border-b-primary"
+                  )}
+                  onClick={() => !(isReorderEnabled && reorderAllowed) && handleRowClick(project.id)}
+                  draggable={isReorderEnabled && reorderAllowed}
+                  onDragStart={(e) => handleDragStart(e, project.id)}
+                  onDragEnd={handleDragEnd}
+                  onDragOver={(e) => handleDragOver(e, project.id)}
+                  onDragLeave={handleDragLeave}
+                  onDrop={(e) => handleDrop(e, project.id)}
+                >
+                  {isReorderEnabled && reorderAllowed && (
+                    <TableCell className="w-10 cursor-grab active:cursor-grabbing">
+                      <GripVertical className="h-4 w-4 text-muted-foreground" />
                     </TableCell>
-                  </TableRow>
-                  {group.items.map(renderProjectRow)}
-                </>
+                  )}
+                  <TableCell className="font-medium">
+                    {project.address ? project.address.split(',')[0].trim() : "No address"}
+                  </TableCell>
+                  {showStatusColumn && (
+                    <TableCell>
+                      <Badge variant="outline" className={statusColors[project.status || "In Design"]}>
+                        {project.status || "In Design"}
+                      </Badge>
+                    </TableCell>
+                  )}
+                  <TableCell className="text-muted-foreground">
+                    {project.construction_manager_user
+                      ? `${project.construction_manager_user.first_name} ${project.construction_manager_user.last_name}`.trim() || "-"
+                      : "-"}
+                  </TableCell>
+                  <TableCell>
+                    <div className="flex items-center gap-2 min-w-[120px]">
+                      <Progress value={progress?.overallProgress || 0} className="h-2 flex-1" />
+                      <span className="text-sm text-muted-foreground w-10">
+                        {progress?.overallProgress || 0}%
+                      </span>
+                    </div>
+                  </TableCell>
+                  <TableCell className="text-center">
+                    {reviewCount === 0 && payCount === 0 ? (
+                      <span className="text-muted-foreground">—</span>
+                    ) : (
+                      <span className="inline-flex items-center justify-center rounded-md bg-muted px-2 py-0.5 text-sm font-medium tabular-nums">
+                        {reviewCount} / {payCount}
+                      </span>
+                    )}
+                  </TableCell>
+                  <TableCell className={cn(
+                    project.last_schedule_published_at
+                      ? isScheduleStale(project.last_schedule_published_at)
+                        ? "text-red-500 font-medium"
+                        : "text-muted-foreground"
+                      : "text-muted-foreground"
+                  )}>
+                    {project.last_schedule_published_at
+                      ? format(new Date(project.last_schedule_published_at), "MMM dd, yyyy")
+                      : "-"}
+                  </TableCell>
+                </TableRow>
               );
             })
           )}
