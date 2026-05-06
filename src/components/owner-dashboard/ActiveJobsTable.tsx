@@ -231,10 +231,10 @@ export function ActiveJobsTable() {
                   {getSortIcon('status')}
                 </div>
               </TableHead>
+              <TableHead>Manager</TableHead>
               <TableHead>Schedule Progress</TableHead>
               <TableHead className="text-center">Review</TableHead>
               <TableHead className="text-center">Pay</TableHead>
-              <TableHead>Next Milestone</TableHead>
               <TableHead>Schedule Update</TableHead>
             </TableRow>
           </TableHeader>
