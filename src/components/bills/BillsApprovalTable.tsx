@@ -1256,6 +1256,18 @@ export function BillsApprovalTable({ status, projectId, projectIds, showProjectC
           {showEditButton ? (
             <TableRowActions actions={[
               {
+                label: "Resend to Review",
+                onClick: () => setConfirmDialog({
+                  open: true,
+                  action: 'resend',
+                  billId: bill.id,
+                  billInfo: bill,
+                  notes: '',
+                }),
+                hidden: bill.status !== 'void',
+                disabled: bill.reconciled,
+              },
+              {
                 label: "Edit",
                 onClick: () => setEditingBillId(bill.id),
                 disabled: bill.reconciled,
