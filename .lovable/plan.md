@@ -1,49 +1,25 @@
-## Active Jobs Table — Replace Status Grouping with Tabs
+## Restore "Resend to Review" on Rejected bills
 
-Revert the section-header grouping and instead use **tabs** at the top of the Active Jobs card to filter by status.
+The action was lost in a prior refactor of the Rejected row's `⋯` menu — not by request. Restoring it as it used to work.
 
-### Changes to `src/components/owner-dashboard/ActiveJobsTable.tsx`
+### Change
 
-**1. Add tabs above the table**
+**`src/components/bills/BillsApprovalTable.tsx`** — In the Rejected tab's row `⋯` menu, add **"Resend to Review"** as the first item (above Edit):
+- Visible only when `bill.status === 'rejected'`.
+- On click → opens a small confirm dialog with a required **Response Note** textarea (same UX as `EditBillDialog`'s "Send Bill Back for Review").
+- On confirm → flips the bill to `status: 'draft'`, stamps the response note, invalidates `bills`, `bills-for-approval-v3`, `bill-approval-counts`. Toast: "Bill sent back for review".
 
-Use shadcn `Tabs` component with these tabs (in order):
-- `All (n)`
-- `Under Construction (n)`
-- `Permitting (n)`
-- `In Design (n)`
+### Hook
 
-Counts come from `activeProjects` filtered by status. Default tab: `Under Construction` (most actionable). Selected tab is local state.
+**`src/hooks/useBills.ts`** — Add a small `resendBillToReview(billId, note)` mutation (header-only update, no line round-trip). Reuses the existing `status: 'draft'` convention already in `updateBill`.
 
-**2. Filter rows by selected tab**
+### Resulting Rejected row menu
 
-- `All` → show every active project, sorted by status priority then `display_order`.
-- Specific status tab → show only that status, sorted by `display_order`.
+```
+Resend to Review
+Edit
+─────────────
+Delete Bill
+```
 
-**3. Remove the section header rows and grouping logic**
-
-No more `STATUS_GROUPS` rendering with group headers. Plain flat rows under one set of column headers.
-
-**4. Bring back the Status column only on the `All` tab**
-
-When `All` is selected, show a `Status` column with the colored badge (so the user can still see which group each row belongs to). When a specific status tab is selected, hide the Status column (it's redundant).
-
-**5. Keep "Bills" merged column**
-
-Single centered `Bills` column showing `{review} / {pay}`, or `—` if both zero. (Unchanged from current.)
-
-**6. Reorder mode**
-
-- Drag-and-drop only enabled inside specific status tabs (not on `All`), to keep ordering scoped to one group.
-- When `All` is active and Reorder is toggled on, show a small note: "Switch to a status tab to reorder."
-
-### Resulting columns
-
-- **All tab:** `Address | Status | Manager | Schedule Progress | Bills | Schedule Update`
-- **Status-specific tab:** `Address | Manager | Schedule Progress | Bills | Schedule Update`
-- (+ drag handle column when Reorder is on inside a status tab)
-
-### Technical notes
-
-- shadcn `Tabs`, `TabsList`, `TabsTrigger` already used elsewhere in the codebase.
-- No data-fetching or hook changes.
-- Tab state is local; no persistence needed.
+No DB schema changes. Frontend + hook only.

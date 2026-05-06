@@ -1456,6 +1456,62 @@ export const useBills = () => {
     }
   });
 
+  const resendBillToReview = useMutation({
+    mutationFn: async ({ billId, notes }: { billId: string; notes: string }) => {
+      if (!user) throw new Error("User not authenticated");
+
+      const { data: billData } = await supabase
+        .from('bills')
+        .select('notes')
+        .eq('id', billId)
+        .single();
+
+      const { data: userData } = await supabase
+        .from('users')
+        .select('first_name, last_name')
+        .eq('id', user.id)
+        .single();
+
+      const userName = userData
+        ? `${userData.first_name || ''} ${userData.last_name || ''}`.trim()
+        : 'Unknown User';
+
+      const newNote = `${userName} (Resent for Review): ${notes.trim()}`;
+      const finalNotes = billData?.notes && billData.notes.trim()
+        ? `${newNote}\n\n${billData.notes}`
+        : newNote;
+
+      const { error } = await supabase
+        .from('bills')
+        .update({
+          status: 'draft',
+          notes: finalNotes,
+          updated_at: new Date().toISOString(),
+        })
+        .eq('id', billId);
+
+      if (error) throw error;
+      return billId;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['bills'] });
+      queryClient.invalidateQueries({ queryKey: ['bills-for-approval-v3'] });
+      queryClient.invalidateQueries({ queryKey: ['bill-approval-counts'] });
+      toast({
+        title: "Success",
+        description: "Bill sent back for review",
+      });
+    },
+    onError: (error) => {
+      console.error('Error resending bill to review:', error);
+      toast({
+        title: "Error",
+        description: "Failed to resend bill to review",
+        variant: "destructive",
+      });
+    },
+  });
+
   return {
     createBill,
     postBill,
@@ -1466,6 +1522,7 @@ export const useBills = () => {
     deleteBill,
     updateBill,
     updateApprovedBill,
-    correctBill
+    correctBill,
+    resendBillToReview,
   };
 };
