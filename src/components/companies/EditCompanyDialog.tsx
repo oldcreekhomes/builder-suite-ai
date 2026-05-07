@@ -688,8 +688,9 @@ export function EditCompanyDialog({ company, open, onOpenChange }: EditCompanyDi
                 </TabsContent>
               )}
             </Tabs>
+            </div>
 
-            <div className="flex justify-between pt-4 border-t">
+            <div className="flex justify-between px-6 py-4 border-t shrink-0">
               <div>
                 {activeTab === 'insurance' && !showInsuranceUpload && (
                   <Button
