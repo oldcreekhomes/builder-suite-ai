@@ -1,36 +1,17 @@
 ## Problem
 
-Searching `AT` in the Resources picker still returns items like `Jamie Hill · Fairfax Water`, `Maria Guerrero · Elite Foam Insul…`, `Brett Carney · RC Fields`, `Dan Taylor · Creative Landscapes`, etc. None of these companies start with `AT`. The current substring filter matches `at` anywhere in the combined `"resourceName companyName"` string — so `Taylor`, `Water`, `Matlantic`, `Creative`, etc. all leak through.
+In `src/components/companies/EditCompanyDialog.tsx`, the `DialogContent` is capped at `max-h-[90vh]` with `overflow-hidden`, but the inner `<form>` has no scroll container. When a company has many associated cost codes, the form grows past 90vh and the Cancel / Update Company buttons get clipped below the viewport.
 
 ## Fix
 
-Change matching to **case-insensitive prefix match against the company name only** (and fall back to the rep name when there is no company, e.g. internal users without a company).
+Restructure the dialog into a flex column with a scrollable body and a pinned footer:
 
-In `src/components/schedule/ResourcesSelector.tsx`:
-
-1. Encode each `CommandItem`'s `value` so the filter can isolate the company name. Use a delimiter that won't collide:
-   - External rep: `value={`${resource.companyName}||${resource.resourceName}||${resource.resourceId}`}`
-   - Internal user: `value={`${resource.companyName ?? resource.resourceName}||${resource.resourceName}||${resource.resourceId}`}`
-   - Selected group: keep the `selected-` prefix so they stay pinned.
-
-2. Replace the `Command` filter with prefix logic:
-
-```tsx
-filter={(value, search) => {
-  if (!search) return 1;
-  if (value.startsWith('selected-')) return 1;
-  const companyOrName = value.split('||')[0] ?? '';
-  return companyOrName.toLowerCase().startsWith(search.toLowerCase().trim()) ? 1 : 0;
-}}
-```
-
-## Result for `AT`
-
-- Shows only companies whose name starts with `AT` (e.g. `AT&T`, `Atlantic …`, `Atrium …`).
-- Hides `Fairfax Water`, `Elite Foam`, `RC Fields`, `Creative Landscapes`, `Midatlantic Party Wall`, internal users named `Matt`, etc.
-- Selected items stay visible while editing.
+1. `DialogContent` → `max-w-3xl max-h-[90vh] flex flex-col overflow-hidden p-0` (keep the outside-interaction guards).
+2. Wrap `DialogHeader` in a non-shrinking container with the original padding (`px-6 pt-6`).
+3. Wrap the `<Form>` / `<form>` area in a `flex-1 overflow-y-auto px-6` container so the long content (cost codes, representatives, etc.) scrolls inside the dialog.
+4. Move the existing Cancel + Update Company button row out of the scroll area into a sticky footer `<div className="border-t px-6 py-4 flex justify-end gap-2 shrink-0">` at the bottom of `DialogContent`. Keep the Upload Certificate button where it is in the Insurance tab — only the bottom action row moves.
+5. Verify Tabs/inner sections still render correctly at narrow heights and that the footer is always visible regardless of cost-code count.
 
 ## Out of scope
 
-- No changes to data, grouping, ordering, or the notification-preference filter.
-- Rep-name search is intentionally dropped per your instruction ("only return companies with names that start with…"). If you also want rep-name prefix matching (e.g. typing `Jam` to find `Jamie Hill`), say so and I'll add it as a second OR clause.
+No changes to data, validation, cost-code search, or any other dialog behavior.
