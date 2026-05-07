@@ -78,17 +78,8 @@ export function ResourcesSelector({ value, onValueChange, className, readOnly = 
     setOpen(newOpen);
     if (!newOpen) {
       setIsEditing(false);
-      setCompanyFilter("__all__");
     }
   };
-
-  const uniqueCompanies = useMemo(() => {
-    const names = new Set<string>();
-    resources.forEach(r => {
-      if (r.resourceGroup === 'External' && r.companyName) names.add(r.companyName);
-    });
-    return Array.from(names).sort();
-  }, [resources]);
 
   // If readOnly, always show as non-editable text
   if (readOnly) {
