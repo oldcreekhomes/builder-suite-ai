@@ -44,32 +44,29 @@ export const needsNormalization = (allTasks: ProjectTask[]): boolean => {
   
   if (topLevelTasks.length > 0 && topLevelTasks[0].hierarchy_number !== '1') return true;
   
-  const topLevelNumbers = new Set<number>();
-  const childNumbersByGroup = new Map<string, Set<number>>();
-  
+  // Group last-component numbers by parent prefix at every depth.
+  // "1" → parent prefix "", last 1
+  // "1.2" → parent prefix "1", last 2
+  // "1.2.3" → parent prefix "1.2", last 3
+  const numbersByParent = new Map<string, Set<number>>();
+
   for (const task of allTasks) {
     if (!task.hierarchy_number) continue;
     const parts = task.hierarchy_number.split('.');
-    if (parts.length === 1) {
-      topLevelNumbers.add(parseInt(parts[0]));
-    } else if (parts.length === 2) {
-      const group = parts[0];
-      if (!childNumbersByGroup.has(group)) childNumbersByGroup.set(group, new Set());
-      childNumbersByGroup.get(group)!.add(parseInt(parts[1]));
+    const parent = parts.slice(0, -1).join('.');
+    const last = parseInt(parts[parts.length - 1]);
+    if (isNaN(last)) continue;
+    if (!numbersByParent.has(parent)) numbersByParent.set(parent, new Set());
+    numbersByParent.get(parent)!.add(last);
+  }
+
+  for (const [, nums] of numbersByParent.entries()) {
+    if (nums.size === 0) continue;
+    const max = Math.max(...Array.from(nums));
+    for (let i = 1; i <= max; i++) {
+      if (!nums.has(i)) return true;
     }
   }
-  
-  const maxTopLevel = Math.max(...Array.from(topLevelNumbers));
-  for (let i = 1; i <= maxTopLevel; i++) {
-    if (!topLevelNumbers.has(i)) return true;
-  }
-  
-  for (const [, childNumbers] of childNumbersByGroup.entries()) {
-    const maxChild = Math.max(...Array.from(childNumbers));
-    for (let i = 1; i <= maxChild; i++) {
-      if (!childNumbers.has(i)) return true;
-    }
-  }
-  
+
   return false;
 };
