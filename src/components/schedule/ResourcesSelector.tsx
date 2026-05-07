@@ -159,7 +159,8 @@ export function ResourcesSelector({ value, onValueChange, className, readOnly = 
             filter={(value, search) => {
               if (!search) return 1;
               if (value.startsWith('selected-')) return 1;
-              return value.toLowerCase().includes(search.toLowerCase()) ? 1 : 0;
+              const companyOrName = value.split('||')[0] ?? '';
+              return companyOrName.toLowerCase().startsWith(search.toLowerCase().trim()) ? 1 : 0;
             }}
           >
             <CommandInput placeholder="Search users and representatives..." onKeyDown={(e) => {
@@ -209,7 +210,7 @@ export function ResourcesSelector({ value, onValueChange, className, readOnly = 
                   .map((resource) => (
                     <CommandItem
                       key={`user-${resource.resourceId}`}
-                      value={`${resource.resourceName} ${resource.companyName ?? ''}`}
+                      value={`${resource.companyName ?? resource.resourceName}||${resource.resourceName}||${resource.resourceId}`}
                       onSelect={() => handleSelect(resource.resourceName)}
                     >
                       <div className="flex items-center space-x-2 flex-1">
@@ -231,7 +232,7 @@ export function ResourcesSelector({ value, onValueChange, className, readOnly = 
                   .map((resource) => (
                     <CommandItem
                       key={`rep-${resource.resourceId}`}
-                      value={`${resource.resourceName} ${resource.companyName ?? ''}`}
+                      value={`${resource.companyName ?? resource.resourceName}||${resource.resourceName}||${resource.resourceId}`}
                       onSelect={() => handleSelect(resource.resourceName)}
                     >
                       <div className="flex items-center space-x-2 flex-1 min-w-0">
