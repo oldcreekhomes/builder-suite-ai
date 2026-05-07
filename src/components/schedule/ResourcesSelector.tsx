@@ -210,7 +210,7 @@ export function ResourcesSelector({ value, onValueChange, className, readOnly = 
                   .map((resource) => (
                     <CommandItem
                       key={`user-${resource.resourceId}`}
-                      value={`${resource.resourceName} ${resource.companyName ?? ''}`}
+                      value={`${resource.companyName ?? resource.resourceName}||${resource.resourceName}||${resource.resourceId}`}
                       onSelect={() => handleSelect(resource.resourceName)}
                     >
                       <div className="flex items-center space-x-2 flex-1">
