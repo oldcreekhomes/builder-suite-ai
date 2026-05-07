@@ -109,19 +109,29 @@ export const useProjectResources = (projectId?: string) => {
         
         // Fetch all representatives from all owned companies
         const companyIds = ownedCompanies.map(c => c.id);
-        const { data: representatives } = await supabase
-          .from('company_representatives')
-          .select('id, first_name, last_name, email, phone_number, service_areas')
-          .in('company_id', companyIds);
+        const [{ data: representatives }, { data: companiesData }] = await Promise.all([
+          supabase
+            .from('company_representatives')
+            .select('id, first_name, last_name, email, phone_number, service_areas, company_id, receive_schedule_notifications')
+            .in('company_id', companyIds),
+          supabase
+            .from('companies')
+            .select('id, company_name')
+            .in('id', companyIds),
+        ]);
+
+        const companyNameById = new Map((companiesData || []).map(c => [c.id, c.company_name]));
 
         if (representatives && representatives.length > 0) {
           console.log('Found representatives:', representatives);
+          // Filter by schedule-notification opt-in
+          const notifiableReps = representatives.filter(r => r.receive_schedule_notifications === true);
           // Filter by project region if set
           const filteredReps = projectRegion
-            ? representatives.filter(rep => 
+            ? notifiableReps.filter(rep => 
                 (rep.service_areas || []).includes(projectRegion)
               )
-            : representatives;
+            : notifiableReps;
           console.log('Filtered representatives by region:', projectRegion, filteredReps.length, '/', representatives.length);
           const repResources = filteredReps.map(rep => ({
             resourceId: rep.id,
@@ -129,7 +139,9 @@ export const useProjectResources = (projectId?: string) => {
             resourceGroup: 'External' as const,
             email: rep.email,
             phone: rep.phone_number,
-            type: 'representative' as const
+            type: 'representative' as const,
+            companyId: rep.company_id,
+            companyName: companyNameById.get(rep.company_id) || undefined,
           }));
           allResources.push(...repResources);
         }
