@@ -8,6 +8,8 @@ export interface ProjectResource {
   email?: string;
   phone?: string;
   type: 'user' | 'representative';
+  companyId?: string;
+  companyName?: string;
 }
 
 export const useProjectResources = (projectId?: string) => {
