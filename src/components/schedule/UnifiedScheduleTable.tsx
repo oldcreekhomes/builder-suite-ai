@@ -236,9 +236,7 @@ export function UnifiedScheduleTable({
   const getCanIndent = (task: ProjectTask) => canIndent(task, tasks);
   
   const getCanOutdent = (task: ProjectTask) => {
-    return task.hierarchy_number && 
-           task.hierarchy_number.includes('.') && 
-           task.hierarchy_number.split('.').length === 2;
+    return !!task.hierarchy_number && task.hierarchy_number.includes('.');
   };
 
   const getIndentLevel = (hierarchyNumber: string | null) => {

@@ -1,6 +1,12 @@
 import { ProjectTask } from "@/hooks/useProjectTasks";
 
 /**
+ * Maximum hierarchy depth (Parent → Child → Grandchild = 3 levels).
+ * Depth 1 = parent (e.g. "1"), 2 = child ("1.2"), 3 = grandchild ("1.2.3").
+ */
+export const MAX_HIERARCHY_DEPTH = 3;
+
+/**
  * Get the parent hierarchy number from a given hierarchy number
  * Example: "1.2.3" -> "1.2"
  */
@@ -12,109 +18,135 @@ export function getParentHierarchy(hierarchyNumber: string): string | null {
 }
 
 /**
- * Get all children of a task based on hierarchy number
+ * Get all immediate children of a parent hierarchy
  */
 export function getChildren(tasks: ProjectTask[], parentHierarchy: string): ProjectTask[] {
   if (!parentHierarchy) return [];
-  return tasks.filter(task => 
-    task.hierarchy_number && 
+  return tasks.filter(task =>
+    task.hierarchy_number &&
     task.hierarchy_number.startsWith(parentHierarchy + ".") &&
     task.hierarchy_number.split(".").length === parentHierarchy.split(".").length + 1
   );
 }
 
 /**
- * Get the hierarchy level (indentation level)
+ * Hierarchy depth (1-based: "1" → 1, "1.2" → 2, "1.2.3" → 3)
+ */
+export function getHierarchyDepth(hierarchyNumber: string): number {
+  if (!hierarchyNumber) return 0;
+  return hierarchyNumber.split(".").length;
+}
+
+/**
+ * Visual indent level (0-based)
  */
 export function getLevel(hierarchyNumber: string): number {
   if (!hierarchyNumber) return 0;
   return hierarchyNumber.split(".").length - 1;
 }
 
-// ALL COMPLEX HIERARCHY FUNCTIONS DISABLED DURING REFACTORING
-// Only keeping basic functions for now
-
-export function canIndent(task: ProjectTask, tasks: ProjectTask[]): boolean {
-  if (!task.hierarchy_number) return false;
-  
-  // Sort tasks by hierarchy for proper processing
-  const sortedTasks = [...tasks].sort((a, b) => {
-    const aNum = a.hierarchy_number || "999";
-    const bNum = b.hierarchy_number || "999";
-    return aNum.localeCompare(bNum, undefined, { numeric: true });
-  });
-  
-  // Find the current task's position
-  const currentIndex = sortedTasks.findIndex(t => t.id === task.id);
-  
-  // Can only indent if there's a task above it
-  return currentIndex > 0;
-}
-
-// canOutdent removed - was disabled stub returning false
-
-export function generateIndentHierarchy(task: ProjectTask, tasks: ProjectTask[]): string | null {
-  if (!task.hierarchy_number) return null;
-  
-  // Sort tasks by hierarchy for proper processing
-  const sortedTasks = [...tasks].sort((a, b) => {
-    const aNum = a.hierarchy_number || "999";
-    const bNum = b.hierarchy_number || "999";
-    return aNum.localeCompare(bNum, undefined, { numeric: true });
-  });
-  
-  // Find the current task's position
-  const currentIndex = sortedTasks.findIndex(t => t.id === task.id);
-  
-  // Can't indent if there's no task above
-  if (currentIndex <= 0) return null;
-  
-  const previousTask = sortedTasks[currentIndex - 1];
-  const parentHierarchy = previousTask.hierarchy_number;
-  
-  if (!parentHierarchy) return null;
-  
-  // Check if the previous task is already a child (has dots)
-  const isChildTask = parentHierarchy.includes('.');
-  
-  if (isChildTask) {
-    // Previous task is a child, so make current task a sibling under the same parent
-    const parentParts = parentHierarchy.split('.');
-    const immediateParent = parentParts.slice(0, -1).join('.');
-    
-    // Find all existing children of the immediate parent at the same level
-    const existingChildren = tasks.filter(t => 
-      t.hierarchy_number && 
-      t.hierarchy_number.startsWith(immediateParent + ".") &&
-      t.hierarchy_number.split(".").length === parentParts.length
-    );
-    
-    // Calculate the next sibling number
-    const nextSiblingNumber = existingChildren.length + 1;
-    
-    return `${immediateParent}.${nextSiblingNumber}`;
-  } else {
-    // Previous task is a parent, so make current task its child
-    // Find all existing children of the previous task
-    const existingChildren = tasks.filter(t => 
-      t.hierarchy_number && 
-      t.hierarchy_number.startsWith(parentHierarchy + ".") &&
-      t.hierarchy_number.split(".").length === parentHierarchy.split(".").length + 1
-    );
-    
-    // Calculate the next child number
-    const nextChildNumber = existingChildren.length + 1;
-    
-    return `${parentHierarchy}.${nextChildNumber}`;
-  }
+export function getIndentLevel(hierarchyNumber: string): number {
+  return getLevel(hierarchyNumber);
 }
 
 /**
- * Validate that all parts of a hierarchy number are positive integers
+ * Sort tasks by hierarchy number (numeric-aware).
  */
+function sortByHierarchy(tasks: ProjectTask[]): ProjectTask[] {
+  return [...tasks].sort((a, b) => {
+    const aNum = a.hierarchy_number || "999";
+    const bNum = b.hierarchy_number || "999";
+    return aNum.localeCompare(bNum, undefined, { numeric: true });
+  });
+}
+
+export function canIndent(task: ProjectTask, tasks: ProjectTask[]): boolean {
+  if (!task.hierarchy_number) return false;
+
+  const sortedTasks = sortByHierarchy(tasks);
+  const currentIndex = sortedTasks.findIndex(t => t.id === task.id);
+  if (currentIndex <= 0) return false;
+
+  // Predict the indented depth based on the previous visible task.
+  const previous = sortedTasks[currentIndex - 1];
+  if (!previous.hierarchy_number) return false;
+  const prevDepth = getHierarchyDepth(previous.hierarchy_number);
+  const currentDepth = getHierarchyDepth(task.hierarchy_number);
+
+  // If previous is at same or deeper level → become its sibling at prev's depth.
+  // If previous is at shallower level (parent) → become its child at prevDepth+1.
+  const targetDepth = prevDepth >= currentDepth ? prevDepth + (prevDepth === currentDepth - 1 ? 0 : 0) : prevDepth + 1;
+  // Simpler: the result of generateIndentHierarchy decides — just enforce cap there.
+  // Block when result would exceed MAX_HIERARCHY_DEPTH.
+  const projected = generateIndentHierarchy(task, tasks);
+  if (!projected) return false;
+  if (getHierarchyDepth(projected) > MAX_HIERARCHY_DEPTH) return false;
+  return true;
+}
+
+export function generateIndentHierarchy(task: ProjectTask, tasks: ProjectTask[]): string | null {
+  if (!task.hierarchy_number) return null;
+
+  const sortedTasks = sortByHierarchy(tasks);
+  const currentIndex = sortedTasks.findIndex(t => t.id === task.id);
+  if (currentIndex <= 0) return null;
+
+  const previousTask = sortedTasks[currentIndex - 1];
+  const previousHierarchy = previousTask.hierarchy_number;
+  if (!previousHierarchy) return null;
+
+  const prevDepth = getHierarchyDepth(previousHierarchy);
+  const currentDepth = getHierarchyDepth(task.hierarchy_number);
+
+  // Target parent is the previous task if it is one level shallower or same/deeper level
+  // Algorithm (matches prior behavior):
+  //   - If previous is same depth as current → indent under previous (becomes its child).
+  //   - If previous is deeper than current → become a sibling of previous (under previous's parent).
+  //   - If previous is shallower → become previous's child (one deeper).
+  let parentHierarchy: string;
+  let newDepth: number;
+
+  if (prevDepth >= currentDepth) {
+    // Become sibling of previous at previous's depth (if same depth, indent under prev's parent...
+    // but previous itself is at currentDepth meaning prev shares parent → we instead indent UNDER previous).
+    if (prevDepth === currentDepth) {
+      // Indent under the previous sibling → become its first child.
+      parentHierarchy = previousHierarchy;
+      newDepth = prevDepth + 1;
+    } else {
+      // Previous is deeper: become its sibling.
+      const prevParts = previousHierarchy.split(".");
+      parentHierarchy = prevParts.slice(0, -1).join(".");
+      newDepth = prevDepth;
+    }
+  } else {
+    // Previous is shallower → become previous's child.
+    parentHierarchy = previousHierarchy;
+    newDepth = prevDepth + 1;
+  }
+
+  if (newDepth > MAX_HIERARCHY_DEPTH) return null;
+
+  // Find next sibling number under parentHierarchy at newDepth.
+  const existingChildren = tasks.filter(t => {
+    if (!t.hierarchy_number || t.id === task.id) return false;
+    if (parentHierarchy === "") {
+      // top-level
+      return !t.hierarchy_number.includes(".");
+    }
+    return (
+      t.hierarchy_number.startsWith(parentHierarchy + ".") &&
+      t.hierarchy_number.split(".").length === newDepth
+    );
+  });
+
+  const nextNumber = existingChildren.length + 1;
+  return parentHierarchy === "" ? nextNumber.toString() : `${parentHierarchy}.${nextNumber}`;
+}
+
 function isValidHierarchyNumber(hierarchyNumber: string): boolean {
   if (!hierarchyNumber) return false;
-  const parts = hierarchyNumber.split('.');
+  const parts = hierarchyNumber.split(".");
   return parts.every(part => {
     const num = parseInt(part);
     return !isNaN(num) && num > 0;
@@ -122,159 +154,144 @@ function isValidHierarchyNumber(hierarchyNumber: string): boolean {
 }
 
 /**
- * Generate all updates needed for indenting a task
- * This includes the indented task and renumbering of subsequent parent-level tasks
+ * Generate all updates needed when indenting a task.
+ * Generalized to any depth: shifts the indented task's former siblings (same prefix, same depth)
+ * down by 1, and pulls along their subtrees.
  */
-export function generateIndentUpdates(task: ProjectTask, tasks: ProjectTask[]): Array<{id: string, hierarchy_number: string}> {
+export function generateIndentUpdates(
+  task: ProjectTask,
+  tasks: ProjectTask[]
+): Array<{ id: string; hierarchy_number: string }> {
   if (!task.hierarchy_number) return [];
-  
-  const originalNumber = parseInt(task.hierarchy_number.split('.')[0]);
+
+  const originalHierarchy = task.hierarchy_number;
+  const originalParts = originalHierarchy.split(".");
+  const originalDepth = originalParts.length;
+  const originalParent = originalParts.slice(0, -1).join("."); // "" if top-level
+  const originalLast = parseInt(originalParts[originalParts.length - 1]);
+
   const newHierarchy = generateIndentHierarchy(task, tasks);
-  
   if (!newHierarchy || !isValidHierarchyNumber(newHierarchy)) return [];
-  
-  // Check if the new hierarchy number would create a duplicate
-  const existingTaskWithHierarchy = tasks.find(t => 
-    t.id !== task.id && t.hierarchy_number === newHierarchy
-  );
-  
-  if (existingTaskWithHierarchy) {
+  if (getHierarchyDepth(newHierarchy) > MAX_HIERARCHY_DEPTH) return [];
+
+  // Collision check
+  if (tasks.some(t => t.id !== task.id && t.hierarchy_number === newHierarchy)) {
     console.warn(`Cannot indent: hierarchy number "${newHierarchy}" already exists`);
     return [];
   }
-  
-  const updates: Array<{id: string, hierarchy_number: string}> = [];
-  
-  // Add the indented task update
-  updates.push({
-    id: task.id,
-    hierarchy_number: newHierarchy
-  });
-  
-  // Find all parent-level tasks that need renumbering (shift down by 1)
-  // These are tasks with hierarchy numbers greater than the original number
-  const tasksToRenumber = tasks.filter(t => {
-    if (!t.hierarchy_number || t.id === task.id) return false;
-    
-    // Only parent-level tasks (no dots in hierarchy)
-    if (t.hierarchy_number.includes('.')) return false;
-    
-    const taskNumber = parseInt(t.hierarchy_number);
-    return taskNumber > originalNumber;
-  }).sort((a, b) => {
-    const aNum = parseInt(a.hierarchy_number!);
-    const bNum = parseInt(b.hierarchy_number!);
-    return aNum - bNum; // Sort ascending for proper sequential processing
-  });
-  
-  // Create a mapping of old hierarchy numbers to track what's being updated
-  const hierarchyMapping = new Map<string, string>();
-  
-  // Process tasks sequentially: 3→2, 4→3, 5→4, etc.
-  tasksToRenumber.forEach(t => {
-    const currentNumber = parseInt(t.hierarchy_number!);
-    const newNumber = currentNumber - 1;
-    
-    // Validate the new number is positive
-    if (newNumber <= 0) {
-      console.warn(`Cannot renumber task ${t.id}: would result in non-positive hierarchy number ${newNumber}`);
-      return;
+
+  const updates: Array<{ id: string; hierarchy_number: string }> = [];
+
+  // 1. The indented task itself moves
+  updates.push({ id: task.id, hierarchy_number: newHierarchy });
+
+  // 2. Move the indented task's descendants along with it (re-prefix).
+  const descendants = tasks.filter(
+    t => t.id !== task.id && t.hierarchy_number?.startsWith(originalHierarchy + ".")
+  );
+  // Depth-cap check: any descendant must still fit within MAX.
+  for (const d of descendants) {
+    const newDescHierarchy = newHierarchy + d.hierarchy_number!.substring(originalHierarchy.length);
+    if (getHierarchyDepth(newDescHierarchy) > MAX_HIERARCHY_DEPTH) {
+      console.warn(`Cannot indent: descendant ${d.hierarchy_number} would exceed depth ${MAX_HIERARCHY_DEPTH}`);
+      return [];
     }
-    
-    const newHierarchyNumber = newNumber.toString();
-    
-    // Validate the new hierarchy number
-    if (!isValidHierarchyNumber(newHierarchyNumber)) {
-      console.warn(`Cannot renumber task ${t.id}: invalid hierarchy number ${newHierarchyNumber}`);
-      return;
-    }
-    
-    hierarchyMapping.set(t.hierarchy_number!, newHierarchyNumber);
-    
+  }
+  for (const d of descendants) {
     updates.push({
-      id: t.id,
-      hierarchy_number: newHierarchyNumber
+      id: d.id,
+      hierarchy_number: newHierarchy + d.hierarchy_number!.substring(originalHierarchy.length),
     });
-  });
-  
+  }
+
+  // 3. Renumber the indented task's former siblings (same prefix, same depth) whose
+  //    last component > originalLast, shifting down by 1; carry their subtrees.
+  const formerSiblings = tasks
+    .filter(t => {
+      if (!t.hierarchy_number || t.id === task.id) return false;
+      const parts = t.hierarchy_number.split(".");
+      if (parts.length !== originalDepth) return false;
+      if (originalParent === "") return parts.length === 1;
+      const tParent = parts.slice(0, -1).join(".");
+      if (tParent !== originalParent) return false;
+      return parseInt(parts[parts.length - 1]) > originalLast;
+    })
+    .sort((a, b) => {
+      const aNum = parseInt(a.hierarchy_number!.split(".").pop()!);
+      const bNum = parseInt(b.hierarchy_number!.split(".").pop()!);
+      return aNum - bNum;
+    });
+
+  for (const sib of formerSiblings) {
+    const sibParts = sib.hierarchy_number!.split(".");
+    const newLast = parseInt(sibParts[sibParts.length - 1]) - 1;
+    if (newLast <= 0) continue;
+    const newSibHierarchy =
+      originalParent === "" ? newLast.toString() : `${originalParent}.${newLast}`;
+
+    updates.push({ id: sib.id, hierarchy_number: newSibHierarchy });
+
+    // Carry subtree of this sibling
+    const sibSubtree = tasks.filter(
+      t => t.id !== sib.id && t.hierarchy_number?.startsWith(sib.hierarchy_number! + ".")
+    );
+    for (const s of sibSubtree) {
+      updates.push({
+        id: s.id,
+        hierarchy_number: newSibHierarchy + s.hierarchy_number!.substring(sib.hierarchy_number!.length),
+      });
+    }
+  }
+
   return updates;
 }
 
-// generateOutdentHierarchy removed - was disabled stub returning null
-
-// SIMPLE: Basic renumbering function that actually works
-// BUG FIX: Filter children from ORIGINAL sortedTasks, not from result array (which has modified hierarchy numbers)
-export function renumberTasks(tasks: ProjectTask[]): ProjectTask[] {
-  // Sort tasks by hierarchy for proper processing
-  const sortedTasks = [...tasks].sort((a, b) => {
-    const aNum = a.hierarchy_number || "999";
-    const bNum = b.hierarchy_number || "999";
-    return aNum.localeCompare(bNum, undefined, { numeric: true });
-  });
-  
-  // Deep clone all tasks to avoid mutation
-  const result = sortedTasks.map(task => ({ ...task }));
-  
-  // Create a map from task ID to result array entry for quick updates
-  const resultMap = new Map<string, ProjectTask>();
-  result.forEach(task => resultMap.set(task.id, task));
-  
-  // First: Get all top-level tasks from ORIGINAL sortedTasks (before any modifications)
-  const topLevelTasks = sortedTasks.filter(task => 
-    task.hierarchy_number && !task.hierarchy_number.includes(".")
-  );
-  
-  // Create mapping of old parent numbers to new parent numbers
-  const parentMapping = new Map<string, string>();
-  let topLevelCounter = 1;
-  
-  topLevelTasks.forEach(task => {
-    const oldNumber = task.hierarchy_number!;
-    const newNumber = topLevelCounter.toString();
-    parentMapping.set(oldNumber, newNumber);
-    // Update the result entry
-    const resultTask = resultMap.get(task.id);
-    if (resultTask) resultTask.hierarchy_number = newNumber;
-    topLevelCounter++;
-  });
-  
-  // Second: Update all children based on the parent mapping
-  // CRITICAL: Filter from ORIGINAL sortedTasks, not from result (which has modified hierarchy numbers)
-  parentMapping.forEach((newParentNumber, oldParentNumber) => {
-    const children = sortedTasks.filter(task => 
-      task.hierarchy_number && 
-      task.hierarchy_number.startsWith(oldParentNumber + ".")
-    );
-    
-    // Sort children by their ORIGINAL hierarchy number
-    children.sort((a, b) => {
-      const aNum = a.hierarchy_number || "999";
-      const bNum = b.hierarchy_number || "999";
-      return aNum.localeCompare(bNum, undefined, { numeric: true });
-    });
-    
-    // Renumber children sequentially
-    let childCounter = 1;
-    children.forEach(child => {
-      const resultTask = resultMap.get(child.id);
-      if (resultTask) {
-        resultTask.hierarchy_number = `${newParentNumber}.${childCounter}`;
-        childCounter++;
-      }
-    });
-  });
-  
-  return result;
-}
-
-// generateHierarchyNumber removed - was disabled stub returning "1"
-
 /**
- * Get the visual indentation level from hierarchy number
+ * Renumber all tasks so that hierarchy numbers are dense from 1.
+ * Recursive across all depths up to MAX_HIERARCHY_DEPTH.
  */
-export function getIndentLevel(hierarchyNumber: string): number {
-  if (!hierarchyNumber) return 0;
-  return Math.max(0, hierarchyNumber.split(".").length - 1);
+export function renumberTasks(tasks: ProjectTask[]): ProjectTask[] {
+  const sortedTasks = sortByHierarchy(tasks);
+  const result = sortedTasks.map(t => ({ ...t }));
+  const resultMap = new Map<string, ProjectTask>();
+  result.forEach(t => resultMap.set(t.id, t));
+
+  // Build a mapping of OLD hierarchy → NEW hierarchy by walking depths.
+  const oldToNew = new Map<string, string>();
+
+  const renumberLevel = (parentOldHierarchy: string, parentNewHierarchy: string, depth: number) => {
+    if (depth > MAX_HIERARCHY_DEPTH) return;
+
+    const children = sortedTasks
+      .filter(t => {
+        if (!t.hierarchy_number) return false;
+        const parts = t.hierarchy_number.split(".");
+        if (parts.length !== depth) return false;
+        if (parentOldHierarchy === "") return parts.length === 1;
+        return t.hierarchy_number.startsWith(parentOldHierarchy + ".") && parts.length === depth;
+      })
+      .sort((a, b) => {
+        const aNum = parseInt(a.hierarchy_number!.split(".").pop()!);
+        const bNum = parseInt(b.hierarchy_number!.split(".").pop()!);
+        return aNum - bNum;
+      });
+
+    let counter = 1;
+    for (const child of children) {
+      const newHierarchy =
+        parentNewHierarchy === "" ? counter.toString() : `${parentNewHierarchy}.${counter}`;
+      oldToNew.set(child.hierarchy_number!, newHierarchy);
+      const r = resultMap.get(child.id);
+      if (r) r.hierarchy_number = newHierarchy;
+      // Recurse into this child's subtree.
+      renumberLevel(child.hierarchy_number!, newHierarchy, depth + 1);
+      counter++;
+    }
+  };
+
+  renumberLevel("", "", 1);
+
+  return result;
 }
 
 /**
@@ -289,7 +306,7 @@ export function isChildOf(childHierarchy: string, parentHierarchy: string): bool
  * Get all descendants of a task
  */
 export function getDescendants(tasks: ProjectTask[], parentHierarchy: string): ProjectTask[] {
-  return tasks.filter(task => 
+  return tasks.filter(task =>
     task.hierarchy_number && isChildOf(task.hierarchy_number, parentHierarchy)
   );
 }
