@@ -18,223 +18,180 @@ export interface DeleteTaskResult {
   parentGroupsToRecalculate: string[];
 }
 
-/**
- * Computes updates needed when deleting a child task
- */
-export const computeDeleteChildUpdates = (
-  targetTask: ProjectTask,
-  allTasks: ProjectTask[]
-): DeleteTaskResult => {
-  if (!targetTask.hierarchy_number) throw new Error("Target task must have a hierarchy number");
-  
-  const hierarchyParts = targetTask.hierarchy_number.split('.');
-  if (hierarchyParts.length !== 2) throw new Error("Target task must be a child task (e.g., '1.2')");
-  
-  const groupNumber = hierarchyParts[0];
-  const childNumber = parseInt(hierarchyParts[1]);
-  
-  const siblingsToRenumber = allTasks.filter(task => {
-    if (!task.hierarchy_number || task.id === targetTask.id) return false;
-    const taskParts = task.hierarchy_number.split('.');
-    if (taskParts.length !== 2 || taskParts[0] !== groupNumber) return false;
-    return parseInt(taskParts[1]) > childNumber;
-  }).sort((a, b) => parseInt(a.hierarchy_number!.split('.')[1]) - parseInt(b.hierarchy_number!.split('.')[1]));
-  
-  const hierarchyUpdates: TaskUpdate[] = siblingsToRenumber.map(task => ({
-    id: task.id,
-    hierarchy_number: `${groupNumber}.${parseInt(task.hierarchy_number!.split('.')[1]) - 1}`
-  }));
-  
-  const hierarchyMapping = new Map<string, string>();
-  hierarchyUpdates.forEach(update => {
-    const oldTask = allTasks.find(t => t.id === update.id);
-    if (oldTask?.hierarchy_number) hierarchyMapping.set(oldTask.hierarchy_number, update.hierarchy_number);
-  });
-  
-  const predecessorUpdates = remapAllPredecessors(allTasks, hierarchyMapping, [targetTask.hierarchy_number]);
-  
-  return {
-    tasksToDelete: [targetTask.id],
-    hierarchyUpdates,
-    predecessorUpdates,
-    parentGroupsToRecalculate: [groupNumber]
-  };
-};
-
-/**
- * Computes updates needed when deleting a group task
- */
-export const computeDeleteGroupUpdates = (
-  targetTask: ProjectTask,
-  allTasks: ProjectTask[]
-): DeleteTaskResult => {
-  if (!targetTask.hierarchy_number) throw new Error("Target task must have a hierarchy number");
-  
-  const groupNumber = parseInt(targetTask.hierarchy_number);
-  
-  const childrenToDelete = allTasks.filter(task =>
-    task.hierarchy_number?.startsWith(targetTask.hierarchy_number + '.') && task.id !== targetTask.id
-  );
-  
-  const allToRenumber = allTasks.filter(task => {
-    if (!task.hierarchy_number || task.id === targetTask.id) return false;
-    const firstPart = parseInt(task.hierarchy_number.split('.')[0]);
-    return firstPart > groupNumber;
-  }).sort((a, b) => a.hierarchy_number!.localeCompare(b.hierarchy_number!, undefined, { numeric: true }));
-  
-  const hierarchyUpdates: TaskUpdate[] = allToRenumber.map(task => {
-    const parts = task.hierarchy_number!.split('.');
-    const taskGroupNumber = parseInt(parts[0]);
-    return parts.length === 1
-      ? { id: task.id, hierarchy_number: `${taskGroupNumber - 1}` }
-      : { id: task.id, hierarchy_number: `${taskGroupNumber - 1}.${parts[1]}` };
-  });
-  
-  const deletedHierarchyNumbers = [
-    targetTask.hierarchy_number,
-    ...childrenToDelete.map(task => task.hierarchy_number!)
-  ];
-  
-  const hierarchyMapping = new Map<string, string>();
-  hierarchyUpdates.forEach(update => {
-    const oldTask = allTasks.find(t => t.id === update.id);
-    if (oldTask?.hierarchy_number) hierarchyMapping.set(oldTask.hierarchy_number, update.hierarchy_number);
-  });
-  
-  const predecessorUpdates = remapAllPredecessors(allTasks, hierarchyMapping, deletedHierarchyNumbers);
-  
-  return {
-    tasksToDelete: [targetTask.id, ...childrenToDelete.map(task => task.id)],
-    hierarchyUpdates,
-    predecessorUpdates,
-    parentGroupsToRecalculate: []
-  };
-};
-
 export const isGroupTask = (task: ProjectTask): boolean => {
   return !!task.hierarchy_number && !task.hierarchy_number.includes('.');
 };
 
 /**
- * Computes updates needed when deleting multiple tasks (bulk delete)
- */
-export const computeBulkDeleteUpdates = (
-  selectedTaskIds: string[],
-  allTasks: ProjectTask[]
-): DeleteTaskResult => {
-  const selectedTasks = allTasks.filter(task => selectedTaskIds.includes(task.id));
-  
-  const selectedGroups = selectedTasks.filter(isGroupTask);
-  const selectedChildren = selectedTasks.filter(task => !isGroupTask(task));
-  
-  const independentChildren = selectedChildren.filter(child => {
-    const groupNumber = child.hierarchy_number?.split('.')[0];
-    return !selectedGroups.some(group => group.hierarchy_number === groupNumber);
-  });
-  
-  let allTasksToDelete: string[] = [...selectedTaskIds];
-  let deletedHierarchyNumbers: string[] = [];
-  let parentGroupsToRecalculate: string[] = [];
-  
-  // Add children of selected groups
-  for (const group of selectedGroups) {
-    const groupChildren = allTasks.filter(task =>
-      task.hierarchy_number?.startsWith(group.hierarchy_number! + '.') && !selectedTaskIds.includes(task.id)
-    );
-    allTasksToDelete.push(...groupChildren.map(t => t.id));
-    deletedHierarchyNumbers.push(group.hierarchy_number!, ...groupChildren.map(t => t.hierarchy_number!));
-  }
-  
-  deletedHierarchyNumbers.push(...independentChildren.map(t => t.hierarchy_number!));
-  
-  let hierarchyUpdates: TaskUpdate[] = [];
-  
-  // Handle independent children (within their groups)
-  const childrenByGroup = new Map<string, ProjectTask[]>();
-  for (const child of independentChildren) {
-    const groupNumber = child.hierarchy_number!.split('.')[0];
-    if (!childrenByGroup.has(groupNumber)) childrenByGroup.set(groupNumber, []);
-    childrenByGroup.get(groupNumber)!.push(child);
-    parentGroupsToRecalculate.push(groupNumber);
-  }
-  
-  for (const [groupNumber, deletedChildren] of childrenByGroup.entries()) {
-    const remainingChildren = allTasks
-      .filter(task => {
-        if (!task.hierarchy_number) return false;
-        const parts = task.hierarchy_number.split('.');
-        return parts.length === 2 && parts[0] === groupNumber;
-      })
-      .filter(child => !deletedChildren.some(d => d.id === child.id))
-      .sort((a, b) => parseInt(a.hierarchy_number!.split('.')[1]) - parseInt(b.hierarchy_number!.split('.')[1]));
-    
-    remainingChildren.forEach((child, index) => {
-      const newHierarchy = `${groupNumber}.${index + 1}`;
-      if (child.hierarchy_number !== newHierarchy) {
-        hierarchyUpdates.push({ id: child.id, hierarchy_number: newHierarchy });
-      }
-    });
-  }
-  
-  // Handle group deletions
-  if (selectedGroups.length > 0) {
-    const deletedGroupNumbers = selectedGroups
-      .map(g => parseInt(g.hierarchy_number!))
-      .sort((a, b) => a - b);
-    
-    const minDeletedGroup = Math.min(...deletedGroupNumbers);
-    const groupsToRenumber = allTasks
-      .filter(task => {
-        if (!task.hierarchy_number || !isGroupTask(task)) return false;
-        const groupNum = parseInt(task.hierarchy_number);
-        return groupNum > minDeletedGroup && !deletedGroupNumbers.includes(groupNum);
-      })
-      .sort((a, b) => parseInt(a.hierarchy_number!) - parseInt(b.hierarchy_number!));
-    
-    for (const group of groupsToRenumber) {
-      const currentGroupNum = parseInt(group.hierarchy_number!);
-      const deletedBefore = deletedGroupNumbers.filter(d => d < currentGroupNum).length;
-      const newGroupNum = currentGroupNum - deletedBefore;
-      
-      hierarchyUpdates.push({ id: group.id, hierarchy_number: `${newGroupNum}` });
-      
-      allTasks
-        .filter(task => {
-          if (!task.hierarchy_number) return false;
-          const parts = task.hierarchy_number.split('.');
-          return parts.length === 2 && parts[0] === currentGroupNum.toString();
-        })
-        .forEach(child => {
-          hierarchyUpdates.push({ id: child.id, hierarchy_number: `${newGroupNum}.${child.hierarchy_number!.split('.')[1]}` });
-        });
-    }
-  }
-  
-  const hierarchyMapping = new Map<string, string>();
-  hierarchyUpdates.forEach(update => {
-    const oldTask = allTasks.find(t => t.id === update.id);
-    if (oldTask?.hierarchy_number) hierarchyMapping.set(oldTask.hierarchy_number, update.hierarchy_number);
-  });
-  
-  const predecessorUpdates = remapAllPredecessors(allTasks, hierarchyMapping, deletedHierarchyNumbers);
-  parentGroupsToRecalculate = [...new Set(parentGroupsToRecalculate)];
-  
-  return {
-    tasksToDelete: allTasksToDelete,
-    hierarchyUpdates,
-    predecessorUpdates,
-    parentGroupsToRecalculate
-  };
-};
-
-/**
- * Main function to compute all updates needed for task deletion
+ * Generalized delete: works at any depth.
+ * Removes the task and all its descendants, then shifts later siblings (and their subtrees)
+ * down by one at the deleted task's depth.
  */
 export const computeDeleteUpdates = (
   targetTask: ProjectTask,
   allTasks: ProjectTask[]
 ): DeleteTaskResult => {
-  return isGroupTask(targetTask)
-    ? computeDeleteGroupUpdates(targetTask, allTasks)
-    : computeDeleteChildUpdates(targetTask, allTasks);
+  if (!targetTask.hierarchy_number) throw new Error("Target task must have a hierarchy number");
+
+  const targetHierarchy = targetTask.hierarchy_number;
+  const targetParts = targetHierarchy.split('.');
+  const targetDepth = targetParts.length;
+  const parentPrefix = targetParts.slice(0, -1).join('.'); // "" for top-level
+  const targetLast = parseInt(targetParts[targetParts.length - 1]);
+
+  // 1. Collect all descendants (subtree of target).
+  const descendants = allTasks.filter(t =>
+    t.id !== targetTask.id && t.hierarchy_number?.startsWith(targetHierarchy + '.')
+  );
+
+  const tasksToDelete = [targetTask.id, ...descendants.map(t => t.id)];
+  const deletedHierarchyNumbers = [targetHierarchy, ...descendants.map(t => t.hierarchy_number!)];
+
+  // 2. Find later siblings at the same depth/parent.
+  const laterSiblings = allTasks
+    .filter(t => {
+      if (!t.hierarchy_number || t.id === targetTask.id) return false;
+      const parts = t.hierarchy_number.split('.');
+      if (parts.length !== targetDepth) return false;
+      if (parentPrefix === '') {
+        if (parts.length !== 1) return false;
+      } else {
+        const tParent = parts.slice(0, -1).join('.');
+        if (tParent !== parentPrefix) return false;
+      }
+      return parseInt(parts[parts.length - 1]) > targetLast;
+    })
+    .sort((a, b) => {
+      const aNum = parseInt(a.hierarchy_number!.split('.').pop()!);
+      const bNum = parseInt(b.hierarchy_number!.split('.').pop()!);
+      return aNum - bNum;
+    });
+
+  const hierarchyUpdates: TaskUpdate[] = [];
+  const hierarchyMapping = new Map<string, string>();
+
+  for (const sib of laterSiblings) {
+    const sibParts = sib.hierarchy_number!.split('.');
+    const newLast = parseInt(sibParts[sibParts.length - 1]) - 1;
+    if (newLast <= 0) continue;
+    const newSibHierarchy = parentPrefix === '' ? newLast.toString() : `${parentPrefix}.${newLast}`;
+
+    hierarchyMapping.set(sib.hierarchy_number!, newSibHierarchy);
+    hierarchyUpdates.push({ id: sib.id, hierarchy_number: newSibHierarchy });
+
+    // Carry subtree
+    const subtree = allTasks.filter(
+      t => t.id !== sib.id && t.hierarchy_number?.startsWith(sib.hierarchy_number! + '.')
+    );
+    for (const s of subtree) {
+      const newChild = newSibHierarchy + s.hierarchy_number!.substring(sib.hierarchy_number!.length);
+      hierarchyMapping.set(s.hierarchy_number!, newChild);
+      hierarchyUpdates.push({ id: s.id, hierarchy_number: newChild });
+    }
+  }
+
+  const predecessorUpdates = remapAllPredecessors(allTasks, hierarchyMapping, deletedHierarchyNumbers);
+
+  // Parent group(s) to recalculate dates for: any ancestor of the deleted task.
+  const parentGroupsToRecalculate: string[] = [];
+  for (let i = 1; i < targetParts.length; i++) {
+    parentGroupsToRecalculate.push(targetParts.slice(0, i).join('.'));
+  }
+
+  return {
+    tasksToDelete,
+    hierarchyUpdates,
+    predecessorUpdates,
+    parentGroupsToRecalculate,
+  };
+};
+
+// Kept as compatibility export — same as computeDeleteUpdates now.
+export const computeDeleteChildUpdates = computeDeleteUpdates;
+export const computeDeleteGroupUpdates = computeDeleteUpdates;
+
+/**
+ * Bulk delete: process deletions sequentially using the unified single-delete logic
+ * applied to a running snapshot of the task list.
+ */
+export const computeBulkDeleteUpdates = (
+  selectedTaskIds: string[],
+  allTasks: ProjectTask[]
+): DeleteTaskResult => {
+  // Resolve actual tasks to delete: include descendants of each selection,
+  // and dedupe so that a selection nested inside another isn't processed twice.
+  const selectedSet = new Set(selectedTaskIds);
+  const idsByHierarchy = new Map<string, ProjectTask>();
+  allTasks.forEach(t => {
+    if (t.hierarchy_number) idsByHierarchy.set(t.hierarchy_number, t);
+  });
+
+  // Filter to top-most selected (ones whose ancestor isn't also selected)
+  const initialTargets: ProjectTask[] = allTasks.filter(t => {
+    if (!selectedSet.has(t.id) || !t.hierarchy_number) return false;
+    const parts = t.hierarchy_number.split('.');
+    for (let i = 1; i < parts.length; i++) {
+      const ancestorH = parts.slice(0, i).join('.');
+      const ancestor = idsByHierarchy.get(ancestorH);
+      if (ancestor && selectedSet.has(ancestor.id)) return false;
+    }
+    return true;
+  });
+
+  // Sort by hierarchy DESCENDING so deletions don't shift things we haven't processed yet.
+  initialTargets.sort((a, b) =>
+    b.hierarchy_number!.localeCompare(a.hierarchy_number!, undefined, { numeric: true })
+  );
+
+  let workingTasks = [...allTasks];
+  const allDeleteIds: string[] = [];
+  const cumulativeMapping = new Map<string, string>();
+  const deletedHierarchies: string[] = [];
+  const parentGroupsToRecalculate = new Set<string>();
+
+  for (const target of initialTargets) {
+    const current = workingTasks.find(t => t.id === target.id);
+    if (!current) continue;
+    const single = computeDeleteUpdates(current, workingTasks);
+    allDeleteIds.push(...single.tasksToDelete);
+    deletedHierarchies.push(...single.tasksToDelete
+      .map(id => workingTasks.find(t => t.id === id)?.hierarchy_number)
+      .filter((h): h is string => !!h));
+
+    // Apply to workingTasks: remove deleted, apply hierarchy updates
+    const updateMap = new Map(single.hierarchyUpdates.map(u => [u.id, u.hierarchy_number]));
+    workingTasks = workingTasks
+      .filter(t => !single.tasksToDelete.includes(t.id))
+      .map(t => updateMap.has(t.id) ? { ...t, hierarchy_number: updateMap.get(t.id)! } : t);
+
+    // Merge mapping (compose: oldHierarchy → final new hierarchy)
+    for (const u of single.hierarchyUpdates) {
+      // Find the oldest hierarchy that mapped into the value being remapped now.
+      // u.id is stable, but mapping is keyed by hierarchy. We approximate by setting
+      // direct old→new based on the pre-step working state.
+      // Simpler: recompute mapping at end from finalHierarchy comparison below.
+    }
+
+    single.parentGroupsToRecalculate.forEach(p => parentGroupsToRecalculate.add(p));
+  }
+
+  // Final hierarchyUpdates: compare remaining workingTasks vs original allTasks.
+  const hierarchyUpdates: TaskUpdate[] = [];
+  const finalMapping = new Map<string, string>();
+  for (const wt of workingTasks) {
+    const orig = allTasks.find(t => t.id === wt.id);
+    if (orig && orig.hierarchy_number !== wt.hierarchy_number && wt.hierarchy_number) {
+      hierarchyUpdates.push({ id: wt.id, hierarchy_number: wt.hierarchy_number });
+      if (orig.hierarchy_number) finalMapping.set(orig.hierarchy_number, wt.hierarchy_number);
+    }
+  }
+
+  const predecessorUpdates = remapAllPredecessors(allTasks, finalMapping, deletedHierarchies);
+
+  return {
+    tasksToDelete: Array.from(new Set(allDeleteIds)),
+    hierarchyUpdates,
+    predecessorUpdates,
+    parentGroupsToRecalculate: Array.from(parentGroupsToRecalculate),
+  };
 };
