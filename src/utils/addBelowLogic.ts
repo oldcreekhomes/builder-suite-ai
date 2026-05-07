@@ -1,5 +1,6 @@
 import { ProjectTask } from "@/hooks/useProjectTasks";
 import { remapAllPredecessors, PredecessorUpdate } from "./predecessorRemapping";
+import { MAX_HIERARCHY_DEPTH } from "./hierarchyUtils";
 
 export interface HierarchyUpdate {
   id: string;
@@ -15,7 +16,9 @@ export interface AddBelowResult {
 }
 
 /**
- * Calculate all updates needed when adding a task below another task
+ * Add a new task below the target.
+ *  - If target has children AND adding a child would not exceed MAX depth → add as last child.
+ *  - Otherwise → add as next sibling at target's depth.
  */
 export function calculateAddBelowUpdates(
   targetTask: ProjectTask,
@@ -25,60 +28,80 @@ export function calculateAddBelowUpdates(
     throw new Error("Target task must have a hierarchy number");
   }
 
-  const hierarchyParts = targetTask.hierarchy_number.split('.');
-  const isTargetGroup = hierarchyParts.length === 1;
-  
-  if (isTargetGroup) {
-    return handleAddBelowGroup(targetTask, allTasks);
-  } else {
-    return handleAddBelowChild(targetTask, allTasks);
-  }
-}
+  const targetHierarchy = targetTask.hierarchy_number;
+  const targetParts = targetHierarchy.split(".");
+  const targetDepth = targetParts.length;
 
-function handleAddBelowGroup(targetTask: ProjectTask, allTasks: ProjectTask[]): AddBelowResult {
-  const targetNumber = targetTask.hierarchy_number!;
-  
-  const existingChildren = allTasks.filter(task =>
-    task.hierarchy_number?.startsWith(targetNumber + '.')
-  );
-  
-  if (existingChildren.length === 0) {
-    return { newTaskHierarchy: `${targetNumber}.1`, hierarchyUpdates: [], predecessorUpdates: [] };
-  }
-  
-  const maxChildNumber = Math.max(
-    ...existingChildren.map(task => parseInt(task.hierarchy_number!.split('.')[1]) || 0)
-  );
-  
-  return { newTaskHierarchy: `${targetNumber}.${maxChildNumber + 1}`, hierarchyUpdates: [], predecessorUpdates: [] };
-}
-
-function handleAddBelowChild(targetTask: ProjectTask, allTasks: ProjectTask[]): AddBelowResult {
-  const parts = targetTask.hierarchy_number!.split('.');
-  const groupNumber = parts[0];
-  const childNumber = parseInt(parts[1]);
-  const newTaskHierarchy = `${groupNumber}.${childNumber + 1}`;
-  
-  const siblingsToRenumber = allTasks.filter(task => {
-    if (!task.hierarchy_number) return false;
-    const taskParts = task.hierarchy_number.split('.');
-    if (taskParts.length !== 2 || taskParts[0] !== groupNumber) return false;
-    return parseInt(taskParts[1]) > childNumber;
+  // Does target have any direct children?
+  const directChildren = allTasks.filter(t => {
+    if (!t.hierarchy_number) return false;
+    const parts = t.hierarchy_number.split(".");
+    return (
+      parts.length === targetDepth + 1 &&
+      t.hierarchy_number.startsWith(targetHierarchy + ".")
+    );
   });
-  
+
+  if (directChildren.length > 0 && targetDepth + 1 <= MAX_HIERARCHY_DEPTH) {
+    // Add as last child
+    const maxChildLast = Math.max(
+      ...directChildren.map(c => parseInt(c.hierarchy_number!.split(".").pop()!) || 0)
+    );
+    return {
+      newTaskHierarchy: `${targetHierarchy}.${maxChildLast + 1}`,
+      hierarchyUpdates: [],
+      predecessorUpdates: [],
+    };
+  }
+
+  // Otherwise: insert as next sibling at target's depth.
+  const parentPrefix = targetParts.slice(0, -1).join(".");
+  const targetLast = parseInt(targetParts[targetParts.length - 1]);
+  const newTaskHierarchy =
+    parentPrefix === "" ? (targetLast + 1).toString() : `${parentPrefix}.${targetLast + 1}`;
+
+  const siblingsToShift = allTasks
+    .filter(t => {
+      if (!t.hierarchy_number) return false;
+      const parts = t.hierarchy_number.split(".");
+      if (parts.length !== targetDepth) return false;
+      if (parentPrefix === "") {
+        if (parts.length !== 1) return false;
+      } else {
+        const tParent = parts.slice(0, -1).join(".");
+        if (tParent !== parentPrefix) return false;
+      }
+      return parseInt(parts[parts.length - 1]) > targetLast;
+    })
+    .sort((a, b) => {
+      const aNum = parseInt(a.hierarchy_number!.split(".").pop()!);
+      const bNum = parseInt(b.hierarchy_number!.split(".").pop()!);
+      return bNum - aNum;
+    });
+
   const hierarchyUpdates: HierarchyUpdate[] = [];
   const hierarchyMapping = new Map<string, string>();
-  
-  siblingsToRenumber.forEach(task => {
-    const taskParts = task.hierarchy_number!.split('.');
-    const newChildNumber = parseInt(taskParts[1]) + 1;
-    const newHierarchy = `${groupNumber}.${newChildNumber}`;
-    
-    hierarchyMapping.set(task.hierarchy_number!, newHierarchy);
-    hierarchyUpdates.push({ id: task.id, hierarchy_number: newHierarchy });
-  });
-  
+
+  for (const sib of siblingsToShift) {
+    const sibParts = sib.hierarchy_number!.split(".");
+    const newLast = parseInt(sibParts[sibParts.length - 1]) + 1;
+    const newSibHierarchy =
+      parentPrefix === "" ? newLast.toString() : `${parentPrefix}.${newLast}`;
+    hierarchyMapping.set(sib.hierarchy_number!, newSibHierarchy);
+    hierarchyUpdates.push({ id: sib.id, hierarchy_number: newSibHierarchy });
+
+    const subtree = allTasks.filter(
+      t => t.id !== sib.id && t.hierarchy_number?.startsWith(sib.hierarchy_number! + ".")
+    );
+    for (const s of subtree) {
+      const newChildHierarchy =
+        newSibHierarchy + s.hierarchy_number!.substring(sib.hierarchy_number!.length);
+      hierarchyMapping.set(s.hierarchy_number!, newChildHierarchy);
+      hierarchyUpdates.push({ id: s.id, hierarchy_number: newChildHierarchy });
+    }
+  }
+
   const predecessorUpdates = remapAllPredecessors(allTasks, hierarchyMapping);
-  
+
   return { newTaskHierarchy, hierarchyUpdates, predecessorUpdates };
 }
