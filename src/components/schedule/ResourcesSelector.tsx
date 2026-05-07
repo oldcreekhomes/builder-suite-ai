@@ -193,37 +193,34 @@ export function ResourcesSelector({ value, onValueChange, className, readOnly = 
                 </>
               )}
               
-              {/* Internal Users - exclude already selected. Hide when filtering by company */}
-              {companyFilter === "__all__" && (
-                <CommandGroup heading="Internal Users">
-                  {resources
-                    .filter(resource => 
-                      resource.resourceGroup === 'Internal' && 
-                      !selectedResources.includes(resource.resourceName)
-                    )
-                    .map((resource) => (
-                      <CommandItem
-                        key={`user-${resource.resourceId}`}
-                        value={resource.resourceName}
-                        onSelect={() => handleSelect(resource.resourceName)}
-                      >
-                        <div className="flex items-center space-x-2 flex-1">
-                          <Users className="h-4 w-4 text-muted-foreground" />
-                          <div className="font-medium">{resource.resourceName}</div>
-                          <Check className="ml-auto h-4 w-4 opacity-0" />
-                        </div>
-                      </CommandItem>
-                    ))}
-                </CommandGroup>
-              )}
-
-              {/* Company Representatives - exclude already selected, apply company filter */}
-              <CommandGroup heading={companyFilter === "__all__" ? "Company Representatives" : `Company Representatives — ${companyFilter}`}>
+              {/* Internal Users - searchable by name OR company name */}
+              <CommandGroup heading="Internal Users">
                 {resources
-                  .filter(resource => 
-                    resource.resourceGroup === 'External' && 
-                    !selectedResources.includes(resource.resourceName) &&
-                    (companyFilter === "__all__" || resource.companyName === companyFilter)
+                  .filter(resource =>
+                    resource.resourceGroup === 'Internal' &&
+                    !selectedResources.includes(resource.resourceName)
+                  )
+                  .map((resource) => (
+                    <CommandItem
+                      key={`user-${resource.resourceId}`}
+                      value={`${resource.resourceName} ${resource.companyName ?? ''}`}
+                      onSelect={() => handleSelect(resource.resourceName)}
+                    >
+                      <div className="flex items-center space-x-2 flex-1">
+                        <Users className="h-4 w-4 text-muted-foreground" />
+                        <div className="font-medium">{resource.resourceName}</div>
+                        <Check className="ml-auto h-4 w-4 opacity-0" />
+                      </div>
+                    </CommandItem>
+                  ))}
+              </CommandGroup>
+
+              {/* Company Representatives - searchable by name OR company name */}
+              <CommandGroup heading="Company Representatives">
+                {resources
+                  .filter(resource =>
+                    resource.resourceGroup === 'External' &&
+                    !selectedResources.includes(resource.resourceName)
                   )
                   .map((resource) => (
                     <CommandItem
