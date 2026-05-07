@@ -1,35 +1,39 @@
-## Goal
+## Problem
 
-Single search box that matches both **person name** and **company name**, showing only users opted in to schedule notifications.
+In the schedule's Resources picker, typing a partial company name like `lcs` still surfaces internal users (Lou Cocks, Lauren Crowe, Alex Cruz, Bill Hawk, etc.) and reps from other companies. Only the full string `LCS Site Services` filters correctly.
 
-## Search behavior
+## Root cause
 
-- Type **"Matt"** → all people named Matt who are eligible (across internal users + reps).
-- Type **"LCS"** → only reps whose company is LCS Site Services AND have `receive_schedule_notifications = true`.
-- No "All companies" dropdown.
+`ResourcesSelector` uses shadcn's `Command` (cmdk), which by default uses a **fuzzy/subsequence** matcher. With the search `lcs`, cmdk matches any item whose value contains `l`, then `c`, then `s` in order — so `Lou Cocks`, `Lauren Crowe`, `Alex Cruz`, `Bill Hawk`, etc. all score above zero and stay visible. The match against the real `LCS Site Services` reps is correct, but the noise items aren't filtered out.
 
-## Eligibility (who can appear at all)
+The earlier change to set each item's `value` to `"${resource.resourceName} ${resource.companyName}"` was correct — the problem is purely the matching algorithm.
 
-- **Company representatives:** must have `receive_schedule_notifications = true` (already filtered in `useProjectResources`).
-- **Internal users:** there is currently **no** `receive_schedule_notifications` column on `user_notification_preferences` for internal users. Two options — pick one:
-  1. Treat all confirmed internal users from the same company as eligible (no new column).
-  2. Add a `receive_schedule_notifications boolean` column to `user_notification_preferences` and filter on it (requires migration + a settings UI toggle later).
+## Fix
 
-Default in this plan: **Option 1** (no schema change). Note the gap so we can add the toggle later.
+Pass a custom `filter` function to the `Command` component that does **case-insensitive substring matching** instead of subsequence matching:
 
-## Changes — UI only
+```tsx
+<Command
+  filter={(value, search) => {
+    if (!search) return 1;
+    return value.toLowerCase().includes(search.toLowerCase()) ? 1 : 0;
+  }}
+>
+```
 
-`src/components/schedule/ResourcesSelector.tsx`
-- Remove the `Select` "All companies" dropdown, `companyFilter` state, `uniqueCompanies` memo, and its reset in `handleOpenChange`.
-- Update `CommandInput` placeholder to "Search by name or company…".
-- For each `CommandItem`, set `value` to `"{resourceName} {companyName ?? ''}"` so cmdk's built-in fuzzy matcher hits on either token.
-- Internal Users group keeps showing (uses the owner's company name from the hook so "Old Creek" matches them too).
+With this:
+- Searching `lcs` → only items whose combined `name + company` value contains the contiguous substring `lcs` (i.e., the three LCS Site Services reps) are shown. Internal users like Lou Cocks are filtered out.
+- Searching `lcs si` → narrows further but still shows the same three reps.
+- Searching `matt` → still shows all Matts (substring match works on names too).
+- Searching `old creek` → still shows internal users belonging to Old Creek Homes (their value contains the company name).
 
-`src/hooks/useProjectResources.ts`
-- Attach `companyName = ownerCompanyName` to each internal user resource (so the search value can include it). No filter changes for reps — `receive_schedule_notifications === true` stays.
+Note: the "Selected" group items use `value={`selected-${resourceName}`}`, so the substring `selected-` is part of those values. To keep selected items always visible while editing, the filter should also return `1` when the value starts with `selected-`.
 
-## Result
+## Files changed
 
-- Searching "Matt" → all eligible people named Matt (internal + reps).
-- Searching "LCS" → only LCS reps with schedule notifications enabled.
-- Searching "Old Creek" → internal Old Creek Homes users.
+- `src/components/schedule/ResourcesSelector.tsx` — add the custom `filter` prop to `<Command>`. No other changes.
+
+## Out of scope
+
+- No changes to `useProjectResources` (the data already includes `companyName` on internal users).
+- No changes to grouping, ordering, or the existing notification-preference filter on external reps.
