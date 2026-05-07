@@ -459,18 +459,19 @@ export function EditCompanyDialog({ company, open, onOpenChange }: EditCompanyDi
   return (
     <Dialog key={stableCompanyId} open={open} onOpenChange={onOpenChange}>
       <DialogContent 
-        className="max-w-3xl max-h-[90vh] overflow-hidden"
+        className="max-w-3xl max-h-[90vh] overflow-hidden flex flex-col p-0"
         onPointerDownOutside={(e) => e.preventDefault()}
         onInteractOutside={(e) => e.preventDefault()}
         onFocusOutside={(e) => e.preventDefault()}
         onEscapeKeyDown={(e) => e.preventDefault()}
       >
-        <DialogHeader>
+        <DialogHeader className="px-6 pt-6 shrink-0">
           <DialogTitle>Edit Company</DialogTitle>
         </DialogHeader>
         
         <Form {...form}>
-          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6 px-1">
+          <form onSubmit={form.handleSubmit(onSubmit)} className="flex flex-col flex-1 min-h-0">
+            <div className="flex-1 overflow-y-auto px-6 py-4 space-y-6">
             {/* Engagement Type selector (compact) */}
             <FormField
               control={form.control}
