@@ -23,6 +23,7 @@ export function ResourcesSelector({ value, onValueChange, className, readOnly = 
   const [open, setOpen] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
   const [selectedResources, setSelectedResources] = useState<string[]>([]);
+  const [companyFilter, setCompanyFilter] = useState<string>("__all__");
   
   // Use external resources if provided, otherwise fall back to hook
   const hookResult = useProjectResources(externalResources ? undefined : projectId);
