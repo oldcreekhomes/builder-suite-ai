@@ -155,21 +155,6 @@ export function ResourcesSelector({ value, onValueChange, className, readOnly = 
           </Button>
         </PopoverTrigger>
         <PopoverContent className="w-[320px] p-0" onEscapeKeyDown={handleFinishEdit}>
-          {uniqueCompanies.length > 0 && (
-            <div className="p-2 border-b border-border">
-              <Select value={companyFilter} onValueChange={setCompanyFilter}>
-                <SelectTrigger className="h-8 text-xs">
-                  <SelectValue placeholder="Filter by company" />
-                </SelectTrigger>
-                <SelectContent className="max-h-[240px]">
-                  <SelectItem value="__all__">All companies</SelectItem>
-                  {uniqueCompanies.map(name => (
-                    <SelectItem key={name} value={name}>{name}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-          )}
           <Command>
             <CommandInput placeholder="Search users and representatives..." onKeyDown={(e) => {
               if (e.key === 'Escape') {
