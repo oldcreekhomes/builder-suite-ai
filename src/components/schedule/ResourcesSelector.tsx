@@ -155,7 +155,13 @@ export function ResourcesSelector({ value, onValueChange, className, readOnly = 
           </Button>
         </PopoverTrigger>
         <PopoverContent className="w-[320px] p-0" onEscapeKeyDown={handleFinishEdit}>
-          <Command>
+          <Command
+            filter={(value, search) => {
+              if (!search) return 1;
+              if (value.startsWith('selected-')) return 1;
+              return value.toLowerCase().includes(search.toLowerCase()) ? 1 : 0;
+            }}
+          >
             <CommandInput placeholder="Search users and representatives..." onKeyDown={(e) => {
               if (e.key === 'Escape') {
                 handleFinishEdit();
