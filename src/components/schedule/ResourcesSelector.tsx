@@ -1,9 +1,10 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Check, ChevronsUpDown, X, Users, Building2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useProjectResources } from "@/hooks/useProjectResources";
@@ -22,6 +23,7 @@ export function ResourcesSelector({ value, onValueChange, className, readOnly = 
   const [open, setOpen] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
   const [selectedResources, setSelectedResources] = useState<string[]>([]);
+  const [companyFilter, setCompanyFilter] = useState<string>("__all__");
   
   // Use external resources if provided, otherwise fall back to hook
   const hookResult = useProjectResources(externalResources ? undefined : projectId);
@@ -80,8 +82,17 @@ export function ResourcesSelector({ value, onValueChange, className, readOnly = 
     setOpen(newOpen);
     if (!newOpen) {
       setIsEditing(false);
+      setCompanyFilter("__all__");
     }
   };
+
+  const uniqueCompanies = useMemo(() => {
+    const names = new Set<string>();
+    resources.forEach(r => {
+      if (r.resourceGroup === 'External' && r.companyName) names.add(r.companyName);
+    });
+    return Array.from(names).sort();
+  }, [resources]);
 
   // If readOnly, always show as non-editable text
   if (readOnly) {
@@ -156,7 +167,22 @@ export function ResourcesSelector({ value, onValueChange, className, readOnly = 
             <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
           </Button>
         </PopoverTrigger>
-        <PopoverContent className="w-[300px] p-0" onEscapeKeyDown={handleFinishEdit}>
+        <PopoverContent className="w-[320px] p-0" onEscapeKeyDown={handleFinishEdit}>
+          {uniqueCompanies.length > 0 && (
+            <div className="p-2 border-b border-border">
+              <Select value={companyFilter} onValueChange={setCompanyFilter}>
+                <SelectTrigger className="h-8 text-xs">
+                  <SelectValue placeholder="Filter by company" />
+                </SelectTrigger>
+                <SelectContent className="max-h-[240px]">
+                  <SelectItem value="__all__">All companies</SelectItem>
+                  {uniqueCompanies.map(name => (
+                    <SelectItem key={name} value={name}>{name}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          )}
           <Command>
             <CommandInput placeholder="Search users and representatives..." onKeyDown={(e) => {
               if (e.key === 'Escape') {
@@ -195,45 +221,51 @@ export function ResourcesSelector({ value, onValueChange, className, readOnly = 
                 </>
               )}
               
-              {/* Internal Users - exclude already selected */}
-              <CommandGroup heading="Internal Users">
-                {resources
-                  .filter(resource => 
-                    resource.resourceGroup === 'Internal' && 
-                    !selectedResources.includes(resource.resourceName)
-                  )
-                  .map((resource) => (
-                    <CommandItem
-                      key={`user-${resource.resourceId}`}
-                      value={resource.resourceName}
-                      onSelect={() => handleSelect(resource.resourceName)}
-                    >
-                      <div className="flex items-center space-x-2 flex-1">
-                        <Users className="h-4 w-4 text-muted-foreground" />
-                        <div className="font-medium">{resource.resourceName}</div>
-                        <Check className="ml-auto h-4 w-4 opacity-0" />
-                      </div>
-                    </CommandItem>
-                  ))}
-              </CommandGroup>
+              {/* Internal Users - exclude already selected. Hide when filtering by company */}
+              {companyFilter === "__all__" && (
+                <CommandGroup heading="Internal Users">
+                  {resources
+                    .filter(resource => 
+                      resource.resourceGroup === 'Internal' && 
+                      !selectedResources.includes(resource.resourceName)
+                    )
+                    .map((resource) => (
+                      <CommandItem
+                        key={`user-${resource.resourceId}`}
+                        value={resource.resourceName}
+                        onSelect={() => handleSelect(resource.resourceName)}
+                      >
+                        <div className="flex items-center space-x-2 flex-1">
+                          <Users className="h-4 w-4 text-muted-foreground" />
+                          <div className="font-medium">{resource.resourceName}</div>
+                          <Check className="ml-auto h-4 w-4 opacity-0" />
+                        </div>
+                      </CommandItem>
+                    ))}
+                </CommandGroup>
+              )}
 
-              {/* Company Representatives - exclude already selected */}
-              <CommandGroup heading="Company Representatives">
+              {/* Company Representatives - exclude already selected, apply company filter */}
+              <CommandGroup heading={companyFilter === "__all__" ? "Company Representatives" : `Company Representatives — ${companyFilter}`}>
                 {resources
                   .filter(resource => 
                     resource.resourceGroup === 'External' && 
-                    !selectedResources.includes(resource.resourceName)
+                    !selectedResources.includes(resource.resourceName) &&
+                    (companyFilter === "__all__" || resource.companyName === companyFilter)
                   )
                   .map((resource) => (
                     <CommandItem
                       key={`rep-${resource.resourceId}`}
-                      value={resource.resourceName}
+                      value={`${resource.resourceName} ${resource.companyName ?? ''}`}
                       onSelect={() => handleSelect(resource.resourceName)}
                     >
                       <div className="flex items-center space-x-2 flex-1 min-w-0">
                         <Building2 className="h-4 w-4 text-muted-foreground flex-shrink-0" />
                         <div className="font-medium truncate">
                           <span>{resource.resourceName}</span>
+                          {resource.companyName && (
+                            <span className="text-muted-foreground font-normal"> · {resource.companyName}</span>
+                          )}
                         </div>
                         <Check className="ml-auto h-4 w-4 flex-shrink-0 opacity-0" />
                       </div>
