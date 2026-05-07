@@ -1,35 +1,35 @@
-# Schedule Resource Picker — Company Search & Notification Filter
+## Goal
 
-Improve the Resources dropdown in the Schedule (the "Select…" picker that opens "Internal Users / Company Representatives") so users can filter reps by company and only see reps that should receive schedule notifications.
+Single search box that matches both **person name** and **company name**, showing only users opted in to schedule notifications.
 
-## Changes
+## Search behavior
 
-### 1. `src/hooks/useProjectResources.ts`
-- Pull `company_id` and `receive_schedule_notifications` along with the existing rep fields.
-- Filter out reps where `receive_schedule_notifications !== true`.
-- Fetch the parent companies (`companies.id, company_name`) for the owned company IDs and attach `companyName` to each rep resource.
-- Extend the `ProjectResource` type with optional `companyId` and `companyName` (only set for `External` reps).
+- Type **"Matt"** → all people named Matt who are eligible (across internal users + reps).
+- Type **"LCS"** → only reps whose company is LCS Site Services AND have `receive_schedule_notifications = true`.
+- No "All companies" dropdown.
 
-### 2. `src/components/schedule/ResourcesSelector.tsx`
-- Add a second filter control above the "Company Representatives" group: a company combobox/select populated from the unique company names found in the loaded reps. Default = "All companies".
-- The existing `CommandInput` keeps doing free-text search across both groups (name + company).
-- Apply the company filter only to the External (representatives) list. Internal Users list is unaffected.
-- When a company is selected, the heading shows e.g. `Company Representatives — Acme Plumbing`.
-- Reset the company filter when the popover closes.
-- Reps that don't receive schedule notifications no longer appear at all (already excluded by the hook).
+## Eligibility (who can appear at all)
 
-### 3. Make the rep label include the company
-- In the dropdown rows, show `{rep name} · {company}` so users can disambiguate when search is across all companies. Selected/stored value stays as the rep name (current behavior, no schema change).
+- **Company representatives:** must have `receive_schedule_notifications = true` (already filtered in `useProjectResources`).
+- **Internal users:** there is currently **no** `receive_schedule_notifications` column on `user_notification_preferences` for internal users. Two options — pick one:
+  1. Treat all confirmed internal users from the same company as eligible (no new column).
+  2. Add a `receive_schedule_notifications boolean` column to `user_notification_preferences` and filter on it (requires migration + a settings UI toggle later).
 
-## Out of scope
-- No DB schema changes.
-- No changes to how resources are saved on tasks (still comma-separated names).
-- Internal Users behavior unchanged.
+Default in this plan: **Option 1** (no schema change). Note the gap so we can add the toggle later.
 
-## QA
-- Open Resources picker on a schedule task.
-- Verify only reps with `receive_schedule_notifications = true` appear.
-- Type a company name in the new company filter → only that company's reps remain.
-- Clear filter → all eligible reps return.
-- Free-text search still matches across users and reps.
-- Selecting/removing a rep still saves correctly to the task.
+## Changes — UI only
+
+`src/components/schedule/ResourcesSelector.tsx`
+- Remove the `Select` "All companies" dropdown, `companyFilter` state, `uniqueCompanies` memo, and its reset in `handleOpenChange`.
+- Update `CommandInput` placeholder to "Search by name or company…".
+- For each `CommandItem`, set `value` to `"{resourceName} {companyName ?? ''}"` so cmdk's built-in fuzzy matcher hits on either token.
+- Internal Users group keeps showing (uses the owner's company name from the hook so "Old Creek" matches them too).
+
+`src/hooks/useProjectResources.ts`
+- Attach `companyName = ownerCompanyName` to each internal user resource (so the search value can include it). No filter changes for reps — `receive_schedule_notifications === true` stays.
+
+## Result
+
+- Searching "Matt" → all eligible people named Matt (internal + reps).
+- Searching "LCS" → only LCS reps with schedule notifications enabled.
+- Searching "Old Creek" → internal Old Creek Homes users.

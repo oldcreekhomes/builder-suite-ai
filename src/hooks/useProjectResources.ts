@@ -79,7 +79,8 @@ export const useProjectResources = (projectId?: string) => {
           resourceGroup: 'Internal' as const,
           email: user.email,
           phone: user.phone_number,
-          type: 'user' as const
+          type: 'user' as const,
+          companyName,
         }));
         allResources.push(...userResources);
       }
