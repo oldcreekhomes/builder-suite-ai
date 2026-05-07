@@ -1,39 +1,36 @@
 ## Problem
 
-In the schedule's Resources picker, typing a partial company name like `lcs` still surfaces internal users (Lou Cocks, Lauren Crowe, Alex Cruz, Bill Hawk, etc.) and reps from other companies. Only the full string `LCS Site Services` filters correctly.
-
-## Root cause
-
-`ResourcesSelector` uses shadcn's `Command` (cmdk), which by default uses a **fuzzy/subsequence** matcher. With the search `lcs`, cmdk matches any item whose value contains `l`, then `c`, then `s` in order — so `Lou Cocks`, `Lauren Crowe`, `Alex Cruz`, `Bill Hawk`, etc. all score above zero and stay visible. The match against the real `LCS Site Services` reps is correct, but the noise items aren't filtered out.
-
-The earlier change to set each item's `value` to `"${resource.resourceName} ${resource.companyName}"` was correct — the problem is purely the matching algorithm.
+Searching `AT` in the Resources picker still returns items like `Jamie Hill · Fairfax Water`, `Maria Guerrero · Elite Foam Insul…`, `Brett Carney · RC Fields`, `Dan Taylor · Creative Landscapes`, etc. None of these companies start with `AT`. The current substring filter matches `at` anywhere in the combined `"resourceName companyName"` string — so `Taylor`, `Water`, `Matlantic`, `Creative`, etc. all leak through.
 
 ## Fix
 
-Pass a custom `filter` function to the `Command` component that does **case-insensitive substring matching** instead of subsequence matching:
+Change matching to **case-insensitive prefix match against the company name only** (and fall back to the rep name when there is no company, e.g. internal users without a company).
+
+In `src/components/schedule/ResourcesSelector.tsx`:
+
+1. Encode each `CommandItem`'s `value` so the filter can isolate the company name. Use a delimiter that won't collide:
+   - External rep: `value={`${resource.companyName}||${resource.resourceName}||${resource.resourceId}`}`
+   - Internal user: `value={`${resource.companyName ?? resource.resourceName}||${resource.resourceName}||${resource.resourceId}`}`
+   - Selected group: keep the `selected-` prefix so they stay pinned.
+
+2. Replace the `Command` filter with prefix logic:
 
 ```tsx
-<Command
-  filter={(value, search) => {
-    if (!search) return 1;
-    return value.toLowerCase().includes(search.toLowerCase()) ? 1 : 0;
-  }}
->
+filter={(value, search) => {
+  if (!search) return 1;
+  if (value.startsWith('selected-')) return 1;
+  const companyOrName = value.split('||')[0] ?? '';
+  return companyOrName.toLowerCase().startsWith(search.toLowerCase().trim()) ? 1 : 0;
+}}
 ```
 
-With this:
-- Searching `lcs` → only items whose combined `name + company` value contains the contiguous substring `lcs` (i.e., the three LCS Site Services reps) are shown. Internal users like Lou Cocks are filtered out.
-- Searching `lcs si` → narrows further but still shows the same three reps.
-- Searching `matt` → still shows all Matts (substring match works on names too).
-- Searching `old creek` → still shows internal users belonging to Old Creek Homes (their value contains the company name).
+## Result for `AT`
 
-Note: the "Selected" group items use `value={`selected-${resourceName}`}`, so the substring `selected-` is part of those values. To keep selected items always visible while editing, the filter should also return `1` when the value starts with `selected-`.
-
-## Files changed
-
-- `src/components/schedule/ResourcesSelector.tsx` — add the custom `filter` prop to `<Command>`. No other changes.
+- Shows only companies whose name starts with `AT` (e.g. `AT&T`, `Atlantic …`, `Atrium …`).
+- Hides `Fairfax Water`, `Elite Foam`, `RC Fields`, `Creative Landscapes`, `Midatlantic Party Wall`, internal users named `Matt`, etc.
+- Selected items stay visible while editing.
 
 ## Out of scope
 
-- No changes to `useProjectResources` (the data already includes `companyName` on internal users).
-- No changes to grouping, ordering, or the existing notification-preference filter on external reps.
+- No changes to data, grouping, ordering, or the notification-preference filter.
+- Rep-name search is intentionally dropped per your instruction ("only return companies with names that start with…"). If you also want rep-name prefix matching (e.g. typing `Jam` to find `Jamie Hill`), say so and I'll add it as a second OR clause.
