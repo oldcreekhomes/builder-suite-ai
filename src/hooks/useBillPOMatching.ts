@@ -290,15 +290,8 @@ export function useBillPOMatching(bills: BillForMatching[]) {
                   // printed a different PO — exclude from this PO
                   if (target) return false;
                 }
-                if (l.cost_code_id === matchedPo.cost_code_id) {
-                  // Only attribute by cost_code if no other matched PO shares it
-                  const sharedPos = pos.filter(p =>
-                    p.company_id === bill.vendor_id &&
-                    p.project_id === bill.project_id &&
-                    p.cost_code_id === matchedPo.cost_code_id
-                  );
-                  if (sharedPos.length <= 1) return true;
-                }
+                // No cost-code attribution: only explicit links count.
+                return false;
                 return false;
               })
               .reduce((s, l) => s + (l.amount || 0), 0);
