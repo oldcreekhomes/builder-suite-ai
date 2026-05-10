@@ -1,17 +1,70 @@
-## Two fixes in `src/components/bills/BillPOSummaryDialog.tsx`
+## PO Status Summary — collapse lots into a hover column (Option B)
 
-### 1. Replace native HTML `title` tooltips with shadcn `Tooltip`
-The Cost Code and Description cells currently use `title="..."`, which renders the OS's native tooltip (the gray box in the screenshot) — not the styled shadcn tooltip used everywhere else in the app.
+### Goal
 
-- Import `Tooltip`, `TooltipTrigger`, `TooltipContent`, `TooltipProvider` from `@/components/ui/tooltip`.
-- Wrap the truncated Cost Code cell content and the Description cell content in a `<Tooltip>` whose `TooltipContent` shows the full string.
-- Wrap the table (or the dialog body) in a single `<TooltipProvider>` so all tooltips use the app-standard styling.
-- Remove every `title={...}` attribute on those `<TableCell>`s so the browser's native tooltip never shows.
+Keep the PO Status Summary dialog readable regardless of how many lots a single bill spans. Today, a bill split across N lots produces N near-duplicate rows per cost code. After this change, each unique PO line shows once, with a new **Lots** column that displays a count and reveals per-lot dollars on hover — matching the existing pattern on the Manage Bills list (the "+2" / 4200 / 4275 popover).
 
-### 2. Fix Cost Code sort (4200 should never appear after 4275)
-Current sort key reads only `line.cost_code_display`. When that field is null/empty on a line, the rendered value falls back to `match.cost_code_display`, so the sort key disagrees with what's displayed and rows interleave.
+Scope is limited to `src/components/bills/BillPOSummaryDialog.tsx`. No business-logic, math, or schema changes.
 
-Fix: build the sort key as `line.cost_code_display || matchByPoId.get(resolveLineToPoId(line))?.cost_code_display || ''`, then extract the leading numeric (`/\d+(\.\d+)?/`) from that combined value. Move the `sortedBillLines` block to be defined after `matchByPoId` and `resolveLineToPoId` are in scope (they already are). Keep the stable, ascending, missing-codes-last behavior.
+### What changes for the user
 
-## Out of scope
-- No other dialogs, no math/totals changes, no schema changes.
+Before (today, 2 lots → 8 rows of mostly duplicates):
+
+```text
+PO Number       Cost Code   Description                  This Bill   …
+2026-103E-0016  4200        Backfill                     $475
+2026-103E-0016  4200        Backfill                     $475
+2026-103E-0013  4275        Interior Concrete - Slab     $5,900
+2026-103E-0013  4275        Exterior Draintile           $800
+2026-103E-0013  4275        *Optional - Window Well      $1,200
+2026-103E-0013  4275        Interior Concrete - Slab     $5,900
+2026-103E-0013  4275        Exterior Draintile           $800
+2026-103E-0013  4275        *Optional - Window Well      $1,200
+```
+
+After:
+
+```text
+PO Number       Cost Code   Description                  Lots   This Bill   …
+2026-103E-0016  4200        Backfill                     +2     $950
+2026-103E-0013  4275        Interior Concrete - Slab     +2     $11,800
+2026-103E-0013  4275        Exterior Draintile           +2     $1,600
+2026-103E-0013  4275        *Optional - Window Well      +2     $2,400
+```
+
+Hovering the **Lots** cell opens a shadcn tooltip (no native HTML title) showing:
+
+```text
+Lot 1:        $5,900.00
+Lot 2:        $5,900.00
+Total:       $11,800.00
+```
+
+When a row has only one lot, the cell shows the lot name directly (e.g. `Lot 3`) — same convention as the Manage Bills list.
+When a row has no lot allocation, the cell shows `—` and no tooltip.
+
+### Implementation outline
+
+1. **Group bill_lines by PO line identity** before rendering. The grouping key is the tuple `(resolvedPoId, purchase_order_line_id ?? cost_code_id, memo)`. This collapses lot duplicates while keeping genuinely different cost-code/description rows separate.
+2. For each group, sum `amount` for the **This Bill** column and collect a `lots` array of `{ name, amount }` from `line.project_lots` (lot_name, falling back to `Lot {lot_number}`), using the same natural sort as `getLotAllocationData` in `BillsApprovalTable.tsx`.
+3. **Add a "Lots" column** between Description and PO Amount.
+   - 0 lots → render `—`, no tooltip.
+   - 1 lot → render the lot name, no tooltip.
+   - 2+ lots → render `+N` wrapped in shadcn `Tooltip` / `TooltipTrigger` / `TooltipContent` (provider already exists on the dialog), showing each lot + Total formatted with `formatCurrency`.
+4. **Sort** the collapsed groups by leading cost-code number (preserving today's sort behavior added in the prior fix).
+5. **Footer total** continues to sum every original `bill_line.amount` (unchanged math, just a different grouping for display).
+6. **No native `title` attributes** — anywhere a tooltip is needed, use the existing shadcn `TruncatedCell` / `Tooltip` components.
+
+### Out of scope
+
+- The `PODetailsDialog` shortcut path (single-PO bills) is unchanged.
+- PO-level columns (PO Amount, Billed to Date, Remaining, Status, Files) continue to render on every row for now. Deduplicating those across rows of the same PO can be a follow-up if desired — flagging only because they visually repeat; no change in this pass.
+- No edits to data fetching, RLS, hooks, or the bills list.
+
+### Verification
+
+- Open the City Concrete bill at Oxford (the screenshot case): 8 rows should collapse to 4, Lots column shows `+2` on each, hover reveals Lot 1 / Lot 2 / Total in shadcn tooltip.
+- Open a single-lot bill: Lots column shows the lot name, no hover.
+- Open a bill with no lot allocation: Lots column shows `—`.
+- Footer Total equals the bill total (unchanged).
+- No native gray browser tooltip appears anywhere in the dialog.
