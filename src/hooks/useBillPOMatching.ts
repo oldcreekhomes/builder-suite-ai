@@ -269,9 +269,6 @@ export function useBillPOMatching(bills: BillForMatching[]) {
           const matchedPo = pos.find(p => p.id === resolvedPoId);
           if (!matchedPo) { unmatchedLineCount++; return; }
           
-          const matchedPo = pos.find(p => p.id === resolvedPoId);
-          if (!matchedPo) return;
-          
           if (!matches.find(m => m.po_id === matchedPo.id)) {
             const ccData = costCodeLookup.get(matchedPo.cost_code_id || '');
             // Exclude the current bill from historical billed total to avoid double-counting.
