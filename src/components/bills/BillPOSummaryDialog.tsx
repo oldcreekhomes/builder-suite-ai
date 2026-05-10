@@ -190,6 +190,11 @@ export function BillPOSummaryDialog({
   // Resolve the cost code display string for a line, falling back to the matched PO's cost code.
   const getLineCostCodeDisplay = (line: BillLine): string => {
     if (line.cost_code_display) return line.cost_code_display;
+    const cc = line.cost_codes;
+    if (cc && (cc.code || cc.name)) {
+      if (cc.code && cc.name) return `${cc.code}: ${cc.name}`;
+      return (cc.code || cc.name) as string;
+    }
     const poId = resolveLineToPoId(line);
     if (poId) {
       const m = matchByPoId.get(poId);
