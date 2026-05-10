@@ -15,7 +15,8 @@ export interface POMatch {
 export interface BillPOMatchResult {
   bill_id: string;
   matches: POMatch[];
-  overall_status: 'matched' | 'over_po' | 'no_po' | 'partial' | 'draw' | 'numerous';
+  overall_status: 'matched' | 'over_po' | 'no_po' | 'partial' | 'draw' | 'numerous' | 'over_and_partial';
+  has_unmatched_lines?: boolean;
 }
 
 interface BillLine {
