@@ -238,6 +238,7 @@ export function useBillPOMatching(bills: BillForMatching[]) {
           // HARD SHORT-CIRCUIT: explicit "No PO" intent always wins, even if a stale
           // purchase_order_id UUID survives in the row from an earlier auto-match.
           if (line.po_assignment === 'none' || resolvedPoId === '__none__') {
+            unmatchedLineCount++;
             return;
           }
 
