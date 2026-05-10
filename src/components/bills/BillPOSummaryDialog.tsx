@@ -354,7 +354,7 @@ export function BillPOSummaryDialog({
                         <TableCell className="whitespace-nowrap font-medium">—</TableCell>
                         <TableCell className="max-w-[140px]"><TruncatedCell value={line.cost_code_display || '—'} /></TableCell>
                         <TableCell className="max-w-[220px]"><TruncatedCell value={line.memo || '—'} /></TableCell>
-                        <TableCell className="whitespace-nowrap"><LotsCell lots={group.lots} /></TableCell>
+                        <TableCell className="whitespace-nowrap"><LotsCell lots={group.lots} costCode={line.cost_code_display || '—'} /></TableCell>
                         <TableCell className="whitespace-nowrap">—</TableCell>
                         <TableCell className="whitespace-nowrap">—</TableCell>
                         <TableCell className="whitespace-nowrap">
