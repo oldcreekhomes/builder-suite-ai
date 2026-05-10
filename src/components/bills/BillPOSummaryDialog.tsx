@@ -33,6 +33,7 @@ const TruncatedCell = ({ value, className }: { value: string; className?: string
 interface BillLine {
   cost_code_id?: string | null;
   cost_code_display?: string;
+  cost_codes?: { code?: string | null; name?: string | null } | null;
   amount?: number;
   purchase_order_id?: string | null;
   purchase_order_line_id?: string | null;
@@ -189,6 +190,11 @@ export function BillPOSummaryDialog({
   // Resolve the cost code display string for a line, falling back to the matched PO's cost code.
   const getLineCostCodeDisplay = (line: BillLine): string => {
     if (line.cost_code_display) return line.cost_code_display;
+    const cc = line.cost_codes;
+    if (cc && (cc.code || cc.name)) {
+      if (cc.code && cc.name) return `${cc.code}: ${cc.name}`;
+      return (cc.code || cc.name) as string;
+    }
     const poId = resolveLineToPoId(line);
     if (poId) {
       const m = matchByPoId.get(poId);
@@ -327,9 +333,9 @@ export function BillPOSummaryDialog({
                     return (
                       <TableRow key={`grp-${key}`}>
                         <TableCell className="whitespace-nowrap font-medium">—</TableCell>
-                        <TableCell className="max-w-[140px]"><TruncatedCell value={line.cost_code_display || '—'} /></TableCell>
+                        <TableCell className="max-w-[140px]"><TruncatedCell value={getLineCostCodeDisplay(line) || '—'} /></TableCell>
                         <TableCell className="max-w-[220px]"><TruncatedCell value={line.memo || '—'} /></TableCell>
-                        <TableCell className="whitespace-nowrap"><LotsCell lots={group.lots} costCode={line.cost_code_display || '—'} /></TableCell>
+                        <TableCell className="whitespace-nowrap"><LotsCell lots={group.lots} costCode={getLineCostCodeDisplay(line) || '—'} /></TableCell>
                         <TableCell className="whitespace-nowrap">—</TableCell>
                         <TableCell className="whitespace-nowrap">—</TableCell>
                         <TableCell className="whitespace-nowrap">
@@ -367,9 +373,9 @@ export function BillPOSummaryDialog({
                   return (
                     <TableRow key={`grp-${key}`}>
                       <TableCell className="whitespace-nowrap font-medium">{match.po_number}</TableCell>
-                      <TableCell className="max-w-[140px]"><TruncatedCell value={line.cost_code_display || match.cost_code_display || '—'} /></TableCell>
+                      <TableCell className="max-w-[140px]"><TruncatedCell value={getLineCostCodeDisplay(line) || match.cost_code_display || '—'} /></TableCell>
                       <TableCell className="max-w-[220px]"><TruncatedCell value={line.memo || '—'} /></TableCell>
-                      <TableCell className="whitespace-nowrap"><LotsCell lots={group.lots} costCode={line.cost_code_display || match.cost_code_display || '—'} /></TableCell>
+                      <TableCell className="whitespace-nowrap"><LotsCell lots={group.lots} costCode={getLineCostCodeDisplay(line) || match.cost_code_display || '—'} /></TableCell>
                       <TableCell className="whitespace-nowrap">{formatCurrency(match.po_amount)}</TableCell>
                       <TableCell className="whitespace-nowrap">{formatCurrency(match.total_billed)}</TableCell>
                       <TableCell className="whitespace-nowrap">
