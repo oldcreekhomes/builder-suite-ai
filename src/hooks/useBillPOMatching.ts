@@ -264,7 +264,10 @@ export function useBillPOMatching(bills: BillForMatching[]) {
           }
 
           // No cost-code fallback: lines without explicit PO/po_reference are treated as off-PO.
-          if (!resolvedPoId) return;
+          if (!resolvedPoId) { unmatchedLineCount++; return; }
+          
+          const matchedPo = pos.find(p => p.id === resolvedPoId);
+          if (!matchedPo) { unmatchedLineCount++; return; }
           
           const matchedPo = pos.find(p => p.id === resolvedPoId);
           if (!matchedPo) return;
