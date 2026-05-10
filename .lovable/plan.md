@@ -1,24 +1,17 @@
 ## Goal
-Eliminate horizontal scrolling in the PO Status Summary dialog so all columns (PO Number → Status) fit within the dialog width on a typical desktop viewport.
+Sort the PO Status Summary dialog rows by cost code number (ascending), instead of the current order (which follows `bill.bill_lines` array order).
 
-## Changes (single file: `src/components/bills/BillPOSummaryDialog.tsx`)
+## Change (single file: `src/components/bills/BillPOSummaryDialog.tsx`)
 
-1. **Widen the dialog**
-   - Change `DialogContent` from `max-w-6xl` → `max-w-[95vw]` (with `xl:max-w-7xl` floor) so it scales to the available viewport width instead of being capped at ~1152px.
+Before the `billLines.map(...)` render loop (around line 236), build a sorted copy of `billLines`:
 
-2. **Abbreviate the Cost Code column**
-   - Currently renders the full `cost_code_display` (e.g. `"4200: Excavation, Backfill & Grading"`), which is the widest non-description column.
-   - Constrain it to `max-w-[140px]` with `truncate` and put the full cost code text in a `title` tooltip (same pattern already used by the Description column). User can hover to see the full name.
+- Extract the leading numeric portion of each line's `cost_code_display` (e.g. `"4200: Excavation, Backfill & Grading"` → `4200`, `"4275: Concrete"` → `4275`).
+- Use the existing `costCodeSort` helper at `src/lib/costCodeSort.ts` if it provides a comparator; otherwise sort with a simple `localeCompare(..., undefined, { numeric: true })` on the cost code string.
+- Lines without a cost code sort to the bottom.
+- Stable sort so duplicate cost codes preserve their original relative order (which keeps repeated POs grouped naturally as in the screenshot).
 
-3. **Tighten Description column**
-   - Reduce `max-w-[260px]` → `max-w-[220px]` to reclaim a bit more horizontal room for the numeric columns.
-
-4. **Numeric columns stay `whitespace-nowrap`** — no change. PO Number, amounts, status badges remain fully visible.
+Render uses the sorted array; totals math is unchanged (still sums all lines).
 
 ## Out of scope
-- No changes to data, totals math, or the single-PO shortcut path.
-- No changes to other dialogs/tables.
-
-## Technical notes
-- Tailwind: `max-w-[95vw]` is supported via arbitrary values; existing dialogs in the codebase use the same pattern.
-- Truncation pattern mirrors the existing Description cell (`max-w-[260px] truncate` + `title=`).
+- No changes to PODetailsDialog, math, totals, or any other table.
+- No DB or schema changes.

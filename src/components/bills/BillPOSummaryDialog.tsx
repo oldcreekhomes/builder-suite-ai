@@ -200,6 +200,22 @@ export function BillPOSummaryDialog({
   const matchByPoId = new Map(matches.map(m => [m.po_id, m]));
   const billLines = bill?.bill_lines || [];
 
+  // Sort by leading cost code number ascending; missing cost codes sort to bottom. Stable.
+  const sortedBillLines = billLines
+    .map((line, idx) => ({ line, idx }))
+    .sort((a, b) => {
+      const aMatch = (a.line.cost_code_display || '').match(/\d+(\.\d+)?/);
+      const bMatch = (b.line.cost_code_display || '').match(/\d+(\.\d+)?/);
+      const aNum = aMatch ? parseFloat(aMatch[0]) : Number.POSITIVE_INFINITY;
+      const bNum = bMatch ? parseFloat(bMatch[0]) : Number.POSITIVE_INFINITY;
+      if (aNum !== bNum) return aNum - bNum;
+      const aStr = a.line.cost_code_display || '';
+      const bStr = b.line.cost_code_display || '';
+      const cmp = aStr.localeCompare(bStr, undefined, { numeric: true });
+      return cmp !== 0 ? cmp : a.idx - b.idx;
+    })
+    .map(x => x.line);
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-[95vw] xl:max-w-7xl">
@@ -233,7 +249,7 @@ export function BillPOSummaryDialog({
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {billLines.map((line, idx) => {
+                {sortedBillLines.map((line, idx) => {
                   const resolvedPoId = resolveLineToPoId(line);
                   const match = resolvedPoId ? matchByPoId.get(resolvedPoId) : undefined;
                   const lineAmount = line.amount || 0;
