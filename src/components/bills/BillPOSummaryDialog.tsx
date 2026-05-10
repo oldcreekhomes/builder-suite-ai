@@ -40,6 +40,14 @@ interface BillLine {
   po_reference?: string | null;
   po_assignment?: string | null;
   memo?: string | null;
+  lot_id?: string | null;
+  project_lots?: { lot_name?: string | null; lot_number?: number | string | null } | null;
+}
+
+interface GroupedLine {
+  representative: BillLine;
+  totalAmount: number;
+  lots: { name: string; amount: number }[];
 }
 
 /** Normalize a PO reference for fuzzy comparison. */
