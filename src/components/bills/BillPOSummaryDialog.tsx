@@ -275,26 +275,30 @@ export function BillPOSummaryDialog({
       return cmp !== 0 ? cmp : a.idx - b.idx;
     });
 
-  const LotsCell = ({ lots }: { lots: { name: string; amount: number }[] }) => {
+  const LotsCell = ({ lots, costCode }: { lots: { name: string; amount: number }[]; costCode: string }) => {
     if (lots.length === 0) return <span className="text-muted-foreground">—</span>;
     if (lots.length === 1) return <span>{lots[0].name}</span>;
     const total = lots.reduce((s, l) => s + l.amount, 0);
+    const fmt = (n: number) => `$${n.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
     return (
       <Tooltip>
-        <TooltipTrigger asChild>
-          <span className="cursor-default underline decoration-dotted underline-offset-2">+{lots.length}</span>
-        </TooltipTrigger>
-        <TooltipContent>
-          <div className="space-y-1 text-xs">
-            {lots.map((l, i) => (
-              <div key={i} className="flex justify-between gap-4">
-                <span>{l.name}:</span>
-                <span className="font-medium tabular-nums">{formatCurrency(l.amount)}</span>
+        <TooltipTrigger>+{lots.length}</TooltipTrigger>
+        <TooltipContent className="max-w-xs">
+          <div className="space-y-2">
+            <div>
+              <div className="font-medium text-xs">{costCode}</div>
+              <div className="pl-2 space-y-0.5">
+                {lots.map((lot, j) => (
+                  <div key={j} className="flex justify-between gap-4 text-xs">
+                    <span className="text-muted-foreground">{lot.name}:</span>
+                    <span>{fmt(lot.amount)}</span>
+                  </div>
+                ))}
               </div>
-            ))}
-            <div className="flex justify-between gap-4 border-t pt-1 font-semibold">
+            </div>
+            <div className="border-t pt-1 flex justify-between gap-4 font-medium text-xs">
               <span>Total:</span>
-              <span className="tabular-nums">{formatCurrency(total)}</span>
+              <span>{fmt(total)}</span>
             </div>
           </div>
         </TooltipContent>
@@ -350,7 +354,7 @@ export function BillPOSummaryDialog({
                         <TableCell className="whitespace-nowrap font-medium">—</TableCell>
                         <TableCell className="max-w-[140px]"><TruncatedCell value={line.cost_code_display || '—'} /></TableCell>
                         <TableCell className="max-w-[220px]"><TruncatedCell value={line.memo || '—'} /></TableCell>
-                        <TableCell className="whitespace-nowrap"><LotsCell lots={group.lots} /></TableCell>
+                        <TableCell className="whitespace-nowrap"><LotsCell lots={group.lots} costCode={line.cost_code_display || '—'} /></TableCell>
                         <TableCell className="whitespace-nowrap">—</TableCell>
                         <TableCell className="whitespace-nowrap">—</TableCell>
                         <TableCell className="whitespace-nowrap">
@@ -390,7 +394,7 @@ export function BillPOSummaryDialog({
                       <TableCell className="whitespace-nowrap font-medium">{match.po_number}</TableCell>
                       <TableCell className="max-w-[140px]"><TruncatedCell value={line.cost_code_display || match.cost_code_display || '—'} /></TableCell>
                       <TableCell className="max-w-[220px]"><TruncatedCell value={line.memo || '—'} /></TableCell>
-                      <TableCell className="whitespace-nowrap"><LotsCell lots={group.lots} /></TableCell>
+                      <TableCell className="whitespace-nowrap"><LotsCell lots={group.lots} costCode={line.cost_code_display || match.cost_code_display || '—'} /></TableCell>
                       <TableCell className="whitespace-nowrap">{formatCurrency(match.po_amount)}</TableCell>
                       <TableCell className="whitespace-nowrap">{formatCurrency(match.total_billed)}</TableCell>
                       <TableCell className="whitespace-nowrap">
