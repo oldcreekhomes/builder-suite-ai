@@ -228,6 +228,7 @@ export function useBillPOMatching(bills: BillForMatching[]) {
 
       bills.forEach(bill => {
         const matches: POMatch[] = [];
+        let unmatchedLineCount = 0;
 
         const allLines = bill.bill_lines || [];
         
