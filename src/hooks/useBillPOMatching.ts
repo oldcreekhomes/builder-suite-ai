@@ -231,23 +231,32 @@ export function useBillPOMatching(bills: BillForMatching[]) {
         let unmatchedLineCount = 0;
 
         const allLines = bill.bill_lines || [];
-        
-        allLines.forEach(line => {
-          let resolvedPoId = line.purchase_order_id;
 
-          // HARD SHORT-CIRCUIT: explicit "No PO" intent always wins, even if a stale
-          // purchase_order_id UUID survives in the row from an earlier auto-match.
+        // Pre-count how many bill lines share each cost code so we know when a
+        // line is competing with siblings (in which case we must respect PO capacity).
+        const ccLineCount = new Map<string, number>();
+        allLines.forEach(l => {
+          if (l.cost_code_id) ccLineCount.set(l.cost_code_id, (ccLineCount.get(l.cost_code_id) || 0) + 1);
+        });
+        // Track amount already attributed to each PO from THIS bill so capacity decrements line-by-line.
+        const attributedFromThisBill = new Map<string, number>();
+        const remainingCapacity = (poId: string, poAmount: number): number => {
+          const historical = sumBilledExcluding(poId, bill.id);
+          const used = attributedFromThisBill.get(poId) || 0;
+          return poAmount - historical - used;
+        };
+
+        // PASS 1: resolve every bill line to a PO id (or null = off-PO).
+        const lineResolutions: Array<{ poId: string | null; amount: number }> = [];
+        allLines.forEach(line => {
+          let resolvedPoId: string | undefined = line.purchase_order_id;
+
           if (line.po_assignment === 'none' || resolvedPoId === '__none__') {
-            unmatchedLineCount++;
+            lineResolutions.push({ poId: null, amount: line.amount || 0 });
             return;
           }
+          if (resolvedPoId === '__auto__') resolvedPoId = undefined;
 
-          // Skip auto sentinel
-          if (resolvedPoId === '__auto__') {
-            resolvedPoId = undefined;
-          }
-
-          // HIGHEST PRIORITY: if the invoice line printed a PO number, match by PO number
           if (!resolvedPoId && line.po_reference && bill.project_id && bill.vendor_id) {
             const target = normalizePoRef(line.po_reference);
             if (target) {
@@ -263,60 +272,74 @@ export function useBillPOMatching(bills: BillForMatching[]) {
             }
           }
 
-          // No cost-code fallback: lines without explicit PO/po_reference are treated as off-PO.
-          if (!resolvedPoId) { unmatchedLineCount++; return; }
-          
-          const matchedPo = pos.find(p => p.id === resolvedPoId);
-          if (!matchedPo) { unmatchedLineCount++; return; }
-          
-          if (!matches.find(m => m.po_id === matchedPo.id)) {
-            const ccData = costCodeLookup.get(matchedPo.cost_code_id || '');
-            // Exclude the current bill from historical billed total to avoid double-counting.
-            const totalBilled = sumBilledExcluding(matchedPo.id, bill.id);
-            const poAmount = matchedPo.total_amount || 0;
-
-            // Current bill's lines allocated to this PO — mirror dialog resolution chain:
-            // 1) explicit purchase_order_id, 2) printed po_reference, 3) unique cost_code fallback.
-            const matchedPoNumNorm = normalizePoRef(matchedPo.po_number);
-            const thisBillAmount = allLines
-              .filter(l => {
-                let lpId = l.purchase_order_id;
-                if (lpId === '__none__' || lpId === '__auto__') lpId = undefined;
-                if (lpId === matchedPo.id) return true;
-                if (lpId && lpId !== matchedPo.id) return false; // explicitly assigned elsewhere
-                if (l.po_reference && matchedPoNumNorm) {
-                  const target = normalizePoRef(l.po_reference);
-                  if (target && (target === matchedPoNumNorm || matchedPoNumNorm.includes(target) || target.includes(matchedPoNumNorm))) {
-                    return true;
-                  }
-                  // printed a different PO — exclude from this PO
-                  if (target) return false;
+          if (!resolvedPoId && line.cost_code_id && bill.vendor_id && bill.project_id) {
+            const candidates = pos.filter(p =>
+              p.company_id === bill.vendor_id &&
+              p.project_id === bill.project_id &&
+              p.cost_code_id === line.cost_code_id
+            );
+            if (candidates.length > 0) {
+              const lineAmount = line.amount || 0;
+              const isLone = (ccLineCount.get(line.cost_code_id) || 0) <= 1;
+              const fitter = candidates.find(p => remainingCapacity(p.id, p.total_amount || 0) >= lineAmount);
+              if (fitter) {
+                resolvedPoId = fitter.id;
+              } else if (isLone) {
+                let best = candidates[0];
+                for (let i = 1; i < candidates.length; i++) {
+                  if ((candidates[i].total_amount || 0) > (best.total_amount || 0)) best = candidates[i];
                 }
-                // No cost-code attribution: only explicit links count.
-                return false;
-                return false;
-              })
-              .reduce((s, l) => s + (l.amount || 0), 0);
-
-            // Uniform projection: totalBilled excludes the current bill, so always add thisBillAmount.
-            const projectedBilled = totalBilled + thisBillAmount;
-            // Cent-precise to avoid $0.01 floating-point drift causing false "Over"
-            const remainingCents = Math.round((poAmount - projectedBilled) * 100);
-            const remaining = remainingCents / 100;
-            const isDraw = remainingCents >= 0 && thisBillAmount < poAmount && poAmount > 0;
-            const status: 'matched' | 'over_po' | 'draw' = remainingCents < 0 ? 'over_po' : isDraw ? 'draw' : 'matched';
-            
-            matches.push({
-              po_id: matchedPo.id,
-              po_number: matchedPo.po_number || 'Unknown',
-              po_amount: poAmount,
-              total_billed: totalBilled,
-              remaining,
-              status,
-              cost_code_id: matchedPo.cost_code_id || '',
-              cost_code_display: ccData ? `${ccData.code}: ${ccData.name}` : 'Unknown'
-            });
+                resolvedPoId = best.id;
+              }
+            }
           }
+
+          if (!resolvedPoId) {
+            lineResolutions.push({ poId: null, amount: line.amount || 0 });
+            return;
+          }
+
+          const matchedPo = pos.find(p => p.id === resolvedPoId);
+          if (!matchedPo) {
+            lineResolutions.push({ poId: null, amount: line.amount || 0 });
+            return;
+          }
+
+          // Decrement capacity so subsequent siblings see reduced remaining.
+          attributedFromThisBill.set(matchedPo.id, (attributedFromThisBill.get(matchedPo.id) || 0) + (line.amount || 0));
+          lineResolutions.push({ poId: matchedPo.id, amount: line.amount || 0 });
+        });
+
+        unmatchedLineCount = lineResolutions.filter(r => r.poId === null).length;
+
+        // PASS 2: build one match entry per distinct PO using accumulated totals.
+        const seenPoIds = new Set<string>();
+        lineResolutions.forEach(r => {
+          if (!r.poId || seenPoIds.has(r.poId)) return;
+          seenPoIds.add(r.poId);
+          const matchedPo = pos.find(p => p.id === r.poId);
+          if (!matchedPo) return;
+
+          const ccData = costCodeLookup.get(matchedPo.cost_code_id || '');
+          const totalBilled = sumBilledExcluding(matchedPo.id, bill.id);
+          const poAmount = matchedPo.total_amount || 0;
+          const thisBillAmount = attributedFromThisBill.get(matchedPo.id) || 0;
+          const projectedBilled = totalBilled + thisBillAmount;
+          const remainingCents = Math.round((poAmount - projectedBilled) * 100);
+          const remaining = remainingCents / 100;
+          const isDraw = remainingCents >= 0 && thisBillAmount < poAmount && poAmount > 0;
+          const status: 'matched' | 'over_po' | 'draw' = remainingCents < 0 ? 'over_po' : isDraw ? 'draw' : 'matched';
+
+          matches.push({
+            po_id: matchedPo.id,
+            po_number: matchedPo.po_number || 'Unknown',
+            po_amount: poAmount,
+            total_billed: totalBilled,
+            remaining,
+            status,
+            cost_code_id: matchedPo.cost_code_id || '',
+            cost_code_display: ccData ? `${ccData.code}: ${ccData.name}` : 'Unknown'
+          });
         });
 
         // Determine overall status by status mix + presence of off-PO (unmatched) lines.
