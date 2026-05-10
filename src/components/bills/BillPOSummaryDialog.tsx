@@ -328,6 +328,7 @@ export function BillPOSummaryDialog({
                   <TableHead className="whitespace-nowrap">PO Number</TableHead>
                   <TableHead className="whitespace-nowrap">Cost Code</TableHead>
                   <TableHead className="whitespace-nowrap">Description</TableHead>
+                  <TableHead className="whitespace-nowrap">Lots</TableHead>
                   <TableHead className="whitespace-nowrap">PO Amount</TableHead>
                   <TableHead className="whitespace-nowrap">Billed to Date</TableHead>
                   <TableHead className="whitespace-nowrap">This Bill</TableHead>
