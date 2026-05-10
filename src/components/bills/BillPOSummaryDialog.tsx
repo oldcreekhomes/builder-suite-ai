@@ -15,7 +15,6 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { POMatch } from "@/hooks/useBillPOMatching";
-import { PODetailsDialog, PendingBillLine } from "./PODetailsDialog";
 import { useVendorPurchaseOrders } from "@/hooks/useVendorPurchaseOrders";
 import { cn } from "@/lib/utils";
 import { SettingsTableWrapper } from "@/components/ui/settings-table-wrapper";
