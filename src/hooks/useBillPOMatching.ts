@@ -319,33 +319,40 @@ export function useBillPOMatching(bills: BillForMatching[]) {
           }
         });
 
-        // Determine overall status by status mix (not by distinct PO count):
-        // - 0 matches → no_po
-        // - any over_po combined with a matched/draw line → numerous (mixed: some fine, some over)
-        // - all over_po → over_po
-        // - all matched/draw → matched (treat draw as a healthy match for rollup)
-        // - otherwise fall back to first status
-        let overall_status: 'matched' | 'over_po' | 'no_po' | 'partial' | 'draw' | 'numerous';
+        // Determine overall status by status mix + presence of off-PO (unmatched) lines.
+        // - all linked, all healthy (matched/draw) → matched
+        // - all linked, all over → over_po
+        // - all linked mixed (some over + some healthy) → numerous (legacy mix)
+        // - any unmatched + at least one healthy match (no over) → partial
+        // - any unmatched + any over → over_and_partial (rendered as Over + Partial badges)
+        // - any unmatched + only over matches → over_po (over dominates)
+        // - all unmatched (no matches) → no_po
+        const hasOver = matches.some(m => m.status === 'over_po');
+        const hasHealthy = matches.some(m => m.status === 'matched' || m.status === 'draw');
+        const hasUnmatched = unmatchedLineCount > 0;
+
+        let overall_status: BillPOMatchResult['overall_status'];
         if (matches.length === 0) {
           overall_status = 'no_po';
+        } else if (hasUnmatched && hasOver) {
+          overall_status = 'over_and_partial';
+        } else if (hasUnmatched && hasHealthy && !hasOver) {
+          overall_status = 'partial';
+        } else if (hasOver && hasHealthy) {
+          overall_status = 'numerous';
+        } else if (hasOver) {
+          overall_status = 'over_po';
+        } else if (hasHealthy) {
+          overall_status = 'matched';
         } else {
-          const hasOver = matches.some(m => m.status === 'over_po');
-          const hasHealthy = matches.some(m => m.status === 'matched' || m.status === 'draw');
-          if (hasOver && hasHealthy) {
-            overall_status = 'numerous';
-          } else if (hasOver) {
-            overall_status = 'over_po';
-          } else if (hasHealthy) {
-            overall_status = 'matched';
-          } else {
-            overall_status = matches[0].status as any;
-          }
+          overall_status = matches[0].status as any;
         }
 
         resultMap.set(bill.id, {
           bill_id: bill.id,
           matches,
-          overall_status
+          overall_status,
+          has_unmatched_lines: hasUnmatched,
         });
       });
 
