@@ -277,8 +277,8 @@ export function BillPOSummaryDialog({
                     return (
                       <TableRow key={`line-${idx}`}>
                         <TableCell className="whitespace-nowrap font-medium">—</TableCell>
-                        <TableCell className="max-w-[140px] truncate" title={line.cost_code_display || ''}>{line.cost_code_display || '—'}</TableCell>
-                        <TableCell className="max-w-[220px] truncate" title={line.memo || ''}>{line.memo || '—'}</TableCell>
+                        <TableCell className="max-w-[140px]"><TruncatedCell value={line.cost_code_display || '—'} /></TableCell>
+                        <TableCell className="max-w-[220px]"><TruncatedCell value={line.memo || '—'} /></TableCell>
                         <TableCell className="whitespace-nowrap">—</TableCell>
                         <TableCell className="whitespace-nowrap">—</TableCell>
                         <TableCell className="whitespace-nowrap">
