@@ -145,10 +145,7 @@ export function BillPOSummaryDialog({
         }
       }
     }
-    if (line.cost_code_id) {
-      const sameCC = matches.filter(m => m.cost_code_id === line.cost_code_id);
-      if (sameCC.length === 1) return sameCC[0].po_id;
-    }
+    // No cost-code fallback: an unlinked bill line is treated as "No PO".
     return null;
   };
 
