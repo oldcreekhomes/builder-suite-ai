@@ -261,60 +261,7 @@ export function useBillPOMatching(bills: BillForMatching[]) {
             }
           }
 
-          // Fallback: if no explicit PO link, match by vendor + project + cost_code
-          if (!resolvedPoId && line.cost_code_id && bill.vendor_id && bill.project_id) {
-            const candidatePos = pos.filter(p =>
-              p.company_id === bill.vendor_id &&
-              p.project_id === bill.project_id &&
-              p.cost_code_id === line.cost_code_id
-            );
-            if (candidatePos.length === 1) {
-              resolvedPoId = candidatePos[0].id;
-            } else if (candidatePos.length > 1) {
-              // Multiple POs for same cost code — prefer PO where bill fits within remaining budget
-              const lineAmount = line.amount || 0;
-              const fittingPos = candidatePos.filter(p => {
-                const poAmount = p.total_amount || 0;
-                const alreadyBilled = sumBilledExcluding(p.id, bill.id);
-                return (poAmount - alreadyBilled - lineAmount) >= 0;
-              });
-              
-              if (fittingPos.length === 1) {
-                resolvedPoId = fittingPos[0].id;
-              } else if (fittingPos.length > 1) {
-                // First: prefer PO whose total matches the bill line exactly
-                const exactMatch = fittingPos.find(p => (p.total_amount || 0) === lineAmount);
-                if (exactMatch) {
-                  resolvedPoId = exactMatch.id;
-                } else {
-                  // Fallback: pick largest PO (most likely the parent contract)
-                  let bestPo = fittingPos[0];
-                  for (let i = 1; i < fittingPos.length; i++) {
-                    if ((fittingPos[i].total_amount || 0) > (bestPo.total_amount || 0)) {
-                      bestPo = fittingPos[i];
-                    }
-                  }
-                  resolvedPoId = bestPo.id;
-                }
-              } else {
-                // No PO can accommodate — prefer exact amount match first
-                const exactMatch = candidatePos.find(p => (p.total_amount || 0) === lineAmount);
-                if (exactMatch) {
-                  resolvedPoId = exactMatch.id;
-                } else {
-                  // Fallback: pick largest PO
-                  let bestPo = candidatePos[0];
-                  for (let i = 1; i < candidatePos.length; i++) {
-                    if ((candidatePos[i].total_amount || 0) > (bestPo.total_amount || 0)) {
-                      bestPo = candidatePos[i];
-                    }
-                  }
-                  resolvedPoId = bestPo.id;
-                }
-              }
-            }
-          }
-          
+          // No cost-code fallback: lines without explicit PO/po_reference are treated as off-PO.
           if (!resolvedPoId) return;
           
           const matchedPo = pos.find(p => p.id === resolvedPoId);
