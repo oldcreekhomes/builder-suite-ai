@@ -1029,15 +1029,19 @@ export function BatchBillReviewTable({
                   <TableCell className="w-20 text-center" onClick={(e) => e.stopPropagation()}>
                     {(() => {
                       const status = poStatusForRow;
-                      return (
-                        <POStatusBadge
-                          status={status}
-                          onClick={rowAllMatches.length > 0 ? (e?: any) => {
-                            e?.stopPropagation?.();
-                            setPoDialogState({ open: true, matches: rowAllMatches, bill: buildDialogBill() });
-                          } : undefined}
-                        />
-                      );
+                      const onClick = rowAllMatches.length > 0 ? (e?: any) => {
+                        e?.stopPropagation?.();
+                        setPoDialogState({ open: true, matches: rowAllMatches, bill: buildDialogBill() });
+                      } : undefined;
+                      if (status === 'over_and_partial') {
+                        return (
+                          <div className="flex items-center justify-center gap-1">
+                            <POStatusBadge status="over_po" onClick={onClick} />
+                            <POStatusBadge status="partial" onClick={onClick} />
+                          </div>
+                        );
+                      }
+                      return <POStatusBadge status={status as any} onClick={onClick} />;
                     })()}
                   </TableCell>
                   

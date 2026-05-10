@@ -15,7 +15,8 @@ export interface POMatch {
 export interface BillPOMatchResult {
   bill_id: string;
   matches: POMatch[];
-  overall_status: 'matched' | 'over_po' | 'no_po' | 'partial' | 'draw' | 'numerous';
+  overall_status: 'matched' | 'over_po' | 'no_po' | 'partial' | 'draw' | 'numerous' | 'over_and_partial';
+  has_unmatched_lines?: boolean;
 }
 
 interface BillLine {
@@ -227,6 +228,7 @@ export function useBillPOMatching(bills: BillForMatching[]) {
 
       bills.forEach(bill => {
         const matches: POMatch[] = [];
+        let unmatchedLineCount = 0;
 
         const allLines = bill.bill_lines || [];
         
@@ -236,6 +238,7 @@ export function useBillPOMatching(bills: BillForMatching[]) {
           // HARD SHORT-CIRCUIT: explicit "No PO" intent always wins, even if a stale
           // purchase_order_id UUID survives in the row from an earlier auto-match.
           if (line.po_assignment === 'none' || resolvedPoId === '__none__') {
+            unmatchedLineCount++;
             return;
           }
 
@@ -260,64 +263,11 @@ export function useBillPOMatching(bills: BillForMatching[]) {
             }
           }
 
-          // Fallback: if no explicit PO link, match by vendor + project + cost_code
-          if (!resolvedPoId && line.cost_code_id && bill.vendor_id && bill.project_id) {
-            const candidatePos = pos.filter(p =>
-              p.company_id === bill.vendor_id &&
-              p.project_id === bill.project_id &&
-              p.cost_code_id === line.cost_code_id
-            );
-            if (candidatePos.length === 1) {
-              resolvedPoId = candidatePos[0].id;
-            } else if (candidatePos.length > 1) {
-              // Multiple POs for same cost code — prefer PO where bill fits within remaining budget
-              const lineAmount = line.amount || 0;
-              const fittingPos = candidatePos.filter(p => {
-                const poAmount = p.total_amount || 0;
-                const alreadyBilled = sumBilledExcluding(p.id, bill.id);
-                return (poAmount - alreadyBilled - lineAmount) >= 0;
-              });
-              
-              if (fittingPos.length === 1) {
-                resolvedPoId = fittingPos[0].id;
-              } else if (fittingPos.length > 1) {
-                // First: prefer PO whose total matches the bill line exactly
-                const exactMatch = fittingPos.find(p => (p.total_amount || 0) === lineAmount);
-                if (exactMatch) {
-                  resolvedPoId = exactMatch.id;
-                } else {
-                  // Fallback: pick largest PO (most likely the parent contract)
-                  let bestPo = fittingPos[0];
-                  for (let i = 1; i < fittingPos.length; i++) {
-                    if ((fittingPos[i].total_amount || 0) > (bestPo.total_amount || 0)) {
-                      bestPo = fittingPos[i];
-                    }
-                  }
-                  resolvedPoId = bestPo.id;
-                }
-              } else {
-                // No PO can accommodate — prefer exact amount match first
-                const exactMatch = candidatePos.find(p => (p.total_amount || 0) === lineAmount);
-                if (exactMatch) {
-                  resolvedPoId = exactMatch.id;
-                } else {
-                  // Fallback: pick largest PO
-                  let bestPo = candidatePos[0];
-                  for (let i = 1; i < candidatePos.length; i++) {
-                    if ((candidatePos[i].total_amount || 0) > (bestPo.total_amount || 0)) {
-                      bestPo = candidatePos[i];
-                    }
-                  }
-                  resolvedPoId = bestPo.id;
-                }
-              }
-            }
-          }
-          
-          if (!resolvedPoId) return;
+          // No cost-code fallback: lines without explicit PO/po_reference are treated as off-PO.
+          if (!resolvedPoId) { unmatchedLineCount++; return; }
           
           const matchedPo = pos.find(p => p.id === resolvedPoId);
-          if (!matchedPo) return;
+          if (!matchedPo) { unmatchedLineCount++; return; }
           
           if (!matches.find(m => m.po_id === matchedPo.id)) {
             const ccData = costCodeLookup.get(matchedPo.cost_code_id || '');
@@ -342,15 +292,8 @@ export function useBillPOMatching(bills: BillForMatching[]) {
                   // printed a different PO — exclude from this PO
                   if (target) return false;
                 }
-                if (l.cost_code_id === matchedPo.cost_code_id) {
-                  // Only attribute by cost_code if no other matched PO shares it
-                  const sharedPos = pos.filter(p =>
-                    p.company_id === bill.vendor_id &&
-                    p.project_id === bill.project_id &&
-                    p.cost_code_id === matchedPo.cost_code_id
-                  );
-                  if (sharedPos.length <= 1) return true;
-                }
+                // No cost-code attribution: only explicit links count.
+                return false;
                 return false;
               })
               .reduce((s, l) => s + (l.amount || 0), 0);
@@ -376,33 +319,40 @@ export function useBillPOMatching(bills: BillForMatching[]) {
           }
         });
 
-        // Determine overall status by status mix (not by distinct PO count):
-        // - 0 matches → no_po
-        // - any over_po combined with a matched/draw line → numerous (mixed: some fine, some over)
-        // - all over_po → over_po
-        // - all matched/draw → matched (treat draw as a healthy match for rollup)
-        // - otherwise fall back to first status
-        let overall_status: 'matched' | 'over_po' | 'no_po' | 'partial' | 'draw' | 'numerous';
+        // Determine overall status by status mix + presence of off-PO (unmatched) lines.
+        // - all linked, all healthy (matched/draw) → matched
+        // - all linked, all over → over_po
+        // - all linked mixed (some over + some healthy) → numerous (legacy mix)
+        // - any unmatched + at least one healthy match (no over) → partial
+        // - any unmatched + any over → over_and_partial (rendered as Over + Partial badges)
+        // - any unmatched + only over matches → over_po (over dominates)
+        // - all unmatched (no matches) → no_po
+        const hasOver = matches.some(m => m.status === 'over_po');
+        const hasHealthy = matches.some(m => m.status === 'matched' || m.status === 'draw');
+        const hasUnmatched = unmatchedLineCount > 0;
+
+        let overall_status: BillPOMatchResult['overall_status'];
         if (matches.length === 0) {
           overall_status = 'no_po';
+        } else if (hasUnmatched && hasOver) {
+          overall_status = 'over_and_partial';
+        } else if (hasUnmatched && hasHealthy && !hasOver) {
+          overall_status = 'partial';
+        } else if (hasOver && hasHealthy) {
+          overall_status = 'numerous';
+        } else if (hasOver) {
+          overall_status = 'over_po';
+        } else if (hasHealthy) {
+          overall_status = 'matched';
         } else {
-          const hasOver = matches.some(m => m.status === 'over_po');
-          const hasHealthy = matches.some(m => m.status === 'matched' || m.status === 'draw');
-          if (hasOver && hasHealthy) {
-            overall_status = 'numerous';
-          } else if (hasOver) {
-            overall_status = 'over_po';
-          } else if (hasHealthy) {
-            overall_status = 'matched';
-          } else {
-            overall_status = matches[0].status as any;
-          }
+          overall_status = matches[0].status as any;
         }
 
         resultMap.set(bill.id, {
           bill_id: bill.id,
           matches,
-          overall_status
+          overall_status,
+          has_unmatched_lines: hasUnmatched,
         });
       });
 

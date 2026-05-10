@@ -1194,21 +1194,21 @@ export function BillsApprovalTable({ status, projectId, projectIds, showProjectC
             const poStatus = matchResult?.overall_status || 'no_po';
             const allMatches = matchResult?.matches || [];
             
-            return (
-              <POStatusBadge
-                status={poStatus}
-                onClick={(e?: any) => {
-                  e?.stopPropagation?.();
-                  if (allMatches.length > 0) {
-                    setPoDialogState({
-                      open: true,
-                      matches: allMatches,
-                      bill: bill
-                    });
-                  }
-                }}
-              />
-            );
+            const onClick = (e?: any) => {
+              e?.stopPropagation?.();
+              if (allMatches.length > 0) {
+                setPoDialogState({ open: true, matches: allMatches, bill: bill });
+              }
+            };
+            if (poStatus === 'over_and_partial') {
+              return (
+                <div className="flex items-center justify-center gap-1">
+                  <POStatusBadge status="over_po" onClick={onClick} />
+                  <POStatusBadge status="partial" onClick={onClick} />
+                </div>
+              );
+            }
+            return <POStatusBadge status={poStatus as any} onClick={onClick} />;
           })()}
         </TableCell>
       )}

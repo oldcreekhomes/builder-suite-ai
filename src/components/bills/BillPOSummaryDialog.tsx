@@ -145,10 +145,7 @@ export function BillPOSummaryDialog({
         }
       }
     }
-    if (line.cost_code_id) {
-      const sameCC = matches.filter(m => m.cost_code_id === line.cost_code_id);
-      if (sameCC.length === 1) return sameCC[0].po_id;
-    }
+    // No cost-code fallback: an unlinked bill line is treated as "No PO".
     return null;
   };
 
@@ -259,9 +256,16 @@ export function BillPOSummaryDialog({
           <DialogHeader>
             <DialogTitle>PO Status Summary</DialogTitle>
             <DialogDescription>
-              {bill?.reference_number
-                ? `Bill ${bill.reference_number} — ${billLines.length} line items across ${matches.length} POs`
-                : `${billLines.length} line items across ${matches.length} POs`}
+              {(() => {
+                const linkedLines = billLines.filter(l => resolveLineToPoId(l) !== null);
+                const offPoLines = billLines.length - linkedLines.length;
+                const distinctPos = new Set(linkedLines.map(l => resolveLineToPoId(l))).size;
+                const linkedCount = linkedLines.length;
+                const linePart = `${linkedCount} line item${linkedCount === 1 ? '' : 's'} across ${distinctPos} PO${distinctPos === 1 ? '' : 's'}`;
+                const offPart = offPoLines > 0 ? ` · ${offPoLines} off-PO` : '';
+                const prefix = bill?.reference_number ? `Bill ${bill.reference_number} — ` : '';
+                return `${prefix}${linePart}${offPart}`;
+              })()}
             </DialogDescription>
           </DialogHeader>
 
