@@ -338,17 +338,19 @@ export function BillPOSummaryDialog({
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {sortedBillLines.map((line, idx) => {
+                {sortedGroups.map(({ key, group }) => {
+                  const line = group.representative;
                   const resolvedPoId = resolveLineToPoId(line);
                   const match = resolvedPoId ? matchByPoId.get(resolvedPoId) : undefined;
-                  const lineAmount = line.amount || 0;
+                  const lineAmount = group.totalAmount;
 
                   if (!match) {
                     return (
-                      <TableRow key={`line-${idx}`}>
+                      <TableRow key={`grp-${key}`}>
                         <TableCell className="whitespace-nowrap font-medium">—</TableCell>
                         <TableCell className="max-w-[140px]"><TruncatedCell value={line.cost_code_display || '—'} /></TableCell>
                         <TableCell className="max-w-[220px]"><TruncatedCell value={line.memo || '—'} /></TableCell>
+                        <TableCell className="whitespace-nowrap"><LotsCell lots={group.lots} /></TableCell>
                         <TableCell className="whitespace-nowrap">—</TableCell>
                         <TableCell className="whitespace-nowrap">—</TableCell>
                         <TableCell className="whitespace-nowrap">
@@ -384,11 +386,11 @@ export function BillPOSummaryDialog({
                   const poRecord = vendorPOs?.find(p => p.id === match.po_id);
 
                   return (
-                    <TableRow key={`line-${idx}`}>
+                    <TableRow key={`grp-${key}`}>
                       <TableCell className="whitespace-nowrap font-medium">{match.po_number}</TableCell>
-                      {/* Prefer the bill line's saved cost_code_display so PO summary mirrors the editor */}
                       <TableCell className="max-w-[140px]"><TruncatedCell value={line.cost_code_display || match.cost_code_display || '—'} /></TableCell>
                       <TableCell className="max-w-[220px]"><TruncatedCell value={line.memo || '—'} /></TableCell>
+                      <TableCell className="whitespace-nowrap"><LotsCell lots={group.lots} /></TableCell>
                       <TableCell className="whitespace-nowrap">{formatCurrency(match.po_amount)}</TableCell>
                       <TableCell className="whitespace-nowrap">{formatCurrency(match.total_billed)}</TableCell>
                       <TableCell className="whitespace-nowrap">
@@ -426,11 +428,11 @@ export function BillPOSummaryDialog({
               </TableBody>
               <TableFooter>
                 <TableRow>
-                  <TableCell colSpan={5} className="text-right font-semibold">Total</TableCell>
+                  <TableCell colSpan={6} className="text-right font-semibold">Total</TableCell>
                   <TableCell className="whitespace-nowrap font-semibold">
                     {formatCurrency(billLines.reduce((sum, l) => sum + (l.amount || 0), 0))}
                   </TableCell>
-                  <TableCell colSpan={3}></TableCell>
+                  <TableCell colSpan={4}></TableCell>
                 </TableRow>
               </TableFooter>
             </Table>
