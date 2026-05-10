@@ -252,6 +252,7 @@ export function BillPOSummaryDialog({
               Loading purchase order details…
             </div>
           ) : (
+          <TooltipProvider delayDuration={150}>
           <SettingsTableWrapper>
             <Table>
               <TableHeader>
