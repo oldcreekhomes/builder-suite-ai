@@ -1,51 +1,48 @@
-## Goal
+# Fix Amount Column Penny Mismatch (Manage Bills)
 
-Populate the **859 N Lexington, Arlington, VA 22205** project (already exists, status: Completed) with historical actual costs from your `Lexington.xlsx`, so it appears as a selectable option in the Historical dropdown on every other project's Budget page (just like 412 E Nelson, 895 Kentucky St, etc.).
+## What's happening
 
-This is a **data-only change** — no code edits, no schema changes.
+On the Manage Bills table (Review / Approved / Paid tabs), the **Amount** column shows `$216.38` for the Amazon bill `112-8095482-9208204`, but every other place (Edit Bill dialog, line items, totals) correctly shows `$216.37`.
 
-## What I'll do
+## Root cause
 
-For project `859 N Lexington` (id `1c577aa1-…`), write `actual_amount` values into the existing `project_budgets` rows (and insert new rows where the cost code isn't already in that project's budget), with `lot_id = null`.
+In `src/components/bills/BillsApprovalTable.tsx` (lines 762-770), the function `getBillDisplayAmount` does NOT use the bill's authoritative `total_amount`. Instead, it re-sums each `bill_line.amount` after rounding each line individually to 2 decimals:
 
-All 88 line items from your spreadsheet have been matched to your current cost codes **by name** (the spreadsheet's code numbers are stale QuickBooks numbers — your live chart of accounts uses different numbers for some items, so name-matching is required). The spreadsheet total of **$1,728,032.30** reconciles exactly.
+```ts
+const getBillDisplayAmount = (bill) => {
+  if (bill.bill_lines && bill.bill_lines.length > 0) {
+    return bill.bill_lines.reduce((sum, line) => {
+      const lineAmount = Math.round((line.amount || 0) * 100) / 100;
+      return sum + lineAmount;
+    }, 0);
+  }
+  return bill.total_amount;
+};
+```
 
-### Per-series totals to be posted
+For the Amazon bill, the DB actually stores **two** bill_lines (one per lot allocation), each with `amount = 108.19`. The true unrounded line value is `108.185`, but it's persisted rounded to `108.19`. Summing the two rounded lines gives `216.38`, while `bills.total_amount = 216.37` (the correct invoice total).
 
-| Series | Lines | Total |
-|---|---|---|
-| 1000 Land Acquisition | 2 | $798,502.39 |
-| 2000 Soft Costs | 16 | $276,572.09 |
-| 3000 Site Development | 7 | $37,395.00 |
-| 4000 Homebuilding | 63 | $615,562.82 |
-| **Grand total** | **88** | **$1,728,032.30** |
+This affects any bill that was split across lots / cost codes where individual line amounts were rounded up. The Edit dialog and the Bill itself remain correct because they read `total_amount` directly.
 
-### Notable name → code mappings (where spreadsheet code ≠ live code)
+## Fix
 
-- `Office Supplies` $373.72 → **4040** (per your direction; absorbs 4010.2)
-- `Project Manager` $52,289.95 → **4020** (per your direction; absorbs 4010.4)
-- `Accounting` $1,365.11 → **4025** (per your direction; absorbs 4010.5)
-- `Temporary Toilets` $1,069.12 → **4070** (spreadsheet showed 4040)
-- `Gas Fireplace` $1,850 → **4540 Fireplace**
-- `Hardwood (Includes shoe mold)` $25,020.41 → **4670 Hardwood**
-- `Sales Commissions` $57,250 → **2580 Sales Commission**
-- The parent `4010 General Conditions` total ($54,028.78) is **NOT** posted to 4010 itself — it's split into 4040 / 4020 / 4025 as you specified, so no double-counting.
+Make the Amount column trust the bill's stored `total_amount` (the authoritative invoice total) instead of re-summing rounded line amounts.
 
-`Powerwashing` ($0) will be skipped.
+**File:** `src/components/bills/BillsApprovalTable.tsx`
 
-## How it shows up
+Replace `getBillDisplayAmount` so it simply returns `bill.total_amount`. The `bill_lines` fallback isn't needed — `total_amount` is always populated when a bill is created (via `approve_pending_bill` RPC and manual entry).
 
-After this runs, every project's Budget page will show **`859 N Lexington`** in the Historical dropdown (alongside 415 E Nelson, 895 Kentucky St, 1712 N Quebec St, 6330 Stevenson Ave – Lot 501/507). Selecting it pulls the actual amounts shown above into the Historical column for matching cost codes.
+```ts
+const getBillDisplayAmount = (bill: BillForApproval): number => {
+  return bill.total_amount;
+};
+```
 
-## Out of scope
+Open Balance math at lines 1031-1038 already uses `bill.total_amount` directly, so it stays consistent.
 
-- No changes to the cost code list
-- No changes to the Budget UI or Historical dropdown logic
-- No journal entries, bills, POs, or GL impact (per the existing "Historical Job Costs Data Source" pattern: these are static `actual_amount` values, not derived from JEs)
-- No edits to any other project
+## Scope / safety
 
-## Technical notes
-
-- Table: `project_budgets`, scoped by `project_id = 1c577aa1-f86c-418f-bdc7-768463664849`, `lot_id = null`
-- 88 upserts (UPDATE existing rows where `(project_id, cost_code_id, lot_id)` already exists; INSERT otherwise)
-- Will be executed via the data insert tool (no migration needed — no schema change)
+- One function change, ~7 lines.
+- No DB writes, no schema change, no migration.
+- No effect on Job Costs, Budget, Reports, journal entries, payments — those all read their own sources.
+- Fixes the display for every bill, not just Amazon, where lot-split rounding caused a ±$0.01 drift.
