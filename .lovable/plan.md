@@ -1,34 +1,40 @@
-## Match the PO Status Summary lots tooltip to the Manage Bills tooltip exactly
+## Goal
 
-Two small changes in `src/components/bills/BillPOSummaryDialog.tsx`. No logic, no math, no other files.
+Make clicking the **PO Status** badge always open the same "PO Status Summary" table dialog (the perfect Matched view in screenshot 2), regardless of whether the status is `Matched`, `Over`, or `Draw`, and regardless of how many POs are linked.
 
-### 1. Remove the dotted underline on the `+N` trigger
+## Why the two views look different today
 
-Today the `+N` cell uses `underline decoration-dotted underline-offset-2`. The Manage Bills `+N` trigger has no underline at all. Strip those classes (and `cursor-default`) so the trigger is plain text — matches screenshot 1.
+In `src/components/bills/BillPOSummaryDialog.tsx`, when a bill resolves to a single PO and every bill line allocates to that one PO, the component short-circuits and renders `PODetailsDialog` instead of the summary table:
 
-### 2. Tooltip content uses the same JSX as Manage Bills
+```ts
+const allLinesResolveToSinglePO =
+  matches.length === 1 &&
+  billLines.every(l => resolveLineToPoId(l) === matches[0].po_id);
 
-Replace the current per-lot tooltip body in `LotsCell` with the exact structure from `BillsApprovalTable.tsx` lines 1125–1145 (the `getLotAllocationData` popover):
-
-```text
-4200: Excavation, Backfill & Grading      ← cost code header (font-medium text-xs)
-  Lot 1:        $475.00                    ← muted label, right-aligned amount
-  Lot 2:        $475.00
-─────────────────────────────────
-Total:        $950.00                      ← border-t pt-1, font-medium
+if (allLinesResolveToSinglePO && open) {
+  return <PODetailsDialog ... />;
+}
 ```
 
-Concretely:
-- Wrap content in `<div class="space-y-2">`.
-- Render a single cost-code group (the row's own cost code from `getLineCostCodeDisplay(line)` or `match.cost_code_display`) as `<div class="font-medium text-xs">{costCode}</div>` followed by `<div class="pl-2 space-y-0.5">` containing each lot row: `<div class="flex justify-between gap-4 text-xs"><span class="text-muted-foreground">{lot.name}:</span><span>${amount}</span></div>`.
-- Footer total: `<div class="border-t pt-1 flex justify-between gap-4 font-medium text-xs"><span>Total:</span><span>${groupTotal}</span></div>`.
-- Use the same currency formatting as Manage Bills (`amount.toLocaleString('en-US', { minimumFractionDigits: 2 })` with `$` prefix) so the two tooltips are visually identical.
-- Keep the `TooltipContent` with `className="max-w-xs"` to match.
+The "Over" City Concrete bill hits this branch (1 PO, all lines on it), so it shows the PODetailsDialog (screenshot 1) — which is missing the PO Number column, Lots column, Files column, the "PO Status Summary" header, and shows a literal "Matched" badge in the corner.
 
-Single-lot rows still show the lot name with no tooltip; zero-lot rows still show `—`. The `Lots` column header, the row grouping, and the table body otherwise remain unchanged.
+The "Matched" City Concrete bill in screenshot 2 has 2 POs, so the shortcut is skipped and it correctly renders the summary table.
 
-### Verification
+## Change
 
-- Hover `+2` in the PO Status Summary on the Oxford City Concrete bill → popover shows `4200: Excavation, Backfill & Grading` header, `Lot 1: $475.00`, `Lot 2: $475.00`, divider, `Total: $950.00` — pixel-equivalent to the Manage Bills hover in screenshot 1.
-- The `+2` trigger has no dotted underline.
-- No native browser tooltip appears.
+Single edit in `src/components/bills/BillPOSummaryDialog.tsx`:
+
+1. **Remove the single-PO shortcut block** (the `allLinesResolveToSinglePO` computation, the loading sub-dialog, and the `<PODetailsDialog ... />` early return). All bills — 1 PO or many, Matched or Over — will now render the same summary table that already supports:
+   - "PO Status Summary" header + `Bill <ref> — N line items across M POs` subtitle
+   - PO Number, Cost Code, Description, Lots (with hover popover), PO Amount, Billed to Date, This Bill, Remaining, Files, Status columns
+   - Per-row Status badge (`Matched` / `Draw` / `Over`) computed from remaining cents — so the over bill correctly shows `Over` in red on each row
+
+2. **Clean up the now-unused imports/derivations**: `PODetailsDialog`, `PendingBillLine` import, and the `derivedPendingBillLines` block (only consumed by the removed shortcut).
+
+No other files change. `PODetailsDialog` itself is untouched and still used elsewhere (e.g. `PODetailsDialogWrapper`, edit/extract flows).
+
+## Verification
+
+- Click `Over` on the 33456 City Concrete bill → opens the summary table dialog with PO Number, Lots `+2` (hover shows lot breakdown matching Manage Bills format), Files icon, and a red `Over` Status badge per row. No "Matched" label anywhere.
+- Click `Matched` on the 33606 bill → unchanged, still shows the same summary layout.
+- Click a multi-PO bill → unchanged.

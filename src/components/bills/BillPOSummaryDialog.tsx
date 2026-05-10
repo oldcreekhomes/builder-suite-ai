@@ -15,7 +15,6 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { POMatch } from "@/hooks/useBillPOMatching";
-import { PODetailsDialog, PendingBillLine } from "./PODetailsDialog";
 import { useVendorPurchaseOrders } from "@/hooks/useVendorPurchaseOrders";
 import { cn } from "@/lib/utils";
 import { SettingsTableWrapper } from "@/components/ui/settings-table-wrapper";
@@ -160,59 +159,6 @@ export function BillPOSummaryDialog({
       .filter(line => resolveLineToPoId(line) === match.po_id)
       .reduce((sum, line) => sum + (line.amount || 0), 0);
   };
-
-  const derivedPendingBillLines = (bill?.bill_lines || []).map(l => {
-    const poId = l.purchase_order_id || undefined;
-    return {
-      cost_code_id: l.cost_code_id || undefined,
-      cost_code_display: l.cost_code_display || undefined,
-      amount: l.amount || 0,
-      purchase_order_line_id: l.purchase_order_line_id || undefined,
-      purchase_order_id: poId,
-      po_reference: l.po_reference || undefined,
-      po_assignment: l.po_assignment || undefined,
-      memo: l.memo || undefined,
-    };
-  });
-
-  // Only use the single-PO direct detail view when EVERY line truly resolves to that one PO.
-  // If any line is unmatched / "No PO", fall through to the summary table so the user can
-  // see the same lines they see in the editor (matching + unmatched together).
-  const billLinesForShortcut = bill?.bill_lines || [];
-  const allLinesResolveToSinglePO =
-    matches.length === 1 &&
-    billLinesForShortcut.length > 0 &&
-    billLinesForShortcut.every(l => resolveLineToPoId(l) === matches[0].po_id);
-
-  if (allLinesResolveToSinglePO && open) {
-    if (!poDataReady) {
-      return (
-        <Dialog open={open} onOpenChange={onOpenChange}>
-          <DialogContent className="max-w-md">
-            <DialogHeader>
-              <DialogTitle>Loading…</DialogTitle>
-              <DialogDescription>Loading purchase order details…</DialogDescription>
-            </DialogHeader>
-          </DialogContent>
-        </Dialog>
-      );
-    }
-    const singlePO = vendorPOs?.find(po => po.id === matches[0].po_id) || null;
-    return (
-      <PODetailsDialog
-        open={open}
-        onOpenChange={onOpenChange}
-        purchaseOrder={singlePO}
-        projectId={bill?.project_id || null}
-        vendorId={bill?.vendor_id || null}
-        currentBillId={bill?.id}
-        currentBillAmount={bill?.total_amount}
-        currentBillReference={bill?.reference_number || undefined}
-        currentBillStatus={bill?.status}
-        pendingBillLines={derivedPendingBillLines.filter(l => resolveLineToPoId(l as BillLine) === matches[0].po_id)}
-      />
-    );
-  }
 
   // Lookup match by po_id for quick row data access
   const matchByPoId = new Map(matches.map(m => [m.po_id, m]));
