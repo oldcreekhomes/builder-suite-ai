@@ -20,6 +20,16 @@ import { useVendorPurchaseOrders } from "@/hooks/useVendorPurchaseOrders";
 import { cn } from "@/lib/utils";
 import { SettingsTableWrapper } from "@/components/ui/settings-table-wrapper";
 import { FilesCell } from "@/components/purchaseOrders/components/FilesCell";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+
+const TruncatedCell = ({ value, className }: { value: string; className?: string }) => (
+  <Tooltip>
+    <TooltipTrigger asChild>
+      <span className={cn("block truncate", className)}>{value}</span>
+    </TooltipTrigger>
+    <TooltipContent>{value}</TooltipContent>
+  </Tooltip>
+);
 
 interface BillLine {
   cost_code_id?: string | null;
