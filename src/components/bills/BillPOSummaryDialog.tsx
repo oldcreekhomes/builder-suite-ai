@@ -115,47 +115,72 @@ export function BillPOSummaryDialog({
     if (norm) refToPoId.set(norm, po.id);
   });
 
-  /** Resolve a single bill line to a po_id using the strict allocation order:
-   * 0) explicit "No PO" intent — never resolve, never fall back
-   * 1) purchase_order_line_id (resolved to its PO)
-   * 2) explicit purchase_order_id
-   * 3) printed po_reference matched against PO number
-   * 4) unique cost_code fallback (only if no other matched PO shares that cost code)
-   */
-  const resolveLineToPoId = (line: BillLine): string | null => {
-    // Hard short-circuit: user explicitly chose "No purchase order" for this line.
+  // Precomputed map: each bill line (by reference) → resolved po_id or null.
+  // Resolution order:
+  //   0) explicit "No PO" intent
+  //   1) purchase_order_line_id
+  //   2) explicit purchase_order_id
+  //   3) printed po_reference matching a PO
+  //   4) cost-code fallback — fit-aware: only attaches if line fits in remaining
+  //      capacity (decremented as siblings consume the same PO). Lone-line on a
+  //      cost code attaches even if it overflows so user sees Over.
+  const billLinesAll = bill?.bill_lines || [];
+  const ccLineCount = new Map<string, number>();
+  billLinesAll.forEach(l => {
+    if (l.cost_code_id) ccLineCount.set(l.cost_code_id, (ccLineCount.get(l.cost_code_id) || 0) + 1);
+  });
+  const lineToPoId = new Map<BillLine, string | null>();
+  const attributedThisBill = new Map<string, number>();
+  billLinesAll.forEach(line => {
     if (line.po_assignment === 'none' || line.purchase_order_id === '__none__') {
-      return null;
+      lineToPoId.set(line, null);
+      return;
     }
+    let poId: string | null = null;
     if (line.purchase_order_line_id) {
-      const poId = poLineToPoId.get(line.purchase_order_line_id);
-      if (poId) return poId;
+      poId = poLineToPoId.get(line.purchase_order_line_id) || null;
     }
-    if (line.purchase_order_id && line.purchase_order_id !== '__auto__' && line.purchase_order_id !== '__none__') {
-      return line.purchase_order_id;
+    if (!poId && line.purchase_order_id && line.purchase_order_id !== '__auto__' && line.purchase_order_id !== '__none__') {
+      poId = line.purchase_order_id;
     }
-    if (line.po_reference) {
+    if (!poId && line.po_reference) {
       const target = normalizePoRef(line.po_reference);
       if (target) {
-        // Exact-or-contains match against any matched PO
-        for (const [norm, poId] of refToPoId.entries()) {
-          if (norm === target || norm.includes(target) || target.includes(norm)) {
-            return poId;
-          }
+        for (const [norm, pid] of refToPoId.entries()) {
+          if (norm === target || norm.includes(target) || target.includes(norm)) { poId = pid; break; }
         }
       }
     }
-    // No cost-code fallback: an unlinked bill line is treated as "No PO".
-    return null;
-  };
+    if (!poId && line.cost_code_id) {
+      const candidates = matches.filter(m => m.cost_code_id === line.cost_code_id);
+      if (candidates.length > 0) {
+        const lineAmount = line.amount || 0;
+        const isLone = (ccLineCount.get(line.cost_code_id) || 0) <= 1;
+        const fitter = candidates.find(c => {
+          const used = attributedThisBill.get(c.po_id) || 0;
+          return (c.po_amount - c.total_billed - used) >= lineAmount;
+        });
+        if (fitter) {
+          poId = fitter.po_id;
+        } else if (isLone) {
+          let best = candidates[0];
+          for (let i = 1; i < candidates.length; i++) {
+            if (candidates[i].po_amount > best.po_amount) best = candidates[i];
+          }
+          poId = best.po_id;
+        }
+      }
+    }
+    if (poId) {
+      attributedThisBill.set(poId, (attributedThisBill.get(poId) || 0) + (line.amount || 0));
+    }
+    lineToPoId.set(line, poId);
+  });
 
-  // Compute "this bill" amount per PO using resolveLineToPoId
-  const getThisBillAmount = (match: POMatch) => {
-    if (!bill?.bill_lines) return 0;
-    return bill.bill_lines
-      .filter(line => resolveLineToPoId(line) === match.po_id)
-      .reduce((sum, line) => sum + (line.amount || 0), 0);
-  };
+  const resolveLineToPoId = (line: BillLine): string | null => lineToPoId.get(line) ?? null;
+
+  // Compute "this bill" amount per PO using the precomputed map.
+  const getThisBillAmount = (match: POMatch) => attributedThisBill.get(match.po_id) || 0;
 
   // Lookup match by po_id for quick row data access
   const matchByPoId = new Map(matches.map(m => [m.po_id, m]));
