@@ -1,66 +1,46 @@
-# Differentiate "No PO" lines from "Over" lines
+# Restore cost-code auto-match — but per line, not per PO
 
-## The root cause
+## What went wrong
 
-On the Oxford bill, the PO has one committed line (Excavation $4,650). The bill has two lines:
-- **Excavation $2,500** — genuinely matches that PO line
-- **Optional Dirt Removal $12,375** — was an *optional* PO line item, treated as a variable cost, not committed
+In the previous round we removed the cost-code fallback entirely. That made *both* Oxford lines off-PO (since neither has an explicit `purchase_order_line_id` from the AI extractor), so the parent badge collapsed to grey **No PO** and the dialog has nothing to open against.
 
-Today, `BillPOSummaryDialog.resolveLineToPoId` falls back to **cost-code matching**: when a bill line has no explicit `purchase_order_line_id`, it auto-links it to any PO that shares the same cost code. Both bill lines share cost code 4200, so both get force-linked to the single Excavation PO line. Their combined $14,875 exceeds $4,650, so both rows display **Over**, and the parent badge in Manage Bills also shows **Over**.
+Your real intent: the Excavation line ($2,500) should auto-attach to the PO Excavation line ($4,650, $3,700 remaining) because it's the same vendor + same cost code + it *fits*. The Optional Dirt Removal line ($12,375) should stay off-PO because it would overflow the remaining budget — which is exactly the signal that it's a variable/optional cost, not the committed line.
 
-## What we'll change
+## Fix
 
-### 1. Per-line status: introduce "No PO"
+Re-introduce cost-code resolution, but **fit-aware and one-line-at-a-time** instead of blanket attribution.
 
-In `BillPOSummaryDialog.tsx`:
+### Resolution rule (both `BillPOSummaryDialog` and `useBillPOMatching`)
 
-- **Tighten line resolution.** Drop the unique-cost-code fallback (lines 148-151 of `resolveLineToPoId`). A bill line is only considered linked to a PO if it has an explicit `purchase_order_line_id`, `purchase_order_id`, or a printed `po_reference` that maps to a matched PO. Cost-code alone is no longer sufficient — that prevents auto-attaching variable / optional lines to committed PO lines.
-- Lines with no resolved PO already render through the existing "no match" branch. Keep that branch's gray **No PO** badge; this becomes the canonical label for unmatched lines.
-- Lines that *are* linked but exceed PO remaining keep showing the red **Over** badge. Lines that fit show **Matched** / **Draw** as today.
+For each bill line that has no explicit `purchase_order_line_id`, `purchase_order_id`, or `po_reference` match, look up candidate POs by vendor + project + cost_code, then:
 
-Result on the Oxford bill: Excavation row → **Matched** (green), Optional Dirt Removal row → **No PO** (gray).
+1. Walk bill lines for that cost code in **input order**, tracking each candidate PO's remaining capacity (`po_amount − historical_billed − amount_already_attributed_from_this_bill`).
+2. A bill line attaches to a candidate PO only if `line.amount ≤ remaining_capacity` of that PO. First fit wins.
+3. If no candidate PO has room, the line stays unattached → **No PO**.
 
-### 2. Parent badge in Manage Bills: introduce "Partial"
+This produces the desired Oxford outcome:
+- Excavation $2,500: remaining capacity $3,700 → attaches → **Matched**.
+- Optional Dirt Removal $12,375: remaining capacity now $1,200 → doesn't fit → **No PO**.
 
-In `usePendingBillPOStatus.ts` (and the matching hook used by approved bills — `useBillPOMatching` / wherever the table reads from), compute the badge by aggregating per-line outcomes using the same resolution rules above:
+### Parent badge (already in place)
 
-| Line mix | Parent badge |
-|---|---|
-| All Matched / Draw | **Matched** (green) |
-| Some Matched + some No PO, **no Over** | **Partial** (amber) |
-| Any Over line, no Matched lines | **Over** (red) |
-| Any Over line **and** any No PO line | **Over + Partial** (two badges side by side) |
-| All Over | **Over** |
-| All No PO | **No PO** (gray) |
+The aggregation logic added in the prior step already handles this correctly: 1 matched + 1 unmatched → **Partial** (amber). Clicking opens the dialog because `matches.length > 0` now.
 
-`POStatusBadge` already has a `partial` variant (amber); we'll just start emitting it from the hook. For the "Over + Partial" case we render both badges in the cell, separated by a small gap.
+### Edge cases
 
-### 3. Dialog header subtitle
+- **Single bill line, fits:** attaches as today. Status **Matched**.
+- **Single bill line, doesn't fit:** attaches anyway (legacy behavior — that's how `Over` is detected). Status **Over**. We only skip attribution when there are *competing* bill lines on the same cost code; a lone over-line still resolves so the user sees the red badge.
+- **Multiple bill lines, all fit:** all attach, capacity decremented sequentially, all **Matched**.
+- **Multiple bill lines, none fit:** first line attaches (becomes **Over**), the rest are **No PO** → parent **Over + Partial**.
 
-The "Bill 33456 — 4 line items across 1 POs" subtitle should reflect the new reality: count only PO-linked lines toward "across N POs". For mixed bills we'll append "· N off-PO" so the count makes sense (e.g. "Bill 33456 — 2 line items across 1 PO · 1 off-PO").
+## Files
 
-### 4. Dialog totals row
-
-The footer `Total` currently sums all bill lines, which is correct. No change.
-
-## Files touched
-
-- `src/components/bills/BillPOSummaryDialog.tsx` — remove cost-code fallback in `resolveLineToPoId`; subtitle copy.
-- `src/hooks/usePendingBillPOStatus.ts` — emit `partial` when mix of linked + No PO; add an "over_and_partial" combined result.
-- `src/components/bills/POStatusBadge.tsx` — no new variant needed (already has `partial`); add a small wrapper or render two badges where the table cell is built.
-- The Manage Bills table cell that renders the badge — update to render two badges when status is the new combined value.
-- `src/hooks/useBillPOMatching.ts` (or wherever approved bills compute their per-row status) — apply the same aggregation rule so Approve and Manage tabs agree.
-
-## Out of scope
-
-- No DB schema changes. `purchase_order_line_id` already exists; we're just trusting it more strictly.
-- We are *not* changing how lines get auto-linked during AI extraction. If the extractor still guesses wrong, the user resolves it in the line editor (existing flow).
-- No change to journal entries or accounting posting — status is display-only.
+- `src/components/bills/BillPOSummaryDialog.tsx` — replace the now-removed cost-code fallback in `resolveLineToPoId` with the fit-aware version. Because resolution is no longer per-line-stateless, precompute a `Map<billLineId, poId|null>` once per render and have `resolveLineToPoId` look it up.
+- `src/hooks/useBillPOMatching.ts` — same fit-aware loop in the bill-iteration block; reuse the existing `sumBilledExcluding` helper plus an in-loop accumulator for amount already attributed from the current bill. Keep the new `unmatchedLineCount` / `over_and_partial` aggregation as-is.
 
 ## Verification
 
-1. Open Oxford City Concrete bill 33456 → PO Status Summary shows Excavation row **Matched**, Optional Dirt Removal row **No PO**. Subtitle: "Bill 33456 — 1 line item across 1 PO · 1 off-PO".
-2. Manage Bills table for that bill shows **Matched** + **No PO** badges side by side (Partial-mix case without overage).
-3. The earlier-tested 33606 bill (8 lines across 2 POs, all linked) still shows **Matched** with Draw rows.
-4. A bill where every line is over still shows red **Over** at the row and parent level.
-5. A truly mixed bill (1 Matched + 1 Over + 1 No PO) shows **Over + Partial** in the parent cell.
+1. Open Oxford bill 33456 → table badge shows **Partial** (amber). Click it → dialog opens. Excavation row = **Matched** green; Optional Dirt Removal row = **No PO** grey.
+2. Bill 33606 (8 linked lines across 2 POs) → unchanged, still **Matched** with Draw rows inside.
+3. A bill where every cost-code line fits → **Matched**.
+4. A bill with a single overage line → still **Over** (lone-line attribution preserved).
