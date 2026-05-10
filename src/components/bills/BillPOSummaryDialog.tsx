@@ -255,7 +255,7 @@ export function BillPOSummaryDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-[95vw] xl:max-w-7xl">
+      <DialogContent className="max-w-[95vw] xl:max-w-7xl" onOpenAutoFocus={(e) => e.preventDefault()}>
           <DialogHeader>
             <DialogTitle>PO Status Summary</DialogTitle>
             <DialogDescription>
