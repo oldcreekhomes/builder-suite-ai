@@ -373,9 +373,9 @@ export function BillPOSummaryDialog({
                   return (
                     <TableRow key={`grp-${key}`}>
                       <TableCell className="whitespace-nowrap font-medium">{match.po_number}</TableCell>
-                      <TableCell className="max-w-[140px]"><TruncatedCell value={line.cost_code_display || match.cost_code_display || '—'} /></TableCell>
+                      <TableCell className="max-w-[140px]"><TruncatedCell value={getLineCostCodeDisplay(line) || match.cost_code_display || '—'} /></TableCell>
                       <TableCell className="max-w-[220px]"><TruncatedCell value={line.memo || '—'} /></TableCell>
-                      <TableCell className="whitespace-nowrap"><LotsCell lots={group.lots} costCode={line.cost_code_display || match.cost_code_display || '—'} /></TableCell>
+                      <TableCell className="whitespace-nowrap"><LotsCell lots={group.lots} costCode={getLineCostCodeDisplay(line) || match.cost_code_display || '—'} /></TableCell>
                       <TableCell className="whitespace-nowrap">{formatCurrency(match.po_amount)}</TableCell>
                       <TableCell className="whitespace-nowrap">{formatCurrency(match.total_billed)}</TableCell>
                       <TableCell className="whitespace-nowrap">
