@@ -20,6 +20,16 @@ import { useVendorPurchaseOrders } from "@/hooks/useVendorPurchaseOrders";
 import { cn } from "@/lib/utils";
 import { SettingsTableWrapper } from "@/components/ui/settings-table-wrapper";
 import { FilesCell } from "@/components/purchaseOrders/components/FilesCell";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+
+const TruncatedCell = ({ value, className }: { value: string; className?: string }) => (
+  <Tooltip>
+    <TooltipTrigger asChild>
+      <span className={cn("block truncate", className)}>{value}</span>
+    </TooltipTrigger>
+    <TooltipContent>{value}</TooltipContent>
+  </Tooltip>
+);
 
 interface BillLine {
   cost_code_id?: string | null;
@@ -200,18 +210,27 @@ export function BillPOSummaryDialog({
   const matchByPoId = new Map(matches.map(m => [m.po_id, m]));
   const billLines = bill?.bill_lines || [];
 
+  // Resolve the cost code display string for a line, falling back to the matched PO's cost code.
+  const getLineCostCodeDisplay = (line: BillLine): string => {
+    if (line.cost_code_display) return line.cost_code_display;
+    const poId = resolveLineToPoId(line);
+    if (poId) {
+      const m = matchByPoId.get(poId);
+      if (m?.cost_code_display) return m.cost_code_display;
+    }
+    return '';
+  };
+
   // Sort by leading cost code number ascending; missing cost codes sort to bottom. Stable.
   const sortedBillLines = billLines
-    .map((line, idx) => ({ line, idx }))
+    .map((line, idx) => ({ line, idx, key: getLineCostCodeDisplay(line) }))
     .sort((a, b) => {
-      const aMatch = (a.line.cost_code_display || '').match(/\d+(\.\d+)?/);
-      const bMatch = (b.line.cost_code_display || '').match(/\d+(\.\d+)?/);
+      const aMatch = a.key.match(/\d+(\.\d+)?/);
+      const bMatch = b.key.match(/\d+(\.\d+)?/);
       const aNum = aMatch ? parseFloat(aMatch[0]) : Number.POSITIVE_INFINITY;
       const bNum = bMatch ? parseFloat(bMatch[0]) : Number.POSITIVE_INFINITY;
       if (aNum !== bNum) return aNum - bNum;
-      const aStr = a.line.cost_code_display || '';
-      const bStr = b.line.cost_code_display || '';
-      const cmp = aStr.localeCompare(bStr, undefined, { numeric: true });
+      const cmp = a.key.localeCompare(b.key, undefined, { numeric: true });
       return cmp !== 0 ? cmp : a.idx - b.idx;
     })
     .map(x => x.line);
@@ -233,6 +252,7 @@ export function BillPOSummaryDialog({
               Loading purchase order details…
             </div>
           ) : (
+          <TooltipProvider delayDuration={150}>
           <SettingsTableWrapper>
             <Table>
               <TableHeader>
@@ -258,8 +278,8 @@ export function BillPOSummaryDialog({
                     return (
                       <TableRow key={`line-${idx}`}>
                         <TableCell className="whitespace-nowrap font-medium">—</TableCell>
-                        <TableCell className="max-w-[140px] truncate" title={line.cost_code_display || ''}>{line.cost_code_display || '—'}</TableCell>
-                        <TableCell className="max-w-[220px] truncate" title={line.memo || ''}>{line.memo || '—'}</TableCell>
+                        <TableCell className="max-w-[140px]"><TruncatedCell value={line.cost_code_display || '—'} /></TableCell>
+                        <TableCell className="max-w-[220px]"><TruncatedCell value={line.memo || '—'} /></TableCell>
                         <TableCell className="whitespace-nowrap">—</TableCell>
                         <TableCell className="whitespace-nowrap">—</TableCell>
                         <TableCell className="whitespace-nowrap">
@@ -298,8 +318,8 @@ export function BillPOSummaryDialog({
                     <TableRow key={`line-${idx}`}>
                       <TableCell className="whitespace-nowrap font-medium">{match.po_number}</TableCell>
                       {/* Prefer the bill line's saved cost_code_display so PO summary mirrors the editor */}
-                      <TableCell className="max-w-[140px] truncate" title={line.cost_code_display || match.cost_code_display || ''}>{line.cost_code_display || match.cost_code_display}</TableCell>
-                      <TableCell className="max-w-[220px] truncate" title={line.memo || ''}>{line.memo || '—'}</TableCell>
+                      <TableCell className="max-w-[140px]"><TruncatedCell value={line.cost_code_display || match.cost_code_display || '—'} /></TableCell>
+                      <TableCell className="max-w-[220px]"><TruncatedCell value={line.memo || '—'} /></TableCell>
                       <TableCell className="whitespace-nowrap">{formatCurrency(match.po_amount)}</TableCell>
                       <TableCell className="whitespace-nowrap">{formatCurrency(match.total_billed)}</TableCell>
                       <TableCell className="whitespace-nowrap">
@@ -346,6 +366,7 @@ export function BillPOSummaryDialog({
               </TableFooter>
             </Table>
           </SettingsTableWrapper>
+          </TooltipProvider>
           )}
       </DialogContent>
     </Dialog>

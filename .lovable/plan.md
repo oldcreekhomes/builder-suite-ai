@@ -1,17 +1,17 @@
-## Goal
-Sort the PO Status Summary dialog rows by cost code number (ascending), instead of the current order (which follows `bill.bill_lines` array order).
+## Two fixes in `src/components/bills/BillPOSummaryDialog.tsx`
 
-## Change (single file: `src/components/bills/BillPOSummaryDialog.tsx`)
+### 1. Replace native HTML `title` tooltips with shadcn `Tooltip`
+The Cost Code and Description cells currently use `title="..."`, which renders the OS's native tooltip (the gray box in the screenshot) — not the styled shadcn tooltip used everywhere else in the app.
 
-Before the `billLines.map(...)` render loop (around line 236), build a sorted copy of `billLines`:
+- Import `Tooltip`, `TooltipTrigger`, `TooltipContent`, `TooltipProvider` from `@/components/ui/tooltip`.
+- Wrap the truncated Cost Code cell content and the Description cell content in a `<Tooltip>` whose `TooltipContent` shows the full string.
+- Wrap the table (or the dialog body) in a single `<TooltipProvider>` so all tooltips use the app-standard styling.
+- Remove every `title={...}` attribute on those `<TableCell>`s so the browser's native tooltip never shows.
 
-- Extract the leading numeric portion of each line's `cost_code_display` (e.g. `"4200: Excavation, Backfill & Grading"` → `4200`, `"4275: Concrete"` → `4275`).
-- Use the existing `costCodeSort` helper at `src/lib/costCodeSort.ts` if it provides a comparator; otherwise sort with a simple `localeCompare(..., undefined, { numeric: true })` on the cost code string.
-- Lines without a cost code sort to the bottom.
-- Stable sort so duplicate cost codes preserve their original relative order (which keeps repeated POs grouped naturally as in the screenshot).
+### 2. Fix Cost Code sort (4200 should never appear after 4275)
+Current sort key reads only `line.cost_code_display`. When that field is null/empty on a line, the rendered value falls back to `match.cost_code_display`, so the sort key disagrees with what's displayed and rows interleave.
 
-Render uses the sorted array; totals math is unchanged (still sums all lines).
+Fix: build the sort key as `line.cost_code_display || matchByPoId.get(resolveLineToPoId(line))?.cost_code_display || ''`, then extract the leading numeric (`/\d+(\.\d+)?/`) from that combined value. Move the `sortedBillLines` block to be defined after `matchByPoId` and `resolveLineToPoId` are in scope (they already are). Keep the stable, ascending, missing-codes-last behavior.
 
 ## Out of scope
-- No changes to PODetailsDialog, math, totals, or any other table.
-- No DB or schema changes.
+- No other dialogs, no math/totals changes, no schema changes.
