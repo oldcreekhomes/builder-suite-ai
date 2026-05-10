@@ -249,7 +249,7 @@ export function BillPOSummaryDialog({
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {billLines.map((line, idx) => {
+                {sortedBillLines.map((line, idx) => {
                   const resolvedPoId = resolveLineToPoId(line);
                   const match = resolvedPoId ? matchByPoId.get(resolvedPoId) : undefined;
                   const lineAmount = line.amount || 0;
