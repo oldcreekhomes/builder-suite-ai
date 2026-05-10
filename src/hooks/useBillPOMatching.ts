@@ -231,7 +231,21 @@ export function useBillPOMatching(bills: BillForMatching[]) {
         let unmatchedLineCount = 0;
 
         const allLines = bill.bill_lines || [];
-        
+
+        // Pre-count how many bill lines share each cost code so we know when a
+        // line is competing with siblings (in which case we must respect PO capacity).
+        const ccLineCount = new Map<string, number>();
+        allLines.forEach(l => {
+          if (l.cost_code_id) ccLineCount.set(l.cost_code_id, (ccLineCount.get(l.cost_code_id) || 0) + 1);
+        });
+        // Track amount already attributed to each PO from THIS bill so capacity decrements line-by-line.
+        const attributedFromThisBill = new Map<string, number>();
+        const remainingCapacity = (poId: string, poAmount: number): number => {
+          const historical = sumBilledExcluding(poId, bill.id);
+          const used = attributedFromThisBill.get(poId) || 0;
+          return poAmount - historical - used;
+        };
+
         allLines.forEach(line => {
           let resolvedPoId = line.purchase_order_id;
 
@@ -263,12 +277,42 @@ export function useBillPOMatching(bills: BillForMatching[]) {
             }
           }
 
-          // No cost-code fallback: lines without explicit PO/po_reference are treated as off-PO.
+          // Fit-aware cost-code fallback: attach only if this line fits in remaining capacity.
+          // Lone-line edge case: if this cost code has only one bill line, attach anyway
+          // (so a single overage line still surfaces as Over).
+          if (!resolvedPoId && line.cost_code_id && bill.vendor_id && bill.project_id) {
+            const candidates = pos.filter(p =>
+              p.company_id === bill.vendor_id &&
+              p.project_id === bill.project_id &&
+              p.cost_code_id === line.cost_code_id
+            );
+            if (candidates.length > 0) {
+              const lineAmount = line.amount || 0;
+              const isLone = (ccLineCount.get(line.cost_code_id) || 0) <= 1;
+              // Prefer first PO with enough remaining capacity for this line.
+              const fitter = candidates.find(p => remainingCapacity(p.id, p.total_amount || 0) >= lineAmount);
+              if (fitter) {
+                resolvedPoId = fitter.id;
+              } else if (isLone) {
+                // Lone overage line: attach to largest candidate so user sees Over.
+                let best = candidates[0];
+                for (let i = 1; i < candidates.length; i++) {
+                  if ((candidates[i].total_amount || 0) > (best.total_amount || 0)) best = candidates[i];
+                }
+                resolvedPoId = best.id;
+              }
+              // else: leave unresolved → off-PO
+            }
+          }
+
           if (!resolvedPoId) { unmatchedLineCount++; return; }
-          
+
           const matchedPo = pos.find(p => p.id === resolvedPoId);
           if (!matchedPo) { unmatchedLineCount++; return; }
-          
+
+          // Decrement this PO's remaining capacity by this line's amount.
+          attributedFromThisBill.set(matchedPo.id, (attributedFromThisBill.get(matchedPo.id) || 0) + (line.amount || 0));
+
           if (!matches.find(m => m.po_id === matchedPo.id)) {
             const ccData = costCodeLookup.get(matchedPo.cost_code_id || '');
             // Exclude the current bill from historical billed total to avoid double-counting.
