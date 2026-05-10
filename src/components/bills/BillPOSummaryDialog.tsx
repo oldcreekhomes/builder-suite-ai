@@ -366,6 +366,7 @@ export function BillPOSummaryDialog({
               </TableFooter>
             </Table>
           </SettingsTableWrapper>
+          </TooltipProvider>
           )}
       </DialogContent>
     </Dialog>
