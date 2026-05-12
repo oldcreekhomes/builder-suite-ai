@@ -1,0 +1,1 @@
+UPDATE public.bills SET vendor_id = '4e36c64e-1af3-4566-aa01-10997cd285ab' WHERE id IN ('64e269a9-1a72-46df-a408-81cf36fb4fe8','d22250d7-de90-4e78-b018-233e8d37c028');
