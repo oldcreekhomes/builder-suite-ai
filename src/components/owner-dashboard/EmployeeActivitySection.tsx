@@ -120,7 +120,6 @@ export function EmployeeActivitySection() {
                         <TableCell className="text-xs capitalize text-muted-foreground">
                           {r.role || "—"}
                         </TableCell>
-                        <TableCell className="text-xs">{fmt(r.last_sign_in_at)}</TableCell>
                         <TableCell className="text-xs">{fmt(r.last_action)}</TableCell>
                         <TableCell>
                           <Badge variant="secondary" className={s.color}>{s.label}</Badge>
