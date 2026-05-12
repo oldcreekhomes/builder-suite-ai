@@ -17,6 +17,8 @@ export interface EmployeeActivityRow {
   files_count: number;
   budgets_count: number;
   schedule_count: number;
+  photos_count: number;
+  chat_count: number;
   total_actions: number;
 }
 
