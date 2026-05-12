@@ -6433,12 +6433,14 @@ export type Database = {
           bids_count: number
           bills_count: number
           budgets_count: number
+          chat_count: number
           email: string
           files_count: number
           first_name: string
           jes_count: number
           last_action: string
           last_name: string
+          photos_count: number
           pos_count: number
           role: string
           schedule_count: number
