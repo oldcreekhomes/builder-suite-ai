@@ -1,84 +1,41 @@
-# Employee Activity — time-bucket breakdown + saner counts
+## Diagnosis
 
-## Part 1 — Why Matt shows 18,629
+The journal-entry count is inflated because the activity summary currently counts every `journal_entries.updated_by` row as a user action. For Matt Gray, the database shows:
 
-The RPC counts every `created_by`/`updated_by` stamp across all audited tables. For Matt (owner) over 30 days:
+- 370 journal entries created in the last 30 days.
+- 2,604 journal entries updated in the last 30 days.
+- Almost all of those updates happened in one minute on 2026-05-04, across bill, bill payment, check, deposit, and manual journal entries.
+- Those look like bulk/system accounting maintenance updates being attributed to Matt, not 2,974 manual journal entries he personally entered.
 
-- `journal_entry_lines` updates: 6,528
-- `journal_entries` updates: 2,605
-- `bill_lines` updates: 2,398
-- `pending_bill_lines` updates: 967
-- `journal_entry_lines` creates: 1,178
-- `bill_lines` creates: 876
-- `pending_bill_lines` creates: 727
-- `bill_categorization_examples` creates: 717
-- `check_lines` updates: 511
-- … plus ~50 smaller tables
+So the current “JEs” bucket is mixing true manual journal entry work with generated accounting backend rows from bills, checks, deposits, and payments.
 
-Each posting/payment/reconciliation cascades into many line-row stamps. One click = many "actions". Owners do most posting → owners look 10× more active than they are.
+## Plan
 
-## Part 2 — Fix counting (parent-only)
+1. **Change the Employee Activity SQL to count user-facing actions only**
+   - Keep `journal_entries` in the employee activity system, but only count manual journal entries in the `JEs` domain.
+   - Exclude generated journal entries with `source_type` like `bill`, `bill_payment`, `check`, and `deposit` from the `JEs` bucket.
+   - Avoid counting broad bulk `updated_at` maintenance events as employee activity.
 
-In `get_employee_activity_summary`, **stop counting child line tables** so one bill = one bill action, one JE = one JE action:
+2. **Move generated accounting activity to the user-facing source domains**
+   - Bills should be represented by `bills` / pending bill upload actions, not their generated journal entries.
+   - Checks and deposits should not inflate the JE domain unless we intentionally add separate “Checks” / “Deposits” domains later.
+   - Manual journal entries should remain visible as `JEs`.
 
-Excluded from counting (kept implicit via parent):
-- `bill_lines`, `bill_payments`, `bill_attachments`, `pending_bill_lines`
-- `journal_entry_lines`, `journal_entry_attachments`
-- `check_lines`, `deposit_lines`
-- `project_budget_manual_lines`, `budget_subcategory_selections`
-- `bill_categorization_examples` (system-generated learning artifact, not a user action)
+3. **Preserve the existing expanded breakdown UI**
+   - The current 8h / 24h / week / month matrix stays in place.
+   - Only the backend counts change, so the table should immediately show more believable values after the migration.
 
-Counted (parents only):
-- Bills: `bills`, `pending_bill_uploads`
-- POs: `project_purchase_orders`, `project_bid_packages`
-- Bids: `project_bids`
-- JEs: `journal_entries`
-- Files: `project_files`, `project_folders`
-- Budgets: `project_budgets`
-- Schedule: `project_schedule_tasks`
-- Photos: `project_photos`
-- Chat: `user_chat_messages`
-- Checks/Deposits roll into JEs visually (no new column needed)
+4. **Add a clarifying label/tooltip if needed**
+   - Update the `JEs` display text to indicate it means manual journal entries, so users do not interpret generated accounting entries as manual work.
 
-Expected effect: Matt drops from ~18.6K to roughly 1–2K; Jole Ann's relative ranking should rise.
+## Expected result
 
-## Part 3 — Time-bucket breakdown in expandable row
+Matt’s `JEs` count should drop from thousands to a small number matching actual manual journal entry work, while bills/checks/deposits continue to be tracked through their own user-facing records instead of duplicated through generated accounting rows.
 
-Extend the RPC with per-bucket totals and per-domain counts using the existing `tmp_acts` scan:
+## Technical details
 
-- 4 totals: `actions_8h`, `actions_24h`, `actions_7d`, `actions_30d`
-- 9 domains × 4 buckets = 36 cells (e.g. `bills_8h`, `bills_24h`, `bills_7d`, `bills_30d`, …)
-
-Computed via `COUNT(*) FILTER (WHERE ts >= now() - interval 'X' AND source IN (...))`. Single pass — no extra cost.
-
-Collapsed row stays unchanged (`total_actions` still equals 30d bucket).
-
-### UI (`EmployeeActivitySection.tsx`)
-
-Replace the 9-tile grid in the expanded row with a compact matrix:
-
-```text
-              8h    24h    7d    30d
-Bills          0      2    11     34
-POs            0      0     3     12
-Bids           0      1     4      9
-JEs            0      0     7     22
-Files          …
-Budgets        …
-Schedule       …
-Photos         …
-Chat           …
-─────────────────────────────────────
-Total          0      3    25     77
-```
-
-- shadcn `<Table>`, sticky first column, right-aligned `tabular-nums`, muted zeros
-- Bottom total row, divider above
-
-`useEmployeeActivity.ts`: add the 40 new typed fields.
-
-## Files
-
-- `supabase/migrations/<new>.sql` — recreate `get_employee_activity_summary` (parent-only sources + 40 bucket columns), still `VOLATILE SECURITY DEFINER`
-- `src/hooks/useEmployeeActivity.ts` — extend `EmployeeActivityRow`
-- `src/components/owner-dashboard/EmployeeActivitySection.tsx` — bucket matrix in expanded row
+- Update `public.get_employee_activity_summary` in a Supabase migration.
+- In the function’s activity collection, special-case `journal_entries` instead of treating it like all parent tables.
+- Count only rows where `source_type = 'manual'` or `source_type IS NULL` if those represent legacy manual entries.
+- For journal entry updates, count only meaningful manual JE updates, not generated/source-backed rows.
+- Keep the return signature unchanged so `src/hooks/useEmployeeActivity.ts` and the existing UI do not require a breaking type change.
