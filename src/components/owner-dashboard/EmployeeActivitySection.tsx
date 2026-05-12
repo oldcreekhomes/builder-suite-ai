@@ -81,7 +81,6 @@ export function EmployeeActivitySection() {
                   <TableHead className="w-8" />
                   <TableHead>Employee</TableHead>
                   <TableHead className="w-32">Role</TableHead>
-                  <TableHead className="w-44">Last login</TableHead>
                   <TableHead className="w-44">Last action</TableHead>
                   <TableHead className="w-32">Status</TableHead>
                   <TableHead className="w-24 text-right">Actions</TableHead>
