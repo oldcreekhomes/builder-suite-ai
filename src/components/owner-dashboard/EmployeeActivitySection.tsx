@@ -134,15 +134,17 @@ export function EmployeeActivitySection() {
                         <TableRow key={r.user_id + "-d"}>
                           <TableCell />
                           <TableCell colSpan={6}>
-                            <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-7 gap-3 py-2 text-xs">
+                            <div className="grid grid-cols-3 sm:grid-cols-5 lg:grid-cols-9 gap-3 py-2 text-xs">
                               {[
                                 ["Bills", r.bills_count],
                                 ["POs", r.pos_count],
                                 ["Bids", r.bids_count],
                                 ["JEs", r.jes_count],
+                                ["Photos", r.photos_count],
                                 ["Files", r.files_count],
                                 ["Budgets", r.budgets_count],
                                 ["Schedule", r.schedule_count],
+                                ["Chat", r.chat_count],
                               ].map(([label, val]) => (
                                 <div key={label as string} className="rounded border p-2">
                                   <div className="text-muted-foreground">{label}</div>
