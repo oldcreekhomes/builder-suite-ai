@@ -132,23 +132,51 @@ export function EmployeeActivitySection() {
                         <TableRow key={r.user_id + "-d"}>
                           <TableCell />
                           <TableCell colSpan={5}>
-                            <div className="grid grid-cols-3 sm:grid-cols-5 lg:grid-cols-9 gap-3 py-2 text-xs">
-                              {[
-                                ["Bills", r.bills_count],
-                                ["POs", r.pos_count],
-                                ["Bids", r.bids_count],
-                                ["JEs", r.jes_count],
-                                ["Photos", r.photos_count],
-                                ["Files", r.files_count],
-                                ["Budgets", r.budgets_count],
-                                ["Schedule", r.schedule_count],
-                                ["Chat", r.chat_count],
-                              ].map(([label, val]) => (
-                                <div key={label as string} className="rounded border p-2">
-                                  <div className="text-muted-foreground">{label}</div>
-                                  <div className="text-sm font-medium tabular-nums">{val as number}</div>
-                                </div>
-                              ))}
+                            <div className="py-2">
+                              <Table>
+                                <TableHeader>
+                                  <TableRow>
+                                    <TableHead className="w-32">Domain</TableHead>
+                                    <TableHead className="text-right">Last 8 hours</TableHead>
+                                    <TableHead className="text-right">Last 24 hours</TableHead>
+                                    <TableHead className="text-right">Last week</TableHead>
+                                    <TableHead className="text-right">Last month</TableHead>
+                                  </TableRow>
+                                </TableHeader>
+                                <TableBody>
+                                  {([
+                                    ["Bills", r.bills_8h, r.bills_24h, r.bills_7d, r.bills_30d],
+                                    ["POs", r.pos_8h, r.pos_24h, r.pos_7d, r.pos_30d],
+                                    ["Bids", r.bids_8h, r.bids_24h, r.bids_7d, r.bids_30d],
+                                    ["JEs", r.jes_8h, r.jes_24h, r.jes_7d, r.jes_30d],
+                                    ["Files", r.files_8h, r.files_24h, r.files_7d, r.files_30d],
+                                    ["Budgets", r.budgets_8h, r.budgets_24h, r.budgets_7d, r.budgets_30d],
+                                    ["Schedule", r.schedule_8h, r.schedule_24h, r.schedule_7d, r.schedule_30d],
+                                    ["Photos", r.photos_8h, r.photos_24h, r.photos_7d, r.photos_30d],
+                                    ["Chat", r.chat_8h, r.chat_24h, r.chat_7d, r.chat_30d],
+                                  ] as Array<[string, number, number, number, number]>).map(([label, a, b, c, d]) => (
+                                    <TableRow key={label} className="h-9">
+                                      <TableCell className="font-medium text-xs">{label}</TableCell>
+                                      {[a, b, c, d].map((v, i) => (
+                                        <TableCell
+                                          key={i}
+                                          className={`text-right text-xs tabular-nums ${v === 0 ? "text-muted-foreground" : ""}`}
+                                        >
+                                          {v}
+                                        </TableCell>
+                                      ))}
+                                    </TableRow>
+                                  ))}
+                                  <TableRow className="h-9 border-t-2">
+                                    <TableCell className="font-semibold text-xs">Total</TableCell>
+                                    {[r.actions_8h, r.actions_24h, r.actions_7d, r.actions_30d].map((v, i) => (
+                                      <TableCell key={i} className="text-right text-xs font-semibold tabular-nums">
+                                        {v}
+                                      </TableCell>
+                                    ))}
+                                  </TableRow>
+                                </TableBody>
+                              </Table>
                             </div>
                           </TableCell>
                         </TableRow>

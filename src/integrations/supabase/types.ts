@@ -6429,20 +6429,60 @@ export type Database = {
       get_employee_activity_summary: {
         Args: { p_end_date?: string; p_start_date?: string }
         Returns: {
+          actions_24h: number
+          actions_30d: number
+          actions_7d: number
+          actions_8h: number
           avatar_url: string
+          bids_24h: number
+          bids_30d: number
+          bids_7d: number
+          bids_8h: number
           bids_count: number
+          bills_24h: number
+          bills_30d: number
+          bills_7d: number
+          bills_8h: number
           bills_count: number
+          budgets_24h: number
+          budgets_30d: number
+          budgets_7d: number
+          budgets_8h: number
           budgets_count: number
+          chat_24h: number
+          chat_30d: number
+          chat_7d: number
+          chat_8h: number
           chat_count: number
           email: string
+          files_24h: number
+          files_30d: number
+          files_7d: number
+          files_8h: number
           files_count: number
           first_name: string
+          jes_24h: number
+          jes_30d: number
+          jes_7d: number
+          jes_8h: number
           jes_count: number
           last_action: string
           last_name: string
+          photos_24h: number
+          photos_30d: number
+          photos_7d: number
+          photos_8h: number
           photos_count: number
+          pos_24h: number
+          pos_30d: number
+          pos_7d: number
+          pos_8h: number
           pos_count: number
           role: string
+          schedule_24h: number
+          schedule_30d: number
+          schedule_7d: number
+          schedule_8h: number
           schedule_count: number
           total_actions: number
           user_id: string
