@@ -9,7 +9,6 @@ export interface EmployeeActivityRow {
   role: string | null;
   avatar_url: string | null;
   last_action: string | null;
-  last_sign_in_at?: string | null;
   bills_count: number;
   pos_count: number;
   bids_count: number;
@@ -32,15 +31,7 @@ export const useEmployeeActivity = (enabled: boolean) => {
         console.error("get_employee_activity_summary failed:", error);
         throw error;
       }
-      const rows = (data ?? []) as EmployeeActivityRow[];
-      if (rows.length === 0) return rows;
-
-      const ids = rows.map((r) => r.user_id);
-      const { data: signIns } = await supabase.rpc("get_users_last_sign_in", { user_ids: ids });
-      const byId = new Map<string, string | null>(
-        (signIns ?? []).map((r: any) => [r.user_id, r.last_sign_in_at])
-      );
-      return rows.map((r) => ({ ...r, last_sign_in_at: byId.get(r.user_id) ?? null }));
+      return (data ?? []) as EmployeeActivityRow[];
     },
   });
 };

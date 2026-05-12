@@ -11,9 +11,9 @@ import { ChevronDown, ChevronRight, Activity } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { formatDistanceToNow } from "date-fns";
 
-function statusFor(lastAction: string | null, lastSignIn: string | null | undefined) {
-  if (!lastSignIn) return { label: "Never logged in", color: "bg-muted text-muted-foreground" };
-  const refMs = lastAction ? new Date(lastAction).getTime() : new Date(lastSignIn).getTime();
+function statusFor(lastAction: string | null) {
+  if (!lastAction) return { label: "No activity", color: "bg-muted text-muted-foreground" };
+  const refMs = new Date(lastAction).getTime();
   const now = new Date();
   const ref = new Date(refMs);
   const hours = (now.getTime() - refMs) / 3600000;
@@ -81,7 +81,6 @@ export function EmployeeActivitySection() {
                   <TableHead className="w-8" />
                   <TableHead>Employee</TableHead>
                   <TableHead className="w-32">Role</TableHead>
-                  <TableHead className="w-44">Last login</TableHead>
                   <TableHead className="w-44">Last action</TableHead>
                   <TableHead className="w-32">Status</TableHead>
                   <TableHead className="w-24 text-right">Actions</TableHead>
@@ -89,7 +88,7 @@ export function EmployeeActivitySection() {
               </TableHeader>
               <TableBody>
                 {data.map((r) => {
-                  const s = statusFor(r.last_action, r.last_sign_in_at);
+                  const s = statusFor(r.last_action);
                   const isOpen = expanded === r.user_id;
                   return (
                     <>
@@ -121,7 +120,6 @@ export function EmployeeActivitySection() {
                         <TableCell className="text-xs capitalize text-muted-foreground">
                           {r.role || "—"}
                         </TableCell>
-                        <TableCell className="text-xs">{fmt(r.last_sign_in_at)}</TableCell>
                         <TableCell className="text-xs">{fmt(r.last_action)}</TableCell>
                         <TableCell>
                           <Badge variant="secondary" className={s.color}>{s.label}</Badge>
@@ -133,7 +131,7 @@ export function EmployeeActivitySection() {
                       {isOpen && (
                         <TableRow key={r.user_id + "-d"}>
                           <TableCell />
-                          <TableCell colSpan={6}>
+                          <TableCell colSpan={5}>
                             <div className="grid grid-cols-3 sm:grid-cols-5 lg:grid-cols-9 gap-3 py-2 text-xs">
                               {[
                                 ["Bills", r.bills_count],
