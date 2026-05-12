@@ -11,9 +11,9 @@ import { ChevronDown, ChevronRight, Activity } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { formatDistanceToNow } from "date-fns";
 
-function statusFor(lastAction: string | null, lastSignIn: string | null | undefined) {
-  if (!lastSignIn) return { label: "Never logged in", color: "bg-muted text-muted-foreground" };
-  const refMs = lastAction ? new Date(lastAction).getTime() : new Date(lastSignIn).getTime();
+function statusFor(lastAction: string | null) {
+  if (!lastAction) return { label: "No activity", color: "bg-muted text-muted-foreground" };
+  const refMs = new Date(lastAction).getTime();
   const now = new Date();
   const ref = new Date(refMs);
   const hours = (now.getTime() - refMs) / 3600000;
