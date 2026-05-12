@@ -88,7 +88,7 @@ export function EmployeeActivitySection() {
               </TableHeader>
               <TableBody>
                 {data.map((r) => {
-                  const s = statusFor(r.last_action, r.last_sign_in_at);
+                  const s = statusFor(r.last_action);
                   const isOpen = expanded === r.user_id;
                   return (
                     <>
