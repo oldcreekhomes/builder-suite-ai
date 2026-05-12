@@ -13,11 +13,26 @@ import { formatDistanceToNow } from "date-fns";
 
 function statusFor(lastAction: string | null, lastSignIn: string | null | undefined) {
   if (!lastSignIn) return { label: "Never logged in", color: "bg-muted text-muted-foreground" };
-  const ref = lastAction ? new Date(lastAction).getTime() : new Date(lastSignIn).getTime();
-  const days = (Date.now() - ref) / 86400000;
-  if (days <= 1) return { label: "Active today", color: "bg-green-500/15 text-green-700 dark:text-green-400" };
-  if (days <= 7) return { label: "Idle 7d", color: "bg-yellow-500/15 text-yellow-700 dark:text-yellow-400" };
-  return { label: "Idle 30d+", color: "bg-red-500/15 text-red-700 dark:text-red-400" };
+  const refMs = lastAction ? new Date(lastAction).getTime() : new Date(lastSignIn).getTime();
+  const now = new Date();
+  const ref = new Date(refMs);
+  const hours = (now.getTime() - refMs) / 3600000;
+  const green = "bg-green-500/15 text-green-700 dark:text-green-400";
+  const yellow = "bg-yellow-500/15 text-yellow-700 dark:text-yellow-400";
+  const red = "bg-red-500/15 text-red-700 dark:text-red-400";
+
+  if (hours <= 1) return { label: "Active now", color: green };
+
+  const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime();
+  const startOfYesterday = startOfToday - 86400000;
+
+  if (refMs >= startOfToday) return { label: "Active today", color: green };
+  if (refMs >= startOfYesterday) return { label: "Active yesterday", color: yellow };
+
+  const days = (now.getTime() - refMs) / 86400000;
+  if (days <= 7) return { label: "Active this week", color: yellow };
+  if (days <= 30) return { label: "Idle 30d", color: red };
+  return { label: "Inactive", color: red };
 }
 
 function fmt(ts: string | null | undefined) {
