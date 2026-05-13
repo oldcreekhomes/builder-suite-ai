@@ -159,8 +159,17 @@ export function ResourcesSelector({ value, onValueChange, className, readOnly = 
             filter={(value, search) => {
               if (!search) return 1;
               if (value.startsWith('selected-')) return 1;
-              const companyOrName = value.split('||')[0] ?? '';
-              return companyOrName.toLowerCase().startsWith(search.toLowerCase().trim()) ? 1 : 0;
+              const term = search.toLowerCase().trim();
+              const parts = value.split('||');
+              const companyName = (parts[0] ?? '').toLowerCase();
+              const resourceName = (parts[1] ?? '').toLowerCase();
+              const firstName = resourceName.split(/\s+/)[0] ?? '';
+              if (
+                companyName.startsWith(term) ||
+                resourceName.startsWith(term) ||
+                firstName.startsWith(term)
+              ) return 1;
+              return 0;
             }}
           >
             <CommandInput placeholder="Search users and representatives..." onKeyDown={(e) => {
