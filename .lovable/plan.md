@@ -1,23 +1,29 @@
-## Change
+# Plan: Add First-Name Search to Schedule Resources
 
-Update the vendor on two bills for 923 17th St. South from **Lynn Wholesale Flooring** to **Old Creek Homes, LLC**. Database-only change, no code edits.
+## Context
+In the schedule's **ResourcesSelector** dropdown, the search currently matches by company name only (e.g., typing "Lynn" finds reps from Lynn Wholesale Flooring). The user wants to **also** match by a person's first name (e.g., typing "John" finds "John Smith"), without changing anything else.
 
-## Bills affected
+## Scope Guarantee (no behavior changes)
+The list of reps already shown in the dropdown is unchanged. It continues to come from `useProjectResources`, which already restricts results to:
+- Representatives belonging to companies owned by the current home builder, AND
+- Reps with `receive_schedule_notifications = true`, AND
+- Reps whose service areas include the project's region (when set).
 
-| Reference | Date | Amount | Status |
-|---|---|---|---|
-| S683644 | 03/29/2026 | $18,170.43 | posted |
-| S691495 | 04/02/2026 | $201.72 | posted |
+The new first-name match only filters within this already-restricted list. Internal users (your own teammates) remain searchable as today.
 
-## SQL
+## What Will Change
+**File: `src/components/schedule/ResourcesSelector.tsx`** — update the `filter` function on the `<Command>` component.
 
-```sql
-UPDATE public.bills
-SET vendor_id = '4e36c64e-1af3-4566-aa01-10997cd285ab'  -- Old Creek Homes, LLC
-WHERE id IN (
-  '64e269a9-1a72-46df-a408-81cf36fb4fe8',  -- S683644
-  'd22250d7-de90-4e78-b018-233e8d37c028'   -- S691495
-);
-```
+- Current: matches only `value.split('||')[0]` (company name) with `startsWith`.
+- New: matches if the search term `startsWith` ANY of:
+  1. Company name (existing behavior — unchanged)
+  2. Full resource name (e.g. "John Smith")
+  3. First name only (first whitespace-separated token of the resource name)
 
-Journal entries do not carry a `vendor_id` column, so no GL rows need adjusting. Bill lines, payments, and PO links are unaffected by the vendor change.
+The `CommandItem` value format stays `companyName||resourceName||resourceId`, so no other code is affected.
+
+## What Will NOT Change
+- Which reps appear in the dropdown (still owned-company + opt-in + region-filtered).
+- The existing company-name search.
+- Group headings, selection logic, value persistence, UI layout.
+- No database, RLS, or API changes.
