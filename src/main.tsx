@@ -12,6 +12,7 @@ window.onunhandledrejection = (event) => {
 };
 
 import { createRoot } from "react-dom/client";
+import { HelmetProvider } from "react-helmet-async";
 import "./lib/pdfConfig"; // Configure PDF.js worker globally before any component loads
 import App from "./App.tsx";
 import "./index.css";
@@ -50,11 +51,13 @@ console.log("[BOOT] About to render React app");
 
 createRoot(document.getElementById("root")!).render(
   <ErrorBoundary fallback={RootErrorFallback}>
-    <ImpersonationProvider>
-      <AuthProvider>
-        <App />
-      </AuthProvider>
-    </ImpersonationProvider>
+    <HelmetProvider>
+      <ImpersonationProvider>
+        <AuthProvider>
+          <App />
+        </AuthProvider>
+      </ImpersonationProvider>
+    </HelmetProvider>
   </ErrorBoundary>
 );
 

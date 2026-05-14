@@ -11,6 +11,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Card, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import { SeoHead } from "@/components/SeoHead";
 
 export default function BidManagement() {
   const [isPathModalOpen, setIsPathModalOpen] = useState(false);
@@ -21,7 +22,12 @@ export default function BidManagement() {
   };
 
   return (
-    <div className="min-h-screen w-full bg-background">
+    <main className="min-h-screen w-full bg-background">
+      <SeoHead
+        title={"Bid Management Software for Home Builders | BuilderSuite ML"}
+        description={"Send bid packages, collect responses, compare quotes side-by-side, and convert winning bids into purchase orders."}
+        path="/features/bid-management"
+      />
       {/* Header */}
       <PublicHeader onGetStartedClick={handleGetStartedClick} />
 
@@ -172,6 +178,6 @@ export default function BidManagement() {
           </div>
         </DialogContent>
       </Dialog>
-    </div>
+    </main>
   );
 }

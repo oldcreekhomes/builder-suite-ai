@@ -29,6 +29,7 @@ import {
 } from "lucide-react";
 import { Link } from "react-router-dom";
 import { useToast } from "@/hooks/use-toast";
+import { SeoHead } from "@/components/SeoHead";
 
 const Landing = () => {
   const navigate = useNavigate();
@@ -167,7 +168,12 @@ const Landing = () => {
   ];
 
   return (
-    <div className="min-h-screen w-full bg-background">
+    <main className="min-h-screen w-full bg-background">
+      <SeoHead
+        title={"BuilderSuite ML — Construction Management for Home Builders"}
+        description={"All-in-one construction management for home builders: projects, budgets, schedules, accounting, bidding and AI-powered bill capture."}
+        path="/"
+      />
       {/* Header */}
       <PublicHeader onGetStartedClick={() => setIsPathModalOpen(true)} />
 
@@ -624,7 +630,7 @@ const Landing = () => {
 
       {/* Footer */}
       <PublicFooter className="bg-muted/30" />
-    </div>
+    </main>
   );
 };
 

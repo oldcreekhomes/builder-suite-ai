@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
 import { 
+import { SeoHead } from "@/components/SeoHead";
   ArrowRight,
   HardHat,
   Handshake
@@ -17,7 +18,12 @@ const Accounting = () => {
   const [isPathModalOpen, setIsPathModalOpen] = useState(false);
 
   return (
-    <div className="min-h-screen w-full bg-background">
+    <main className="min-h-screen w-full bg-background">
+      <SeoHead
+        title={"Construction Accounting Software | BuilderSuite ML"}
+        description={"Double-entry accounting built for builders: A/P, A/R, banking, reconciliation, job costing, and reports — all tied to your projects."}
+        path="/features/accounting"
+      />
       {/* Header */}
       <PublicHeader onGetStartedClick={() => setIsPathModalOpen(true)} />
 
@@ -169,7 +175,7 @@ const Accounting = () => {
 
       {/* Footer */}
       <PublicFooter />
-    </div>
+    </main>
   );
 };
 

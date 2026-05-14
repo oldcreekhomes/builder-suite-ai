@@ -1,0 +1,17 @@
+# BuilderSuite ML
+
+> All-in-one construction management software for home builders: projects, budgets, schedules, accounting, bidding, photos, files, and AI-powered bill capture.
+
+BuilderSuite ML is built by builders for builders. It combines project management, double-entry accounting, scheduling (Gantt), bid management, AI bill extraction, document management, team chat, and a subcontractor marketplace into a single platform for residential general contractors and remodel contractors.
+
+## Pages
+
+- [Home](/): Product overview and how BuilderSuite ML helps home builders.
+- [About](/about): Company story, mission, and the team behind BuilderSuite ML.
+- [Accounting](/features/accounting): Double-entry accounting, banking, reconciliation, and reports for builders.
+- [Gantt Scheduling](/features/gantt-scheduling): Visual project schedules with crew, vendor, and predecessor tracking.
+- [AI Bill Management](/features/ai-bill-management): Auto-extract vendors, cost codes, and amounts from bills.
+- [Bid Management](/features/bid-management): Send bid packages, collect responses, and convert to purchase orders.
+- [Document Management](/features/document-management): Project files, photos, folders, and shareable links.
+- [Team Communication](/features/team-communication): In-app chat for owners, employees, and trade partners.
+- [Join Marketplace](/features/join-marketplace): How subcontractors and suppliers list themselves to local builders.
