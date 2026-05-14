@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
 import { 
+import { SeoHead } from "@/components/SeoHead";
   ArrowRight,
   HardHat,
   Handshake
@@ -17,7 +18,12 @@ const AIBillManagement = () => {
   const [isPathModalOpen, setIsPathModalOpen] = useState(false);
 
   return (
-    <div className="min-h-screen w-full bg-background">
+    <main className="min-h-screen w-full bg-background">
+      <SeoHead
+        title={"AI Bill Management for Builders | BuilderSuite ML"}
+        description={"Auto-extract vendors, cost codes, and amounts from PDF bills. Match to purchase orders and approve from anywhere."}
+        path="/features/ai-bill-management"
+      />
       {/* Header */}
       <PublicHeader onGetStartedClick={() => setIsPathModalOpen(true)} />
 
@@ -169,7 +175,7 @@ const AIBillManagement = () => {
 
       {/* Footer */}
       <PublicFooter />
-    </div>
+    </main>
   );
 };
 

@@ -11,6 +11,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Card, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import { SeoHead } from "@/components/SeoHead";
 
 export default function GanttScheduling() {
   const [isPathModalOpen, setIsPathModalOpen] = useState(false);
@@ -21,7 +22,12 @@ export default function GanttScheduling() {
   };
 
   return (
-    <div className="min-h-screen w-full bg-background">
+    <main className="min-h-screen w-full bg-background">
+      <SeoHead
+        title={"Gantt Scheduling for Construction Projects | BuilderSuite ML"}
+        description={"Visual Gantt schedules with crew, vendor, and predecessor tracking. Send schedule updates straight to your trades."}
+        path="/features/gantt-scheduling"
+      />
       {/* Header */}
       <PublicHeader onGetStartedClick={handleGetStartedClick} />
 
@@ -172,6 +178,6 @@ export default function GanttScheduling() {
           </div>
         </DialogContent>
       </Dialog>
-    </div>
+    </main>
   );
 }

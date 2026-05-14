@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
 import { 
+import { SeoHead } from "@/components/SeoHead";
   ArrowRight,
   HardHat,
   Handshake
@@ -17,7 +18,12 @@ const JoinMarketplace = () => {
   const [isPathModalOpen, setIsPathModalOpen] = useState(false);
 
   return (
-    <div className="min-h-screen w-full bg-background">
+    <main className="min-h-screen w-full bg-background">
+      <SeoHead
+        title={"Join the BuilderSuite Marketplace | BuilderSuite ML"}
+        description={"Subcontractors, suppliers, and service providers — list your business so local home builders can find and hire you."}
+        path="/features/join-marketplace"
+      />
       {/* Header */}
       <PublicHeader onGetStartedClick={() => setIsPathModalOpen(true)} />
 
@@ -165,7 +171,7 @@ const JoinMarketplace = () => {
 
       {/* Footer */}
       <PublicFooter />
-    </div>
+    </main>
   );
 };
 

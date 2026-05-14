@@ -11,6 +11,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Card, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import { SeoHead } from "@/components/SeoHead";
 
 export default function TeamCommunication() {
   const [isPathModalOpen, setIsPathModalOpen] = useState(false);
@@ -21,7 +22,12 @@ export default function TeamCommunication() {
   };
 
   return (
-    <div className="min-h-screen w-full bg-background">
+    <main className="min-h-screen w-full bg-background">
+      <SeoHead
+        title={"Team Communication for Construction Teams | BuilderSuite ML"}
+        description={"In-app chat for owners, employees, and trade partners. Keep every conversation tied to the project."}
+        path="/features/team-communication"
+      />
       {/* Header */}
       <PublicHeader onGetStartedClick={handleGetStartedClick} />
 
@@ -172,6 +178,6 @@ export default function TeamCommunication() {
           </div>
         </DialogContent>
       </Dialog>
-    </div>
+    </main>
   );
 }

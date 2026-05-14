@@ -11,6 +11,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Card, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import { SeoHead } from "@/components/SeoHead";
 
 export default function DocumentManagement() {
   const [isPathModalOpen, setIsPathModalOpen] = useState(false);
@@ -21,7 +22,12 @@ export default function DocumentManagement() {
   };
 
   return (
-    <div className="min-h-screen w-full bg-background">
+    <main className="min-h-screen w-full bg-background">
+      <SeoHead
+        title={"Construction Document & Photo Management | BuilderSuite ML"}
+        description={"Project files, photos, folders, and shareable links — organized per project and accessible to your team and trades."}
+        path="/features/document-management"
+      />
       {/* Header */}
       <PublicHeader onGetStartedClick={handleGetStartedClick} />
 
@@ -172,6 +178,6 @@ export default function DocumentManagement() {
           </div>
         </DialogContent>
       </Dialog>
-    </div>
+    </main>
   );
 }

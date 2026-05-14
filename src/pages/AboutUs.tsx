@@ -6,6 +6,7 @@ import { PublicFooter } from "@/components/PublicFooter";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
 import { 
+import { SeoHead } from "@/components/SeoHead";
   Building2, 
   ArrowRight,
   HardHat,
@@ -25,7 +26,12 @@ const AboutUs = () => {
   const [isPathModalOpen, setIsPathModalOpen] = useState(false);
 
   return (
-    <div className="min-h-screen w-full bg-background">
+    <main className="min-h-screen w-full bg-background">
+      <SeoHead
+        title={"About BuilderSuite ML — Built by Builders, for Builders"}
+        description={"Learn why BuilderSuite ML was built by working home builders to solve the real problems construction teams face every day."}
+        path="/about"
+      />
       {/* Header */}
       <PublicHeader onGetStartedClick={() => setIsPathModalOpen(true)} />
 
@@ -465,7 +471,7 @@ const AboutUs = () => {
 
       {/* Footer */}
       <PublicFooter />
-    </div>
+    </main>
   );
 };
 
