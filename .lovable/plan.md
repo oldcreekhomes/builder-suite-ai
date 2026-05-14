@@ -1,29 +1,21 @@
-# Plan: Add First-Name Search to Schedule Resources
+## What's actually going on
 
-## Context
-In the schedule's **ResourcesSelector** dropdown, the search currently matches by company name only (e.g., typing "Lynn" finds reps from Lynn Wholesale Flooring). The user wants to **also** match by a person's first name (e.g., typing "John" finds "John Smith"), without changing anything else.
+Your photo grid is loading the **full-resolution originals** for every tile. iPhone JPGs like `IMG_2217.JPG` are typically 3–6 MB each. With 60+ photos in the folder, that's hundreds of MB the browser has to pull just to render thumbnails — which is exactly why you see two pictures appear and then nothing for a long time.
 
-## Scope Guarantee (no behavior changes)
-The list of reps already shown in the dropdown is unchanged. It continues to come from `useProjectResources`, which already restricts results to:
-- Representatives belonging to companies owned by the current home builder, AND
-- Reps with `receive_schedule_notifications = true`, AND
-- Reps whose service areas include the project's region (when set).
+There's already a `getThumbnailUrl()` helper (`src/utils/thumbnailUtils.ts`) that uses Supabase's on-the-fly image resize endpoint (`/render/image/public/...?width=512&quality=80`). It's imported in `PhotoCard.tsx` but **never actually used** — the `<img>` tag points to `photo.url` (the original).
 
-The new first-name match only filters within this already-restricted list. Internal users (your own teammates) remain searchable as today.
+On top of that, every grid image is marked `fetchPriority="low"`, which tells the browser to deprioritize them behind basically everything else on the page, making the wait even worse.
 
-## What Will Change
-**File: `src/components/schedule/ResourcesSelector.tsx`** — update the `filter` function on the `<Command>` component.
+## The fix (frontend only, no DB changes)
 
-- Current: matches only `value.split('||')[0]` (company name) with `startsWith`.
-- New: matches if the search term `startsWith` ANY of:
-  1. Company name (existing behavior — unchanged)
-  2. Full resource name (e.g. "John Smith")
-  3. First name only (first whitespace-separated token of the resource name)
+**File:** `src/components/photos/components/PhotoCard.tsx`
 
-The `CommandItem` value format stays `companyName||resourceName||resourceId`, so no other code is affected.
+1. Change the grid `<img src>` from `photo.url` to `getThumbnailUrl(photo.url, 512)` so each tile downloads a ~30–80 KB resized image instead of a multi-MB original.
+2. Remove `fetchPriority="low"` so the browser fetches visible thumbnails at normal priority.
+3. Leave the full-size `photo.url` in `PhotoViewer` / share / download flows untouched — those should stay full quality.
 
-## What Will NOT Change
-- Which reps appear in the dropdown (still owned-company + opt-in + region-filtered).
-- The existing company-name search.
-- Group headings, selection logic, value persistence, UI layout.
-- No database, RLS, or API changes.
+Everything else (lazy-loading via IntersectionObserver, infinite scroll, HEIC handling, selection, context menus) stays exactly the same.
+
+## Expected result
+
+The grid should go from "minutes for a few rows" to filling the visible viewport in roughly a second, with the remaining rows streaming in as you scroll.

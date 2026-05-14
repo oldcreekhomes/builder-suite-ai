@@ -125,14 +125,13 @@ export function PhotoCard({
                     onClick={() => onPhotoSelect(photo)}
                   >
                   <img
-                    src={photo.url}
+                    src={getThumbnailUrl(photo.url, 512)}
                     alt={getPhotoDisplayName(photo)}
                       className={`w-full h-full object-cover transition-opacity duration-300 ${
                         isImageLoaded ? 'opacity-100' : 'opacity-0'
                       }`}
                       loading="lazy"
                       decoding="async"
-                      fetchPriority="low"
                       sizes="(max-width: 768px) 50vw, (max-width: 1200px) 33vw, 25vw"
                       onLoad={() => setIsImageLoaded(true)}
                       onError={() => setIsImageLoaded(true)}
