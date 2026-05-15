@@ -5,7 +5,7 @@ import { AppSidebar } from '@/components/AppSidebar';
 import { SidebarProvider, SidebarInset } from '@/components/ui/sidebar';
 import { DashboardHeader } from '@/components/DashboardHeader';
 import { SimpleFileManager, SimpleFileManagerHandle } from '@/components/files/SimpleFileManager';
-import { UniversalFilePreviewProvider } from '@/components/files/UniversalFilePreviewProvider';
+
 import { Button } from '@/components/ui/button';
 
 const ProjectFiles = () => {
