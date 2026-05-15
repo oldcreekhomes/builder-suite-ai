@@ -11,6 +11,7 @@ import { NewFolderModal } from './NewFolderModal';
 import { MoveFilesModal } from './MoveFilesModal';
 
 import { FileShareModal } from './components/FileShareModal';
+import { FolderShareModal } from './components/FolderShareModal';
 import { FolderAccessModal } from './FolderAccessModal';
 import { formatFileSize } from './utils/simplifiedFileUtils';
 import { supabase } from '@/integrations/supabase/client';
