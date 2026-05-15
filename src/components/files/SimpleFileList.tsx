@@ -95,6 +95,7 @@ export const SimpleFileList: React.FC<SimpleFileListProps> = ({
   const [isDeleting, setIsDeleting] = useState(false);
   const [showBulkDeleteConfirm, setShowBulkDeleteConfirm] = useState(false);
   const [shareFile, setShareFile] = useState<SimpleFile | null>(null);
+  const [shareFolder, setShareFolder] = useState<{ path: string; name: string; files: any[] } | null>(null);
   const [manageAccessFolder, setManageAccessFolder] = useState<string | null>(null);
   const { openProjectFile } = useUniversalFilePreviewContext();
   const { toast } = useToast();
