@@ -464,6 +464,23 @@ export function WriteChecksContent({ projectId, recurringTemplate, onClearTempla
     
     setCurrentCheckId(check.id);
     setIsViewingMode(true);
+
+    // Load existing attachments for this check
+    setAttachments([]);
+    if (check.id) {
+      supabase
+        .from('check_attachments')
+        .select('id, file_name, file_path, file_size, content_type')
+        .eq('check_id', check.id)
+        .order('uploaded_at', { ascending: true })
+        .then(({ data, error }) => {
+          if (error) {
+            console.error('Error loading check attachments:', error);
+            return;
+          }
+          setAttachments((data ?? []) as CheckAttachment[]);
+        });
+    }
     
     setCheckDate(toDateLocal(check.check_date));
     setPayTo(check.pay_to || "");
