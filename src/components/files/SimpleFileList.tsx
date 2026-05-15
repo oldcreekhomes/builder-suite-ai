@@ -244,7 +244,45 @@ export const SimpleFileList: React.FC<SimpleFileListProps> = ({
     }
   };
 
-  const escapeLike = (s: string) => s.replace(/[\\%_]/g, (m) => `\\${m}`);
+  const handleFolderShare = async (folder: SimpleFolder) => {
+    try {
+      const { data: allFiles = [], error: fetchError } = await supabase
+        .from('project_files')
+        .select('*')
+        .eq('project_id', projectId)
+        .neq('file_type', 'folderkeeper')
+        .eq('is_deleted', false);
+      if (fetchError) throw fetchError;
+
+      const folderFiles = (allFiles || []).filter((file: any) =>
+        file.original_filename?.startsWith(`${folder.path}/`)
+      );
+
+      if (folderFiles.length === 0) {
+        toast({ title: "No files", description: "This folder has no files to share", variant: "destructive" });
+        return;
+      }
+
+      setShareFolder({
+        path: folder.path,
+        name: folder.name,
+        files: folderFiles.map((f: any) => ({
+          id: f.id,
+          original_filename: f.original_filename,
+          file_size: f.file_size,
+          file_type: f.file_type,
+          storage_path: f.storage_path,
+          project_id: f.project_id,
+          uploaded_by: f.uploaded_by,
+          uploaded_at: f.uploaded_at,
+        })),
+      });
+    } catch (error) {
+      console.error('Error preparing folder share:', error);
+      toast({ title: "Error", description: "Failed to prepare folder share", variant: "destructive" });
+    }
+  };
+
 
   const confirmFolderDelete = async () => {
     if (!deleteFolder) return;
