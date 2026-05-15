@@ -506,6 +506,7 @@ export const SimpleFileList: React.FC<SimpleFileListProps> = ({
                 <TableRowActions actions={[
                   { label: 'Rename', onClick: () => handleFolderRename(folder) },
                   { label: 'Download as Zip', onClick: () => handleFolderDownload(folder) },
+                  { label: 'Share', onClick: () => handleFolderShare(folder) },
                   { label: 'Move', onClick: () => handleMoveFiles([], [folder.path]) },
                   ...(isOwner ? [
                     isFolderDirectlyLocked(folder.path)
