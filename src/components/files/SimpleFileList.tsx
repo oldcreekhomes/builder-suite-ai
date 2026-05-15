@@ -11,6 +11,7 @@ import { NewFolderModal } from './NewFolderModal';
 import { MoveFilesModal } from './MoveFilesModal';
 
 import { FileShareModal } from './components/FileShareModal';
+import { FolderShareModal } from './components/FolderShareModal';
 import { FolderAccessModal } from './FolderAccessModal';
 import { formatFileSize } from './utils/simplifiedFileUtils';
 import { supabase } from '@/integrations/supabase/client';
@@ -94,6 +95,7 @@ export const SimpleFileList: React.FC<SimpleFileListProps> = ({
   const [isDeleting, setIsDeleting] = useState(false);
   const [showBulkDeleteConfirm, setShowBulkDeleteConfirm] = useState(false);
   const [shareFile, setShareFile] = useState<SimpleFile | null>(null);
+  const [shareFolder, setShareFolder] = useState<{ path: string; name: string; files: any[] } | null>(null);
   const [manageAccessFolder, setManageAccessFolder] = useState<string | null>(null);
   const { openProjectFile } = useUniversalFilePreviewContext();
   const { toast } = useToast();
@@ -239,6 +241,45 @@ export const SimpleFileList: React.FC<SimpleFileListProps> = ({
       toast({ title: "Success", description: `Folder "${folder.name}" downloaded successfully` });
     } catch (error) {
       toast({ title: "Error", description: "Failed to download folder", variant: "destructive" });
+    }
+  };
+
+  const handleFolderShare = async (folder: SimpleFolder) => {
+    try {
+      const { data: allFiles = [], error: fetchError } = await supabase
+        .from('project_files')
+        .select('*')
+        .eq('project_id', projectId)
+        .neq('file_type', 'folderkeeper')
+        .eq('is_deleted', false);
+      if (fetchError) throw fetchError;
+
+      const folderFiles = (allFiles || []).filter((file: any) =>
+        file.original_filename?.startsWith(`${folder.path}/`)
+      );
+
+      if (folderFiles.length === 0) {
+        toast({ title: "No files", description: "This folder has no files to share", variant: "destructive" });
+        return;
+      }
+
+      setShareFolder({
+        path: folder.path,
+        name: folder.name,
+        files: folderFiles.map((f: any) => ({
+          id: f.id,
+          original_filename: f.original_filename,
+          file_size: f.file_size,
+          file_type: f.file_type,
+          storage_path: f.storage_path,
+          project_id: f.project_id,
+          uploaded_by: f.uploaded_by,
+          uploaded_at: f.uploaded_at,
+        })),
+      });
+    } catch (error) {
+      console.error('Error preparing folder share:', error);
+      toast({ title: "Error", description: "Failed to prepare folder share", variant: "destructive" });
     }
   };
 
@@ -465,6 +506,7 @@ export const SimpleFileList: React.FC<SimpleFileListProps> = ({
                 <TableRowActions actions={[
                   { label: 'Rename', onClick: () => handleFolderRename(folder) },
                   { label: 'Download as Zip', onClick: () => handleFolderDownload(folder) },
+                  { label: 'Share', onClick: () => handleFolderShare(folder) },
                   { label: 'Move', onClick: () => handleMoveFiles([], [folder.path]) },
                   ...(isOwner ? [
                     isFolderDirectlyLocked(folder.path)
@@ -633,6 +675,14 @@ export const SimpleFileList: React.FC<SimpleFileListProps> = ({
         isOpen={!!shareFile}
         onClose={() => setShareFile(null)}
         file={getShareableFile(shareFile)}
+      />
+
+      <FolderShareModal
+        isOpen={!!shareFolder}
+        onClose={() => setShareFolder(null)}
+        folderPath={shareFolder?.path ?? ''}
+        files={shareFolder?.files ?? []}
+        projectId={projectId}
       />
 
       {isOwner && manageAccessFolder && (
