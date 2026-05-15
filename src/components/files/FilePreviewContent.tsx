@@ -33,12 +33,27 @@ export function FilePreviewContent({
   const zoomOut = () => setImageZoom(prev => Math.max(prev - 0.25, 0.25));
   const resetZoom = () => setImageZoom(1);
 
-  if (isLoading) {
+  // For PDFs, hand off to PDFViewer immediately so it owns the single loading spinner.
+  // Showing a separate "Loading preview..." here creates a confusing double-spinner UX.
+  if (isLoading && fileType !== FileType.PDF) {
     return (
       <div className="flex-1 flex items-center justify-center p-8">
         <div className="text-center">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
           <p className="text-muted-foreground">Loading preview...</p>
+        </div>
+      </div>
+    );
+  }
+
+  // PDFs need a fileUrl before we can render. Show the same single spinner here
+  // (rendered inside the PDF area) until the signed URL resolves.
+  if (fileType === FileType.PDF && !fileUrl && !error) {
+    return (
+      <div className="flex-1 flex items-center justify-center p-8">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
+          <p className="text-muted-foreground">Loading PDF...</p>
         </div>
       </div>
     );
