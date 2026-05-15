@@ -967,12 +967,12 @@ export function EditBillDialog({ open, onOpenChange, billId }: EditBillDialogPro
                                 type="number"
                                 step="0.01"
                                 placeholder="1"
-                                value={Number.isFinite(group.quantity) ? group.quantity.toFixed(2) : '0.00'}
+                                value={singleRow ? (singleRow.quantity ?? '') : (Number.isFinite(group.quantity) ? group.quantity.toFixed(2) : '0.00')}
                                 onChange={(e) => {
-                                  const v = parseFloat(e.target.value) || 0;
                                   if (singleRow) {
                                     updateJobCostRow(singleRow.id, 'quantity', e.target.value);
                                   } else {
+                                    const v = parseFloat(e.target.value) || 0;
                                     updateJobCostGroup(group, { quantity: v });
                                   }
                                 }}
@@ -985,12 +985,12 @@ export function EditBillDialog({ open, onOpenChange, billId }: EditBillDialogPro
                                 type="number"
                                 step="0.01"
                                 placeholder="0.00"
-                                value={Number.isFinite(group.unitCost) ? group.unitCost.toFixed(2) : '0.00'}
+                                value={singleRow ? (singleRow.amount ?? '') : (Number.isFinite(group.unitCost) ? group.unitCost.toFixed(2) : '0.00')}
                                 onChange={(e) => {
-                                  const v = parseFloat(e.target.value) || 0;
                                   if (singleRow) {
                                     updateJobCostRow(singleRow.id, 'amount', e.target.value);
                                   } else {
+                                    const v = parseFloat(e.target.value) || 0;
                                     updateJobCostGroup(group, { unit_cost: v });
                                   }
                                 }}

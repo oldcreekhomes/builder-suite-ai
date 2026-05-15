@@ -1,26 +1,14 @@
-# Fix: Check attachments missing when reopening a check
+Fix the Edit Bill dialog so Quantity and Unit Cost fields behave like normal editable inputs.
 
-## Root cause
+Plan:
+1. Update `src/components/bills/EditBillDialog.tsx` only.
+2. Stop forcing grouped Job Cost inputs through `toFixed(2)` on every render while the user is typing. That formatting is what turns each keystroke into a reset/re-render and makes backspace/delete/cursor editing painful.
+3. Add local edit-buffer state for grouped Job Cost Quantity and Unit Cost fields, so typed text stays exactly as entered while focused.
+4. Commit the numeric value back to the grouped bill rows on change/blur without breaking the existing per-lot split math or total calculations.
+5. Keep Expense tab fields as-is unless the same issue appears there, since they already bind directly to row string values.
+6. Verify by opening the Edit Bill dialog and testing typing, backspace, delete, decimal entry, and replacing values in Quantity and Unit Cost.
 
-In `src/components/transactions/WriteChecksContent.tsx`, `loadCheckData()` (line 462) sets all the form fields when you open an existing check, but it **never queries `check_attachments`** or calls `setAttachments(...)`. The `CheckAttachmentUpload` component just renders whatever the parent passes in — and the parent passes an empty array. So existing attachments simply never load into the UI, even though they were saved correctly to storage and to the `check_attachments` table.
-
-(The save path at lines 840–866 does upload temp files correctly after the check is created, so the data is there — it's purely a load bug.)
-
-## Fix
-
-Update `loadCheckData` to fetch attachments for the loaded check and populate state:
-
-1. Make `loadCheckData` async.
-2. After `setCurrentCheckId(check.id)`, query:
-   ```ts
-   const { data } = await supabase
-     .from('check_attachments')
-     .select('id, file_name, file_path, file_size, content_type')
-     .eq('check_id', check.id)
-     .order('uploaded_at', { ascending: true });
-   setAttachments(data ?? []);
-   ```
-3. Update the call sites (`handleCheckSelect`, the two `loadCheckData(filteredChecks[...])` spots around lines 202, 445, 449, 458, 545) — they don't need to await, fire-and-forget is fine.
-4. Keep `setAttachments([])` reset in `createNewCheck` so switching to a new check clears the prior list.
-
-That's it — single file, ~10 lines.
+Technical details:
+- Root cause: grouped Job Cost fields render `value={group.quantity.toFixed(2)}` and `value={group.unitCost.toFixed(2)}` while also recalculating grouped rows on each change.
+- Fix approach: preserve raw input strings during focus/editing, parse only for calculations, and only format when not actively editing if needed.
+- No database migration and no unrelated code changes.
