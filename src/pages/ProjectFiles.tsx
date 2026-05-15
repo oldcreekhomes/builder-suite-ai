@@ -41,8 +41,7 @@ const ProjectFiles = () => {
   );
 
   return (
-    <UniversalFilePreviewProvider>
-      <SidebarProvider>
+    <SidebarProvider>
         <div className="flex min-h-screen w-full">
           <AppSidebar />
           <SidebarInset className="flex-1">
@@ -61,10 +60,9 @@ const ProjectFiles = () => {
                 onUploadSuccess={handleUploadSuccess}
               />
             </div>
-          </SidebarInset>
-        </div>
-      </SidebarProvider>
-    </UniversalFilePreviewProvider>
+        </SidebarInset>
+      </div>
+    </SidebarProvider>
   );
 };
 

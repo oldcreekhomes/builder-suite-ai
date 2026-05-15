@@ -1,40 +1,47 @@
 ## Goal
+Make large PDF previews open quickly with one clear viewer experience: no duplicate preview modals/viewers, no stacked spinners, and no quality/compression loss.
 
-Make large PDFs (like the 24MB grading plan) open in about 1 second instead of 15. No quality loss, no compression — same file, just reorganized so the viewer can stream it.
+## What I found
+- The app currently wraps the file manager in `UniversalFilePreviewProvider` twice: once in `ProjectFiles.tsx` and again inside `SimpleFileManager.tsx`. That can create two separate preview modal/viewer systems on the same page.
+- The PDF viewer still shows multiple loading states: the outer file preview loading state plus PDF.js document/page loading states.
+- The previous PDF “linearization” edge function is not true PDF fast-web-view linearization. `pdf-lib` with `useObjectStreams: false` rewrites the file losslessly, but it does not create the linearized hint tables required for instant first-page streaming on large PDFs.
+- Uploads are not yet connected to any reliable PDF optimization path, so new large PDFs can still behave slowly.
 
-## Why it's slow today
+## Plan
+1. **Remove the duplicate preview provider**
+   - Keep only one `UniversalFilePreviewProvider` for the Project Files page.
+   - Remove the nested provider inside `SimpleFileManager` so one click can only open one preview modal/viewer.
 
-Your PDFs are stored as one big blob. The viewer can't show page 1 until enough of the file has downloaded for it to figure out where page 1 lives — for a non-"web-optimized" PDF, that often means downloading almost the whole file. That's the 15-second wait.
+2. **Simplify PDF loading UI to one spinner**
+   - For PDFs, avoid showing the outer “Loading preview...” spinner once the signed URL is being fetched.
+   - Let the single PDF viewer own the loading state.
+   - Remove per-page spinner text that makes it look like another viewer is loading.
 
-The fix is to **web-optimize** (a.k.a. "linearize") each PDF. It's a one-time, lossless reshuffling of the file's internal structure that lets the viewer grab just the bytes for the page it needs to show, while the rest streams in the background. Same pixels, same resolution, same file — just arranged so it can be read progressively.
+3. **Replace the false linearization approach with real fast-web-view linearization**
+   - Update the `linearize-pdf` edge function to use a real `qpdf --linearize` command when available.
+   - Keep the process lossless: no image compression, no downsampling, no resolution changes.
+   - If `qpdf` is not available in the Supabase Edge runtime, the function should return a clear error instead of pretending the PDF is optimized.
 
-## What I'll build
+4. **Connect PDF optimization after upload**
+   - After a PDF upload/database insert succeeds, call the edge function in the background for that file.
+   - Upload completion remains fast; optimization happens afterward.
+   - Mark `is_linearized` only when true linearization succeeds.
 
-1. **New edge function `linearize-pdf`**
-   - Runs `qpdf --linearize` on a PDF to produce a web-optimized copy.
-   - Lossless. File size stays roughly the same (often slightly smaller).
+5. **Backfill existing PDFs properly**
+   - Re-run the backfill with the real linearizer for existing project PDFs, including the 413 East Nelson grading plan.
+   - Do not compress files; only restructure them for fast preview streaming.
 
-2. **Auto-optimize on upload**
-   - When a user uploads a PDF to `project-files`, the function runs in the background and replaces the stored file with the linearized version.
-   - Users don't wait — upload completes immediately, optimization happens in seconds afterward.
+6. **Validate with the actual problem file**
+   - Confirm only one preview modal/viewer appears.
+   - Confirm the first page starts rendering quickly.
+   - Confirm network requests use byte-range loading rather than waiting on the full 23–25MB file.
 
-3. **One-time backfill for existing PDFs**
-   - A script/edge function pass that walks every PDF currently in `project-files` and linearizes it in place.
-   - Tracks progress in a small `pdf_optimization_status` table so it can resume if interrupted.
-   - Can be triggered from a hidden admin button or just run once via the function.
-
-4. **Viewer cleanup**
-   - Keep the streaming config already in `PDFViewer.tsx` (range requests + `disableAutoFetch`). Once files are linearized, this config will actually work as intended.
-   - Remove the redundant outer "Loading preview…" spinner — only show the inner "Loading PDF…" one so users see a single, short spinner.
-
-## Expected result
-
-- 24MB Signature Set Grading Plan: page 1 visible in ~1s, remaining pages stream in as you scroll.
-- No quality change, no compression, no resolution change.
-- Works for every PDF in the system once backfill finishes (a few minutes for the whole project).
-
-## Technical notes
-
-- `qpdf` is available in the Supabase Edge Function runtime via a small Deno wrapper, or we can shell out to it from a Node-based function. If the runtime can't run `qpdf` directly, the fallback is to use `pdf-lib` to rewrite the PDF with `useObjectStreams: false` and proper page-tree ordering — same end result.
-- All file replacements happen inside the same `project-files` bucket and path, so existing links/permissions don't change.
-- The `linearize-pdf` function is idempotent: if a file is already linearized, it skips it.
+## Technical details
+- Files likely changed:
+  - `src/pages/ProjectFiles.tsx`
+  - `src/components/files/SimpleFileManager.tsx`
+  - `src/components/files/FilePreviewContent.tsx`
+  - `src/components/files/PDFViewer.tsx`
+  - `supabase/functions/linearize-pdf/index.ts`
+- The fix must not use blob downloads for preview, because blob downloads require the full file before rendering.
+- The fix must not use compression or quality reduction.
