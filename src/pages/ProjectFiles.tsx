@@ -5,7 +5,7 @@ import { AppSidebar } from '@/components/AppSidebar';
 import { SidebarProvider, SidebarInset } from '@/components/ui/sidebar';
 import { DashboardHeader } from '@/components/DashboardHeader';
 import { SimpleFileManager, SimpleFileManagerHandle } from '@/components/files/SimpleFileManager';
-import { UniversalFilePreviewProvider } from '@/components/files/UniversalFilePreviewProvider';
+
 import { Button } from '@/components/ui/button';
 
 const ProjectFiles = () => {
@@ -41,8 +41,7 @@ const ProjectFiles = () => {
   );
 
   return (
-    <UniversalFilePreviewProvider>
-      <SidebarProvider>
+    <SidebarProvider>
         <div className="flex min-h-screen w-full">
           <AppSidebar />
           <SidebarInset className="flex-1">
@@ -61,10 +60,9 @@ const ProjectFiles = () => {
                 onUploadSuccess={handleUploadSuccess}
               />
             </div>
-          </SidebarInset>
-        </div>
-      </SidebarProvider>
-    </UniversalFilePreviewProvider>
+        </SidebarInset>
+      </div>
+    </SidebarProvider>
   );
 };
 
