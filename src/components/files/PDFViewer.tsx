@@ -37,6 +37,20 @@ export function PDFViewer({ fileUrl, fileName, onDownload, onZoomChange, onPageC
   
   const scale = (baseScale || 0.5) * zoomMultiplier;
 
+  // Memoize the file descriptor so PDF.js doesn't reload on every render.
+  // Range-streaming options let us render the first page in ~1s for large
+  // PDFs instead of waiting for the entire file to download.
+  const documentFile = React.useMemo(
+    () => ({
+      url: fileUrl,
+      withCredentials: false,
+      rangeChunkSize: 65536,
+      disableStream: false,
+      disableAutoFetch: true,
+    }),
+    [fileUrl]
+  );
+
   const onDocumentLoadSuccess = ({ numPages }: { numPages: number }) => {
     setNumPages(numPages);
     setIsLoading(false);
@@ -247,7 +261,7 @@ export function PDFViewer({ fileUrl, fileName, onDownload, onZoomChange, onPageC
       >
         <div className={`flex flex-col gap-2 w-full mx-auto ${zoomMultiplier === 1.0 ? 'items-center' : 'items-start'}`}>
           <Document
-            file={fileUrl}
+            file={documentFile}
             onLoadSuccess={onDocumentLoadSuccess}
             onLoadError={onDocumentLoadError}
             loading={

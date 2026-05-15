@@ -5,8 +5,8 @@ import { PublicHeader } from "@/components/PublicHeader";
 import { PublicFooter } from "@/components/PublicFooter";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
-import { 
 import { SeoHead } from "@/components/SeoHead";
+import { 
   Building2, 
   ArrowRight,
   HardHat,
