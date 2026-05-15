@@ -4394,6 +4394,8 @@ export type Database = {
           filename: string
           id: string
           is_deleted: boolean
+          is_linearized: boolean
+          linearize_error: string | null
           mime_type: string
           original_filename: string
           project_id: string
@@ -4412,6 +4414,8 @@ export type Database = {
           filename: string
           id?: string
           is_deleted?: boolean
+          is_linearized?: boolean
+          linearize_error?: string | null
           mime_type: string
           original_filename: string
           project_id: string
@@ -4430,6 +4434,8 @@ export type Database = {
           filename?: string
           id?: string
           is_deleted?: boolean
+          is_linearized?: boolean
+          linearize_error?: string | null
           mime_type?: string
           original_filename?: string
           project_id?: string
