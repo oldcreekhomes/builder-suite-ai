@@ -75,10 +75,10 @@ Deno.serve(async (req) => {
     const limit = Math.min(body.limit ?? 5, 20);
     const { data: rows, error } = await supabase
       .from("project_files")
-      .select("id, file_path, original_filename")
+      .select("id, storage_path, original_filename")
       .eq("is_deleted", false)
       .is("is_linearized", false)
-      .or("original_filename.ilike.%.pdf,file_path.ilike.%.pdf")
+      .or("original_filename.ilike.%.pdf,storage_path.ilike.%.pdf")
       .limit(limit);
 
     if (error) {
@@ -90,7 +90,7 @@ Deno.serve(async (req) => {
 
     const results: any[] = [];
     for (const row of rows ?? []) {
-      const r = await linearizeOne(supabase, "project-files", row.file_path);
+      const r = await linearizeOne(supabase, "project-files", row.storage_path);
       results.push({ id: row.id, ...r });
       if (r.ok) {
         await supabase.from("project_files").update({ is_linearized: true }).eq("id", row.id);
@@ -119,7 +119,7 @@ Deno.serve(async (req) => {
   if (result.ok) {
     await supabase.from("project_files")
       .update({ is_linearized: true })
-      .eq("file_path", body.path);
+      .eq("storage_path", body.path);
   }
   return new Response(JSON.stringify(result), {
     headers: { ...corsHeaders, "Content-Type": "application/json" },
