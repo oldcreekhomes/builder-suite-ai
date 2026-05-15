@@ -283,6 +283,7 @@ export const SimpleFileList: React.FC<SimpleFileListProps> = ({
     }
   };
 
+  const escapeLike = (s: string) => s.replace(/[\\%_]/g, (m) => `\\${m}`);
 
   const confirmFolderDelete = async () => {
     if (!deleteFolder) return;
