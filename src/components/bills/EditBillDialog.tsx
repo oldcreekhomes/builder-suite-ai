@@ -1082,7 +1082,7 @@ export function EditBillDialog({ open, onOpenChange, billId }: EditBillDialogPro
                                     }
                                   }}
                                   size="sm"
-                                  variant="ghost"
+                                  variant="destructive"
                                   disabled={jobCostRows.length === 1}
                                   className="h-8 w-8 p-0"
                                 >
@@ -1177,7 +1177,7 @@ export function EditBillDialog({ open, onOpenChange, billId }: EditBillDialogPro
                                 <Button
                                   onClick={() => removeExpenseRow(row.id, row.dbId)}
                                   size="sm"
-                                  variant="ghost"
+                                  variant="destructive"
                                   disabled={expenseRows.length === 1}
                                   className="h-8 w-8 p-0"
                                 >
