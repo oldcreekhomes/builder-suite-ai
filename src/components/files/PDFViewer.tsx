@@ -247,7 +247,16 @@ export function PDFViewer({ fileUrl, fileName, onDownload, onZoomChange, onPageC
       >
         <div className={`flex flex-col gap-2 w-full mx-auto ${zoomMultiplier === 1.0 ? 'items-center' : 'items-start'}`}>
           <Document
-            file={fileUrl}
+            file={React.useMemo(
+              () => ({
+                url: fileUrl,
+                withCredentials: false,
+                rangeChunkSize: 65536,
+                disableStream: false,
+                disableAutoFetch: true,
+              }),
+              [fileUrl]
+            )}
             onLoadSuccess={onDocumentLoadSuccess}
             onLoadError={onDocumentLoadError}
             loading={
