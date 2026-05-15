@@ -23,7 +23,7 @@ export function PDFViewer({ fileUrl, fileName, onDownload, onZoomChange, onPageC
   const [zoomMultiplier, setZoomMultiplier] = useState<number>(1.0);
   const [isLoading, setIsLoading] = useState(true);
   const [hasError, setHasError] = useState(false);
-  const [visiblePages, setVisiblePages] = useState<Set<number>>(new Set([1, 2, 3]));
+  const [visiblePages, setVisiblePages] = useState<Set<number>>(new Set([1]));
   const [pageWidth, setPageWidth] = useState<number>(0);
   const [pageHeight, setPageHeight] = useState<number>(0);
   
@@ -37,15 +37,30 @@ export function PDFViewer({ fileUrl, fileName, onDownload, onZoomChange, onPageC
   
   const scale = (baseScale || 0.5) * zoomMultiplier;
 
+  React.useEffect(() => {
+    setNumPages(0);
+    setBaseScale(null);
+    setZoomMultiplier(1.0);
+    setIsLoading(true);
+    setHasError(false);
+    setVisiblePages(new Set([1]));
+    setPageWidth(0);
+    setPageHeight(0);
+    pageWidthSet.current = false;
+    pageRefs.current.clear();
+    onPageCountChange?.(0, true);
+  }, [fileUrl, onPageCountChange]);
+
   // Memoize the file descriptor so PDF.js doesn't reload on every render.
-  // Range-streaming options let us render the first page in ~1s for large
-  // PDFs instead of waiting for the entire file to download.
+  // Force HTTP Range requests: Supabase signed URLs support 206 responses,
+  // and disabling the full stream prevents a 25MB download before page 1.
   const documentFile = React.useMemo(
     () => ({
       url: fileUrl,
       withCredentials: false,
-      rangeChunkSize: 65536,
-      disableStream: false,
+      rangeChunkSize: 262144,
+      disableRange: false,
+      disableStream: true,
       disableAutoFetch: true,
     }),
     [fileUrl]
@@ -283,6 +298,8 @@ export function PDFViewer({ fileUrl, fileName, onDownload, onZoomChange, onPageC
                       pageNumber={pageNum}
                       scale={scale}
                       className="shadow-lg border bg-white"
+                      renderTextLayer={false}
+                      renderAnnotationLayer={false}
                       onLoadSuccess={(page) => {
                         if (pageNum === 1 && !pageWidthSet.current) {
                           const width = page.width;
