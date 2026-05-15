@@ -328,9 +328,7 @@ export function PDFViewer({ fileUrl, fileName, onDownload, onZoomChange, onPageC
                     )}
                     </>
                   ) : (
-                    <div className="h-[1100px] bg-muted/50 border shadow-lg flex items-center justify-center">
-                      <p className="text-muted-foreground text-sm">Loading page {pageNum}...</p>
-                    </div>
+                    <div className="h-[1100px] bg-muted/30 border shadow-lg" />
                   )}
                 </div>
               );
