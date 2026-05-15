@@ -1,47 +1,28 @@
-## Goal
-Make large PDF previews open quickly with one clear viewer experience: no duplicate preview modals/viewers, no stacked spinners, and no quality/compression loss.
+I found the real problem: the viewer is still downloading the whole 25MB PDF with a normal `200` request before it becomes usable, and the PDF text layer is creating thousands of DOM text spans for the construction drawing. Supabase does support byte-range loading (`206`) when requested, but the current PDF.js setup is not forcing it.
 
-## What I found
-- The app currently wraps the file manager in `UniversalFilePreviewProvider` twice: once in `ProjectFiles.tsx` and again inside `SimpleFileManager.tsx`. That can create two separate preview modal/viewer systems on the same page.
-- The PDF viewer still shows multiple loading states: the outer file preview loading state plus PDF.js document/page loading states.
-- The previous PDF “linearization” edge function is not true PDF fast-web-view linearization. `pdf-lib` with `useObjectStreams: false` rewrites the file losslessly, but it does not create the linearized hint tables required for instant first-page streaming on large PDFs.
-- Uploads are not yet connected to any reliable PDF optimization path, so new large PDFs can still behave slowly.
+Plan:
 
-## Plan
-1. **Remove the duplicate preview provider**
-   - Keep only one `UniversalFilePreviewProvider` for the Project Files page.
-   - Remove the nested provider inside `SimpleFileManager` so one click can only open one preview modal/viewer.
+1. Force PDF.js to use byte-range requests
+   - Update `PDFViewer.tsx` so PDF.js does not open a full-file stream first.
+   - Use `disableStream: true`, `disableAutoFetch: true`, `disableRange: false`, and a sane `rangeChunkSize`.
+   - Goal: the network panel should show `206 Partial Content` range requests instead of one full `200` PDF download.
 
-2. **Simplify PDF loading UI to one spinner**
-   - For PDFs, avoid showing the outer “Loading preview...” spinner once the signed URL is being fetched.
-   - Let the single PDF viewer own the loading state.
-   - Remove per-page spinner text that makes it look like another viewer is loading.
+2. Show page 1 first, not pages 1-3
+   - Change the initial visible page set from pages `1,2,3` to only page `1`.
+   - Load nearby pages only after the user scrolls.
+   - This prevents the viewer from trying to render multiple huge 24x36 plan sheets before the first page appears.
 
-3. **Replace the false linearization approach with real fast-web-view linearization**
-   - Update the `linearize-pdf` edge function to use a real `qpdf --linearize` command when available.
-   - Keep the process lossless: no image compression, no downsampling, no resolution changes.
-   - If `qpdf` is not available in the Supabase Edge runtime, the function should return a clear error instead of pretending the PDF is optimized.
+3. Stop rendering the heavy PDF text/annotation layers for previews
+   - For the preview viewer, render the PDF page as canvas only by setting `renderTextLayer={false}` and `renderAnnotationLayer={false}`.
+   - This avoids thousands of invisible/selectable text spans being created before the user can see the drawing.
+   - This does not compress the PDF, reduce quality, or change the stored file.
 
-4. **Connect PDF optimization after upload**
-   - After a PDF upload/database insert succeeds, call the edge function in the background for that file.
-   - Upload completion remains fast; optimization happens afterward.
-   - Mark `is_linearized` only when true linearization succeeds.
+4. Reset viewer state when switching PDFs
+   - Reset page count, loading state, page dimensions, zoom, and visible pages when a new `fileUrl` loads.
+   - This prevents stale PDF state from making the viewer behave unpredictably.
 
-5. **Backfill existing PDFs properly**
-   - Re-run the backfill with the real linearizer for existing project PDFs, including the 413 East Nelson grading plan.
-   - Do not compress files; only restructure them for fast preview streaming.
+5. Validate against the exact problem file
+   - Reopen `Project Files → Drawings → Civil → Signature Set Grading Plan 5.5.26.pdf`.
+   - Confirm there is one viewer, one loading state, first page appears quickly, and the PDF request uses byte ranges instead of a full-file download.
 
-6. **Validate with the actual problem file**
-   - Confirm only one preview modal/viewer appears.
-   - Confirm the first page starts rendering quickly.
-   - Confirm network requests use byte-range loading rather than waiting on the full 23–25MB file.
-
-## Technical details
-- Files likely changed:
-  - `src/pages/ProjectFiles.tsx`
-  - `src/components/files/SimpleFileManager.tsx`
-  - `src/components/files/FilePreviewContent.tsx`
-  - `src/components/files/PDFViewer.tsx`
-  - `supabase/functions/linearize-pdf/index.ts`
-- The fix must not use blob downloads for preview, because blob downloads require the full file before rendering.
-- The fix must not use compression or quality reduction.
+Technical note: this is not compression and does not alter uploaded files. It changes how the browser requests and renders the PDF, closer to how Google Drive shows the first page quickly instead of waiting on full document processing.
