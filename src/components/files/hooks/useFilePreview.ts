@@ -37,43 +37,9 @@ export function useFilePreview({ file, isOpen, onFileDeleted, onClose }: UseFile
           return;
         }
 
-        // For PDFs, download as blob to avoid Chrome blocking (detect by mime or extension)
-        const isPdf = (f: typeof file) => {
-          const name = (f.name || '').toLowerCase();
-          const path = (f.path || '').toLowerCase();
-          return f.mimeType === 'application/pdf' || name.endsWith('.pdf') || path.endsWith('.pdf');
-        };
-
-        if (isPdf(file)) {
-          try {
-            const { data: blobData, error: downloadError } = await supabase.storage
-              .from(file.bucket)
-              .download(file.path);
-
-            // Check for "Object not found" specifically
-            if (downloadError) {
-              const errorMessage = downloadError.message || '';
-              if (errorMessage.includes('Object not found') || errorMessage.includes('not found')) {
-                setError("File missing from storage. The file may have been deleted or failed to upload.");
-                setIsLoading(false);
-                return;
-              }
-            }
-
-            if (!downloadError && blobData) {
-              // Ensure the blob has the correct content type for PDF viewers
-              const pdfBlob = blobData.type === 'application/pdf'
-                ? blobData
-                : new Blob([blobData], { type: 'application/pdf' });
-              const blobUrl = URL.createObjectURL(pdfBlob);
-              setFileUrl(blobUrl);
-              setIsLoading(false);
-              return;
-            }
-          } catch (blobError) {
-            console.log('Blob download failed, trying signed URL');
-          }
-        }
+        // NOTE: PDFs intentionally fall through to signed URL path below so
+        // PDF.js can stream pages via HTTP Range requests instead of waiting
+        // for the entire file to download as a blob.
 
         // Private buckets that should NEVER fall back to a public URL
         // (public URLs against private buckets return "Bucket not found" 404s)
