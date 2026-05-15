@@ -1,26 +1,43 @@
-## Goal
+# Fix: Description field loses focus on every keystroke (Edit Bill → Job Cost)
 
-Add a **Share** option to the folder Actions dropdown on the Files page, mirroring the existing file Share behavior (7-day expiring link, same flow).
+## Root cause
 
-## Background
+In `src/components/bills/EditBillDialog.tsx` the Job Cost table renders rows with:
 
-The `FolderShareModal` component, the `shared_links` table support for `share_type = 'folder'`, the `share-redirect` edge function, and the public `/s/f/:id` SharedFolder page **already exist** and are already used elsewhere. They're just not wired into the folder dropdown in `SimpleFileList.tsx` — only the file row has a Share action today.
+```tsx
+<TableRow key={group.key}>
+```
 
-## Changes
+`group.key` comes from `groupBillLines` in `src/lib/billLineMath.ts`, which builds the key from cost code + unit cost + **memo** + PO ids:
 
-**`src/components/files/SimpleFileList.tsx`**
+```ts
+const key = [n.costCodeKey, n.unitCost.toFixed(6), n.memo.trim(), ...].join('|');
+```
 
-1. Import `FolderShareModal`.
-2. Add state: `const [shareFolder, setShareFolder] = useState<{ path: string; name: string; files: any[] } | null>(null)`.
-3. Add a handler `handleFolderShare(folder)` that:
-   - Queries `project_files` for the project (same pattern as `handleFolderDownload`), filters to files whose `original_filename` starts with `${folder.path}/`.
-   - Toasts an error if the folder is empty.
-   - Otherwise sets `shareFolder` with the folder path, name, and the filtered file list (shaped to match `FolderShareModal`'s `ProjectFile` interface: id, original_filename, file_size, file_type, storage_path, project_id, uploaded_by, uploaded_at).
-4. Insert a **Share** entry in the folder `TableRowActions` array (right after `Download as Zip`) wired to `handleFolderShare(folder)`.
-5. Render `<FolderShareModal isOpen={!!shareFolder} onClose={() => setShareFolder(null)} folderPath={shareFolder?.path ?? ''} files={shareFolder?.files ?? []} projectId={projectId} />` at the bottom alongside the existing `FileShareModal`.
+So the moment the user types one character into the Description (memo) input, the group's key changes → React unmounts the old `<TableRow>` and mounts a new one → the `<Input>` is destroyed and recreated → focus/cursor is lost. That's exactly the "type one letter, cursor disappears" symptom.
+
+The Expense tab uses `key={row.id}` (stable) and is not affected.
+
+## Fix
+
+Use a stable React key for Job Cost rows that is independent of the memo. The simplest stable identifier is the first child row's id (rows in the same group always share cost code/unit cost/PO, so the first child id uniquely identifies the group across renders, and for ungrouped rows it is just that row's id).
+
+Change in `src/components/bills/EditBillDialog.tsx` (around line 907):
+
+```tsx
+<TableRow key={group.children[0].id}>
+```
+
+No change to `groupBillLines` itself — its `key` is still useful for grouping math, we just don't use it as the React reconciliation key.
 
 ## Out of scope
 
-- No DB / edge function / SharedFolder page changes — they already work.
-- No changes to file Share, Lock, Rename, Move, Delete actions.
-- No changes to bulk actions.
+- Expense tab (already stable).
+- Grouping logic / totals math.
+- Any other dialogs.
+
+## Verification
+
+1. Open Manage Bills → Approved → Edit Bill.
+2. Click into a Job Cost Description, delete a few characters, type several letters in a row — cursor stays put, full string is entered without focus loss.
+3. Confirm grouping still collapses identical rows after blur (unchanged behavior).

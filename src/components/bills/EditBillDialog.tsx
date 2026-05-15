@@ -904,7 +904,7 @@ export function EditBillDialog({ open, onOpenChange, billId }: EditBillDialogPro
                       {jobCostDisplayGroups.map((group) => {
                         const singleRow = !group.isGrouped ? group.children[0] : null;
                         return (
-                          <TableRow key={group.key}>
+                          <TableRow key={group.children[0].id}>
                             <TableCell>
                               <Tooltip>
                                 <TooltipTrigger asChild>
