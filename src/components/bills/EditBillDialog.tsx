@@ -18,7 +18,7 @@ import { cn } from "@/lib/utils";
 import { AccountSearchInput } from "@/components/AccountSearchInput";
 import { useBills, BillLineData } from "@/hooks/useBills";
 import { POSelectionDropdown } from "@/components/bills/POSelectionDropdown";
-import { sanitizePoId } from "@/utils/poSentinelUtils";
+import { sanitizePoId, derivePoAssignment } from "@/utils/poSentinelUtils";
 import { toast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery } from "@tanstack/react-query";
