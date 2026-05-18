@@ -674,10 +674,12 @@ export function EditExtractedBillDialog({
     const groups = new Map<string, LineItem[]>();
     const order: string[] = [];
     for (const l of lines) {
+      // NOTE: key must NOT include editable fields (memo, cost_code_display, quantity, etc.)
+      // because changing them mid-edit would change the row key, unmount the input,
+      // and cause focus loss on every keystroke.
       const key = [
         l.cost_code_id || '',
         Number(l.unit_cost || 0).toFixed(6),
-        (l.memo || '').trim(),
         (l.matchingText || '').trim(),
         l.purchase_order_id || '',
         l.purchase_order_line_id || '',
