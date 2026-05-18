@@ -1365,38 +1365,26 @@ export function EditExtractedBillDialog({
                         )}
                       </TableCell>
                       <TableCell>
-                        {group.memo ? (
-                          <Tooltip>
-                            <TooltipTrigger asChild>
-                              <Input
-                                className="h-8 truncate"
-                                value={group.memo || ""}
-                                onChange={(e) => {
-                                  if (singleLine) {
-                                    updateJobCostLine(singleLine.id, 'memo', e.target.value);
-                                  } else {
-                                    updateJobCostGroup(group, { memo: e.target.value });
-                                  }
-                                }}
-                              />
-                            </TooltipTrigger>
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <Input
+                              className="h-8 truncate"
+                              value={group.memo || ""}
+                              onChange={(e) => {
+                                if (singleLine) {
+                                  updateJobCostLine(singleLine.id, 'memo', e.target.value);
+                                } else {
+                                  updateJobCostGroup(group, { memo: e.target.value });
+                                }
+                              }}
+                            />
+                          </TooltipTrigger>
+                          {group.memo ? (
                             <TooltipContent side="top" className="max-w-md break-words">
                               {group.memo}
                             </TooltipContent>
-                          </Tooltip>
-                        ) : (
-                          <Input
-                            className="h-8 truncate"
-                            value={group.memo || ""}
-                            onChange={(e) => {
-                              if (singleLine) {
-                                updateJobCostLine(singleLine.id, 'memo', e.target.value);
-                              } else {
-                                updateJobCostGroup(group, { memo: e.target.value });
-                              }
-                            }}
-                          />
-                        )}
+                          ) : null}
+                        </Tooltip>
                       </TableCell>
                       <TableCell>
                         <Input
