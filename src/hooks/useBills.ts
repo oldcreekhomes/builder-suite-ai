@@ -991,6 +991,7 @@ export const useBills = () => {
             lot_id: line.lot_id || null,
             purchase_order_id: line.purchase_order_id || null,
             purchase_order_line_id: line.purchase_order_line_id || null,
+            po_assignment: line.po_assignment ?? null,
             memo: line.memo || null,
             updated_at: new Date().toISOString()
           })
