@@ -246,7 +246,7 @@ export function CheckAttachmentUpload({
               className={`${iconColorClass} transition-colors p-1 rounded hover:bg-muted/50`}
               title={getCleanFileName(attachment.file_name)}
               type="button"
-              disabled={!attachment.id || !checkId}
+              disabled={!attachment.id && !attachment.file}
             >
               <IconComponent className="h-5 w-5" />
             </button>
