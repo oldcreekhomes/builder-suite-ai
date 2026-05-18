@@ -519,6 +519,7 @@ export function EditBillDialog({ open, onOpenChange, billId }: EditBillDialogPro
             lot_id: row.lotId || undefined,
             purchase_order_id: sanitizePoId(row.purchaseOrderId),
             purchase_order_line_id: sanitizePoId(row.purchaseOrderLineId),
+            po_assignment: derivePoAssignment(row.purchaseOrderId),
             memo: row.memo || undefined
           }));
 
