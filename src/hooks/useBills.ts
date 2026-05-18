@@ -954,7 +954,7 @@ export const useBills = () => {
     }: { 
       billId: string; 
       billData: { bill_date: string; notes?: string }; 
-      billLines: { dbId: string; cost_code_id?: string; lot_id?: string; purchase_order_id?: string; purchase_order_line_id?: string; memo?: string }[];
+      billLines: { dbId: string; cost_code_id?: string; lot_id?: string; purchase_order_id?: string; purchase_order_line_id?: string; po_assignment?: 'none' | 'auto' | null; memo?: string }[];
     }) => {
       if (!user) throw new Error("User not authenticated");
 
