@@ -1298,105 +1298,66 @@ export function EditExtractedBillDialog({
                       const singleLine = !group.isGrouped ? group.children[0] : null;
                       return (
                     <TableRow key={group.key}>
+                       <TableCell>
+                         <Tooltip>
+                           <TooltipTrigger asChild>
+                             <div className="w-full">
+                               <CostCodeSearchInput
+                                 value={group.cost_code_display || ""}
+                                 onChange={(value) => {
+                                   if (singleLine) {
+                                     updateJobCostLine(singleLine.id, 'cost_code_display', value);
+                                   } else {
+                                     updateJobCostGroup(group, { cost_code_display: value });
+                                   }
+                                 }}
+                                 className="h-8 truncate"
+                                 onCostCodeSelect={(costCode) => {
+                                   if (!costCode) return;
+                                   const display = `${costCode.code} - ${costCode.name}`;
+                                   if (singleLine) {
+                                     setJobCostLines(lines =>
+                                       lines.map(l =>
+                                         l.id === singleLine.id
+                                           ? { ...l, cost_code_id: costCode.id, cost_code_display: display }
+                                           : l
+                                       )
+                                     );
+                                   } else {
+                                     updateJobCostGroup(group, { cost_code_id: costCode.id, cost_code_display: display });
+                                   }
+                                 }}
+                               />
+                             </div>
+                           </TooltipTrigger>
+                           {group.cost_code_display ? (
+                             <TooltipContent side="top" className="max-w-md break-words">
+                               {group.cost_code_display}
+                             </TooltipContent>
+                           ) : null}
+                         </Tooltip>
+                       </TableCell>
                       <TableCell>
-                        {group.cost_code_display ? (
-                          <Tooltip>
-                            <TooltipTrigger asChild>
-                              <div className="w-full">
-                                <CostCodeSearchInput
-                                  value={group.cost_code_display || ""}
-                                  onChange={(value) => {
-                                    if (singleLine) {
-                                      updateJobCostLine(singleLine.id, 'cost_code_display', value);
-                                    } else {
-                                      updateJobCostGroup(group, { cost_code_display: value });
-                                    }
-                                  }}
-                                  className="h-8 truncate"
-                                  onCostCodeSelect={(costCode) => {
-                                    if (!costCode) return;
-                                    const display = `${costCode.code} - ${costCode.name}`;
-                                    if (singleLine) {
-                                      setJobCostLines(lines =>
-                                        lines.map(l =>
-                                          l.id === singleLine.id
-                                            ? { ...l, cost_code_id: costCode.id, cost_code_display: display }
-                                            : l
-                                        )
-                                      );
-                                    } else {
-                                      updateJobCostGroup(group, { cost_code_id: costCode.id, cost_code_display: display });
-                                    }
-                                  }}
-                                />
-                              </div>
-                            </TooltipTrigger>
-                            <TooltipContent side="top" className="max-w-md break-words">
-                              {group.cost_code_display}
-                            </TooltipContent>
-                          </Tooltip>
-                        ) : (
-                          <CostCodeSearchInput
-                            value={group.cost_code_display || ""}
-                            onChange={(value) => {
-                              if (singleLine) {
-                                updateJobCostLine(singleLine.id, 'cost_code_display', value);
-                              } else {
-                                updateJobCostGroup(group, { cost_code_display: value });
-                              }
-                            }}
-                            className="h-8 truncate"
-                            onCostCodeSelect={(costCode) => {
-                              if (!costCode) return;
-                              const display = `${costCode.code} - ${costCode.name}`;
-                              if (singleLine) {
-                                setJobCostLines(lines =>
-                                  lines.map(l =>
-                                    l.id === singleLine.id
-                                      ? { ...l, cost_code_id: costCode.id, cost_code_display: display }
-                                      : l
-                                  )
-                                );
-                              } else {
-                                updateJobCostGroup(group, { cost_code_id: costCode.id, cost_code_display: display });
-                              }
-                            }}
-                          />
-                        )}
-                      </TableCell>
-                      <TableCell>
-                        {group.memo ? (
-                          <Tooltip>
-                            <TooltipTrigger asChild>
-                              <Input
-                                className="h-8 truncate"
-                                value={group.memo || ""}
-                                onChange={(e) => {
-                                  if (singleLine) {
-                                    updateJobCostLine(singleLine.id, 'memo', e.target.value);
-                                  } else {
-                                    updateJobCostGroup(group, { memo: e.target.value });
-                                  }
-                                }}
-                              />
-                            </TooltipTrigger>
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <Input
+                              className="h-8 truncate"
+                              value={group.memo || ""}
+                              onChange={(e) => {
+                                if (singleLine) {
+                                  updateJobCostLine(singleLine.id, 'memo', e.target.value);
+                                } else {
+                                  updateJobCostGroup(group, { memo: e.target.value });
+                                }
+                              }}
+                            />
+                          </TooltipTrigger>
+                          {group.memo ? (
                             <TooltipContent side="top" className="max-w-md break-words">
                               {group.memo}
                             </TooltipContent>
-                          </Tooltip>
-                        ) : (
-                          <Input
-                            className="h-8 truncate"
-                            value={group.memo || ""}
-                            onChange={(e) => {
-                              if (singleLine) {
-                                updateJobCostLine(singleLine.id, 'memo', e.target.value);
-                              } else {
-                                updateJobCostGroup(group, { memo: e.target.value });
-                              }
-                            }}
-                          />
-                        )}
+                          ) : null}
+                        </Tooltip>
                       </TableCell>
                       <TableCell>
                         <Input
