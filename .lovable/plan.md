@@ -1,18 +1,42 @@
 ## Problem
 
-The Kempsville bill (`IN48000495861`) has `total_amount = $0.00` and a single line with `unit_cost = $0.00`. Approving it calls `postBill`, which tries to insert journal entry lines with both debit and credit equal to 0. The DB constraint `journal_entry_lines_check` requires `debit > 0` or `credit > 0`, so Postgres rejects the insert and the UI shows the generic "Failed to approve bill" toast with no detail.
+When you change Purchase Order to "No purchase order" in the Edit Bill dialog, the bill row still shows "Matched" in the PO Status column.
+
+Root cause: `EditBillDialog.handleSave` runs the PO selection through `sanitizePoId`, which turns the `__none__` sentinel into `null`. The `purchase_order_id` column is correctly cleared, but the companion `po_assignment` column is never written. The matcher in `useBillPOMatching.ts` (lines 90–114) only treats a line as "No PO" when **either** the sentinel is present **or** `po_assignment === 'none'`. With both signals missing, it falls back to vendor + cost code matching, finds the original PO, and re-labels the bill "Matched".
+
+React Query invalidation is already wired (`['bill-po-matching']` is invalidated on both `updateBill` and `updateApprovedBill`), so the table refreshes — it just refreshes to the same (wrong) result.
 
 ## Fix
 
-Two small, surgical changes in `src/hooks/useBills.ts`:
+Persist `po_assignment` alongside `purchase_order_id` whenever Edit Bill saves a line. Encoding:
 
-1. **Preflight in `approveBill`** (around line 252): before calling `postBill.mutateAsync`, fetch `bills.total_amount` for `billId`. If it is `null`, `0`, or negative, throw a clear error:
-   > "Cannot approve a $0.00 bill. Open the bill, set the line amounts, then try again."
+- Raw selection `__none__` → `po_assignment = 'none'`, `purchase_order_id = null`
+- Real UUID (user picked a specific PO) → `po_assignment = null`, `purchase_order_id = <uuid>`
+- Empty / undefined → `po_assignment = null`, `purchase_order_id = null`
 
-2. **Surface real errors** in the `approveBill` `onError` (line 303): replace the hard-coded `"Failed to approve bill"` with `error.message || "Failed to approve bill"` so any underlying DB error (constraint, RLS, etc.) is visible to the user, matching the pattern already used in `postBill`'s onError just above.
+### Files
 
-No DB migration, no change to bill posting logic, no other components touched.
+1. **`src/utils/poSentinelUtils.ts`** — add a small helper:
+   ```ts
+   export function derivePoAssignment(raw: string | null | undefined): 'none' | null {
+     return raw === '__none__' ? 'none' : null;
+   }
+   ```
 
-## How the user unblocks the Kempsville bill
+2. **`src/hooks/useBills.ts`**
+   - `BillLineData` (line 17): add `po_assignment?: 'none' | 'auto' | null`.
+   - `updateBill` (line 1115): include `po_assignment` in the inserted line rows (already passed through `...line`, so no extra change once the field is on the type).
+   - `updateApprovedBill` (line 956): add `po_assignment` to the `billLines` arg type and include it in the `bill_lines` UPDATE payload at line 988.
 
-After the fix, they will see the clear $0 message. They open the bill via Edit Extracted Bill, set the correct unit cost / amount on the line, save, then approve. The bill posts normally.
+3. **`src/components/bills/EditBillDialog.tsx`**
+   - Import `derivePoAssignment` from `@/utils/poSentinelUtils`.
+   - At every place a bill line object is built (lines 388–411, 458–482, 499–518), add:
+     ```ts
+     po_assignment: derivePoAssignment(row.purchaseOrderId),
+     ```
+
+No DB migration (`po_assignment` already exists on `bill_lines`). No change to the matcher, the badge component, or query invalidation. No other components touched.
+
+### Result
+
+Picking "No purchase order" and clicking Save Changes writes `po_assignment = 'none'`. The PO matcher then skips that line and the badge updates to "No PO" on the next render of the table.
