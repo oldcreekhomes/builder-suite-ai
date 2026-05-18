@@ -252,6 +252,19 @@ export const useBills = () => {
     mutationFn: async ({ billId, notes }: { billId: string; notes?: string }) => {
       if (!user) throw new Error("User not authenticated");
 
+      // Preflight: a $0 bill can't be posted because journal_entry_lines requires
+      // debit > 0 or credit > 0. Give the user a clear, actionable message.
+      const { data: amtRow, error: amtError } = await supabase
+        .from('bills')
+        .select('total_amount')
+        .eq('id', billId)
+        .single();
+      if (amtError) throw amtError;
+      const total = Number(amtRow?.total_amount ?? 0);
+      if (!Number.isFinite(total) || total <= 0) {
+        throw new Error("Cannot approve a $0.00 bill. Open the bill, set the line amounts, then try again.");
+      }
+
       // Update bill notes if provided
       if (notes && notes.trim()) {
         // Get current bill notes
@@ -300,15 +313,16 @@ export const useBills = () => {
         description: "Bill approved and posted to General Ledger successfully",
       });
     },
-    onError: (error) => {
+    onError: (error: any) => {
       console.error('Error approving bill:', error);
       toast({
         title: "Error",
-        description: "Failed to approve bill",
+        description: error?.message || "Failed to approve bill",
         variant: "destructive",
       });
     }
   });
+
 
   const rejectBill = useMutation({
     mutationFn: async ({ billId, notes }: { billId: string; notes?: string }) => {

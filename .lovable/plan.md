@@ -1,26 +1,18 @@
 ## Problem
 
-In `EditExtractedBillDialog.tsx`, the Description field is bound to `line.memo`. When saving, only `memo` is written to the `pending_bill_lines` row — the row's original `description` column (from the AI extraction, e.g. "V20 20-volt 200-CFM 90-MPH") is left untouched.
-
-On reopen, the dialog initializes each line with:
-
-```
-memo: line.description || line.memo || ""
-```
-
-Because `description` still holds the original extracted text, it wins and the user's saved edit ("sdfsd") is hidden. The dashboard hover tooltip reads `memo` directly, which is why that one shows the correct edited value.
+The Kempsville bill (`IN48000495861`) has `total_amount = $0.00` and a single line with `unit_cost = $0.00`. Approving it calls `postBill`, which tries to insert journal entry lines with both debit and credit equal to 0. The DB constraint `journal_entry_lines_check` requires `debit > 0` or `credit > 0`, so Postgres rejects the insert and the UI shows the generic "Failed to approve bill" toast with no detail.
 
 ## Fix
 
-In `src/components/bills/EditExtractedBillDialog.tsx`, flip the precedence so the user's saved `memo` wins over the original extracted `description` when loading the dialog. Apply to all three places (job_cost, expense-as-job_cost, expense) around lines 298–327:
+Two small, surgical changes in `src/hooks/useBills.ts`:
 
-```
-memo: line.memo || line.description || "",
-matchingText: line.memo || line.description || "",
-```
+1. **Preflight in `approveBill`** (around line 252): before calling `postBill.mutateAsync`, fetch `bills.total_amount` for `billId`. If it is `null`, `0`, or negative, throw a clear error:
+   > "Cannot approve a $0.00 bill. Open the bill, set the line amounts, then try again."
 
-This way:
-- First load (fresh extraction): `memo` is empty, falls back to `description` — same as today.
-- After user edits and saves: `memo` is populated and is used on reopen.
+2. **Surface real errors** in the `approveBill` `onError` (line 303): replace the hard-coded `"Failed to approve bill"` with `error.message || "Failed to approve bill"` so any underlying DB error (constraint, RLS, etc.) is visible to the user, matching the pattern already used in `postBill`'s onError just above.
 
-No DB schema change, no save-path change, no other component changes.
+No DB migration, no change to bill posting logic, no other components touched.
+
+## How the user unblocks the Kempsville bill
+
+After the fix, they will see the clear $0 message. They open the bill via Edit Extracted Bill, set the correct unit cost / amount on the line, save, then approve. The bill posts normally.
