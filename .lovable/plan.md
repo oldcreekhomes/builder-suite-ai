@@ -1,24 +1,12 @@
-## Plan
+## Problem
 
-1. **Remove the tooltip wrapper from editable table inputs**
-   - In `EditExtractedBillDialog.tsx`, stop wrapping the Job Cost **Description** input in Radix `Tooltip` / `TooltipTrigger`.
-   - Do the same for the Job Cost **Cost Code** input if needed, because Radix tooltip triggers around focusable inputs can steal focus/re-render focus state while typing.
+On the Write Checks tab, clicking an attachment icon does nothing until after the check is saved. `handleDownloadAttachment` in `CheckAttachmentUpload.tsx` early-returns when `attachment.id`/`checkId` are missing, so freshly added files (still in-memory `File` objects) can't be opened.
 
-2. **Make row keys stable while editing**
-   - Change grouped Job Cost display row keys so they do **not** include editable text like `memo`.
-   - Use the underlying line ids as the React key instead, so typing in Description cannot make React unmount/remount the row after every character.
+## Fix
 
-3. **Keep existing save and edit behavior unchanged**
-   - Keep the same `onChange` logic and state updates.
-   - Keep totals, purchase order matching, grouping, and save behavior unchanged.
-   - Only change focus stability for editable cells.
+In `src/components/checks/CheckAttachmentUpload.tsx`:
 
-## Technical details
+1. **`handleDownloadAttachment`**: handle the unsaved case. If `attachment.file` exists (temp attachment), open it directly via `URL.createObjectURL(attachment.file)` in a new tab (PDFs/images preview inline; other types download). Revoke the URL on cleanup. Keep existing Supabase-storage path for saved attachments.
+2. **Icon button**: remove the `disabled={!attachment.id || !checkId}` guard so temp files are clickable.
 
-The current row key is built from fields including `memo`:
-
-```text
-cost_code_id | unit_cost | memo | matchingText | purchase_order_id | purchase_order_line_id
-```
-
-When you type one character in Description, `memo` changes, which changes the row key. React treats that as a different row, unmounts the input, and the browser loses cursor focus. The fix is to keep display grouping logic intact but render each row with a key based on stable child line ids instead of editable memo text.
+No other components, business logic, or save flow change.

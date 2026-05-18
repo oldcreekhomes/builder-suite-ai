@@ -189,6 +189,14 @@ export function CheckAttachmentUpload({
   };
 
   const handleDownloadAttachment = async (attachment: CheckAttachment) => {
+    // Unsaved (temp) attachment — open the in-memory file directly
+    if (attachment.file) {
+      const url = URL.createObjectURL(attachment.file);
+      window.open(url, '_blank');
+      setTimeout(() => URL.revokeObjectURL(url), 60000);
+      return;
+    }
+
     if (!attachment.id || !checkId) return;
 
     try {
@@ -238,7 +246,7 @@ export function CheckAttachmentUpload({
               className={`${iconColorClass} transition-colors p-1 rounded hover:bg-muted/50`}
               title={getCleanFileName(attachment.file_name)}
               type="button"
-              disabled={!attachment.id || !checkId}
+              disabled={!attachment.id && !attachment.file}
             >
               <IconComponent className="h-5 w-5" />
             </button>
