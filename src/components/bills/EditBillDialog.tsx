@@ -391,6 +391,7 @@ export function EditBillDialog({ open, onOpenChange, billId }: EditBillDialogPro
           project_id: row.projectId || billData.project_id || undefined,
           purchase_order_id: sanitizePoId(row.purchaseOrderId),
           purchase_order_line_id: sanitizePoId(row.purchaseOrderLineId),
+          po_assignment: derivePoAssignment(row.purchaseOrderId),
           quantity: parseFloat(row.quantity) || 1,
           unit_cost: parseFloat(row.amount) || 0,
           amount: (parseFloat(row.quantity) || 1) * (parseFloat(row.amount) || 0),
