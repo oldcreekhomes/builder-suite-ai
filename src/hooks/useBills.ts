@@ -117,6 +117,19 @@ export const useBills = () => {
 
       if (billError) throw billError;
 
+      // Zero-dollar bills (e.g. free invoices the vendor still sent) have no
+      // accounting impact. Skip journal entry creation — journal_entry_lines
+      // requires debit > 0 or credit > 0 — and just mark the bill posted.
+      const billTotal = Number(bill.total_amount ?? 0);
+      if (billTotal === 0) {
+        const { error: zeroUpdateError } = await supabase
+          .from('bills')
+          .update({ status: 'posted', updated_at: new Date().toISOString() })
+          .eq('id', billId);
+        if (zeroUpdateError) throw zeroUpdateError;
+        return bill;
+      }
+
       // Get accounting settings for AP and WIP accounts
       const { data: settings } = await supabase
         .from('accounting_settings')
