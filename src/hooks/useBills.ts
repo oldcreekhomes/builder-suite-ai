@@ -22,6 +22,7 @@ export interface BillLineData {
   lot_id?: string;
   purchase_order_id?: string;
   purchase_order_line_id?: string;
+  po_assignment?: 'none' | 'auto' | null;
   quantity: number;
   unit_cost: number;
   amount: number;
@@ -953,7 +954,7 @@ export const useBills = () => {
     }: { 
       billId: string; 
       billData: { bill_date: string; notes?: string }; 
-      billLines: { dbId: string; cost_code_id?: string; lot_id?: string; purchase_order_id?: string; purchase_order_line_id?: string; memo?: string }[];
+      billLines: { dbId: string; cost_code_id?: string; lot_id?: string; purchase_order_id?: string; purchase_order_line_id?: string; po_assignment?: 'none' | 'auto' | null; memo?: string }[];
     }) => {
       if (!user) throw new Error("User not authenticated");
 
@@ -990,6 +991,7 @@ export const useBills = () => {
             lot_id: line.lot_id || null,
             purchase_order_id: line.purchase_order_id || null,
             purchase_order_line_id: line.purchase_order_line_id || null,
+            po_assignment: line.po_assignment ?? null,
             memo: line.memo || null,
             updated_at: new Date().toISOString()
           })

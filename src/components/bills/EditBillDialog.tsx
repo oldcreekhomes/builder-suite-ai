@@ -18,7 +18,7 @@ import { cn } from "@/lib/utils";
 import { AccountSearchInput } from "@/components/AccountSearchInput";
 import { useBills, BillLineData } from "@/hooks/useBills";
 import { POSelectionDropdown } from "@/components/bills/POSelectionDropdown";
-import { sanitizePoId } from "@/utils/poSentinelUtils";
+import { sanitizePoId, derivePoAssignment } from "@/utils/poSentinelUtils";
 import { toast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery } from "@tanstack/react-query";
@@ -391,6 +391,7 @@ export function EditBillDialog({ open, onOpenChange, billId }: EditBillDialogPro
           project_id: row.projectId || billData.project_id || undefined,
           purchase_order_id: sanitizePoId(row.purchaseOrderId),
           purchase_order_line_id: sanitizePoId(row.purchaseOrderLineId),
+          po_assignment: derivePoAssignment(row.purchaseOrderId),
           quantity: parseFloat(row.quantity) || 1,
           unit_cost: parseFloat(row.amount) || 0,
           amount: (parseFloat(row.quantity) || 1) * (parseFloat(row.amount) || 0),
@@ -404,6 +405,7 @@ export function EditBillDialog({ open, onOpenChange, billId }: EditBillDialogPro
           project_id: row.projectId || billData.project_id || undefined,
           purchase_order_id: sanitizePoId(row.purchaseOrderId),
           purchase_order_line_id: sanitizePoId(row.purchaseOrderLineId),
+          po_assignment: derivePoAssignment(row.purchaseOrderId),
           quantity: parseFloat(row.quantity) || 1,
           unit_cost: parseFloat(row.amount) || 0,
           amount: (parseFloat(row.quantity) || 1) * (parseFloat(row.amount) || 0),
@@ -462,6 +464,7 @@ export function EditBillDialog({ open, onOpenChange, billId }: EditBillDialogPro
           lot_id: row.lotId || undefined,
           purchase_order_id: sanitizePoId(row.purchaseOrderId),
           purchase_order_line_id: sanitizePoId(row.purchaseOrderLineId),
+          po_assignment: derivePoAssignment(row.purchaseOrderId),
           quantity: parseFloat(row.quantity) || 1,
           unit_cost: parseFloat(row.amount) || 0,
           amount: (parseFloat(row.quantity) || 1) * (parseFloat(row.amount) || 0),
@@ -475,6 +478,7 @@ export function EditBillDialog({ open, onOpenChange, billId }: EditBillDialogPro
           project_id: row.projectId || billData.project_id || undefined,
           purchase_order_id: sanitizePoId(row.purchaseOrderId),
           purchase_order_line_id: sanitizePoId(row.purchaseOrderLineId),
+          po_assignment: derivePoAssignment(row.purchaseOrderId),
           quantity: parseFloat(row.quantity) || 1,
           unit_cost: parseFloat(row.amount) || 0,
           amount: (parseFloat(row.quantity) || 1) * (parseFloat(row.amount) || 0),
@@ -504,6 +508,7 @@ export function EditBillDialog({ open, onOpenChange, billId }: EditBillDialogPro
             lot_id: row.lotId || undefined,
             purchase_order_id: sanitizePoId(row.purchaseOrderId),
             purchase_order_line_id: sanitizePoId(row.purchaseOrderLineId),
+            po_assignment: derivePoAssignment(row.purchaseOrderId),
             memo: row.memo || undefined
           }));
 
@@ -514,6 +519,7 @@ export function EditBillDialog({ open, onOpenChange, billId }: EditBillDialogPro
             lot_id: row.lotId || undefined,
             purchase_order_id: sanitizePoId(row.purchaseOrderId),
             purchase_order_line_id: sanitizePoId(row.purchaseOrderLineId),
+            po_assignment: derivePoAssignment(row.purchaseOrderId),
             memo: row.memo || undefined
           }));
 
