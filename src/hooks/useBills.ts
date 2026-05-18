@@ -253,8 +253,9 @@ export const useBills = () => {
     mutationFn: async ({ billId, notes }: { billId: string; notes?: string }) => {
       if (!user) throw new Error("User not authenticated");
 
-      // Preflight: a $0 bill can't be posted because journal_entry_lines requires
-      // debit > 0 or credit > 0. Give the user a clear, actionable message.
+      // Preflight: total must be a valid number. $0.00 bills are allowed
+      // (e.g. free invoices) — postBill handles the zero-amount path by
+      // skipping the journal entry entirely.
       const { data: amtRow, error: amtError } = await supabase
         .from('bills')
         .select('total_amount')
@@ -262,8 +263,8 @@ export const useBills = () => {
         .single();
       if (amtError) throw amtError;
       const total = Number(amtRow?.total_amount ?? 0);
-      if (!Number.isFinite(total) || total <= 0) {
-        throw new Error("Cannot approve a $0.00 bill. Open the bill, set the line amounts, then try again.");
+      if (!Number.isFinite(total)) {
+        throw new Error("Bill total is invalid. Open the bill, fix the line amounts, then try again.");
       }
 
       // Update bill notes if provided
