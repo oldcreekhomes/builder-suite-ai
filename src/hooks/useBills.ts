@@ -22,6 +22,7 @@ export interface BillLineData {
   lot_id?: string;
   purchase_order_id?: string;
   purchase_order_line_id?: string;
+  po_assignment?: 'none' | 'auto' | null;
   quantity: number;
   unit_cost: number;
   amount: number;
