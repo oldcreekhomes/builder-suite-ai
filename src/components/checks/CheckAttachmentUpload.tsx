@@ -189,6 +189,14 @@ export function CheckAttachmentUpload({
   };
 
   const handleDownloadAttachment = async (attachment: CheckAttachment) => {
+    // Unsaved (temp) attachment — open the in-memory file directly
+    if (attachment.file) {
+      const url = URL.createObjectURL(attachment.file);
+      window.open(url, '_blank');
+      setTimeout(() => URL.revokeObjectURL(url), 60000);
+      return;
+    }
+
     if (!attachment.id || !checkId) return;
 
     try {
