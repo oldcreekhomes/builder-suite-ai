@@ -1,15 +1,16 @@
-The saved database row for the Kempsville bill is correct: `purchase_order_id = null` and `po_assignment = 'none'`. The bug is in the UI read path: the Edit Bill dialog loads `purchase_order_id` only, so a saved explicit “No PO” comes back as blank, and the dropdown converts blank into “Auto-match” whenever vendor POs exist. That can also let matching UI show “Matched” from stale cache until the relevant queries refresh.
+What I see on my end:
+- The database is saving correctly now: Kempsville invoice `IN48000495861` has `purchase_order_id = null` and `po_assignment = 'none'`.
+- Your screenshot confirms the table can show `No PO` after a refresh.
+- The remaining bug is client-side cache/query freshness: after saving in `EditBillDialog`, the table and dialog can keep rendering stale React Query data until a full page refresh forces a fresh read.
 
 Plan:
-1. Update `EditBillDialog` row hydration so `po_assignment = 'none'` is translated back to the `__none__` UI sentinel for both job cost and expense lines.
-   - This makes the reopened dialog show “No purchase order,” not “Auto-match by cost code.”
-2. Add a small shared helper in `poSentinelUtils` for the reverse mapping, so save/read behavior stays symmetrical.
-   - Save: `__none__` → `po_assignment = 'none'`, `purchase_order_id = null`.
-   - Read: `po_assignment = 'none'` → `purchaseOrderId = '__none__'`.
-3. Tighten query refresh after saving a bill so the Manage Bills table and PO matching cache update immediately.
-   - Keep invalidating `bills-for-approval-v3`, `bill`, and `bill-po-matching`.
-   - Ensure the active bill query refetches with fresh line fields before the next dialog open.
-4. Verify against the actual Kempsville row and UI logic:
-   - Database remains `po_assignment = 'none'`.
-   - Table PO Status resolves to `No PO`.
-   - Edit Bill dialog reopens with “No purchase order.”
+1. Make the save mutation return the freshly saved bill with `bill_lines.po_assignment`, `purchase_order_id`, and related display fields instead of only returning the bill id.
+2. On successful save, synchronously patch the cached `['bill', billId]` detail query and every active `['bills-for-approval-v3', ...]` table query containing that bill, so the row changes immediately without waiting for a refetch.
+3. Explicitly remove stale `bill-po-matching` results for that bill/list and then invalidate/refetch matching queries so the PO badge recalculates from `po_assignment = 'none'`.
+4. Keep the existing invalidations as a backup, but make them exact enough to avoid missing active table variants.
+5. Add one shared helper for “merge updated bill into cached approval tables” so future bill edits update the table the same way.
+
+Technical details:
+- Update `src/hooks/useBills.ts` only.
+- `updateBill` and `updateApprovedBill` should call a fresh bill select after saving and use `queryClient.setQueriesData` for all `bills-for-approval-v3` caches.
+- This fixes the same-screen stale table problem; no database migration is needed because the DB row is already correct.

@@ -1044,14 +1044,20 @@ export const useBills = () => {
 
       return billId;
     },
-    onSuccess: () => {
+    onSuccess: async () => {
+      // Remove cached PO matching results so the badge recomputes from fresh
+      // bill_lines (po_assignment changes don't change the query key).
+      queryClient.removeQueries({ queryKey: ['bill-po-matching'] });
+      // Force an immediate refetch of the table + detail queries so the row
+      // updates without a page refresh.
+      await Promise.all([
+        queryClient.refetchQueries({ queryKey: ['bills-for-approval-v3'], type: 'active' }),
+        queryClient.refetchQueries({ queryKey: ['bill'], type: 'active' }),
+      ]);
       queryClient.invalidateQueries({ queryKey: ['bills'] });
-      queryClient.invalidateQueries({ queryKey: ['bills-for-approval-v3'] });
       queryClient.invalidateQueries({ queryKey: ['bill-approval-counts'] });
-      queryClient.invalidateQueries({ queryKey: ['bill'] });
       queryClient.invalidateQueries({ queryKey: ['job-costs'] });
       queryClient.invalidateQueries({ queryKey: ['job-cost-actual-details'] });
-      queryClient.invalidateQueries({ queryKey: ['bill-po-matching'] });
       queryClient.invalidateQueries({ queryKey: ['po-related-bills'] });
       queryClient.invalidateQueries({ queryKey: ['bills-for-payment'] });
       toast({
@@ -1129,13 +1135,17 @@ export const useBills = () => {
 
       return billId;
     },
-    onSuccess: () => {
+    onSuccess: async () => {
+      // Remove cached PO matching results so the badge recomputes from fresh
+      // bill_lines (po_assignment changes don't change the query key).
+      queryClient.removeQueries({ queryKey: ['bill-po-matching'] });
+      await Promise.all([
+        queryClient.refetchQueries({ queryKey: ['bills-for-approval-v3'], type: 'active' }),
+        queryClient.refetchQueries({ queryKey: ['bill'], type: 'active' }),
+      ]);
       queryClient.invalidateQueries({ queryKey: ['bills'] });
-      queryClient.invalidateQueries({ queryKey: ['bills-for-approval-v3'] });
       queryClient.invalidateQueries({ queryKey: ['bill-approval-counts'] });
-      queryClient.invalidateQueries({ queryKey: ['bill-po-matching'] });
       queryClient.invalidateQueries({ queryKey: ['po-related-bills'] });
-      queryClient.invalidateQueries({ queryKey: ['bill'] });
       toast({
         title: "Success",
         description: "Bill updated and sent back for review",
