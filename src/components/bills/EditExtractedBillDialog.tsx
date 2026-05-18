@@ -312,8 +312,8 @@ export function EditExtractedBillDialog({
               quantity: qty,
               unit_cost: unitCost,
               amount: amt,
-              memo: line.description || line.memo || "",
-              matchingText: line.description || line.memo || "",
+              memo: line.memo || line.description || "",
+              matchingText: line.memo || line.description || "",
             });
           } else {
             expense.push({
