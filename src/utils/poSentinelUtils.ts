@@ -14,3 +14,17 @@ export function sanitizePoId(value: string | null | undefined): string | null {
 export function derivePoAssignment(value: string | null | undefined): 'none' | null {
   return value === '__none__' ? 'none' : null;
 }
+
+/**
+ * Reverse of derivePoAssignment: turn a stored bill_line row back into the UI sentinel
+ * the PO dropdown understands.
+ * - po_assignment='none' → '__none__' (explicit "No purchase order")
+ * - otherwise → the persisted purchase_order_id (or undefined when blank)
+ */
+export function hydratePoIdForUI(
+  purchaseOrderId: string | null | undefined,
+  poAssignment: string | null | undefined,
+): string | undefined {
+  if (poAssignment === 'none') return '__none__';
+  return purchaseOrderId || undefined;
+}

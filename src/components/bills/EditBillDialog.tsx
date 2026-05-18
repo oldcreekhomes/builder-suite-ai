@@ -18,7 +18,7 @@ import { cn } from "@/lib/utils";
 import { AccountSearchInput } from "@/components/AccountSearchInput";
 import { useBills, BillLineData } from "@/hooks/useBills";
 import { POSelectionDropdown } from "@/components/bills/POSelectionDropdown";
-import { sanitizePoId, derivePoAssignment } from "@/utils/poSentinelUtils";
+import { sanitizePoId, derivePoAssignment, hydratePoIdForUI } from "@/utils/poSentinelUtils";
 import { toast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery } from "@tanstack/react-query";
@@ -169,7 +169,7 @@ export function EditBillDialog({ open, onOpenChange, billId }: EditBillDialogPro
           project: '',
           projectId: line.project_id || '',
           lotId: line.lot_id || '',
-          purchaseOrderId: line.purchase_order_id || undefined,
+          purchaseOrderId: hydratePoIdForUI(line.purchase_order_id, line.po_assignment),
           purchaseOrderLineId: line.purchase_order_line_id || undefined,
           quantity: line.quantity?.toString() || '1',
           amount: line.unit_cost?.toString() || '0',
@@ -191,7 +191,7 @@ export function EditBillDialog({ open, onOpenChange, billId }: EditBillDialogPro
           project: '',
           projectId: line.project_id || '',
           lotId: line.lot_id || '',
-          purchaseOrderId: line.purchase_order_id || undefined,
+          purchaseOrderId: hydratePoIdForUI(line.purchase_order_id, line.po_assignment),
           purchaseOrderLineId: line.purchase_order_line_id || undefined,
           quantity: line.quantity?.toString() || '1',
           amount: line.unit_cost?.toString() || '0',
