@@ -480,6 +480,8 @@ export const useBankReconciliation = () => {
             }
           }
         }
+        }
+
 
         // ========== FETCH CONSOLIDATED BILL PAYMENTS ==========
         // Fetch from bill_payments table (new consolidated structure)
