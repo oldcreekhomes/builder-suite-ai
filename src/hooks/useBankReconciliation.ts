@@ -218,83 +218,69 @@ export const useBankReconciliation = () => {
         console.log('[Reconciliation] Deposits:', { count: deposits?.length, error: depositsError });
         if (depositsError) throw depositsError;
 
-        // Fetch bill payments using two-step approach
-        // Step 1: Get journal entries for bill payments (exclude reversed entries)
-        const { data: journalEntries, error: jeError } = await supabase
-          .from('journal_entries')
-          .select('id, entry_date, source_id')
-          .eq('source_type', 'bill_payment')
-          .eq('is_reversal', false)
-          .is('reversed_at', null);
+        // Fetch bill payments — JOB-FIRST approach to avoid Supabase 1000-row cap on
+        // unbounded journal_entries fetches. Filter by project/job before pulling JEs.
 
-        if (jeError) {
-          console.error('[Reconciliation] Journal entries query failed:', jeError);
+        // Step 1: Fetch bills for this project (or orphaned bills if no project)
+        let billsQuery = supabase
+          .from('bills')
+          .select('id, reference_number, status, vendor_id, project_id')
+          .neq('status', 'reversed')
+          .order('created_at', { ascending: false })
+          .limit(5000);
+        if (projectId) {
+          billsQuery = billsQuery.eq('project_id', projectId);
+        } else {
+          billsQuery = billsQuery.is('project_id', null);
+        }
+        const { data: projectBills, error: billsError } = await billsQuery;
+
+        if (billsError) {
+          console.error('[Reconciliation] Bills query failed:', billsError);
         }
 
         let billPaymentTransactions: ReconciliationTransaction[] = [];
-        
-        if (journalEntries && journalEntries.length > 0) {
-          const jeIds = journalEntries.map(je => je.id);
+        const bills = projectBills || [];
+        const billMap = new Map(bills.map(b => [b.id, b]));
 
-          // Step 2: Get journal entry lines that credit this bank account
-          const journalLines = await batchedIn<{ id: string; journal_entry_id: string; credit: number; reconciled: boolean; reconciliation_id: string | null; reconciliation_date: string | null }>(
+        if (bills.length > 0) {
+          const billIds = bills.map(b => b.id);
+
+          // Step 2: Fetch ONLY the bill-payment JEs for these bills (batched, ordered, bounded)
+          const journalEntries = await batchedIn<{ id: string; entry_date: string; source_id: string }>(
             (ids) => supabase
-              .from('journal_entry_lines')
-              .select('id, journal_entry_id, credit, reconciled, reconciliation_id, reconciliation_date')
-              .in('journal_entry_id', ids)
-              .eq('account_id', bankAccountId)
-              .gt('credit', 0),
-            jeIds
+              .from('journal_entries')
+              .select('id, entry_date, source_id')
+              .eq('source_type', 'bill_payment')
+              .eq('is_reversal', false)
+              .is('reversed_at', null)
+              .in('source_id', ids)
+              .order('entry_date', { ascending: false })
+              .limit(5000),
+            billIds
           );
 
-          const jlError = null;
+          if (journalEntries && journalEntries.length > 0) {
+            const jeIds = journalEntries.map(je => je.id);
 
-          if (jlError) {
-            console.error('[Reconciliation] Journal lines query failed:', jlError);
-          }
+            // Step 3: Get journal entry lines that credit this bank account
+            const journalLines = await batchedIn<{ id: string; journal_entry_id: string; credit: number; reconciled: boolean; reconciliation_id: string | null; reconciliation_date: string | null }>(
+              (ids) => supabase
+                .from('journal_entry_lines')
+                .select('id, journal_entry_id, credit, reconciled, reconciliation_id, reconciliation_date')
+                .in('journal_entry_id', ids)
+                .eq('account_id', bankAccountId)
+                .gt('credit', 0),
+              jeIds
+            );
 
-          if (journalLines && journalLines.length > 0) {
-            // Build a map from journal_entry_id to its journal lines (with line id, credit, reconciliation info)
-            const jeToLines = new Map<string, typeof journalLines>();
-            journalLines.forEach(jl => {
-              const existing = jeToLines.get(jl.journal_entry_id) || [];
-              existing.push(jl);
-              jeToLines.set(jl.journal_entry_id, existing);
-            });
-
-            // Get bill IDs from journal entries
-            const billIds = [...new Set(journalEntries.map(je => je.source_id))];
-
-            // Step 3: Fetch bills with project filter (including orphaned ones)
-            let allBillsRaw: any[] = [];
-            let billsError: any = null;
-            try {
-              allBillsRaw = await batchedIn<any>(
-                (ids) => {
-                  let q = supabase
-                    .from('bills')
-                    .select('id, reference_number, status, vendor_id, project_id')
-                    .in('id', ids);
-                  if (projectId) {
-                    q = q.eq('project_id', projectId);
-                  } else {
-                    q = q.is('project_id', null);
-                  }
-                  return q;
-                },
-                billIds
-              );
-            } catch (e) {
-              billsError = e;
-            }
-
-            if (billsError) {
-              console.error('[Reconciliation] Bills query failed:', billsError);
-            }
-
-            // Filter out reversed bills
-            const bills = (allBillsRaw || []).filter(b => b.status !== 'reversed');
-            const billMap = new Map(bills.map(b => [b.id, b]));
+            if (journalLines && journalLines.length > 0) {
+              const jeToLines = new Map<string, typeof journalLines>();
+              journalLines.forEach(jl => {
+                const existing = jeToLines.get(jl.journal_entry_id) || [];
+                existing.push(jl);
+                jeToLines.set(jl.journal_entry_id, existing);
+              });
 
             if (bills.length > 0) {
               // Step 4: Fetch vendor names
@@ -494,6 +480,8 @@ export const useBankReconciliation = () => {
             }
           }
         }
+        }
+
 
         // ========== FETCH CONSOLIDATED BILL PAYMENTS ==========
         // Fetch from bill_payments table (new consolidated structure)
