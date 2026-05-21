@@ -741,10 +741,13 @@ export function AccountDetailDialog({
             reference = bill.vendor_name;
             description = bill.firstLineMemo || line.memo || bill.reference_number || description;
             if (line.journal_entries.source_type === 'bill_payment') {
-              // Per-payment reconciliation lives on the JE line (bank-account credit line),
-              // not on the parent bill, which can have many payments.
-              reconciled = line.reconciled || !!line.reconciliation_id || !!line.reconciliation_date;
-              reconciliation_date = line.reconciliation_date;
+              // Per-payment reconciliation lives on the JE line (bank-account credit line).
+              // Legacy fallback: if the JE line was never stamped but the parent bill carries
+              // a reconciliation marker, treat the payment as cleared.
+              const lineReconciled = line.reconciled || !!line.reconciliation_id || !!line.reconciliation_date;
+              const billReconciled = bill.reconciled || !!bill.reconciliation_id || !!bill.reconciliation_date;
+              reconciled = lineReconciled || billReconciled;
+              reconciliation_date = line.reconciliation_date || bill.reconciliation_date;
             } else {
               reconciled = bill.reconciled || !!bill.reconciliation_id || !!bill.reconciliation_date;
               reconciliation_date = bill.reconciliation_date;
