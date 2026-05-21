@@ -1,47 +1,48 @@
-# Fix: Bank register shows bill payments as uncleared even after reconciliation completed
+## What’s actually going on
 
-## Root cause
+The 923 17th Street reconciliation history is real: the bank account has completed monthly reconciliations through 03/31/2026.
 
-When you complete a reconciliation, individual **bill payments** are marked reconciled on the **`journal_entry_lines`** row (see `useBankReconciliation.ts` `markTransactionReconciled`, type `'bill_payment'` → updates `journal_entry_lines.reconciled / reconciliation_id / reconciliation_date`).
+The problem is a data/model transition bug:
 
-But the **Account Detail dialog** (the "1010 - Atlantic Union Bank" register in your screenshot) reads the reconciled flag from the wrong place. In `src/components/accounting/AccountDetailDialog.tsx` line 743, for rows where `source_type = 'bill_payment'` it does:
+- Older reconciliations marked **bill payments** as reconciled on the parent `bills` row.
+- The newer bank register logic now correctly expects bill-payment reconciliation to live on the exact `journal_entry_lines` bank-credit row.
+- For 2025, those JE lines were never backfilled, so checks/deposits show cleared, but many **Bill Pmt - Check** rows show uncleared even though their parent bills have the old reconciliation markers.
 
-```
-reconciled = bill.reconciled || !!bill.reconciliation_id || !!bill.reconciliation_date;
-```
+Confirmed from the database for this project/account:
 
-That's the parent **bill's** reconciled flag — which is never set when an individual payment is reconciled. So every bill payment after the consolidated payments redesign shows as uncleared in the register, even though the March 31 reconciliation completed successfully.
+- Checks in 2025: reconciled correctly.
+- Deposits in 2025: reconciled correctly.
+- Bill-payment JE lines in 2025: **64 unreconciled lines** while the related bills carry the completed reconciliation IDs.
+- This is why the dialog looks wrong while reconciliation history says complete.
 
-This matches exactly what you're seeing:
-- Reconciliation History: shows 03/31/2026 completed with $0 difference (correct — `bank_reconciliations.status='completed'` is real)
-- Bank register: shows everything after Feb as uncleared (wrong — reads `bills.reconciled` instead of the JE line)
+The red lock icons are separate: books are closed through 01/31/2026 for this project, so those transactions are correctly read-only. Closed books do **not** mean the register’s cleared flag is correct; they are different columns/logic.
 
-Consolidated bill payments (synthetic rows, line 817) already read from `bill_payments.reconciled` correctly. Checks, deposits, credit cards also work correctly. Only the per-bill `bill_payment` JE rows are broken.
+## Plan to fix
 
-## Fix
+1. **Backfill legacy reconciled bill payments safely**
+   - Add a one-time database migration that copies reconciliation data from legacy reconciled `bills` onto the matching bank-credit `journal_entry_lines` rows for `source_type = 'bill_payment'`.
+   - Scope it to matching project/account payment lines only.
+   - Only update lines that are currently missing reconciliation data.
+   - Do not touch checks, deposits, manual journal entries, or already-correct JE lines.
 
-In `src/components/accounting/AccountDetailDialog.tsx` around lines 738–753, for `source_type === 'bill_payment'`, use the **journal_entry_line's** reconciled fields (already selected in the query at lines 144–146) instead of the bill's:
+2. **Make the bank register backward-compatible**
+   - Keep the new per-payment JE-line source as the primary truth.
+   - Add fallback logic only for legacy bill payments: if a `bill_payment` JE line has no reconciliation marker but the parent bill has one, display it as cleared.
+   - This prevents old data from showing wrong if any legacy rows remain.
 
-```
-if (line.journal_entries.source_type === 'bill_payment') {
-  // Per-payment reconciliation lives on the JE line (bank-account credit line)
-  reconciled = line.reconciled || !!line.reconciliation_id || !!line.reconciliation_date;
-  reconciliation_date = line.reconciliation_date;
-} else if (line.journal_entries.source_type === 'bill') {
-  // A/P entry — keep using bill-level flag
-  reconciled = bill.reconciled || !!bill.reconciliation_id || !!bill.reconciliation_date;
-  reconciliation_date = bill.reconciliation_date;
-}
-```
+3. **Make reconciliation loading backward-compatible**
+   - In `useBankReconciliation.ts`, when deciding whether a legacy bill payment is already reconciled, treat it as reconciled if either:
+     - the JE line has a valid reconciliation ID, or
+     - the parent bill has a valid reconciliation ID.
+   - This prevents already-reconciled legacy bill payments from reappearing in future reconciliation screens.
 
-Vendor name / description / `accountDisplay` / `isPaid` logic stays the same (still pulled from the bill via `billsMap`).
+4. **Invalidate the right cached register data after reconciliation changes**
+   - After marking/undoing reconciliations, invalidate the account transaction/register query too, not just the reconciliation query.
+   - That keeps the bank dialog and reconciliation screen in sync immediately.
 
-No other files, no DB changes, no schema changes.
-
-## Verification
-
-After the fix, on 23-17 Street → Atlantic Union Bank register:
-- All bill payments dated on/before 03/31/2026 should show the green check (cleared)
-- Bill payments dated after 03/31/2026 remain uncleared
-- Reconciliation History panel unchanged
-- Consolidated bill payments, checks, deposits, manual JEs still display correctly
+5. **Verify with targeted DB checks**
+   - Re-run counts for 923 17th Street / Atlantic Union Bank:
+     - 2025 legacy bill-payment lines should no longer show as missing cleared status.
+     - Completed reconciliation history remains unchanged.
+     - Checks/deposits remain untouched.
+   - Confirm closed-books lock display remains intact because it is working as intended.
