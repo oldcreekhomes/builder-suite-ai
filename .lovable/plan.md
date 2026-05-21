@@ -1,42 +1,47 @@
-# Fix: ELG $276.25 (and similar) missing from bank reconciliation
+# Fix: Bank register shows bill payments as uncleared even after reconciliation completed
 
 ## Root cause
-`src/hooks/useBankReconciliation.ts` (lines ~223–228) fetches **all** `journal_entries` where `source_type = 'bill_payment'` with no project filter, no ordering, and no limit. Supabase caps that response at 1,000 rows. Bills tied to the reconciling job can fall outside that arbitrary 1,000, so their payment lines never reach the UI — even though the underlying `journal_entry_lines` for the bank account are unreconciled and correctly dated.
 
-## Fix strategy
-Filter by the job (and bank account) **before** fetching journal entries, so we only pull the JEs that could possibly belong to this reconciliation. Volume is <100 JEs/month, so this stays well under any limit.
+When you complete a reconciliation, individual **bill payments** are marked reconciled on the **`journal_entry_lines`** row (see `useBankReconciliation.ts` `markTransactionReconciled`, type `'bill_payment'` → updates `journal_entry_lines.reconciled / reconciliation_id / reconciliation_date`).
 
-### New order of operations (project-scoped path)
-1. **Fetch bills for this project first**
-   - `bills` where `project_id = projectId` (or `is null` when no project)
-   - status != 'reversed'
-   - Select id, reference_number, vendor_id, status
-   - Use existing `batchedIn` only if needed; otherwise a single query (one project = small set).
+But the **Account Detail dialog** (the "1010 - Atlantic Union Bank" register in your screenshot) reads the reconciled flag from the wrong place. In `src/components/accounting/AccountDetailDialog.tsx` line 743, for rows where `source_type = 'bill_payment'` it does:
 
-2. **Fetch only the JEs for those bills**
-   - `journal_entries` where `source_type='bill_payment'`, `is_reversal=false`, `reversed_at is null`, and `source_id IN (billIds)` via `batchedIn`.
-   - Add explicit `.order('entry_date', { ascending: false }).limit(5000)` as a safety net.
+```
+reconciled = bill.reconciled || !!bill.reconciliation_id || !!bill.reconciliation_date;
+```
 
-3. **Fetch journal entry lines for the bank account** (unchanged logic, but now over a smaller, job-scoped JE set)
-   - `journal_entry_lines` where `journal_entry_id IN (jeIds)`, `account_id = bankAccountId`, `credit > 0`, via `batchedIn`.
+That's the parent **bill's** reconciled flag — which is never set when an individual payment is reconciled. So every bill payment after the consolidated payments redesign shows as uncleared in the register, even though the March 31 reconciliation completed successfully.
 
-4. Build transactions exactly as today (cutoff, reconciled, vendor lookup, cost-code allocations) — no change to display rules.
+This matches exactly what you're seeing:
+- Reconciliation History: shows 03/31/2026 completed with $0 difference (correct — `bank_reconciliations.status='completed'` is real)
+- Bank register: shows everything after Feb as uncleared (wrong — reads `bills.reconciled` instead of the JE line)
 
-### Consolidated bill_payments path (lines ~499+)
-Already filters via `bill_payments` table by bank account; leave as-is. Add a defensive `.order('payment_date', { ascending: false })` if missing.
+Consolidated bill payments (synthetic rows, line 817) already read from `bill_payments.reconciled` correctly. Checks, deposits, credit cards also work correctly. Only the per-bill `bill_payment` JE rows are broken.
 
-### Other unbounded fetches in the same file
-Audit and add `.order(...).limit(...)` or batching on any other `journal_entries`/`journal_entry_lines` fetch that lacks bounds (lines ~735, ~836). No behavior change — just deterministic ordering and explicit limits so we never silently drop rows again.
+## Fix
 
-## Files
-- `src/hooks/useBankReconciliation.ts` — reorder steps in the legacy bill-payment branch (lines ~221–296) and add ordering/limits to other unbounded queries in the same file.
+In `src/components/accounting/AccountDetailDialog.tsx` around lines 738–753, for `source_type === 'bill_payment'`, use the **journal_entry_line's** reconciled fields (already selected in the query at lines 144–146) instead of the bill's:
+
+```
+if (line.journal_entries.source_type === 'bill_payment') {
+  // Per-payment reconciliation lives on the JE line (bank-account credit line)
+  reconciled = line.reconciled || !!line.reconciliation_id || !!line.reconciliation_date;
+  reconciliation_date = line.reconciliation_date;
+} else if (line.journal_entries.source_type === 'bill') {
+  // A/P entry — keep using bill-level flag
+  reconciled = bill.reconciled || !!bill.reconciliation_id || !!bill.reconciliation_date;
+  reconciliation_date = bill.reconciliation_date;
+}
+```
+
+Vendor name / description / `accountDisplay` / `isPaid` logic stays the same (still pulled from the bill via `billsMap`).
+
+No other files, no DB changes, no schema changes.
 
 ## Verification
-- April reconciliation for the user's project shows the ELG Consulting ref 337 / $276.25 line.
-- Existing reconciled and consolidated payments still appear correctly.
-- No change to amounts, dates, or grouping.
 
-## Out of scope
-- No DB schema changes.
-- No changes to write/update mutations.
-- No UI changes.
+After the fix, on 23-17 Street → Atlantic Union Bank register:
+- All bill payments dated on/before 03/31/2026 should show the green check (cleared)
+- Bill payments dated after 03/31/2026 remain uncleared
+- Reconciliation History panel unchanged
+- Consolidated bill payments, checks, deposits, manual JEs still display correctly
