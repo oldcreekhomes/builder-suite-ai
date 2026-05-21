@@ -740,8 +740,15 @@ export function AccountDetailDialog({
           if (bill) {
             reference = bill.vendor_name;
             description = bill.firstLineMemo || line.memo || bill.reference_number || description;
-            reconciled = bill.reconciled || !!bill.reconciliation_id || !!bill.reconciliation_date;
-            reconciliation_date = bill.reconciliation_date;
+            if (line.journal_entries.source_type === 'bill_payment') {
+              // Per-payment reconciliation lives on the JE line (bank-account credit line),
+              // not on the parent bill, which can have many payments.
+              reconciled = line.reconciled || !!line.reconciliation_id || !!line.reconciliation_date;
+              reconciliation_date = line.reconciliation_date;
+            } else {
+              reconciled = bill.reconciled || !!bill.reconciliation_id || !!bill.reconciliation_date;
+              reconciliation_date = bill.reconciliation_date;
+            }
             isPaid = bill.isPaid;
             // Get account from first bill line - prefer cost code, then account
             if (bill.firstLineCostCodeId && costCodesMap.has(bill.firstLineCostCodeId)) {
