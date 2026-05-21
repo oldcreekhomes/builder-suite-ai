@@ -224,7 +224,7 @@ export const useBankReconciliation = () => {
         // Step 1: Fetch bills for this project (or orphaned bills if no project)
         let billsQuery = supabase
           .from('bills')
-          .select('id, reference_number, status, vendor_id, project_id')
+          .select('id, reference_number, status, vendor_id, project_id, reconciled, reconciliation_id, reconciliation_date')
           .neq('status', 'reversed')
           .order('created_at', { ascending: false })
           .limit(5000);
