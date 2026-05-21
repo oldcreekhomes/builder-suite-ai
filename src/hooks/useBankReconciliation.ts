@@ -224,7 +224,7 @@ export const useBankReconciliation = () => {
         // Step 1: Fetch bills for this project (or orphaned bills if no project)
         let billsQuery = supabase
           .from('bills')
-          .select('id, reference_number, status, vendor_id, project_id')
+          .select('id, reference_number, status, vendor_id, project_id, reconciled, reconciliation_id, reconciliation_date')
           .neq('status', 'reversed')
           .order('created_at', { ascending: false })
           .limit(5000);
@@ -304,9 +304,12 @@ export const useBankReconciliation = () => {
                   const credit = Number(line.credit);
                   if (credit <= 0) return;
 
-                  const effectivelyReconciled = line.reconciled && line.reconciliation_id && 
+                  // Primary: JE-line reconciliation. Legacy fallback: parent bill reconciliation.
+                  const lineReconciled = line.reconciled && line.reconciliation_id &&
                     validReconciliationIds.has(line.reconciliation_id);
-                  if (effectivelyReconciled) return; // Hide properly reconciled
+                  const billReconciled = (bill as any).reconciled && (bill as any).reconciliation_id &&
+                    validReconciliationIds.has((bill as any).reconciliation_id);
+                  if (lineReconciled || billReconciled) return; // Hide already-reconciled
 
                   // Apply cutoff filter
                   if (cutoffDate && je.entry_date <= cutoffDate) return;
@@ -1365,6 +1368,7 @@ export const useBankReconciliation = () => {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['reconciliation-transactions'] });
+      queryClient.invalidateQueries({ queryKey: ['account-transactions'] });
     },
     onError: (error: Error) => {
       toast({
