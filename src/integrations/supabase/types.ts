@@ -6587,6 +6587,7 @@ export type Database = {
         Args: { elem: Json; project_id: string }
         Returns: Json
       }
+      recompute_bill_total: { Args: { _bill_id: string }; Returns: undefined }
       reject_pending_bill: {
         Args: { pending_upload_id_param: string; review_notes_param?: string }
         Returns: boolean
