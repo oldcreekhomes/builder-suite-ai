@@ -161,7 +161,7 @@ export function PurchaseOrdersTable({ projectId, projectAddress, onHeaderActionC
           <TableBody>
             {filteredPurchaseOrders.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={7} className="text-center py-8 text-gray-500">
+                <TableCell colSpan={9} className="text-center py-8 text-gray-500">
                   {searchQuery ? 'No purchase orders found matching your search.' : getEmptyStateMessage()}
                 </TableCell>
               </TableRow>
