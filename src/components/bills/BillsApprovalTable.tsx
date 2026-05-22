@@ -34,7 +34,7 @@ import { BillFilesCell } from "./BillFilesCell";
 import { DeleteButton } from "@/components/ui/delete-button";
 import { PayBillDialog } from "@/components/PayBillDialog";
 import { formatDisplayFromAny, normalizeToYMD } from "@/utils/dateOnly";
-import { ArrowUpDown, ArrowUp, ArrowDown, StickyNote, Edit, Check, FileText, X } from 'lucide-react';
+import { ArrowUpDown, ArrowUp, ArrowDown, StickyNote, Edit, Check, FileText, X, Lock } from 'lucide-react';
 import { EditBillDialog } from './EditBillDialog';
 import { useClosedPeriodCheck } from "@/hooks/useClosedPeriodCheck";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
@@ -1760,10 +1760,41 @@ export function BillsApprovalTable({ status, projectId, projectIds, showProjectC
                                     </div>
                                   )}
                                 </TableCell>
-                                {showAddressColumn && <TableCell className="w-16">
-                                  <div className="flex justify-center">
-                                    <div className="h-8 w-8 opacity-0 pointer-events-none" />
-                                  </div>
+                                {showAddressColumn && <TableCell className="w-16 max-w-[64px]">
+                                  {childBill ? (() => {
+                                    const { display, costCodeBreakdown, totalAmount, uniqueLotCount } = getLotAllocationData(childBill);
+                                    if (uniqueLotCount <= 1) return display;
+                                    return (
+                                      <TooltipProvider>
+                                        <Tooltip>
+                                          <TooltipTrigger>{display}</TooltipTrigger>
+                                          <TooltipContent className="max-w-xs">
+                                            <div className="space-y-2">
+                                              {costCodeBreakdown.map((cc, i) => (
+                                                <div key={i}>
+                                                  <div className="font-medium text-xs">{cc.costCode}</div>
+                                                  <div className="pl-2 space-y-0.5">
+                                                    {cc.lots.map((lot, j) => (
+                                                      <div key={j} className="flex justify-between gap-4 text-xs">
+                                                        <span className="text-muted-foreground">{lot.name}:</span>
+                                                        <span>${lot.amount.toLocaleString('en-US', { minimumFractionDigits: 2 })}</span>
+                                                      </div>
+                                                    ))}
+                                                  </div>
+                                                </div>
+                                              ))}
+                                              <div className="border-t pt-1 flex justify-between gap-4 font-medium text-xs">
+                                                <span>Total:</span>
+                                                <span>${totalAmount.toLocaleString('en-US', { minimumFractionDigits: 2 })}</span>
+                                              </div>
+                                            </div>
+                                          </TooltipContent>
+                                        </Tooltip>
+                                      </TooltipProvider>
+                                    );
+                                  })() : (
+                                    <span className="text-muted-foreground">-</span>
+                                  )}
                                 </TableCell>}
                                 <TableCell className="w-10 text-center">
                                   {childBill ? <BillFilesCell attachments={childBill.bill_attachments || []} /> : 
@@ -1810,14 +1841,35 @@ export function BillsApprovalTable({ status, projectId, projectIds, showProjectC
                                   )}
                                 </TableCell>
                                 {showPOStatusColumn && <TableCell className="w-20 text-center">
-                                  <div className="flex justify-center">
-                                    <div className="h-8 w-8 opacity-0 pointer-events-none" />
-                                  </div>
+                                  {childBill ? (() => {
+                                    const matchResult = poMatchingData?.get(childBill.id);
+                                    const poStatus = matchResult?.overall_status || 'no_po';
+                                    const allMatches = matchResult?.matches || [];
+                                    const onClick = (e?: any) => {
+                                      e?.stopPropagation?.();
+                                      if (allMatches.length > 0) {
+                                        setPoDialogState({ open: true, matches: allMatches, bill: childBill });
+                                      }
+                                    };
+                                    if (poStatus === 'over_and_partial') {
+                                      return (
+                                        <div className="flex items-center justify-center gap-1">
+                                          <POStatusBadge status="over_po" onClick={onClick} />
+                                          <POStatusBadge status="partial" onClick={onClick} />
+                                        </div>
+                                      );
+                                    }
+                                    return <POStatusBadge status={poStatus as any} onClick={onClick} />;
+                                  })() : (
+                                    <span className="text-muted-foreground">-</span>
+                                  )}
                                 </TableCell>}
                                 <TableCell className="w-24 text-center">
-                                  <div className="flex justify-center">
-                                    <div className="h-8 w-8 opacity-0 pointer-events-none" />
-                                  </div>
+                                  {childBill ? (
+                                    childBill.reconciled ? <Check className="h-4 w-4 text-green-600 mx-auto" /> : <span className="text-muted-foreground">-</span>
+                                  ) : (
+                                    <span className="text-muted-foreground">-</span>
+                                  )}
                                 </TableCell>
                                 {showPayBillButton && <TableCell className="text-center w-20">
                                   <div className="flex justify-center">
@@ -1825,10 +1877,24 @@ export function BillsApprovalTable({ status, projectId, projectIds, showProjectC
                                   </div>
                                 </TableCell>}
                                 {canShowDeleteButton && <TableCell className="text-center w-16">
-                                  <div className="flex justify-center">
-                                    <div className="h-8 w-8 opacity-0 pointer-events-none" />
-                                  </div>
+                                  {childBill ? (
+                                    <TooltipProvider>
+                                      <Tooltip>
+                                        <TooltipTrigger asChild>
+                                          <Lock className="h-4 w-4 text-red-600 mx-auto" />
+                                        </TooltipTrigger>
+                                        <TooltipContent>
+                                          <p>Paid bills are locked</p>
+                                        </TooltipContent>
+                                      </Tooltip>
+                                    </TooltipProvider>
+                                  ) : (
+                                    <div className="flex justify-center">
+                                      <div className="h-8 w-8 opacity-0 pointer-events-none" />
+                                    </div>
+                                  )}
                                 </TableCell>}
+
                               </TableRow>
                             );
                           }

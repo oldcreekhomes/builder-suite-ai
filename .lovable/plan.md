@@ -1,48 +1,42 @@
-## What’s actually going on
+# Plan: Mirror Approved-tab columns on the Paid tab
 
-The 923 17th Street reconciliation history is real: the bank account has completed monthly reconciliations through 03/31/2026.
+## Problem
 
-The problem is a data/model transition bug:
+On the Paid tab, payments are shown as a consolidated header row with expandable child bill rows. The child rows currently render empty placeholders for **Address**, **PO Status**, **Cleared**, and the final **Actions** column. The Approved tab renders all four. Result: the Paid tab looks stripped-down compared to Approved.
 
-- Older reconciliations marked **bill payments** as reconciled on the parent `bills` row.
-- The newer bank register logic now correctly expects bill-payment reconciliation to live on the exact `journal_entry_lines` bank-credit row.
-- For 2025, those JE lines were never backfilled, so checks/deposits show cleared, but many **Bill Pmt - Check** rows show uncleared even though their parent bills have the old reconciliation markers.
+The header summary row (e.g., "3 items / Payment") should stay summary-only — only the **child bill rows** need to be filled in.
 
-Confirmed from the database for this project/account:
+## Change (single file)
 
-- Checks in 2025: reconciled correctly.
-- Deposits in 2025: reconciled correctly.
-- Bill-payment JE lines in 2025: **64 unreconciled lines** while the related bills carry the completed reconciliation IDs.
-- This is why the dialog looks wrong while reconciliation history says complete.
+`src/components/bills/BillsApprovalTable.tsx`, child-row block inside the `isPaidStatus && paymentGroupsMap` branch (currently ~lines 1657–1832).
 
-The red lock icons are separate: books are closed through 01/31/2026 for this project, so those transactions are correctly read-only. Closed books do **not** mean the register’s cleared flag is correct; they are different columns/logic.
+Replace the four empty placeholder cells for each child bill with the real per-bill content, copied from `renderBillRow`:
 
-## Plan to fix
+1. **Address cell** (when `showAddressColumn` is true)
+   - Use the same `getLotAllocationData(childBill)` block used in `renderBillRow` (lines 1112–1151): show the lot/address display string, with the multi-lot tooltip breakdown when `uniqueLotCount > 1`. Skip if `childBill` is missing.
 
-1. **Backfill legacy reconciled bill payments safely**
-   - Add a one-time database migration that copies reconciliation data from legacy reconciled `bills` onto the matching bank-credit `journal_entry_lines` rows for `source_type = 'bill_payment'`.
-   - Scope it to matching project/account payment lines only.
-   - Only update lines that are currently missing reconciliation data.
-   - Do not touch checks, deposits, manual journal entries, or already-correct JE lines.
+2. **PO Status cell** (always rendered, since `showPOStatusColumn = true`)
+   - Use the same `poMatchingData?.get(childBill.id)` lookup and `<POStatusBadge>` rendering from lines 1190–1213, including the `over_and_partial` split case. Click opens the PO details dialog exactly like the parent row.
 
-2. **Make the bank register backward-compatible**
-   - Keep the new per-payment JE-line source as the primary truth.
-   - Add fallback logic only for legacy bill payments: if a `bill_payment` JE line has no reconciliation marker but the parent bill has one, display it as cleared.
-   - This prevents old data from showing wrong if any legacy rows remain.
+3. **Cleared cell** (final column for paid status)
+   - Render the same green check / dash logic from line 1233:
+     `childBill.reconciled ? <Check className="h-4 w-4 text-green-600 mx-auto" /> : <span className="text-muted-foreground">-</span>`
 
-3. **Make reconciliation loading backward-compatible**
-   - In `useBankReconciliation.ts`, when deciding whether a legacy bill payment is already reconciled, treat it as reconciled if either:
-     - the JE line has a valid reconciliation ID, or
-     - the parent bill has a valid reconciliation ID.
-   - This prevents already-reconciled legacy bill payments from reappearing in future reconciliation screens.
+4. **Actions cell** (the trailing `canShowDeleteButton` column)
+   - Because paid bills are locked from edits, render a **red lock icon** instead of the action menu, matching the established convention in `src/components/accounting/AccountDetailDialog.tsx` and `CloseBooksPeriodManager.tsx`:
+     `<Lock className="h-4 w-4 text-red-600 mx-auto" />`
+   - Wrap in a tooltip: "Paid bills are locked".
+   - Import `Lock` from `lucide-react` if not already imported.
 
-4. **Invalidate the right cached register data after reconciliation changes**
-   - After marking/undoing reconciliations, invalidate the account transaction/register query too, not just the reconciliation query.
-   - That keeps the bank dialog and reconciliation screen in sync immediately.
+## Out of scope
 
-5. **Verify with targeted DB checks**
-   - Re-run counts for 923 17th Street / Atlantic Union Bank:
-     - 2025 legacy bill-payment lines should no longer show as missing cleared status.
-     - Completed reconciliation history remains unchanged.
-     - Checks/deposits remain untouched.
-   - Confirm closed-books lock display remains intact because it is working as intended.
+- The "Pay Bill" column is correctly hidden on Paid (`showPayBillButton` is false there) — no change.
+- The payment header (summary) row keeps its current empty placeholders so the summary doesn't repeat per-bill data.
+- No business-logic or data-fetch changes — `poMatchingData`, `lots`, and `reconciled` are already loaded for the visible bills.
+- Footer "Total amount: $0.01" rounding is a separate concern and not covered here.
+
+## Verification
+
+- Open Paid tab on 103 East Oxford, search "homest", expand a multi-bill payment group: each child row should now show address, the matched PO badge, cleared check (or dash), and a red lock in Actions.
+- Single-bill payments fall through to the standard `renderBillRow` path and continue to render correctly.
+- Header layout and column widths remain unchanged (all four columns already exist in the header).
