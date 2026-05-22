@@ -204,6 +204,30 @@ export const CreatePurchaseOrderDialog = ({
     }
   }, [open, existingLines, editOrder]);
 
+  // Fallback: editing a PO with no purchase_order_lines rows — seed one line from the PO header
+  useEffect(() => {
+    if (!open) return;
+    if (hasInitializedRef.current) return;
+    if (!editOrder) return;
+    if (isLoadingExistingLines) return;
+    if (existingLines.length > 0) return;
+
+    const cc = editOrder.cost_codes;
+    const total = Number(editOrder.total_amount ?? 0);
+    const seeded: LineItemInput[] = [{
+      cost_code_id: editOrder.cost_code_id ?? null,
+      cost_code_display: cc ? `${cc.code} - ${cc.name}` : "",
+      description: "",
+      quantity: 1,
+      unit_cost: total,
+      amount: total,
+      extra: !!editOrder.extra,
+    }];
+    setLineItems(seeded);
+    setOriginalLinesSnapshot(seeded);
+    hasInitializedRef.current = true;
+  }, [open, editOrder, existingLines, isLoadingExistingLines]);
+
   // Reset snapshot when dialog closes
   useEffect(() => {
     if (!open) setOriginalLinesSnapshot([]);
