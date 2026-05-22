@@ -107,7 +107,7 @@ export const CreatePurchaseOrderDialog = ({
   const bidMode = bidContext?.mode ?? 'send';
   const isExtracting = !!bidContext?.isExtracting;
 
-  const { lines: existingLines } = usePurchaseOrderLines(editOrder?.id);
+  const { lines: existingLines, isLoading: isLoadingExistingLines } = usePurchaseOrderLines(editOrder?.id);
   const { createPOSendEmailAndUpdateStatus, resendPOEmail, isLoading: isBidPOLoading } = usePOMutations(projectId);
   const { profile } = useUserProfile();
 
