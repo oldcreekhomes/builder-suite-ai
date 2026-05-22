@@ -1810,7 +1810,7 @@ export function BillsApprovalTable({ status, projectId, projectIds, showProjectC
                                     </div>
                                   }
                                 </TableCell>
-                                <TableCell className="w-10 text-center">
+                                <TableCell className="w-10 text-center" onClick={(e) => e.stopPropagation()}>
                                   {childBill ? (
                                     <TooltipProvider>
                                       <Tooltip>
