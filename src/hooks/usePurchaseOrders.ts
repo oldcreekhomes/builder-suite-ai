@@ -19,6 +19,10 @@ export interface PurchaseOrder {
   updated_at: string;
   sent_at?: string | null;
   extra: boolean;
+  created_by_user?: {
+    first_name: string | null;
+    last_name: string | null;
+  };
   companies?: {
     id: string;
     company_name: string;
