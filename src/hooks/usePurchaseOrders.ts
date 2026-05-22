@@ -19,6 +19,10 @@ export interface PurchaseOrder {
   updated_at: string;
   sent_at?: string | null;
   extra: boolean;
+  created_by_user?: {
+    first_name: string | null;
+    last_name: string | null;
+  };
   companies?: {
     id: string;
     company_name: string;
@@ -128,12 +132,24 @@ export const usePurchaseOrders = (projectId: string, lotId?: string | null) => {
         linesMap.set(line.purchase_order_id, arr);
       });
 
+      // Fetch creator user info
+      const creatorIds = [...new Set(pos.map(po => po.created_by).filter(Boolean))];
+      const userMap = new Map<string, { first_name: string | null; last_name: string | null }>();
+      if (creatorIds.length > 0) {
+        const { data: creators } = await supabase
+          .from('users')
+          .select('id, first_name, last_name')
+          .in('id', creatorIds);
+        (creators || []).forEach(u => userMap.set(u.id, { first_name: u.first_name, last_name: u.last_name }));
+      }
+
       // Merge data and return as PurchaseOrder objects
       const enrichedPOs: PurchaseOrder[] = pos.map(po => ({
         ...po,
         companies: companyMap.get(po.company_id),
         cost_codes: costCodeMap.get(po.cost_code_id),
         purchase_order_lines: linesMap.get(po.id) || [],
+        created_by_user: po.created_by ? userMap.get(po.created_by) : undefined,
       }));
 
       // Sort by cost code numerically

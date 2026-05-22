@@ -126,6 +126,29 @@ export function PurchaseOrdersTableRowContent({
           {item.companies?.company_name || 'N/A'}
         </div>
       </TableCell>
+
+      <TableCell>
+        {(() => {
+          const u = (item as any).created_by_user;
+          const fn = u?.first_name || '';
+          const ln = u?.last_name || '';
+          const initials = `${fn.charAt(0)}${ln.charAt(0)}`.toUpperCase();
+          const fullName = `${fn} ${ln}`.trim();
+          if (!initials) return <span className="text-muted-foreground">—</span>;
+          return (
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <div className="inline-flex h-7 w-7 items-center justify-center rounded-full bg-muted text-xs font-medium">
+                    {initials}
+                  </div>
+                </TooltipTrigger>
+                <TooltipContent>{fullName || 'Unknown'}</TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
+          );
+        })()}
+      </TableCell>
       
       <TableCell>
         <div className="font-medium">

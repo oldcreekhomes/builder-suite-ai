@@ -9,6 +9,7 @@ export function PurchaseOrdersTableHeader() {
         <TableHead>PO Number</TableHead>
         <TableHead>Cost Code</TableHead>
         <TableHead>Company</TableHead>
+        <TableHead>Created By</TableHead>
         <TableHead>Amount</TableHead>
         <TableHead>Sent On</TableHead>
         <TableHead>Files</TableHead>

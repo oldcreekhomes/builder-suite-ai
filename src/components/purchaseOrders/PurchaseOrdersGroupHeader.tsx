@@ -41,7 +41,7 @@ export function PurchaseOrdersGroupHeader({
         />
       </TableCell>
       <TableCell 
-        colSpan={6} 
+        colSpan={7} 
         className="font-medium cursor-pointer hover:bg-muted/50"
         onClick={() => onToggle(group)}
       >
