@@ -1653,8 +1653,15 @@ export function BillsApprovalTable({ status, projectId, projectIds, showProjectC
                           const sortedAllocations = [...group.allocations].sort((a, b) => (b.isCredit ? 1 : 0) - (a.isCredit ? 1 : 0));
                           for (const alloc of sortedAllocations) {
                             const childBill = filteredBills.find(b => b.id === alloc.billId);
+                            const childMatchResult = childBill ? poMatchingData?.get(childBill.id) : undefined;
+                            const childAllMatches = childMatchResult?.matches || [];
+                            const childRowClickable = !!childBill && childAllMatches.length > 0;
                             rows.push(
-                              <TableRow key={`alloc-${paymentId}-${alloc.billId}`} className="h-11">
+                              <TableRow
+                                key={`alloc-${paymentId}-${alloc.billId}`}
+                                className={`h-11 ${childRowClickable ? 'cursor-pointer' : ''}`}
+                                onClick={childRowClickable ? () => setPoDialogState({ open: true, matches: childAllMatches, bill: childBill! }) : undefined}
+                              >
                                 {showProjectColumn && <TableCell className="w-44" />}
                                 <TableCell className="w-32 max-w-[128px] pl-10">
                                   <TooltipProvider>
