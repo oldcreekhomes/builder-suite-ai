@@ -1,30 +1,29 @@
-# Plan: Click-to-open PO Status Summary on Paid-tab child rows
-
 ## Problem
 
-On the Approved tab, clicking a bill row opens the **PO Status Summary** dialog (`BillPOSummaryDialog`) via `renderBillRow` — it sets `poDialogState` when the bill has PO matches and applies `cursor-pointer` to the row.
+When opening **Edit Purchase Order** for `2026-103E-0008` (Floor Joists, $12,334.12), the dialog shows an empty Cost Code, empty Description, and $0.00 Amount.
 
-On the Paid tab, individual bills are rendered as **child rows under a consolidated payment header** (lines ~1657–1832 in `BillsApprovalTable.tsx`). Those child `<TableRow>`s have no `onClick` and no `cursor-pointer`, so clicking them does nothing.
+Root cause: this PO was created from a bid package and stored its values only on the header (`project_purchase_orders.cost_code_id` + `total_amount`). It has zero rows in `purchase_order_lines`. The dialog's seeding effect in `src/components/CreatePurchaseOrderDialog.tsx` only populates line items when `existingLines.length > 0`, so it falls back to one blank line.
 
-## Change (single file, child-row only)
+## Fix
 
-`src/components/bills/BillsApprovalTable.tsx`, the child-row `<TableRow key={\`alloc-…\`}>` at line 1657.
+In `src/components/CreatePurchaseOrderDialog.tsx`, update the edit-mode seeding logic so that when an existing PO has no line items, the dialog seeds a single line from the PO header.
 
-1. Before the row, compute the same row-click state as `renderBillRow`:
-   - `const childMatchResult = childBill ? poMatchingData?.get(childBill.id) : undefined;`
-   - `const childAllMatches = childMatchResult?.matches || [];`
-   - `const childRowClickable = !!childBill && childAllMatches.length > 0;`
+1. Keep the current effect that seeds lines from `existingLines` when `existingLines.length > 0`.
+2. Add a sibling effect that runs when `open && editOrder && !hasInitializedRef.current && existingLines.length === 0` AND the `usePurchaseOrderLines` query is no longer loading. It seeds one line using:
+   - `cost_code_id` = `editOrder.cost_code_id`
+   - `cost_code_display` = `${editOrder.cost_codes.code} - ${editOrder.cost_codes.name}` (when available)
+   - `description` = `editOrder.notes`-derived only if useful, otherwise empty
+   - `quantity` = 1
+   - `unit_cost` = `editOrder.total_amount ?? 0`
+   - `amount` = `editOrder.total_amount ?? 0`
+   - `extra` = `editOrder.extra ?? false`
+   Then set `originalLinesSnapshot` to this seeded array and mark `hasInitializedRef.current = true`.
+3. Expose `isLoading` from `usePurchaseOrderLines` (already returned) and gate the fallback on `!isLoading` so it doesn't race the real-lines effect.
 
-2. Update the row element:
-   - `className={\`h-11 \${childRowClickable ? 'cursor-pointer' : ''}\`}`
-   - `onClick={childRowClickable ? () => setPoDialogState({ open: true, matches: childAllMatches, bill: childBill! }) : undefined}`
-
-3. Stop-propagation safety on interactive child cells so the row click doesn't double-fire when the user clicks a button/icon. Add `onClick={(e) => e.stopPropagation()}` to the cells that already render their own interactive controls in the child row: Files cell, Notes button cell, PO Status cell, and the Lock/Actions cell. (The PO Status cell's inner `onClick` already calls `e.stopPropagation()`, but wrapping the `<TableCell>` keeps it consistent with the rest.)
-
-No changes to data fetching, state, or the payment header row — `poMatchingData` is already loaded for every visible bill (including child bills in payment groups).
+No backend, schema, or other component changes. The Notes field, Company, and Attachments already populate correctly from `editOrder` in the existing init effect.
 
 ## Verification
 
-- Paid tab → expand a multi-bill payment → click any child bill row: `BillPOSummaryDialog` opens for that specific bill, matching the Approved-tab behavior.
-- Clicking the Files, Notes, PO Status badge, or Lock icon does NOT open the summary (handled by their cell-level `stopPropagation`).
-- Bills with no PO matches stay non-clickable (no pointer cursor), same as Approved.
+- Open Edit on `2026-103E-0008` (Floor Joists, $12,334.12): dialog shows one line with cost code `4340 - Floor Joists`, qty 1, unit cost $12,334.12, amount $12,334.12, subtotal $12,334.12.
+- Open Edit on a PO that already has multiple `purchase_order_lines` rows: behavior unchanged — all existing lines load as before.
+- Lock behavior (sent POs) still applies: the seeded fallback row counts as an "original" line and Qty/Unit Cost remain locked once `sent_at` is set.
