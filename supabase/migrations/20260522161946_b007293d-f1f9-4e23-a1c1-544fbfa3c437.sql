@@ -1,0 +1,2 @@
+UPDATE public.project_purchase_orders SET total_amount = 12334.13, updated_at = now() WHERE po_number = '2026-103E-0008';
+UPDATE public.project_purchase_orders SET total_amount = 40504.13, updated_at = now() WHERE po_number = '2026-103E-0009';
