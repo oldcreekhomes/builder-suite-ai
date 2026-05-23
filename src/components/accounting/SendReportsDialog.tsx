@@ -152,29 +152,69 @@ export function SendReportsDialog({ projectId, open, onOpenChange }: SendReports
             account_id,
             debit,
             credit,
-            journal_entries!inner(entry_date)
+            journal_entries!inner(entry_date, source_type, source_id)
           `)
           .lte('journal_entries.entry_date', asOfDateStr)
           .eq('journal_entries.is_reversal', false)
           .is('journal_entries.reversed_at', null)
           .is('journal_entries.reversed_by_id', null);
-        
+
         if (projectId) {
           journalLinesQuery = journalLinesQuery.or(`project_id.eq.${projectId},project_id.is.null`);
         } else {
           journalLinesQuery = journalLinesQuery.is('project_id', null);
         }
 
-        const { data: journalLines } = await journalLinesQuery;
+        // Also fetch consolidated bill payments to suppress per-bill payment lines
+        // and add a single credit per payment (matches Account Detail dialog + on-screen BS).
+        let cpQuery = supabase
+          .from('bill_payments')
+          .select('id, payment_account_id, total_amount')
+          .lte('payment_date', asOfDateStr);
+        if (projectId) {
+          cpQuery = cpQuery.eq('project_id', projectId);
+        } else {
+          cpQuery = cpQuery.is('project_id', null);
+        }
+
+        const [{ data: journalLines }, { data: consolidatedPayments }] = await Promise.all([
+          journalLinesQuery,
+          cpQuery,
+        ]);
         console.log('📊 Journal lines fetched:', journalLines?.length);
+
+        const consolidatedPaymentIds = (consolidatedPayments || []).map((p: any) => p.id);
+        const consolidatedBillIds = new Set<string>();
+        if (consolidatedPaymentIds.length > 0) {
+          const { data: allocations } = await supabase
+            .from('bill_payment_allocations')
+            .select('bill_id, bill_payment_id')
+            .in('bill_payment_id', consolidatedPaymentIds);
+          (allocations || []).forEach((a: any) => consolidatedBillIds.add(a.bill_id));
+        }
 
         // Calculate balances exactly like BalanceSheetContent
         const accountBalances: Record<string, number> = {};
-        journalLines?.forEach((line) => {
+        journalLines?.forEach((line: any) => {
+          const je = line.journal_entries;
+          if (
+            je?.source_type === 'bill_payment' &&
+            je?.source_id &&
+            consolidatedBillIds.has(je.source_id)
+          ) {
+            return;
+          }
           if (!accountBalances[line.account_id]) {
             accountBalances[line.account_id] = 0;
           }
           accountBalances[line.account_id] += (line.debit || 0) - (line.credit || 0);
+        });
+        (consolidatedPayments || []).forEach((p: any) => {
+          if (!p.payment_account_id) return;
+          if (!accountBalances[p.payment_account_id]) {
+            accountBalances[p.payment_account_id] = 0;
+          }
+          accountBalances[p.payment_account_id] -= Number(p.total_amount || 0);
         });
 
         const assets: { current: any[], fixed: any[] } = { current: [], fixed: [] };
