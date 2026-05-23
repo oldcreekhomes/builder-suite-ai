@@ -155,11 +155,16 @@ export function BalanceSheetContent({ projectId, onHeaderActionChange, asOfDate,
       console.log(`📊 Balance Sheet: Processing ${journalLines?.length || 0} journal lines`);
 
       const accountBalances: Record<string, number> = {};
+      const accountsPayableAccountId = filteredAccounts?.find((account) =>
+        account.type === 'liability' &&
+        (account.code === '2010' || account.name.toLowerCase().includes('accounts payable'))
+      )?.id;
+      const roundCurrency = (amount: number) => Math.round(amount * 100) / 100;
 
       journalLines?.forEach((line: any) => {
         // Suppress per-bill bill_payment lines whose bill is part of a consolidated payment.
         // The consolidated payment is added back below as a single credit on the
-        // payment_account_id — matching the Account Detail dialog exactly.
+        // payment_account_id and a matching debit to Accounts Payable.
         const je = line.journal_entries;
         if (
           je?.source_type === 'bill_payment' &&
@@ -174,13 +179,22 @@ export function BalanceSheetContent({ projectId, onHeaderActionChange, asOfDate,
         accountBalances[line.account_id] += (line.debit || 0) - (line.credit || 0);
       });
 
-      // Apply each consolidated bill payment as a single credit on its payment_account.
+      // Apply each consolidated bill payment as a balanced replacement entry:
+      // credit the bank/payment account and debit Accounts Payable.
       (consolidatedPayments || []).forEach((p: any) => {
         if (!p.payment_account_id) return;
+        const amount = Number(p.total_amount || 0);
         if (!accountBalances[p.payment_account_id]) {
           accountBalances[p.payment_account_id] = 0;
         }
-        accountBalances[p.payment_account_id] -= Number(p.total_amount || 0);
+        accountBalances[p.payment_account_id] = roundCurrency(accountBalances[p.payment_account_id] - amount);
+
+        if (accountsPayableAccountId) {
+          if (!accountBalances[accountsPayableAccountId]) {
+            accountBalances[accountsPayableAccountId] = 0;
+          }
+          accountBalances[accountsPayableAccountId] = roundCurrency(accountBalances[accountsPayableAccountId] + amount);
+        }
       });
 
       const assets: { current: AccountBalance[], fixed: AccountBalance[] } = { current: [], fixed: [] };
@@ -266,28 +280,13 @@ export function BalanceSheetContent({ projectId, onHeaderActionChange, asOfDate,
       const totalLiabilities = [...liabilities.current, ...liabilities.longTerm].reduce((sum, acc) => sum + acc.balance, 0);
       const totalEquity = equity.reduce((sum, acc) => sum + acc.balance, 0);
 
-      const totalLiabilitiesAndEquity = totalLiabilities + totalEquity;
-      const difference = totalAssets - totalLiabilitiesAndEquity;
-      
-      if (Math.abs(difference) > 0.01) {
-        equity.push({
-          id: 'balance-sheet-difference',
-          code: 'DIFF',
-          name: 'Balance Sheet Difference (Investigation Required)',
-          type: 'equity',
-          balance: difference
-        });
-      }
-
-      const finalTotalEquity = equity.reduce((sum, acc) => sum + acc.balance, 0);
-
       return {
         assets,
         liabilities,
         equity,
         totalAssets,
         totalLiabilities,
-        totalEquity: finalTotalEquity
+        totalEquity
       };
     },
     enabled: !!user && !!session && !authLoading,
