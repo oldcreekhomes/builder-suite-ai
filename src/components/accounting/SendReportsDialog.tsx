@@ -195,6 +195,12 @@ export function SendReportsDialog({ projectId, open, onOpenChange }: SendReports
 
         // Calculate balances exactly like BalanceSheetContent
         const accountBalances: Record<string, number> = {};
+        const accountsPayableAccountId = filteredAccounts?.find((account) =>
+          account.type === 'liability' &&
+          (account.code === '2010' || account.name.toLowerCase().includes('accounts payable'))
+        )?.id;
+        const roundCurrency = (amount: number) => Math.round(amount * 100) / 100;
+
         journalLines?.forEach((line: any) => {
           const je = line.journal_entries;
           if (
@@ -211,10 +217,18 @@ export function SendReportsDialog({ projectId, open, onOpenChange }: SendReports
         });
         (consolidatedPayments || []).forEach((p: any) => {
           if (!p.payment_account_id) return;
+          const amount = Number(p.total_amount || 0);
           if (!accountBalances[p.payment_account_id]) {
             accountBalances[p.payment_account_id] = 0;
           }
-          accountBalances[p.payment_account_id] -= Number(p.total_amount || 0);
+          accountBalances[p.payment_account_id] = roundCurrency(accountBalances[p.payment_account_id] - amount);
+
+          if (accountsPayableAccountId) {
+            if (!accountBalances[accountsPayableAccountId]) {
+              accountBalances[accountsPayableAccountId] = 0;
+            }
+            accountBalances[accountsPayableAccountId] = roundCurrency(accountBalances[accountsPayableAccountId] + amount);
+          }
         });
 
         const assets: { current: any[], fixed: any[] } = { current: [], fixed: [] };
