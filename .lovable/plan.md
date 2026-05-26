@@ -1,22 +1,28 @@
-The Balance Sheet is forcing itself to balance by posting the entire unresolved difference into Equity. That is why you’re seeing negative equity. The root problem is the recent consolidated bill-payment adjustment only fixed the bank-account side, but it did not apply the matching Accounts Payable side.
+## One-time data correction: Dolphin Pool Services bill #18230
 
-Plan:
+Restructure the bill so it matches the vendor's actual 50% draw invoice, then let the existing payment settle it in full. No code changes.
 
-1. Update the Balance Sheet calculation
-   - Keep Atlantic Union Bank matching the account detail dialog at $101,788.21.
-   - When consolidated bill payments are substituted in, also apply the matching debit/reduction to Accounts Payable.
-   - Do not dump the remaining imbalance into Equity.
+### Current (wrong) state
+- Bill 18230: total **$57,831.00**, paid $28,915.50, remaining $28,915.50, status `posted`
+- Bill line: $57,831.00 → Cost Code 4920 Pool, Lot 1
+- Job-cost JE (02/20): Dr Pool $57,831 / Cr A/P $57,831
+- Payment JE (03/03): Dr A/P $28,915.50 / Cr Atlantic Union Bank $28,915.50
 
-2. Update the sent/PDF Balance Sheet calculation the same way
-   - Make the emailed/exported Balance Sheet use the same logic as the on-screen report.
+### Target (correct) state
+- Bill 18230: total **$28,915.50**, paid $28,915.50, remaining **$0**, status **`paid`**
+- Bill line: $28,915.50 → Cost Code 4920 Pool, Lot 1 (PO 2026-923T-0077 line preserved)
+- Job-cost JE (02/20): Dr Pool **$28,915.50** / Cr A/P **$28,915.50**
+- Payment JE (03/03): unchanged — now fully settles the bill
+- PO 2026-923T-0077: Billed to Date $28,915.50, Remaining $28,915.50, status **Partially Billed** (rolls up automatically from the bill)
 
-3. Add a small shared helper or local utility pattern so the consolidated-payment adjustment stays symmetric
-   - Suppress old per-bill payment lines.
-   - Add one consolidated credit to the bank account.
-   - Add one consolidated debit/reduction to A/P.
+### SQL steps (single migration, transactional)
+1. `UPDATE bills` SET `total_amount = 28915.50`, `status = 'paid'` WHERE id = `3ee6bbb9-…630c`
+2. `UPDATE bill_lines` SET `amount = 28915.50`, `unit_cost = 28915.50` WHERE bill_id = `3ee6bbb9-…630c` AND line_type = 'job_cost'
+3. `UPDATE journal_entry_lines` SET `debit = 28915.50` on the Pool (4920) line, and `credit = 28915.50` on the A/P line, for the 02/20 job-cost JE tied to this bill
+4. Leave the 03/03 payment JE and `bill_payments` row untouched
+5. Verify post-update: bill total = paid = $28,915.50, balance = 0, JE balances debits = credits, PO Billed-to-Date = $28,915.50
 
-4. Validate against Oceanwatch Court as of January 31, 2026
-   - Atlantic Union Bank remains $101,788.21.
-   - Accounts Payable becomes $23,956.75 instead of $124,913.46.
-   - Total Equity no longer shows the artificial negative $98,956.71 / DIFF line.
-   - Total Assets equals Total Liabilities & Equity without an artificial Equity plug.
+### Future draws (policy confirmed)
+- Every invoice reference number must be globally unique per vendor (already enforced)
+- Draw #2 will be entered as a new bill against the same PO line, using a distinct reference (e.g. `18230-2`, or whatever the vendor issues). When it posts and is paid, PO Billed-to-Date rolls to $57,831 and the PO closes naturally.
+- No app/UI code changes in this task — just the data fix above.
