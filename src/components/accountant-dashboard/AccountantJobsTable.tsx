@@ -208,6 +208,12 @@ export function AccountantJobsTable() {
     navigate(`/project/${projectId}`);
   };
 
+  const goToBills = (e: React.MouseEvent, projectId: string, tab: 'review' | 'rejected' | 'approve') => {
+    e.stopPropagation();
+    navigate(`/project/${projectId}/accounting/bills/approve?tab=${tab}`);
+  };
+
+
   const handleDateSelect = (
     projectId: string,
     field: 'reconciliation' | 'closed_books' | 'invoices_approved' | 'invoices_paid',
