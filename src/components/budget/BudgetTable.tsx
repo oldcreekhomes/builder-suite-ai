@@ -67,6 +67,7 @@ export function BudgetTable({ projectId, projectAddress, onHeaderActionChange, o
   const [showImportDialog, setShowImportDialog] = useState(false);
   const [showLockDialog, setShowLockDialog] = useState(false);
   const [lockAction, setLockAction] = useState<'lock' | 'unlock'>('lock');
+  const [searchQuery, setSearchQuery] = useState('');
   
   const visibleColumns: VisibleColumns = {
     historicalCosts: true,
@@ -455,6 +456,29 @@ export function BudgetTable({ projectId, projectAddress, onHeaderActionChange, o
 
 
   const allGroupsExpanded = expandedGroups.size === Object.keys(groupedBudgetItems).length;
+
+  // Filtered groups for search box (rendering only)
+  const filteredGroupedBudgetItems = useMemo(() => {
+    const q = searchQuery.trim().toLowerCase();
+    if (!q) return groupedBudgetItems;
+    const out: Record<string, any[]> = {};
+    Object.entries(groupedBudgetItems).forEach(([group, items]) => {
+      const groupName = (parentCodeNames[group] || '').toLowerCase();
+      const groupMatches = group.toLowerCase().includes(q) || groupName.includes(q);
+      const matched = (items as any[]).filter((item) => {
+        const code = (item.cost_codes?.code || '').toLowerCase();
+        const name = (item.cost_codes?.name || '').toLowerCase();
+        return code.includes(q) || name.includes(q);
+      });
+      if (groupMatches) {
+        out[group] = items as any[];
+      } else if (matched.length > 0) {
+        out[group] = matched;
+      }
+    });
+    return out;
+  }, [groupedBudgetItems, parentCodeNames, searchQuery]);
+
   
   const handleToggleExpandCollapse = () => {
     if (allGroupsExpanded) {
@@ -479,11 +503,13 @@ export function BudgetTable({ projectId, projectAddress, onHeaderActionChange, o
             onToggleExpandCollapse={handleToggleExpandCollapse}
             allExpanded={allGroupsExpanded}
             isExportingPdf={isExportingPdf}
+            searchQuery={searchQuery}
+            onSearchChange={setSearchQuery}
           />
       );
       return () => onHeaderActionChange(null);
     }
-  }, [onHeaderActionChange, projectId, selectedLotId, selectLot, handlePrint, isLocked, allGroupsExpanded, isExportingPdf]);
+  }, [onHeaderActionChange, projectId, selectedLotId, selectLot, handlePrint, isLocked, allGroupsExpanded, isExportingPdf, searchQuery]);
 
   // Emit selection state to parent
   useEffect(() => {
@@ -503,6 +529,8 @@ export function BudgetTable({ projectId, projectAddress, onHeaderActionChange, o
         onToggleExpandCollapse={handleToggleExpandCollapse}
         allExpanded={allGroupsExpanded}
         isExportingPdf={isExportingPdf}
+        searchQuery={searchQuery}
+        onSearchChange={setSearchQuery}
       />
     </div>
   ) : null;
@@ -568,7 +596,7 @@ export function BudgetTable({ projectId, projectAddress, onHeaderActionChange, o
             </tbody>
           ) : (
             <>
-              {Object.entries(groupedBudgetItems).map(([group, items]) => (
+              {Object.entries(filteredGroupedBudgetItems).map(([group, items]) => (
                 <tbody key={group}>
                   <BudgetGroupHeader
                     group={group}
