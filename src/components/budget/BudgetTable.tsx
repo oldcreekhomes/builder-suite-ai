@@ -596,7 +596,7 @@ export function BudgetTable({ projectId, projectAddress, onHeaderActionChange, o
             </tbody>
           ) : (
             <>
-              {Object.entries(groupedBudgetItems).map(([group, items]) => (
+              {Object.entries(filteredGroupedBudgetItems).map(([group, items]) => (
                 <tbody key={group}>
                   <BudgetGroupHeader
                     group={group}
