@@ -529,6 +529,8 @@ export function BudgetTable({ projectId, projectAddress, onHeaderActionChange, o
         onToggleExpandCollapse={handleToggleExpandCollapse}
         allExpanded={allGroupsExpanded}
         isExportingPdf={isExportingPdf}
+        searchQuery={searchQuery}
+        onSearchChange={setSearchQuery}
       />
     </div>
   ) : null;
