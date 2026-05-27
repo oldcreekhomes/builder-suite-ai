@@ -1246,57 +1246,69 @@ export function BillsApprovalTable({ status, projectId, projectIds, showProjectC
       )}
       {canShowDeleteButton && (
         <TableCell className="text-center w-16">
-          {showEditButton ? (
-            <TableRowActions actions={[
-              {
-                label: "Resend to Review",
-                onClick: () => setConfirmDialog({
-                  open: true,
-                  action: 'resend',
-                  billId: bill.id,
-                  billInfo: bill,
-                  notes: '',
-                }),
-                hidden: bill.status !== 'void',
-                disabled: bill.reconciled,
-              },
-              {
-                label: "Edit",
-                onClick: () => setEditingBillId(bill.id),
-                disabled: bill.reconciled,
-              },
-              {
-                label: "Delete Bill",
-                onClick: () => deleteBill.mutate(bill.id),
-                variant: "destructive",
-                requiresConfirmation: true,
-                confirmTitle: "Delete Bill",
-                confirmDescription: `Are you sure you want to delete this bill from ${bill.companies?.company_name} for ${formatCurrency(bill.total_amount)}? This will also delete all associated journal entries and attachments.`,
-                isLoading: deleteBill.isPending,
-                disabled: bill.reconciled,
-              },
-            ]} />
-          ) : (
-            <TableRowActions actions={[
-              {
-                label: "Edit",
-                onClick: () => setEditingBillId(bill.id),
-                disabled: bill.reconciled,
-              },
-              {
-                label: "Delete Bill",
-                onClick: () => deleteBill.mutate(bill.id),
-                variant: "destructive",
-                requiresConfirmation: true,
-                confirmTitle: "Delete Bill",
-                confirmDescription: `Are you sure you want to delete this bill from ${bill.companies?.company_name} for ${formatCurrency(bill.total_amount)}? This will also delete all associated journal entries and attachments.`,
-                isLoading: deleteBill.isPending,
-                disabled: bill.reconciled,
-              },
-            ]} />
-          )}
+          {(() => {
+            const lockedReason = bill.reconciled
+              ? "Locked — payment has cleared the bank. Unreconcile to edit."
+              : undefined;
+            return showEditButton ? (
+              <TableRowActions
+                lockedReason={lockedReason}
+                actions={[
+                  {
+                    label: "Resend to Review",
+                    onClick: () => setConfirmDialog({
+                      open: true,
+                      action: 'resend',
+                      billId: bill.id,
+                      billInfo: bill,
+                      notes: '',
+                    }),
+                    hidden: bill.status !== 'void',
+                    disabled: bill.reconciled,
+                  },
+                  {
+                    label: "Edit",
+                    onClick: () => setEditingBillId(bill.id),
+                    disabled: bill.reconciled,
+                  },
+                  {
+                    label: "Delete Bill",
+                    onClick: () => deleteBill.mutate(bill.id),
+                    variant: "destructive",
+                    requiresConfirmation: true,
+                    confirmTitle: "Delete Bill",
+                    confirmDescription: `Are you sure you want to delete this bill from ${bill.companies?.company_name} for ${formatCurrency(bill.total_amount)}? This will also delete all associated journal entries and attachments.`,
+                    isLoading: deleteBill.isPending,
+                    disabled: bill.reconciled,
+                  },
+                ]}
+              />
+            ) : (
+              <TableRowActions
+                lockedReason={lockedReason}
+                actions={[
+                  {
+                    label: "Edit",
+                    onClick: () => setEditingBillId(bill.id),
+                    disabled: bill.reconciled,
+                  },
+                  {
+                    label: "Delete Bill",
+                    onClick: () => deleteBill.mutate(bill.id),
+                    variant: "destructive",
+                    requiresConfirmation: true,
+                    confirmTitle: "Delete Bill",
+                    confirmDescription: `Are you sure you want to delete this bill from ${bill.companies?.company_name} for ${formatCurrency(bill.total_amount)}? This will also delete all associated journal entries and attachments.`,
+                    isLoading: deleteBill.isPending,
+                    disabled: bill.reconciled,
+                  },
+                ]}
+              />
+            );
+          })()}
         </TableCell>
       )}
+
     </TableRow>
     );
   };
