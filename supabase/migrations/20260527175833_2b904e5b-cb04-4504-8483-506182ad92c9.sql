@@ -1,0 +1,1 @@
+DELETE FROM cost_code_price_history WHERE cost_code_id = '910be8f1-71d8-46ad-99cd-57f84cf7d140';
