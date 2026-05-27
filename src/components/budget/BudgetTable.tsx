@@ -503,11 +503,13 @@ export function BudgetTable({ projectId, projectAddress, onHeaderActionChange, o
             onToggleExpandCollapse={handleToggleExpandCollapse}
             allExpanded={allGroupsExpanded}
             isExportingPdf={isExportingPdf}
+            searchQuery={searchQuery}
+            onSearchChange={setSearchQuery}
           />
       );
       return () => onHeaderActionChange(null);
     }
-  }, [onHeaderActionChange, projectId, selectedLotId, selectLot, handlePrint, isLocked, allGroupsExpanded, isExportingPdf]);
+  }, [onHeaderActionChange, projectId, selectedLotId, selectLot, handlePrint, isLocked, allGroupsExpanded, isExportingPdf, searchQuery]);
 
   // Emit selection state to parent
   useEffect(() => {
