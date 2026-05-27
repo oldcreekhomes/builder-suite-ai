@@ -67,6 +67,7 @@ export function BudgetTable({ projectId, projectAddress, onHeaderActionChange, o
   const [showImportDialog, setShowImportDialog] = useState(false);
   const [showLockDialog, setShowLockDialog] = useState(false);
   const [lockAction, setLockAction] = useState<'lock' | 'unlock'>('lock');
+  const [searchQuery, setSearchQuery] = useState('');
   
   const visibleColumns: VisibleColumns = {
     historicalCosts: true,
