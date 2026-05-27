@@ -1880,13 +1880,8 @@ export function BillsApprovalTable({ status, projectId, projectIds, showProjectC
                                     <span className="text-muted-foreground">-</span>
                                   )}
                                 </TableCell>}
-                                <TableCell className="w-24 text-center">
-                                  {childBill ? (
-                                    childBill.reconciled ? <Check className="h-4 w-4 text-green-600 mx-auto" /> : <span className="text-muted-foreground">-</span>
-                                  ) : (
-                                    <span className="text-muted-foreground">-</span>
-                                  )}
-                                </TableCell>
+                                {/* Cleared column removed — lock indicator now lives in Actions */}
+
                                 {showPayBillButton && <TableCell className="text-center w-20">
                                   <div className="flex justify-center">
                                     <div className="h-8 w-8 opacity-0 pointer-events-none" />
