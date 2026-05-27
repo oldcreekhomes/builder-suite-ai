@@ -1,13 +1,21 @@
-I found the issue: some bill-note paths still save notes in the old `User: note` format with no date, even though the newer notes dialog correctly uses `User | MM/DD/YYYY: note`.
+## Add search box to Budget page toolbar
 
-Plan:
-1. Update every bill note creation path to use the shared date-stamped formatter:
-   - Reject bill notes
-   - Resend-for-review notes
-   - Edit bill response notes
-   - Existing add-note flow already uses the correct formatter
-2. Backfill the affected Matt Gray notes that are currently displaying `(no date)` using the best database evidence available:
-   - The bill rows show Matt’s account updated those notes today, `2026-05-27`, and the app session is logged in as Matt Gray.
-   - I will stamp those Matt Gray legacy note blocks as `Matt Gray | 05/27/2026: ...` instead of leaving `(no date)`.
-3. Keep the existing notes dialog presentation the same; no new UI unless needed.
-4. Verify by re-querying the affected bill notes and checking the parsing logic so they render with dates instead of `(no date)`.
+Mirror the Purchase Orders search behavior on the Budget page. Place the input in the toolbar as the leftmost control, so it sits between the lock icon (rendered in the page header) and the expand/collapse button (first item in the BudgetPrintToolbar).
+
+### Changes
+
+1. **`src/components/budget/BudgetPrintToolbar.tsx`**
+   - Add `searchQuery` and `onSearchChange` props.
+   - Render a search `Input` with `Search` icon (same styling as `PurchaseOrdersTable`: `relative w-64`, `pl-9 h-9`, placeholder `"Search budget..."`) as the first child, before the expand/collapse button.
+
+2. **`src/components/budget/BudgetTable.tsx`**
+   - Add `const [searchQuery, setSearchQuery] = useState('')`.
+   - Derive a filtered `groupedBudgetItems` (and filtered `budgetItems` for footer/totals if needed) that keeps any row whose cost code, name, or group label matches the query (case-insensitive). Empty groups after filtering are hidden.
+   - Pass `searchQuery` / `setSearchQuery` to both `BudgetPrintToolbar` renders (header-bridge and in-content fallback).
+   - Include `searchQuery` in the bridge `useEffect` deps so the input updates.
+   - Show an empty-state row "No budget items found matching your search." when filter yields nothing.
+
+### Out of scope
+- No change to the page-header lock button.
+- No change to PO search.
+- Totals/subtotals continue to reflect the currently visible (filtered) rows, matching the PO page's behavior.
