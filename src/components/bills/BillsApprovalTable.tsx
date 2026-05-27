@@ -1895,7 +1895,7 @@ export function BillsApprovalTable({ status, projectId, projectIds, showProjectC
                                           <Lock className="h-4 w-4 text-red-600 mx-auto" />
                                         </TooltipTrigger>
                                         <TooltipContent>
-                                          <p>Paid bills are locked</p>
+                                          <p>Locked — payment has cleared the bank. Unreconcile to edit.</p>
                                         </TooltipContent>
                                       </Tooltip>
                                     </TooltipProvider>
