@@ -1642,11 +1642,8 @@ export function BillsApprovalTable({ status, projectId, projectIds, showProjectC
                                 <div className="h-8 w-8 opacity-0 pointer-events-none" />
                               </div>
                             </TableCell>}
-                            <TableCell className="w-24 text-center">
-                              <div className="flex justify-center">
-                                <div className="h-8 w-8 opacity-0 pointer-events-none" />
-                              </div>
-                            </TableCell>
+                            {/* Cleared column removed — lock indicator now lives in Actions */}
+
                             {showPayBillButton && <TableCell className="text-center w-20">
                               <div className="flex justify-center">
                                 <div className="h-8 w-8 opacity-0 pointer-events-none" />
