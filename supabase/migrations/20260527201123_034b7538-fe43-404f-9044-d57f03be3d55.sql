@@ -1,0 +1,1 @@
+UPDATE cost_codes SET price = NULL WHERE id = '910be8f1-71d8-46ad-99cd-57f84cf7d140';
