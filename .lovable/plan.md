@@ -1,21 +1,16 @@
-## Add search box to Budget page toolbar
+## Delete price history for cost code 4395
 
-Mirror the Purchase Orders search behavior on the Budget page. Place the input in the toolbar as the leftmost control, so it sits between the lock icon (rendered in the page header) and the expand/collapse button (first item in the BudgetPrintToolbar).
+Code 4395 (Window & Door Install) now has subcategories 4395.1 and 4395.2 tracking prices, so the parent's price history is no longer needed.
 
-### Changes
+**What will be deleted (your tenant only, owner `2653aba8...`):**
+- 2 rows in `cost_code_price_history` for cost_code_id `910be8f1-71d8-46ad-99cd-57f84cf7d140`:
+  - $2,500.00 — "Initial price at cost code creation" (2025-06-23)
+  - $74.00 (2026-05-27)
 
-1. **`src/components/budget/BudgetPrintToolbar.tsx`**
-   - Add `searchQuery` and `onSearchChange` props.
-   - Render a search `Input` with `Search` icon (same styling as `PurchaseOrdersTable`: `relative w-64`, `pl-9 h-9`, placeholder `"Search budget..."`) as the first child, before the expand/collapse button.
+Children 4395.1 and 4395.2 have no history rows and are untouched. Another tenant's 4395 row is not affected.
 
-2. **`src/components/budget/BudgetTable.tsx`**
-   - Add `const [searchQuery, setSearchQuery] = useState('')`.
-   - Derive a filtered `groupedBudgetItems` (and filtered `budgetItems` for footer/totals if needed) that keeps any row whose cost code, name, or group label matches the query (case-insensitive). Empty groups after filtering are hidden.
-   - Pass `searchQuery` / `setSearchQuery` to both `BudgetPrintToolbar` renders (header-bridge and in-content fallback).
-   - Include `searchQuery` in the bridge `useEffect` deps so the input updates.
-   - Show an empty-state row "No budget items found matching your search." when filter yields nothing.
-
-### Out of scope
-- No change to the page-header lock button.
-- No change to PO search.
-- Totals/subtotals continue to reflect the currently visible (filtered) rows, matching the PO page's behavior.
+**SQL:**
+```sql
+DELETE FROM cost_code_price_history
+WHERE cost_code_id = '910be8f1-71d8-46ad-99cd-57f84cf7d140';
+```
