@@ -1459,10 +1459,11 @@ export function BillsApprovalTable({ status, projectId, projectIds, showProjectC
                   {showPOStatusColumn && (
                     <TableHead className="w-20 text-center">PO Status</TableHead>
                   )}
-                  {/* Final column: Actions for draft, Cleared for posted/paid - always renders for consistent layout */}
-                  <TableHead className="w-20 text-center">
-                    {isDraftStatus ? 'Actions' : 'Cleared'}
-                  </TableHead>
+                  {/* Final column: Actions for draft only — non-draft tabs use the rightmost Actions column */}
+                  {isDraftStatus && (
+                    <TableHead className="w-20 text-center">Actions</TableHead>
+                  )}
+
                   {showPayBillButton && (
                     <TableHead className="text-center w-20">Pay Bill</TableHead>
                   )}
