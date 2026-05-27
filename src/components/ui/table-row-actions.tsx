@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
-import { MoreHorizontal } from "lucide-react";
+import { Lock, MoreHorizontal } from "lucide-react";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -8,6 +8,12 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 import { DeleteConfirmationDialog } from "./delete-confirmation-dialog";
 
 export interface TableAction {
@@ -25,9 +31,15 @@ export interface TableAction {
 interface TableRowActionsProps {
   actions: TableAction[];
   disabled?: boolean;
+  /**
+   * When set, the trigger renders a red lock icon instead of the
+   * default "⋯" icon and shows this string in a tooltip. The menu
+   * still opens — use action.disabled to gate individual items.
+   */
+  lockedReason?: string;
 }
 
-export function TableRowActions({ actions, disabled }: TableRowActionsProps) {
+export function TableRowActions({ actions, disabled, lockedReason }: TableRowActionsProps) {
   const [confirmAction, setConfirmAction] = useState<TableAction | null>(null);
 
   const visibleActions = actions.filter(a => !a.hidden);
@@ -66,14 +78,33 @@ export function TableRowActions({ actions, disabled }: TableRowActionsProps) {
     );
   }
 
+  const triggerButton = (
+    <Button variant="ghost" className="h-8 w-8 p-0 mx-auto">
+      <span className="sr-only">{lockedReason ? 'Locked actions' : 'Open menu'}</span>
+      {lockedReason ? (
+        <Lock className="h-4 w-4 text-red-600" />
+      ) : (
+        <MoreHorizontal className="h-4 w-4" />
+      )}
+    </Button>
+  );
+
   return (
     <>
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
-          <Button variant="ghost" className="h-8 w-8 p-0 mx-auto">
-            <span className="sr-only">Open menu</span>
-            <MoreHorizontal className="h-4 w-4" />
-          </Button>
+          {lockedReason ? (
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger asChild>{triggerButton}</TooltipTrigger>
+                <TooltipContent>
+                  <p className="whitespace-pre-line">{lockedReason}</p>
+                </TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
+          ) : (
+            triggerButton
+          )}
         </DropdownMenuTrigger>
         <DropdownMenuContent align="end" className="bg-popover">
           {defaultActions.map((action) => (
@@ -112,3 +143,4 @@ export function TableRowActions({ actions, disabled }: TableRowActionsProps) {
     </>
   );
 }
+
