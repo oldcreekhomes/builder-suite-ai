@@ -1212,9 +1212,9 @@ export function BillsApprovalTable({ status, projectId, projectIds, showProjectC
           })()}
         </TableCell>
       )}
-      {/* Final column: Actions for draft, Cleared for posted/paid */}
-      <TableCell className="w-24 text-center" onClick={(e) => e.stopPropagation()}>
-        {isDraftStatus ? (
+      {/* Final column: Actions for draft only — non-draft uses the rightmost Actions column with a lock indicator */}
+      {isDraftStatus && (
+        <TableCell className="w-24 text-center" onClick={(e) => e.stopPropagation()}>
           <TableRowActions actions={[
             { label: "Approve", onClick: () => handleActionChange(bill.id, 'approve'), disabled: approveBill.isPending || rejectBill.isPending },
             { label: "Edit", onClick: () => handleActionChange(bill.id, 'edit'), disabled: approveBill.isPending || rejectBill.isPending },
@@ -1229,10 +1229,9 @@ export function BillsApprovalTable({ status, projectId, projectIds, showProjectC
               isLoading: deleteBill.isPending,
             },
           ]} />
-        ) : (
-          bill.reconciled ? <Check className="h-4 w-4 text-green-600 mx-auto" /> : <span className="text-muted-foreground">-</span>
-        )}
-      </TableCell>
+        </TableCell>
+      )}
+
       {showPayBillButton && (
         <TableCell className="text-center w-24">
           <Button
