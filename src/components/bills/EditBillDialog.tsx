@@ -444,13 +444,9 @@ export function EditBillDialog({ open, onOpenChange, billId }: EditBillDialogPro
           ? `${userData.first_name} ${userData.last_name}`.trim() 
           : 'Unknown User';
         
-        const newNote = `${userName}: ${responseNote.trim()}`;
-        
-        if (finalNotes && finalNotes.trim()) {
-          finalNotes = `${newNote}\n\n${finalNotes}`;
-        } else {
-          finalNotes = newNote;
-        }
+        const { formatBillNote, appendBillNote } = await import('@/lib/billNoteUtils');
+        const newNote = formatBillNote(userName, responseNote.trim());
+        finalNotes = appendBillNote(finalNotes || '', newNote);
       }
     }
 
