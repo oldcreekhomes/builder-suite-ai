@@ -1,55 +1,35 @@
-# Replace "Cleared" column with unified lock in Actions
+# Accountant dashboard: jump straight to Manage Bills
 
-## Goal
-Remove the low-signal **Cleared** column on the **Approved** and **Paid** tabs of Manage Bills. When a row is read-only — for any reason — replace the `⋯` trigger with a red lock icon. Clicking it still opens the actions menu, but mutating items (Edit, Delete, Void, Pay, Unpay, etc.) are disabled and explain why via the standard shadcn `Tooltip`.
+## Problem
+On the Accountant dashboard's Active Jobs table, clicking the **Current**, **Late**, **Rejected**, or **Pay** badge currently follows the row's click handler to `/project/{id}` (project dashboard). The accountant then has to click "Manage Bills" to actually act on the alert — a redundant step.
 
-## Lock semantics (unified)
-A row is locked when **any** of these are true:
-1. The bill's payment is **cleared/reconciled** (`bill_payments.reconciled = true`, or for the Approved tab any associated payment that is cleared).
-2. The bill's date falls inside a **closed accounting period** (already handled by `useIsTransactionLocked`).
+## Change
+Make each of those four badge cells navigate directly to Manage Bills for that project, pre-selecting the relevant tab. The rest of the row (Address, Accounting Manager, dates, etc.) continues to navigate to the project dashboard as today.
 
-The lock icon is the same in both cases; only the tooltip copy differs:
-- Cleared:  *"Locked — payment cleared on {date}. Unreconcile to edit."*
-- Closed period:  *"Locked — accounting period closed on {date}. Reopen the period to edit."*
-- Both:  combine into a two-line tooltip, cleared shown first.
+## Tab mapping
+Based on `useBillCountsByProject`:
 
-## Scope
-- **Approved** tab and **Paid** tab only.
-- Review / Rejected / Enter tabs: unchanged (no `Cleared` column today, no payment concept).
+| Column   | Source bills                       | Target tab on Manage Bills |
+|----------|------------------------------------|----------------------------|
+| Current  | draft bills, not past due          | `review`                   |
+| Late     | draft bills, past due              | `review`                   |
+| Rejected | void bills                         | `rejected`                 |
+| Pay      | posted bills (ready to pay)        | `approve`                  |
 
-## Changes
+Route: `/project/{projectId}/accounting/bills/approve?tab={tab}` — `BillsApprovalTabs` already reads `tab` from the query string, so no changes needed there.
 
-### UI
-- Remove the `Cleared` `<TableHead>` and corresponding `<TableCell>` from the Approved and Paid table renderers.
-- In the Actions cell, when `isLocked` is true:
-  - Render a red lock icon (`Lock` from lucide-react, `text-destructive`) as the `DropdownMenuTrigger` instead of the `MoreHorizontal` icon.
-  - Wrap the trigger in shadcn `<Tooltip>` / `<TooltipTrigger>` / `<TooltipContent>` with the reason copy above.
-  - Inside the menu, keep View / Download / View History enabled. Apply `disabled` to Edit, Delete, Void, Mark as Paid, Unmark Paid, Apply Credit, etc. Each disabled item gets a nested tooltip with the same reason.
-- When `isLocked` is false: behavior unchanged (current `⋯` trigger and full menu).
-
-### Logic
-- Add a small helper `useBillLockReason(bill)` (or extend `useIsTransactionLocked`) that returns `{ isLocked, reason, clearedDate, closedDate }`. It consolidates:
-  - `bill_payments` reconciled status for any payment allocated to this bill,
-  - the existing closed-period check.
-- Use this hook in the Actions cell renderer for both tabs so the two tabs stay in sync.
-
-### No backend / schema changes
-Read-only UI refactor. No migrations, no edge functions, no RLS changes.
-
-## Files likely touched
-- `src/components/bills/BillsApprovalTabs.tsx` (or the Approved/Paid tab table components it renders)
-- The row/action-cell component used by those tabs
-- New: `src/hooks/useBillLockReason.ts` (thin wrapper around existing lock logic)
-- Existing `useIsTransactionLocked` — reused, not modified unless needed for the `closedDate` field
+## Implementation
+In `src/components/accountant-dashboard/AccountantJobsTable.tsx`, for each of the four `<TableCell>` blocks (Current / Late / Rejected / Pay):
+- When the count is `> 0`, wrap the badge in a button-like element with `onClick={(e) => { e.stopPropagation(); navigate(...); }}`, `cursor-pointer`, and a subtle hover effect.
+- When the count is `0` (currently shows `-`), keep current behavior so the row click still works.
+- A small helper inside the component (e.g. `goToBills(projectId, tab)`) keeps the four cells tidy.
 
 ## Out of scope
-- Changing how reconciliation actually happens
-- Adding a way to filter/sort by locked state (the column is gone; if needed later we can add a filter chip)
-- Any change to Review / Rejected tabs
+- Late column does not get a due-date filter pre-applied. (The `review` tab already shows both current and late draft bills together; adding a filter is a separate request if you want it.)
+- No changes to row-click behavior, totals row, or any other column.
+- No changes to `BillsApprovalTabs` or routing config.
 
 ## Acceptance
-- Approved and Paid tabs no longer show a Cleared column.
-- Cleared rows display a red lock instead of `⋯`; hovering shows the shadcn tooltip with the cleared date.
-- Rows inside a closed period also show the lock with the period tooltip.
-- Clicking the lock opens the menu; mutating actions are disabled with their own tooltips; View/Download still work.
-- Unlocked rows look and behave exactly as today.
+- Clicking a non-zero Current / Late / Rejected / Pay badge on the Accountant dashboard opens Manage Bills for that project on the correct tab in a single click.
+- Clicking the `-` placeholder still navigates to the project dashboard (row default).
+- Clicking anywhere else on the row still navigates to the project dashboard.
