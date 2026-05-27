@@ -488,32 +488,56 @@ export function AccountantJobsTable() {
                   )}
                   <TableCell className="text-center">
                     {bills?.currentCount ? (
-                      <Badge className="bg-green-100 text-green-800 hover:bg-green-100">{bills.currentCount}</Badge>
+                      <Badge
+                        className="bg-green-100 text-green-800 hover:bg-green-200 cursor-pointer"
+                        onClick={(e) => goToBills(e, project.id, 'review')}
+                      >
+                        {bills.currentCount}
+                      </Badge>
                     ) : (
                       <span className="text-muted-foreground">-</span>
                     )}
                   </TableCell>
                   <TableCell className="text-center">
                     {bills?.lateCount ? (
-                      <Badge variant="destructive">{bills.lateCount}</Badge>
+                      <Badge
+                        variant="destructive"
+                        className="cursor-pointer hover:opacity-80"
+                        onClick={(e) => goToBills(e, project.id, 'review')}
+                      >
+                        {bills.lateCount}
+                      </Badge>
                     ) : (
                       <span className="text-muted-foreground">-</span>
                     )}
                   </TableCell>
                   <TableCell className="text-center">
                     {bills?.rejectedCount ? (
-                      <Badge variant="destructive">{bills.rejectedCount}</Badge>
+                      <Badge
+                        variant="destructive"
+                        className="cursor-pointer hover:opacity-80"
+                        onClick={(e) => goToBills(e, project.id, 'rejected')}
+                      >
+                        {bills.rejectedCount}
+                      </Badge>
                     ) : (
                       <span className="text-muted-foreground">-</span>
                     )}
                   </TableCell>
                   <TableCell className="text-center">
                     {bills?.payCount ? (
-                      <Badge variant="secondary">{bills.payCount}</Badge>
+                      <Badge
+                        variant="secondary"
+                        className="cursor-pointer hover:opacity-80"
+                        onClick={(e) => goToBills(e, project.id, 'approve')}
+                      >
+                        {bills.payCount}
+                      </Badge>
                     ) : (
                       <span className="text-muted-foreground">-</span>
                     )}
                   </TableCell>
+
                 </TableRow>
               );
             })
