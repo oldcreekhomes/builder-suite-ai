@@ -364,15 +364,10 @@ export const useBills = () => {
           ? `${userData.first_name || ''} ${userData.last_name || ''}`.trim() 
           : 'Unknown User';
         
-        // Format: "First Last: Note\n\n" + existing notes
-        const newNote = `${userName}: ${notes.trim()}`;
-        
-        if (billData?.notes && billData.notes.trim()) {
-          // Prepend new note to existing notes (most recent first)
-          finalNotes = `${newNote}\n\n${billData.notes}`;
-        } else {
-          finalNotes = newNote;
-        }
+        // Format with date: "First Last | MM/DD/YYYY: Note\n\n" + existing notes
+        const { formatBillNote, appendBillNote } = await import('@/lib/billNoteUtils');
+        const newNote = formatBillNote(userName, notes.trim());
+        finalNotes = appendBillNote(billData?.notes || '', newNote);
       }
 
       // Update bill status to void (rejected) and set notes
@@ -1516,10 +1511,9 @@ export const useBills = () => {
         ? `${userData.first_name || ''} ${userData.last_name || ''}`.trim()
         : 'Unknown User';
 
-      const newNote = `${userName} (Resent for Review): ${notes.trim()}`;
-      const finalNotes = billData?.notes && billData.notes.trim()
-        ? `${newNote}\n\n${billData.notes}`
-        : newNote;
+      const { formatBillNote, appendBillNote } = await import('@/lib/billNoteUtils');
+      const newNote = formatBillNote(`${userName} (Resent for Review)`, notes.trim());
+      const finalNotes = appendBillNote(billData?.notes || '', newNote);
 
       const { error } = await supabase
         .from('bills')
