@@ -1,28 +1,55 @@
-## One-time data correction: Dolphin Pool Services bill #18230
+# Replace "Cleared" column with unified lock in Actions
 
-Restructure the bill so it matches the vendor's actual 50% draw invoice, then let the existing payment settle it in full. No code changes.
+## Goal
+Remove the low-signal **Cleared** column on the **Approved** and **Paid** tabs of Manage Bills. When a row is read-only — for any reason — replace the `⋯` trigger with a red lock icon. Clicking it still opens the actions menu, but mutating items (Edit, Delete, Void, Pay, Unpay, etc.) are disabled and explain why via the standard shadcn `Tooltip`.
 
-### Current (wrong) state
-- Bill 18230: total **$57,831.00**, paid $28,915.50, remaining $28,915.50, status `posted`
-- Bill line: $57,831.00 → Cost Code 4920 Pool, Lot 1
-- Job-cost JE (02/20): Dr Pool $57,831 / Cr A/P $57,831
-- Payment JE (03/03): Dr A/P $28,915.50 / Cr Atlantic Union Bank $28,915.50
+## Lock semantics (unified)
+A row is locked when **any** of these are true:
+1. The bill's payment is **cleared/reconciled** (`bill_payments.reconciled = true`, or for the Approved tab any associated payment that is cleared).
+2. The bill's date falls inside a **closed accounting period** (already handled by `useIsTransactionLocked`).
 
-### Target (correct) state
-- Bill 18230: total **$28,915.50**, paid $28,915.50, remaining **$0**, status **`paid`**
-- Bill line: $28,915.50 → Cost Code 4920 Pool, Lot 1 (PO 2026-923T-0077 line preserved)
-- Job-cost JE (02/20): Dr Pool **$28,915.50** / Cr A/P **$28,915.50**
-- Payment JE (03/03): unchanged — now fully settles the bill
-- PO 2026-923T-0077: Billed to Date $28,915.50, Remaining $28,915.50, status **Partially Billed** (rolls up automatically from the bill)
+The lock icon is the same in both cases; only the tooltip copy differs:
+- Cleared:  *"Locked — payment cleared on {date}. Unreconcile to edit."*
+- Closed period:  *"Locked — accounting period closed on {date}. Reopen the period to edit."*
+- Both:  combine into a two-line tooltip, cleared shown first.
 
-### SQL steps (single migration, transactional)
-1. `UPDATE bills` SET `total_amount = 28915.50`, `status = 'paid'` WHERE id = `3ee6bbb9-…630c`
-2. `UPDATE bill_lines` SET `amount = 28915.50`, `unit_cost = 28915.50` WHERE bill_id = `3ee6bbb9-…630c` AND line_type = 'job_cost'
-3. `UPDATE journal_entry_lines` SET `debit = 28915.50` on the Pool (4920) line, and `credit = 28915.50` on the A/P line, for the 02/20 job-cost JE tied to this bill
-4. Leave the 03/03 payment JE and `bill_payments` row untouched
-5. Verify post-update: bill total = paid = $28,915.50, balance = 0, JE balances debits = credits, PO Billed-to-Date = $28,915.50
+## Scope
+- **Approved** tab and **Paid** tab only.
+- Review / Rejected / Enter tabs: unchanged (no `Cleared` column today, no payment concept).
 
-### Future draws (policy confirmed)
-- Every invoice reference number must be globally unique per vendor (already enforced)
-- Draw #2 will be entered as a new bill against the same PO line, using a distinct reference (e.g. `18230-2`, or whatever the vendor issues). When it posts and is paid, PO Billed-to-Date rolls to $57,831 and the PO closes naturally.
-- No app/UI code changes in this task — just the data fix above.
+## Changes
+
+### UI
+- Remove the `Cleared` `<TableHead>` and corresponding `<TableCell>` from the Approved and Paid table renderers.
+- In the Actions cell, when `isLocked` is true:
+  - Render a red lock icon (`Lock` from lucide-react, `text-destructive`) as the `DropdownMenuTrigger` instead of the `MoreHorizontal` icon.
+  - Wrap the trigger in shadcn `<Tooltip>` / `<TooltipTrigger>` / `<TooltipContent>` with the reason copy above.
+  - Inside the menu, keep View / Download / View History enabled. Apply `disabled` to Edit, Delete, Void, Mark as Paid, Unmark Paid, Apply Credit, etc. Each disabled item gets a nested tooltip with the same reason.
+- When `isLocked` is false: behavior unchanged (current `⋯` trigger and full menu).
+
+### Logic
+- Add a small helper `useBillLockReason(bill)` (or extend `useIsTransactionLocked`) that returns `{ isLocked, reason, clearedDate, closedDate }`. It consolidates:
+  - `bill_payments` reconciled status for any payment allocated to this bill,
+  - the existing closed-period check.
+- Use this hook in the Actions cell renderer for both tabs so the two tabs stay in sync.
+
+### No backend / schema changes
+Read-only UI refactor. No migrations, no edge functions, no RLS changes.
+
+## Files likely touched
+- `src/components/bills/BillsApprovalTabs.tsx` (or the Approved/Paid tab table components it renders)
+- The row/action-cell component used by those tabs
+- New: `src/hooks/useBillLockReason.ts` (thin wrapper around existing lock logic)
+- Existing `useIsTransactionLocked` — reused, not modified unless needed for the `closedDate` field
+
+## Out of scope
+- Changing how reconciliation actually happens
+- Adding a way to filter/sort by locked state (the column is gone; if needed later we can add a filter chip)
+- Any change to Review / Rejected tabs
+
+## Acceptance
+- Approved and Paid tabs no longer show a Cleared column.
+- Cleared rows display a red lock instead of `⋯`; hovering shows the shadcn tooltip with the cleared date.
+- Rows inside a closed period also show the lock with the period tooltip.
+- Clicking the lock opens the menu; mutating actions are disabled with their own tooltips; View/Download still work.
+- Unlocked rows look and behave exactly as today.
