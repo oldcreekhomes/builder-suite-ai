@@ -879,7 +879,7 @@ export function BillsApprovalTable({ status, projectId, projectIds, showProjectC
   // + Delete(1) if shown
   // + PO Status(1) - always shown on all tabs
   const showPOStatusColumn = true;
-  const baseColCount = 11 + (showAddressColumn ? 1 : 0) + (showProjectColumn ? 1 : 0) + (showPayBillButton ? 1 : 0) + (canShowDeleteButton ? 1 : 0) + (showPOStatusColumn ? 1 : 0) + (enableBatchPayment ? 1 : 0);
+  const baseColCount = 10 + (isDraftStatus ? 1 : 0) + (showAddressColumn ? 1 : 0) + (showProjectColumn ? 1 : 0) + (showPayBillButton ? 1 : 0) + (canShowDeleteButton ? 1 : 0) + (showPOStatusColumn ? 1 : 0) + (enableBatchPayment ? 1 : 0);
   const selectedVendorName = selectedBillsForBatch.length > 0
     ? (selectedBillsForBatch[0].companies?.company_name || 'Unknown Vendor')
     : '';
@@ -1212,9 +1212,9 @@ export function BillsApprovalTable({ status, projectId, projectIds, showProjectC
           })()}
         </TableCell>
       )}
-      {/* Final column: Actions for draft, Cleared for posted/paid */}
-      <TableCell className="w-24 text-center" onClick={(e) => e.stopPropagation()}>
-        {isDraftStatus ? (
+      {/* Final column: Actions for draft only — non-draft uses the rightmost Actions column with a lock indicator */}
+      {isDraftStatus && (
+        <TableCell className="w-24 text-center" onClick={(e) => e.stopPropagation()}>
           <TableRowActions actions={[
             { label: "Approve", onClick: () => handleActionChange(bill.id, 'approve'), disabled: approveBill.isPending || rejectBill.isPending },
             { label: "Edit", onClick: () => handleActionChange(bill.id, 'edit'), disabled: approveBill.isPending || rejectBill.isPending },
@@ -1229,10 +1229,9 @@ export function BillsApprovalTable({ status, projectId, projectIds, showProjectC
               isLoading: deleteBill.isPending,
             },
           ]} />
-        ) : (
-          bill.reconciled ? <Check className="h-4 w-4 text-green-600 mx-auto" /> : <span className="text-muted-foreground">-</span>
-        )}
-      </TableCell>
+        </TableCell>
+      )}
+
       {showPayBillButton && (
         <TableCell className="text-center w-24">
           <Button
@@ -1247,57 +1246,69 @@ export function BillsApprovalTable({ status, projectId, projectIds, showProjectC
       )}
       {canShowDeleteButton && (
         <TableCell className="text-center w-16">
-          {showEditButton ? (
-            <TableRowActions actions={[
-              {
-                label: "Resend to Review",
-                onClick: () => setConfirmDialog({
-                  open: true,
-                  action: 'resend',
-                  billId: bill.id,
-                  billInfo: bill,
-                  notes: '',
-                }),
-                hidden: bill.status !== 'void',
-                disabled: bill.reconciled,
-              },
-              {
-                label: "Edit",
-                onClick: () => setEditingBillId(bill.id),
-                disabled: bill.reconciled,
-              },
-              {
-                label: "Delete Bill",
-                onClick: () => deleteBill.mutate(bill.id),
-                variant: "destructive",
-                requiresConfirmation: true,
-                confirmTitle: "Delete Bill",
-                confirmDescription: `Are you sure you want to delete this bill from ${bill.companies?.company_name} for ${formatCurrency(bill.total_amount)}? This will also delete all associated journal entries and attachments.`,
-                isLoading: deleteBill.isPending,
-                disabled: bill.reconciled,
-              },
-            ]} />
-          ) : (
-            <TableRowActions actions={[
-              {
-                label: "Edit",
-                onClick: () => setEditingBillId(bill.id),
-                disabled: bill.reconciled,
-              },
-              {
-                label: "Delete Bill",
-                onClick: () => deleteBill.mutate(bill.id),
-                variant: "destructive",
-                requiresConfirmation: true,
-                confirmTitle: "Delete Bill",
-                confirmDescription: `Are you sure you want to delete this bill from ${bill.companies?.company_name} for ${formatCurrency(bill.total_amount)}? This will also delete all associated journal entries and attachments.`,
-                isLoading: deleteBill.isPending,
-                disabled: bill.reconciled,
-              },
-            ]} />
-          )}
+          {(() => {
+            const lockedReason = bill.reconciled
+              ? "Locked — payment has cleared the bank. Unreconcile to edit."
+              : undefined;
+            return showEditButton ? (
+              <TableRowActions
+                lockedReason={lockedReason}
+                actions={[
+                  {
+                    label: "Resend to Review",
+                    onClick: () => setConfirmDialog({
+                      open: true,
+                      action: 'resend',
+                      billId: bill.id,
+                      billInfo: bill,
+                      notes: '',
+                    }),
+                    hidden: bill.status !== 'void',
+                    disabled: bill.reconciled,
+                  },
+                  {
+                    label: "Edit",
+                    onClick: () => setEditingBillId(bill.id),
+                    disabled: bill.reconciled,
+                  },
+                  {
+                    label: "Delete Bill",
+                    onClick: () => deleteBill.mutate(bill.id),
+                    variant: "destructive",
+                    requiresConfirmation: true,
+                    confirmTitle: "Delete Bill",
+                    confirmDescription: `Are you sure you want to delete this bill from ${bill.companies?.company_name} for ${formatCurrency(bill.total_amount)}? This will also delete all associated journal entries and attachments.`,
+                    isLoading: deleteBill.isPending,
+                    disabled: bill.reconciled,
+                  },
+                ]}
+              />
+            ) : (
+              <TableRowActions
+                lockedReason={lockedReason}
+                actions={[
+                  {
+                    label: "Edit",
+                    onClick: () => setEditingBillId(bill.id),
+                    disabled: bill.reconciled,
+                  },
+                  {
+                    label: "Delete Bill",
+                    onClick: () => deleteBill.mutate(bill.id),
+                    variant: "destructive",
+                    requiresConfirmation: true,
+                    confirmTitle: "Delete Bill",
+                    confirmDescription: `Are you sure you want to delete this bill from ${bill.companies?.company_name} for ${formatCurrency(bill.total_amount)}? This will also delete all associated journal entries and attachments.`,
+                    isLoading: deleteBill.isPending,
+                    disabled: bill.reconciled,
+                  },
+                ]}
+              />
+            );
+          })()}
         </TableCell>
       )}
+
     </TableRow>
     );
   };
@@ -1448,10 +1459,11 @@ export function BillsApprovalTable({ status, projectId, projectIds, showProjectC
                   {showPOStatusColumn && (
                     <TableHead className="w-20 text-center">PO Status</TableHead>
                   )}
-                  {/* Final column: Actions for draft, Cleared for posted/paid - always renders for consistent layout */}
-                  <TableHead className="w-20 text-center">
-                    {isDraftStatus ? 'Actions' : 'Cleared'}
-                  </TableHead>
+                  {/* Final column: Actions for draft only — non-draft tabs use the rightmost Actions column */}
+                  {isDraftStatus && (
+                    <TableHead className="w-20 text-center">Actions</TableHead>
+                  )}
+
                   {showPayBillButton && (
                     <TableHead className="text-center w-20">Pay Bill</TableHead>
                   )}
@@ -1630,11 +1642,8 @@ export function BillsApprovalTable({ status, projectId, projectIds, showProjectC
                                 <div className="h-8 w-8 opacity-0 pointer-events-none" />
                               </div>
                             </TableCell>}
-                            <TableCell className="w-24 text-center">
-                              <div className="flex justify-center">
-                                <div className="h-8 w-8 opacity-0 pointer-events-none" />
-                              </div>
-                            </TableCell>
+                            {/* Cleared column removed — lock indicator now lives in Actions */}
+
                             {showPayBillButton && <TableCell className="text-center w-20">
                               <div className="flex justify-center">
                                 <div className="h-8 w-8 opacity-0 pointer-events-none" />
@@ -1871,13 +1880,8 @@ export function BillsApprovalTable({ status, projectId, projectIds, showProjectC
                                     <span className="text-muted-foreground">-</span>
                                   )}
                                 </TableCell>}
-                                <TableCell className="w-24 text-center">
-                                  {childBill ? (
-                                    childBill.reconciled ? <Check className="h-4 w-4 text-green-600 mx-auto" /> : <span className="text-muted-foreground">-</span>
-                                  ) : (
-                                    <span className="text-muted-foreground">-</span>
-                                  )}
-                                </TableCell>
+                                {/* Cleared column removed — lock indicator now lives in Actions */}
+
                                 {showPayBillButton && <TableCell className="text-center w-20">
                                   <div className="flex justify-center">
                                     <div className="h-8 w-8 opacity-0 pointer-events-none" />
@@ -1891,7 +1895,7 @@ export function BillsApprovalTable({ status, projectId, projectIds, showProjectC
                                           <Lock className="h-4 w-4 text-red-600 mx-auto" />
                                         </TooltipTrigger>
                                         <TooltipContent>
-                                          <p>Paid bills are locked</p>
+                                          <p>Locked — payment has cleared the bank. Unreconcile to edit.</p>
                                         </TooltipContent>
                                       </Tooltip>
                                     </TooltipProvider>
