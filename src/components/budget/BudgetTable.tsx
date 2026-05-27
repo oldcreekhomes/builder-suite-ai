@@ -456,6 +456,29 @@ export function BudgetTable({ projectId, projectAddress, onHeaderActionChange, o
 
 
   const allGroupsExpanded = expandedGroups.size === Object.keys(groupedBudgetItems).length;
+
+  // Filtered groups for search box (rendering only)
+  const filteredGroupedBudgetItems = useMemo(() => {
+    const q = searchQuery.trim().toLowerCase();
+    if (!q) return groupedBudgetItems;
+    const out: Record<string, any[]> = {};
+    Object.entries(groupedBudgetItems).forEach(([group, items]) => {
+      const groupName = (parentCodeNames[group] || '').toLowerCase();
+      const groupMatches = group.toLowerCase().includes(q) || groupName.includes(q);
+      const matched = (items as any[]).filter((item) => {
+        const code = (item.cost_codes?.code || '').toLowerCase();
+        const name = (item.cost_codes?.name || '').toLowerCase();
+        return code.includes(q) || name.includes(q);
+      });
+      if (groupMatches) {
+        out[group] = items as any[];
+      } else if (matched.length > 0) {
+        out[group] = matched;
+      }
+    });
+    return out;
+  }, [groupedBudgetItems, parentCodeNames, searchQuery]);
+
   
   const handleToggleExpandCollapse = () => {
     if (allGroupsExpanded) {
