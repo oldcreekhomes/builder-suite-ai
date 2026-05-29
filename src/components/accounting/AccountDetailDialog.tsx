@@ -318,21 +318,26 @@ export function AccountDetailDialog({
       let creditCardsMap = new Map();
       
       if (creditCardIds.length > 0) {
-        const { data: creditCardsData } = await supabase
-          .from('credit_cards')
-          .select(`
-            id,
-            vendor,
-            memo,
-            reconciled,
-            reconciliation_id,
-            reconciliation_date,
-            credit_card_lines(memo, line_number, account_id, cost_code_id)
-          `)
-          .eq('is_reversal', false)
-          .is('reversed_at', null)
-          .neq('status', 'reversed')
-          .in('id', creditCardIds);
+        const creditCardsData = await batchedIn<any>(
+          (chunk) =>
+            supabase
+              .from('credit_cards')
+              .select(`
+                id,
+                vendor,
+                memo,
+                reconciled,
+                reconciliation_id,
+                reconciliation_date,
+                credit_card_lines(memo, line_number, account_id, cost_code_id)
+              `)
+              .eq('is_reversal', false)
+              .is('reversed_at', null)
+              .neq('status', 'reversed')
+              .in('id', chunk),
+          creditCardIds
+        );
+
         
         creditCardsData?.forEach((cc: any) => {
           // Get first line memo as description
