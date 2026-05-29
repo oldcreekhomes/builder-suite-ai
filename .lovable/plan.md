@@ -1,16 +1,29 @@
-## Delete price history for cost code 4395
+## Diagnosis
 
-Code 4395 (Window & Door Install) now has subcategories 4395.1 and 4395.2 tracking prices, so the parent's price history is no longer needed.
+Drilling into 1010 Atlantic Union Bank on the Oceanwatch Balance Sheet shows "No transactions found" even though the Balance Sheet itself reports $87,423.67. The Balance Sheet aggregates raw journal lines (which return fine), but the Account Detail dialog runs a separate enrichment query that's silently failing.
 
-**What will be deleted (your tenant only, owner `2653aba8...`):**
-- 2 rows in `cost_code_price_history` for cost_code_id `910be8f1-71d8-46ad-99cd-57f84cf7d140`:
-  - $2,500.00 — "Initial price at cost code creation" (2025-06-23)
-  - $74.00 (2026-05-27)
+For Oceanwatch's bank register, the dialog needs to fetch 373 unique bills via `.in('id', billIds)` in `AccountDetailDialog.tsx`. That generates a request URL over **10KB**, exceeding Supabase/PostgREST's ~8KB URL limit. The request returns a 400, `billsMap` ends up empty, and the defensive filter (lines 578–591) then drops every `bill` and `bill_payment` line — which is virtually all of this account's activity (396 of ~566 lines). Result: the dialog appears empty.
 
-Children 4395.1 and 4395.2 have no history rows and are untouched. Another tenant's 4395 row is not affected.
+This matches the project's known rule (`mem://architecture/supabase-query-limitations-and-batching`): any `.in()` over ~200 UUIDs must use `batchedIn` from `src/lib/supabasePaginate.ts`. Account Detail was never updated to follow that rule, so it breaks on busy accounts.
 
-**SQL:**
-```sql
-DELETE FROM cost_code_price_history
-WHERE cost_code_id = '910be8f1-71d8-46ad-99cd-57f84cf7d140';
-```
+## Fix
+
+In `src/components/accounting/AccountDetailDialog.tsx`, replace direct `.in()` calls that take potentially large UUID arrays with `batchedIn` (batch size 200):
+
+1. **Bills fetch** (~line 343–360, `bills` table by `billIds`) — the primary offender.
+2. **Related JE lookup for "paid as of" calculation** (~line 370–376, `journal_entries` filtered by `source_id in billIds`) and its downstream `journal_entry_lines` lookup keyed by `jeIds` (~line 383–389).
+3. **Bill-lines fetch for consolidated payments** (~line 558, `bill_lines` by `allBillIdsInPayments`).
+4. **Defensive batching for `checks`, `deposits`, `credit_cards`, and `bill_payment_allocations`** — these are smaller today but use the same pattern and can overflow on other active projects. Convert to `batchedIn` for consistency.
+5. Leave small lookups (`vendorIds`, `costCodeIds`, `accountIds`) as-is unless they already approach 200; wrap them with `batchedIn` only when they aggregate from the bills set.
+
+Each `.in()` becomes a `batchedIn(chunk => baseQuery.in('col', chunk), ids)` call, preserving every other filter on the original query.
+
+## Verification
+
+- Reopen 1010 Atlantic Union Bank on Oceanwatch Balance Sheet → drill-down shows the full register; running balance ties to $87,423.67.
+- Spot-check 1430 WIP – Direct Construction Costs (also pictured) → transactions populate.
+- Confirm no console/network 400s from `/rest/v1/bills` and friends.
+
+## Out of scope
+
+No schema changes. No changes to Balance Sheet aggregation, "Hide Paid" logic, or consolidated-payment math — only the fetch shape changes.
