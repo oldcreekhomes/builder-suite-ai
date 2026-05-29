@@ -586,11 +586,16 @@ export function AccountDetailDialog({
         // Fetch primary account/cost code for display (from first bill's first line)
         const allBillIdsInPayments = [...billIdsInConsolidatedPayments];
         if (allBillIdsInPayments.length > 0) {
-          const { data: billLinesData } = await supabase
-            .from('bill_lines')
-            .select('bill_id, line_number, cost_code_id, account_id')
-            .in('bill_id', allBillIdsInPayments)
-            .order('line_number', { ascending: true });
+          const billLinesData = await batchedIn<any>(
+            (chunk) =>
+              supabase
+                .from('bill_lines')
+                .select('bill_id, line_number, cost_code_id, account_id')
+                .in('bill_id', chunk)
+                .order('line_number', { ascending: true }),
+            allBillIdsInPayments
+          );
+
 
           // Group by bill_id, get first line
           (billLinesData || []).forEach(bl => {
