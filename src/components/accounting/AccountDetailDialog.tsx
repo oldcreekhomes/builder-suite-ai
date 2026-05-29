@@ -538,16 +538,21 @@ export function AccountDetailDialog({
         const consolidatedPaymentIds = consolidatedPayments.map(cp => cp.id);
         
         // Fetch allocations
-        const { data: billPaymentAllocations } = await supabase
-          .from('bill_payment_allocations')
-          .select(`
-            id,
-            bill_payment_id,
-            bill_id,
-            amount_allocated,
-            bills:bill_id (reference_number)
-          `)
-          .in('bill_payment_id', consolidatedPaymentIds);
+        const billPaymentAllocations = await batchedIn<any>(
+          (chunk) =>
+            supabase
+              .from('bill_payment_allocations')
+              .select(`
+                id,
+                bill_payment_id,
+                bill_id,
+                amount_allocated,
+                bills:bill_id (reference_number)
+              `)
+              .in('bill_payment_id', chunk),
+          consolidatedPaymentIds
+        );
+
 
         // Group allocations by payment id (accountDisplay will be populated after costCodesMap/accountsDisplayMap are ready)
         if (billPaymentAllocations) {
