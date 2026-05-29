@@ -244,15 +244,16 @@ export function AccountDetailDialog({
         // Fetch company names for UUIDs
         let companiesMap = new Map();
         if (vendorIds.length > 0) {
-          const { data: companiesData } = await supabase
-            .from('companies')
-            .select('id, company_name')
-            .in('id', vendorIds);
-          
+          const companiesData = await batchedIn<any>(
+            (chunk) =>
+              supabase.from('companies').select('id, company_name').in('id', chunk),
+            vendorIds
+          );
           companiesData?.forEach(company => {
             companiesMap.set(company.id, company.company_name);
           });
         }
+
         
         checksData?.forEach((check: any) => {
           // If pay_to is a UUID, try to get company name; otherwise use pay_to as is
