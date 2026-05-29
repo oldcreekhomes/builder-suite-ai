@@ -666,10 +666,11 @@ export function AccountDetailDialog({
       // Fetch cost codes
       let costCodesMap = new Map<string, string>();
       if (allCostCodeIds.size > 0) {
-        const { data: costCodesData } = await supabase
-          .from('cost_codes')
-          .select('id, code, name')
-          .in('id', Array.from(allCostCodeIds));
+        const costCodesData = await batchedIn<any>(
+          (chunk) =>
+            supabase.from('cost_codes').select('id, code, name').in('id', chunk),
+          Array.from(allCostCodeIds)
+        );
         costCodesData?.forEach((cc: any) => {
           costCodesMap.set(cc.id, `${cc.code} - ${cc.name}`);
         });
@@ -678,11 +679,13 @@ export function AccountDetailDialog({
       // Fetch accounts for display
       let accountsDisplayMap = new Map<string, string>();
       if (allAccountIds.size > 0) {
-        const { data: accountsData } = await supabase
-          .from('accounts')
-          .select('id, code, name')
-          .in('id', Array.from(allAccountIds));
+        const accountsData = await batchedIn<any>(
+          (chunk) =>
+            supabase.from('accounts').select('id, code, name').in('id', chunk),
+          Array.from(allAccountIds)
+        );
         accountsData?.forEach((acc: any) => {
+
           accountsDisplayMap.set(acc.id, `${acc.code} - ${acc.name}`);
         });
       }
