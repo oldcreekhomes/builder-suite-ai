@@ -574,12 +574,14 @@ export function AccountDetailDialog({
         // Fetch vendor names for consolidated payments
         const vendorIds = [...new Set(consolidatedPayments.map(cp => cp.vendor_id))];
         if (vendorIds.length > 0) {
-          const { data: vendorData } = await supabase
-            .from('companies')
-            .select('id, company_name')
-            .in('id', vendorIds);
+          const vendorData = await batchedIn<any>(
+            (chunk) =>
+              supabase.from('companies').select('id, company_name').in('id', chunk),
+            vendorIds
+          );
           vendorData?.forEach(v => vendorNamesForConsolidated.set(v.id, v.company_name));
         }
+
 
         // Fetch primary account/cost code for display (from first bill's first line)
         const allBillIdsInPayments = [...billIdsInConsolidatedPayments];
