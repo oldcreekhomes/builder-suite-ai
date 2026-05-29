@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from "react";
 import { useQuery, keepPreviousData, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { fetchAllRows } from "@/lib/supabasePaginate";
+import { fetchAllRows, batchedIn } from "@/lib/supabasePaginate";
 import { format } from "date-fns";
 import {
   Dialog,
@@ -211,22 +211,27 @@ export function AccountDetailDialog({
       let checksMap = new Map();
       
       if (checkIds.length > 0) {
-        const { data: checksData } = await supabase
-          .from('checks')
-          .select(`
-            id, 
-            memo, 
-            pay_to, 
-            check_number,
-            reconciled,
-            reconciliation_id,
-            reconciliation_date,
-            check_lines(memo, line_number, account_id, cost_code_id)
-          `)
-          .eq('is_reversal', false)
-          .is('reversed_at', null)
-          .neq('status', 'reversed')
-          .in('id', checkIds);
+        const checksData = await batchedIn<any>(
+          (chunk) =>
+            supabase
+              .from('checks')
+              .select(`
+                id, 
+                memo, 
+                pay_to, 
+                check_number,
+                reconciled,
+                reconciliation_id,
+                reconciliation_date,
+                check_lines(memo, line_number, account_id, cost_code_id)
+              `)
+              .eq('is_reversal', false)
+              .is('reversed_at', null)
+              .neq('status', 'reversed')
+              .in('id', chunk),
+          checkIds
+        );
+
         
         // Get unique vendor IDs (UUIDs) to fetch company names
         const vendorIds = (checksData || [])
@@ -239,15 +244,16 @@ export function AccountDetailDialog({
         // Fetch company names for UUIDs
         let companiesMap = new Map();
         if (vendorIds.length > 0) {
-          const { data: companiesData } = await supabase
-            .from('companies')
-            .select('id, company_name')
-            .in('id', vendorIds);
-          
+          const companiesData = await batchedIn<any>(
+            (chunk) =>
+              supabase.from('companies').select('id, company_name').in('id', chunk),
+            vendorIds
+          );
           companiesData?.forEach(company => {
             companiesMap.set(company.id, company.company_name);
           });
         }
+
         
         checksData?.forEach((check: any) => {
           // If pay_to is a UUID, try to get company name; otherwise use pay_to as is
@@ -269,22 +275,27 @@ export function AccountDetailDialog({
       let depositsMap = new Map();
       
       if (depositIds.length > 0) {
-        const { data: depositsData } = await supabase
-          .from('deposits')
-          .select(`
-            id, 
-            memo,
-            bank_account_id,
-            company_id,
-            reconciled,
-            reconciliation_id,
-            reconciliation_date,
-            deposit_lines(memo, line_number, account_id),
-            companies(company_name)
-          `)
-          .eq('is_reversal', false)
-          .is('reversed_at', null)
-          .in('id', depositIds);
+        const depositsData = await batchedIn<any>(
+          (chunk) =>
+            supabase
+              .from('deposits')
+              .select(`
+                id, 
+                memo,
+                bank_account_id,
+                company_id,
+                reconciled,
+                reconciliation_id,
+                reconciliation_date,
+                deposit_lines(memo, line_number, account_id),
+                companies(company_name)
+              `)
+              .eq('is_reversal', false)
+              .is('reversed_at', null)
+              .in('id', chunk),
+          depositIds
+        );
+
         
         depositsData?.forEach((deposit: any) => {
           // Received From is the deposit memo, with company_name as fallback
@@ -307,21 +318,26 @@ export function AccountDetailDialog({
       let creditCardsMap = new Map();
       
       if (creditCardIds.length > 0) {
-        const { data: creditCardsData } = await supabase
-          .from('credit_cards')
-          .select(`
-            id,
-            vendor,
-            memo,
-            reconciled,
-            reconciliation_id,
-            reconciliation_date,
-            credit_card_lines(memo, line_number, account_id, cost_code_id)
-          `)
-          .eq('is_reversal', false)
-          .is('reversed_at', null)
-          .neq('status', 'reversed')
-          .in('id', creditCardIds);
+        const creditCardsData = await batchedIn<any>(
+          (chunk) =>
+            supabase
+              .from('credit_cards')
+              .select(`
+                id,
+                vendor,
+                memo,
+                reconciled,
+                reconciliation_id,
+                reconciliation_date,
+                credit_card_lines(memo, line_number, account_id, cost_code_id)
+              `)
+              .eq('is_reversal', false)
+              .is('reversed_at', null)
+              .neq('status', 'reversed')
+              .in('id', chunk),
+          creditCardIds
+        );
+
         
         creditCardsData?.forEach((cc: any) => {
           // Get first line memo as description
@@ -341,23 +357,27 @@ export function AccountDetailDialog({
       let billsMap = new Map();
       
       if (billIds.length > 0) {
-        const { data: billsData } = await supabase
-          .from('bills')
-          .select(`
-            id,
-            vendor_id,
-            reference_number,
-            total_amount,
-            amount_paid,
-            status,
-            reconciled,
-            reconciliation_id,
-            reconciliation_date,
-            companies(company_name),
-            bill_lines(memo, line_number, account_id, cost_code_id)
-          `)
-          .eq('is_reversal', false)
-          .in('id', billIds);
+        const billsData = await batchedIn<any>(
+          (chunk) =>
+            supabase
+              .from('bills')
+              .select(`
+                id,
+                vendor_id,
+                reference_number,
+                total_amount,
+                amount_paid,
+                status,
+                reconciled,
+                reconciliation_id,
+                reconciliation_date,
+                companies(company_name),
+                bill_lines(memo, line_number, account_id, cost_code_id)
+              `)
+              .eq('is_reversal', false)
+              .in('id', chunk),
+          billIds
+        );
         
         // If asOfDate is provided, determine which bills were FULLY paid before that date.
         // A bill is "paid as of X" only when total AP debits (payments) on/before X
@@ -367,26 +387,33 @@ export function AccountDetailDialog({
         if (asOfDate && billIds.length > 0 && accountId) {
           const asOfDateStr = asOfDate.toISOString().split('T')[0];
 
-          const { data: relatedJEs } = await supabase
-            .from('journal_entries')
-            .select('id, source_id, source_type')
-            .in('source_type', ['bill', 'bill_payment'])
-            .in('source_id', billIds)
-            .lte('entry_date', asOfDateStr)
-            .or('reversed_at.is.null,reversed_at.gt.' + asOfDateStr);
+          const relatedJEs = await batchedIn<any>(
+            (chunk) =>
+              supabase
+                .from('journal_entries')
+                .select('id, source_id, source_type')
+                .in('source_type', ['bill', 'bill_payment'])
+                .in('source_id', chunk)
+                .lte('entry_date', asOfDateStr)
+                .or('reversed_at.is.null,reversed_at.gt.' + asOfDateStr),
+            billIds
+          );
 
           const jeIds = (relatedJEs || []).map((j: any) => j.id);
           const jeToBill = new Map<string, string>();
           (relatedJEs || []).forEach((j: any) => jeToBill.set(j.id, j.source_id));
 
           if (jeIds.length > 0) {
-            const apLines = await fetchAllRows<any>(() =>
-              supabase
-                .from('journal_entry_lines')
-                .select('journal_entry_id, debit, credit')
-                .eq('account_id', accountId)
-                .in('journal_entry_id', jeIds)
+            const apLines = await batchedIn<any>(
+              (chunk) =>
+                supabase
+                  .from('journal_entry_lines')
+                  .select('journal_entry_id, debit, credit')
+                  .eq('account_id', accountId)
+                  .in('journal_entry_id', chunk),
+              jeIds
             );
+
 
             const billCreditCents = new Map<string, number>();
             const billDebitCents = new Map<string, number>();
@@ -511,16 +538,21 @@ export function AccountDetailDialog({
         const consolidatedPaymentIds = consolidatedPayments.map(cp => cp.id);
         
         // Fetch allocations
-        const { data: billPaymentAllocations } = await supabase
-          .from('bill_payment_allocations')
-          .select(`
-            id,
-            bill_payment_id,
-            bill_id,
-            amount_allocated,
-            bills:bill_id (reference_number)
-          `)
-          .in('bill_payment_id', consolidatedPaymentIds);
+        const billPaymentAllocations = await batchedIn<any>(
+          (chunk) =>
+            supabase
+              .from('bill_payment_allocations')
+              .select(`
+                id,
+                bill_payment_id,
+                bill_id,
+                amount_allocated,
+                bills:bill_id (reference_number)
+              `)
+              .in('bill_payment_id', chunk),
+          consolidatedPaymentIds
+        );
+
 
         // Group allocations by payment id (accountDisplay will be populated after costCodesMap/accountsDisplayMap are ready)
         if (billPaymentAllocations) {
@@ -542,21 +574,28 @@ export function AccountDetailDialog({
         // Fetch vendor names for consolidated payments
         const vendorIds = [...new Set(consolidatedPayments.map(cp => cp.vendor_id))];
         if (vendorIds.length > 0) {
-          const { data: vendorData } = await supabase
-            .from('companies')
-            .select('id, company_name')
-            .in('id', vendorIds);
+          const vendorData = await batchedIn<any>(
+            (chunk) =>
+              supabase.from('companies').select('id, company_name').in('id', chunk),
+            vendorIds
+          );
           vendorData?.forEach(v => vendorNamesForConsolidated.set(v.id, v.company_name));
         }
+
 
         // Fetch primary account/cost code for display (from first bill's first line)
         const allBillIdsInPayments = [...billIdsInConsolidatedPayments];
         if (allBillIdsInPayments.length > 0) {
-          const { data: billLinesData } = await supabase
-            .from('bill_lines')
-            .select('bill_id, line_number, cost_code_id, account_id')
-            .in('bill_id', allBillIdsInPayments)
-            .order('line_number', { ascending: true });
+          const billLinesData = await batchedIn<any>(
+            (chunk) =>
+              supabase
+                .from('bill_lines')
+                .select('bill_id, line_number, cost_code_id, account_id')
+                .in('bill_id', chunk)
+                .order('line_number', { ascending: true }),
+            allBillIdsInPayments
+          );
+
 
           // Group by bill_id, get first line
           (billLinesData || []).forEach(bl => {
@@ -627,10 +666,11 @@ export function AccountDetailDialog({
       // Fetch cost codes
       let costCodesMap = new Map<string, string>();
       if (allCostCodeIds.size > 0) {
-        const { data: costCodesData } = await supabase
-          .from('cost_codes')
-          .select('id, code, name')
-          .in('id', Array.from(allCostCodeIds));
+        const costCodesData = await batchedIn<any>(
+          (chunk) =>
+            supabase.from('cost_codes').select('id, code, name').in('id', chunk),
+          Array.from(allCostCodeIds)
+        );
         costCodesData?.forEach((cc: any) => {
           costCodesMap.set(cc.id, `${cc.code} - ${cc.name}`);
         });
@@ -639,11 +679,13 @@ export function AccountDetailDialog({
       // Fetch accounts for display
       let accountsDisplayMap = new Map<string, string>();
       if (allAccountIds.size > 0) {
-        const { data: accountsData } = await supabase
-          .from('accounts')
-          .select('id, code, name')
-          .in('id', Array.from(allAccountIds));
+        const accountsData = await batchedIn<any>(
+          (chunk) =>
+            supabase.from('accounts').select('id, code, name').in('id', chunk),
+          Array.from(allAccountIds)
+        );
         accountsData?.forEach((acc: any) => {
+
           accountsDisplayMap.set(acc.id, `${acc.code} - ${acc.name}`);
         });
       }
