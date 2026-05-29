@@ -357,23 +357,27 @@ export function AccountDetailDialog({
       let billsMap = new Map();
       
       if (billIds.length > 0) {
-        const { data: billsData } = await supabase
-          .from('bills')
-          .select(`
-            id,
-            vendor_id,
-            reference_number,
-            total_amount,
-            amount_paid,
-            status,
-            reconciled,
-            reconciliation_id,
-            reconciliation_date,
-            companies(company_name),
-            bill_lines(memo, line_number, account_id, cost_code_id)
-          `)
-          .eq('is_reversal', false)
-          .in('id', billIds);
+        const billsData = await batchedIn<any>(
+          (chunk) =>
+            supabase
+              .from('bills')
+              .select(`
+                id,
+                vendor_id,
+                reference_number,
+                total_amount,
+                amount_paid,
+                status,
+                reconciled,
+                reconciliation_id,
+                reconciliation_date,
+                companies(company_name),
+                bill_lines(memo, line_number, account_id, cost_code_id)
+              `)
+              .eq('is_reversal', false)
+              .in('id', chunk),
+          billIds
+        );
         
         // If asOfDate is provided, determine which bills were FULLY paid before that date.
         // A bill is "paid as of X" only when total AP debits (payments) on/before X
@@ -383,26 +387,33 @@ export function AccountDetailDialog({
         if (asOfDate && billIds.length > 0 && accountId) {
           const asOfDateStr = asOfDate.toISOString().split('T')[0];
 
-          const { data: relatedJEs } = await supabase
-            .from('journal_entries')
-            .select('id, source_id, source_type')
-            .in('source_type', ['bill', 'bill_payment'])
-            .in('source_id', billIds)
-            .lte('entry_date', asOfDateStr)
-            .or('reversed_at.is.null,reversed_at.gt.' + asOfDateStr);
+          const relatedJEs = await batchedIn<any>(
+            (chunk) =>
+              supabase
+                .from('journal_entries')
+                .select('id, source_id, source_type')
+                .in('source_type', ['bill', 'bill_payment'])
+                .in('source_id', chunk)
+                .lte('entry_date', asOfDateStr)
+                .or('reversed_at.is.null,reversed_at.gt.' + asOfDateStr),
+            billIds
+          );
 
           const jeIds = (relatedJEs || []).map((j: any) => j.id);
           const jeToBill = new Map<string, string>();
           (relatedJEs || []).forEach((j: any) => jeToBill.set(j.id, j.source_id));
 
           if (jeIds.length > 0) {
-            const apLines = await fetchAllRows<any>(() =>
-              supabase
-                .from('journal_entry_lines')
-                .select('journal_entry_id, debit, credit')
-                .eq('account_id', accountId)
-                .in('journal_entry_id', jeIds)
+            const apLines = await batchedIn<any>(
+              (chunk) =>
+                supabase
+                  .from('journal_entry_lines')
+                  .select('journal_entry_id, debit, credit')
+                  .eq('account_id', accountId)
+                  .in('journal_entry_id', chunk),
+              jeIds
             );
+
 
             const billCreditCents = new Map<string, number>();
             const billDebitCents = new Map<string, number>();
