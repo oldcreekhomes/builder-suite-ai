@@ -211,22 +211,27 @@ export function AccountDetailDialog({
       let checksMap = new Map();
       
       if (checkIds.length > 0) {
-        const { data: checksData } = await supabase
-          .from('checks')
-          .select(`
-            id, 
-            memo, 
-            pay_to, 
-            check_number,
-            reconciled,
-            reconciliation_id,
-            reconciliation_date,
-            check_lines(memo, line_number, account_id, cost_code_id)
-          `)
-          .eq('is_reversal', false)
-          .is('reversed_at', null)
-          .neq('status', 'reversed')
-          .in('id', checkIds);
+        const checksData = await batchedIn<any>(
+          (chunk) =>
+            supabase
+              .from('checks')
+              .select(`
+                id, 
+                memo, 
+                pay_to, 
+                check_number,
+                reconciled,
+                reconciliation_id,
+                reconciliation_date,
+                check_lines(memo, line_number, account_id, cost_code_id)
+              `)
+              .eq('is_reversal', false)
+              .is('reversed_at', null)
+              .neq('status', 'reversed')
+              .in('id', chunk),
+          checkIds
+        );
+
         
         // Get unique vendor IDs (UUIDs) to fetch company names
         const vendorIds = (checksData || [])
