@@ -275,22 +275,27 @@ export function AccountDetailDialog({
       let depositsMap = new Map();
       
       if (depositIds.length > 0) {
-        const { data: depositsData } = await supabase
-          .from('deposits')
-          .select(`
-            id, 
-            memo,
-            bank_account_id,
-            company_id,
-            reconciled,
-            reconciliation_id,
-            reconciliation_date,
-            deposit_lines(memo, line_number, account_id),
-            companies(company_name)
-          `)
-          .eq('is_reversal', false)
-          .is('reversed_at', null)
-          .in('id', depositIds);
+        const depositsData = await batchedIn<any>(
+          (chunk) =>
+            supabase
+              .from('deposits')
+              .select(`
+                id, 
+                memo,
+                bank_account_id,
+                company_id,
+                reconciled,
+                reconciliation_id,
+                reconciliation_date,
+                deposit_lines(memo, line_number, account_id),
+                companies(company_name)
+              `)
+              .eq('is_reversal', false)
+              .is('reversed_at', null)
+              .in('id', chunk),
+          depositIds
+        );
+
         
         depositsData?.forEach((deposit: any) => {
           // Received From is the deposit memo, with company_name as fallback
