@@ -22,6 +22,7 @@ interface Employee {
   avatar_url: string | null;
   role: string;
   confirmed: boolean;
+  access_revoked: boolean;
   created_at: string;
   home_builder_id: string | null;
   updated_at: string;
