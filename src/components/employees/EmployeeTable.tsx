@@ -110,6 +110,42 @@ export function EmployeeTable() {
     },
   });
 
+  const revokeAccessMutation = useMutation({
+    mutationFn: async (employeeId: string) => {
+      const { data, error } = await supabase.functions.invoke('revoke-employee-access', {
+        body: { employeeId },
+      });
+      if (error) throw new Error(error.message || 'Failed to revoke access.');
+      if (data?.error) throw new Error(data.error);
+      if (!data?.success) throw new Error('Failed to revoke access');
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['employees'] });
+      toast({ title: "Access revoked", description: "The employee has been signed out everywhere and can no longer log in." });
+    },
+    onError: (error: Error) => {
+      toast({ title: "Error revoking access", description: error.message, variant: "destructive" });
+    },
+  });
+
+  const restoreAccessMutation = useMutation({
+    mutationFn: async (employeeId: string) => {
+      const { data, error } = await supabase.functions.invoke('restore-employee-access', {
+        body: { employeeId },
+      });
+      if (error) throw new Error(error.message || 'Failed to restore access.');
+      if (data?.error) throw new Error(data.error);
+      if (!data?.success) throw new Error('Failed to restore access');
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['employees'] });
+      toast({ title: "Access restored", description: "The employee can log in again." });
+    },
+    onError: (error: Error) => {
+      toast({ title: "Error restoring access", description: error.message, variant: "destructive" });
+    },
+  });
+
   const getInitials = (firstName: string | null, lastName: string | null) => {
     const first = firstName?.[0] || '';
     const last = lastName?.[0] || '';
