@@ -140,6 +140,7 @@ export function TableRowActions({ actions, disabled, lockedReason }: TableRowAct
         description={confirmAction?.confirmDescription || "This action cannot be undone."}
         onConfirm={handleConfirm}
         isLoading={confirmAction?.isLoading || false}
+        confirmLabel={confirmAction?.confirmLabel}
       />
     </>
   );
