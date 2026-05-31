@@ -23,6 +23,7 @@ export interface TableAction {
   requiresConfirmation?: boolean;
   confirmTitle?: string;
   confirmDescription?: string;
+  confirmLabel?: string;
   disabled?: boolean;
   isLoading?: boolean;
   hidden?: boolean;
@@ -139,6 +140,7 @@ export function TableRowActions({ actions, disabled, lockedReason }: TableRowAct
         description={confirmAction?.confirmDescription || "This action cannot be undone."}
         onConfirm={handleConfirm}
         isLoading={confirmAction?.isLoading || false}
+        confirmLabel={confirmAction?.confirmLabel}
       />
     </>
   );
