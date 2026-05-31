@@ -1,29 +1,65 @@
-## Diagnosis
+## Goal
+Off-board Danny Sheehan immediately (kill all sessions now, block future logins) while keeping his row in Employee Management with a **Revoked** status badge so he can be reactivated in one click if rehired. Place the new **Revoke Access** menu item as a destructive (red) action **below Delete** in the row action menu, so it's the most prominent off-boarding option.
 
-Drilling into 1010 Atlantic Union Bank on the Oceanwatch Balance Sheet shows "No transactions found" even though the Balance Sheet itself reports $87,423.67. The Balance Sheet aggregates raw journal lines (which return fine), but the Account Detail dialog runs a separate enrichment query that's silently failing.
+## Changes
 
-For Oceanwatch's bank register, the dialog needs to fetch 373 unique bills via `.in('id', billIds)` in `AccountDetailDialog.tsx`. That generates a request URL over **10KB**, exceeding Supabase/PostgREST's ~8KB URL limit. The request returns a 400, `billsMap` ends up empty, and the defensive filter (lines 578–591) then drops every `bill` and `bill_payment` line — which is virtually all of this account's activity (396 of ~566 lines). Result: the dialog appears empty.
+### 1. Add `access_revoked` boolean column to `public.users` (default `false`)
+Cleanly distinguishes three states in the Employees table:
+- `confirmed = true` and `access_revoked = false` → **Active**
+- `confirmed = false` and `access_revoked = false` → **Pending Invitation** (existing behavior)
+- `access_revoked = true` → **Revoked**
 
-This matches the project's known rule (`mem://architecture/supabase-query-limitations-and-batching`): any `.in()` over ~200 UUIDs must use `batchedIn` from `src/lib/supabasePaginate.ts`. Account Detail was never updated to follow that rule, so it breaks on busy accounts.
+We don't reuse `confirmed = false` for revoked because that already means "invited but hasn't accepted." Mixing them would mislabel pending invites as fired employees.
 
-## Fix
+### 2. New edge function `revoke-employee-access`
+Mirrors `delete-employee`'s auth checks (caller must be `owner`, target must belong to caller's company, target cannot be an owner, no self-revoke), then in this order:
 
-In `src/components/accounting/AccountDetailDialog.tsx`, replace direct `.in()` calls that take potentially large UUID arrays with `batchedIn` (batch size 200):
+1. **Ban the auth user permanently** — `supabase.auth.admin.updateUserById(employeeId, { ban_duration: '876000h' })`. Blocks all future logins and refresh-token rotation.
+2. **Kill every active session immediately** — `supabase.auth.admin.signOut(employeeId, 'global')`. Invalidates every refresh token on every device right now. Combined with the ban, Danny's open tabs get a 401 on the next API call and bounce to login; he can't sign back in.
+3. **Mark the row** — set `public.users.access_revoked = true`. Leaves `confirmed` untouched so we never lose the original invite state.
+4. **Recalculate Stripe seat count** — same logic as `delete-employee` (1 + remaining employees where `access_revoked = false`), push new quantity to the subscription.
 
-1. **Bills fetch** (~line 343–360, `bills` table by `billIds`) — the primary offender.
-2. **Related JE lookup for "paid as of" calculation** (~line 370–376, `journal_entries` filtered by `source_id in billIds`) and its downstream `journal_entry_lines` lookup keyed by `jeIds` (~line 383–389).
-3. **Bill-lines fetch for consolidated payments** (~line 558, `bill_lines` by `allBillIdsInPayments`).
-4. **Defensive batching for `checks`, `deposits`, `credit_cards`, and `bill_payment_allocations`** — these are smaller today but use the same pattern and can overflow on other active projects. Convert to `batchedIn` for consistency.
-5. Leave small lookups (`vendorIds`, `costCodeIds`, `accountIds`) as-is unless they already approach 200; wrap them with `batchedIn` only when they aggregate from the bills set.
+Leaves his `public.users` row, `user_roles`, `created_by`/`updated_by` stamps, uploaded files, bills, POs, JEs, messages, etc. completely intact.
 
-Each `.in()` becomes a `batchedIn(chunk => baseQuery.in('col', chunk), ids)` call, preserving every other filter on the original query.
+### 3. New edge function `restore-employee-access`
+The "rehire" flow. Same authorization checks, then:
+1. `supabase.auth.admin.updateUserById(employeeId, { ban_duration: 'none' })` — lifts the ban
+2. `public.users.access_revoked = false`
+3. Recalculate Stripe seat count (+1)
+
+Danny can immediately log in again with his original password and reappears in every picker.
+
+### 4. UI updates in `src/components/employees/EmployeeTable.tsx`
+- **Status badge** logic:
+  - `access_revoked` → red `destructive` badge labeled **Revoked**
+  - else `confirmed` → existing **Active** badge
+  - else → existing **Pending Invitation** badge
+- **Row action menu** order (owner only, top → bottom):
+  1. View as User (existing — hidden on revoked rows)
+  2. Edit (existing)
+  3. Delete (existing destructive)
+  4. **Revoke Access** — destructive (red), placed directly **below Delete** per the screenshot, with confirmation dialog: "Danny will be signed out of every device immediately and unable to log in again. All historical data is preserved." Hidden when the row is already revoked.
+  5. **Make Active** — only shown when `access_revoked = true`; calls `restore-employee-access`. Replaces Revoke Access in the menu for revoked rows.
+
+### 5. Filter sweep — hide revoked employees from operational surfaces
+Update every place that filters `confirmed = true` on `public.users` to also exclude `access_revoked = true`:
+- `src/hooks/useCompanyUsers.ts` (owner branch + internal-user branch)
+- `src/hooks/useProjectResources.ts`
+- `src/components/files/FolderAccessModal.tsx` company-employees query
+- Any other employee pickers / chat-roster queries that surface employees by `home_builder_id`
+
+The Employees settings table is the only place that intentionally shows revoked rows.
+
+## What stays untouched
+- All accounting data created or stamped by Danny.
+- His `user_roles` row, notification preferences, folder-access grants, audit history.
+- The existing `delete-employee` flow — kept for true purges.
 
 ## Verification
-
-- Reopen 1010 Atlantic Union Bank on Oceanwatch Balance Sheet → drill-down shows the full register; running balance ties to $87,423.67.
-- Spot-check 1430 WIP – Direct Construction Costs (also pictured) → transactions populate.
-- Confirm no console/network 400s from `/rest/v1/bills` and friends.
-
-## Out of scope
-
-No schema changes. No changes to Balance Sheet aggregation, "Hide Paid" logic, or consolidated-payment math — only the fetch shape changes.
+1. Open Danny's row action menu → see Delete (red) and **Revoke Access** (red) directly underneath.
+2. Click **Revoke Access** → confirm dialog → within seconds his open browser tab gets a 401 and bounces to login; fresh login returns banned error.
+3. Employees table still lists Danny with a red **Revoked** badge; the menu now shows **Make Active** instead of Revoke Access.
+4. Open a bill he created → his name still renders in Created By.
+5. Employee pickers on PO, chat roster, Folder Access — Danny no longer appears.
+6. Stripe seat count decremented by 1.
+7. Click **Make Active** → ban lifted, badge flips to **Active**, he can log in, reappears in pickers, Stripe seat count goes back up by 1.
