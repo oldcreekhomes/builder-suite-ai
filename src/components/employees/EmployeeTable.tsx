@@ -153,11 +153,13 @@ export function EmployeeTable() {
   };
 
   const getStatusBadge = (employee: Employee) => {
+    if (employee.access_revoked) {
+      return <Badge variant="destructive">Revoked</Badge>;
+    }
     if (employee.confirmed) {
       return <Badge variant="secondary">Active</Badge>;
-    } else {
-      return <Badge variant="outline">Pending Invitation</Badge>;
     }
+    return <Badge variant="outline">Pending Invitation</Badge>;
   };
 
   const handleEditEmployee = (employee: Employee) => {
