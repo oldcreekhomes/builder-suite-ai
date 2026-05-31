@@ -6111,6 +6111,7 @@ export type Database = {
       }
       users: {
         Row: {
+          access_revoked: boolean
           avatar_url: string | null
           company_name: string | null
           confirmed: boolean
@@ -6132,6 +6133,7 @@ export type Database = {
           user_type: string | null
         }
         Insert: {
+          access_revoked?: boolean
           avatar_url?: string | null
           company_name?: string | null
           confirmed?: boolean
@@ -6153,6 +6155,7 @@ export type Database = {
           user_type?: string | null
         }
         Update: {
+          access_revoked?: boolean
           avatar_url?: string | null
           company_name?: string | null
           confirmed?: boolean

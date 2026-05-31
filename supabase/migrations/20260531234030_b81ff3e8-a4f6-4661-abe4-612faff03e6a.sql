@@ -1,0 +1,2 @@
+ALTER TABLE public.users ADD COLUMN IF NOT EXISTS access_revoked boolean NOT NULL DEFAULT false;
+CREATE INDEX IF NOT EXISTS idx_users_access_revoked ON public.users(access_revoked) WHERE access_revoked = true;
