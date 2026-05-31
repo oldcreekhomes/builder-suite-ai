@@ -23,6 +23,7 @@ export interface TableAction {
   requiresConfirmation?: boolean;
   confirmTitle?: string;
   confirmDescription?: string;
+  confirmLabel?: string;
   disabled?: boolean;
   isLoading?: boolean;
   hidden?: boolean;
