@@ -22,6 +22,7 @@ interface Employee {
   avatar_url: string | null;
   role: string;
   confirmed: boolean;
+  access_revoked: boolean;
   created_at: string;
   home_builder_id: string | null;
   updated_at: string;
@@ -109,6 +110,42 @@ export function EmployeeTable() {
     },
   });
 
+  const revokeAccessMutation = useMutation({
+    mutationFn: async (employeeId: string) => {
+      const { data, error } = await supabase.functions.invoke('revoke-employee-access', {
+        body: { employeeId },
+      });
+      if (error) throw new Error(error.message || 'Failed to revoke access.');
+      if (data?.error) throw new Error(data.error);
+      if (!data?.success) throw new Error('Failed to revoke access');
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['employees'] });
+      toast({ title: "Access revoked", description: "The employee has been signed out everywhere and can no longer log in." });
+    },
+    onError: (error: Error) => {
+      toast({ title: "Error revoking access", description: error.message, variant: "destructive" });
+    },
+  });
+
+  const restoreAccessMutation = useMutation({
+    mutationFn: async (employeeId: string) => {
+      const { data, error } = await supabase.functions.invoke('restore-employee-access', {
+        body: { employeeId },
+      });
+      if (error) throw new Error(error.message || 'Failed to restore access.');
+      if (data?.error) throw new Error(data.error);
+      if (!data?.success) throw new Error('Failed to restore access');
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['employees'] });
+      toast({ title: "Access restored", description: "The employee can log in again." });
+    },
+    onError: (error: Error) => {
+      toast({ title: "Error restoring access", description: error.message, variant: "destructive" });
+    },
+  });
+
   const getInitials = (firstName: string | null, lastName: string | null) => {
     const first = firstName?.[0] || '';
     const last = lastName?.[0] || '';
@@ -116,11 +153,13 @@ export function EmployeeTable() {
   };
 
   const getStatusBadge = (employee: Employee) => {
+    if (employee.access_revoked) {
+      return <Badge variant="destructive">Revoked</Badge>;
+    }
     if (employee.confirmed) {
       return <Badge variant="secondary">Active</Badge>;
-    } else {
-      return <Badge variant="outline">Pending Invitation</Badge>;
     }
+    return <Badge variant="outline">Pending Invitation</Badge>;
   };
 
   const handleEditEmployee = (employee: Employee) => {
@@ -215,10 +254,13 @@ export function EmployeeTable() {
                 <TableCell className="text-center">
                   <div className="flex justify-center">
                     <TableRowActions actions={[
-                      { label: "View as User", onClick: () => handleViewAsUser(employee), hidden: !isOwner, disabled: !employee.confirmed || employee.id === realUser?.id },
+                      { label: "View as User", onClick: () => handleViewAsUser(employee), hidden: !isOwner || employee.access_revoked, disabled: !employee.confirmed || employee.id === realUser?.id },
                       { label: "Edit", onClick: () => handleEditEmployee(employee) },
                       { label: "Delete", onClick: () => deleteEmployeeMutation.mutate(employee.id), variant: "destructive", requiresConfirmation: true, confirmTitle: "Delete Employee", confirmDescription: `Are you sure you want to delete ${employee.first_name} ${employee.last_name}? This action cannot be undone.`, isLoading: deleteEmployeeMutation.isPending, hidden: !isOwner || employee.id === user?.id },
+                      { label: "Revoke Access", onClick: () => revokeAccessMutation.mutate(employee.id), variant: "destructive", requiresConfirmation: true, confirmTitle: "Revoke Access", confirmDescription: `${employee.first_name} ${employee.last_name} will be signed out of every device immediately and unable to log in again. All historical data is preserved. You can restore access later if needed.`, isLoading: revokeAccessMutation.isPending, hidden: !isOwner || employee.id === user?.id || employee.access_revoked },
+                      { label: "Make Active", onClick: () => restoreAccessMutation.mutate(employee.id), isLoading: restoreAccessMutation.isPending, hidden: !isOwner || !employee.access_revoked },
                     ]} />
+
                   </div>
                 </TableCell>
               </TableRow>

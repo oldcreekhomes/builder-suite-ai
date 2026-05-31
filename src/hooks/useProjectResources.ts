@@ -69,7 +69,8 @@ export const useProjectResources = (projectId?: string) => {
         .from('users')
         .select('id, first_name, last_name, email, phone_number, role')
         .eq('company_name', companyName)
-        .eq('confirmed', true);
+        .eq('confirmed', true)
+          .eq('access_revoked', false);
 
       // Add users as internal resources
       if (companyUsers) {

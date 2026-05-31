@@ -56,7 +56,8 @@ export const useCompanyUsers = () => {
           .from('users')
           .select('*')
           .eq('home_builder_id', currentUser.user.id)
-          .eq('confirmed', true);
+          .eq('confirmed', true)
+          .eq('access_revoked', false);
         
         // Include the owner (current user) and all employees
         allUsers = [
@@ -98,7 +99,8 @@ export const useCompanyUsers = () => {
           .from('users')
           .select('*')
           .eq('home_builder_id', currentUserProfile.home_builder_id)
-          .eq('confirmed', true);
+          .eq('confirmed', true)
+          .eq('access_revoked', false);
 
         console.log('Employees query result:', { employees, employeesError });
 

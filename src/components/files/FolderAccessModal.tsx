@@ -58,6 +58,7 @@ export function FolderAccessModal({
         .select('id, first_name, last_name, email, role')
         .eq('home_builder_id', ownerId)
         .eq('confirmed', true)
+          .eq('access_revoked', false)
         .neq('id', user.id);
 
       if (error) throw error;

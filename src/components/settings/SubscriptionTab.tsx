@@ -41,7 +41,8 @@ export function SubscriptionTab() {
         .from("users")
         .select("id", { count: "exact", head: true })
         .eq("home_builder_id", ownerId)
-        .eq("confirmed", true);
+        .eq("confirmed", true)
+          .eq("access_revoked", false);
       return 1 + (count || 0); // owner + employees
     },
     enabled: !!ownerId,
