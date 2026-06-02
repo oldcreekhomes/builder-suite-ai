@@ -6,7 +6,7 @@ import { Eye, Lock, Unlock, AlertTriangle } from 'lucide-react';
 import { BudgetDetailsModal } from './BudgetDetailsModal';
 import { BudgetSourceBadge } from './BudgetSourceBadge';
 import { useBudgetSubcategories } from '@/hooks/useBudgetSubcategories';
-import { useHistoricalActualCosts } from '@/hooks/useHistoricalActualCosts';
+// useHistoricalActualCosts no longer used per-row; page-level map drives Actual Cost
 import { useBudgetWarnings } from '@/hooks/useBudgetWarnings';
 import { calculateBudgetItemTotal } from '@/utils/budgetUtils';
 import type { Tables } from '@/integrations/supabase/types';
@@ -73,18 +73,12 @@ export function BudgetTableRow({
   const [manualOverrideEnabled, setManualOverrideEnabled] = useState(false);
   
   const costCode = item.cost_codes as CostCode;
-  
-  // Fetch historical costs if this item uses historical source (lot-aware)
-  const shouldFetchHistorical = item.budget_source === 'historical' && !!item.historical_project_id;
-  const { data: historicalData } = useHistoricalActualCosts(
-    shouldFetchHistorical ? item.historical_project_id : null,
-    shouldFetchHistorical ? item.historical_lot_id : null
-  );
-  
-  // Extract historical cost for this specific cost code
-  const historicalCostForItem = shouldFetchHistorical && costCode?.code 
-    ? (historicalData?.mapByCode[costCode.code] || 0)
-    : undefined;
+
+  // Historical Actual Cost is driven exclusively by the page-level Historical
+  // dropdown selection (historicalActualCosts prop). Per-row historical_project_id/
+  // historical_lot_id are only used for seeding budget unit_price, never for the
+  // Actual Cost column display.
+  const historicalCostForItem = undefined;
   
   // Use subcategories hook to get calculated total if cost code has subcategories
   const hasSubcategories = costCode?.has_subcategories || false;
@@ -120,9 +114,11 @@ export function BudgetTableRow({
       ? subcategoryTotal 
       : parseFloat(unitPrice) || 0;
     
-  const historicalActual = (item.budget_source === 'historical' && historicalCostForItem !== undefined)
-    ? historicalCostForItem
-    : (costCode?.code ? (historicalActualCosts[costCode.code] ?? null) : null);
+  // Actual Cost column: read strictly from the page-level Historical dropdown's
+  // hardcoded actuals map. No per-row override.
+  const historicalActual = costCode?.code
+    ? (historicalActualCosts[costCode.code] ?? null)
+    : null;
   
   const calculateVariance = () => {
     // Don't show variance if no historical data available
