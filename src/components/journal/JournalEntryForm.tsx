@@ -837,6 +837,7 @@ export const JournalEntryForm = ({ projectId, activeTab: parentActiveTab }: Jour
                                 console.debug('Account selected:', { id: account.id, display: `${account.code} - ${account.name}` });
                               }}
                               placeholder="Select account"
+                              projectId={projectId}
                               className="w-full"
                             />
                           </td>

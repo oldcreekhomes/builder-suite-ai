@@ -1,7 +1,9 @@
 import { useState, useEffect } from "react";
+import { useQuery } from "@tanstack/react-query";
 import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
 import { useAccounts } from "@/hooks/useAccounts";
+import { supabase } from "@/integrations/supabase/client";
 
 interface AccountSearchInputInlineProps {
   value: string;
@@ -10,6 +12,7 @@ interface AccountSearchInputInlineProps {
   placeholder?: string;
   className?: string;
   accountType?: string;
+  projectId?: string;
 }
 
 export function AccountSearchInputInline({ 
@@ -18,25 +21,41 @@ export function AccountSearchInputInline({
   onAccountSelect,
   placeholder = "Account",
   className,
-  accountType
+  accountType,
+  projectId,
 }: AccountSearchInputInlineProps) {
   const [searchQuery, setSearchQuery] = useState(value);
   const [showResults, setShowResults] = useState(false);
   const { accounts, isLoading } = useAccounts();
 
+  const { data: excludedIds } = useQuery({
+    queryKey: ['project-account-exclusions', projectId],
+    enabled: !!projectId,
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('project_account_exclusions')
+        .select('account_id')
+        .eq('project_id', projectId!);
+      if (error) throw error;
+      return new Set((data ?? []).map((r: { account_id: string }) => r.account_id));
+    },
+  });
+
   useEffect(() => {
     setSearchQuery(value);
   }, [value]);
 
-  // Filter accounts by type and search query
+  // Filter accounts by type, exclusions, and search query
   const filteredAccounts = searchQuery.trim().length >= 1 
     ? (accounts || [])
         .filter(acc => !accountType || acc.type === accountType)
+        .filter(acc => !excludedIds || !excludedIds.has(acc.id))
         .filter(acc => 
           acc.code.toLowerCase().includes(searchQuery.toLowerCase()) ||
           acc.name.toLowerCase().includes(searchQuery.toLowerCase())
         )
     : [];
+
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const newValue = e.target.value;

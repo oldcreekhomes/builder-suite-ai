@@ -1,8 +1,10 @@
 import { useState, useEffect, useRef } from "react";
 import { createPortal } from "react-dom";
+import { useQuery } from "@tanstack/react-query";
 import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
 import { useAccounts } from "@/hooks/useAccounts";
+import { supabase } from "@/integrations/supabase/client";
 
 interface AccountSearchInputProps {
   value: string;
@@ -13,6 +15,7 @@ interface AccountSearchInputProps {
   accountType?: 'expense' | 'asset' | 'liability' | 'equity' | 'revenue';
   bankAccountsOnly?: boolean;
   disabled?: boolean;
+  projectId?: string;
 }
 
 export function AccountSearchInput({ 
@@ -23,13 +26,28 @@ export function AccountSearchInput({
   className,
   accountType,
   bankAccountsOnly = false,
-  disabled = false
+  disabled = false,
+  projectId,
 }: AccountSearchInputProps) {
   const [searchQuery, setSearchQuery] = useState(value);
   const [showResults, setShowResults] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
   const justSelectedRef = useRef(false);
   const { accounts, isLoading } = useAccounts();
+
+  const { data: excludedIds } = useQuery({
+    queryKey: ['project-account-exclusions', projectId],
+    enabled: !!projectId,
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('project_account_exclusions')
+        .select('account_id')
+        .eq('project_id', projectId!);
+      if (error) throw error;
+      return new Set((data ?? []).map((r: { account_id: string }) => r.account_id));
+    },
+  });
+
   const [mounted, setMounted] = useState(false);
   const [menuPos, setMenuPos] = useState({ top: 0, left: 0, width: 0 });
 
@@ -65,22 +83,30 @@ export function AccountSearchInput({
   // Filter by account type if specified
   const typeFilteredAccounts = accounts.filter(account => {
     if (accountType && account.type !== accountType) return false;
-    
-    // If bankAccountsOnly is true, filter to show only actual bank accounts
+
+    // Hide accounts excluded from this project's Chart of Accounts
+    if (excludedIds && excludedIds.has(account.id)) return false;
+
+    // If bankAccountsOnly is true, restrict to bank/cash-type accounts.
+    // Detection: code in the cash/bank range 1000-1039, or common keywords.
     if (bankAccountsOnly) {
-      const isBankAccount = 
-        account.code === '1010' || 
-        account.code === '1030' ||
-        account.name.toLowerCase().includes('bank') ||
-        account.name.toLowerCase().includes('checking') ||
-        account.name.toLowerCase().includes('savings') ||
-        account.name.toLowerCase().includes('clearing');
-      
-      return isBankAccount;
+      const code = (account.code ?? '').trim();
+      const codeNum = Number(code);
+      const inCashRange = Number.isFinite(codeNum) && codeNum >= 1000 && codeNum <= 1039;
+      const name = account.name.toLowerCase();
+      const keywordMatch =
+        name.includes('bank') ||
+        name.includes('checking') ||
+        name.includes('savings') ||
+        name.includes('clearing') ||
+        name.includes('cash') ||
+        name.includes('money market');
+      if (!inCashRange && !keywordMatch) return false;
     }
-    
+
     return true;
   });
+
 
   // Show all accounts when empty, filter when user types
   const filteredAccounts = searchQuery.trim().length === 0

@@ -1184,6 +1184,7 @@ export function WriteChecksContent({ projectId, recurringTemplate, onClearTempla
                   placeholder="Select bank account..."
                   accountType="asset"
                   bankAccountsOnly={true}
+                  projectId={projectId}
                   className="h-10"
                 />
               </div>
@@ -1258,6 +1259,7 @@ export function WriteChecksContent({ projectId, recurringTemplate, onClearTempla
                             updateExpenseRow(row.id, "account", `${account.code} - ${account.name}`);
                           }}
                           placeholder="Select account..."
+                          projectId={projectId}
                           className={cn("h-10", rowErrors[row.id] && "border-red-500 border-2")}
                         />
                       </div>
