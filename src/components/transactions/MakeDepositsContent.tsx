@@ -765,7 +765,7 @@ export function MakeDepositsContent({ projectId, activeTab: parentActiveTab }: M
         });
       } else {
         // Save & Close — clear and stay on the same tab
-        resetForm?.();
+        createNewDeposit();
       }
     } catch (error) {
       console.error('Error saving deposit:', error);
