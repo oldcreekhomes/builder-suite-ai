@@ -1733,11 +1733,21 @@ export function BillsApprovalTable({ status, projectId, projectIds, showProjectC
                                     <Tooltip>
                                       <TooltipTrigger asChild>
                                         <div className="flex items-center gap-1">
-                                          <span className={cn("block truncate", alloc.isCredit && "text-green-600 font-medium")}>
-                                            {alloc.isCredit
-                                              ? `(${formatCurrencyValue(Math.abs(alloc.amount))})`
-                                              : formatCurrencyValue(alloc.amount)}
-                                          </span>
+                                          {(() => {
+                                            // For credits, show the credit memo total in green parens.
+                                            // For bills, show the BILL's full amount (not the allocation amount)
+                                            // so users see the true invoice value. The allocation is shown in the tooltip.
+                                            const displayAmount = alloc.isCredit
+                                              ? Math.abs(alloc.billTotal || alloc.amount)
+                                              : (alloc.billTotal || alloc.amount);
+                                            return (
+                                              <span className={cn("block truncate", alloc.isCredit && "text-green-600 font-medium")}>
+                                                {alloc.isCredit
+                                                  ? `(${formatCurrencyValue(displayAmount)})`
+                                                  : formatCurrencyValue(displayAmount)}
+                                              </span>
+                                            );
+                                          })()}
                                           {alloc.isCredit && (
                                             <Badge variant="outline" className="text-green-600 border-green-600 text-[10px] px-1">
                                               CR
@@ -1746,9 +1756,20 @@ export function BillsApprovalTable({ status, projectId, projectIds, showProjectC
                                         </div>
                                       </TooltipTrigger>
                                       <TooltipContent>
-                                        <p>{alloc.isCredit
-                                          ? `(${formatCurrencyValue(Math.abs(alloc.amount))})`
-                                          : formatCurrencyValue(alloc.amount)}</p>
+                                        {alloc.isCredit ? (
+                                          <p>Credit Memo: ({formatCurrencyValue(Math.abs(alloc.billTotal || alloc.amount))})</p>
+                                        ) : (
+                                          <div className="space-y-1 text-xs">
+                                            <div className="flex justify-between gap-4">
+                                              <span>Bill Amount:</span>
+                                              <span>{formatCurrencyValue(alloc.billTotal || alloc.amount)}</span>
+                                            </div>
+                                            <div className="flex justify-between gap-4">
+                                              <span>Applied this payment:</span>
+                                              <span>{formatCurrencyValue(alloc.amount)}</span>
+                                            </div>
+                                          </div>
+                                        )}
                                       </TooltipContent>
                                     </Tooltip>
                                   </TooltipProvider>
