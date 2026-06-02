@@ -1531,9 +1531,9 @@ export function BillsApprovalTable({ status, projectId, projectIds, showProjectC
                 });
                 paymentGroupsMap.forEach((group, paymentId) => {
                   if (group.billIds.length === 0) return;
-                  const primaries = new Set(group.billIds.map(b => billPrimaryPayment.get(b) || paymentId));
+                  const primaries = new Set<string>(group.billIds.map(b => billPrimaryPayment.get(b) || paymentId));
                   if (primaries.size !== 1) return;
-                  const primaryId = [...primaries][0];
+                  const primaryId: string = [...primaries][0];
                   if (primaryId === paymentId) return;
                   const primary = mergedGroupsMap.get(primaryId)!;
                   for (const alloc of group.allocations) {
