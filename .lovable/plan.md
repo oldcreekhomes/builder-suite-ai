@@ -1,52 +1,30 @@
-## Goal
+## Problem
 
-Backfill historical actuals for **6330 Stevenson Avenue – Lot 506** (OCH at Edgewood Towns, project `d9e400a0…`, lot `5d28a702…`) so it appears in the Budget page's **Historical** dropdown alongside Lots 501 and 507.
+Previous migration rolled all 4010.x PDF rows into parent code 4010, dumping $6,462.53 into "Parking". The owner's chart of accounts actually has separate codes for each sub-category, so each 4010.x line should map to its real cost code.
 
-## How historical projects work
+## PDF column 2 → target cost code
 
-A lot shows up in the Historical dropdown when there is at least one `project_budgets` row for that `(project_id, lot_id)` pair with a non-zero `actual_amount` (see `src/utils/fetchHistoricalActualCosts.ts` and the existing "Historical Viz" memory). Lot 501 has 112 such rows; Lot 506 currently has 0.
+| PDF row | Amount | Target code |
+|---|---|---|
+| 4010.1 Parking | 92.34 | 4010 Parking |
+| 4010.2 Office Supplies | 130.07 | 4040 Office Supplies |
+| 4010.3 Office | 4.29 | 4015 Office |
+| 4010.4 Project Manager | 6,129.93 | 4020 Project Manager |
+| 4010.5 Accounting | 97.56 | 4025 Accounting |
+| 4010.6 Other | 8.34 | 4030 Other |
+| **Total** | **6,462.53** | (matches PDF) |
 
-The existing rows for Lot 501 use this exact shape, which we'll mirror:
+## Fix
 
-```
-project_id        = d9e400a0-f9b9-40c6-8b8e-183341e508f3   (6330 Stevenson Avenue)
-lot_id            = 5d28a702-82fa-4416-8d86-d47c24f8a566   (Lot 506)
-cost_code_id      = <lookup by code under owner 2653aba8…>
-actual_amount     = <Act. Cost from PDF>
-quantity          = 1
-unit_price        = 0
-budget_source     = 'manual'
-```
+Single data migration on `project_budgets` for project `d9e400a0…` / lot `5d28a702…`. Codes 4020/4030/4040 already hold non-4010 PDF amounts; the 4010.x value must be **added** to those existing actuals, not overwrite them.
 
-## Plan
+Final `actual_amount` after fix:
 
-### One migration: insert Lot 506 actuals from `506.pdf`
+- 4010 Parking → 92.34 (was 6,462.53)
+- 4015 Office → 4.29 (insert)
+- 4020 Project Manager → 68.21 + 6,129.93 = 6,198.14
+- 4025 Accounting → 97.56 (insert)
+- 4030 Other → 115.98 + 8.34 = 124.32
+- 4040 Office Supplies → 319.61 + 130.07 = 449.68
 
-The migration will:
-
-1. Use a single CTE that maps every cost-code string from the PDF's "Act. Cost" column to its dollar value.
-2. Resolve each code via `cost_codes` filtered by `owner_id = 2653aba8-d154-4301-99bf-77d559492e19`.
-3. `INSERT INTO project_budgets (...)` one row per code with the shape above, using `ON CONFLICT (project_id, cost_code_id, lot_id) DO UPDATE SET actual_amount = EXCLUDED.actual_amount, budget_source = 'manual'` so it's safely re-runnable.
-
-### Codes / amounts being loaded (from `506.pdf`, Act. Cost column)
-
-PDF total: **$713,572.02** across **~110 cost codes** spanning 1000 Land, 2000 Soft, 3000 Site, 4000 Homebuilding.
-
-A few PDF entries need clarification before I run the migration:
-
-- **4005 Back Charges – Other = $163.93** → maps to cost code `4005`
-- **4005.1 Foundation Issues = $845.34** → maps to cost code `4005.1`
-- **4010.1 … 4010.6** → mapped to those decimal sub-codes
-- **4830 Landscaping** uses Act. Cost = $6,745.60 (the budget shows $5,164.03; we use actuals)
-
-If any of those decimal-suffix codes (`4005.1`, `4010.1`–`4010.6`) don't exist in your cost-code list, the migration will fail loudly so we can either add them or roll them up to the parent before re-running.
-
-### Out of scope
-
-- No new tables, no schema changes, no UI changes.
-- Lot 501 / 507 data is untouched.
-- Lot 506's budget rows for other projects/contexts are untouched (the upsert is keyed strictly on `project_id + cost_code_id + lot_id`).
-
-### After the migration
-
-Refresh the Budget page → click the Historical dropdown → "6330 Stevenson Ave – Lot 506" will appear. Selecting it will pull the actuals into the Historical column.
+Upsert on `(project_id, cost_code_id, lot_id)` with `budget_source='manual'`, `quantity=1`, `unit_price=0`. No schema changes, no UI changes, no other lots touched.
