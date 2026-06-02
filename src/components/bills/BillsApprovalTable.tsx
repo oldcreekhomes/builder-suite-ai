@@ -1486,16 +1486,26 @@ export function BillsApprovalTable({ status, projectId, projectIds, showProjectC
                 // Build consolidated view: group bills by payment
                 const billToPaymentMap = new Map<string, string>();
                 const renderedPayments = new Set<string>();
-                
+
+                // When a bill is settled by multiple payment groups (e.g. a cash
+                // payment + a $0 credit-application), map the bill to the LARGEST
+                // payment so it renders under the cash payment row instead of
+                // the credit-application row.
+                const candidateMap = new Map<string, { paymentId: string; total: number }>();
                 paymentGroupsMap.forEach((group, paymentId) => {
-                  group.billIds.forEach(billId => billToPaymentMap.set(billId, paymentId));
-                  // Also map credit allocation bill IDs to prevent duplicate standalone rows
-                  group.allocations.forEach(alloc => {
-                    if (alloc.isCredit) {
-                      billToPaymentMap.set(alloc.billId, paymentId);
+                  const total = Math.abs(group.totalAmount || 0);
+                  const consider = (billId: string) => {
+                    const existing = candidateMap.get(billId);
+                    if (!existing || total > existing.total) {
+                      candidateMap.set(billId, { paymentId, total });
                     }
+                  };
+                  group.billIds.forEach(consider);
+                  group.allocations.forEach(alloc => {
+                    if (alloc.isCredit) consider(alloc.billId);
                   });
                 });
+                candidateMap.forEach((v, billId) => billToPaymentMap.set(billId, v.paymentId));
 
                 // Also find bills not in any payment group (standalone)
                 const rows: React.ReactNode[] = [];
