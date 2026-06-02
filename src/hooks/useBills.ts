@@ -977,11 +977,11 @@ export const useBills = () => {
         description: "Bill and related journal entries deleted successfully",
       });
     },
-    onError: (error) => {
+    onError: (error: any) => {
       console.error('Error deleting bill:', error);
       toast({
         title: "Error",
-        description: "Failed to delete bill",
+        description: error?.message || "Failed to delete bill",
         variant: "destructive",
       });
     }
