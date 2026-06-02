@@ -15,6 +15,7 @@ interface AccountSearchInputProps {
   accountType?: 'expense' | 'asset' | 'liability' | 'equity' | 'revenue';
   bankAccountsOnly?: boolean;
   disabled?: boolean;
+  projectId?: string;
 }
 
 export function AccountSearchInput({ 
@@ -25,13 +26,28 @@ export function AccountSearchInput({
   className,
   accountType,
   bankAccountsOnly = false,
-  disabled = false
+  disabled = false,
+  projectId,
 }: AccountSearchInputProps) {
   const [searchQuery, setSearchQuery] = useState(value);
   const [showResults, setShowResults] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
   const justSelectedRef = useRef(false);
   const { accounts, isLoading } = useAccounts();
+
+  const { data: excludedIds } = useQuery({
+    queryKey: ['project-account-exclusions', projectId],
+    enabled: !!projectId,
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('project_account_exclusions')
+        .select('account_id')
+        .eq('project_id', projectId!);
+      if (error) throw error;
+      return new Set((data ?? []).map((r: { account_id: string }) => r.account_id));
+    },
+  });
+
   const [mounted, setMounted] = useState(false);
   const [menuPos, setMenuPos] = useState({ top: 0, left: 0, width: 0 });
 
