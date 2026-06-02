@@ -1,16 +1,39 @@
-## Fix
+## What I found in the PDF for Lot 506
 
-Insert the two missing PDF amounts for Lot 506 using the user-specified mappings:
+The PDF uses slightly different codes than your chart of accounts, so I mapped by name (per "the words are the same"):
 
-- **4110 Pest Control $275.15** → **4300 Termite Treatment** (id `15a09918…`)
-- **4855 Warranty Purchase $882.15** → **2540 Warranty Purchase** (id `2b3e88bc…`)
+| PDF code | PDF amount | Your code | Currently in budget |
+|---|---|---|---|
+| 4020 - Drawings | $68.21 | 2180 Drawings | $200.79 (wrong) |
+| 4030 - Signage | $115.98 | 4060 Signage | $115.99 |
+| 4040 - Temporary Toilets | $319.61 | 4070 Temporary Toilets | $319.60 |
+| 4100 - Dumpsters | $1,871.78 | 4100 Dumpsters | $1,871.77 |
+| 4200 - Excavation, Backfill & Grading | $5,924.28 | 4200 Excavation | **missing** |
 
-Single data migration: upsert two rows in `project_budgets` for project `d9e400a0…` / lot `5d28a702…`, on conflict add to existing `actual_amount` (so we don't blow away any other source). Standard `quantity=1`, `unit_price=0`, `budget_source='manual'`.
+### About 4200
 
-### Resulting totals
+There is **no `project_budgets` row** for 4200 on this lot — that's why the budget column is $0. The $5,924.28 you see in **Act. Cost** is coming from posted bills/journal entries against cost code 4200 (job-cost roll-up), which is independent of `project_budgets`. The two columns don't have to match; the budget side just needs to be added.
 
-- 4000 Homebuilding total: 317,450.74 + 275.15 = **$317,725.89**
-- 2000 Soft Costs total: gains $882.15
-- Project grand total: **$713,572.02** (matches PDF)
+### Note on Drawings
 
-Note: routing 4855 → 2540 puts it under 2000 Soft Costs, so the 4000 total will not exactly equal $318,608.04 per the PDF, but the project grand total matches and the cost is correctly categorized in your chart of accounts.
+The PDF actually has **two** "Drawings" rows: `2180 - Drawings $18.47` (under Soft Costs) and `4020 - Drawings $68.21` (under Homebuilding). Your chart of accounts only has one Drawings code (2180), so both PDF amounts have to land there. Your message only mentions $68.21, so I'll need you to pick:
+
+- **Option A:** Set 2180 Drawings = **$86.68** (combine both PDF entries — total project drawings).
+- **Option B:** Set 2180 Drawings = **$68.21** (only the 4020 amount, ignore the $18.47).
+
+## Proposed data migration (Lot 506, project `691271e6…`, lot `eed5fd66…`)
+
+Update existing `project_budgets` rows:
+
+- **2180 Drawings** → unit_price = `86.68` or `68.21` (pending your choice)
+- **4060 Signage** → unit_price = `115.98`
+- **4070 Temporary Toilets** → unit_price = `319.61`
+- **4100 Dumpsters** → unit_price = `1871.78`
+
+Insert new row:
+
+- **4200 Excavation, Backfill & Grading** → quantity `1`, unit_price `5924.28`, `budget_source='manual'`
+
+All other rows untouched. Project grand total will increase by $5,924.28 (plus the Drawings correction).
+
+Please confirm Option A or B for Drawings and I'll run the migration.
