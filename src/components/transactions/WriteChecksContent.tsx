@@ -712,7 +712,6 @@ export function WriteChecksContent({ projectId, recurringTemplate, onClearTempla
         toast({ title: "Success", description: "Check created successfully" });
       }
       createNewCheck();
-      navigate(projectId ? `/project/${projectId}/accounting` : '/accounting');
     } catch (error) {
       console.error('Error creating check:', error);
       toast({
