@@ -1,32 +1,42 @@
-Got it. The "Historical" dropdown (None / 415 E Nelson / ... / 6330 Stevenson Ave - Lot 506 / Lot 507) is just a picker for a **hardcoded reference table** of actual costs per historical project+lot. Nothing about it relates to Lot 1, the current project, allocations, bills, JEs, or anything live.
 
-## Plan
+# Make Historical Subtotals a Live Calculation
 
-1. **Use the existing hardcoded historical data as-is**
-   - Source: rows in `project_budgets` belonging to the historical project + historical lot, where `actual_amount` is hardcoded.
-   - No PDF parsing. No matching. No allocation logic.
+## Goal
+The "Subtotal for 1000 / 2000 / 3000 / 4000…" rows in the Historical Costs column must be a real sum of every Historical Cost value displayed in that group (both regular budget rows and historical-only rows). Today the math is close, but it's wired through several sources and easy to drift from what's on screen. We'll make it a single, auditable sum so we can confirm nothing is missing.
 
-2. **Fix the Actual Cost column to follow the Historical selection**
-   - When the user selects `6330 Stevenson Ave - Lot 506` from the Historical dropdown, every row's Actual Cost = the hardcoded `actual_amount` for that cost code on **Lot 506 only**.
-   - When they pick Lot 507, it shows Lot 507's hardcoded actuals.
-   - When they pick `None`, Actual Cost is blank.
-   - The selection lives at the **page/budget level**, not per row. One dropdown → drives the whole Actual Cost column.
+## Changes
 
-3. **Remove the per-row historical reference confusion**
-   - Stop storing/using `historical_project_id` / `historical_lot_id` per row to drive the Actual Cost display.
-   - The dropdown selection alone determines which hardcoded set is shown.
-   - Per-row historical fields can still exist for budget *seeding* (copying values into `unit_price`), but they no longer drive the Actual column.
+### 1. `BudgetTable.tsx` — compute subtotals from displayed rows
+For each group, build the same merged row list that's already rendered (budget rows + missing-historical rows), then sum the Historical Cost shown for each:
+- Budget row historical value = `historicalActualCosts[costCode.code] ?? 0`
+- Historical-only row historical value = `row.amount`
+- Subtotal = sum of those values for the group
 
-4. **Show all cost codes from the selected historical lot**
-   - If Lot 506 has `2560 Staging`, `2580 Sales Commissions`, `2600 Loan Closing Costs`, etc., they appear in the Actual Cost column even if the current Lot 1 budget doesn't have those rows yet.
-   - Rows in the budget that have no Lot 506 actual show `-` in Actual Cost.
+Lift this into a small helper (e.g. `getGroupHistoricalSubtotal(group, items)`) so the exact same array drives both the rendered rows and the subtotal — no chance of a row being shown but not counted (or vice versa).
 
-5. **No data changes needed for Lot 506 itself**
-   - Lot 506's hardcoded values (Sediment $2,092.91, Demolition $2,257.14, Drawings $68.21, Signage $115.98, Temp Toilets $319.61, Dumpsters $1,871.78, Excavation $5,924.28, Staging, Sales Commissions, Loan Closing Costs, etc.) already exist in the database. We just need to **read them and display them** when Lot 506 is the chosen Historical reference.
+### 2. Project total = sum of group subtotals
+Replace `totalHistorical={historicalTotal}` (which comes from `useHistoricalActualCosts().total` and counts every record in the historical project, even those that aren't grouped/displayed) with the sum of the group subtotals computed in step 1. This guarantees:
 
-## Technical detail
+```text
+Project Total Historical  ==  Σ (group subtotals)  ==  Σ (every Historical Cost cell on screen)
+```
 
-- `useHistoricalActualCosts(projectId, lotId)` already returns `mapByCode` for a given historical project+lot — that's the right primitive.
-- Drive it from a single page-level "selected historical reference" state (project_id + lot_id), persisted on the current project (e.g., `projects.historical_reference_project_id` + `historical_reference_lot_id`) so the choice sticks.
-- `BudgetTableRow` reads the Actual Cost from that single `mapByCode[costCode.code]` instead of from `item.historical_project_id` / `item.historical_lot_id`.
-- No migration of historical data. Possibly one tiny migration to add the two `historical_reference_*` columns on `projects` so the dropdown selection persists.
+If those numbers differ from what the user expects, we'll immediately know a cost code is missing from the displayed groups rather than silently rolling up into the project total.
+
+### 3. Always show the computed subtotal
+`BudgetGroupTotalRow` currently renders `-` when `historicalTotal` is 0 or falsy. Show `$0.00` instead when a historical project is selected so empty groups are obvious (and not confused with "not calculated").
+
+### 4. Groups that exist only in historical
+The "historical-only groups" block (around line 689) already sums `items.reduce(...)`. Keep it, and include it in the project-total sum from step 2 so those subtotals also roll up.
+
+## Out of scope
+- No changes to the hardcoded `actual_amount` values in `project_budgets` — those remain the source of truth for Lot 506.
+- No changes to budget-side calculations, variance logic, or column visibility.
+- No schema changes.
+
+## Verification
+After the change, open Lot 1 with Historical = `6330 Stevenson Ave - Lot 506`:
+- Add up the Historical Cost cells in group 1000 by eye → must equal the "Subtotal for 1000" cell.
+- Repeat for 2000 / 3000 / 4000.
+- The four subtotals (plus any historical-only group subtotals) must equal the "Total" row's Historical column.
+- Specific spot checks the user already called out: Sediment & Erosion = $2,092.91, Demolition = $2,257.14, and Staging / Sales Commissions / Loan Closing Costs must appear as their own rows (via `missingHistoricalByGroup`) and be included in the 2000-series subtotal.

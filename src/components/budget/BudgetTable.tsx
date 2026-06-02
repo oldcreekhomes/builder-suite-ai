@@ -672,10 +672,10 @@ export function BudgetTable({ projectId, projectAddress, onHeaderActionChange, o
                         groupTotal={calculateGroupTotal(items, itemTotalsMap)}
                         historicalTotal={
                           items.reduce((sum, item) => {
-                            const costCode = item.cost_codes?.code;
-                            return sum + (costCode ? (historicalActualCosts[costCode] || 0) : 0);
-                          }, 0) + 
-                          (missingHistoricalByGroup[group]?.reduce((sum, item) => sum + item.amount, 0) || 0)
+                            const code = item.cost_codes?.code;
+                            return sum + (code ? (historicalActualCosts[code] || 0) : 0);
+                          }, 0) +
+                          ((missingHistoricalByGroup[group] || []).reduce((sum, r) => sum + (r.amount || 0), 0))
                         }
                         showVarianceAsPercentage={showVarianceAsPercentage}
                         visibleColumns={visibleColumns}
