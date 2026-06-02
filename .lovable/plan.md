@@ -1,26 +1,35 @@
-I checked the OW/ABC records and the database now has the right accounting data:
+I found the issue in the Paid tab UI display logic — the database has the correct accounting records, but the table is rendering them as two separate payment rows:
 
-- The original bill is **$30,749.66**.
-- The cash payment is present: **$28,244.90 on 04/14/26**.
-- The credit memo is present: **$2,504.76 on 05/15/26**.
-- Job Costs are correct because the journal entries are correct.
+- Cash payment record: `$28,244.90` applied to the `$30,749.66` bill
+- Credit application record: `$0.00` group containing the `$2,504.76` credit memo and the same bill
 
-The remaining issue is the **Paid tab UI grouping**, not the GL/job-cost data. A bill can now have more than one payment/allocation record, and the Paid tab is overwriting the cash payment group with the later $0 credit-application group. That is why the expanded row shows the bill as **$2,504.76** instead of showing the full bill/payment story.
+That is why the screen now shows a duplicate standalone `$28,244.90` row and a separate `$0.00` payment group. The UI needs to merge those into one paid-bill settlement display.
 
-Plan to fix:
+Plan:
 
-1. **Change Paid tab grouping logic**
-   - Stop mapping each bill to only one payment group.
-   - Allow the paid bill to appear under the correct cash payment row and prevent the later credit-only allocation from replacing it.
+1. **Replace the Paid tab grouping rule for mixed cash + credit settlements**
+   - Group paid rows by the target bill being settled, not by each `bill_payments` row when a bill has both cash and credit allocations.
+   - For OW, the `$28,244.90` cash payment and `$2,504.76` credit application will become one display group.
 
-2. **Display credit applications correctly**
-   - For payment groups with `total_amount = 0` and both a credit memo + bill allocation, label them as a credit application instead of making them look like a normal bill payment.
-   - Show the credit memo as the applied credit, not as a misleading standalone bill total.
+2. **Suppress the duplicate standalone cash row**
+   - The invoice `2006163907-001` should not render once as an individual `$28,244.90` row and again inside the credit application group.
+   - It should render once as the parent settlement group.
 
-3. **Fix the amount shown in expanded rows**
-   - For child bill rows, show the actual bill amount when appropriate and show the allocation/payment amount only as payment detail.
-   - For this case, the Paid tab should communicate: **Bill $30,749.66, Cash Paid $28,244.90, Credit Applied $2,504.76, Balance $0.00**.
+3. **Show the correct payment amount on the parent group**
+   - Parent amount should be actual cash paid: `$28,244.90`.
+   - It should not show `$0.00` just because the credit application record nets to zero.
 
-4. **Prevent recurrence in the UI**
-   - Add cent-precise helpers for paid-tab grouping so partial payments + credit applications do not overwrite each other.
-   - Keep the existing journal-entry and backfilled `bill_payments` data unchanged because it is already correct.
+4. **Show the expanded details clearly**
+   - Expanded rows should show:
+     - Bill: `$30,749.66`
+     - Credit Memo: `($2,504.76)`
+   - Tooltip/detail should show:
+     - Bill Amount: `$30,749.66`
+     - Credit Applied: `$2,504.76`
+     - Cash Paid: `$28,244.90`
+     - Balance: `$0.00`
+
+5. **Validate against the OW data**
+   - Confirm the Paid tab no longer shows two separate OW payment rows.
+   - Confirm the parent row amount is `$28,244.90`, not `$0.00`.
+   - Confirm the bill still shows fully paid and locked/read-only as expected.
