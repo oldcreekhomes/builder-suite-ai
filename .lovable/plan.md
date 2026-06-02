@@ -1,31 +1,32 @@
-I found the problem: the rows currently pulling “historical” actuals are pointed at historical **Lot 507**, not **Lot 506**. The uploaded PDF is for **Lot 506**, and the database already has the Lot 506 actuals for staging, sales commissions, loan closing costs, sediment/erosion, demolition, etc.
+Got it. The "Historical" dropdown (None / 415 E Nelson / ... / 6330 Stevenson Ave - Lot 506 / Lot 507) is just a picker for a **hardcoded reference table** of actual costs per historical project+lot. Nothing about it relates to Lot 1, the current project, allocations, bills, JEs, or anything live.
 
-Plan:
+## Plan
 
-1. Update the affected current project budget rows to use historical source **Lot 506** instead of **Lot 507**.
-   - Historical project: `d9e400a0-f9b9-40c6-8b8e-183341e508f3`
-   - Correct historical lot: `5d28a702-82fa-4416-8d86-d47c24f8a566` (`Lot 506`)
-   - Wrong historical lot currently used on copied rows: `8ae0a660-59f6-4289-9943-e7fcc0107548` (`Lot 507`)
+1. **Use the existing hardcoded historical data as-is**
+   - Source: rows in `project_budgets` belonging to the historical project + historical lot, where `actual_amount` is hardcoded.
+   - No PDF parsing. No matching. No allocation logic.
 
-2. Add/update the missing PDF rows in the current project budget for Lot 1 so they appear in the second column/source list:
-   - `2560` Staging — Est. `1,535.74`, Actual `1,544.74`
-   - `2580` Sales Commission(s) — Est./Actual `27,300.00`
-   - `2600` Loan Closing Costs — Est./Actual `3,970.00`
+2. **Fix the Actual Cost column to follow the Historical selection**
+   - When the user selects `6330 Stevenson Ave - Lot 506` from the Historical dropdown, every row's Actual Cost = the hardcoded `actual_amount` for that cost code on **Lot 506 only**.
+   - When they pick Lot 507, it shows Lot 507's hardcoded actuals.
+   - When they pick `None`, Actual Cost is blank.
+   - The selection lives at the **page/budget level**, not per row. One dropdown → drives the whole Actual Cost column.
 
-3. Correct the specific wrong PDF-matched rows:
-   - `3180` Sediment & Erosion Control — `2,092.91`
-   - `3220` Demolition — `2,257.14`
+3. **Remove the per-row historical reference confusion**
+   - Stop storing/using `historical_project_id` / `historical_lot_id` per row to drive the Actual Cost display.
+   - The dropdown selection alone determines which hardcoded set is shown.
+   - Per-row historical fields can still exist for budget *seeding* (copying values into `unit_price`), but they no longer drive the Actual column.
 
-4. Correct the homebuilding copied rows to match the PDF’s Lot 506 actuals, not Lot 507:
-   - `4020` Drawings — `68.21`
-   - `4030` Signage — `115.98`
-   - `4040` Temporary Toilets — `319.61`
-   - `4100` Dumpsters — `1,871.78`
-   - `4200` Excavation — `5,924.28`
+4. **Show all cost codes from the selected historical lot**
+   - If Lot 506 has `2560 Staging`, `2580 Sales Commissions`, `2600 Loan Closing Costs`, etc., they appear in the Actual Cost column even if the current Lot 1 budget doesn't have those rows yet.
+   - Rows in the budget that have no Lot 506 actual show `-` in Actual Cost.
 
-5. Make the frontend Actual Cost display consistently read the per-row historical Lot 506 actual when a budget row is historical, so it does not fall back to a different selected lot/project.
+5. **No data changes needed for Lot 506 itself**
+   - Lot 506's hardcoded values (Sediment $2,092.91, Demolition $2,257.14, Drawings $68.21, Signage $115.98, Temp Toilets $319.61, Dumpsters $1,871.78, Excavation $5,924.28, Staging, Sales Commissions, Loan Closing Costs, etc.) already exist in the database. We just need to **read them and display them** when Lot 506 is the chosen Historical reference.
 
-Technical notes:
-- This is data correction plus the existing frontend display fix pattern.
-- I will use the database data-update path, not a schema migration, because these are existing rows/values.
-- I will verify after the update with a read query showing those codes and values.
+## Technical detail
+
+- `useHistoricalActualCosts(projectId, lotId)` already returns `mapByCode` for a given historical project+lot — that's the right primitive.
+- Drive it from a single page-level "selected historical reference" state (project_id + lot_id), persisted on the current project (e.g., `projects.historical_reference_project_id` + `historical_reference_lot_id`) so the choice sticks.
+- `BudgetTableRow` reads the Actual Cost from that single `mapByCode[costCode.code]` instead of from `item.historical_project_id` / `item.historical_lot_id`.
+- No migration of historical data. Possibly one tiny migration to add the two `historical_reference_*` columns on `projects` so the dropdown selection persists.
