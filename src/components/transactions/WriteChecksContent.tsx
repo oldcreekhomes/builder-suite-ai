@@ -1184,6 +1184,7 @@ export function WriteChecksContent({ projectId, recurringTemplate, onClearTempla
                   placeholder="Select bank account..."
                   accountType="asset"
                   bankAccountsOnly={true}
+                  projectId={projectId}
                   className="h-10"
                 />
               </div>
