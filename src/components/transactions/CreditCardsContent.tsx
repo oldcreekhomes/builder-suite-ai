@@ -700,6 +700,7 @@ export function CreditCardsContent({ projectId, recurringTemplate, onClearTempla
                     }
                   }}
                   placeholder="Select credit card account"
+                  projectId={projectId}
                   className="h-10"
                 />
               </div>
