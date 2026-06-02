@@ -1,33 +1,44 @@
-## Problem
+## Root cause
 
-In `src/components/reports/BalanceSheetContent.tsx` (line 398), parent accounts that have children — like `2905: Equity` — only toggle the expand/collapse chevron when clicked. They never open the `AccountDetailDialog`, so the equity ledger can't be viewed.
+The "Delete Bill" action calls the `delete_bill_with_journal_entries` RPC. The RPC cleans up `bill_lines`, `bill_attachments`, and `journal_entries`/`journal_entry_lines` — but it does **not** touch `bill_payment_allocations` or `bill_payments`.
 
-Leaf accounts (no children) open the dialog correctly. Same issue applies to any future parent account with children across Assets / Liabilities / Equity.
+The two duplicate USPS bills both have `status = 'paid'` and a row in `bill_payment_allocations`:
 
-## Fix
+- `03052026` — $18.24, 1 allocation
+- `10032024` — $2.79, 1 allocation
 
-Split the click target on each parent row:
+Because `bill_payment_allocations.bill_id` has a FK to `bills(id)` with **no cascade**, the final `DELETE FROM bills` throws a foreign-key violation. The RPC returns the error, and the hook swallows it into the generic toast "Failed to delete bill" — which is what Jole sees. Matt would hit the exact same error on these bills; he just hasn't tried these specific ones (his previous deletes were on un-paid bills).
 
-- **Chevron icon** (left) — toggles expand/collapse only.
-- **Account name + balance** (rest of the row) — opens `AccountDetailDialog` with the parent account's own ledger.
+This is not a permissions problem. Jole's `can_delete_bills` is correctly ON.
 
-Leaf-account behavior is unchanged (entire row opens dialog).
+## Plan
 
-## Changes
+### 1. Surface the real error in the UI
 
-**File:** `src/components/reports/BalanceSheetContent.tsx` (renderHierarchicalAccounts, ~lines 394-406)
+In `src/hooks/useBills.ts`, change the `deleteBill` `onError` toast from the hard-coded `"Failed to delete bill"` to use `error.message` (with a fallback). That way future blockers (reconciled payment, FK violation, etc.) are visible instead of silently generic.
 
-- Remove the row-level `onClick` for parent rows.
-- Wrap the chevron in its own clickable element that calls `toggleExpanded(root.id)` and `stopPropagation`.
-- Wrap the name + balance spans in a clickable container that calls `onSelect(root)`.
-- Keep the existing hover styling on the row.
+### 2. Give a clear, actionable error when a bill has payments
 
-No changes to data fetching, `AccountDetailDialog`, or child-row rendering.
+Add a guard at the top of the `delete_bill_with_journal_entries` Postgres function (via migration) that raises a friendly exception when `bill_payment_allocations` rows exist for the bill:
 
-## Verification
+```text
+Cannot delete this bill because it has a recorded payment.
+Void or delete the payment first, then delete the bill.
+```
 
-1. Open `/project/:id/accounting/reports` → Balance Sheet.
-2. Click the chevron next to `2905: Equity` → row expands to show `2905.1` and `2905.2` (no dialog opens).
-3. Click the text `2905: Equity` (or its balance) → `AccountDetailDialog` opens with the equity ledger.
-4. Click a leaf account (e.g., `1015: Capital One`) → dialog opens as before.
-5. Click a child row (e.g., `2905.1: Equity Partner #1`) → dialog opens as before.
+Combined with step 1, Jole (and Matt) will see exactly that message in the toast instead of "Failed to delete bill".
+
+### 3. Do NOT auto-cascade payments
+
+We will not have the delete RPC silently wipe `bill_payment_allocations` / `bill_payments` rows. Those represent real cash movement (checks written, journal entries on the bank side). Auto-deleting them would silently break bank reconciliation and double-entry integrity. The user must explicitly void/delete the payment first — same workflow QuickBooks uses.
+
+### Files touched
+
+- `src/hooks/useBills.ts` — `deleteBill.onError` toast description.
+- One migration — replace `public.delete_bill_with_journal_entries(uuid)` with the new guard at the top.
+
+### What Jole / Matt do next for the USPS duplicates
+
+1. Open the bill payment for the duplicate USPS bill (Transactions → Bill Payments, or from the bill detail).
+2. Void or delete that payment (which reverses the bank-side journal entry).
+3. Then "Delete Bill" on the now-unpaid duplicate will succeed.
