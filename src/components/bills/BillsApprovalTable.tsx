@@ -1483,38 +1483,87 @@ export function BillsApprovalTable({ status, projectId, projectIds, showProjectC
               </TableRow>
             ) : isPaidStatus && paymentGroupsMap && paymentGroupsMap.size > 0 ? (
               (() => {
-                // Build consolidated view: group bills by payment
-                const billToPaymentMap = new Map<string, string>();
-                const renderedPayments = new Set<string>();
+                // Merge payment groups that settle the same bill (e.g. a cash
+                // payment + a later $0 credit-application) into one consolidated
+                // group so the Paid tab shows a single row per settlement.
+                type MergedGroup = {
+                  paymentId: string;
+                  paymentDate: string;
+                  totalAmount: number;
+                  memo: string | null;
+                  billIds: string[];
+                  allocations: { billId: string; amount: number; ref: string | null; billTotal: number; isCredit: boolean }[];
+                };
+                const mergedGroupsMap = new Map<string, MergedGroup>();
+                const suppressedPayments = new Set<string>();
 
-                // When a bill is settled by multiple payment groups (e.g. a cash
-                // payment + a $0 credit-application), map the bill to the LARGEST
-                // payment so it renders under the cash payment row instead of
-                // the credit-application row.
-                const candidateMap = new Map<string, { paymentId: string; total: number }>();
+                // For each non-credit bill, pick the primary payment group
+                // (the one with the largest |totalAmount| — i.e. the cash one).
+                const billToGroups = new Map<string, string[]>();
                 paymentGroupsMap.forEach((group, paymentId) => {
-                  const total = Math.abs(group.totalAmount || 0);
-                  const consider = (billId: string) => {
-                    const existing = candidateMap.get(billId);
-                    if (!existing || total > existing.total) {
-                      candidateMap.set(billId, { paymentId, total });
-                    }
-                  };
-                  group.billIds.forEach(consider);
-                  group.allocations.forEach(alloc => {
-                    if (alloc.isCredit) consider(alloc.billId);
+                  group.billIds.forEach(billId => {
+                    const arr = billToGroups.get(billId) || [];
+                    arr.push(paymentId);
+                    billToGroups.set(billId, arr);
                   });
                 });
-                candidateMap.forEach((v, billId) => billToPaymentMap.set(billId, v.paymentId));
+                const billPrimaryPayment = new Map<string, string>();
+                billToGroups.forEach((paymentIds, billId) => {
+                  let primary = paymentIds[0];
+                  let primaryTotal = Math.abs(paymentGroupsMap.get(primary)?.totalAmount || 0);
+                  for (const pid of paymentIds) {
+                    const t = Math.abs(paymentGroupsMap.get(pid)?.totalAmount || 0);
+                    if (t > primaryTotal) { primary = pid; primaryTotal = t; }
+                  }
+                  billPrimaryPayment.set(billId, primary);
+                });
 
-                // Also find bills not in any payment group (standalone)
+                // Seed merged map with copies, then fold non-primaries in.
+                paymentGroupsMap.forEach((group, paymentId) => {
+                  mergedGroupsMap.set(paymentId, {
+                    paymentId,
+                    paymentDate: group.paymentDate,
+                    totalAmount: group.totalAmount,
+                    memo: group.memo,
+                    billIds: [...group.billIds],
+                    allocations: group.allocations.map(a => ({ ...a })),
+                  });
+                });
+                paymentGroupsMap.forEach((group, paymentId) => {
+                  if (group.billIds.length === 0) return;
+                  const primaries = new Set<string>(group.billIds.map(b => billPrimaryPayment.get(b) || paymentId));
+                  if (primaries.size !== 1) return;
+                  const primaryId: string = [...primaries][0];
+                  if (primaryId === paymentId) return;
+                  const primary = mergedGroupsMap.get(primaryId)!;
+                  for (const alloc of group.allocations) {
+                    const existing = primary.allocations.find(a => a.billId === alloc.billId);
+                    if (existing) {
+                      existing.amount = Math.round((existing.amount + alloc.amount) * 100) / 100;
+                    } else {
+                      primary.allocations.push({ ...alloc });
+                      if (!alloc.isCredit && !primary.billIds.includes(alloc.billId)) {
+                        primary.billIds.push(alloc.billId);
+                      }
+                    }
+                  }
+                  suppressedPayments.add(paymentId);
+                });
+
+                const billToPaymentMap = new Map<string, string>();
+                const renderedPayments = new Set<string>();
+                mergedGroupsMap.forEach((group, paymentId) => {
+                  if (suppressedPayments.has(paymentId)) return;
+                  group.billIds.forEach(billId => billToPaymentMap.set(billId, paymentId));
+                });
+
                 const rows: React.ReactNode[] = [];
-                
+
                 for (const bill of filteredBills) {
                   const paymentId = billToPaymentMap.get(bill.id);
-                  
-                  if (paymentId && paymentGroupsMap.has(paymentId)) {
-                    const group = paymentGroupsMap.get(paymentId)!;
+
+                  if (paymentId && mergedGroupsMap.has(paymentId) && !suppressedPayments.has(paymentId)) {
+                    const group = mergedGroupsMap.get(paymentId)!;
                     const isMulti = group.allocations.length > 1;
                     
                     if (isMulti) {
