@@ -153,6 +153,28 @@ export function BudgetTable({ projectId, projectAddress, onHeaderActionChange, o
     
     return missing;
   }, [selectedHistoricalProject, historicalCostCodes, existingCostCodeIds, historicalActualCosts]);
+
+  // Live sum of all displayed Historical Cost cells across every group
+  // (budget rows + historical-only rows + historical-only groups).
+  const displayedHistoricalTotal = useMemo(() => {
+    let sum = 0;
+    Object.entries(groupedBudgetItems).forEach(([group, items]) => {
+      (items as any[]).forEach((item) => {
+        const code = item.cost_codes?.code;
+        if (code) sum += historicalActualCosts[code] || 0;
+      });
+      (missingHistoricalByGroup[group] || []).forEach((r) => {
+        sum += r.amount || 0;
+      });
+    });
+    Object.entries(missingHistoricalByGroup).forEach(([group, rows]) => {
+      if (!groupedBudgetItems[group]) {
+        rows.forEach((r) => { sum += r.amount || 0; });
+      }
+    });
+    return sum;
+  }, [groupedBudgetItems, missingHistoricalByGroup, historicalActualCosts]);
+
   
   
   const {
