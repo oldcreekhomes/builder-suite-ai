@@ -903,6 +903,7 @@ export function MakeDepositsContent({ projectId, activeTab: parentActiveTab }: M
                   }
                 }}
                 accountType="asset"
+                projectId={projectId}
                 placeholder="Select bank account"
               />
             </div>
