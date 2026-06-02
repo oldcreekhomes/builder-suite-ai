@@ -62,12 +62,14 @@ export function BudgetGroupTotalRow({
       <TableCell className="w-44 px-1 py-1"></TableCell>
       {visibleColumns.historicalCosts && (
         <TableCell className="w-32 px-1 py-1 text-sm">
-          {historicalTotal > 0 ? formatCurrency(historicalTotal) : '-'}
+          {historicalTotal !== undefined && historicalTotal !== null
+            ? formatCurrency(historicalTotal)
+            : '-'}
         </TableCell>
       )}
       {visibleColumns.variance && (
         <TableCell className="w-28 px-1 py-1 text-sm">
-          {historicalTotal > 0 ? (
+          {historicalTotal !== undefined && historicalTotal !== null ? (
             <span className={getVarianceColor(variance)}>
               {formatVariance(variance)}
             </span>
