@@ -894,6 +894,40 @@ export const useBills = () => {
 
       if (updateError) throw updateError;
 
+      // Mirror payBills: create consolidated bill_payments + allocation row so
+      // the Manage Bills → Paid tab can render this payment. Wrap in try/catch
+      // so a failure here doesn't roll back the already-posted GL entry.
+      try {
+        const { data: bpRow, error: bpError } = await supabase
+          .from('bill_payments')
+          .insert({
+            owner_id: bill.owner_id,
+            payment_date: paymentDate,
+            payment_account_id: paymentAccountId,
+            vendor_id: bill.vendor_id,
+            project_id: bill.project_id || null,
+            total_amount: amountToPay,
+            memo: memo || null,
+            created_by: user.id,
+          })
+          .select('id')
+          .single();
+
+        if (bpError) throw bpError;
+
+        const { error: allocError } = await supabase
+          .from('bill_payment_allocations')
+          .insert({
+            bill_payment_id: bpRow.id,
+            bill_id: billId,
+            amount_allocated: amountToPay,
+          });
+
+        if (allocError) throw allocError;
+      } catch (bpErr) {
+        console.error('Failed to create consolidated bill_payments record (GL entry succeeded):', bpErr);
+      }
+
       return bill;
     },
     onSuccess: () => {
