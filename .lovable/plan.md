@@ -1,44 +1,52 @@
-## Root cause
+## Goal
 
-The "Delete Bill" action calls the `delete_bill_with_journal_entries` RPC. The RPC cleans up `bill_lines`, `bill_attachments`, and `journal_entries`/`journal_entry_lines` — but it does **not** touch `bill_payment_allocations` or `bill_payments`.
+Backfill historical actuals for **6330 Stevenson Avenue – Lot 506** (OCH at Edgewood Towns, project `d9e400a0…`, lot `5d28a702…`) so it appears in the Budget page's **Historical** dropdown alongside Lots 501 and 507.
 
-The two duplicate USPS bills both have `status = 'paid'` and a row in `bill_payment_allocations`:
+## How historical projects work
 
-- `03052026` — $18.24, 1 allocation
-- `10032024` — $2.79, 1 allocation
+A lot shows up in the Historical dropdown when there is at least one `project_budgets` row for that `(project_id, lot_id)` pair with a non-zero `actual_amount` (see `src/utils/fetchHistoricalActualCosts.ts` and the existing "Historical Viz" memory). Lot 501 has 112 such rows; Lot 506 currently has 0.
 
-Because `bill_payment_allocations.bill_id` has a FK to `bills(id)` with **no cascade**, the final `DELETE FROM bills` throws a foreign-key violation. The RPC returns the error, and the hook swallows it into the generic toast "Failed to delete bill" — which is what Jole sees. Matt would hit the exact same error on these bills; he just hasn't tried these specific ones (his previous deletes were on un-paid bills).
+The existing rows for Lot 501 use this exact shape, which we'll mirror:
 
-This is not a permissions problem. Jole's `can_delete_bills` is correctly ON.
+```
+project_id        = d9e400a0-f9b9-40c6-8b8e-183341e508f3   (6330 Stevenson Avenue)
+lot_id            = 5d28a702-82fa-4416-8d86-d47c24f8a566   (Lot 506)
+cost_code_id      = <lookup by code under owner 2653aba8…>
+actual_amount     = <Act. Cost from PDF>
+quantity          = 1
+unit_price        = 0
+budget_source     = 'manual'
+```
 
 ## Plan
 
-### 1. Surface the real error in the UI
+### One migration: insert Lot 506 actuals from `506.pdf`
 
-In `src/hooks/useBills.ts`, change the `deleteBill` `onError` toast from the hard-coded `"Failed to delete bill"` to use `error.message` (with a fallback). That way future blockers (reconciled payment, FK violation, etc.) are visible instead of silently generic.
+The migration will:
 
-### 2. Give a clear, actionable error when a bill has payments
+1. Use a single CTE that maps every cost-code string from the PDF's "Act. Cost" column to its dollar value.
+2. Resolve each code via `cost_codes` filtered by `owner_id = 2653aba8-d154-4301-99bf-77d559492e19`.
+3. `INSERT INTO project_budgets (...)` one row per code with the shape above, using `ON CONFLICT (project_id, cost_code_id, lot_id) DO UPDATE SET actual_amount = EXCLUDED.actual_amount, budget_source = 'manual'` so it's safely re-runnable.
 
-Add a guard at the top of the `delete_bill_with_journal_entries` Postgres function (via migration) that raises a friendly exception when `bill_payment_allocations` rows exist for the bill:
+### Codes / amounts being loaded (from `506.pdf`, Act. Cost column)
 
-```text
-Cannot delete this bill because it has a recorded payment.
-Void or delete the payment first, then delete the bill.
-```
+PDF total: **$713,572.02** across **~110 cost codes** spanning 1000 Land, 2000 Soft, 3000 Site, 4000 Homebuilding.
 
-Combined with step 1, Jole (and Matt) will see exactly that message in the toast instead of "Failed to delete bill".
+A few PDF entries need clarification before I run the migration:
 
-### 3. Do NOT auto-cascade payments
+- **4005 Back Charges – Other = $163.93** → maps to cost code `4005`
+- **4005.1 Foundation Issues = $845.34** → maps to cost code `4005.1`
+- **4010.1 … 4010.6** → mapped to those decimal sub-codes
+- **4830 Landscaping** uses Act. Cost = $6,745.60 (the budget shows $5,164.03; we use actuals)
 
-We will not have the delete RPC silently wipe `bill_payment_allocations` / `bill_payments` rows. Those represent real cash movement (checks written, journal entries on the bank side). Auto-deleting them would silently break bank reconciliation and double-entry integrity. The user must explicitly void/delete the payment first — same workflow QuickBooks uses.
+If any of those decimal-suffix codes (`4005.1`, `4010.1`–`4010.6`) don't exist in your cost-code list, the migration will fail loudly so we can either add them or roll them up to the parent before re-running.
 
-### Files touched
+### Out of scope
 
-- `src/hooks/useBills.ts` — `deleteBill.onError` toast description.
-- One migration — replace `public.delete_bill_with_journal_entries(uuid)` with the new guard at the top.
+- No new tables, no schema changes, no UI changes.
+- Lot 501 / 507 data is untouched.
+- Lot 506's budget rows for other projects/contexts are untouched (the upsert is keyed strictly on `project_id + cost_code_id + lot_id`).
 
-### What Jole / Matt do next for the USPS duplicates
+### After the migration
 
-1. Open the bill payment for the duplicate USPS bill (Transactions → Bill Payments, or from the bill detail).
-2. Void or delete that payment (which reverses the bank-side journal entry).
-3. Then "Delete Bill" on the now-unpaid duplicate will succeed.
+Refresh the Budget page → click the Historical dropdown → "6330 Stevenson Ave – Lot 506" will appear. Selecting it will pull the actuals into the Historical column.
