@@ -764,8 +764,8 @@ export function MakeDepositsContent({ projectId, activeTab: parentActiveTab }: M
           description: "Deposit saved successfully",
         });
       } else {
-        // Save & Close
-        navigate(projectId ? `/project/${projectId}/accounting` : '/accounting');
+        // Save & Close — clear and stay on the same tab
+        resetForm?.();
       }
     } catch (error) {
       console.error('Error saving deposit:', error);
