@@ -1,8 +1,10 @@
 import { useState, useEffect, useRef } from "react";
 import { createPortal } from "react-dom";
+import { useQuery } from "@tanstack/react-query";
 import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
 import { useAccounts } from "@/hooks/useAccounts";
+import { supabase } from "@/integrations/supabase/client";
 
 interface AccountSearchInputProps {
   value: string;
