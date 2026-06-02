@@ -1486,16 +1486,26 @@ export function BillsApprovalTable({ status, projectId, projectIds, showProjectC
                 // Build consolidated view: group bills by payment
                 const billToPaymentMap = new Map<string, string>();
                 const renderedPayments = new Set<string>();
-                
+
+                // When a bill is settled by multiple payment groups (e.g. a cash
+                // payment + a $0 credit-application), map the bill to the LARGEST
+                // payment so it renders under the cash payment row instead of
+                // the credit-application row.
+                const candidateMap = new Map<string, { paymentId: string; total: number }>();
                 paymentGroupsMap.forEach((group, paymentId) => {
-                  group.billIds.forEach(billId => billToPaymentMap.set(billId, paymentId));
-                  // Also map credit allocation bill IDs to prevent duplicate standalone rows
-                  group.allocations.forEach(alloc => {
-                    if (alloc.isCredit) {
-                      billToPaymentMap.set(alloc.billId, paymentId);
+                  const total = Math.abs(group.totalAmount || 0);
+                  const consider = (billId: string) => {
+                    const existing = candidateMap.get(billId);
+                    if (!existing || total > existing.total) {
+                      candidateMap.set(billId, { paymentId, total });
                     }
+                  };
+                  group.billIds.forEach(consider);
+                  group.allocations.forEach(alloc => {
+                    if (alloc.isCredit) consider(alloc.billId);
                   });
                 });
+                candidateMap.forEach((v, billId) => billToPaymentMap.set(billId, v.paymentId));
 
                 // Also find bills not in any payment group (standalone)
                 const rows: React.ReactNode[] = [];
@@ -1723,11 +1733,21 @@ export function BillsApprovalTable({ status, projectId, projectIds, showProjectC
                                     <Tooltip>
                                       <TooltipTrigger asChild>
                                         <div className="flex items-center gap-1">
-                                          <span className={cn("block truncate", alloc.isCredit && "text-green-600 font-medium")}>
-                                            {alloc.isCredit
-                                              ? `(${formatCurrencyValue(Math.abs(alloc.amount))})`
-                                              : formatCurrencyValue(alloc.amount)}
-                                          </span>
+                                          {(() => {
+                                            // For credits, show the credit memo total in green parens.
+                                            // For bills, show the BILL's full amount (not the allocation amount)
+                                            // so users see the true invoice value. The allocation is shown in the tooltip.
+                                            const displayAmount = alloc.isCredit
+                                              ? Math.abs(alloc.billTotal || alloc.amount)
+                                              : (alloc.billTotal || alloc.amount);
+                                            return (
+                                              <span className={cn("block truncate", alloc.isCredit && "text-green-600 font-medium")}>
+                                                {alloc.isCredit
+                                                  ? `(${formatCurrencyValue(displayAmount)})`
+                                                  : formatCurrencyValue(displayAmount)}
+                                              </span>
+                                            );
+                                          })()}
                                           {alloc.isCredit && (
                                             <Badge variant="outline" className="text-green-600 border-green-600 text-[10px] px-1">
                                               CR
@@ -1736,9 +1756,20 @@ export function BillsApprovalTable({ status, projectId, projectIds, showProjectC
                                         </div>
                                       </TooltipTrigger>
                                       <TooltipContent>
-                                        <p>{alloc.isCredit
-                                          ? `(${formatCurrencyValue(Math.abs(alloc.amount))})`
-                                          : formatCurrencyValue(alloc.amount)}</p>
+                                        {alloc.isCredit ? (
+                                          <p>Credit Memo: ({formatCurrencyValue(Math.abs(alloc.billTotal || alloc.amount))})</p>
+                                        ) : (
+                                          <div className="space-y-1 text-xs">
+                                            <div className="flex justify-between gap-4">
+                                              <span>Bill Amount:</span>
+                                              <span>{formatCurrencyValue(alloc.billTotal || alloc.amount)}</span>
+                                            </div>
+                                            <div className="flex justify-between gap-4">
+                                              <span>Applied this payment:</span>
+                                              <span>{formatCurrencyValue(alloc.amount)}</span>
+                                            </div>
+                                          </div>
+                                        )}
                                       </TooltipContent>
                                     </Tooltip>
                                   </TooltipProvider>
