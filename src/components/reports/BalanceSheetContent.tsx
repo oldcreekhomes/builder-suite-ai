@@ -394,14 +394,26 @@ export function BalanceSheetContent({ projectId, onHeaderActionChange, asOfDate,
       elements.push(
         <div
           key={root.id}
-          className="flex justify-between items-center text-sm cursor-pointer hover:bg-muted/50 p-2 rounded transition-colors"
-          onClick={() => hasChildren ? toggleExpanded(root.id) : onSelect(root)}
+          className="flex justify-between items-center text-sm hover:bg-muted/50 p-2 rounded transition-colors"
         >
-          <span className="flex items-center gap-1">
-            {hasChildren && (isExpanded ? <ChevronDown className="h-4 w-4 text-muted-foreground" /> : <ChevronRight className="h-4 w-4 text-muted-foreground" />)}
-            {root.code}: {root.name}
+          <span className="flex items-center gap-1 flex-1 min-w-0">
+            {hasChildren && (
+              <button
+                type="button"
+                onClick={(e) => { e.stopPropagation(); toggleExpanded(root.id); }}
+                className="flex items-center justify-center hover:bg-muted rounded p-0.5"
+                aria-label={isExpanded ? "Collapse" : "Expand"}
+              >
+                {isExpanded ? <ChevronDown className="h-4 w-4 text-muted-foreground" /> : <ChevronRight className="h-4 w-4 text-muted-foreground" />}
+              </button>
+            )}
+            <span className="cursor-pointer flex-1" onClick={() => onSelect(root)}>
+              {root.code}: {root.name}
+            </span>
           </span>
-          <span>{fmt(isExpanded ? root.balance : rolledUpBalance)}</span>
+          <span className="cursor-pointer" onClick={() => onSelect(root)}>
+            {fmt(isExpanded ? root.balance : rolledUpBalance)}
+          </span>
         </div>
       );
       if (hasChildren && isExpanded) {

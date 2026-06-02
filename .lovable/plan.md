@@ -1,23 +1,33 @@
-## Goal
+## Problem
 
-Make Save & Close behave like Save & New on the transaction forms — save the entry, clear the form for a fresh one, and stay on the same Transactions tab. No more bouncing out to the Accounting Dashboard.
+In `src/components/reports/BalanceSheetContent.tsx` (line 398), parent accounts that have children — like `2905: Equity` — only toggle the expand/collapse chevron when clicked. They never open the `AccountDetailDialog`, so the equity ledger can't be viewed.
+
+Leaf accounts (no children) open the dialog correctly. Same issue applies to any future parent account with children across Assets / Liabilities / Equity.
+
+## Fix
+
+Split the click target on each parent row:
+
+- **Chevron icon** (left) — toggles expand/collapse only.
+- **Account name + balance** (rest of the row) — opens `AccountDetailDialog` with the parent account's own ledger.
+
+Leaf-account behavior is unchanged (entire row opens dialog).
 
 ## Changes
 
-Remove the `navigate('/accounting')` call from the Save & Close handler in each of the four forms. Keep the existing save + `createNewCheck()` / equivalent reset so the form clears for the next entry.
+**File:** `src/components/reports/BalanceSheetContent.tsx` (renderHierarchicalAccounts, ~lines 394-406)
 
-1. `src/components/transactions/WriteChecksContent.tsx` — `handleSaveAndClose` (line 715): drop the `navigate(...)` line.
-2. `src/components/transactions/MakeDepositsContent.tsx` — equivalent save-and-close (line 768): drop the `navigate(...)` line.
-3. `src/components/transactions/CreditCardsContent.tsx` — equivalent save-and-close: drop the `navigate(...)` line (verify exact location during edit).
-4. `src/components/journal/JournalEntryForm.tsx` — `handleSaveAndClose` (line 501): drop the `navigate(...)` line.
+- Remove the row-level `onClick` for parent rows.
+- Wrap the chevron in its own clickable element that calls `toggleExpanded(root.id)` and `stopPropagation`.
+- Wrap the name + balance spans in a clickable container that calls `onSelect(root)`.
+- Keep the existing hover styling on the row.
 
-Also remove the now-unused `useNavigate` import / `navigate` variable in any file where this was the only usage.
+No changes to data fetching, `AccountDetailDialog`, or child-row rendering.
 
 ## Verification
 
-- Open Write Checks, save with each of the three buttons → form behavior:
-  - **Save** — stays, viewing mode.
-  - **Save & New** — stays, fresh blank form.
-  - **Save & Close** — stays, fresh blank form (was: jumped to Accounting Dashboard).
-- Repeat for Make Deposits, Credit Cards, Journal Entry.
-- Confirm no TypeScript errors from the removed import.
+1. Open `/project/:id/accounting/reports` → Balance Sheet.
+2. Click the chevron next to `2905: Equity` → row expands to show `2905.1` and `2905.2` (no dialog opens).
+3. Click the text `2905: Equity` (or its balance) → `AccountDetailDialog` opens with the equity ledger.
+4. Click a leaf account (e.g., `1015: Capital One`) → dialog opens as before.
+5. Click a child row (e.g., `2905.1: Equity Partner #1`) → dialog opens as before.
