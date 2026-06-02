@@ -83,22 +83,30 @@ export function AccountSearchInput({
   // Filter by account type if specified
   const typeFilteredAccounts = accounts.filter(account => {
     if (accountType && account.type !== accountType) return false;
-    
-    // If bankAccountsOnly is true, filter to show only actual bank accounts
+
+    // Hide accounts excluded from this project's Chart of Accounts
+    if (excludedIds && excludedIds.has(account.id)) return false;
+
+    // If bankAccountsOnly is true, restrict to bank/cash-type accounts.
+    // Detection: code in the cash/bank range 1000-1039, or common keywords.
     if (bankAccountsOnly) {
-      const isBankAccount = 
-        account.code === '1010' || 
-        account.code === '1030' ||
-        account.name.toLowerCase().includes('bank') ||
-        account.name.toLowerCase().includes('checking') ||
-        account.name.toLowerCase().includes('savings') ||
-        account.name.toLowerCase().includes('clearing');
-      
-      return isBankAccount;
+      const code = (account.code ?? '').trim();
+      const codeNum = Number(code);
+      const inCashRange = Number.isFinite(codeNum) && codeNum >= 1000 && codeNum <= 1039;
+      const name = account.name.toLowerCase();
+      const keywordMatch =
+        name.includes('bank') ||
+        name.includes('checking') ||
+        name.includes('savings') ||
+        name.includes('clearing') ||
+        name.includes('cash') ||
+        name.includes('money market');
+      if (!inCashRange && !keywordMatch) return false;
     }
-    
+
     return true;
   });
+
 
   // Show all accounts when empty, filter when user types
   const filteredAccounts = searchQuery.trim().length === 0
