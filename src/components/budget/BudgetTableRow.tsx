@@ -114,9 +114,11 @@ export function BudgetTableRow({
       ? subcategoryTotal 
       : parseFloat(unitPrice) || 0;
     
-  const historicalActual = (item.budget_source === 'historical' && historicalCostForItem !== undefined)
-    ? historicalCostForItem
-    : (costCode?.code ? (historicalActualCosts[costCode.code] ?? null) : null);
+  // Actual Cost column: read strictly from the page-level Historical dropdown's
+  // hardcoded actuals map. No per-row override.
+  const historicalActual = costCode?.code
+    ? (historicalActualCosts[costCode.code] ?? null)
+    : null;
   
   const calculateVariance = () => {
     // Don't show variance if no historical data available
