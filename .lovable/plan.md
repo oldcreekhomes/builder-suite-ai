@@ -1,30 +1,16 @@
-## Problem
-
-Previous migration rolled all 4010.x PDF rows into parent code 4010, dumping $6,462.53 into "Parking". The owner's chart of accounts actually has separate codes for each sub-category, so each 4010.x line should map to its real cost code.
-
-## PDF column 2 → target cost code
-
-| PDF row | Amount | Target code |
-|---|---|---|
-| 4010.1 Parking | 92.34 | 4010 Parking |
-| 4010.2 Office Supplies | 130.07 | 4040 Office Supplies |
-| 4010.3 Office | 4.29 | 4015 Office |
-| 4010.4 Project Manager | 6,129.93 | 4020 Project Manager |
-| 4010.5 Accounting | 97.56 | 4025 Accounting |
-| 4010.6 Other | 8.34 | 4030 Other |
-| **Total** | **6,462.53** | (matches PDF) |
-
 ## Fix
 
-Single data migration on `project_budgets` for project `d9e400a0…` / lot `5d28a702…`. Codes 4020/4030/4040 already hold non-4010 PDF amounts; the 4010.x value must be **added** to those existing actuals, not overwrite them.
+Insert the two missing PDF amounts for Lot 506 using the user-specified mappings:
 
-Final `actual_amount` after fix:
+- **4110 Pest Control $275.15** → **4300 Termite Treatment** (id `15a09918…`)
+- **4855 Warranty Purchase $882.15** → **2540 Warranty Purchase** (id `2b3e88bc…`)
 
-- 4010 Parking → 92.34 (was 6,462.53)
-- 4015 Office → 4.29 (insert)
-- 4020 Project Manager → 68.21 + 6,129.93 = 6,198.14
-- 4025 Accounting → 97.56 (insert)
-- 4030 Other → 115.98 + 8.34 = 124.32
-- 4040 Office Supplies → 319.61 + 130.07 = 449.68
+Single data migration: upsert two rows in `project_budgets` for project `d9e400a0…` / lot `5d28a702…`, on conflict add to existing `actual_amount` (so we don't blow away any other source). Standard `quantity=1`, `unit_price=0`, `budget_source='manual'`.
 
-Upsert on `(project_id, cost_code_id, lot_id)` with `budget_source='manual'`, `quantity=1`, `unit_price=0`. No schema changes, no UI changes, no other lots touched.
+### Resulting totals
+
+- 4000 Homebuilding total: 317,450.74 + 275.15 = **$317,725.89**
+- 2000 Soft Costs total: gains $882.15
+- Project grand total: **$713,572.02** (matches PDF)
+
+Note: routing 4855 → 2540 puts it under 2000 Soft Costs, so the 4000 total will not exactly equal $318,608.04 per the PDF, but the project grand total matches and the cost is correctly categorized in your chart of accounts.
