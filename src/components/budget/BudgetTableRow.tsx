@@ -6,7 +6,7 @@ import { Eye, Lock, Unlock, AlertTriangle } from 'lucide-react';
 import { BudgetDetailsModal } from './BudgetDetailsModal';
 import { BudgetSourceBadge } from './BudgetSourceBadge';
 import { useBudgetSubcategories } from '@/hooks/useBudgetSubcategories';
-import { useHistoricalActualCosts } from '@/hooks/useHistoricalActualCosts';
+// useHistoricalActualCosts no longer used per-row; page-level map drives Actual Cost
 import { useBudgetWarnings } from '@/hooks/useBudgetWarnings';
 import { calculateBudgetItemTotal } from '@/utils/budgetUtils';
 import type { Tables } from '@/integrations/supabase/types';
