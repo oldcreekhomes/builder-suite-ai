@@ -498,7 +498,7 @@ export const JournalEntryForm = ({ projectId, activeTab: parentActiveTab }: Jour
     if (mode === 'new') {
       createNewEntry();
     } else if (mode === 'close') {
-      navigate(projectId ? `/project/${projectId}/accounting` : '/accounting');
+      createNewEntry();
     }
     // 'stay' mode: just show success toast, don't navigate or clear
   };
