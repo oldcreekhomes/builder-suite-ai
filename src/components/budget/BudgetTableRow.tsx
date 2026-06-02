@@ -120,7 +120,9 @@ export function BudgetTableRow({
       ? subcategoryTotal 
       : parseFloat(unitPrice) || 0;
     
-  const historicalActual = costCode?.code ? (historicalActualCosts[costCode.code] || null) : null;
+  const historicalActual = (item.budget_source === 'historical' && historicalCostForItem !== undefined)
+    ? historicalCostForItem
+    : (costCode?.code ? (historicalActualCosts[costCode.code] ?? null) : null);
   
   const calculateVariance = () => {
     // Don't show variance if no historical data available
