@@ -1,39 +1,23 @@
-## What I found in the PDF for Lot 506
+## Problem
 
-The PDF uses slightly different codes than your chart of accounts, so I mapped by name (per "the words are the same"):
+On the project Budget page, the "Actual" column for historical-source rows is empty for 4050 / 4060 / 4070 / 4100 even though the source historical project clearly has those actuals. Reason: the column reads from a single map driven by the dropdown-selected historical project (`historicalActualCosts` prop), and that project happens to not have those four cost codes. Each budget row already stores its own `historical_project_id` / `historical_lot_id`, and `BudgetTableRow` already fetches them into `historicalCostForItem` — that value is just never rendered.
 
-| PDF code | PDF amount | Your code | Currently in budget |
-|---|---|---|---|
-| 4020 - Drawings | $68.21 | 2180 Drawings | $200.79 (wrong) |
-| 4030 - Signage | $115.98 | 4060 Signage | $115.99 |
-| 4040 - Temporary Toilets | $319.61 | 4070 Temporary Toilets | $319.60 |
-| 4100 - Dumpsters | $1,871.78 | 4100 Dumpsters | $1,871.77 |
-| 4200 - Excavation, Backfill & Grading | $5,924.28 | 4200 Excavation | **missing** |
+## Fix
 
-### About 4200
+In `src/components/budget/BudgetTableRow.tsx`:
 
-There is **no `project_budgets` row** for 4200 on this lot — that's why the budget column is $0. The $5,924.28 you see in **Act. Cost** is coming from posted bills/journal entries against cost code 4200 (job-cost roll-up), which is independent of `project_budgets`. The two columns don't have to match; the budget side just needs to be added.
+- When `item.budget_source === 'historical'` and `historicalCostForItem` is defined, render the Actual column from `historicalCostForItem`.
+- Otherwise fall back to the existing dropdown-driven `historicalActualCosts[costCode.code]`.
+- Use the same value when computing `variance` so the Variance column also reflects the per-row historical source.
 
-### Note on Drawings
+No DB changes. No other components touched.
 
-The PDF actually has **two** "Drawings" rows: `2180 - Drawings $18.47` (under Soft Costs) and `4020 - Drawings $68.21` (under Homebuilding). Your chart of accounts only has one Drawings code (2180), so both PDF amounts have to land there. Your message only mentions $68.21, so I'll need you to pick:
+## Technical notes
 
-- **Option A:** Set 2180 Drawings = **$86.68** (combine both PDF entries — total project drawings).
-- **Option B:** Set 2180 Drawings = **$68.21** (only the 4020 amount, ignore the $18.47).
+- `historicalCostForItem` (lines 84–87) already exists and uses `useHistoricalActualCosts(item.historical_project_id, item.historical_lot_id)`.
+- Update `const historicalActual = ...` (line 123) to: `const historicalActual = (item.budget_source === 'historical' && historicalCostForItem !== undefined) ? historicalCostForItem : (costCode?.code ? (historicalActualCosts[costCode.code] ?? null) : null);`
+- Keep `0` as a valid value (don't coerce to null) so a true $0 actual still renders instead of "-".
 
-## Proposed data migration (Lot 506, project `691271e6…`, lot `eed5fd66…`)
+## Out of scope
 
-Update existing `project_budgets` rows:
-
-- **2180 Drawings** → unit_price = `86.68` or `68.21` (pending your choice)
-- **4060 Signage** → unit_price = `115.98`
-- **4070 Temporary Toilets** → unit_price = `319.61`
-- **4100 Dumpsters** → unit_price = `1871.78`
-
-Insert new row:
-
-- **4200 Excavation, Backfill & Grading** → quantity `1`, unit_price `5924.28`, `budget_source='manual'`
-
-All other rows untouched. Project grand total will increase by $5,924.28 (plus the Drawings correction).
-
-Please confirm Option A or B for Drawings and I'll run the migration.
+- Adjusting the four budget numbers to match the user's exact PDF figures (68.21 / 115.98 / 319.61 / 1,871.78 vs DB 68.19 / 115.99 / 319.60 / 1,871.77). Confirm separately whether to overwrite with the PDF values.
