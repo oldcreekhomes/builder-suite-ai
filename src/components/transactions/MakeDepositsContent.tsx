@@ -986,6 +986,7 @@ export function MakeDepositsContent({ projectId, activeTab: parentActiveTab }: M
                           updateOtherRow(row.id, "account", `${account.code} - ${account.name}`);
                         }}
                         placeholder="Select account..."
+                        projectId={projectId}
                         className="h-10"
                       />
                     </div>
