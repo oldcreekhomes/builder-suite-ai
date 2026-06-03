@@ -122,7 +122,7 @@ interface BillsApprovalTableProps {
 export function BillsApprovalTable({ status, projectId, projectIds, showProjectColumn = true, defaultSortBy, sortOrder, enableSorting = false, showPayBillButton = false, searchQuery, showEditButton = false, enableBatchPayment = false, dueDateFilter = "all", filterDate }: BillsApprovalTableProps) {
   const { lots } = useLots(projectId);
   const showAddressColumn = lots.length > 1;
-  const { approveBill, rejectBill, deleteBill, payBill, payMultipleBills, resendBillToReview } = useBills();
+  const { approveBill, rejectBill, rejectApprovedBill, deleteBill, payBill, payMultipleBills, resendBillToReview } = useBills();
   const { isOwner } = useUserRole();
   const { canDeleteBills } = useAccountingPermissions();
   const { isDateLocked, latestClosedDate } = useClosedPeriodCheck(projectId);
