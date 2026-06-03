@@ -1302,6 +1302,19 @@ export function BillsApprovalTable({ status, projectId, projectIds, showProjectC
                     disabled: bill.reconciled,
                   },
                   {
+                    label: "Reject",
+                    onClick: () => setConfirmDialog({
+                      open: true,
+                      action: 'reject',
+                      billId: bill.id,
+                      billInfo: bill,
+                      notes: '',
+                    }),
+                    variant: "destructive",
+                    hidden: bill.status !== 'posted',
+                    disabled: bill.reconciled || (bill as any).amount_paid > 0 || rejectApprovedBill.isPending,
+                  },
+                  {
                     label: "Delete Bill",
                     onClick: () => deleteBill.mutate(bill.id),
                     variant: "destructive",
@@ -1313,6 +1326,7 @@ export function BillsApprovalTable({ status, projectId, projectIds, showProjectC
                   },
                 ]}
               />
+
             );
           })()}
         </TableCell>
