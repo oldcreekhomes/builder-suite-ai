@@ -656,10 +656,19 @@ export function BillsApprovalTable({ status, projectId, projectIds, showProjectC
         notes: confirmDialog.notes 
       });
     } else if (confirmDialog.action === 'reject') {
-      rejectBill.mutate({ 
-        billId: confirmDialog.billId,
-        notes: confirmDialog.notes 
-      });
+      const isPosted = confirmDialog.billInfo?.status === 'posted';
+      if (isPosted) {
+        rejectApprovedBill.mutate({
+          billId: confirmDialog.billId,
+          notes: confirmDialog.notes,
+        });
+      } else {
+        rejectBill.mutate({
+          billId: confirmDialog.billId,
+          notes: confirmDialog.notes,
+        });
+      }
+
     } else if (confirmDialog.action === 'resend') {
       resendBillToReview.mutate({
         billId: confirmDialog.billId,
