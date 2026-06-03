@@ -1,42 +1,52 @@
-
-# Make Historical Subtotals a Live Calculation
+# Add "Reject" to the Approved tab
 
 ## Goal
-The "Subtotal for 1000 / 2000 / 3000 / 4000…" rows in the Historical Costs column must be a real sum of every Historical Cost value displayed in that group (both regular budget rows and historical-only rows). Today the math is close, but it's wired through several sources and easy to drift from what's on screen. We'll make it a single, auditable sum so we can confirm nothing is missing.
+On the Approved bills tab, add a red **Reject** action (directly above **Delete Bill**) inside the row actions menu. Rejecting a posted bill must fully undo its accounting impact (just like the Review-tab reject leaves no accounting trace) and move the bill to the **Rejected** tab.
 
-## Changes
+## What changes
 
-### 1. `BudgetTable.tsx` — compute subtotals from displayed rows
-For each group, build the same merged row list that's already rendered (budget rows + missing-historical rows), then sum the Historical Cost shown for each:
-- Budget row historical value = `historicalActualCosts[costCode.code] ?? 0`
-- Historical-only row historical value = `row.amount`
-- Subtotal = sum of those values for the group
+### 1. New mutation `rejectApprovedBill` in `src/hooks/useBills.ts`
+Mirrors the existing `rejectBill` flow but also unposts the bill:
 
-Lift this into a small helper (e.g. `getGroupHistoricalSubtotal(group, items)`) so the exact same array drives both the rendered rows and the subtotal — no chance of a row being shown but not counted (or vice versa).
+1. Confirm bill is `status='posted'` and not reconciled / not paid (safety guard; same checks used elsewhere).
+2. Fetch all `journal_entries` where `source_type='bill'` AND `source_id = billId`.
+3. Delete those journal entries — `journal_entry_lines` cascade-delete with them. This is the same end state as a Review-tab reject (no GL impact).
+4. Append the rejection note to `bills.notes` using the existing `formatBillNote` / `appendBillNote` helpers (identical to current `rejectBill`).
+5. Update the bill row: `status = 'void'`, clear `posted_at` if present, update `updated_at`.
+6. Invalidate the same query keys `rejectBill` invalidates **plus**: `job-costs`, `job-cost-actual-details`, `bills-for-payment`, `accounts`, and any report keys (so balances refresh).
 
-### 2. Project total = sum of group subtotals
-Replace `totalHistorical={historicalTotal}` (which comes from `useHistoricalActualCosts().total` and counts every record in the historical project, even those that aren't grouped/displayed) with the sum of the group subtotals computed in step 1. This guarantees:
+Toast: "Bill rejected and unposted from General Ledger".
 
-```text
-Project Total Historical  ==  Σ (group subtotals)  ==  Σ (every Historical Cost cell on screen)
+### 2. Wire the action into the Approved-tab row menu — `BillsApprovalTable.tsx`
+The Approved tab renders via the `showEditButton` branch around lines 1253–1308. Add a third menu item **between Edit and Delete Bill**:
+
+```ts
+{
+  label: "Reject",
+  onClick: () => setConfirmDialog({ open: true, action: 'reject-approved', billId: bill.id, billInfo: bill, notes: '' }),
+  variant: "destructive",
+  disabled: bill.reconciled,
+}
 ```
 
-If those numbers differ from what the user expects, we'll immediately know a cost code is missing from the displayed groups rather than silently rolling up into the project total.
+Order in menu (top → bottom): **Edit**, **Reject** (red), **Delete Bill** (red) — matches the screenshot request.
 
-### 3. Always show the computed subtotal
-`BudgetGroupTotalRow` currently renders `-` when `historicalTotal` is 0 or falsy. Show `$0.00` instead when a historical project is selected so empty groups are obvious (and not confused with "not calculated").
+### 3. Reuse the existing reject confirmation dialog
+The component already renders a confirm/notes dialog around lines 2042–2111 for the draft Reject flow. Extend `handleConfirmedAction` so when `confirmDialog.action === 'reject-approved'` it calls `rejectApprovedBill.mutate(...)` instead of `rejectBill.mutate(...)`. Reuse the same notes textarea, the same "Reject Bill" button label, and the same required-notes validation. Dialog title for this path: **"Reject Approved Bill"** with a short body: *"This will remove the bill's journal entries and move it to the Rejected tab. The bill record and attachments are preserved."*
 
-### 4. Groups that exist only in historical
-The "historical-only groups" block (around line 689) already sums `items.reduce(...)`. Keep it, and include it in the project-total sum from step 2 so those subtotals also roll up.
+### 4. Guards
+- Hide/disable Reject when `bill.reconciled` is true (payment already cleared the bank) — same lock pattern already used for Edit/Delete on this row.
+- If the bill's posting date sits inside a closed accounting period, block with the existing closed-period toast pattern (`useClosedPeriodCheck`), same as approve/edit flows.
 
 ## Out of scope
-- No changes to the hardcoded `actual_amount` values in `project_budgets` — those remain the source of truth for Lot 506.
-- No changes to budget-side calculations, variance logic, or column visibility.
 - No schema changes.
+- No reversing-JE audit trail (we delete the posted JE outright; this matches the Review-tab reject's zero-GL-impact behavior and the "Delete Bill" flow's JE handling).
+- Paid tab — Reject is **not** added there; paid bills must be unpaid first.
+- No changes to the Review, Rejected, or Paid tab menus.
 
 ## Verification
-After the change, open Lot 1 with Historical = `6330 Stevenson Ave - Lot 506`:
-- Add up the Historical Cost cells in group 1000 by eye → must equal the "Subtotal for 1000" cell.
-- Repeat for 2000 / 3000 / 4000.
-- The four subtotals (plus any historical-only group subtotals) must equal the "Total" row's Historical column.
-- Specific spot checks the user already called out: Sediment & Erosion = $2,092.91, Demolition = $2,257.14, and Staging / Sales Commissions / Loan Closing Costs must appear as their own rows (via `missingHistoricalByGroup`) and be included in the 2000-series subtotal.
+1. On Approved tab, open a posted bill's `…` menu → confirm order **Edit / Reject (red) / Delete Bill (red)**.
+2. Click **Reject**, enter a note, confirm → toast appears, bill disappears from Approved, appears in **Rejected** with the note.
+3. Open the GL / job-costs / A/P aging reports → confirm the bill's amount is no longer included.
+4. Try Reject on a reconciled bill → action is disabled with the lock tooltip.
+5. Confirm Review-tab Reject flow still works unchanged.
