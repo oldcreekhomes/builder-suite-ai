@@ -12,7 +12,7 @@ import { CostCodeSearchInput } from "@/components/CostCodeSearchInput";
 import { VendorSearchInput } from "@/components/VendorSearchInput";
 import { JobSearchInput } from "@/components/JobSearchInput";
 import { format, addDays } from "date-fns";
-import { CalendarIcon, Plus, Trash2, StickyNote } from "lucide-react";
+import { CalendarIcon, Plus, Trash2, StickyNote, Divide } from "lucide-react";
 import { getFileIcon, getFileIconColor, getCleanFileName } from '@/components/bidding/utils/fileIconUtils';
 import { cn } from "@/lib/utils";
 import { AccountSearchInput } from "@/components/AccountSearchInput";
@@ -253,6 +253,49 @@ export function EditBillDialog({ open, onOpenChange, billId }: EditBillDialogPro
         setDeletedLineIds([...deletedLineIds, dbId]);
       }
     }
+  };
+
+  const splitJobCostRowEvenly = (rowId: string) => {
+    const rowToSplit = jobCostRows.find(r => r.id === rowId);
+    if (!rowToSplit || lots.length < 2) return;
+
+    const originalAmount = parseFloat(rowToSplit.amount) || 0;
+    const originalQty = parseFloat(rowToSplit.quantity) || 1;
+    const totalValue = Math.round(originalAmount * originalQty * 100) / 100;
+    if (totalValue <= 0) return;
+
+    const perLotAmount = Math.floor((totalValue / lots.length) * 100) / 100;
+    const remainder = Math.round((totalValue - perLotAmount * (lots.length - 1)) * 100) / 100;
+
+    const newRows: ExpenseRow[] = lots.map((lot, index) => ({
+      id: `${rowId}_split_${lot.id}_${Date.now()}`,
+      account: rowToSplit.account,
+      accountId: rowToSplit.accountId,
+      project: rowToSplit.project,
+      projectId: rowToSplit.projectId,
+      lotId: lot.id,
+      purchaseOrderId: rowToSplit.purchaseOrderId,
+      purchaseOrderLineId: rowToSplit.purchaseOrderLineId,
+      quantity: '1',
+      amount: (index === lots.length - 1 ? remainder : perLotAmount).toFixed(2),
+      memo: rowToSplit.memo,
+    }));
+
+    const rowIndex = jobCostRows.findIndex(r => r.id === rowId);
+    setJobCostRows([
+      ...jobCostRows.slice(0, rowIndex),
+      ...newRows,
+      ...jobCostRows.slice(rowIndex + 1),
+    ]);
+
+    if (rowToSplit.dbId) {
+      setDeletedLineIds([...deletedLineIds, rowToSplit.dbId]);
+    }
+
+    toast({
+      title: "Row Split",
+      description: `Split $${totalValue.toFixed(2)} evenly across ${lots.length} addresses`,
+    });
   };
 
   const updateJobCostRow = (id: string, field: keyof ExpenseRow, value: string) => {
@@ -899,7 +942,7 @@ export function EditBillDialog({ open, onOpenChange, billId }: EditBillDialogPro
                         {showAddressColumn && <TableHead className="w-[110px]">Lot Cost</TableHead>}
                         {showAddressColumn && <TableHead className="w-[130px]">Address</TableHead>}
                         <TableHead className="w-[180px]">Purchase Order</TableHead>
-                        {!isApprovedBill && <TableHead className="w-[50px] text-center">Actions</TableHead>}
+                        {!isApprovedBill && <TableHead className="w-[90px] text-center">Actions</TableHead>}
                       </TableRow>
                     </TableHeader>
                     <TableBody>
@@ -1075,21 +1118,41 @@ export function EditBillDialog({ open, onOpenChange, billId }: EditBillDialogPro
                             </TableCell>
                             {!isApprovedBill && (
                               <TableCell className="text-center">
-                                <Button
-                                  onClick={() => {
-                                    if (singleRow) {
-                                      removeJobCostRow(singleRow.id, singleRow.dbId);
-                                    } else {
-                                      removeJobCostGroup(group);
-                                    }
-                                  }}
-                                  size="sm"
-                                  variant="destructive"
-                                  disabled={jobCostRows.length === 1}
-                                  className="h-8 w-8 p-0"
-                                >
-                                  <Trash2 className="h-4 w-4" />
-                                </Button>
+                                <div className="flex items-center justify-center gap-1">
+                                  {showAddressColumn && singleRow && (
+                                    <Tooltip>
+                                      <TooltipTrigger asChild>
+                                        <Button
+                                          onClick={() => splitJobCostRowEvenly(singleRow.id)}
+                                          size="sm"
+                                          variant="ghost"
+                                          className="h-8 w-8 p-0"
+                                          disabled={!!singleRow.lotId || ((parseFloat(singleRow.amount) || 0) * (parseFloat(singleRow.quantity) || 1)) <= 0}
+                                        >
+                                          <Divide className="h-4 w-4" />
+                                        </Button>
+                                      </TooltipTrigger>
+                                      <TooltipContent>
+                                        <p>Split evenly across all addresses</p>
+                                      </TooltipContent>
+                                    </Tooltip>
+                                  )}
+                                  <Button
+                                    onClick={() => {
+                                      if (singleRow) {
+                                        removeJobCostRow(singleRow.id, singleRow.dbId);
+                                      } else {
+                                        removeJobCostGroup(group);
+                                      }
+                                    }}
+                                    size="sm"
+                                    variant="destructive"
+                                    disabled={jobCostRows.length === 1}
+                                    className="h-8 w-8 p-0"
+                                  >
+                                    <Trash2 className="h-4 w-4" />
+                                  </Button>
+                                </div>
                               </TableCell>
                             )}
                           </TableRow>
