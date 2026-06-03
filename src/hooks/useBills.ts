@@ -458,12 +458,11 @@ export const useBills = () => {
         finalNotes = appendBillNote(billRow.notes || '', newNote);
       }
 
-      // Move to void (Rejected tab) and clear posted_at
+      // Move to void (Rejected tab)
       const { error: updErr } = await supabase
         .from('bills')
         .update({
           status: 'void',
-          posted_at: null,
           notes: finalNotes,
           updated_at: new Date().toISOString(),
         })
