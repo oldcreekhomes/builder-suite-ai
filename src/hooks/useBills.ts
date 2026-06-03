@@ -1681,6 +1681,7 @@ export const useBills = () => {
     postBill,
     approveBill,
     rejectBill,
+    rejectApprovedBill,
     payBill,
     payMultipleBills,
     deleteBill,
@@ -1690,3 +1691,4 @@ export const useBills = () => {
     resendBillToReview,
   };
 };
+
