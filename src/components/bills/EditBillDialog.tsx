@@ -942,7 +942,8 @@ export function EditBillDialog({ open, onOpenChange, billId }: EditBillDialogPro
                         {showAddressColumn && <TableHead className="w-[110px]">Lot Cost</TableHead>}
                         {showAddressColumn && <TableHead className="w-[130px]">Address</TableHead>}
                         <TableHead className="w-[180px]">Purchase Order</TableHead>
-                        {!isApprovedBill && <TableHead className="w-[90px] text-center">Actions</TableHead>}
+                        {showAddressColumn && <TableHead className="w-[50px] text-center"></TableHead>}
+                        {!isApprovedBill && <TableHead className="w-[50px] text-center">Actions</TableHead>}
                       </TableRow>
                     </TableHeader>
                     <TableBody>
@@ -1116,43 +1117,49 @@ export function EditBillDialog({ open, onOpenChange, billId }: EditBillDialogPro
                                 className="h-8"
                               />
                             </TableCell>
+                            {showAddressColumn && (
+                              <TableCell className="text-center">
+                                <Tooltip>
+                                  <TooltipTrigger asChild>
+                                    <span>
+                                      <Button
+                                        onClick={() => singleRow && splitJobCostRowEvenly(singleRow.id)}
+                                        size="sm"
+                                        variant="ghost"
+                                        className="h-8 w-8 p-0"
+                                        disabled={
+                                          !singleRow ||
+                                          !!singleRow.lotId ||
+                                          ((parseFloat(singleRow.amount) || 0) * (parseFloat(singleRow.quantity) || 1)) <= 0
+                                        }
+                                      >
+                                        <Divide className="h-4 w-4" />
+                                      </Button>
+                                    </span>
+                                  </TooltipTrigger>
+                                  <TooltipContent>
+                                    <p>Split evenly across all addresses</p>
+                                  </TooltipContent>
+                                </Tooltip>
+                              </TableCell>
+                            )}
                             {!isApprovedBill && (
                               <TableCell className="text-center">
-                                <div className="flex items-center justify-center gap-1">
-                                  {showAddressColumn && singleRow && (
-                                    <Tooltip>
-                                      <TooltipTrigger asChild>
-                                        <Button
-                                          onClick={() => splitJobCostRowEvenly(singleRow.id)}
-                                          size="sm"
-                                          variant="ghost"
-                                          className="h-8 w-8 p-0"
-                                          disabled={!!singleRow.lotId || ((parseFloat(singleRow.amount) || 0) * (parseFloat(singleRow.quantity) || 1)) <= 0}
-                                        >
-                                          <Divide className="h-4 w-4" />
-                                        </Button>
-                                      </TooltipTrigger>
-                                      <TooltipContent>
-                                        <p>Split evenly across all addresses</p>
-                                      </TooltipContent>
-                                    </Tooltip>
-                                  )}
-                                  <Button
-                                    onClick={() => {
-                                      if (singleRow) {
-                                        removeJobCostRow(singleRow.id, singleRow.dbId);
-                                      } else {
-                                        removeJobCostGroup(group);
-                                      }
-                                    }}
-                                    size="sm"
-                                    variant="destructive"
-                                    disabled={jobCostRows.length === 1}
-                                    className="h-8 w-8 p-0"
-                                  >
-                                    <Trash2 className="h-4 w-4" />
-                                  </Button>
-                                </div>
+                                <Button
+                                  onClick={() => {
+                                    if (singleRow) {
+                                      removeJobCostRow(singleRow.id, singleRow.dbId);
+                                    } else {
+                                      removeJobCostGroup(group);
+                                    }
+                                  }}
+                                  size="sm"
+                                  variant="destructive"
+                                  disabled={jobCostRows.length === 1}
+                                  className="h-8 w-8 p-0"
+                                >
+                                  <Trash2 className="h-4 w-4" />
+                                </Button>
                               </TableCell>
                             )}
                           </TableRow>
