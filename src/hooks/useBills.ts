@@ -402,6 +402,102 @@ export const useBills = () => {
     }
   });
 
+  const rejectApprovedBill = useMutation({
+    mutationFn: async ({ billId, notes }: { billId: string; notes?: string }) => {
+      if (!user) throw new Error("User not authenticated");
+
+      // Safety: verify the bill is posted and not reconciled/paid
+      const { data: billRow, error: billErr } = await supabase
+        .from('bills')
+        .select('id, status, reconciled, amount_paid, notes')
+        .eq('id', billId)
+        .single();
+      if (billErr) throw billErr;
+      if (!billRow) throw new Error("Bill not found");
+      if (billRow.status !== 'posted') {
+        throw new Error("Only posted (approved) bills can be rejected here.");
+      }
+      if (billRow.reconciled) {
+        throw new Error("Cannot reject a reconciled bill. Unreconcile first.");
+      }
+      if ((billRow.amount_paid || 0) > 0) {
+        throw new Error("Cannot reject a bill that has payments. Void the payment first.");
+      }
+
+      // Delete the bill's posted journal entries (lines cascade-delete).
+      // Mirrors Review-tab reject: no GL impact remains.
+      const { data: jes, error: jesErr } = await supabase
+        .from('journal_entries')
+        .select('id')
+        .eq('source_type', 'bill')
+        .eq('source_id', billId);
+      if (jesErr) throw jesErr;
+
+      if (jes && jes.length > 0) {
+        const jeIds = jes.map(j => j.id);
+        const { error: delErr } = await supabase
+          .from('journal_entries')
+          .delete()
+          .in('id', jeIds);
+        if (delErr) throw delErr;
+      }
+
+      // Append rejection note (same formatting as rejectBill)
+      let finalNotes: string | null = billRow.notes ?? null;
+      if (notes && notes.trim()) {
+        const { data: userData } = await supabase
+          .from('users')
+          .select('first_name, last_name')
+          .eq('id', user.id)
+          .single();
+        const userName = userData
+          ? `${userData.first_name || ''} ${userData.last_name || ''}`.trim()
+          : 'Unknown User';
+        const { formatBillNote, appendBillNote } = await import('@/lib/billNoteUtils');
+        const newNote = formatBillNote(userName, notes.trim());
+        finalNotes = appendBillNote(billRow.notes || '', newNote);
+      }
+
+      // Move to void (Rejected tab) and clear posted_at
+      const { error: updErr } = await supabase
+        .from('bills')
+        .update({
+          status: 'void',
+          posted_at: null,
+          notes: finalNotes,
+          updated_at: new Date().toISOString(),
+        })
+        .eq('id', billId);
+      if (updErr) throw updErr;
+
+      return billId;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['bills'] });
+      queryClient.invalidateQueries({ queryKey: ['bills-for-approval-v3'] });
+      queryClient.invalidateQueries({ queryKey: ['bill-approval-counts'] });
+      queryClient.invalidateQueries({ queryKey: ['job-costs'] });
+      queryClient.invalidateQueries({ queryKey: ['job-cost-actual-details'] });
+      queryClient.invalidateQueries({ queryKey: ['bills-for-payment'] });
+      queryClient.invalidateQueries({ queryKey: ['accounts'] });
+      queryClient.invalidateQueries({ queryKey: ['journal-entries'] });
+      toast({
+        title: "Success",
+        description: "Bill rejected and unposted from General Ledger",
+      });
+    },
+    onError: (error: any) => {
+      console.error('Error rejecting approved bill:', error);
+      toast({
+        title: "Error",
+        description: error?.message || "Failed to reject bill",
+        variant: "destructive",
+      });
+    },
+  });
+
+
+
   const payMultipleBills = useMutation({
     mutationFn: async ({
       billIds,
