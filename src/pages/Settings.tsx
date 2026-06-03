@@ -172,8 +172,8 @@ const Settings = () => {
                   { value: "company-profile", label: "Company Profile" },
                   { value: "cost-codes", label: "Cost Codes" },
                   { value: "dashboard", label: "Dashboards" },
-                  { value: "my-profile", label: "My Profile" },
                   { value: "employees", label: "Employees" },
+                  { value: "my-profile", label: "My Profile" },
                   { value: "specifications", label: "Specifications" },
                   ...(isOwner ? [{ value: "subscription", label: "Subscription" }] : []),
                   {
