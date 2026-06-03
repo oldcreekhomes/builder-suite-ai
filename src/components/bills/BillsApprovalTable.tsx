@@ -122,7 +122,7 @@ interface BillsApprovalTableProps {
 export function BillsApprovalTable({ status, projectId, projectIds, showProjectColumn = true, defaultSortBy, sortOrder, enableSorting = false, showPayBillButton = false, searchQuery, showEditButton = false, enableBatchPayment = false, dueDateFilter = "all", filterDate }: BillsApprovalTableProps) {
   const { lots } = useLots(projectId);
   const showAddressColumn = lots.length > 1;
-  const { approveBill, rejectBill, deleteBill, payBill, payMultipleBills, resendBillToReview } = useBills();
+  const { approveBill, rejectBill, rejectApprovedBill, deleteBill, payBill, payMultipleBills, resendBillToReview } = useBills();
   const { isOwner } = useUserRole();
   const { canDeleteBills } = useAccountingPermissions();
   const { isDateLocked, latestClosedDate } = useClosedPeriodCheck(projectId);
@@ -656,10 +656,19 @@ export function BillsApprovalTable({ status, projectId, projectIds, showProjectC
         notes: confirmDialog.notes 
       });
     } else if (confirmDialog.action === 'reject') {
-      rejectBill.mutate({ 
-        billId: confirmDialog.billId,
-        notes: confirmDialog.notes 
-      });
+      const isPosted = confirmDialog.billInfo?.status === 'posted';
+      if (isPosted) {
+        rejectApprovedBill.mutate({
+          billId: confirmDialog.billId,
+          notes: confirmDialog.notes,
+        });
+      } else {
+        rejectBill.mutate({
+          billId: confirmDialog.billId,
+          notes: confirmDialog.notes,
+        });
+      }
+
     } else if (confirmDialog.action === 'resend') {
       resendBillToReview.mutate({
         billId: confirmDialog.billId,
@@ -1293,6 +1302,19 @@ export function BillsApprovalTable({ status, projectId, projectIds, showProjectC
                     disabled: bill.reconciled,
                   },
                   {
+                    label: "Reject",
+                    onClick: () => setConfirmDialog({
+                      open: true,
+                      action: 'reject',
+                      billId: bill.id,
+                      billInfo: bill,
+                      notes: '',
+                    }),
+                    variant: "destructive",
+                    hidden: bill.status !== 'posted',
+                    disabled: bill.reconciled || (bill as any).amount_paid > 0 || rejectApprovedBill.isPending,
+                  },
+                  {
                     label: "Delete Bill",
                     onClick: () => deleteBill.mutate(bill.id),
                     variant: "destructive",
@@ -1304,6 +1326,7 @@ export function BillsApprovalTable({ status, projectId, projectIds, showProjectC
                   },
                 ]}
               />
+
             );
           })()}
         </TableCell>
