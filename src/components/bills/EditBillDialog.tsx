@@ -255,6 +255,49 @@ export function EditBillDialog({ open, onOpenChange, billId }: EditBillDialogPro
     }
   };
 
+  const splitJobCostRowEvenly = (rowId: string) => {
+    const rowToSplit = jobCostRows.find(r => r.id === rowId);
+    if (!rowToSplit || lots.length < 2) return;
+
+    const originalAmount = parseFloat(rowToSplit.amount) || 0;
+    const originalQty = parseFloat(rowToSplit.quantity) || 1;
+    const totalValue = Math.round(originalAmount * originalQty * 100) / 100;
+    if (totalValue <= 0) return;
+
+    const perLotAmount = Math.floor((totalValue / lots.length) * 100) / 100;
+    const remainder = Math.round((totalValue - perLotAmount * (lots.length - 1)) * 100) / 100;
+
+    const newRows: ExpenseRow[] = lots.map((lot, index) => ({
+      id: `${rowId}_split_${lot.id}_${Date.now()}`,
+      account: rowToSplit.account,
+      accountId: rowToSplit.accountId,
+      project: rowToSplit.project,
+      projectId: rowToSplit.projectId,
+      lotId: lot.id,
+      purchaseOrderId: rowToSplit.purchaseOrderId,
+      purchaseOrderLineId: rowToSplit.purchaseOrderLineId,
+      quantity: '1',
+      amount: (index === lots.length - 1 ? remainder : perLotAmount).toFixed(2),
+      memo: rowToSplit.memo,
+    }));
+
+    const rowIndex = jobCostRows.findIndex(r => r.id === rowId);
+    setJobCostRows([
+      ...jobCostRows.slice(0, rowIndex),
+      ...newRows,
+      ...jobCostRows.slice(rowIndex + 1),
+    ]);
+
+    if (rowToSplit.dbId) {
+      setDeletedLineIds([...deletedLineIds, rowToSplit.dbId]);
+    }
+
+    toast({
+      title: "Row Split",
+      description: `Split $${totalValue.toFixed(2)} evenly across ${lots.length} addresses`,
+    });
+  };
+
   const updateJobCostRow = (id: string, field: keyof ExpenseRow, value: string) => {
     setJobCostRows((prevRows) =>
       prevRows.map((row) => (row.id === id ? { ...row, [field]: value } : row))
