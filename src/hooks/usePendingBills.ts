@@ -1,6 +1,7 @@
 import { useQuery, useMutation, useQueryClient, keepPreviousData } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
+import { formatDuplicateError } from "@/hooks/useReferenceNumberValidation";
 
 export interface PendingBill {
   id: string;
