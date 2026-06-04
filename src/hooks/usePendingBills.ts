@@ -1,6 +1,7 @@
 import { useQuery, useMutation, useQueryClient, keepPreviousData } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
+import { formatDuplicateError } from "@/hooks/useReferenceNumberValidation";
 
 export interface PendingBill {
   id: string;
@@ -234,7 +235,12 @@ export const usePendingBills = (projectId?: string) => {
       toast({ title: "Success", description: "Bill approved and created successfully" });
     },
     onError: (error: any) => {
-      toast({ title: "Error", description: `Failed to approve bill: ${error.message}`, variant: "destructive" });
+      const dup = formatDuplicateError(error);
+      if (dup) {
+        toast({ title: "Duplicate Invoice Number", description: dup, variant: "destructive" });
+      } else {
+        toast({ title: "Error", description: `Failed to approve bill: ${error.message}`, variant: "destructive" });
+      }
     },
   });
 
@@ -315,8 +321,14 @@ export const usePendingBills = (projectId?: string) => {
           }
 
           results.push({ success: true, billId: data, pendingUploadId: bill.pendingUploadId });
-        } catch (error) {
-          results.push({ success: false, error, pendingUploadId: bill.pendingUploadId });
+        } catch (error: any) {
+          const dup = formatDuplicateError(error);
+          results.push({
+            success: false,
+            error,
+            duplicateMessage: dup,
+            pendingUploadId: bill.pendingUploadId,
+          });
         }
       }
 
