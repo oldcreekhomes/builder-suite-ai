@@ -84,6 +84,13 @@ serve(async (req) => {
       .single();
 
     if (billError) {
+      const msg = String(billError.message || '');
+      if ((billError as any).code === '23505' && msg.includes('bills_unique_vendor_reference')) {
+        return new Response(
+          JSON.stringify({ error: `Duplicate invoice number: ${referenceNumber} already exists for this vendor.` }),
+          { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 400 }
+        );
+      }
       throw billError;
     }
 
