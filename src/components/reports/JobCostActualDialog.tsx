@@ -17,6 +17,7 @@ import { EditCheckDialog } from "@/components/checks/EditCheckDialog";
 import { useChecks } from "@/hooks/useChecks";
 import { toast } from "@/hooks/use-toast";
 import { BillFilesCell } from "@/components/bills/BillFilesCell";
+import { TransactionDetailDialog } from "@/components/accounting/TransactionDetailDialog";
 
 interface JobCostActualDialogProps {
   isOpen: boolean;
