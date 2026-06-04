@@ -834,7 +834,7 @@ export function AccountDetailDialog({
               reconciled = lineReconciled || billReconciled;
               reconciliation_date = line.reconciliation_date || bill.reconciliation_date;
             } else {
-              reconciled = bill.reconciled || !!bill.reconciliation_id || !!bill.reconciliation_date;
+              reconciled = bill.reconciled || !!bill.reconciliation_id || !!bill.reconciliation_date || !!bill.derivedReconciled;
               reconciliation_date = bill.reconciliation_date;
             }
             isPaid = bill.isPaid;
