@@ -504,7 +504,35 @@ const formatCurrency = (value: number) => {
                     const netAmount = line.debit - line.credit;
                     
                     return (
-                      <TableRow key={line.id} className="whitespace-nowrap">
+                      <TableRow
+                        key={line.id}
+                        className="whitespace-nowrap cursor-pointer hover:bg-muted/40"
+                        onClick={() => {
+                          const sourceId =
+                            line.bill_id ||
+                            line.deposit_id ||
+                            line.check_id ||
+                            line.journal_entries.source_id ||
+                            line.id;
+                          const txn = {
+                            source_id: sourceId,
+                            line_id: line.id,
+                            journal_entry_id: (line as any).journal_entry_id || '',
+                            date: line.journal_entries.entry_date,
+                            memo: line.memo,
+                            description: line.memo || line.journal_entries.description || null,
+                            reference: line.reference_number || line.vendor_name || null,
+                            accountDisplay: `${costCode} - ${costCodeName}`,
+                            source_type: line.source_type || line.journal_entries.source_type || 'manual',
+                            debit: line.debit,
+                            credit: line.credit,
+                            created_at: '',
+                            reconciled: !!line.reconciled,
+                            reconciliation_date: (line as any).reconciliation_date || null,
+                          };
+                          setSelectedTxn({ txn, balance: balances[index] });
+                        }}
+                      >
                         <TableCell className="whitespace-nowrap">
                           <span className="text-xs">{getTypeLabel(line.source_type)}</span>
                         </TableCell>
