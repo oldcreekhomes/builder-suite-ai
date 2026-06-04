@@ -1,71 +1,37 @@
-## Goal
+## Nob Hill Court — Costs by Cost Code (Excel export)
 
-Make it **impossible** to save two bills with the same reference number for the same vendor within a tenant — enforced both client-side (fast UX) and at the database (authoritative backstop).
+One-time data export. No application code changes.
 
-## Why client-side alone failed
+### Project
+- 100 Nob Hill Ct, Alexandria, VA 22314 (`691271e6-e46f-4745-8efb-200500e819f0`)
 
-1. **Batch approve race** in `BillsApprovalTabs.handleSubmitAllBills` — every selected pending bill is checked against the DB *before* any are inserted, so two pending uploads with the same ref both pass.
-2. **Cross-session / cross-tab race** — two approvals within seconds both read "no duplicate", both insert.
-3. **Fail-open on error** — `checkDuplicate` returns `isDuplicate: false` on any network/RLS/timeout error, letting the bill through.
+### Scope
+Pull every bill line tied to this project across the Review, Approved, and Paid tabs, then sum to a single number per cost code.
 
-DB-confirmed: 32 duplicate `(owner_id, vendor_id, reference_number)` groups exist today, including ELG 356.
+Source data:
+- `bills` with `status IN ('posted','paid')` (Approved + Paid tabs) — currently 15 + 19 = 34 bills
+- `pending_bill_uploads` with `status IN ('pending','extracted','needs_review')` joined to `pending_bill_lines` (Review tab) — currently 0 rows for this project, so nothing to add
+- Exclude reversals (`is_reversal = true`) and any reversed lines so we don't double-count corrections
+- Bill lines joined to `cost_codes` for code + name
 
-## Plan
+Note: There are also 7 `draft` bills on this project. Draft = rejected/in-progress, not shown in Review/Approved/Paid tabs, so they will be excluded. Tell me if you want them included.
 
-### 1. Database constraint (authoritative)
+### Output (`/mnt/documents/NobHillCourt_Costs_By_CostCode.xlsx`)
+Single sheet "Costs by Cost Code":
 
-Partial unique index on `bills`:
+| Cost Code | Description | Total Cost |
+|-----------|-------------|------------|
+| 1000      | Permits     | $12,345.67 |
+| ...       | ...         | ...        |
+| **Total** |             | **$X**     |
 
-```sql
-CREATE UNIQUE INDEX bills_unique_vendor_reference
-  ON public.bills (owner_id, vendor_id, lower(btrim(reference_number)))
-  WHERE reference_number IS NOT NULL
-    AND btrim(reference_number) <> ''
-    AND status <> 'void';
-```
+- Sorted by cost code
+- Currency formatted to 2 decimals
+- Grand total row at bottom
+- Bold header row
 
-Scope = per tenant + per vendor, case- and whitespace-insensitive, ignores voided bills and blanks — matches the documented rule and today's client check.
-
-### 2. Clean up the 32 existing duplicate groups so the index can be created
-
-For each duplicate group, keep the **oldest** row untouched and rename every newer row's `reference_number` by appending ` (dup-N)` (N = 2, 3, …). This preserves all AP / cash history (important — many are already paid, including ELG 356) and keeps the bills visible and editable so you can resolve them with vendor credits or refund deposits as needed.
-
-A console log lists the renamed bill IDs and old/new references so you have a paper trail.
-
-### 3. Close the in-batch race in `BillsApprovalTabs.handleSubmitAllBills`
-
-After the existing per-bill `checkDuplicate`, dedupe **within the batch itself**:
-
-- Build a `Set<string>` of `${vendorId}::${lower(trim(ref))}` keys as bills move into `validatedBills`.
-- A later bill in the same batch with an already-seen key goes into `duplicateBills` and shows the same toast — never reaches insert.
-
-### 4. Stop failing open in `useReferenceNumberValidation.checkDuplicate`
-
-On query error, return `{ isDuplicate: true, existingBill: { reason: 'lookup_failed' } }` and surface a toast: *"Could not verify invoice number uniqueness — try again."* Better to block one save than to admit a duplicate.
-
-### 5. Translate the DB constraint error to a friendly toast everywhere bills are inserted
-
-Add `formatDuplicateError(error)` to `useReferenceNumberValidation` that detects Postgres `23505` on constraint `bills_unique_vendor_reference`. Wire it into the catch path of:
-
-- `src/components/bills/ManualBillEntry.tsx`
-- `src/components/bills/ApproveBillDialog.tsx`
-- `src/components/bills/EditBillDialog.tsx`
-- `src/components/bills/EditExtractedBillDialog.tsx`
-- `src/components/bills/BillsApprovalTabs.tsx` (around `batchApproveBills.mutateAsync`)
-- `supabase/functions/recreate-bill/index.ts`
-- The pending-bill RPC path in `src/hooks/usePendingBills.ts` (`approve_pending_bill`) — surface the 23505 from the RPC call site.
-
-The existing client-side `checkDuplicate` calls stay in place as the fast UX path; the DB constraint is the backstop.
-
-### 6. Update memory
-
-Update `mem://business-logic/invoice-reference-uniqueness-per-vendor-migration` to record:
-- Now enforced at the database via `bills_unique_vendor_reference` partial unique index.
-- Scope: `(owner_id, vendor_id, lower(btrim(reference_number)))` where status ≠ 'void' and ref is non-blank.
-- Client check is the UX layer; DB is the source of truth.
-- Existing duplicates were renamed with ` (dup-N)` suffix, not voided.
-
-## Out of scope
-
-- Resolving the **real-world overpayment** of ELG 356. The duplicate bill row will remain (renamed) and you'll need to record a vendor credit or refund deposit in the app to clean up the cash side. Happy to walk through that separately.
-- No change to the per-vendor scope. If you want **company-wide** uniqueness (same ref blocked across different vendors too), say so and I'll widen the index to `(owner_id, lower(btrim(reference_number)))`.
+### Technical approach
+1. SQL: sum `bill_lines.amount` grouped by `cost_code_id` for project = Nob Hill, where parent bill status in ('posted','paid') and `is_reversal = false`.
+2. Join `cost_codes` for code + name; lines without a cost code grouped under "(Uncategorized)".
+3. Generate xlsx via Python (openpyxl) and save to `/mnt/documents/`.
+4. QA: open the file, verify row count and grand total matches a separate `SUM(total_amount)` sanity check on the same bills.
