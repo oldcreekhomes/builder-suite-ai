@@ -321,8 +321,14 @@ export const usePendingBills = (projectId?: string) => {
           }
 
           results.push({ success: true, billId: data, pendingUploadId: bill.pendingUploadId });
-        } catch (error) {
-          results.push({ success: false, error, pendingUploadId: bill.pendingUploadId });
+        } catch (error: any) {
+          const dup = formatDuplicateError(error);
+          results.push({
+            success: false,
+            error,
+            duplicateMessage: dup,
+            pendingUploadId: bill.pendingUploadId,
+          });
         }
       }
 
