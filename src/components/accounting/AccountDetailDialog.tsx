@@ -62,6 +62,7 @@ interface Transaction {
   reconciled: boolean;
   reconciliation_date?: string | null;
   isPaid?: boolean;
+  status?: 'pending' | 'approved' | 'cleared';
   // For consolidated bill payments
   includedBillPayments?: IncludedBillPayment[];
   consolidatedTotalAmount?: number;
@@ -754,6 +755,7 @@ export function AccountDetailDialog({
         let reconciled = false;
         let reconciliation_date: string | null = null;
         let accountDisplay: string | null = null;
+        let billStatus: string | null = null;
 
         // If this is a check, get reference from checks table
         if (line.journal_entries.source_type === 'check') {
@@ -825,6 +827,7 @@ export function AccountDetailDialog({
           if (bill) {
             reference = bill.vendor_name;
             description = bill.firstLineMemo || line.memo || bill.reference_number || description;
+            billStatus = bill.status || null;
             if (line.journal_entries.source_type === 'bill_payment') {
               // Per-payment reconciliation lives on the JE line (bank-account credit line).
               // Legacy fallback: if the JE line was never stamped but the parent bill carries
@@ -857,6 +860,18 @@ export function AccountDetailDialog({
           }
         }
 
+        // Derive 3-state status for the row.
+        // - Bill (source_type === 'bill'): draft → pending; reconciled (own flag or derived from payments) → cleared; else approved.
+        // - Bill payment / check / JE / CC / deposit: reconciled → cleared; else approved.
+        let status: 'pending' | 'approved' | 'cleared' = 'approved';
+        if (line.journal_entries.source_type === 'bill') {
+          if (billStatus === 'draft') status = 'pending';
+          else if (reconciled) status = 'cleared';
+          else status = 'approved';
+        } else {
+          status = reconciled ? 'cleared' : 'approved';
+        }
+
         return {
           source_id: line.journal_entries.source_id,
           line_id: line.id,
@@ -873,6 +888,7 @@ export function AccountDetailDialog({
           reconciled: reconciled,
           reconciliation_date: reconciliation_date,
           isPaid: isPaid,
+          status,
         };
       });
 
@@ -912,6 +928,7 @@ export function AccountDetailDialog({
             reconciled: cp.reconciled || !!cp.reconciliation_id || !!cp.reconciliation_date,
             reconciliation_date: cp.reconciliation_date,
             isPaid: true,
+            status: (cp.reconciled || !!cp.reconciliation_id || !!cp.reconciliation_date) ? 'cleared' : 'approved',
             includedBillPayments: allocations,
             consolidatedTotalAmount: Number(cp.total_amount),
           };
