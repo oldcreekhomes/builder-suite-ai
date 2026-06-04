@@ -680,6 +680,14 @@ const formatCurrency = (value: number) => {
         onOpenChange={handleEditCheckDialogClose}
         checkId={editingCheckId || ''}
       />
+
+      <TransactionDetailDialog
+        transaction={selectedTxn?.txn ?? null}
+        balance={selectedTxn?.balance ?? 0}
+        accountType="expense"
+        open={!!selectedTxn}
+        onOpenChange={(o) => { if (!o) setSelectedTxn(null); }}
+      />
     </>
   );
 }
