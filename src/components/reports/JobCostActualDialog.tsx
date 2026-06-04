@@ -50,6 +50,7 @@ interface JournalEntryLine {
   deposit_id?: string;
   check_id?: string;
   source_type?: string;
+  status?: 'pending' | 'approved' | 'cleared';
 }
 
 export function JobCostActualDialog({
@@ -161,7 +162,7 @@ export function JobCostActualDialog({
         .filter((id): id is string => id !== null);
 
       // Enrich bill entries with vendor and reference info
-      let billsMap = new Map<string, { reference_number: string | null; vendor_name: string | null; reconciled: boolean | null; attachments: any[] }>();
+      let billsMap = new Map<string, { reference_number: string | null; vendor_name: string | null; reconciled: boolean | null; status: string | null; derivedReconciled: boolean; attachments: any[] }>();
       if (billSourceIds.length > 0) {
         const { data: billsData } = await supabase
           .from('bills')
@@ -169,11 +170,46 @@ export function JobCostActualDialog({
             id,
             reference_number,
             reconciled,
+            status,
+            total_amount,
+            amount_paid,
             vendor_id,
             companies!bills_vendor_id_fkey(company_name),
             bill_attachments(id, file_path, file_name, file_size, content_type)
           `)
           .in('id', billSourceIds);
+
+        // Derive per-bill reconciled status from its payments:
+        // fully paid (cent-precise) AND every bill_payment is reconciled.
+        const derivedMap = new Map<string, boolean>();
+        const { data: allocs } = await supabase
+          .from('bill_payment_allocations')
+          .select('bill_id, amount_allocated, bill_payments:bill_payment_id(reconciled, reconciliation_id, reconciliation_date)')
+          .in('bill_id', billSourceIds);
+
+        const allocsByBill = new Map<string, any[]>();
+        (allocs || []).forEach((a: any) => {
+          const arr = allocsByBill.get(a.bill_id) || [];
+          arr.push(a);
+          allocsByBill.set(a.bill_id, arr);
+        });
+
+        (billsData || []).forEach((bill: any) => {
+          const totalCents = Math.round(Number(bill.total_amount || 0) * 100);
+          const arr = allocsByBill.get(bill.id) || [];
+          if (arr.length === 0 || totalCents <= 0) {
+            derivedMap.set(bill.id, false);
+            return;
+          }
+          const paidCents = arr.reduce((s, a) => s + Math.round(Number(a.amount_allocated || 0) * 100), 0);
+          const fullyPaid = paidCents >= totalCents;
+          const allReconciled = arr.every((a: any) => {
+            const bp = a.bill_payments;
+            if (!bp) return false;
+            return !!(bp.reconciled || bp.reconciliation_id || bp.reconciliation_date);
+          });
+          derivedMap.set(bill.id, fullyPaid && allReconciled);
+        });
 
         billsMap = new Map(
           billsData?.map(bill => [
@@ -182,6 +218,8 @@ export function JobCostActualDialog({
               reference_number: bill.reference_number,
               vendor_name: (bill.companies as any)?.company_name,
               reconciled: bill.reconciled,
+              status: (bill as any).status ?? null,
+              derivedReconciled: derivedMap.get(bill.id) === true,
               attachments: (bill as any).bill_attachments || []
             }
           ]) || []
@@ -249,11 +287,16 @@ export function JobCostActualDialog({
         let check_id: string | undefined;
         let attachments: any[] = [];
 
+        let billStatus: string | null = null;
+        let billDerivedReconciled = false;
+
         if (sourceType === 'bill') {
           const billData = billsMap.get(sourceId);
           vendor_name = billData?.vendor_name ?? undefined;
           reference_number = billData?.reference_number ?? undefined;
-          reconciled = billData?.reconciled ?? line.reconciled;
+          billStatus = billData?.status ?? null;
+          billDerivedReconciled = !!billData?.derivedReconciled;
+          reconciled = (billData?.reconciled || billDerivedReconciled) ?? line.reconciled;
           bill_id = sourceId;
           attachments = billData?.attachments || [];
         } else if (sourceType === 'check') {
@@ -268,6 +311,16 @@ export function JobCostActualDialog({
           deposit_id = sourceId;
         }
 
+        // Derive 3-state status. Only bills can be 'pending' (draft).
+        let status: 'pending' | 'approved' | 'cleared' = 'approved';
+        if (sourceType === 'bill') {
+          if (billStatus === 'draft') status = 'pending';
+          else if (reconciled) status = 'cleared';
+          else status = 'approved';
+        } else {
+          status = reconciled ? 'cleared' : 'approved';
+        }
+
         return {
           ...line,
           source_type: sourceType || 'unknown',
@@ -278,6 +331,7 @@ export function JobCostActualDialog({
           reference_number,
           reconciled,
           attachments,
+          status,
         };
       });
     },
@@ -439,7 +493,7 @@ const formatCurrency = (value: number) => {
                     <TableHead className="w-[6%] text-center">Files</TableHead>
                     <TableHead className="w-[10%] text-right">Amount</TableHead>
                     <TableHead className="w-[10%] text-right">Balance</TableHead>
-                    <TableHead className="w-[5%] text-center">Cleared</TableHead>
+                    <TableHead className="w-[8%] text-center">Status</TableHead>
                     <TableHead className="w-[5%] text-center">Actions</TableHead>
                   </TableRow>
                 </TableHeader>
@@ -492,12 +546,27 @@ const formatCurrency = (value: number) => {
                         </TableCell>
                         <TableCell className="text-center">
                           <div className="flex items-center justify-center">
-                            {line.reconciled && <Check className="h-4 w-4 text-green-600 mx-auto" />}
+                            {(() => {
+                              const s = (line as any).status || (line.reconciled ? 'cleared' : 'approved');
+                              const cls =
+                                s === 'cleared'
+                                  ? 'bg-green-100 text-green-800 border-green-200'
+                                  : s === 'pending'
+                                  ? 'bg-amber-100 text-amber-800 border-amber-200'
+                                  : 'bg-blue-100 text-blue-800 border-blue-200';
+                              const label = s === 'cleared' ? 'Cleared' : s === 'pending' ? 'Pending' : 'Approved';
+                              return (
+                                <span className={`inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-[10px] font-medium ${cls}`}>
+                                  {s === 'cleared' && <Check className="h-3 w-3" />}
+                                  {label}
+                                </span>
+                              );
+                            })()}
                           </div>
                         </TableCell>
                         <TableCell>
                         <div className="flex items-center justify-center">
-                            {line.reconciled || isDateLocked(line.journal_entries.entry_date) ? (
+                            {isDateLocked(line.journal_entries.entry_date) ? (
                               <Tooltip>
                               <TooltipTrigger asChild>
                                   <div className="flex justify-center">
@@ -505,22 +574,8 @@ const formatCurrency = (value: number) => {
                                   </div>
                                 </TooltipTrigger>
                                 <TooltipContent side="left" align="center">
-                                  {line.reconciled && isDateLocked(line.journal_entries.entry_date) ? (
-                                    <>
-                                      <p className="font-medium">Reconciled and Books Closed</p>
-                                      <p className="text-xs text-muted-foreground">Cannot be edited or deleted</p>
-                                    </>
-                                  ) : line.reconciled ? (
-                                    <>
-                                      <p className="font-medium">Reconciled</p>
-                                      <p className="text-xs text-muted-foreground">Cannot be edited or deleted</p>
-                                    </>
-                                  ) : (
-                                    <>
-                                      <p className="font-medium">Books Closed</p>
-                                      <p className="text-xs text-muted-foreground">Cannot be edited or deleted</p>
-                                    </>
-                                  )}
+                                  <p className="font-medium">Books Closed</p>
+                                  <p className="text-xs text-muted-foreground">Cannot be edited or deleted</p>
                                 </TooltipContent>
                               </Tooltip>
                             ) : (line.bill_id || line.deposit_id || line.check_id) ? (

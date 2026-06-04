@@ -1,56 +1,32 @@
-## Goal
+## Why your change didn't show up
 
-Replace the binary "reconciled ✓ / blank" column in the Account Detail dialog with an explicit three-state **Status** column that tells you, at a glance, how trustworthy each cost is:
+The dialog in your screenshot ("4045 - Gas") is **`src/components/reports/JobCostActualDialog.tsx`** — a different file from the AccountDetailDialog I edited. Both render similar-looking tables, but the Job Cost report opens this one. I missed it.
 
-| Badge | Meaning | Applies to |
-|---|---|---|
-| 🟡 **Pending** | Bill entered but not yet approved (draft). Tentative cost. | Bills only |
-| 🔵 **Approved** | Posted to the books, but the money hasn't cleared the bank yet. | Approved bills (no payment, or payment not reconciled), unreconciled checks/JEs/CC charges/deposits |
-| 🟢 **Cleared** | Bank-cleared. For bills: fully paid AND every payment is reconciled. For checks/JEs/etc.: own `reconciled` flag is true. | All row types |
+The good news: the fix is a near-identical copy of what we just did, plus the same payment-derived `reconciled` logic that this dialog is currently missing entirely (it only reads `bills.reconciled`, never looks at the paying check). That's why your `Monthly reimbursement for gas` bill shows nothing — its `bills.reconciled` flag is false, and this dialog never checks the 03/20 reconciled bill_payment that paid it.
 
-The red 🔒 **Lock** column (closed period) is unchanged and remains independent.
+## What I'll change in `JobCostActualDialog.tsx`
 
-## Files to change
+### Data layer (lines ~155–282)
+1. Also select `status` from `bills` (and keep `reconciled`).
+2. For every bill, fetch its `bill_payment_allocations` → `bill_payments` and compute `derivedReconciled = fully paid (cent-precise) AND every payment reconciled` — same algorithm we used in AccountDetailDialog.
+3. Add a derived `status: 'pending' | 'approved' | 'cleared'` per row:
+   - **Bill**: `status === 'draft'` → pending; `bill.reconciled || derivedReconciled` → cleared; else approved.
+   - **Check / Deposit / JE**: own `reconciled` → cleared; else approved.
 
-### 1. `src/components/accounting/AccountDetailDialog.tsx`
+### UI layer (lines ~442, 493–497, 500–525)
+1. Rename header **"Cleared" → "Status"**, widen `w-[5%]` → `w-[8%]`.
+2. Replace the green-check-only cell with the same 3-state pill badge used in AccountDetailDialog (amber Pending / blue Approved / green Cleared with check icon).
+3. **Decouple lock from reconciled**: lock now only fires on `isDateLocked(line.journal_entries.entry_date)`. The `Reconciled / Reconciled and Books Closed` tooltips collapse to just `Books Closed`.
+4. Actions menu visibility logic unchanged otherwise.
 
-**Data layer (around lines 440–540):**
-- Already fetches `bills.status` and computes `derivedReconciled`. Keep both.
-- On each transaction row, add a `status: 'pending' | 'approved' | 'cleared'` field derived as:
-  - **Bill row:** `bill.status === 'draft'` → `pending`; else if `bill.reconciled || derivedReconciled` → `cleared`; else → `approved`.
-  - **Check / JE / Credit-card / Deposit row:** `reconciled` → `cleared`; else → `approved`. (No `pending` for these — they're posted the moment they exist.)
+### No DB changes
+Same data sources as AccountDetailDialog — `bills.status`, `bill_payment_allocations`, `bill_payments.reconciled` all exist.
 
-**UI layer (lines ~1389–1393):**
-- Rename the "Reconciled" column header to **"Status"**.
-- Replace the single `Check` icon with a small badge component:
-  - 🟡 `bg-amber-100 text-amber-800` "Pending"
-  - 🔵 `bg-blue-100 text-blue-800` "Approved"
-  - 🟢 `bg-green-100 text-green-800` "Cleared" (with a small check)
-- Keep the column narrow; use icon + short text or icon-only with tooltip if width is tight (match existing density / `h-11` row standard).
+## Verification — same 4045 Gas dialog after fix
 
-**Lock column (lines ~1394–1420):**
-- Lock still fires on `isDateLocked(txn.date) || isConsolidated`.
-- Change: stop coupling lock to `txn.reconciled`. Locking is solely a closed-period concern now (workflow: reconcile → close → lock). This matches what you confirmed earlier in the thread.
-- The `...` action menu remains hidden when locked (closed period or consolidated), same as today.
+- 03/03 Check "January and February gas" — 🟢 Cleared + 🔒 lock if March is closed.
+- 03/03 Bill "Monthly reimbursement for gas" — **🟢 Cleared** (paid by reconciled 03/20 bill_payment). Lock only if period closed.
+- 05/01 and 06/01 Car Allowance bills — 🔵 Approved (entered, no reconciled payment yet). `...` menu available.
 
-### 2. No DB migration
-
-`bills.status`, `bill_payments.reconciled`, and `checks.reconciled` already exist. Pure presentation change on top of existing data plus the already-shipped `derivedReconciled`.
-
-### 3. Memory update
-
-Add a short memory under `mem://accounting/account-detail-status-model` documenting the three-state model and the rule that lock is independent of status. Update the index.
-
-## Verification (on 923 17th Street → 4020 Project Manager)
-
-- 2025 bills (Jul–Dec): 🟢 Cleared (bill.reconciled true). Lock shown if period closed.
-- 02/03/26, 03/02/26, 03/31/26 bills: 🟢 Cleared (paid by reconciled checks).
-- 05/03/26 bill: 🔵 Approved (paid by 05/07 check not yet reconciled).
-- Any draft bill: 🟡 Pending.
-- All checks/JEs: 🟢 Cleared if `reconciled`, else 🔵 Approved.
-- 4045 Gas 03/03 reimbursement bill: 🟢 Cleared.
-
-## Out of scope (call out, don't build)
-
-- A "Cleared vs Open" subtotal on the parent Job Cost report. Worth doing later, but not part of this change.
-- Changing how Manage Bills / Approve Bills shows status. This is dialog-only.
+## Memory
+Update the existing `mem://accounting/account-detail-status-model` note to say the 3-state model also applies to `JobCostActualDialog`, so the next change touches both files.
