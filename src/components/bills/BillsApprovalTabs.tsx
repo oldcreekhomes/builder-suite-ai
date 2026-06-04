@@ -667,7 +667,11 @@ export function BillsApprovalTabs({ projectId, projectIds, reviewOnly = false, o
       // Validate for duplicate reference numbers before submitting
       const validatedBills: typeof selectedBills = [];
       const duplicateBills: { bill: typeof selectedBills[0]; existingVendor: string; existingProject: string }[] = [];
-      
+      // In-batch dedupe — two pending bills in the SAME batch with the same
+      // vendor + reference would both pass the per-bill DB check (neither is
+      // inserted yet). Track keys we've already accepted in this submission.
+      const seenBatchKeys = new Set<string>();
+
       for (const bill of selectedBills) {
         const referenceNumber = bill.extracted_data?.reference_number || 
                                 bill.extracted_data?.referenceNumber || 
@@ -676,6 +680,15 @@ export function BillsApprovalTabs({ projectId, projectIds, reviewOnly = false, o
         
         // Check for duplicate reference number (per-vendor uniqueness)
         if (referenceNumber?.trim() && billVendorId) {
+          const batchKey = `${billVendorId}::${referenceNumber.trim().toLowerCase()}`;
+          if (seenBatchKeys.has(batchKey)) {
+            duplicateBills.push({
+              bill,
+              existingVendor: 'this vendor',
+              existingProject: 'another bill in this batch',
+            });
+            continue;
+          }
           const { isDuplicate, existingBill } = await checkDuplicate(referenceNumber, billVendorId);
           if (isDuplicate && existingBill) {
             duplicateBills.push({
@@ -685,6 +698,7 @@ export function BillsApprovalTabs({ projectId, projectIds, reviewOnly = false, o
             });
             continue;
           }
+          seenBatchKeys.add(batchKey);
         }
         validatedBills.push(bill);
       }
@@ -697,6 +711,7 @@ export function BillsApprovalTabs({ projectId, projectIds, reviewOnly = false, o
           variant: "destructive",
         });
       }
+      
       
       // Validate cost codes/accounts on all selected bills
       const billsWithMissingCostCodes: { fileName: string; missingCount: number }[] = [];
