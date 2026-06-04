@@ -1,40 +1,56 @@
-## What you're seeing in the screenshot (4020 Project Manager)
+## Goal
 
-Two different things are sharing one column, which is why it looks random:
+Replace the binary "reconciled ✓ / blank" column in the Account Detail dialog with an explicit three-state **Status** column that tells you, at a glance, how trustworthy each cost is:
 
-- **2025 bills** (Jul–Dec) — green check + red lock. These have `bills.reconciled = true` written directly on the bill row (older data where the bill itself was marked reconciled on a bank rec).
-- **Checks** (01/09, 02/06, 03/06, 04/11) — green check + red lock from `checks.reconciled = true`. Normal.
-- **2026 bills** (02/03, 03/02, 03/31, 05/03) — blank. The bill row's `reconciled` flag is false, **but the check that paid it (right below it) is reconciled**. So the cost is real and cleared at the bank — the UI just isn't reflecting that on the bill row.
-- **05/07 check** — blank because the May bank rec isn't done yet.
+| Badge | Meaning | Applies to |
+|---|---|---|
+| 🟡 **Pending** | Bill entered but not yet approved (draft). Tentative cost. | Bills only |
+| 🔵 **Approved** | Posted to the books, but the money hasn't cleared the bank yet. | Approved bills (no payment, or payment not reconciled), unreconciled checks/JEs/CC charges/deposits |
+| 🟢 **Cleared** | Bank-cleared. For bills: fully paid AND every payment is reconciled. For checks/JEs/etc.: own `reconciled` flag is true. | All row types |
 
-So today the green check on a bill only fires if someone happened to flag the bill row itself. That's inconsistent with reality, because what actually clears the bank is the **payment** (check or JE), not the bill.
+The red 🔒 **Lock** column (closed period) is unchanged and remains independent.
 
-## What we want
+## Files to change
 
-> "If it happened and it's real, I need to know" — treat a bill as cleared whenever the money that paid it has cleared the bank.
+### 1. `src/components/accounting/AccountDetailDialog.tsx`
 
-One simple rule for every row in the Account Detail dialog:
+**Data layer (around lines 440–540):**
+- Already fetches `bills.status` and computes `derivedReconciled`. Keep both.
+- On each transaction row, add a `status: 'pending' | 'approved' | 'cleared'` field derived as:
+  - **Bill row:** `bill.status === 'draft'` → `pending`; else if `bill.reconciled || derivedReconciled` → `cleared`; else → `approved`.
+  - **Check / JE / Credit-card / Deposit row:** `reconciled` → `cleared`; else → `approved`. (No `pending` for these — they're posted the moment they exist.)
 
-- **Green check ✓** = this cost has been confirmed against a bank statement.
-  - Check / JE line → its own `reconciled` flag (unchanged).
-  - **Bill** → derived: fully paid AND every payment that paid it is reconciled. Partially paid or unpaid bills stay blank.
-- **Red lock 🔒** = the row's date is inside a closed accounting period (unchanged). Workflow-wise you reconcile first, then close — but the lock is still rendered from closed-period data, not from the check.
+**UI layer (lines ~1389–1393):**
+- Rename the "Reconciled" column header to **"Status"**.
+- Replace the single `Check` icon with a small badge component:
+  - 🟡 `bg-amber-100 text-amber-800` "Pending"
+  - 🔵 `bg-blue-100 text-blue-800` "Approved"
+  - 🟢 `bg-green-100 text-green-800` "Cleared" (with a small check)
+- Keep the column narrow; use icon + short text or icon-only with tooltip if width is tight (match existing density / `h-11` row standard).
 
-## Fix
+**Lock column (lines ~1394–1420):**
+- Lock still fires on `isDateLocked(txn.date) || isConsolidated`.
+- Change: stop coupling lock to `txn.reconciled`. Locking is solely a closed-period concern now (workflow: reconcile → close → lock). This matches what you confirmed earlier in the thread.
+- The `...` action menu remains hidden when locked (closed period or consolidated), same as today.
 
-In `src/components/accounting/AccountDetailDialog.tsx` (and the hook that feeds it):
+### 2. No DB migration
 
-1. For every **bill** row, look up its payments via `bill_payments` → `checks` / `journal_entry_lines`.
-2. Compute `derivedReconciled = isFullyPaid (cent-precise) AND every payment.reconciled === true`.
-3. Render the green check from `bill.reconciled || derivedReconciled`. (Keeping the existing flag means the 2025 bills in your screenshot keep their check — nothing regresses.)
-4. No change to `useClosedPeriodCheck` — red lock behavior stays the same.
-5. No change to the `...` action menu logic beyond what it does today (still hidden when the row is locked by closed period).
+`bills.status`, `bill_payments.reconciled`, and `checks.reconciled` already exist. Pure presentation change on top of existing data plus the already-shipped `derivedReconciled`.
 
-## Verification after fix — same dialog (4020 Project Manager)
+### 3. Memory update
 
-- 2025 bills — unchanged (green check + red lock).
-- 02/03/26, 03/02/26, 03/31/26 bills — **now show green check** (paid by reconciled 02/06, 03/06, 04/11 checks).
-- 05/03/26 bill — blank (paid by 05/07 check which isn't reconciled yet). Correct.
-- All checks — unchanged.
+Add a short memory under `mem://accounting/account-detail-status-model` documenting the three-state model and the rule that lock is independent of status. Update the index.
 
-And on 4045 Gas, the 03/03/26 "Monthly reimbursement for gas" bill will show its green check because the 03/20 bill payment was reconciled on the March bank rec.
+## Verification (on 923 17th Street → 4020 Project Manager)
+
+- 2025 bills (Jul–Dec): 🟢 Cleared (bill.reconciled true). Lock shown if period closed.
+- 02/03/26, 03/02/26, 03/31/26 bills: 🟢 Cleared (paid by reconciled checks).
+- 05/03/26 bill: 🔵 Approved (paid by 05/07 check not yet reconciled).
+- Any draft bill: 🟡 Pending.
+- All checks/JEs: 🟢 Cleared if `reconciled`, else 🔵 Approved.
+- 4045 Gas 03/03 reimbursement bill: 🟢 Cleared.
+
+## Out of scope (call out, don't build)
+
+- A "Cleared vs Open" subtotal on the parent Job Cost report. Worth doing later, but not part of this change.
+- Changing how Manage Bills / Approve Bills shows status. This is dialog-only.

@@ -62,6 +62,7 @@ interface Transaction {
   reconciled: boolean;
   reconciliation_date?: string | null;
   isPaid?: boolean;
+  status?: 'pending' | 'approved' | 'cleared';
   // For consolidated bill payments
   includedBillPayments?: IncludedBillPayment[];
   consolidatedTotalAmount?: number;
@@ -754,6 +755,7 @@ export function AccountDetailDialog({
         let reconciled = false;
         let reconciliation_date: string | null = null;
         let accountDisplay: string | null = null;
+        let billStatus: string | null = null;
 
         // If this is a check, get reference from checks table
         if (line.journal_entries.source_type === 'check') {
@@ -825,6 +827,7 @@ export function AccountDetailDialog({
           if (bill) {
             reference = bill.vendor_name;
             description = bill.firstLineMemo || line.memo || bill.reference_number || description;
+            billStatus = bill.status || null;
             if (line.journal_entries.source_type === 'bill_payment') {
               // Per-payment reconciliation lives on the JE line (bank-account credit line).
               // Legacy fallback: if the JE line was never stamped but the parent bill carries
@@ -857,6 +860,18 @@ export function AccountDetailDialog({
           }
         }
 
+        // Derive 3-state status for the row.
+        // - Bill (source_type === 'bill'): draft → pending; reconciled (own flag or derived from payments) → cleared; else approved.
+        // - Bill payment / check / JE / CC / deposit: reconciled → cleared; else approved.
+        let status: 'pending' | 'approved' | 'cleared' = 'approved';
+        if (line.journal_entries.source_type === 'bill') {
+          if (billStatus === 'draft') status = 'pending';
+          else if (reconciled) status = 'cleared';
+          else status = 'approved';
+        } else {
+          status = reconciled ? 'cleared' : 'approved';
+        }
+
         return {
           source_id: line.journal_entries.source_id,
           line_id: line.id,
@@ -873,6 +888,7 @@ export function AccountDetailDialog({
           reconciled: reconciled,
           reconciliation_date: reconciliation_date,
           isPaid: isPaid,
+          status,
         };
       });
 
@@ -912,6 +928,7 @@ export function AccountDetailDialog({
             reconciled: cp.reconciled || !!cp.reconciliation_id || !!cp.reconciliation_date,
             reconciliation_date: cp.reconciliation_date,
             isPaid: true,
+            status: (cp.reconciled || !!cp.reconciliation_id || !!cp.reconciliation_date) ? 'cleared' : 'approved',
             includedBillPayments: allocations,
             consolidatedTotalAmount: Number(cp.total_amount),
           };
@@ -1288,7 +1305,7 @@ export function AccountDetailDialog({
                   <TableHead className="w-40">Description</TableHead>
                   <TableHead className="w-24 text-right">Amount</TableHead>
                   <TableHead className="w-24 text-right">Balance</TableHead>
-                  <TableHead className="w-16 text-center">Cleared</TableHead>
+                  <TableHead className="w-24 text-center">Status</TableHead>
                   <TableHead className="w-16 text-center">Actions</TableHead>
                 </TableRow>
               </TableHeader>
@@ -1388,12 +1405,27 @@ export function AccountDetailDialog({
                       </TableCell>
                       <TableCell className="px-2 py-1 text-center">
                         <div className="flex items-center justify-center">
-                          {txn.reconciled && <Check className="h-4 w-4 text-green-600 mx-auto" />}
+                          {(() => {
+                            const s = txn.status || (txn.reconciled ? 'cleared' : 'approved');
+                            const cls =
+                              s === 'cleared'
+                                ? 'bg-green-100 text-green-800 border-green-200'
+                                : s === 'pending'
+                                ? 'bg-amber-100 text-amber-800 border-amber-200'
+                                : 'bg-blue-100 text-blue-800 border-blue-200';
+                            const label = s === 'cleared' ? 'Cleared' : s === 'pending' ? 'Pending' : 'Approved';
+                            return (
+                              <span className={`inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-[10px] font-medium ${cls}`}>
+                                {s === 'cleared' && <Check className="h-3 w-3" />}
+                                {label}
+                              </span>
+                            );
+                          })()}
                         </div>
                       </TableCell>
                       <TableCell className="px-2 py-1">
                         <div className="flex items-center justify-center">
-                          {txn.reconciled || isDateLocked(txn.date) || isConsolidated ? (
+                          {isDateLocked(txn.date) || isConsolidated ? (
                             <div className="flex items-center gap-1 justify-center">
                               <Tooltip>
                                 <TooltipTrigger asChild>
@@ -1406,16 +1438,6 @@ export function AccountDetailDialog({
                                     <>
                                       <p className="font-medium">Consolidated Payment</p>
                                       <p className="text-xs text-muted-foreground">Cannot be edited individually</p>
-                                    </>
-                                  ) : txn.reconciled && isDateLocked(txn.date) ? (
-                                    <>
-                                      <p className="font-medium">Reconciled and Books Closed</p>
-                                      <p className="text-xs text-muted-foreground">Cannot be edited or deleted</p>
-                                    </>
-                                  ) : txn.reconciled ? (
-                                    <>
-                                      <p className="font-medium">Reconciled</p>
-                                      <p className="text-xs text-muted-foreground">Cannot be edited or deleted</p>
                                     </>
                                   ) : (
                                     <>
