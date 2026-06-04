@@ -493,6 +493,49 @@ export function AccountDetailDialog({
         }
       }
 
+      // Derive per-bill reconciliation from its payments (bill_payments table).
+      // A bill is treated as reconciled when it is fully paid (cent-precise) AND
+      // every bill_payment that paid it is reconciled. This makes the green check
+      // on a bill row reflect bank-clearing reality, since the bank cleared the
+      // payment, not the bill row itself.
+      const billDerivedReconciled = new Map<string, boolean>();
+      if (billIds.length > 0) {
+        const allocs = await batchedIn<any>(
+          (chunk) =>
+            supabase
+              .from('bill_payment_allocations')
+              .select('bill_id, amount_allocated, bill_payments:bill_payment_id(reconciled, reconciliation_id, reconciliation_date)')
+              .in('bill_id', chunk),
+          billIds
+        );
+        const paidCentsByBill = new Map<string, number>();
+        const allRecByBill = new Map<string, boolean>();
+        const hasAnyPayment = new Set<string>();
+        (allocs || []).forEach((a: any) => {
+          const bid = a.bill_id;
+          hasAnyPayment.add(bid);
+          const cents = Math.round(Number(a.amount_allocated || 0) * 100);
+          paidCentsByBill.set(bid, (paidCentsByBill.get(bid) || 0) + cents);
+          const bp = a.bill_payments || {};
+          const recd = !!(bp.reconciled || bp.reconciliation_id || bp.reconciliation_date);
+          const prev = allRecByBill.has(bid) ? allRecByBill.get(bid)! : true;
+          allRecByBill.set(bid, prev && recd);
+        });
+        billsMap.forEach((bill: any, bid: string) => {
+          if (!hasAnyPayment.has(bid)) return;
+          const totalCents = Math.round(Number(bill.total_amount || 0) * 100);
+          const paidCents = paidCentsByBill.get(bid) || 0;
+          const allRec = allRecByBill.get(bid) === true;
+          if (totalCents > 0 && paidCents >= totalCents && allRec) {
+            billDerivedReconciled.set(bid, true);
+          }
+        });
+      }
+      // Attach to billsMap for use during row construction
+      billsMap.forEach((bill: any, bid: string) => {
+        bill.derivedReconciled = billDerivedReconciled.get(bid) === true;
+      });
+
       // Collect all unique cost_code_ids and account_ids for lookup (declared early for consolidated payments)
       const allCostCodeIds = new Set<string>();
       const allAccountIds = new Set<string>();
