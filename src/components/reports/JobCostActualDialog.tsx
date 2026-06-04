@@ -287,11 +287,16 @@ export function JobCostActualDialog({
         let check_id: string | undefined;
         let attachments: any[] = [];
 
+        let billStatus: string | null = null;
+        let billDerivedReconciled = false;
+
         if (sourceType === 'bill') {
           const billData = billsMap.get(sourceId);
           vendor_name = billData?.vendor_name ?? undefined;
           reference_number = billData?.reference_number ?? undefined;
-          reconciled = billData?.reconciled ?? line.reconciled;
+          billStatus = billData?.status ?? null;
+          billDerivedReconciled = !!billData?.derivedReconciled;
+          reconciled = (billData?.reconciled || billDerivedReconciled) ?? line.reconciled;
           bill_id = sourceId;
           attachments = billData?.attachments || [];
         } else if (sourceType === 'check') {
@@ -306,6 +311,16 @@ export function JobCostActualDialog({
           deposit_id = sourceId;
         }
 
+        // Derive 3-state status. Only bills can be 'pending' (draft).
+        let status: 'pending' | 'approved' | 'cleared' = 'approved';
+        if (sourceType === 'bill') {
+          if (billStatus === 'draft') status = 'pending';
+          else if (reconciled) status = 'cleared';
+          else status = 'approved';
+        } else {
+          status = reconciled ? 'cleared' : 'approved';
+        }
+
         return {
           ...line,
           source_type: sourceType || 'unknown',
@@ -316,6 +331,7 @@ export function JobCostActualDialog({
           reference_number,
           reconciled,
           attachments,
+          status,
         };
       });
     },
