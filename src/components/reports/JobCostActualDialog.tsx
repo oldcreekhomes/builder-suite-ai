@@ -594,7 +594,7 @@ const formatCurrency = (value: number) => {
                             })()}
                           </div>
                         </TableCell>
-                        <TableCell>
+                        <TableCell onClick={(e) => e.stopPropagation()}>
                         <div className="flex items-center justify-center">
                             {isDateLocked(line.journal_entries.entry_date) ? (
                               <Tooltip>
