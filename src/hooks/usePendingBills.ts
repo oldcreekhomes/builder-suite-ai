@@ -234,7 +234,12 @@ export const usePendingBills = (projectId?: string) => {
       toast({ title: "Success", description: "Bill approved and created successfully" });
     },
     onError: (error: any) => {
-      toast({ title: "Error", description: `Failed to approve bill: ${error.message}`, variant: "destructive" });
+      const dup = formatDuplicateError(error);
+      if (dup) {
+        toast({ title: "Duplicate Invoice Number", description: dup, variant: "destructive" });
+      } else {
+        toast({ title: "Error", description: `Failed to approve bill: ${error.message}`, variant: "destructive" });
+      }
     },
   });
 
