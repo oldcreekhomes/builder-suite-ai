@@ -1,10 +1,11 @@
 import { supabase } from "@/integrations/supabase/client";
 
 export interface DuplicateBillInfo {
-  billId: string;
+  billId?: string;
   vendorName: string;
   projectName: string;
-  billDate: string;
+  billDate?: string;
+  reason?: "lookup_failed" | "db_constraint" | "duplicate";
 }
 
 export interface DuplicateCheckResult {
@@ -13,70 +14,94 @@ export interface DuplicateCheckResult {
 }
 
 /**
- * Hook to validate that a reference number (invoice number) is unique across the company.
- * This prevents duplicate invoices from being entered for the same company.
+ * Name of the partial unique index that enforces per-vendor reference-number
+ * uniqueness at the database level. Migrations must keep this in sync.
+ */
+export const BILLS_UNIQUE_REFERENCE_INDEX = "bills_unique_vendor_reference";
+
+/**
+ * Detects the Postgres unique-violation (23505) for the bill reference-number
+ * constraint and returns a user-facing message. Returns null if the error is
+ * unrelated.
+ */
+export function formatDuplicateError(error: any): string | null {
+  if (!error) return null;
+  const code = error.code || error?.cause?.code;
+  const msg =
+    (error.message || "") +
+    " " +
+    (error.details || "") +
+    " " +
+    (error.hint || "");
+  const isUniqueViolation = code === "23505";
+  const mentionsIndex =
+    msg.includes(BILLS_UNIQUE_REFERENCE_INDEX) ||
+    msg.toLowerCase().includes("bills_unique_vendor_reference");
+  if (isUniqueViolation && mentionsIndex) {
+    return "Duplicate invoice number: a bill with this reference number already exists for this vendor.";
+  }
+  return null;
+}
+
+/**
+ * Hook to validate that a reference number (invoice number) is unique
+ * per-vendor within the tenant. This is the fast UX path — the database
+ * also enforces this via the `bills_unique_vendor_reference` partial unique
+ * index, which is the authoritative backstop.
  */
 export function useReferenceNumberValidation() {
   /**
    * Check if a reference number already exists for this vendor.
-   * @param referenceNumber - The invoice/reference number to check
-   * @param vendorId - The vendor ID to check against (per-vendor uniqueness)
-   * @param excludeBillId - Optional bill ID to exclude (for editing existing bills)
-   * @returns Promise with duplicate check result
+   * Fails CLOSED — on any query error we treat as duplicate so a transient
+   * lookup failure can't admit a duplicate bill.
    */
   const checkDuplicate = async (
     referenceNumber: string,
     vendorId: string,
-    excludeBillId?: string
+    excludeBillId?: string,
   ): Promise<DuplicateCheckResult> => {
-    // Skip validation for empty/null reference numbers or missing vendorId
     const trimmed = referenceNumber?.trim();
     if (!trimmed || !vendorId) {
       return { isDuplicate: false };
     }
 
     try {
-      // Query for existing bills with this reference number from the same vendor
       let query = supabase
         .from("bills")
-        .select(`
-          id,
-          bill_date,
-          reference_number,
-          vendor_id,
-          project_id,
-          status,
-          companies!bills_vendor_id_fkey (company_name),
-          projects!bills_project_id_fkey (address)
-        `)
+        .select(
+          `id, bill_date, reference_number, vendor_id, project_id, status,
+           companies!bills_vendor_id_fkey (company_name),
+           projects!bills_project_id_fkey (address)`,
+        )
         .eq("vendor_id", vendorId)
         .neq("status", "void")
         .not("reference_number", "is", null);
 
-      // Exclude the current bill if editing
-      if (excludeBillId) {
-        query = query.neq("id", excludeBillId);
-      }
+      if (excludeBillId) query = query.neq("id", excludeBillId);
 
       const { data, error } = await query;
 
       if (error) {
         console.error("Error checking reference number:", error);
-        // On error, allow the operation to proceed (fail open for UX)
-        return { isDuplicate: false };
+        // FAIL CLOSED — don't let a hiccup admit a duplicate.
+        return {
+          isDuplicate: true,
+          existingBill: {
+            vendorName: "this vendor",
+            projectName: "unknown",
+            reason: "lookup_failed",
+          },
+        };
       }
 
-      // Check for case-insensitive match (trimmed)
       const normalizedInput = trimmed.toLowerCase();
       const match = data?.find(
         (bill) =>
-          bill.reference_number?.trim().toLowerCase() === normalizedInput
+          bill.reference_number?.trim().toLowerCase() === normalizedInput,
       );
 
       if (match) {
-        // Type assertion for the joined data
         const project = match.projects as { address: string } | null;
-
         return {
           isDuplicate: true,
           existingBill: {
@@ -84,6 +109,7 @@ export function useReferenceNumberValidation() {
             vendorName: "this vendor",
             projectName: project?.address || "Unknown Project",
             billDate: match.bill_date,
+            reason: "duplicate",
           },
         };
       }
@@ -91,7 +117,15 @@ export function useReferenceNumberValidation() {
       return { isDuplicate: false };
     } catch (err) {
       console.error("Unexpected error checking reference number:", err);
-      return { isDuplicate: false };
+      // FAIL CLOSED.
+      return {
+        isDuplicate: true,
+        existingBill: {
+          vendorName: "this vendor",
+          projectName: "unknown",
+          reason: "lookup_failed",
+        },
+      };
     }
   };
 
