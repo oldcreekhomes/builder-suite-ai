@@ -70,6 +70,7 @@ export function JobCostActualDialog({
   const [editingBillId, setEditingBillId] = useState<string | null>(null);
   const [editingDepositId, setEditingDepositId] = useState<string | null>(null);
   const [editingCheckId, setEditingCheckId] = useState<string | null>(null);
+  const [selectedTxn, setSelectedTxn] = useState<{ txn: any; balance: number } | null>(null);
   const [descriptionSort, setDescriptionSort] = useState<'asc' | 'desc' | null>(null);
   const { isDateLocked } = useClosedPeriodCheck(projectId);
   const { deleteCheck } = useChecks();
