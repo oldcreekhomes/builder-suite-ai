@@ -813,9 +813,13 @@ export function BillsApprovalTabs({ projectId, projectIds, reviewOnly = false, o
       
       if (failures.length > 0) {
         console.error("Some bills failed to approve:", failures);
+        const dupFailures = failures.filter((r: any) => r.duplicateMessage).length;
+        const description = dupFailures > 0
+          ? `${successes.length} bill(s) submitted, ${failures.length} failed (${dupFailures} duplicate invoice number${dupFailures > 1 ? 's' : ''} blocked by the database).`
+          : `${successes.length} bill(s) submitted successfully, ${failures.length} failed. Check console for details.`;
         toast({
           title: "Partial Success",
-          description: `${successes.length} bill(s) submitted successfully, ${failures.length} failed. Check console for details.`,
+          description,
           variant: "destructive",
         });
       } else {
