@@ -1305,7 +1305,7 @@ export function AccountDetailDialog({
                   <TableHead className="w-40">Description</TableHead>
                   <TableHead className="w-24 text-right">Amount</TableHead>
                   <TableHead className="w-24 text-right">Balance</TableHead>
-                  <TableHead className="w-16 text-center">Cleared</TableHead>
+                  <TableHead className="w-24 text-center">Status</TableHead>
                   <TableHead className="w-16 text-center">Actions</TableHead>
                 </TableRow>
               </TableHeader>
@@ -1405,12 +1405,27 @@ export function AccountDetailDialog({
                       </TableCell>
                       <TableCell className="px-2 py-1 text-center">
                         <div className="flex items-center justify-center">
-                          {txn.reconciled && <Check className="h-4 w-4 text-green-600 mx-auto" />}
+                          {(() => {
+                            const s = txn.status || (txn.reconciled ? 'cleared' : 'approved');
+                            const cls =
+                              s === 'cleared'
+                                ? 'bg-green-100 text-green-800 border-green-200'
+                                : s === 'pending'
+                                ? 'bg-amber-100 text-amber-800 border-amber-200'
+                                : 'bg-blue-100 text-blue-800 border-blue-200';
+                            const label = s === 'cleared' ? 'Cleared' : s === 'pending' ? 'Pending' : 'Approved';
+                            return (
+                              <span className={`inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-[10px] font-medium ${cls}`}>
+                                {s === 'cleared' && <Check className="h-3 w-3" />}
+                                {label}
+                              </span>
+                            );
+                          })()}
                         </div>
                       </TableCell>
                       <TableCell className="px-2 py-1">
                         <div className="flex items-center justify-center">
-                          {txn.reconciled || isDateLocked(txn.date) || isConsolidated ? (
+                          {isDateLocked(txn.date) || isConsolidated ? (
                             <div className="flex items-center gap-1 justify-center">
                               <Tooltip>
                                 <TooltipTrigger asChild>
@@ -1423,16 +1438,6 @@ export function AccountDetailDialog({
                                     <>
                                       <p className="font-medium">Consolidated Payment</p>
                                       <p className="text-xs text-muted-foreground">Cannot be edited individually</p>
-                                    </>
-                                  ) : txn.reconciled && isDateLocked(txn.date) ? (
-                                    <>
-                                      <p className="font-medium">Reconciled and Books Closed</p>
-                                      <p className="text-xs text-muted-foreground">Cannot be edited or deleted</p>
-                                    </>
-                                  ) : txn.reconciled ? (
-                                    <>
-                                      <p className="font-medium">Reconciled</p>
-                                      <p className="text-xs text-muted-foreground">Cannot be edited or deleted</p>
                                     </>
                                   ) : (
                                     <>
