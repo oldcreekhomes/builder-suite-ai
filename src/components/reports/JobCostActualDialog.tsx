@@ -17,6 +17,7 @@ import { EditCheckDialog } from "@/components/checks/EditCheckDialog";
 import { useChecks } from "@/hooks/useChecks";
 import { toast } from "@/hooks/use-toast";
 import { BillFilesCell } from "@/components/bills/BillFilesCell";
+import { TransactionDetailDialog } from "@/components/accounting/TransactionDetailDialog";
 
 interface JobCostActualDialogProps {
   isOpen: boolean;
@@ -69,6 +70,7 @@ export function JobCostActualDialog({
   const [editingBillId, setEditingBillId] = useState<string | null>(null);
   const [editingDepositId, setEditingDepositId] = useState<string | null>(null);
   const [editingCheckId, setEditingCheckId] = useState<string | null>(null);
+  const [selectedTxn, setSelectedTxn] = useState<{ txn: any; balance: number } | null>(null);
   const [descriptionSort, setDescriptionSort] = useState<'asc' | 'desc' | null>(null);
   const { isDateLocked } = useClosedPeriodCheck(projectId);
   const { deleteCheck } = useChecks();
@@ -502,7 +504,35 @@ const formatCurrency = (value: number) => {
                     const netAmount = line.debit - line.credit;
                     
                     return (
-                      <TableRow key={line.id} className="whitespace-nowrap">
+                      <TableRow
+                        key={line.id}
+                        className="whitespace-nowrap cursor-pointer hover:bg-muted/40"
+                        onClick={() => {
+                          const sourceId =
+                            line.bill_id ||
+                            line.deposit_id ||
+                            line.check_id ||
+                            line.journal_entries.source_id ||
+                            line.id;
+                          const txn = {
+                            source_id: sourceId,
+                            line_id: line.id,
+                            journal_entry_id: (line as any).journal_entry_id || '',
+                            date: line.journal_entries.entry_date,
+                            memo: line.memo,
+                            description: line.memo || line.journal_entries.description || null,
+                            reference: line.reference_number || line.vendor_name || null,
+                            accountDisplay: `${costCode} - ${costCodeName}`,
+                            source_type: line.source_type || line.journal_entries.source_type || 'manual',
+                            debit: line.debit,
+                            credit: line.credit,
+                            created_at: '',
+                            reconciled: !!line.reconciled,
+                            reconciliation_date: (line as any).reconciliation_date || null,
+                          };
+                          setSelectedTxn({ txn, balance: balances[index] });
+                        }}
+                      >
                         <TableCell className="whitespace-nowrap">
                           <span className="text-xs">{getTypeLabel(line.source_type)}</span>
                         </TableCell>
@@ -529,7 +559,7 @@ const formatCurrency = (value: number) => {
                             </TooltipContent>
                           </Tooltip>
                         </TableCell>
-                        <TableCell className="py-0 text-center">
+                        <TableCell className="py-0 text-center" onClick={(e) => e.stopPropagation()}>
                           {line.bill_id && (line as any).attachments?.length > 0 ? (
                             <div className="h-4 leading-none flex items-center justify-center">
                               <BillFilesCell attachments={(line as any).attachments} />
@@ -564,7 +594,7 @@ const formatCurrency = (value: number) => {
                             })()}
                           </div>
                         </TableCell>
-                        <TableCell>
+                        <TableCell onClick={(e) => e.stopPropagation()}>
                         <div className="flex items-center justify-center">
                             {isDateLocked(line.journal_entries.entry_date) ? (
                               <Tooltip>
@@ -649,6 +679,14 @@ const formatCurrency = (value: number) => {
         open={!!editingCheckId}
         onOpenChange={handleEditCheckDialogClose}
         checkId={editingCheckId || ''}
+      />
+
+      <TransactionDetailDialog
+        transaction={selectedTxn?.txn ?? null}
+        balance={selectedTxn?.balance ?? 0}
+        accountType="expense"
+        open={!!selectedTxn}
+        onOpenChange={(o) => { if (!o) setSelectedTxn(null); }}
       />
     </>
   );
