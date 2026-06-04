@@ -50,6 +50,7 @@ interface JournalEntryLine {
   deposit_id?: string;
   check_id?: string;
   source_type?: string;
+  status?: 'pending' | 'approved' | 'cleared';
 }
 
 export function JobCostActualDialog({
@@ -161,7 +162,7 @@ export function JobCostActualDialog({
         .filter((id): id is string => id !== null);
 
       // Enrich bill entries with vendor and reference info
-      let billsMap = new Map<string, { reference_number: string | null; vendor_name: string | null; reconciled: boolean | null; attachments: any[] }>();
+      let billsMap = new Map<string, { reference_number: string | null; vendor_name: string | null; reconciled: boolean | null; status: string | null; derivedReconciled: boolean; attachments: any[] }>();
       if (billSourceIds.length > 0) {
         const { data: billsData } = await supabase
           .from('bills')
@@ -169,11 +170,46 @@ export function JobCostActualDialog({
             id,
             reference_number,
             reconciled,
+            status,
+            total_amount,
+            amount_paid,
             vendor_id,
             companies!bills_vendor_id_fkey(company_name),
             bill_attachments(id, file_path, file_name, file_size, content_type)
           `)
           .in('id', billSourceIds);
+
+        // Derive per-bill reconciled status from its payments:
+        // fully paid (cent-precise) AND every bill_payment is reconciled.
+        const derivedMap = new Map<string, boolean>();
+        const { data: allocs } = await supabase
+          .from('bill_payment_allocations')
+          .select('bill_id, amount_allocated, bill_payments:bill_payment_id(reconciled, reconciliation_id, reconciliation_date)')
+          .in('bill_id', billSourceIds);
+
+        const allocsByBill = new Map<string, any[]>();
+        (allocs || []).forEach((a: any) => {
+          const arr = allocsByBill.get(a.bill_id) || [];
+          arr.push(a);
+          allocsByBill.set(a.bill_id, arr);
+        });
+
+        (billsData || []).forEach((bill: any) => {
+          const totalCents = Math.round(Number(bill.total_amount || 0) * 100);
+          const arr = allocsByBill.get(bill.id) || [];
+          if (arr.length === 0 || totalCents <= 0) {
+            derivedMap.set(bill.id, false);
+            return;
+          }
+          const paidCents = arr.reduce((s, a) => s + Math.round(Number(a.amount_allocated || 0) * 100), 0);
+          const fullyPaid = paidCents >= totalCents;
+          const allReconciled = arr.every((a: any) => {
+            const bp = a.bill_payments;
+            if (!bp) return false;
+            return !!(bp.reconciled || bp.reconciliation_id || bp.reconciliation_date);
+          });
+          derivedMap.set(bill.id, fullyPaid && allReconciled);
+        });
 
         billsMap = new Map(
           billsData?.map(bill => [
@@ -182,6 +218,8 @@ export function JobCostActualDialog({
               reference_number: bill.reference_number,
               vendor_name: (bill.companies as any)?.company_name,
               reconciled: bill.reconciled,
+              status: (bill as any).status ?? null,
+              derivedReconciled: derivedMap.get(bill.id) === true,
               attachments: (bill as any).bill_attachments || []
             }
           ]) || []
