@@ -1,37 +1,29 @@
-## Nob Hill Court — Costs by Cost Code (Excel export)
+## Combined Cost Report — OCH at Longview + Nob Hill Court
 
-One-time data export. No application code changes.
+One-off Excel export. No code changes.
 
-### Project
-- 100 Nob Hill Ct, Alexandria, VA 22314 (`691271e6-e46f-4745-8efb-200500e819f0`)
+### Mapping decisions (from your answers)
+- Nob Hill 2150 "Utility Tap Fees" $1,800 → **OCH 4170 Utility Tap Fees** (combined row = $3,600)
+- Nob Hill 4015 Office $67.88 → **OCH 4010.3 Office** (combined $134.75)
+- Nob Hill 4020 Project Manager $765.00 → **OCH 4010.4 Project Manager** (combined $13,942.48)
+- Nob Hill 4040 Office Supplies $1,734.20 → **OCH 4010.2 Office Supplies** (combined $1,744.75)
+- Nob Hill 4070 Temporary Toilets $210.52 → **OCH 4040 Temporary Toilets** (combined $210.52)
+- Nob Hill "(Uncategorized)" $2,490.00 → separate row at the bottom
 
-### Scope
-Pull every bill line tied to this project across the Review, Approved, and Paid tabs, then sum to a single number per cost code.
+### Output (`/mnt/documents/Combined_OCH_NobHill_Costs.xlsx`)
 
-Source data:
-- `bills` with `status IN ('posted','paid')` (Approved + Paid tabs) — currently 15 + 19 = 34 bills
-- `pending_bill_uploads` with `status IN ('pending','extracted','needs_review')` joined to `pending_bill_lines` (Review tab) — currently 0 rows for this project, so nothing to add
-- Exclude reversals (`is_reversal = true`) and any reversed lines so we don't double-count corrections
-- Bill lines joined to `cost_codes` for code + name
+Single sheet "Combined Costs" preserving OCH's grouped structure:
 
-Note: There are also 7 `draft` bills on this project. Draft = rejected/in-progress, not shown in Review/Approved/Paid tabs, so they will be excluded. Tell me if you want them included.
+| Code | Description | OCH at Longview | Nob Hill Court | Combined |
+|---|---|---|---|---|
 
-### Output (`/mnt/documents/NobHillCourt_Costs_By_CostCode.xlsx`)
-Single sheet "Costs by Cost Code":
-
-| Cost Code | Description | Total Cost |
-|-----------|-------------|------------|
-| 1000      | Permits     | $12,345.67 |
-| ...       | ...         | ...        |
-| **Total** |             | **$X**     |
-
-- Sorted by cost code
+- Section headers: 1000 Land / 2000 Soft / 3000 Site / 4000 Homebuilding / Uncategorized
+- Subtotal row per section (formulas)
+- Grand total at bottom
+- **All rows where Combined = $0 are dropped** (per your rule)
 - Currency formatted to 2 decimals
-- Grand total row at bottom
-- Bold header row
 
-### Technical approach
-1. SQL: sum `bill_lines.amount` grouped by `cost_code_id` for project = Nob Hill, where parent bill status in ('posted','paid') and `is_reversal = false`.
-2. Join `cost_codes` for code + name; lines without a cost code grouped under "(Uncategorized)".
-3. Generate xlsx via Python (openpyxl) and save to `/mnt/documents/`.
-4. QA: open the file, verify row count and grand total matches a separate `SUM(total_amount)` sanity check on the same bills.
+### Expected totals (sanity check)
+- OCH at Longview (rows retained): ~$1,951,708.79
+- Nob Hill Court: $70,439.83
+- **Combined grand total: $2,022,148.62**
