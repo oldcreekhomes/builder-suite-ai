@@ -200,7 +200,7 @@ export function TransactionDetailDialog({
 
             const { data: billRows } = await supabase
               .from('bills')
-              .select('id, reference_number, total_amount, amount_paid')
+              .select('id, reference_number, total_amount, amount_paid, vendor_id, project_id')
               .in('id', billIdArr);
             const invoices = (billRows || [])
               .map((b: { reference_number: string | null }) => b.reference_number)
@@ -222,17 +222,29 @@ export function TransactionDetailDialog({
             // NOT bills.notes (which is the audit/notes log).
             const { data: lineRows } = await supabase
               .from('bill_lines')
-              .select('bill_id, memo, line_number')
+              .select('bill_id, memo, line_number, cost_code_id, amount, purchase_order_id, purchase_order_line_id, po_reference, po_assignment')
               .in('bill_id', billIdArr)
               .order('line_number', { ascending: true });
             const firstMemoByBill = new Map<string, string>();
-            (lineRows || []).forEach((l: { bill_id: string; memo: string | null }) => {
+            const linesByBill = new Map<string, any[]>();
+            (lineRows || []).forEach((l: any) => {
               if (!firstMemoByBill.has(l.bill_id) && l.memo && l.memo.trim().length > 0) {
                 firstMemoByBill.set(l.bill_id, l.memo);
               }
+              const arr = linesByBill.get(l.bill_id) || [];
+              arr.push(l);
+              linesByBill.set(l.bill_id, arr);
             });
             const memos = Array.from(firstMemoByBill.values());
             setOriginalBillDescription(memos.length > 0 ? Array.from(new Set(memos)).join('; ') : null);
+
+            setBillsForPO((billRows || []).map((b: any) => ({
+              id: b.id,
+              vendor_id: b.vendor_id,
+              project_id: b.project_id,
+              total_amount: Number(b.total_amount) || 0,
+              bill_lines: linesByBill.get(b.id) || [],
+            })));
           }
         } else if (sourceType === 'check') {
           const { data: rows } = await supabase
