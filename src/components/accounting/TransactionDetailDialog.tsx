@@ -16,6 +16,13 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { formatDateSafe } from "@/utils/dateOnly";
 import { useUniversalFilePreviewContext } from "@/components/files/UniversalFilePreviewProvider";
+import { parseBillNotes } from "@/lib/billNoteUtils";
+
+const getLatestDescription = (raw: string | null | undefined): string => {
+  if (!raw) return '';
+  const parsed = parseBillNotes(raw);
+  return parsed.length > 0 ? parsed[0].content : raw;
+};
 
 interface Transaction {
   source_id: string;
