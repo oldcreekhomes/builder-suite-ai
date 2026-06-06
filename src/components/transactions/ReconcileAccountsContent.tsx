@@ -1069,7 +1069,7 @@ export function ReconcileAccountsContent({ projectId }: ReconcileAccountsContent
         {/* All fields in one row */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-12 gap-4 mb-6">
           <div className="lg:col-span-2">
-            <Label htmlFor="bank-account">Bank Account</Label>
+            <Label htmlFor="bank-account">Account</Label>
             <Select
               value={selectedBankAccountId || ""}
               onValueChange={(value) => {
@@ -1082,7 +1082,7 @@ export function ReconcileAccountsContent({ projectId }: ReconcileAccountsContent
               disabled={isReconciliationMode}
             >
               <SelectTrigger className="w-full mt-1">
-                <SelectValue placeholder="Select a bank account..." />
+                <SelectValue placeholder="Select an account..." />
               </SelectTrigger>
               <SelectContent>
                 {bankAccounts.map((account) => (
