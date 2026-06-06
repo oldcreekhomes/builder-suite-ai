@@ -101,6 +101,8 @@ export function TransactionDetailDialog({
       setAttachments([]);
       setOriginalBillDescription(null);
       setOriginalInvoiceNumbers([]);
+      setOriginalBillTotal(null);
+      setRemainingBillBalance(null);
       return;
     }
 
