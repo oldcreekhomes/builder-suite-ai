@@ -116,6 +116,7 @@ export function TransactionDetailDialog({
       setOriginalInvoiceNumbers([]);
       setOriginalBillTotal(null);
       setRemainingBillBalance(null);
+      setBillsForPO([]);
       return;
     }
 
