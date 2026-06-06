@@ -959,6 +959,25 @@ export function AccountDetailDialog({
           });
           const consolidatedDescription = billMemos.length > 0 ? billMemos.join('; ') : null;
 
+          // Derive reconciliation from this bank account's JE lines for the payment's bills.
+          // This is the true cleared-state. Fall back to bill_payments flags only when no JE line was found.
+          let bankAllRecon = allocations.length > 0;
+          let bankAnyKnown = false;
+          let bankReconDate: string | null = null;
+          allocations.forEach((a) => {
+            const br = bankReconByBillId.get(a.bill_id);
+            if (br) {
+              bankAnyKnown = true;
+              if (!br.reconciled) bankAllRecon = false;
+              if (br.reconciliation_date && !bankReconDate) bankReconDate = br.reconciliation_date;
+            } else {
+              bankAllRecon = false;
+            }
+          });
+          const cpFlagRecon = !!(cp.reconciled || cp.reconciliation_id || cp.reconciliation_date);
+          const isReconciled = bankAnyKnown ? bankAllRecon : cpFlagRecon;
+          const reconciliationDateForRow = bankReconDate || cp.reconciliation_date || null;
+
           const syntheticRow: Transaction = {
             source_id: cp.id,
             line_id: `consolidated:${cp.id}`,
@@ -972,10 +991,10 @@ export function AccountDetailDialog({
             debit: 0,
             credit: Number(cp.total_amount),
             created_at: cp.created_at || new Date().toISOString(),
-            reconciled: cp.reconciled || !!cp.reconciliation_id || !!cp.reconciliation_date,
-            reconciliation_date: cp.reconciliation_date,
+            reconciled: isReconciled,
+            reconciliation_date: reconciliationDateForRow,
             isPaid: true,
-            status: (cp.reconciled || !!cp.reconciliation_id || !!cp.reconciliation_date) ? 'cleared' : 'approved',
+            status: isReconciled ? 'cleared' : 'approved',
             includedBillPayments: allocations,
             consolidatedTotalAmount: Number(cp.total_amount),
           };
