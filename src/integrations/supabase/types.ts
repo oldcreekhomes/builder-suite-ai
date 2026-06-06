@@ -150,9 +150,11 @@ export type Database = {
           description: string | null
           id: string
           is_active: boolean
+          is_default_bank: boolean
           name: string
           owner_id: string
           parent_id: string | null
+          subtype: string | null
           type: Database["public"]["Enums"]["account_type"]
           updated_at: string
           updated_by: string | null
@@ -164,9 +166,11 @@ export type Database = {
           description?: string | null
           id?: string
           is_active?: boolean
+          is_default_bank?: boolean
           name: string
           owner_id: string
           parent_id?: string | null
+          subtype?: string | null
           type: Database["public"]["Enums"]["account_type"]
           updated_at?: string
           updated_by?: string | null
@@ -178,9 +182,11 @@ export type Database = {
           description?: string | null
           id?: string
           is_active?: boolean
+          is_default_bank?: boolean
           name?: string
           owner_id?: string
           parent_id?: string | null
+          subtype?: string | null
           type?: Database["public"]["Enums"]["account_type"]
           updated_at?: string
           updated_by?: string | null
