@@ -92,6 +92,8 @@ export function TransactionDetailDialog({
   const [loadingAttachments, setLoadingAttachments] = useState(false);
   const [originalBillDescription, setOriginalBillDescription] = useState<string | null>(null);
   const [originalInvoiceNumbers, setOriginalInvoiceNumbers] = useState<string[]>([]);
+  const [originalBillTotal, setOriginalBillTotal] = useState<number | null>(null);
+  const [remainingBillBalance, setRemainingBillBalance] = useState<number | null>(null);
   const filePreview = useUniversalFilePreviewContext();
 
   useEffect(() => {
