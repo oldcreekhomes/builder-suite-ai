@@ -218,7 +218,33 @@ export function TransactionDetailDialog({
               0,
             );
             setOriginalBillTotal(Math.round(totalSum * 100) / 100);
-            setRemainingBillBalance(Math.round((totalSum - paidSum) * 100) / 100);
+
+            // Per-payment history: sum allocations dated BEFORE this transaction's date,
+            // so Balance reflects the bill's remaining balance immediately after this payment.
+            const { data: allocRows } = await supabase
+              .from('bill_payment_allocations')
+              .select('amount_allocated, bill_payment_id, bill_payments(payment_date)')
+              .in('bill_id', billIdArr);
+            const txDate = transaction.date; // YYYY-MM-DD string
+            let prevSum = 0;
+            let currentAllocSum = 0;
+            (allocRows || []).forEach((a: any) => {
+              const pDate: string | undefined = a?.bill_payments?.payment_date;
+              const amt = Number(a?.amount_allocated) || 0;
+              if (!pDate) return;
+              if (pDate < txDate) {
+                prevSum += amt;
+              } else if (pDate === txDate && paymentIds.has(a.bill_payment_id)) {
+                currentAllocSum += amt;
+              }
+            });
+            const prevRounded = Math.round(prevSum * 100) / 100;
+            const currentRounded = Math.round(currentAllocSum * 100) / 100;
+            const currentPaymentAbs = Math.abs(Math.round((Number(transaction.debit) - Number(transaction.credit)) * 100) / 100);
+            // Prefer the actual current allocation total when matched; fall back to row amount.
+            const currentApplied = currentRounded > 0 ? currentRounded : currentPaymentAbs;
+            setPreviousPaymentsTotal(prevRounded);
+            setRemainingBillBalance(Math.round((totalSum - prevRounded - currentApplied) * 100) / 100);
 
             // Description is sourced from bill_lines.memo (the bill's line Description),
             // NOT bills.notes (which is the audit/notes log).
