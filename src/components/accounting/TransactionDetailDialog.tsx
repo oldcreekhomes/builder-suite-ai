@@ -362,7 +362,7 @@ export function TransactionDetailDialog({
                     </DropdownMenu>
                   </span>
                 ) : (
-                  <span className="break-words">{item.value}</span>
+                  <span className={`break-words${item.valueClassName ? ` ${item.valueClassName}` : ''}`}>{item.value}</span>
                 )}
               </div>
             ))}
