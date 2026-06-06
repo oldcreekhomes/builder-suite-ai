@@ -97,6 +97,8 @@ export function TransactionDetailDialog({
   useEffect(() => {
     if (!transaction || !open) {
       setAttachments([]);
+      setOriginalBillDescription(null);
+      setOriginalInvoiceNumbers([]);
       return;
     }
 
