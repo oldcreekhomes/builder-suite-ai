@@ -115,11 +115,17 @@ export function AccountSearchInput({
   });
 
 
-  // Show all accounts when empty, filter when user types
-  const filteredAccounts = searchQuery.trim().length === 0
+  const normalizedSearchQuery = searchQuery.trim().toLowerCase();
+  const matchesSelectedAccount = typeFilteredAccounts.some(account =>
+    `${account.code} - ${account.name}`.toLowerCase() === normalizedSearchQuery
+  );
+
+  // Show all accounts when empty or when the field already contains a selected account;
+  // filter only after the user starts typing a different search.
+  const filteredAccounts = normalizedSearchQuery.length === 0 || matchesSelectedAccount
     ? typeFilteredAccounts
     : (() => {
-        const tokens = searchQuery.toLowerCase().split(/[-\s]+/).filter(Boolean);
+        const tokens = normalizedSearchQuery.split(/[-\s]+/).filter(Boolean);
         return typeFilteredAccounts.filter(account => 
           tokens.every(t =>
             account.code.toLowerCase().includes(t) || account.name.toLowerCase().includes(t)
