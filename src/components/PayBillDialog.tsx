@@ -25,7 +25,7 @@ import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { cn } from "@/lib/utils";
 import { useAccounts } from "@/hooks/useAccounts";
-import { useDefaultBankAccountId } from "@/hooks/useDefaultBankAccountId";
+import { useProjectDefaultBankAccountId } from "@/hooks/useProjectDefaultBankAccountId";
 
 interface BillForPayment {
   id: string;
