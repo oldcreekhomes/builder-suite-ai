@@ -888,6 +888,22 @@ export function AccountDetailDialog({
             } else if (bill.firstLineAccountId && accountsDisplayMap.has(bill.firstLineAccountId)) {
               accountDisplay = accountsDisplayMap.get(bill.firstLineAccountId) || null;
             }
+            // Build cost-code breakdown grouped by visible label
+            var __breakdownLabels: string[] = [];
+            var __breakdownSums = new Map<string, number>();
+            (bill.bill_lines || []).forEach((bl: any) => {
+              let label: string | null = null;
+              if (bl.cost_code_id && costCodesMap.has(bl.cost_code_id)) {
+                label = costCodesMap.get(bl.cost_code_id) || null;
+              } else if (bl.account_id && accountsDisplayMap.has(bl.account_id)) {
+                label = accountsDisplayMap.get(bl.account_id) || null;
+              }
+              if (!label) label = 'Unassigned';
+              if (!__breakdownSums.has(label)) __breakdownLabels.push(label);
+              __breakdownSums.set(label, (__breakdownSums.get(label) || 0) + Number(bl.amount || 0));
+            });
+            var __billAccountBreakdown = __breakdownLabels.map(l => ({ label: l, amount: __breakdownSums.get(l) || 0 }));
+            var __billAccountBreakdownTotal = __billAccountBreakdown.reduce((s, b) => s + b.amount, 0);
           }
         }
 
