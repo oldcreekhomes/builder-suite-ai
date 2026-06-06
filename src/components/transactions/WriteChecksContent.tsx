@@ -138,7 +138,7 @@ export function WriteChecksContent({ projectId, recurringTemplate, onClearTempla
 
   const { data: project } = useProject(projectId || "");
   const { accounts } = useAccounts();
-  const defaultBankAccountId = useDefaultBankAccountId();
+  const defaultBankAccountId = useProjectDefaultBankAccountId(projectId);
 
   // Auto-fill the default bank account when starting a new check
   useEffect(() => {
