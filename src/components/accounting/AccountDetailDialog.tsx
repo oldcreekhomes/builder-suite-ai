@@ -797,6 +797,8 @@ export function AccountDetailDialog({
         let reconciliation_date: string | null = null;
         let accountDisplay: string | null = null;
         let billStatus: string | null = null;
+        let billAccountBreakdown: { label: string; amount: number }[] | undefined = undefined;
+        let billAccountBreakdownTotal: number | undefined = undefined;
 
         // If this is a check, get reference from checks table
         if (line.journal_entries.source_type === 'check') {
