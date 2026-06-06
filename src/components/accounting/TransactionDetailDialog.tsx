@@ -90,11 +90,15 @@ export function TransactionDetailDialog({
 }: TransactionDetailDialogProps) {
   const [attachments, setAttachments] = useState<Attachment[]>([]);
   const [loadingAttachments, setLoadingAttachments] = useState(false);
+  const [originalBillDescription, setOriginalBillDescription] = useState<string | null>(null);
+  const [originalInvoiceNumbers, setOriginalInvoiceNumbers] = useState<string[]>([]);
   const filePreview = useUniversalFilePreviewContext();
 
   useEffect(() => {
     if (!transaction || !open) {
       setAttachments([]);
+      setOriginalBillDescription(null);
+      setOriginalInvoiceNumbers([]);
       return;
     }
 
@@ -145,11 +149,38 @@ export function TransactionDetailDialog({
           }
 
           if (billIds.size > 0) {
+            const billIdArr = Array.from(billIds);
             const { data: rows } = await supabase
               .from('bill_attachments')
               .select('id, file_name, file_path, content_type, file_size')
-              .in('bill_id', Array.from(billIds));
+              .in('bill_id', billIdArr);
             data = rows || [];
+
+            const { data: billRows } = await supabase
+              .from('bills')
+              .select('id, reference_number, notes')
+              .in('id', billIdArr);
+            const invoices = (billRows || [])
+              .map((b: { reference_number: string | null }) => b.reference_number)
+              .filter((v): v is string => !!v && v.trim().length > 0);
+            setOriginalInvoiceNumbers(Array.from(new Set(invoices)));
+
+            const notes = (billRows || [])
+              .map((b: { notes: string | null }) => b.notes)
+              .filter((v): v is string => !!v && v.trim().length > 0);
+            if (notes.length > 0) {
+              setOriginalBillDescription(Array.from(new Set(notes)).join('; '));
+            } else {
+              // Fall back to bill line memos for these bills
+              const { data: lineRows } = await supabase
+                .from('bill_lines')
+                .select('memo')
+                .in('bill_id', billIdArr);
+              const memos = (lineRows || [])
+                .map((l: { memo: string | null }) => l.memo)
+                .filter((v): v is string => !!v && v.trim().length > 0);
+              setOriginalBillDescription(memos.length > 0 ? Array.from(new Set(memos)).join('; ') : null);
+            }
           }
         } else if (sourceType === 'check') {
           const { data: rows } = await supabase
@@ -237,20 +268,41 @@ export function TransactionDetailDialog({
     }
   };
 
-  const details: DetailItem[] = [
-    { label: 'Type', value: getTypeLabel(transaction.source_type) },
-    { label: 'Date', value: formatDateSafe(transaction.date, 'MM/dd/yyyy') },
-    { label: 'Name', value: transaction.reference || '-' },
-    { label: 'Account', value: transaction.accountDisplay || '-' },
-    { label: 'Description', value: transaction.description || '-', isDescription: true },
-    { label: 'Debit', value: transaction.debit > 0 ? formatCurrency(transaction.debit) : '-' },
-    { label: 'Credit', value: transaction.credit > 0 ? formatCurrency(transaction.credit) : '-' },
-    { label: 'Amount', value: formatCurrency(netAmount) },
-    { label: 'Balance', value: formatCurrency(balance) },
-  ];
   const isBillPayment = transaction.source_type === 'bill_payment' || transaction.source_type === 'consolidated_bill_payment';
   const attachmentSectionTitle = isBillPayment ? 'Original Bill' : 'Attachments';
   const emptyAttachmentMessage = isBillPayment ? 'No original bill found' : 'No attachments found';
+
+  const details: DetailItem[] = isBillPayment
+    ? [
+        { label: 'Type', value: getTypeLabel(transaction.source_type) },
+        { label: 'Date', value: formatDateSafe(transaction.date, 'MM/dd/yyyy') },
+        { label: 'Name', value: transaction.reference || '-' },
+        { label: 'Account', value: transaction.accountDisplay || '-' },
+        {
+          label: 'Description',
+          value: originalBillDescription || transaction.description || '-',
+          isDescription: true,
+        },
+        {
+          label: 'Invoice',
+          value: originalInvoiceNumbers.length > 0 ? originalInvoiceNumbers.join(', ') : '-',
+        },
+        {
+          label: 'Current Payment',
+          value: formatCurrency(Math.abs(netAmount)),
+        },
+      ]
+    : [
+        { label: 'Type', value: getTypeLabel(transaction.source_type) },
+        { label: 'Date', value: formatDateSafe(transaction.date, 'MM/dd/yyyy') },
+        { label: 'Name', value: transaction.reference || '-' },
+        { label: 'Account', value: transaction.accountDisplay || '-' },
+        { label: 'Description', value: transaction.description || '-', isDescription: true },
+        { label: 'Debit', value: transaction.debit > 0 ? formatCurrency(transaction.debit) : '-' },
+        { label: 'Credit', value: transaction.credit > 0 ? formatCurrency(transaction.credit) : '-' },
+        { label: 'Amount', value: formatCurrency(netAmount) },
+        { label: 'Balance', value: formatCurrency(balance) },
+      ];
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
