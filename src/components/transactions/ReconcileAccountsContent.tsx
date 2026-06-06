@@ -267,9 +267,29 @@ export function ReconcileAccountsContent({ projectId }: ReconcileAccountsContent
     staleTime: Infinity,          // Never auto-refetch
   });
 
-  const bankAccounts = accounts?.filter(
-    (acc) => acc.type === 'asset' && acc.is_active
-  ) || [];
+  // Reconcilable accounts: bank + credit card subtypes, active, not excluded for this project
+  const bankAccounts = (accounts ?? []).filter((acc: any) => {
+    if (!acc?.is_active) return false;
+    if (excludedAccountIds && excludedAccountIds.has(acc.id)) return false;
+    return acc.subtype === 'bank' || acc.subtype === 'credit_card';
+  });
+
+  // Prefer the project default bank account over any stale localStorage value.
+  // Only keep the saved selection if it's still a valid reconcilable account.
+  useEffect(() => {
+    if (!accounts || accounts.length === 0) return;
+    const validIds = new Set(bankAccounts.map((a: any) => a.id));
+
+    if (selectedBankAccountId && !validIds.has(selectedBankAccountId)) {
+      setSelectedBankAccountId(null);
+      return;
+    }
+    if (!selectedBankAccountId && defaultBankAccountId && validIds.has(defaultBankAccountId)) {
+      setSelectedBankAccountId(defaultBankAccountId);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [accounts, excludedAccountIds, defaultBankAccountId]);
+
 
 
   const clearedChecks = transactions?.checks.filter(c => checkedTransactions.has(c.id)) || [];
