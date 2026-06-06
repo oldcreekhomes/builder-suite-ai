@@ -33,8 +33,15 @@ interface Transaction {
   reconciled: boolean;
   reconciliation_date?: string | null;
   isPaid?: boolean;
-  includedBillPayments?: any[];
+  includedBillPayments?: IncludedBillPayment[];
   consolidatedTotalAmount?: number;
+}
+
+interface IncludedBillPayment {
+  id?: string | null;
+  bill_payment_id?: string | null;
+  source_id?: string | null;
+  bill_id?: string | null;
 }
 
 interface Attachment {
@@ -111,7 +118,7 @@ export function TransactionDetailDialog({
           } else {
             paymentIds.add(sourceId);
             if (Array.isArray(transaction.includedBillPayments)) {
-              transaction.includedBillPayments.forEach((p: any) => {
+              transaction.includedBillPayments.forEach((p) => {
                 if (p?.bill_id) billIds.add(p.bill_id);
                 if (p?.id) paymentIds.add(p.id);
                 if (p?.bill_payment_id) paymentIds.add(p.bill_payment_id);
@@ -125,7 +132,8 @@ export function TransactionDetailDialog({
               .from('bill_payment_allocations')
               .select('bill_id')
               .in('bill_payment_id', Array.from(paymentIds));
-            (allocs || []).forEach((a: any) => {
+            const allocationRows = (allocs || []) as Array<{ bill_id: string | null }>;
+            allocationRows.forEach((a) => {
               if (a.bill_id) billIds.add(a.bill_id);
             });
           }
