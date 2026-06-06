@@ -213,10 +213,8 @@ export function TransactionDetailDialog({
               (sum: number, b: { total_amount: number | null }) => sum + (Number(b.total_amount) || 0),
               0,
             );
-            const paidSum = (billRows || []).reduce(
-              (sum: number, b: { amount_paid: number | null }) => sum + (Number(b.amount_paid) || 0),
-              0,
-            );
+            // paidSum (cumulative across all payments) intentionally not used —
+            // Balance is computed per-payment below using payment_date cutoff.
             setOriginalBillTotal(Math.round(totalSum * 100) / 100);
 
             // Per-payment history: sum allocations dated BEFORE this transaction's date,
