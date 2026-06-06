@@ -74,7 +74,7 @@ export function EditDescriptionDialog({
             .eq(parentColumn, parentId)
             .order("line_number", { ascending: true })
             .limit(1);
-          const row = (data && data[0]) as { memo: string | null } | undefined;
+          const row = (data && data[0]) as unknown as { memo: string | null } | undefined;
           setExistingMemo(row?.memo || currentDescription || "");
         } else {
           setExistingMemo(currentDescription || "");
