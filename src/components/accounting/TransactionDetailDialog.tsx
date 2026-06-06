@@ -133,6 +133,30 @@ export function TransactionDetailDialog({
             .select('id, file_name, file_path, content_type, file_size')
             .eq('bill_id', sourceId);
           data = rows || [];
+
+          // Load bill + lines for PO matching
+          const [{ data: billRow }, { data: lineRows }] = await Promise.all([
+            supabase
+              .from('bills')
+              .select('id, vendor_id, project_id, total_amount')
+              .eq('id', sourceId)
+              .maybeSingle(),
+            supabase
+              .from('bill_lines')
+              .select('cost_code_id, amount, purchase_order_id, purchase_order_line_id, po_reference, po_assignment')
+              .eq('bill_id', sourceId),
+          ]);
+          if (billRow) {
+            setBillsForPO([{
+              id: billRow.id,
+              vendor_id: billRow.vendor_id,
+              project_id: billRow.project_id,
+              total_amount: Number(billRow.total_amount) || 0,
+              bill_lines: lineRows || [],
+            }]);
+          } else {
+            setBillsForPO([]);
+          }
         } else if (sourceType === 'bill_payment' || sourceType === 'consolidated_bill_payment') {
           // For bill payments, attachments live on the underlying bill(s).
           // Register bill_payment rows often store the original bill id as source_id,
