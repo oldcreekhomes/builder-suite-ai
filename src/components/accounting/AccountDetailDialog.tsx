@@ -66,6 +66,9 @@ interface Transaction {
   // For consolidated bill payments
   includedBillPayments?: IncludedBillPayment[];
   consolidatedTotalAmount?: number;
+  // For single-bill rows with multiple cost codes
+  accountBreakdown?: { label: string; amount: number }[];
+  accountBreakdownTotal?: number;
 }
 
 interface AccountDetailDialogProps {
@@ -373,7 +376,7 @@ export function AccountDetailDialog({
                 reconciliation_id,
                 reconciliation_date,
                 companies(company_name),
-                bill_lines(memo, line_number, account_id, cost_code_id)
+                bill_lines(memo, line_number, account_id, cost_code_id, amount)
               `)
               .eq('is_reversal', false)
               .in('id', chunk),
@@ -794,6 +797,8 @@ export function AccountDetailDialog({
         let reconciliation_date: string | null = null;
         let accountDisplay: string | null = null;
         let billStatus: string | null = null;
+        let billAccountBreakdown: { label: string; amount: number }[] | undefined = undefined;
+        let billAccountBreakdownTotal: number | undefined = undefined;
 
         // If this is a check, get reference from checks table
         if (line.journal_entries.source_type === 'check') {
@@ -885,6 +890,22 @@ export function AccountDetailDialog({
             } else if (bill.firstLineAccountId && accountsDisplayMap.has(bill.firstLineAccountId)) {
               accountDisplay = accountsDisplayMap.get(bill.firstLineAccountId) || null;
             }
+            // Build cost-code breakdown grouped by visible label
+            const _breakdownLabels: string[] = [];
+            const _breakdownSums = new Map<string, number>();
+            (bill.bill_lines || []).forEach((bl: any) => {
+              let label: string | null = null;
+              if (bl.cost_code_id && costCodesMap.has(bl.cost_code_id)) {
+                label = costCodesMap.get(bl.cost_code_id) || null;
+              } else if (bl.account_id && accountsDisplayMap.has(bl.account_id)) {
+                label = accountsDisplayMap.get(bl.account_id) || null;
+              }
+              if (!label) label = 'Unassigned';
+              if (!_breakdownSums.has(label)) _breakdownLabels.push(label);
+              _breakdownSums.set(label, (_breakdownSums.get(label) || 0) + Number(bl.amount || 0));
+            });
+            billAccountBreakdown = _breakdownLabels.map(l => ({ label: l, amount: _breakdownSums.get(l) || 0 }));
+            billAccountBreakdownTotal = billAccountBreakdown.reduce((s, b) => s + b.amount, 0);
           }
         }
 
@@ -927,6 +948,8 @@ export function AccountDetailDialog({
           reconciliation_date: reconciliation_date,
           isPaid: isPaid,
           status,
+          accountBreakdown: billAccountBreakdown,
+          accountBreakdownTotal: billAccountBreakdownTotal,
         };
       });
 
@@ -1439,6 +1462,29 @@ export function AccountDetailDialog({
                                 <div className="border-t pt-1 mt-1 flex justify-between gap-4 text-xs font-medium">
                                   <span>Total</span>
                                   <span>{formatTooltipCurrency(txn.consolidatedTotalAmount || 0)}</span>
+                                </div>
+                              </div>
+                            </TooltipContent>
+                          </Tooltip>
+                        ) : txn.accountBreakdown && txn.accountBreakdown.length > 1 ? (
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <span className="text-xs cursor-help truncate block">
+                                {txn.accountDisplay || '-'} <span className="text-muted-foreground">+{txn.accountBreakdown.length - 1}</span>
+                              </span>
+                            </TooltipTrigger>
+                            <TooltipContent side="bottom" align="start" className="max-w-xs">
+                              <div className="space-y-1">
+                                <p className="font-medium text-xs mb-2">Included Cost Codes:</p>
+                                {txn.accountBreakdown.map((b, i) => (
+                                  <div key={`${b.label}-${i}`} className="flex justify-between gap-4 text-xs">
+                                    <span className="truncate max-w-[150px]">{b.label}</span>
+                                    <span>{formatTooltipCurrency(b.amount)}</span>
+                                  </div>
+                                ))}
+                                <div className="border-t pt-1 mt-1 flex justify-between gap-4 text-xs font-medium">
+                                  <span>Total</span>
+                                  <span>{formatTooltipCurrency(txn.accountBreakdownTotal || 0)}</span>
                                 </div>
                               </div>
                             </TooltipContent>
