@@ -1,25 +1,24 @@
-# Fix "1020 - Deposits" Showing a Star
+Fix the bank-account behavior exactly as intended:
 
-## Root cause
-The original backfill that set `accounts.subtype` tagged every asset account with code 1000-1039 as `subtype = 'bank'`. That caught `1020 - Deposits`, which is a holding/clearing account, not a real bank account. The star UI is working correctly — it shows for every account whose subtype is `'bank'`. Same logic powers the bank dropdowns in Write Checks, Make Deposits, Pay Bill, and Reconcile, so right now "Deposits" would also appear as a selectable bank in those dropdowns. Both problems disappear once 1020's subtype is corrected.
+1. **Correct Longview Drive’s project default**
+   - Update Longview Drive’s per-project default bank from Capital One to Atlantic Union Bank, because Atlantic Union is currently the company-wide default bank for that tenant.
+   - Keep Capital One available as another selectable bank account.
 
-## Fix
+2. **Fix the Make Deposits bank selector**
+   - Replace the current type-ahead account field for “Deposit To (Bank Account)” with the same bank-only selector behavior used for bank accounts elsewhere.
+   - The dropdown will show only accounts with `subtype = 'bank'` and not excluded from the project.
+   - For Longview Drive, that means the deposit dropdown should show Atlantic Union Bank and Capital One, not `1020 - Deposits`, `1030 - Clearing`, or other asset accounts.
+   - Deposits will still default to the project default bank when starting a new deposit, but the user can freely choose another bank from the dropdown.
 
-**Data correction (one row):** set `accounts.subtype = 'other'` (or `NULL`) for the row `code = '1020', name = 'Deposits'` belonging to this tenant.
+3. **Make default-bank changes reliably refresh the transaction screens**
+   - When the star is changed in Edit Project → Chart of Accounts, invalidate the same query keys used by Write Checks, Make Deposits, Pay Bill, and Reconcile so those screens pick up the new project default without stale cached data.
 
-After that:
-- The star next to 1020 disappears in Edit Project → Chart of Accounts.
-- 1020 stops appearing in the bank-account dropdown in Make Deposits, Write Checks, Pay Bill, and Reconcile.
-- `1010 - Atlantic Union Bank` and `1015 - Capital One` remain the only banks, exactly as you want. Capital One stays the company-wide default (star) until you change it.
+4. **Clean up confusing copy in Edit Project**
+   - Adjust the wording so it does not imply deposits are posted to a non-bank “Deposits” account by default.
+   - Clarify that the star is only for the project’s default bank account, while Make Deposits still lets the user choose any available bank account.
 
-## How you want me to apply it
-
-Pick one — I'll wait for your call before touching anything:
-
-1. **Quick data update (recommended).** I run a one-line update on just `1020 - Deposits` for your tenant, flipping its subtype to `other`. Done in seconds. You can change other misclassified accounts later via the Edit Account dialog (the subtype field already exists there).
-
-2. **You do it manually.** Go to Settings → Chart of Accounts, click Edit on `1020 - Deposits`, change Subtype from "Bank" to "Other", save. Same end result, no migration needed.
-
-3. **Broader sweep.** I scan all asset accounts in your tenant currently marked `subtype = 'bank'`, list them for you, and you tell me which should be reclassified. Useful if other 10xx codes are also miscategorized (e.g. `1670 - Deposits` may have the same issue if it's tagged bank — it's outside the 1000-1039 range but worth checking).
-
-No code changes are needed — only data. The star UI and the dropdown filters are behaving correctly given the underlying classification.
+Technical details:
+- Modify `src/components/transactions/MakeDepositsContent.tsx` to use a bank-only selector for the Deposit To field.
+- Extend/reuse `AccountSearchInput` behavior so empty focus opens bank options and bank-only filtering is enforced by `subtype = 'bank'`.
+- Update `src/components/ProjectAccountsTab.tsx` query invalidation and instructional text.
+- Apply a targeted data correction to `project_default_bank_accounts` for Longview Drive so its project default points to Atlantic Union Bank.

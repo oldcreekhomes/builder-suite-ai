@@ -11,6 +11,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { toDateLocal } from "@/utils/dateOnly";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { AccountSearchInputInline } from "@/components/AccountSearchInputInline";
+import { AccountSearchInput } from "@/components/AccountSearchInput";
 import { CostCodeSearchInput } from "@/components/CostCodeSearchInput";
 import { DeleteButton } from "@/components/ui/delete-button";
 import { format } from "date-fns";
@@ -906,9 +907,16 @@ export function MakeDepositsContent({ projectId, activeTab: parentActiveTab }: M
           <div className="grid grid-cols-12 gap-2 p-3 !w-full">
             <div className={`col-span-3 ${isTransactionLocked ? 'pointer-events-none' : ''}`}>
               <Label htmlFor="bankAccount">Deposit To (Bank Account)</Label>
-              <AccountSearchInputInline
+              <AccountSearchInput
                 value={bankAccount}
-                onChange={(v) => { if (!isTransactionLocked) { setBankAccount(v); if (!v) setBankAccountId(""); } }}
+                onChange={(value) => {
+                  if (!isTransactionLocked) {
+                    setBankAccount(value);
+                    const acct = accounts.find(a => `${a.code} - ${a.name}` === value);
+                    if (acct) setBankAccountId(acct.id);
+                    else if (!value) setBankAccountId("");
+                  }
+                }}
                 onAccountSelect={(account) => {
                   if (!isTransactionLocked) {
                     setBankAccountId(account.id);
@@ -916,8 +924,10 @@ export function MakeDepositsContent({ projectId, activeTab: parentActiveTab }: M
                   }
                 }}
                 accountType="asset"
+                bankAccountsOnly={true}
                 projectId={projectId}
-                placeholder="Select bank account"
+                placeholder="Select bank account..."
+                className="h-10"
               />
             </div>
 
