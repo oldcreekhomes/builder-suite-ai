@@ -129,6 +129,8 @@ export function ProjectAccountsTab({ projectId }: ProjectAccountsTabProps) {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['project-default-bank-account', projectId] });
+      queryClient.invalidateQueries({ queryKey: ['accounts'] });
+      queryClient.invalidateQueries({ queryKey: ['reconciliation-defaults'] });
     },
     onError: (error: any) => {
       toast({
@@ -217,7 +219,7 @@ export function ProjectAccountsTab({ projectId }: ProjectAccountsTabProps) {
     <div className="space-y-2 py-2 max-h-[60vh] overflow-y-auto">
       <p className="text-sm text-muted-foreground mb-3">
         Uncheck accounts that are not applicable to this project. Excluded accounts won't appear on the Balance Sheet or Income Statement.
-        Star a bank account to override the company-wide default for this project; transactions on this project will use it for Write Checks, Make Deposits, Pay Bill, and Reconcile.
+        Star a bank account to set this project's default bank for Write Checks, Make Deposits, Pay Bill, and Reconcile. You can still pick a different bank account on any individual transaction.
       </p>
       {TYPE_ORDER.map((type) => {
         const typeAccounts = grouped[type] || [];
