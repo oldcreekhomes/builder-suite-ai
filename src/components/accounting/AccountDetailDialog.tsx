@@ -66,6 +66,9 @@ interface Transaction {
   // For consolidated bill payments
   includedBillPayments?: IncludedBillPayment[];
   consolidatedTotalAmount?: number;
+  // For single-bill rows with multiple cost codes
+  accountBreakdown?: { label: string; amount: number }[];
+  accountBreakdownTotal?: number;
 }
 
 interface AccountDetailDialogProps {
