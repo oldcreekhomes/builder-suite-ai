@@ -665,6 +665,32 @@ export function AccountDetailDialog({
             if (fl.cost_code_id) allCostCodeIds.add(fl.cost_code_id);
             if (fl.account_id) allAccountIds.add(fl.account_id);
           });
+
+          // Fetch reconciliation status from this bank account's journal_entry_lines
+          // for each bill in the consolidated payments. This is the true cleared-state.
+          const bankJeLines = await batchedIn<any>(
+            (chunk) =>
+              supabase
+                .from('journal_entry_lines')
+                .select('reconciled, reconciliation_id, reconciliation_date, journal_entries!inner(source_id, source_type)')
+                .eq('account_id', accountId)
+                .eq('journal_entries.source_type', 'bill_payment')
+                .in('journal_entries.source_id', chunk),
+            allBillIdsInPayments
+          );
+          (bankJeLines || []).forEach((jel: any) => {
+            const billId = jel.journal_entries?.source_id;
+            if (!billId) return;
+            const isRecon = !!(jel.reconciled || jel.reconciliation_id || jel.reconciliation_date);
+            const existing = bankReconByBillId.get(billId);
+            if (!existing) {
+              bankReconByBillId.set(billId, { reconciled: isRecon, reconciliation_date: jel.reconciliation_date || null });
+            } else {
+              // If multiple lines exist for the same bill on this account, treat as reconciled only if all are.
+              existing.reconciled = existing.reconciled && isRecon;
+              existing.reconciliation_date = existing.reconciliation_date || jel.reconciliation_date || null;
+            }
+          });
         }
       }
 
