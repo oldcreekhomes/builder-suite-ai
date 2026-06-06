@@ -1,19 +1,25 @@
-## Problem
+## Plan
 
-When opening the Transaction Details dialog for a **Bill Pmt - Check** row in a bank register (e.g. Atlantic Union Bank @ Longview), it always shows "No attachments found" — even when the underlying bill(s) had invoice PDFs attached.
+1. **Fix the lookup for Bill Pmt - Check rows**
+   - Update `TransactionDetailDialog` so `bill_payment` rows first treat `transaction.source_id` as the original bill id, because the register rows shown in your screenshots are built that way.
+   - Also keep a fallback lookup through `bill_payment_allocations` when the source id is truly a bill payment id.
 
-Root cause: `TransactionDetailDialog` currently queries `bill_attachments.bill_id = transaction.source_id`. For a bill payment, `source_id` is the **bill payment id**, not a bill id, so the query returns nothing. Bill payments themselves don't have their own attachments — the invoices live on the bills they paid.
+2. **Keep consolidated bill payments working**
+   - For `consolidated_bill_payment`, use the included allocation data’s `bill_id` values directly.
+   - If those are missing, fall back to resolving via `bill_payment_allocations`.
 
-## Fix
+3. **Relabel the section for payment rows**
+   - For `bill_payment` and `consolidated_bill_payment`, change the bottom section title from **Attachments** to **Original Bill**.
+   - If none are found, show **No original bill found** instead of **No attachments found**.
+   - Other transaction types keep the existing **Attachments** label.
 
-Update `src/components/accounting/TransactionDetailDialog.tsx` so that when `source_type` is `bill_payment` or `consolidated_bill_payment`:
+4. **Verify with the reported examples**
+   - Confirm the database has original bill attachments for the three shown payments:
+     - Torres Moreno Remodeling, LLC — `126-126-longview-alexandria-va.pdf`
+     - ConApp Metro — `OCH #16130.pdf`
+     - An Exterior, Inc. — `Invoice # C26040 (1).PDF`
+   - The dialog should list those files and continue opening them in the right-side preview panel via the existing bill attachment preview flow.
 
-1. Collect the relevant bill payment id(s):
-   - `bill_payment` → `[transaction.source_id]`
-   - `consolidated_bill_payment` → ids from `transaction.includedBillPayments` (fallback to `source_id`)
-2. Query `bill_payment_allocations` to map those payment ids to their `bill_id`s.
-3. Query `bill_attachments` for all those bill ids and display them in the Attachments section.
-4. Keep existing behavior for `bill`, `check`, `deposit`, `credit_card`, `manual` unchanged.
-5. Clicking an attachment continues to open it through `filePreview.openBillAttachment(...)` (already wired for the bill_payment branches).
+## Technical note
 
-No schema changes. UI/section layout stays the same — only the data source for bill-payment attachments changes, so users can review the original invoice from a payment row and confirm whether a check is correct.
+The previous change did not work for these rows because their `journal_entries.source_id` is the **bill id**, not the **bill payment id**. The attempted allocation lookup queried `bill_payment_allocations.bill_payment_id = source_id`, so it returned nothing. The fix is to resolve bill ids using both shapes: direct bill id first for `bill_payment`, allocation mapping for true payment ids/consolidated rows.

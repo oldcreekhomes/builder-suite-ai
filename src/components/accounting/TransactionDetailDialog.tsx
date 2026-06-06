@@ -100,27 +100,42 @@ export function TransactionDetailDialog({
           data = rows || [];
         } else if (sourceType === 'bill_payment' || sourceType === 'consolidated_bill_payment') {
           // For bill payments, attachments live on the underlying bill(s).
-          // Resolve bill ids via bill_payment_allocations.
-          const paymentIds: string[] =
-            sourceType === 'consolidated_bill_payment' && Array.isArray(transaction.includedBillPayments) && transaction.includedBillPayments.length > 0
-              ? transaction.includedBillPayments
-                  .map((p: any) => p?.id || p?.bill_payment_id || p?.source_id)
-                  .filter(Boolean)
-              : [sourceId];
+          // Register bill_payment rows often store the original bill id as source_id,
+          // while consolidated rows store the bill payment id and include bill_id allocations.
+          const billIds = new Set<string>();
+          const paymentIds = new Set<string>();
 
-          if (paymentIds.length > 0) {
+          if (sourceType === 'bill_payment') {
+            billIds.add(sourceId);
+            paymentIds.add(sourceId);
+          } else {
+            paymentIds.add(sourceId);
+            if (Array.isArray(transaction.includedBillPayments)) {
+              transaction.includedBillPayments.forEach((p: any) => {
+                if (p?.bill_id) billIds.add(p.bill_id);
+                if (p?.id) paymentIds.add(p.id);
+                if (p?.bill_payment_id) paymentIds.add(p.bill_payment_id);
+                if (p?.source_id) paymentIds.add(p.source_id);
+              });
+            }
+          }
+
+          if (paymentIds.size > 0) {
             const { data: allocs } = await supabase
               .from('bill_payment_allocations')
               .select('bill_id')
-              .in('bill_payment_id', paymentIds);
-            const billIds = Array.from(new Set((allocs || []).map((a: any) => a.bill_id).filter(Boolean)));
-            if (billIds.length > 0) {
-              const { data: rows } = await supabase
-                .from('bill_attachments')
-                .select('id, file_name, file_path, content_type, file_size')
-                .in('bill_id', billIds);
-              data = rows || [];
-            }
+              .in('bill_payment_id', Array.from(paymentIds));
+            (allocs || []).forEach((a: any) => {
+              if (a.bill_id) billIds.add(a.bill_id);
+            });
+          }
+
+          if (billIds.size > 0) {
+            const { data: rows } = await supabase
+              .from('bill_attachments')
+              .select('id, file_name, file_path, content_type, file_size')
+              .in('bill_id', Array.from(billIds));
+            data = rows || [];
           }
         } else if (sourceType === 'check') {
           const { data: rows } = await supabase
