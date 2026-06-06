@@ -20,7 +20,7 @@ import { useClosedPeriodCheck } from "@/hooks/useClosedPeriodCheck";
 import { cn } from "@/lib/utils";
 import { useProject } from "@/hooks/useProject";
 import { useAccounts } from "@/hooks/useAccounts";
-import { useProjectDefaultBankAccountId } from "@/hooks/useProjectDefaultBankAccountId";
+import { useProjectDefaultDepositAccountId } from "@/hooks/useProjectDefaultDepositAccountId";
 import { useDeposits, DepositData, DepositLineData } from "@/hooks/useDeposits";
 import { useProjectCheckSettings } from "@/hooks/useProjectCheckSettings";
 import { toast } from "@/hooks/use-toast";
@@ -92,7 +92,7 @@ export function MakeDepositsContent({ projectId, activeTab: parentActiveTab }: M
 
   const { data: project } = useProject(projectId || "");
   const { accounts } = useAccounts();
-  const defaultBankAccountId = useProjectDefaultBankAccountId(projectId);
+  const defaultBankAccountId = useProjectDefaultDepositAccountId(projectId);
 
   // Auto-fill the default bank account when starting a new deposit
   useEffect(() => {

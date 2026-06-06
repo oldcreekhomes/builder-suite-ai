@@ -80,6 +80,21 @@ export function ProjectAccountsTab({ projectId }: ProjectAccountsTabProps) {
     },
   });
 
+  const { data: projectDefaultDepositId } = useQuery({
+    queryKey: ['project-default-deposit-account', projectId],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('project_default_deposit_accounts' as any)
+        .select('account_id')
+        .eq('project_id', projectId)
+        .maybeSingle();
+      if (error) throw error;
+      return ((data as any)?.account_id as string | null) ?? null;
+    },
+  });
+
+
+
   const toggleMutation = useMutation({
     mutationFn: async ({ accountId, exclude }: { accountId: string; exclude: boolean }) => {
       if (exclude) {
@@ -137,6 +152,28 @@ export function ProjectAccountsTab({ projectId }: ProjectAccountsTabProps) {
       toast({
         title: "Error",
         description: `Failed to update default bank account: ${error?.message || 'Unknown error'}`,
+        variant: "destructive",
+      });
+    },
+  });
+
+  const setDefaultDepositMutation = useMutation({
+    mutationFn: async ({ accountId }: { accountId: string }) => {
+      const { error } = await supabase
+        .from('project_default_deposit_accounts' as any)
+        .upsert(
+          { project_id: projectId, account_id: accountId, updated_at: new Date().toISOString() } as any,
+          { onConflict: 'project_id' }
+        );
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['project-default-deposit-account', projectId] });
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Error",
+        description: `Failed to update default deposit account: ${error?.message || 'Unknown error'}`,
         variant: "destructive",
       });
     },
@@ -221,15 +258,15 @@ export function ProjectAccountsTab({ projectId }: ProjectAccountsTabProps) {
         )}
         {isDepositControlRow && !isExcluded && (
           <Select
-            value={projectDefaultBankId ?? ''}
+            value={projectDefaultDepositId ?? ''}
             onValueChange={(val) =>
-              setDefaultBankMutation.mutate({ accountId: val, clear: false })
+              setDefaultDepositMutation.mutate({ accountId: val })
             }
-            disabled={setDefaultBankMutation.isPending || availableBankAccounts.length === 0}
+            disabled={setDefaultDepositMutation.isPending || availableBankAccounts.length === 0}
           >
             <SelectTrigger
               className="h-8 w-fit min-w-[10rem] max-w-[14rem] bg-background px-2"
-              aria-label="Deposit bank account"
+              aria-label="Default deposit bank account"
             >
               <SelectValue placeholder="Bank" />
             </SelectTrigger>
