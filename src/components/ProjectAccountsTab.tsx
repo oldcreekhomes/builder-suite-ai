@@ -5,7 +5,6 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Label } from "@/components/ui/label";
 import { ChevronDown, ChevronRight, Star } from "lucide-react";
 import { useState, useMemo } from "react";
 import { useToast } from "@/hooks/use-toast";
@@ -154,6 +153,12 @@ export function ProjectAccountsTab({ projectId }: ProjectAccountsTabProps) {
     }, {} as Record<AccountType, Account[]>);
   }, [accounts]);
 
+  const availableBankAccounts = useMemo(() => {
+    return (accounts ?? []).filter(
+      (a) => a.type === 'asset' && a.subtype === 'bank' && !exclusions?.has(a.id)
+    );
+  }, [accounts, exclusions]);
+
   if (isLoading) {
     return (
       <div className="space-y-3 py-4">
@@ -172,6 +177,7 @@ export function ProjectAccountsTab({ projectId }: ProjectAccountsTabProps) {
     const isExcluded = exclusions?.has(account.id) ?? false;
     const isBank = account.subtype === 'bank';
     const isDefaultBank = isBank && projectDefaultBankId === account.id;
+    const isDepositsAccount = account.type === 'asset' && account.name.toLowerCase() === 'deposits';
     return (
       <div
         key={account.id}
@@ -213,6 +219,29 @@ export function ProjectAccountsTab({ projectId }: ProjectAccountsTabProps) {
             />
           </button>
         )}
+        {isDepositsAccount && !isExcluded && (
+          <Select
+            value={projectDefaultBankId ?? ''}
+            onValueChange={(val) =>
+              setDefaultBankMutation.mutate({ accountId: val, clear: false })
+            }
+            disabled={setDefaultBankMutation.isPending || availableBankAccounts.length === 0}
+          >
+            <SelectTrigger
+              className="h-8 w-fit min-w-[10rem] max-w-[14rem] bg-background px-2"
+              aria-label="Deposit bank account"
+            >
+              <SelectValue placeholder="Bank" />
+            </SelectTrigger>
+            <SelectContent>
+              {availableBankAccounts.map((a) => (
+                <SelectItem key={a.id} value={a.id}>
+                  {a.name}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        )}
       </div>
     );
   };
@@ -222,44 +251,6 @@ export function ProjectAccountsTab({ projectId }: ProjectAccountsTabProps) {
       <p className="text-sm text-muted-foreground mb-3">
         Uncheck accounts that are not applicable to this project. Excluded accounts won't appear on the Balance Sheet or Income Statement.
       </p>
-
-      {(() => {
-        const bankAccounts = (accounts ?? []).filter(
-          (a) => a.type === 'asset' && a.subtype === 'bank' && !exclusions?.has(a.id)
-        );
-        return (
-          <div className="mb-4 p-3 border rounded-md bg-muted/30 space-y-2">
-            <Label htmlFor="project-default-bank" className="text-sm font-semibold">
-              Default Bank Account for Deposits, Checks, Pay Bill & Reconcile
-            </Label>
-            <Select
-              value={projectDefaultBankId ?? ''}
-              onValueChange={(val) =>
-                setDefaultBankMutation.mutate({ accountId: val, clear: false })
-              }
-              disabled={setDefaultBankMutation.isPending || bankAccounts.length === 0}
-            >
-              <SelectTrigger id="project-default-bank" className="bg-background">
-                <SelectValue placeholder={
-                  bankAccounts.length === 0
-                    ? 'No bank accounts available — check at least one bank account below'
-                    : 'Select a bank account...'
-                } />
-              </SelectTrigger>
-              <SelectContent>
-                {bankAccounts.map((a) => (
-                  <SelectItem key={a.id} value={a.id}>
-                    {a.code} - {a.name}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-            <p className="text-xs text-muted-foreground">
-              This is the default bank for this project. Each individual deposit, check, payment, or reconciliation can still pick a different bank.
-            </p>
-          </div>
-        );
-      })()}
 
       {TYPE_ORDER.map((type) => {
         const typeAccounts = grouped[type] || [];
