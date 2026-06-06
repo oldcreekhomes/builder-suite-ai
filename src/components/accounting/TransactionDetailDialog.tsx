@@ -17,6 +17,8 @@ import {
 import { formatDateSafe } from "@/utils/dateOnly";
 import { useUniversalFilePreviewContext } from "@/components/files/UniversalFilePreviewProvider";
 import { parseBillNotes } from "@/lib/billNoteUtils";
+import { useBillPOMatching } from "@/hooks/useBillPOMatching";
+import { POStatusBadge, POStatus } from "@/components/bills/POStatusBadge";
 
 const getLatestDescription = (raw: string | null | undefined): string => {
   if (!raw) return '';
