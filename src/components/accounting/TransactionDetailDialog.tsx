@@ -92,6 +92,8 @@ export function TransactionDetailDialog({
   const [loadingAttachments, setLoadingAttachments] = useState(false);
   const [originalBillDescription, setOriginalBillDescription] = useState<string | null>(null);
   const [originalInvoiceNumbers, setOriginalInvoiceNumbers] = useState<string[]>([]);
+  const [originalBillTotal, setOriginalBillTotal] = useState<number | null>(null);
+  const [remainingBillBalance, setRemainingBillBalance] = useState<number | null>(null);
   const filePreview = useUniversalFilePreviewContext();
 
   useEffect(() => {
@@ -99,6 +101,8 @@ export function TransactionDetailDialog({
       setAttachments([]);
       setOriginalBillDescription(null);
       setOriginalInvoiceNumbers([]);
+      setOriginalBillTotal(null);
+      setRemainingBillBalance(null);
       return;
     }
 
@@ -158,12 +162,23 @@ export function TransactionDetailDialog({
 
             const { data: billRows } = await supabase
               .from('bills')
-              .select('id, reference_number, notes')
+              .select('id, reference_number, notes, total_amount, amount_paid')
               .in('id', billIdArr);
             const invoices = (billRows || [])
               .map((b: { reference_number: string | null }) => b.reference_number)
               .filter((v): v is string => !!v && v.trim().length > 0);
             setOriginalInvoiceNumbers(Array.from(new Set(invoices)));
+
+            const totalSum = (billRows || []).reduce(
+              (sum: number, b: { total_amount: number | null }) => sum + (Number(b.total_amount) || 0),
+              0,
+            );
+            const paidSum = (billRows || []).reduce(
+              (sum: number, b: { amount_paid: number | null }) => sum + (Number(b.amount_paid) || 0),
+              0,
+            );
+            setOriginalBillTotal(Math.round(totalSum * 100) / 100);
+            setRemainingBillBalance(Math.round((totalSum - paidSum) * 100) / 100);
 
             const notes = (billRows || [])
               .map((b: { notes: string | null }) => b.notes)
@@ -288,8 +303,16 @@ export function TransactionDetailDialog({
           value: originalInvoiceNumbers.length > 0 ? originalInvoiceNumbers.join(', ') : '-',
         },
         {
+          label: 'Original Bill Amount',
+          value: originalBillTotal !== null ? formatCurrency(originalBillTotal) : '-',
+        },
+        {
           label: 'Current Payment',
           value: formatCurrency(Math.abs(netAmount)),
+        },
+        {
+          label: 'Remaining Balance',
+          value: remainingBillBalance !== null ? formatCurrency(remainingBillBalance) : '-',
         },
       ]
     : [
