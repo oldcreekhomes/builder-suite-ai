@@ -585,6 +585,9 @@ export function AccountDetailDialog({
       // for journal entries of source_type='bill_payment' and source_id=<bill_id>). The bill_payments.reconciled
       // flag is unreliable in legacy data, so we trust the bank-side JE line instead.
       const bankReconByBillId = new Map<string, { reconciled: boolean; reconciliation_date: string | null }>();
+      // Per-payment event timestamp from the bank-side journal entry. Keyed by
+      // `${bill_id}|${entry_date}|${amountCents}`. Used to order payments that share a payment_date.
+      const paymentEventTsMap = new Map<string, string>();
 
       if (consolidatedPayments && consolidatedPayments.length > 0) {
         const consolidatedPaymentIds = consolidatedPayments.map(cp => cp.id);
@@ -682,15 +685,29 @@ export function AccountDetailDialog({
             (chunk) =>
               supabase
                 .from('journal_entry_lines')
-                .select('reconciled, reconciliation_id, reconciliation_date, journal_entries!inner(source_id, source_type)')
+                .select(`reconciled, reconciliation_id, reconciliation_date, debit, credit,
+                  journal_entries!inner(id, source_id, source_type, entry_date, created_at, is_reversal, reversed_at, reversed_by_id)`)
                 .eq('account_id', accountId)
                 .eq('journal_entries.source_type', 'bill_payment')
                 .in('journal_entries.source_id', chunk),
             allBillIdsInPayments
           );
           (bankJeLines || []).forEach((jel: any) => {
-            const billId = jel.journal_entries?.source_id;
+            const je = jel.journal_entries || {};
+            const billId = je.source_id;
             if (!billId) return;
+            // Skip reversed / reversal JEs so they don't pollute either map.
+            const isReversed = !!je.reversed_at || !!je.reversed_by_id || je.is_reversal === true;
+            if (isReversed) return;
+
+            // Capture event timestamp for ordering same-date payments. The bank-side
+            // line credit (asset outflow) carries the payment amount.
+            const amt = Number(jel.credit) || Number(jel.debit) || 0;
+            if (amt > 0 && je.entry_date && je.created_at) {
+              const key = `${billId}|${je.entry_date}|${Math.round(amt * 100)}`;
+              if (!paymentEventTsMap.has(key)) paymentEventTsMap.set(key, je.created_at);
+            }
+
             const isRecon = !!(jel.reconciled || jel.reconciliation_id || jel.reconciliation_date);
             const existing = bankReconByBillId.get(billId);
             if (!existing) {
@@ -1025,6 +1042,27 @@ export function AccountDetailDialog({
           const cpBreakdown = cpLabels.map(l => ({ label: l, amount: cpSums.get(l) || 0 }));
           const cpBreakdownTotal = cpBreakdown.reduce((s, b) => s + b.amount, 0);
 
+          // Prefer the matched bank-side JE timestamp so same-date payments order correctly.
+          // bill_payments.created_at can be identical across payments (e.g. backfilled rows),
+          // which breaks Previous Payments math in the detail dialog.
+          let eventTs: string | null = null;
+          if (allocations.length > 0) {
+            const totalCents = Math.round(Number(cp.total_amount) * 100);
+            for (const a of allocations) {
+              const key = `${a.bill_id}|${cp.payment_date}|${totalCents}`;
+              const ts = paymentEventTsMap.get(key);
+              if (ts) { eventTs = ts; break; }
+            }
+            // Fallback: try per-allocation amount (multi-bill payments split per line)
+            if (!eventTs) {
+              for (const a of allocations) {
+                const key = `${a.bill_id}|${cp.payment_date}|${Math.round(Number(a.amount_allocated) * 100)}`;
+                const ts = paymentEventTsMap.get(key);
+                if (ts) { eventTs = ts; break; }
+              }
+            }
+          }
+
           const syntheticRow: Transaction = {
             source_id: cp.id,
             line_id: `consolidated:${cp.id}`,
@@ -1037,7 +1075,7 @@ export function AccountDetailDialog({
             source_type: 'consolidated_bill_payment',
             debit: 0,
             credit: Number(cp.total_amount),
-            created_at: cp.created_at || new Date().toISOString(),
+            created_at: eventTs || cp.created_at || new Date().toISOString(),
             reconciled: isReconciled,
             reconciliation_date: reconciliationDateForRow,
             isPaid: true,

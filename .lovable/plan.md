@@ -1,43 +1,37 @@
-## Problem
+I’ll fix the bill-payment detail calculation so payments on the same bill and same payment date are ordered by the actual transaction timestamp, not just the date.
 
-In `TransactionDetailDialog`, Balance for a Bill Pmt row is computed as `total_amount − amount_paid` on the underlying bill(s). `amount_paid` is the cumulative total of every payment, so once the bill is fully paid, every individual payment shows Balance = $0 and there's no indication of prior payments.
+Plan:
 
-City Concrete example (bill $15,028, two payments $10,000 + $5,028):
-- Payment 1 (3/9, $10,000) shows Balance $0 (wrong, should be $5,028).
-- Payment 2 (3/9, $5,028) shows Balance $0 with no context (should show "Previous Payments: ($10,000)" and Balance $0).
+1. **Use the real payment sequence**
+   - Keep using `payment_date` for different days.
+   - For payments on the same date, use the bank journal entry `created_at` timestamp as the ordering timestamp.
+   - This matches cases like City Concrete where `$10,000` was paid first and `$5,028` was paid minutes later on the same date.
 
-## Fix
+2. **Attach the correct timestamp to bank rows**
+   - In `AccountDetailDialog.tsx`, when building synthetic bill-payment rows from `bill_payments`, match each payment allocation to its active, non-reversed `journal_entries` row by:
+     - same bill id,
+     - same payment date,
+     - same payment amount,
+     - excluding reversed/reversal journal entries.
+   - Use that matched journal entry `created_at` as the row’s `created_at` instead of relying on `bill_payments.created_at`, because the backfilled bill payment records can share the exact same timestamp.
 
-Single file: `src/components/accounting/TransactionDetailDialog.tsx`.
+3. **Compute previous payments correctly in the detail dialog**
+   - In `TransactionDetailDialog.tsx`, replace the current date-only cutoff with a date + timestamp cutoff.
+   - A payment counts as **Previous Payments** when:
+     - its `payment_date` is before the current row date, or
+     - its `payment_date` is the same date and its matched journal-entry timestamp is earlier than the current transaction’s timestamp.
+   - The current payment will still be shown separately.
 
-### 1. Load every allocation with its payment date
-Inside the `bill_payment` / `consolidated_bill_payment` branch of the existing `fetchAttachments` effect (the place that already loads `bills`/`bill_lines` for the bill IDs):
+4. **Expected City Concrete result**
+   - First `$10,000` payment:
+     - Original Bill: `$15,028.00`
+     - Current Payment: `($10,000.00)`
+     - Balance: `$5,028.00`
+   - Second `$5,028` payment:
+     - Original Bill: `$15,028.00`
+     - Previous Payments: `($10,000.00)`
+     - Current Payment: `($5,028.00)`
+     - Balance: `$0.00`
 
-- Query `bill_payment_allocations` joined with `bill_payments(payment_date)` for all collected `billIds`. Select `bill_id, amount_allocated, bill_payment_id, bill_payments(payment_date)`.
-- Also keep track of which `bill_payment_id`s belong to the CURRENT transaction. For `consolidated_bill_payment` rows `transaction.source_id` is the `bill_payment.id`. For single `bill_payment` rows we don't have the payment id directly, so identify "current" allocations by `payment_date === transaction.date` AND `bill_payment_id ∈ paymentIds` if known; otherwise just by date.
-
-### 2. Compute previous + balance
-Cent-precise math (already the project standard):
-- `originalBillTotal` = Σ bill.total_amount (unchanged).
-- `previousPaymentsTotal` = Σ allocation.amount_allocated where `payment_date < transaction.date`.
-- `currentPaymentTotal` = `abs(transaction.debit − transaction.credit)` (already used as Current Payment).
-- `remainingBillBalance` = `originalBillTotal − previousPaymentsTotal − currentPaymentTotal`.
-
-Store `previousPaymentsTotal` in new state `previousPaymentsTotal: number | null`.
-
-### 3. Render
-In the bill-like `details` array (around line 387), insert a new row between "Original Bill" and "Current Payment" — only when `previousPaymentsTotal > 0`:
-
-```text
-{ label: 'Previous Payments', value: '(formatCurrency(prev))', valueClassName: 'text-destructive' }
-```
-
-`Balance` row stays in the same position but uses the new corrected `remainingBillBalance`.
-
-Reset `previousPaymentsTotal` to `null` in the existing dialog-close cleanup block alongside the other state resets.
-
-## Out of scope
-- No DB changes.
-- No changes to the AccountDetailDialog row Balance column (that's the running bank balance and is correct).
-- No changes for non-bill transactions (Check / Deposit / CC / JE).
-- No changes to PO rows, attachments, or lock logic.
+5. **Keep the cleared-status fix included**
+   - While touching the same payment path, exclude reversed/reversal journal entries from the bank-side reconciliation lookup so cleared payments do not incorrectly display as paid.
