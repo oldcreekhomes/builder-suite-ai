@@ -418,6 +418,13 @@ export function TransactionDetailDialog({
           label: 'Original Bill',
           value: originalBillTotal !== null ? formatCurrency(originalBillTotal) : '-',
         },
+        ...(previousPaymentsTotal !== null && previousPaymentsTotal > 0
+          ? [{
+              label: 'Previous Payments',
+              value: `(${formatCurrency(previousPaymentsTotal)})`,
+              valueClassName: 'text-destructive',
+            }]
+          : []),
         {
           label: 'Current Payment',
           value: `(${formatCurrency(Math.abs(netAmount))})`,
