@@ -227,7 +227,7 @@ export function EditDescriptionDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-md z-[60]" overlayClassName="z-[60]">
+      <DialogContent className="max-w-md z-[60]">
         <DialogHeader>
           <DialogTitle>Edit Description</DialogTitle>
         </DialogHeader>
