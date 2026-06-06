@@ -303,8 +303,16 @@ export function TransactionDetailDialog({
           value: originalInvoiceNumbers.length > 0 ? originalInvoiceNumbers.join(', ') : '-',
         },
         {
+          label: 'Original Bill Amount',
+          value: originalBillTotal !== null ? formatCurrency(originalBillTotal) : '-',
+        },
+        {
           label: 'Current Payment',
           value: formatCurrency(Math.abs(netAmount)),
+        },
+        {
+          label: 'Remaining Balance',
+          value: remainingBillBalance !== null ? formatCurrency(remainingBillBalance) : '-',
         },
       ]
     : [
