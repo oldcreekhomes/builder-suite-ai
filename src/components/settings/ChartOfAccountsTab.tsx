@@ -156,6 +156,39 @@ export const ChartOfAccountsTab = () => {
     }
   };
 
+  const handleSetDefaultBank = async (accountId: string) => {
+    // Clear any existing default for this tenant, then set the new one
+    const target = accounts.find((a: any) => a.id === accountId) as any;
+    if (!target?.owner_id) return;
+    const { error: clearErr } = await supabase
+      .from('accounts')
+      .update({ is_default_bank: false } as any)
+      .eq('owner_id', target.owner_id)
+      .eq('is_default_bank', true);
+    if (clearErr) {
+      toast({ title: "Error", description: "Failed to update default bank account.", variant: "destructive" });
+      return;
+    }
+    const { error: setErr } = await supabase
+      .from('accounts')
+      .update({ is_default_bank: true } as any)
+      .eq('id', accountId);
+    if (setErr) {
+      toast({ title: "Error", description: "Failed to set default bank account.", variant: "destructive" });
+      return;
+    }
+    toast({ title: "Default bank updated", description: `${target.code} - ${target.name} is now the default.` });
+    queryClient.invalidateQueries({ queryKey: ['accounts'] });
+  };
+
+  const SUBTYPE_LABEL: Record<string, string> = {
+    bank: 'Bank',
+    loan: 'Loan',
+    credit_card: 'Credit Card',
+    equity: 'Equity',
+    other: 'Other',
+  };
+
   if (isLoading) {
     return <div className="text-center py-2 text-sm">Loading chart of accounts...</div>;
   }
