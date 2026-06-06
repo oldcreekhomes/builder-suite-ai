@@ -946,6 +946,8 @@ export function AccountDetailDialog({
           reconciliation_date: reconciliation_date,
           isPaid: isPaid,
           status,
+          accountBreakdown: typeof __billAccountBreakdown !== 'undefined' ? __billAccountBreakdown : undefined,
+          accountBreakdownTotal: typeof __billAccountBreakdownTotal !== 'undefined' ? __billAccountBreakdownTotal : undefined,
         };
       });
 
