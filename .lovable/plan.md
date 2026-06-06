@@ -1,22 +1,40 @@
-Fix two bank-account UI bugs across the entire app (not project-specific). Database is already correct.
+Fix the mistaken coupling between the project default bank account and the project default Deposit To account.
 
-## Bug 1 — Bank dropdown only shows the currently selected bank
+## Current mistake
 
-In `AccountSearchInput`, when the field already has a value like `1015 - Capital One` and the user clicks to change it, the component treats that value as a search query and tokenizes it (`1015`, `capital`, `one`), which filters the list down to that one account. Result: Write Checks (and any other `bankAccountsOnly` picker) shows only the currently selected bank.
+The star beside bank accounts and the dropdown on `1020 - Deposits` both write to `project_default_bank_accounts`. That means changing the deposit dropdown changes the default bank star, and changing the star changes the deposit dropdown.
 
-Fix: when the dropdown opens, if the current input value exactly matches a known account's `code - name`, treat it as "no active search" and show the full allowed list. The user can then either pick a different option or start typing to filter. This is global — applies to every account picker (banks, expenses, etc.).
+These must be independent:
 
-## Bug 2 — Make Deposits doesn't auto-fill the project default bank
+- Bank account default: used by Write Checks, Pay Bills, Reconcile, etc.
+- Deposit To default: used only by Make Deposits as the default account money is deposited into.
 
-In `MakeDepositsContent`, an effect on `parentActiveTab === 'make-deposits'` calls `createNewDeposit()` which clears `bankAccount`/`bankAccountId`. The auto-fill effect should refill from `useProjectDefaultBankAccountId`, but `defaultBankAccountId` may not be resolved at that moment and the auto-fill condition (`!bankAccountId && defaultBankAccountId`) silently skips. Write Checks works because it doesn't run a similar reset on tab activation.
+## Changes to make
 
-Fix: after `createNewDeposit()` clears the bank, the existing auto-fill effect already covers the case once `defaultBankAccountId` resolves — but we need to make sure it re-runs after the reset. Adjust by:
-- Having `createNewDeposit()` immediately seed the bank fields from `defaultBankAccountId` + `accounts` when both are available, instead of leaving them empty.
-- Keep the existing effect as a fallback for when the default hook resolves later.
+1. Add a separate project-level setting for the default deposit-to bank account.
+   - New table: `public.project_default_deposit_accounts`
+   - Columns: `project_id`, `account_id`, `created_at`, `updated_at`
+   - RLS and grants will mirror `project_default_bank_accounts`.
+   - Seed existing rows from current `project_default_bank_accounts` so users do not lose their current defaults during migration.
 
-## Files touched (frontend only)
+2. Update `Edit Project -> Chart of Accounts`.
+   - The star remains tied only to `project_default_bank_accounts`.
+   - The dropdown on `1020 - Deposits` reads/writes only `project_default_deposit_accounts`.
+   - Changing one will no longer change the other.
 
-- `src/components/AccountSearchInput.tsx` — show full list when input value matches an existing account (per-field, not just bank).
-- `src/components/transactions/MakeDepositsContent.tsx` — seed default bank inside `createNewDeposit()` when available.
+3. Update Make Deposits.
+   - New deposits should auto-fill from `project_default_deposit_accounts`.
+   - If a project has no deposit default yet, fall back to the project default bank/global bank so the app still has a sensible initial value.
+   - The Deposit To field still allows changing to any included bank account.
 
-No database, RLS, or schema changes.
+4. Do not change Write Checks, Pay Bills, or Reconcile behavior.
+   - They continue using the star/default bank account only.
+
+## Files / database
+
+- Add one Supabase migration for the new setting table, grants, RLS, and seed data.
+- Add a hook like `useProjectDefaultDepositAccountId`.
+- Update `src/components/ProjectAccountsTab.tsx`.
+- Update `src/components/transactions/MakeDepositsContent.tsx`.
+
+This is an app-wide fix, not specific to Longview Drive.
