@@ -91,7 +91,7 @@ export function MakeDepositsContent({ projectId, activeTab: parentActiveTab }: M
 
   const { data: project } = useProject(projectId || "");
   const { accounts } = useAccounts();
-  const defaultBankAccountId = useDefaultBankAccountId();
+  const defaultBankAccountId = useProjectDefaultBankAccountId(projectId);
 
   // Auto-fill the default bank account when starting a new deposit
   useEffect(() => {
