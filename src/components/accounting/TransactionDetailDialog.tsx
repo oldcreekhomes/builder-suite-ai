@@ -17,6 +17,8 @@ import {
 import { formatDateSafe } from "@/utils/dateOnly";
 import { useUniversalFilePreviewContext } from "@/components/files/UniversalFilePreviewProvider";
 import { parseBillNotes } from "@/lib/billNoteUtils";
+import { useBillPOMatching } from "@/hooks/useBillPOMatching";
+import { POStatusBadge, POStatus } from "@/components/bills/POStatusBadge";
 
 const getLatestDescription = (raw: string | null | undefined): string => {
   if (!raw) return '';
@@ -102,7 +104,10 @@ export function TransactionDetailDialog({
   const [originalInvoiceNumbers, setOriginalInvoiceNumbers] = useState<string[]>([]);
   const [originalBillTotal, setOriginalBillTotal] = useState<number | null>(null);
   const [remainingBillBalance, setRemainingBillBalance] = useState<number | null>(null);
+  const [billsForPO, setBillsForPO] = useState<Array<{ id: string; vendor_id: string; project_id?: string; total_amount: number; bill_lines: any[] }>>([]);
   const filePreview = useUniversalFilePreviewContext();
+
+  const { data: poMatchingData } = useBillPOMatching(billsForPO);
 
   useEffect(() => {
     if (!transaction || !open) {
@@ -111,6 +116,7 @@ export function TransactionDetailDialog({
       setOriginalInvoiceNumbers([]);
       setOriginalBillTotal(null);
       setRemainingBillBalance(null);
+      setBillsForPO([]);
       return;
     }
 
@@ -127,6 +133,30 @@ export function TransactionDetailDialog({
             .select('id, file_name, file_path, content_type, file_size')
             .eq('bill_id', sourceId);
           data = rows || [];
+
+          // Load bill + lines for PO matching
+          const [{ data: billRow }, { data: lineRows }] = await Promise.all([
+            supabase
+              .from('bills')
+              .select('id, vendor_id, project_id, total_amount')
+              .eq('id', sourceId)
+              .maybeSingle(),
+            supabase
+              .from('bill_lines')
+              .select('cost_code_id, amount, purchase_order_id, purchase_order_line_id, po_reference, po_assignment')
+              .eq('bill_id', sourceId),
+          ]);
+          if (billRow) {
+            setBillsForPO([{
+              id: billRow.id,
+              vendor_id: billRow.vendor_id,
+              project_id: billRow.project_id,
+              total_amount: Number(billRow.total_amount) || 0,
+              bill_lines: lineRows || [],
+            }]);
+          } else {
+            setBillsForPO([]);
+          }
         } else if (sourceType === 'bill_payment' || sourceType === 'consolidated_bill_payment') {
           // For bill payments, attachments live on the underlying bill(s).
           // Register bill_payment rows often store the original bill id as source_id,
@@ -170,7 +200,7 @@ export function TransactionDetailDialog({
 
             const { data: billRows } = await supabase
               .from('bills')
-              .select('id, reference_number, total_amount, amount_paid')
+              .select('id, reference_number, total_amount, amount_paid, vendor_id, project_id')
               .in('id', billIdArr);
             const invoices = (billRows || [])
               .map((b: { reference_number: string | null }) => b.reference_number)
@@ -192,17 +222,29 @@ export function TransactionDetailDialog({
             // NOT bills.notes (which is the audit/notes log).
             const { data: lineRows } = await supabase
               .from('bill_lines')
-              .select('bill_id, memo, line_number')
+              .select('bill_id, memo, line_number, cost_code_id, amount, purchase_order_id, purchase_order_line_id, po_reference, po_assignment')
               .in('bill_id', billIdArr)
               .order('line_number', { ascending: true });
             const firstMemoByBill = new Map<string, string>();
-            (lineRows || []).forEach((l: { bill_id: string; memo: string | null }) => {
+            const linesByBill = new Map<string, any[]>();
+            (lineRows || []).forEach((l: any) => {
               if (!firstMemoByBill.has(l.bill_id) && l.memo && l.memo.trim().length > 0) {
                 firstMemoByBill.set(l.bill_id, l.memo);
               }
+              const arr = linesByBill.get(l.bill_id) || [];
+              arr.push(l);
+              linesByBill.set(l.bill_id, arr);
             });
             const memos = Array.from(firstMemoByBill.values());
             setOriginalBillDescription(memos.length > 0 ? Array.from(new Set(memos)).join('; ') : null);
+
+            setBillsForPO((billRows || []).map((b: any) => ({
+              id: b.id,
+              vendor_id: b.vendor_id,
+              project_id: b.project_id,
+              total_amount: Number(b.total_amount) || 0,
+              bill_lines: linesByBill.get(b.id) || [],
+            })));
           }
         } else if (sourceType === 'check') {
           const { data: rows } = await supabase
@@ -291,8 +333,42 @@ export function TransactionDetailDialog({
   };
 
   const isBillPayment = transaction.source_type === 'bill_payment' || transaction.source_type === 'consolidated_bill_payment';
+  const isBillLike = isBillPayment || transaction.source_type === 'bill';
   const attachmentSectionTitle = isBillPayment ? 'Original Bill' : 'Attachments';
   const emptyAttachmentMessage = isBillPayment ? 'No original bill found' : 'No attachments found';
+
+  // Aggregate PO info across all underlying bills for this transaction
+  const poAggregate = (() => {
+    if (!isBillLike || !poMatchingData || poMatchingData.size === 0) {
+      return { poNumbers: [] as string[], poAmount: 0, status: 'no_po' as POStatus, hasAny: false };
+    }
+    const seenPoIds = new Set<string>();
+    const poNumbers: string[] = [];
+    let poAmount = 0;
+    const statuses = new Set<string>();
+    let hasAny = false;
+    poMatchingData.forEach((res) => {
+      statuses.add(res.overall_status);
+      res.matches.forEach((m) => {
+        if (m.po_id && !seenPoIds.has(m.po_id)) {
+          seenPoIds.add(m.po_id);
+          if (m.po_number) poNumbers.push(m.po_number);
+          poAmount += Number(m.po_amount) || 0;
+          hasAny = true;
+        }
+      });
+    });
+    // Reduce overall status across bills: if all share one status use it; otherwise prefer escalations
+    let status: POStatus = 'no_po';
+    if (statuses.has('over_po') && statuses.has('matched')) status = 'numerous';
+    else if (statuses.has('over_and_partial')) status = 'partial';
+    else if (statuses.has('over_po')) status = 'over_po';
+    else if (statuses.has('partial')) status = 'partial';
+    else if (statuses.has('numerous')) status = 'numerous';
+    else if (statuses.has('draw')) status = 'draw';
+    else if (statuses.has('matched')) status = 'matched';
+    return { poNumbers, poAmount: Math.round(poAmount * 100) / 100, status, hasAny };
+  })();
 
   const details: DetailItem[] = isBillPayment
     ? [
@@ -375,6 +451,22 @@ export function TransactionDetailDialog({
                 )}
               </div>
             ))}
+            {isBillLike && (
+              <>
+                <span className="text-muted-foreground font-medium">PO Number</span>
+                <span className="break-words">
+                  {poAggregate.poNumbers.length > 0 ? poAggregate.poNumbers.join(', ') : '-'}
+                </span>
+                <span className="text-muted-foreground font-medium">PO Amount</span>
+                <span className="break-words">
+                  {poAggregate.hasAny ? formatCurrency(poAggregate.poAmount) : '-'}
+                </span>
+                <span className="text-muted-foreground font-medium">PO Status</span>
+                <span className="flex items-center">
+                  <POStatusBadge status={poAggregate.status} />
+                </span>
+              </>
+            )}
             <span className="text-muted-foreground font-medium">Cleared</span>
             <span className="flex items-center gap-1">
               {transaction.reconciled ? (
