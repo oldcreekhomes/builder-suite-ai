@@ -65,6 +65,7 @@ interface DetailItem {
   label: string;
   value: string;
   isDescription?: boolean;
+  valueClassName?: string;
 }
 
 const getTypeLabel = (sourceType: string) => {
