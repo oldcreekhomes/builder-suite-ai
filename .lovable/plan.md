@@ -1,33 +1,22 @@
-## Fix Status column for Bill Pmt - Check rows in Account Detail (Bank Register)
+## Fix: Consolidated bill payment status — combine both reconciliation signals
 
 ### Problem
-In `AccountDetailDialog` (bank/account register), `Bill Pmt - Check` rows show **Approved** even when the underlying bank journal-entry lines are reconciled (e.g., Jan–Apr 2026, where the bank is reconciled through April). Two issues:
+After the previous fix, some Bill Pmt - Check rows still show **Paid** instead of **Cleared** (e.g., 01/05 OCH $4,897.43; 01/07 OCH $14,172.45; 04/10 Homestead $40,747.71). DB shows these payments have `bill_payments.reconciled = true` with a `reconciliation_id` + `reconciliation_date`, but every per-bill bank-side `journal_entry_lines.reconciled` is `false` (the reconciliation system updated the `bill_payments` flag but not the underlying JE lines).
 
-1. **Reconciliation source is wrong for consolidated payment rows.** The synthetic row reads `bill_payments.reconciled / reconciliation_id / reconciliation_date`. Those flags are out of sync with reality in many rows. The bank-side `journal_entry_lines.reconciled` is the source of truth (and matches the lock icon / reconciliation history). Confirmed via DB: many `bill_payments` rows have `reconciled=false` while the matching JE line on the bank account has `reconciled=true` with `reconciliation_date='2026-04-30'`.
-2. **Wrong label for bill payment rows.** A bill payment that has been issued but not yet cleared is **Paid**, not **Approved**. "Approved" applies to bills, not to bill payments / checks. The user wants the label to read **Paid** until it clears the bank, then **Cleared**.
+The new logic preferred the bank-line signal when any was found (`bankAnyKnown ? bankAllRecon : cpFlagRecon`), which incorrectly forced these to "Paid".
+
+### Fix
+Treat reconciliation as a union of both signals — a consolidated payment is **Cleared** when *either*:
+- `bill_payments.reconciled` (or `reconciliation_id` / `reconciliation_date`) is set, **OR**
+- Any bank-side `journal_entry_lines` for the payment's bills (on this account) is reconciled.
+
+This handles both legacy directions of out-of-sync data:
+- bp flag false, JE lines reconciled → cleared (earlier user report).
+- bp flag true, JE lines not reconciled → cleared (this report).
 
 ### Scope
 - File: `src/components/accounting/AccountDetailDialog.tsx` only.
-- Affects only the Status column rendering and the `reconciled` derivation for bill-payment-type rows (Bill Pmt - Check, plus standalone Check rows that came from a bill payment). No DB changes. No edits to other dialogs, no edits to bill / reconciliation logic.
-
-### Changes
-
-1. **Derive reconciliation from bank-side JE lines for consolidated bill payment rows.**
-   When building the synthetic `consolidated_bill_payment` row, look up the journal-entry lines on the current bank `accountId` for journal entries where `source_type='bill_payment'` and `source_id IN (bill_ids of this payment's allocations)`. If every such bank line is reconciled (or any of them is reconciled and covers the full payment), mark the synthetic row `reconciled=true` and copy through the `reconciliation_date`. Fall back to the existing `bill_payments.reconciled` flag only when no JE line is found.
-
-2. **Status label for bill-payment-type rows = "Paid" (not "Approved") when not reconciled.**
-   In the Status column renderer (around line 1426–1433), when the row's source is a bill payment (`source_type === 'consolidated_bill_payment'` OR the row is a Bill Pmt - Check / Check that originated from a bill payment), use:
-   - `Cleared` if reconciled
-   - `Paid` if not reconciled
-   - (other source types keep their existing Pending / Approved / Cleared labels)
-
-3. **Status badge styling for "Paid"** uses the same neutral/blue badge style currently used for "Approved" (no new color tokens introduced) so the visual treatment stays consistent with the rest of the register.
-
-### Out of scope
-- No backfill of `bill_payments.reconciled` flags (we just stop trusting them as the sole source).
-- No changes to the lock icon logic (already correctly driven by closed-period rules).
-- No changes to bill rows, deposits, JE rows, or credit card rows.
-- No changes to the reconciliation workflow itself.
+- Only the `isReconciled` derivation inside the consolidated synthetic-row builder changes; no other files, no DB, no label or styling changes.
 
 ### Verification
-After the change, reopen the `1010 - Atlantic Union Bank` register: Jan/Feb/Mar/Apr Bill Pmt - Check rows that are locked (closed period & reconciled) should display **Cleared**. May/Jun bill payments that are issued but not yet reconciled should display **Paid** (no longer "Approved"). Plain `Check` rows continue to show Cleared/Paid based on their bank JE line's reconciled flag.
+Reopen `1010 - Atlantic Union Bank`. The previously-stuck "Paid" rows (01/05 OCH $4,897.43, 01/07 OCH $14,172.45, 04/10 Homestead $40,747.71) should now show **Cleared**. Truly-outstanding bill payments (no bp flag and no reconciled JE line) continue to show **Paid**.

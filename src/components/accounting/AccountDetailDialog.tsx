@@ -959,24 +959,21 @@ export function AccountDetailDialog({
           });
           const consolidatedDescription = billMemos.length > 0 ? billMemos.join('; ') : null;
 
-          // Derive reconciliation from this bank account's JE lines for the payment's bills.
-          // This is the true cleared-state. Fall back to bill_payments flags only when no JE line was found.
-          let bankAllRecon = allocations.length > 0;
-          let bankAnyKnown = false;
+          // Derive reconciliation as a UNION of two signals (legacy data is out of sync in both
+          // directions): (a) bill_payments.reconciled / reconciliation_id / reconciliation_date,
+          // OR (b) any bank-side journal_entry_line for the payment's bills is reconciled.
+          let bankAnyRecon = false;
           let bankReconDate: string | null = null;
           allocations.forEach((a) => {
             const br = bankReconByBillId.get(a.bill_id);
-            if (br) {
-              bankAnyKnown = true;
-              if (!br.reconciled) bankAllRecon = false;
+            if (br?.reconciled) {
+              bankAnyRecon = true;
               if (br.reconciliation_date && !bankReconDate) bankReconDate = br.reconciliation_date;
-            } else {
-              bankAllRecon = false;
             }
           });
           const cpFlagRecon = !!(cp.reconciled || cp.reconciliation_id || cp.reconciliation_date);
-          const isReconciled = bankAnyKnown ? bankAllRecon : cpFlagRecon;
-          const reconciliationDateForRow = bankReconDate || cp.reconciliation_date || null;
+          const isReconciled = cpFlagRecon || bankAnyRecon;
+          const reconciliationDateForRow = cp.reconciliation_date || bankReconDate || null;
 
           const syntheticRow: Transaction = {
             source_id: cp.id,
