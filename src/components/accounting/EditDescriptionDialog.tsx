@@ -40,6 +40,8 @@ export function EditDescriptionDialog({
 }: EditDescriptionDialogProps) {
   const [newEntry, setNewEntry] = useState("");
   const [existingMemo, setExistingMemo] = useState<string>("");
+  const [legacyUserName, setLegacyUserName] = useState<string>("");
+  const [legacyDate, setLegacyDate] = useState<string>("");
   const [saving, setSaving] = useState(false);
   const queryClient = useQueryClient();
   const { toast } = useToast();
@@ -49,18 +51,41 @@ export function EditDescriptionDialog({
     if (!open) {
       setNewEntry("");
       setExistingMemo("");
+      setLegacyUserName("");
+      setLegacyDate("");
       return;
     }
+
+    const resolveUserName = async (userId: string | null | undefined): Promise<string> => {
+      if (!userId) return "";
+      const { data: userRow } = await supabase
+        .from("users")
+        .select("first_name, last_name, email")
+        .eq("id", userId)
+        .maybeSingle();
+      if (!userRow) return "";
+      const full = `${(userRow as any).first_name || ""} ${(userRow as any).last_name || ""}`.trim();
+      return full || (userRow as any).email || "";
+    };
+
+    const formatDate = (raw: string | null | undefined): string => {
+      if (!raw) return "";
+      const d = new Date(raw);
+      if (isNaN(d.getTime())) return "";
+      return d.toLocaleDateString("en-US", { month: "2-digit", day: "2-digit", year: "numeric" });
+    };
 
     const loadMemo = async () => {
       try {
         if (sourceType === "consolidated_bill_payment") {
           const { data } = await supabase
             .from("bill_payments")
-            .select("memo")
+            .select("memo, created_by, created_at")
             .eq("id", sourceId)
             .maybeSingle();
           setExistingMemo((data?.memo as string | null) || currentDescription || "");
+          setLegacyUserName(await resolveUserName((data as any)?.created_by));
+          setLegacyDate(formatDate((data as any)?.created_at));
           return;
         }
 
@@ -70,14 +95,18 @@ export function EditDescriptionDialog({
           const parentId = sourceType === "manual" ? journalEntryId : sourceId;
           const { data } = await supabase
             .from(lineTable as any)
-            .select("memo, line_number")
+            .select("memo, line_number, created_by, created_at")
             .eq(parentColumn, parentId)
             .order("line_number", { ascending: true })
             .limit(1);
-          const row = (data && data[0]) as unknown as { memo: string | null } | undefined;
+          const row = (data && data[0]) as unknown as { memo: string | null; created_by?: string | null; created_at?: string | null } | undefined;
           setExistingMemo(row?.memo || currentDescription || "");
+          setLegacyUserName(await resolveUserName(row?.created_by));
+          setLegacyDate(formatDate(row?.created_at));
         } else {
           setExistingMemo(currentDescription || "");
+          setLegacyUserName("");
+          setLegacyDate("");
         }
       } catch (err) {
         console.error("Error loading existing description:", err);
@@ -232,30 +261,32 @@ export function EditDescriptionDialog({
             </label>
             <ScrollArea className="max-h-[200px]">
               <div className="space-y-2">
-                {parsedHistory.map((note, index) => (
-                  <div
-                    key={index}
-                    className="bg-muted/50 rounded-md p-3 text-sm border border-border/50"
-                  >
-                    <div className="flex items-center justify-between mb-1.5">
-                      <div className="flex items-center gap-1.5 text-muted-foreground">
-                        <User className="h-3 w-3" />
-                        <span className="font-medium text-foreground">
-                          {note.userName || "Unknown User"}
-                        </span>
-                      </div>
-                      {note.date ? (
-                        <div className="flex items-center gap-1 text-xs text-muted-foreground">
-                          <Calendar className="h-3 w-3" />
-                          <span>{note.date}</span>
+                {parsedHistory.map((note, index) => {
+                  const displayUser = note.userName || (note.isLegacy ? legacyUserName : "") || "Unknown User";
+                  const displayDate = note.date || (note.isLegacy ? legacyDate : "");
+                  return (
+                    <div
+                      key={index}
+                      className="bg-muted/50 rounded-md p-3 text-sm border border-border/50"
+                    >
+                      <div className="flex items-center justify-between mb-1.5">
+                        <div className="flex items-center gap-1.5 text-muted-foreground">
+                          <User className="h-3 w-3" />
+                          <span className="font-medium text-foreground">{displayUser}</span>
                         </div>
-                      ) : note.isLegacy ? (
-                        <span className="text-xs text-muted-foreground italic">(no date)</span>
-                      ) : null}
+                        {displayDate ? (
+                          <div className="flex items-center gap-1 text-xs text-muted-foreground">
+                            <Calendar className="h-3 w-3" />
+                            <span>{displayDate}</span>
+                          </div>
+                        ) : (
+                          <span className="text-xs text-muted-foreground italic">(no date)</span>
+                        )}
+                      </div>
+                      <p className="text-foreground whitespace-pre-wrap">{note.content}</p>
                     </div>
-                    <p className="text-foreground whitespace-pre-wrap">{note.content}</p>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
             </ScrollArea>
           </div>
