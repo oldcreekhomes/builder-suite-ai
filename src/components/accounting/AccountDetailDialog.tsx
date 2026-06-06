@@ -1500,7 +1500,7 @@ export function AccountDetailDialog({
                       </TableCell>
                       <TableCell className="px-2 py-1">
                         <div className="flex items-center justify-center">
-                          {isDateLocked(txn.date) || isConsolidated ? (
+                          {isDateLocked(txn.date) || isConsolidated || txn.reconciled ? (
                             <div className="flex items-center gap-1 justify-center">
                               <Tooltip>
                                 <TooltipTrigger asChild>
@@ -1509,14 +1509,14 @@ export function AccountDetailDialog({
                                   </div>
                                 </TooltipTrigger>
                                 <TooltipContent side="left" align="center">
-                                  {isConsolidated ? (
+                                  {isDateLocked(txn.date) ? (
                                     <>
-                                      <p className="font-medium">Consolidated Payment</p>
-                                      <p className="text-xs text-muted-foreground">Cannot be edited individually</p>
+                                      <p className="font-medium">Books Closed</p>
+                                      <p className="text-xs text-muted-foreground">Cannot be edited or deleted</p>
                                     </>
                                   ) : (
                                     <>
-                                      <p className="font-medium">Books Closed</p>
+                                      <p className="font-medium">Transaction Reconciled</p>
                                       <p className="text-xs text-muted-foreground">Cannot be edited or deleted</p>
                                     </>
                                   )}
