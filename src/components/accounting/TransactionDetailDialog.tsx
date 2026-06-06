@@ -61,6 +61,12 @@ interface TransactionDetailDialogProps {
   onEditDescription?: () => void;
 }
 
+interface DetailItem {
+  label: string;
+  value: string;
+  isDescription?: boolean;
+}
+
 const getTypeLabel = (sourceType: string) => {
   switch (sourceType) {
     case 'bill': return 'Bill';
@@ -231,7 +237,7 @@ export function TransactionDetailDialog({
     }
   };
 
-  const details = [
+  const details: DetailItem[] = [
     { label: 'Type', value: getTypeLabel(transaction.source_type) },
     { label: 'Date', value: formatDateSafe(transaction.date, 'MM/dd/yyyy') },
     { label: 'Name', value: transaction.reference || '-' },
@@ -262,7 +268,7 @@ export function TransactionDetailDialog({
             {details.map((item) => (
               <div key={item.label} className="contents">
                 <span className="text-muted-foreground font-medium">{item.label}</span>
-                {(item as any).isDescription && onEditDescription ? (
+                {item.isDescription && onEditDescription ? (
                   <span className="break-words flex items-center gap-1">
                     {item.value}
                     <DropdownMenu>
