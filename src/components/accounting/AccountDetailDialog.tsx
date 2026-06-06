@@ -376,7 +376,7 @@ export function AccountDetailDialog({
                 reconciliation_id,
                 reconciliation_date,
                 companies(company_name),
-                bill_lines(memo, line_number, account_id, cost_code_id)
+                bill_lines(memo, line_number, account_id, cost_code_id, amount)
               `)
               .eq('is_reversal', false)
               .in('id', chunk),
