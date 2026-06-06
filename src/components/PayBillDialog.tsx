@@ -36,6 +36,7 @@ interface BillForPayment {
   amount_paid?: number;
   reference_number?: string | null;
   terms?: string | null;
+  project_id?: string | null;
   companies?: {
     company_name: string;
   };
@@ -62,7 +63,10 @@ export function PayBillDialog({
   const billsArray = Array.isArray(bills) ? bills : bills ? [bills] : [];
   const isMultiple = billsArray.length > 1;
   const { accounts } = useAccounts();
-  const defaultBankAccountId = useDefaultBankAccountId();
+  // Resolve default bank: use per-project override only when all bills share the same project.
+  const uniqueProjectIds = Array.from(new Set(billsArray.map(b => b.project_id).filter(Boolean))) as string[];
+  const resolvedProjectId = uniqueProjectIds.length === 1 ? uniqueProjectIds[0] : undefined;
+  const defaultBankAccountId = useProjectDefaultBankAccountId(resolvedProjectId);
   const [paymentAccountId, setPaymentAccountId] = useState<string>("");
   const [paymentDate, setPaymentDate] = useState<Date>(new Date());
   const [memo, setMemo] = useState<string>("");
