@@ -1466,6 +1466,29 @@ export function AccountDetailDialog({
                               </div>
                             </TooltipContent>
                           </Tooltip>
+                        ) : txn.accountBreakdown && txn.accountBreakdown.length > 1 ? (
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <span className="text-xs cursor-help truncate block">
+                                {txn.accountDisplay || '-'} <span className="text-muted-foreground">+{txn.accountBreakdown.length - 1}</span>
+                              </span>
+                            </TooltipTrigger>
+                            <TooltipContent side="bottom" align="start" className="max-w-xs">
+                              <div className="space-y-1">
+                                <p className="font-medium text-xs mb-2">Included Cost Codes:</p>
+                                {txn.accountBreakdown.map((b, i) => (
+                                  <div key={`${b.label}-${i}`} className="flex justify-between gap-4 text-xs">
+                                    <span className="truncate max-w-[150px]">{b.label}</span>
+                                    <span>{formatTooltipCurrency(b.amount)}</span>
+                                  </div>
+                                ))}
+                                <div className="border-t pt-1 mt-1 flex justify-between gap-4 text-xs font-medium">
+                                  <span>Total</span>
+                                  <span>{formatTooltipCurrency(txn.accountBreakdownTotal || 0)}</span>
+                                </div>
+                              </div>
+                            </TooltipContent>
+                          </Tooltip>
                         ) : (
                           <Tooltip>
                             <TooltipTrigger asChild>
