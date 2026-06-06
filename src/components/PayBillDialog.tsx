@@ -134,6 +134,14 @@ export function PayBillDialog({
     onConfirm(billIds, paymentAccountId, format(paymentDate, 'yyyy-MM-dd'), memo || undefined, amount, checkNumber || undefined);
   };
 
+  // Auto-fill default bank when the dialog opens (covers external open prop changes
+  // and async-loaded accounts list).
+  useEffect(() => {
+    if (open && !paymentAccountId && defaultBankAccountId) {
+      setPaymentAccountId(defaultBankAccountId);
+    }
+  }, [open, defaultBankAccountId, paymentAccountId]);
+
   const resetForm = () => {
     setPaymentAccountId("");
     setPaymentDate(new Date());
