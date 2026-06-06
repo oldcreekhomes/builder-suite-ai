@@ -234,6 +234,9 @@ export function TransactionDetailDialog({
     { label: 'Amount', value: formatCurrency(netAmount) },
     { label: 'Balance', value: formatCurrency(balance) },
   ];
+  const isBillPayment = transaction.source_type === 'bill_payment' || transaction.source_type === 'consolidated_bill_payment';
+  const attachmentSectionTitle = isBillPayment ? 'Original Bill' : 'Attachments';
+  const emptyAttachmentMessage = isBillPayment ? 'No original bill found' : 'No attachments found';
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -292,14 +295,14 @@ export function TransactionDetailDialog({
 
           {/* Attachments section */}
           <div className="border-t pt-3">
-            <h4 className="text-sm font-medium mb-2">Attachments</h4>
+            <h4 className="text-sm font-medium mb-2">{attachmentSectionTitle}</h4>
             {loadingAttachments ? (
               <div className="flex items-center gap-2 text-sm text-muted-foreground">
                 <Loader2 className="h-4 w-4 animate-spin" />
                 Loading attachments...
               </div>
             ) : attachments.length === 0 ? (
-              <p className="text-sm text-muted-foreground">No attachments found</p>
+              <p className="text-sm text-muted-foreground">{emptyAttachmentMessage}</p>
             ) : (
               <div className="space-y-1">
                 {attachments.map((att) => (
