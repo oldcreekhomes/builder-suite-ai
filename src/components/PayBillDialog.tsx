@@ -25,6 +25,7 @@ import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { cn } from "@/lib/utils";
 import { useAccounts } from "@/hooks/useAccounts";
+import { useDefaultBankAccountId } from "@/hooks/useDefaultBankAccountId";
 
 interface BillForPayment {
   id: string;
@@ -61,6 +62,7 @@ export function PayBillDialog({
   const billsArray = Array.isArray(bills) ? bills : bills ? [bills] : [];
   const isMultiple = billsArray.length > 1;
   const { accounts } = useAccounts();
+  const defaultBankAccountId = useDefaultBankAccountId();
   const [paymentAccountId, setPaymentAccountId] = useState<string>("");
   const [paymentDate, setPaymentDate] = useState<Date>(new Date());
   const [memo, setMemo] = useState<string>("");
@@ -79,21 +81,29 @@ export function PayBillDialog({
   const [paymentAmount, setPaymentAmount] = useState<string>("");
   const [paymentAmountError, setPaymentAmountError] = useState<string>("");
 
-  // Filter accounts for payment methods (Cash/Bank accounts and Credit Card accounts)
-  const paymentAccounts = accounts.filter(account => 
-    account.type === 'asset' && (
-      account.name.toLowerCase().includes('cash') ||
-      account.name.toLowerCase().includes('bank') ||
-      account.name.toLowerCase().includes('checking') ||
-      account.name.toLowerCase().includes('savings')
-    )
+  // Filter accounts for payment methods. Prefer explicit subtype classification
+  // (subtype = 'bank' / 'credit_card') and fall back to the legacy keyword
+  // heuristic only when no account in this tenant has a subtype set yet.
+  const anyHasSubtype = accounts.some((a: any) => a?.subtype);
+
+  const paymentAccounts = accounts.filter((account: any) =>
+    anyHasSubtype
+      ? account.subtype === 'bank'
+      : account.type === 'asset' && (
+          account.name.toLowerCase().includes('cash') ||
+          account.name.toLowerCase().includes('bank') ||
+          account.name.toLowerCase().includes('checking') ||
+          account.name.toLowerCase().includes('savings')
+        )
   );
 
-  const creditCardAccounts = accounts.filter(account =>
-    account.type === 'liability' && (
-      account.name.toLowerCase().includes('credit') ||
-      account.name.toLowerCase().includes('card')
-    )
+  const creditCardAccounts = accounts.filter((account: any) =>
+    anyHasSubtype
+      ? account.subtype === 'credit_card'
+      : account.type === 'liability' && (
+          account.name.toLowerCase().includes('credit') ||
+          account.name.toLowerCase().includes('card')
+        )
   );
 
   const allPaymentMethods = [
@@ -141,6 +151,10 @@ export function PayBillDialog({
       if (!isMultiple && singleBill) {
         const remaining = Math.round((singleBill.total_amount - (singleBill.amount_paid || 0)) * 100) / 100;
         setPaymentAmount(remaining.toFixed(2));
+      }
+      // Pre-select the default bank account if one is configured and field is empty
+      if (!paymentAccountId && defaultBankAccountId) {
+        setPaymentAccountId(defaultBankAccountId);
       }
     }
     onOpenChange(newOpen);
