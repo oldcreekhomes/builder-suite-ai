@@ -1,43 +1,45 @@
-## Add PO Info to Transaction Details
+## Problem
 
-Extend the Transaction Details dialog (used in account registers) so that for a Bill or Bill Pmt - Check row, the user can see the linked purchase order's number, total, and match status — the same "Matched / Over / Partial / No PO" badge that appears on the Manage Bills page.
+In the Account Detail dialog (e.g. Atlantic Union Bank), consolidated bill payments correctly show "Primary Account +N" with a hover tooltip listing every cost code and its amount (Homestead Building Supplies, +2).
 
-### What changes for the user
+Single-bill rows (Bill or Bill Pmt - Check, e.g. An Exterior $27,180) do NOT show this, even when the underlying bill has multiple cost codes. The Account column only shows the first line's cost code ("4470: Siding"), hiding the fact that 4400: Exterior Trim/Cornice is also part of the bill.
 
-For rows where `source_type` is `bill`, `bill_payment`, or `consolidated_bill_payment`, the dialog will show three new rows beneath the existing details (above the Cleared row):
+Both should behave identically.
 
-- **PO Number** — e.g. `PO-1042` (or a comma-separated list if the bill touches multiple POs). Shows `-` when no PO is linked.
-- **PO Amount** — total of the linked PO(s), formatted as currency. Shows `-` when none.
-- **PO Status** — the same colored `POStatusBadge` already used on Manage Bills (Matched / Draw / Over / Partial / Numerous / No PO).
+## Fix
 
-For non-bill rows (Check, Deposit, Credit Card, Journal Entry) nothing changes.
+Single file: `src/components/accounting/AccountDetailDialog.tsx`.
 
-### How it will be wired up
+### 1. Load bill line amounts
+The bills query at line ~376 already selects `bill_lines(memo, line_number, account_id, cost_code_id)`. Add `amount` so we can sum per cost code.
 
-Single file change: `src/components/accounting/TransactionDetailDialog.tsx`.
+### 2. Build a breakdown per bill
+When populating `billsMap` (around line 445), aggregate `bill_lines` into a `costCodeBreakdown: { label: string; amount: number }[]` using the same "group by visible cost-code/account label" rule already used elsewhere (`src/lib/billListDisplay.ts`):
+- Prefer `cost_codes` label, else `accounts` label, else fallback.
+- Sum amounts per label, preserve first-seen order.
+- Primary label = first non-fallback entry (matches current `firstLineCostCodeId` behavior).
 
-1. In the existing `useEffect` that already loads the underlying bill(s) for the dialog, also pull:
-   - `bill_lines` rows for those bill IDs, including `purchase_order_id`, `purchase_order_line_id`, `po_reference`, `po_assignment`, `cost_code_id`, `amount`.
-   - The parent `bills` rows already loaded supply `vendor_id`, `project_id`, `total_amount`.
+### 3. Attach breakdown to bill / bill_payment transactions
+In the transaction-mapping block (line ~863, `source_type === 'bill' || 'bill_payment'`):
+- Set `accountDisplay` to the primary label (unchanged behavior when only one cost code).
+- Add a new field `accountBreakdown` (array of `{ label, amount }`) and `accountBreakdownTotal` (sum) onto the `Transaction` for use by the renderer.
 
-2. Run those bills through the existing `useBillPOMatching` hook so the dialog uses the exact same matching/aggregation logic as Manage Bills (4-weight matcher, `overall_status`, `po_number`, `po_amount`). Wrapping the bills array in `useMemo` keyed on bill IDs keeps the query stable.
+Add `accountBreakdown?: { label: string; amount: number }[]` and `accountBreakdownTotal?: number` to the `Transaction` interface (top of file near line 46/57).
 
-3. Derive display values from the hook result:
-   - PO Number: `Array.from(new Set(matches.map(m => m.po_number))).join(', ')`.
-   - PO Amount: sum of distinct PO `po_amount` values (dedupe by `po_id`).
-   - PO Status: `overall_status` from the matcher; pass directly into `<POStatusBadge>`.
-   - When there are no matches or all bills come back `no_po`, render `-` / `-` / `<POStatusBadge status="no_po" />`.
+### 4. Render the +N badge + tooltip
+In the Account column (line ~1420), extend the existing condition:
 
-4. Render the three new rows inside the same `grid grid-cols-[120px_1fr]` block. The `PO Status` row renders the badge instead of plain text (handled with a small `isBadge` flag on the detail item or by inlining it before the Cleared row).
+```text
+if (isConsolidated && extraCount > 0)       -> existing consolidated tooltip
+else if (accountBreakdown && length > 1)    -> NEW: "primary +{N-1}" with tooltip
+                                               showing each {label, amount} + Total
+else                                        -> existing single-label render
+```
 
-### Technical notes
+The new tooltip mirrors the consolidated one: header "Included Cost Codes:", one row per cost code with the summed amount, and a Total row.
 
-- No DB schema or migration changes.
-- No changes to mutation paths, lock logic, status pills, or reconciliation derivation.
-- `useBillPOMatching` is already a React Query hook, so it will be called unconditionally at the top of `TransactionDetailDialog`; when the dialog is closed or the transaction is not a bill/bill payment, it receives an empty `bills` array and short-circuits.
-- For `consolidated_bill_payment` rows the dialog already aggregates `billIds` from `bill_payment_allocations` + `includedBillPayments` — the PO lookup reuses that same set, so combined payments show every PO touched by every underlying bill.
+## Out of scope
 
-### Out of scope
-
-- Linking from the PO Number row to the PO detail dialog (can be added later if you want it clickable).
-- Showing per-line PO breakdown inside the dialog — only the aggregate is shown.
+- No DB changes, no mutation paths, no lock logic.
+- Checks, Deposits, Credit Card lines, and manual JE rows are not changed (the user only flagged bills/bill payments and those already only have one displayed account by design — can revisit if needed).
+- The Edit Bill dialog, PO summary, and consolidated-payment tooltip stay exactly as they are.
