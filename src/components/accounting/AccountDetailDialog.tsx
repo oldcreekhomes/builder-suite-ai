@@ -576,7 +576,7 @@ export function AccountDetailDialog({
       const allocationsByPaymentId = new Map<string, IncludedBillPayment[]>();
       const billIdsInConsolidatedPayments = new Set<string>();
       let vendorNamesForConsolidated = new Map<string, string>();
-      const firstLineByBillForConsolidated = new Map<string, { cost_code_id: string | null; account_id: string | null }>();
+      const firstLineByBillForConsolidated = new Map<string, { cost_code_id: string | null; account_id: string | null; memo: string | null }>();
 
       if (consolidatedPayments && consolidatedPayments.length > 0) {
         const consolidatedPaymentIds = consolidatedPayments.map(cp => cp.id);
@@ -634,17 +634,25 @@ export function AccountDetailDialog({
             (chunk) =>
               supabase
                 .from('bill_lines')
-                .select('bill_id, line_number, cost_code_id, account_id')
+                .select('bill_id, line_number, cost_code_id, account_id, memo')
                 .in('bill_id', chunk)
                 .order('line_number', { ascending: true }),
             allBillIdsInPayments
           );
 
 
-          // Group by bill_id, get first line
+          // Group by bill_id: take first line for cost code/account, and the
+          // first non-empty memo (bill's user-facing Description).
           (billLinesData || []).forEach(bl => {
-            if (!firstLineByBillForConsolidated.has(bl.bill_id)) {
-              firstLineByBillForConsolidated.set(bl.bill_id, { cost_code_id: bl.cost_code_id, account_id: bl.account_id });
+            const existing = firstLineByBillForConsolidated.get(bl.bill_id);
+            if (!existing) {
+              firstLineByBillForConsolidated.set(bl.bill_id, {
+                cost_code_id: bl.cost_code_id,
+                account_id: bl.account_id,
+                memo: bl.memo && String(bl.memo).trim().length > 0 ? bl.memo : null,
+              });
+            } else if (!existing.memo && bl.memo && String(bl.memo).trim().length > 0) {
+              existing.memo = bl.memo;
             }
           });
 
@@ -912,13 +920,22 @@ export function AccountDetailDialog({
             }
           }
 
+          // Description = original bill's first line memo(s), joined for multi-bill.
+          // Never show bill_payments.memo (it may be system text like "Backfilled from JE ...").
+          const billMemos: string[] = [];
+          allocations.forEach((a) => {
+            const fl = firstLineByBillForConsolidated.get(a.bill_id);
+            if (fl?.memo && !billMemos.includes(fl.memo)) billMemos.push(fl.memo);
+          });
+          const consolidatedDescription = billMemos.length > 0 ? billMemos.join('; ') : null;
+
           const syntheticRow: Transaction = {
             source_id: cp.id,
             line_id: `consolidated:${cp.id}`,
             journal_entry_id: `consolidated:${cp.id}`,
             date: cp.payment_date,
             memo: cp.memo,
-            description: cp.memo || cp.check_number || null,
+            description: consolidatedDescription,
             reference: vendorName,
             accountDisplay: accountDisplay,
             source_type: 'consolidated_bill_payment',
