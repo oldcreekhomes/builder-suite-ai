@@ -65,6 +65,7 @@ interface DetailItem {
   label: string;
   value: string;
   isDescription?: boolean;
+  valueClassName?: string;
 }
 
 const getTypeLabel = (sourceType: string) => {
@@ -303,15 +304,16 @@ export function TransactionDetailDialog({
           value: originalInvoiceNumbers.length > 0 ? originalInvoiceNumbers.join(', ') : '-',
         },
         {
-          label: 'Original Bill Amount',
+          label: 'Original Bill',
           value: originalBillTotal !== null ? formatCurrency(originalBillTotal) : '-',
         },
         {
           label: 'Current Payment',
-          value: formatCurrency(Math.abs(netAmount)),
+          value: `(${formatCurrency(Math.abs(netAmount))})`,
+          valueClassName: 'text-destructive',
         },
         {
-          label: 'Remaining Balance',
+          label: 'Balance',
           value: remainingBillBalance !== null ? formatCurrency(remainingBillBalance) : '-',
         },
       ]
@@ -360,7 +362,7 @@ export function TransactionDetailDialog({
                     </DropdownMenu>
                   </span>
                 ) : (
-                  <span className="break-words">{item.value}</span>
+                  <span className={`break-words${item.valueClassName ? ` ${item.valueClassName}` : ''}`}>{item.value}</span>
                 )}
               </div>
             ))}
