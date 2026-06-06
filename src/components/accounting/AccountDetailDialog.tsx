@@ -891,8 +891,8 @@ export function AccountDetailDialog({
               accountDisplay = accountsDisplayMap.get(bill.firstLineAccountId) || null;
             }
             // Build cost-code breakdown grouped by visible label
-            var __breakdownLabels: string[] = [];
-            var __breakdownSums = new Map<string, number>();
+            const _breakdownLabels: string[] = [];
+            const _breakdownSums = new Map<string, number>();
             (bill.bill_lines || []).forEach((bl: any) => {
               let label: string | null = null;
               if (bl.cost_code_id && costCodesMap.has(bl.cost_code_id)) {
@@ -901,11 +901,11 @@ export function AccountDetailDialog({
                 label = accountsDisplayMap.get(bl.account_id) || null;
               }
               if (!label) label = 'Unassigned';
-              if (!__breakdownSums.has(label)) __breakdownLabels.push(label);
-              __breakdownSums.set(label, (__breakdownSums.get(label) || 0) + Number(bl.amount || 0));
+              if (!_breakdownSums.has(label)) _breakdownLabels.push(label);
+              _breakdownSums.set(label, (_breakdownSums.get(label) || 0) + Number(bl.amount || 0));
             });
-            var __billAccountBreakdown = __breakdownLabels.map(l => ({ label: l, amount: __breakdownSums.get(l) || 0 }));
-            var __billAccountBreakdownTotal = __billAccountBreakdown.reduce((s, b) => s + b.amount, 0);
+            billAccountBreakdown = _breakdownLabels.map(l => ({ label: l, amount: _breakdownSums.get(l) || 0 }));
+            billAccountBreakdownTotal = billAccountBreakdown.reduce((s, b) => s + b.amount, 0);
           }
         }
 
