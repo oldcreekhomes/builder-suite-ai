@@ -33,8 +33,15 @@ interface Transaction {
   reconciled: boolean;
   reconciliation_date?: string | null;
   isPaid?: boolean;
-  includedBillPayments?: any[];
+  includedBillPayments?: IncludedBillPayment[];
   consolidatedTotalAmount?: number;
+}
+
+interface IncludedBillPayment {
+  id?: string | null;
+  bill_payment_id?: string | null;
+  source_id?: string | null;
+  bill_id?: string | null;
 }
 
 interface Attachment {
@@ -52,6 +59,12 @@ interface TransactionDetailDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   onEditDescription?: () => void;
+}
+
+interface DetailItem {
+  label: string;
+  value: string;
+  isDescription?: boolean;
 }
 
 const getTypeLabel = (sourceType: string) => {
@@ -100,27 +113,43 @@ export function TransactionDetailDialog({
           data = rows || [];
         } else if (sourceType === 'bill_payment' || sourceType === 'consolidated_bill_payment') {
           // For bill payments, attachments live on the underlying bill(s).
-          // Resolve bill ids via bill_payment_allocations.
-          const paymentIds: string[] =
-            sourceType === 'consolidated_bill_payment' && Array.isArray(transaction.includedBillPayments) && transaction.includedBillPayments.length > 0
-              ? transaction.includedBillPayments
-                  .map((p: any) => p?.id || p?.bill_payment_id || p?.source_id)
-                  .filter(Boolean)
-              : [sourceId];
+          // Register bill_payment rows often store the original bill id as source_id,
+          // while consolidated rows store the bill payment id and include bill_id allocations.
+          const billIds = new Set<string>();
+          const paymentIds = new Set<string>();
 
-          if (paymentIds.length > 0) {
+          if (sourceType === 'bill_payment') {
+            billIds.add(sourceId);
+            paymentIds.add(sourceId);
+          } else {
+            paymentIds.add(sourceId);
+            if (Array.isArray(transaction.includedBillPayments)) {
+              transaction.includedBillPayments.forEach((p) => {
+                if (p?.bill_id) billIds.add(p.bill_id);
+                if (p?.id) paymentIds.add(p.id);
+                if (p?.bill_payment_id) paymentIds.add(p.bill_payment_id);
+                if (p?.source_id) paymentIds.add(p.source_id);
+              });
+            }
+          }
+
+          if (paymentIds.size > 0) {
             const { data: allocs } = await supabase
               .from('bill_payment_allocations')
               .select('bill_id')
-              .in('bill_payment_id', paymentIds);
-            const billIds = Array.from(new Set((allocs || []).map((a: any) => a.bill_id).filter(Boolean)));
-            if (billIds.length > 0) {
-              const { data: rows } = await supabase
-                .from('bill_attachments')
-                .select('id, file_name, file_path, content_type, file_size')
-                .in('bill_id', billIds);
-              data = rows || [];
-            }
+              .in('bill_payment_id', Array.from(paymentIds));
+            const allocationRows = (allocs || []) as Array<{ bill_id: string | null }>;
+            allocationRows.forEach((a) => {
+              if (a.bill_id) billIds.add(a.bill_id);
+            });
+          }
+
+          if (billIds.size > 0) {
+            const { data: rows } = await supabase
+              .from('bill_attachments')
+              .select('id, file_name, file_path, content_type, file_size')
+              .in('bill_id', Array.from(billIds));
+            data = rows || [];
           }
         } else if (sourceType === 'check') {
           const { data: rows } = await supabase
@@ -208,7 +237,7 @@ export function TransactionDetailDialog({
     }
   };
 
-  const details = [
+  const details: DetailItem[] = [
     { label: 'Type', value: getTypeLabel(transaction.source_type) },
     { label: 'Date', value: formatDateSafe(transaction.date, 'MM/dd/yyyy') },
     { label: 'Name', value: transaction.reference || '-' },
@@ -219,6 +248,9 @@ export function TransactionDetailDialog({
     { label: 'Amount', value: formatCurrency(netAmount) },
     { label: 'Balance', value: formatCurrency(balance) },
   ];
+  const isBillPayment = transaction.source_type === 'bill_payment' || transaction.source_type === 'consolidated_bill_payment';
+  const attachmentSectionTitle = isBillPayment ? 'Original Bill' : 'Attachments';
+  const emptyAttachmentMessage = isBillPayment ? 'No original bill found' : 'No attachments found';
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -236,7 +268,7 @@ export function TransactionDetailDialog({
             {details.map((item) => (
               <div key={item.label} className="contents">
                 <span className="text-muted-foreground font-medium">{item.label}</span>
-                {(item as any).isDescription && onEditDescription ? (
+                {item.isDescription && onEditDescription ? (
                   <span className="break-words flex items-center gap-1">
                     {item.value}
                     <DropdownMenu>
@@ -277,14 +309,14 @@ export function TransactionDetailDialog({
 
           {/* Attachments section */}
           <div className="border-t pt-3">
-            <h4 className="text-sm font-medium mb-2">Attachments</h4>
+            <h4 className="text-sm font-medium mb-2">{attachmentSectionTitle}</h4>
             {loadingAttachments ? (
               <div className="flex items-center gap-2 text-sm text-muted-foreground">
                 <Loader2 className="h-4 w-4 animate-spin" />
                 Loading attachments...
               </div>
             ) : attachments.length === 0 ? (
-              <p className="text-sm text-muted-foreground">No attachments found</p>
+              <p className="text-sm text-muted-foreground">{emptyAttachmentMessage}</p>
             ) : (
               <div className="space-y-1">
                 {attachments.map((att) => (
