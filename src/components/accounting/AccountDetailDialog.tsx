@@ -580,6 +580,7 @@ export function AccountDetailDialog({
       const billIdsInConsolidatedPayments = new Set<string>();
       let vendorNamesForConsolidated = new Map<string, string>();
       const firstLineByBillForConsolidated = new Map<string, { cost_code_id: string | null; account_id: string | null; memo: string | null }>();
+      const allLinesByBillForConsolidated = new Map<string, { cost_code_id: string | null; account_id: string | null; amount: number }[]>();
       // Per-bill bank-line reconciliation status (source of truth: journal_entry_lines on this bank account
       // for journal entries of source_type='bill_payment' and source_id=<bill_id>). The bill_payments.reconciled
       // flag is unreliable in legacy data, so we trust the bank-side JE line instead.
@@ -641,7 +642,7 @@ export function AccountDetailDialog({
             (chunk) =>
               supabase
                 .from('bill_lines')
-                .select('bill_id, line_number, cost_code_id, account_id, memo')
+                .select('bill_id, line_number, cost_code_id, account_id, memo, amount')
                 .in('bill_id', chunk)
                 .order('line_number', { ascending: true }),
             allBillIdsInPayments
@@ -649,7 +650,8 @@ export function AccountDetailDialog({
 
 
           // Group by bill_id: take first line for cost code/account, and the
-          // first non-empty memo (bill's user-facing Description).
+          // first non-empty memo (bill's user-facing Description). Also collect
+          // every line into allLinesByBillForConsolidated for cost-code breakdown.
           (billLinesData || []).forEach(bl => {
             const existing = firstLineByBillForConsolidated.get(bl.bill_id);
             if (!existing) {
@@ -661,12 +663,17 @@ export function AccountDetailDialog({
             } else if (!existing.memo && bl.memo && String(bl.memo).trim().length > 0) {
               existing.memo = bl.memo;
             }
+            const arr = allLinesByBillForConsolidated.get(bl.bill_id) || [];
+            arr.push({ cost_code_id: bl.cost_code_id, account_id: bl.account_id, amount: Number(bl.amount || 0) });
+            allLinesByBillForConsolidated.set(bl.bill_id, arr);
           });
 
-          // Collect cost code/account IDs for lookup
-          firstLineByBillForConsolidated.forEach(fl => {
-            if (fl.cost_code_id) allCostCodeIds.add(fl.cost_code_id);
-            if (fl.account_id) allAccountIds.add(fl.account_id);
+          // Collect cost code/account IDs for lookup (across ALL lines)
+          allLinesByBillForConsolidated.forEach(lines => {
+            lines.forEach(l => {
+              if (l.cost_code_id) allCostCodeIds.add(l.cost_code_id);
+              if (l.account_id) allAccountIds.add(l.account_id);
+            });
           });
 
           // Fetch reconciliation status from this bank account's journal_entry_lines
@@ -998,6 +1005,26 @@ export function AccountDetailDialog({
           const isReconciled = cpFlagRecon || bankAnyRecon;
           const reconciliationDateForRow = cp.reconciliation_date || bankReconDate || null;
 
+          // Build cost-code breakdown across every line of every bill in this payment
+          const cpLabels: string[] = [];
+          const cpSums = new Map<string, number>();
+          allocations.forEach(a => {
+            const lines = allLinesByBillForConsolidated.get(a.bill_id) || [];
+            lines.forEach(l => {
+              let label: string | null = null;
+              if (l.cost_code_id && costCodesMap.has(l.cost_code_id)) {
+                label = costCodesMap.get(l.cost_code_id) || null;
+              } else if (l.account_id && accountsDisplayMap.has(l.account_id)) {
+                label = accountsDisplayMap.get(l.account_id) || null;
+              }
+              if (!label) label = 'Unassigned';
+              if (!cpSums.has(label)) cpLabels.push(label);
+              cpSums.set(label, (cpSums.get(label) || 0) + l.amount);
+            });
+          });
+          const cpBreakdown = cpLabels.map(l => ({ label: l, amount: cpSums.get(l) || 0 }));
+          const cpBreakdownTotal = cpBreakdown.reduce((s, b) => s + b.amount, 0);
+
           const syntheticRow: Transaction = {
             source_id: cp.id,
             line_id: `consolidated:${cp.id}`,
@@ -1017,6 +1044,8 @@ export function AccountDetailDialog({
             status: isReconciled ? 'cleared' : 'approved',
             includedBillPayments: allocations,
             consolidatedTotalAmount: Number(cp.total_amount),
+            accountBreakdown: cpBreakdown.length > 1 ? cpBreakdown : undefined,
+            accountBreakdownTotal: cpBreakdown.length > 1 ? cpBreakdownTotal : undefined,
           };
           
           transactions.push(syntheticRow);

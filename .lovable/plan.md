@@ -1,45 +1,33 @@
-## Problem
+## Why "An Exterior" looks broken
 
-In the Account Detail dialog (e.g. Atlantic Union Bank), consolidated bill payments correctly show "Primary Account +N" with a hover tooltip listing every cost code and its amount (Homestead Building Supplies, +2).
+An Exterior's $27,180 payment is stored as a single-allocation `bill_payments` row (1 bill, 1 payment). The Account Detail dialog routes any bill that belongs to ANY `bill_payments` row through the synthetic `consolidated_bill_payment` path — even when there's only one allocation. Because `extraCount = allocations.length - 1 = 0`, the consolidated "+N" tooltip is suppressed, and the breakdown I just added only attaches to the non-consolidated bill / bill_payment rows. Result: the row falls through to the plain single-label display ("4470: Siding"), hiding the second cost code.
 
-Single-bill rows (Bill or Bill Pmt - Check, e.g. An Exterior $27,180) do NOT show this, even when the underlying bill has multiple cost codes. The Account column only shows the first line's cost code ("4470: Siding"), hiding the fact that 4400: Exterior Trim/Cornice is also part of the bill.
-
-Both should behave identically.
+Homestead works because it has 3 allocations, so the consolidated "Included Bills" tooltip ("+2") fires.
 
 ## Fix
 
 Single file: `src/components/accounting/AccountDetailDialog.tsx`.
 
-### 1. Load bill line amounts
-The bills query at line ~376 already selects `bill_lines(memo, line_number, account_id, cost_code_id)`. Add `amount` so we can sum per cost code.
+For synthetic `consolidated_bill_payment` rows, build the same cost-code breakdown across every `bill_line` of every bill in the payment, and attach it as `accountBreakdown` / `accountBreakdownTotal`. The renderer already shows "primary +{N-1}" with the per-cost-code tooltip whenever `accountBreakdown.length > 1`, so single-allocation multi-cost-code payments will start displaying correctly.
 
-### 2. Build a breakdown per bill
-When populating `billsMap` (around line 445), aggregate `bill_lines` into a `costCodeBreakdown: { label: string; amount: number }[]` using the same "group by visible cost-code/account label" rule already used elsewhere (`src/lib/billListDisplay.ts`):
-- Prefer `cost_codes` label, else `accounts` label, else fallback.
-- Sum amounts per label, preserve first-seen order.
-- Primary label = first non-fallback entry (matches current `firstLineCostCodeId` behavior).
+### 1. Load all line data (not just the first line)
+At line ~640 the bill_lines query for consolidated payments selects only the first-line-style fields. Change it to:
+- Add `amount` to the select.
+- After grouping, keep the existing `firstLineByBillForConsolidated` (used for description + primary label) unchanged.
+- Build a new map `allLinesByBillForConsolidated: Map<billId, { cost_code_id, account_id, amount }[]>`.
+- Push every cost_code_id / account_id from every line into `allCostCodeIds` / `allAccountIds` so the label maps cover them.
 
-### 3. Attach breakdown to bill / bill_payment transactions
-In the transaction-mapping block (line ~863, `source_type === 'bill' || 'bill_payment'`):
-- Set `accountDisplay` to the primary label (unchanged behavior when only one cost code).
-- Add a new field `accountBreakdown` (array of `{ label, amount }`) and `accountBreakdownTotal` (sum) onto the `Transaction` for use by the renderer.
+### 2. Compute breakdown in the synthetic row builder
+In the `consolidatedPayments.forEach(cp => { ... })` block (~line 953), after computing `accountDisplay`, iterate `allocations` → for each `a.bill_id` look up `allLinesByBillForConsolidated.get(a.bill_id)` and aggregate `{ label, amount }` using the same rules as the bill path:
+- Label = costCodesMap.get(cost_code_id) ?? accountsDisplayMap.get(account_id) ?? 'Unassigned'.
+- Preserve first-seen order; sum amounts per label.
 
-Add `accountBreakdown?: { label: string; amount: number }[]` and `accountBreakdownTotal?: number` to the `Transaction` interface (top of file near line 46/57).
+Attach `accountBreakdown` and `accountBreakdownTotal` on the synthetic `Transaction`.
 
-### 4. Render the +N badge + tooltip
-In the Account column (line ~1420), extend the existing condition:
-
-```text
-if (isConsolidated && extraCount > 0)       -> existing consolidated tooltip
-else if (accountBreakdown && length > 1)    -> NEW: "primary +{N-1}" with tooltip
-                                               showing each {label, amount} + Total
-else                                        -> existing single-label render
-```
-
-The new tooltip mirrors the consolidated one: header "Included Cost Codes:", one row per cost code with the summed amount, and a Total row.
+### 3. Render
+No render change needed — the existing branch added previously already handles `accountBreakdown.length > 1` and shows the "Included Cost Codes:" tooltip. For true multi-bill consolidated payments (Homestead) the `isConsolidated && extraCount > 0` branch still wins and continues to show the per-bill tooltip exactly as before.
 
 ## Out of scope
-
-- No DB changes, no mutation paths, no lock logic.
-- Checks, Deposits, Credit Card lines, and manual JE rows are not changed (the user only flagged bills/bill payments and those already only have one displayed account by design — can revisit if needed).
-- The Edit Bill dialog, PO summary, and consolidated-payment tooltip stay exactly as they are.
+- No DB changes.
+- Multi-bill consolidated tooltips (Homestead "Included Bills") stay exactly as they are.
+- Checks, deposits, credit card lines, journal entries: unchanged.
