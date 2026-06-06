@@ -144,12 +144,19 @@ export function ReconcileAccountsContent({ projectId }: ReconcileAccountsContent
     return localStorage.getItem(storageKey);
   });
 
-  // If nothing was stored, fall back to the tenant's default bank account
-  useEffect(() => {
-    if (!selectedBankAccountId && defaultBankAccountId) {
-      setSelectedBankAccountId(defaultBankAccountId);
-    }
-  }, [selectedBankAccountId, defaultBankAccountId]);
+  // Project-scoped account exclusions (Edit Project -> Chart of Accounts)
+  const { data: excludedAccountIds } = useQuery({
+    queryKey: ['project-account-exclusions', projectId],
+    enabled: !!projectId,
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('project_account_exclusions')
+        .select('account_id')
+        .eq('project_id', projectId!);
+      if (error) throw error;
+      return new Set((data ?? []).map((r: { account_id: string }) => r.account_id));
+    },
+  });
   const [statementDate, setStatementDate] = useState<Date>();
   const [hideTransactionsAfterDate, setHideTransactionsAfterDate] = useState<Date | undefined>();
   const [beginningBalance, setBeginningBalance] = useState<string>("");
