@@ -261,30 +261,32 @@ export function EditDescriptionDialog({
             </label>
             <ScrollArea className="max-h-[200px]">
               <div className="space-y-2">
-                {parsedHistory.map((note, index) => (
-                  <div
-                    key={index}
-                    className="bg-muted/50 rounded-md p-3 text-sm border border-border/50"
-                  >
-                    <div className="flex items-center justify-between mb-1.5">
-                      <div className="flex items-center gap-1.5 text-muted-foreground">
-                        <User className="h-3 w-3" />
-                        <span className="font-medium text-foreground">
-                          {note.userName || "Unknown User"}
-                        </span>
-                      </div>
-                      {note.date ? (
-                        <div className="flex items-center gap-1 text-xs text-muted-foreground">
-                          <Calendar className="h-3 w-3" />
-                          <span>{note.date}</span>
+                {parsedHistory.map((note, index) => {
+                  const displayUser = note.userName || (note.isLegacy ? legacyUserName : "") || "Unknown User";
+                  const displayDate = note.date || (note.isLegacy ? legacyDate : "");
+                  return (
+                    <div
+                      key={index}
+                      className="bg-muted/50 rounded-md p-3 text-sm border border-border/50"
+                    >
+                      <div className="flex items-center justify-between mb-1.5">
+                        <div className="flex items-center gap-1.5 text-muted-foreground">
+                          <User className="h-3 w-3" />
+                          <span className="font-medium text-foreground">{displayUser}</span>
                         </div>
-                      ) : note.isLegacy ? (
-                        <span className="text-xs text-muted-foreground italic">(no date)</span>
-                      ) : null}
+                        {displayDate ? (
+                          <div className="flex items-center gap-1 text-xs text-muted-foreground">
+                            <Calendar className="h-3 w-3" />
+                            <span>{displayDate}</span>
+                          </div>
+                        ) : (
+                          <span className="text-xs text-muted-foreground italic">(no date)</span>
+                        )}
+                      </div>
+                      <p className="text-foreground whitespace-pre-wrap">{note.content}</p>
                     </div>
-                    <p className="text-foreground whitespace-pre-wrap">{note.content}</p>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
             </ScrollArea>
           </div>
