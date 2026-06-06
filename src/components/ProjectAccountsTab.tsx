@@ -4,7 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
-import { ChevronDown, ChevronRight } from "lucide-react";
+import { ChevronDown, ChevronRight, Star } from "lucide-react";
 import { useState, useMemo } from "react";
 import { useToast } from "@/hooks/use-toast";
 import { groupAccountsByParent } from "@/lib/accountHierarchy";
@@ -21,6 +21,7 @@ interface Account {
   name: string;
   type: AccountType;
   parent_id: string | null;
+  subtype?: string | null;
 }
 
 const TYPE_LABELS: Record<AccountType, string> = {
@@ -45,7 +46,7 @@ export function ProjectAccountsTab({ projectId }: ProjectAccountsTabProps) {
     queryFn: async () => {
       const { data, error } = await supabase
         .from('accounts')
-        .select('id, code, name, type, parent_id')
+        .select('id, code, name, type, parent_id, subtype')
         .eq('is_active', true)
         .order('code');
       if (error) throw error;
@@ -62,6 +63,19 @@ export function ProjectAccountsTab({ projectId }: ProjectAccountsTabProps) {
         .eq('project_id', projectId);
       if (error) throw error;
       return new Set(data.map((e: { account_id: string }) => e.account_id));
+    },
+  });
+
+  const { data: projectDefaultBankId } = useQuery({
+    queryKey: ['project-default-bank-account', projectId],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('project_default_bank_accounts' as any)
+        .select('account_id')
+        .eq('project_id', projectId)
+        .maybeSingle();
+      if (error) throw error;
+      return ((data as any)?.account_id as string | null) ?? null;
     },
   });
 
@@ -95,6 +109,36 @@ export function ProjectAccountsTab({ projectId }: ProjectAccountsTabProps) {
     },
   });
 
+  const setDefaultBankMutation = useMutation({
+    mutationFn: async ({ accountId, clear }: { accountId: string; clear: boolean }) => {
+      if (clear) {
+        const { error } = await supabase
+          .from('project_default_bank_accounts' as any)
+          .delete()
+          .eq('project_id', projectId);
+        if (error) throw error;
+      } else {
+        const { error } = await supabase
+          .from('project_default_bank_accounts' as any)
+          .upsert(
+            { project_id: projectId, account_id: accountId, updated_at: new Date().toISOString() } as any,
+            { onConflict: 'project_id' }
+          );
+        if (error) throw error;
+      }
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['project-default-bank-account', projectId] });
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Error",
+        description: `Failed to update default bank account: ${error?.message || 'Unknown error'}`,
+        variant: "destructive",
+      });
+    },
+  });
+
   const isLoading = accountsLoading || exclusionsLoading;
 
   // Group accounts by type, then by hierarchy within each type
@@ -122,27 +166,50 @@ export function ProjectAccountsTab({ projectId }: ProjectAccountsTabProps) {
 
   const renderAccountRow = (account: Account, depth: number) => {
     const isExcluded = exclusions?.has(account.id) ?? false;
+    const isBank = account.subtype === 'bank';
+    const isDefaultBank = isBank && projectDefaultBankId === account.id;
     return (
-      <label
+      <div
         key={account.id}
-        className="flex items-center gap-3 py-1.5 px-2 hover:bg-muted/50 rounded cursor-pointer text-sm"
+        className="flex items-center gap-3 py-1.5 px-2 hover:bg-muted/50 rounded text-sm"
         style={{ paddingLeft: `${(depth + 1) * 16}px` }}
       >
-        <Checkbox
-          checked={!isExcluded}
-          onCheckedChange={(checked) => {
-            toggleMutation.mutate({
-              accountId: account.id,
-              exclude: !checked,
-            });
-          }}
-          disabled={toggleMutation.isPending}
-        />
-        <span>
-          {depth > 0 && <span className="text-muted-foreground mr-1">↳</span>}
-          {account.code} - {account.name}
-        </span>
-      </label>
+        <label className="flex items-center gap-3 cursor-pointer flex-1 min-w-0">
+          <Checkbox
+            checked={!isExcluded}
+            onCheckedChange={(checked) => {
+              toggleMutation.mutate({
+                accountId: account.id,
+                exclude: !checked,
+              });
+            }}
+            disabled={toggleMutation.isPending}
+          />
+          <span className="truncate">
+            {depth > 0 && <span className="text-muted-foreground mr-1">↳</span>}
+            {account.code} - {account.name}
+          </span>
+        </label>
+        {isBank && !isExcluded && (
+          <button
+            type="button"
+            onClick={() =>
+              setDefaultBankMutation.mutate({
+                accountId: account.id,
+                clear: isDefaultBank,
+              })
+            }
+            disabled={setDefaultBankMutation.isPending}
+            className="inline-flex items-center justify-center shrink-0"
+            aria-label={isDefaultBank ? 'Clear project default bank' : 'Set as project default bank'}
+            title={isDefaultBank ? 'Project default bank — click to clear' : 'Set as project default bank'}
+          >
+            <Star
+              className={`h-4 w-4 ${isDefaultBank ? 'fill-yellow-400 text-yellow-500' : 'text-muted-foreground hover:text-yellow-500'}`}
+            />
+          </button>
+        )}
+      </div>
     );
   };
 
@@ -150,6 +217,7 @@ export function ProjectAccountsTab({ projectId }: ProjectAccountsTabProps) {
     <div className="space-y-2 py-2 max-h-[60vh] overflow-y-auto">
       <p className="text-sm text-muted-foreground mb-3">
         Uncheck accounts that are not applicable to this project. Excluded accounts won't appear on the Balance Sheet or Income Statement.
+        Star a bank account to override the company-wide default for this project; transactions on this project will use it for Write Checks, Make Deposits, Pay Bill, and Reconcile.
       </p>
       {TYPE_ORDER.map((type) => {
         const typeAccounts = grouped[type] || [];
@@ -173,8 +241,8 @@ export function ProjectAccountsTab({ projectId }: ProjectAccountsTabProps) {
               <div className="space-y-1">
                 {roots.map((account) => (
                   <div key={account.id}>
-                    {renderAccountRow(account, 0)}
-                    {childrenMap[account.id]?.map((child) => renderAccountRow(child, 1))}
+                    {renderAccountRow(account as Account, 0)}
+                    {childrenMap[account.id]?.map((child) => renderAccountRow(child as Account, 1))}
                   </div>
                 ))}
               </div>
