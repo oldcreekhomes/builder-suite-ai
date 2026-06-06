@@ -20,6 +20,7 @@ import { Badge } from "@/components/ui/badge";
 import { DeleteButton } from "@/components/ui/delete-button";
 import { useProject } from "@/hooks/useProject";
 import { useAccounts } from "@/hooks/useAccounts";
+import { useDefaultBankAccountId } from "@/hooks/useDefaultBankAccountId";
 import { useChecks, CheckData, CheckLineData } from "@/hooks/useChecks";
 import { useProjectCheckSettings } from "@/hooks/useProjectCheckSettings";
 import { toast } from "@/hooks/use-toast";

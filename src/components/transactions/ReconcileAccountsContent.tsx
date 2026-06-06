@@ -8,6 +8,7 @@ import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
 import { useAuth } from "@/hooks/useAuth";
 import { useAccounts } from "@/hooks/useAccounts";
+import { useDefaultBankAccountId } from "@/hooks/useDefaultBankAccountId";
 import { useProject } from "@/hooks/useProject";
 import { useBankReconciliation, AllocationBreakdown } from "@/hooks/useBankReconciliation";
 import { useUndoReconciliationPermissions } from "@/hooks/useUndoReconciliationPermissions";

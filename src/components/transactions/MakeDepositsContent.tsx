@@ -19,6 +19,7 @@ import { useClosedPeriodCheck } from "@/hooks/useClosedPeriodCheck";
 import { cn } from "@/lib/utils";
 import { useProject } from "@/hooks/useProject";
 import { useAccounts } from "@/hooks/useAccounts";
+import { useDefaultBankAccountId } from "@/hooks/useDefaultBankAccountId";
 import { useDeposits, DepositData, DepositLineData } from "@/hooks/useDeposits";
 import { useProjectCheckSettings } from "@/hooks/useProjectCheckSettings";
 import { toast } from "@/hooks/use-toast";
