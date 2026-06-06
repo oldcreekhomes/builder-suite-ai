@@ -177,7 +177,7 @@ export function ProjectAccountsTab({ projectId }: ProjectAccountsTabProps) {
     const isExcluded = exclusions?.has(account.id) ?? false;
     const isBank = account.subtype === 'bank';
     const isDefaultBank = isBank && projectDefaultBankId === account.id;
-    const isDepositsAccount = account.type === 'asset' && account.name.toLowerCase() === 'deposits';
+    const isDepositControlRow = account.type === 'asset' && account.code === '1020' && account.name.toLowerCase() === 'deposits';
     return (
       <div
         key={account.id}
@@ -219,7 +219,7 @@ export function ProjectAccountsTab({ projectId }: ProjectAccountsTabProps) {
             />
           </button>
         )}
-        {isDepositsAccount && !isExcluded && (
+        {isDepositControlRow && !isExcluded && (
           <Select
             value={projectDefaultBankId ?? ''}
             onValueChange={(val) =>
