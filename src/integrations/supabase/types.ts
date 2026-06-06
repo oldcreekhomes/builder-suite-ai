@@ -4427,6 +4427,42 @@ export type Database = {
           },
         ]
       }
+      project_default_deposit_accounts: {
+        Row: {
+          account_id: string
+          created_at: string
+          project_id: string
+          updated_at: string
+        }
+        Insert: {
+          account_id: string
+          created_at?: string
+          project_id: string
+          updated_at?: string
+        }
+        Update: {
+          account_id?: string
+          created_at?: string
+          project_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "project_default_deposit_accounts_account_id_fkey"
+            columns: ["account_id"]
+            isOneToOne: false
+            referencedRelation: "accounts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "project_default_deposit_accounts_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: true
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       project_files: {
         Row: {
           created_by: string | null
