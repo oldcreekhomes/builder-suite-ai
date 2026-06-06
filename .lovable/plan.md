@@ -1,41 +1,20 @@
 
-## Goal
+## Problem
 
-Give the Transaction Details "Edit Description" dialog a history log (like Bill Notes), so each edit is attributed (user + date) and prior values remain visible below Cancel / Save.
+For a Bill Payment transaction, the Description currently reads "Paid" instead of the bill's actual line description ("Ceramic tile installation"). Root cause: `TransactionDetailDialog`'s `originalBillDescription` is sourced from `bills.notes` first (which is the audit/notes log — payment-recording code auto-appends entries like "User | date: Paid") and only falls back to `bill_lines.memo`.
 
-## Behavior
+## Fix
 
-1. **Storage format** — keep using the same memo field already used today (`bill_payments.memo`, `bill_lines[0].memo`, `check_lines[0].memo`, etc.). Store entries in the existing Bill Notes format:
-   ```
-   UserName | MM/DD/YYYY: latest description
+In `src/components/accounting/TransactionDetailDialog.tsx`, change the source of `originalBillDescription` for `bill_payment` / `consolidated_bill_payment` rows to come **only** from `bill_lines.memo` (the same field Edit Bill exposes as Description and the same field Edit Description already writes to). Stop reading from `bills.notes` entirely for this purpose.
 
-   UserName | MM/DD/YYYY: previous description
+Specifics:
+- Remove the `bills.notes` lookup and its fallback branch.
+- Query `bill_lines` (`select memo, line_number`) for the resolved `billIds`, ordered by `line_number ascending`. Use the first non-empty memo per bill; if multiple bills (consolidated), join unique non-empty memos with `; `.
+- Keep the existing `bills` select for `reference_number`, `total_amount`, and `amount_paid` (still needed for Invoice / Original Bill / Balance rows) — just drop `notes` from the select.
+- Run the parsed-history conversion (`getLatestDescription`) as today so if a memo happens to contain structured edit history, the latest entry's content is shown.
 
-   …legacy text…
-   ```
-   New entries are **prepended** (newest first) using the existing `appendBillNote` helper.
+This makes the Transaction Details Description a live mirror of the bill's line description: when the bill's Description is edited, the payment's Description updates automatically (same row, same field).
 
-2. **Current description display** — In `TransactionDetailDialog`, parse the memo via `parseBillNotes`. If entries exist, show the first entry's `content` as the Description value. Otherwise show the raw text (handles fully-legacy descriptions transparently).
+## Files
 
-3. **Edit Description dialog (`EditDescriptionDialog.tsx`)** — Restructure to mirror `BillNotesDialog`:
-   - Top: textarea labeled "New description" (empty on open; placeholder "Enter description…").
-   - Footer: Cancel / Save (Save disabled when textarea is empty/whitespace, matching Bill Notes).
-   - Below footer: "Previous descriptions" section — a `ScrollArea` listing parsed entries from the current memo (same card style as Bill Notes: user icon + name, calendar icon + date, content). Legacy entries (no date) show "(no date)" italic.
-   - On Save: fetch the current user's display name (same source as Bill Notes — `profiles.full_name` for `auth.uid()`, fallback to email/local-part), call `formatBillNote(userName, newText)`, prepend onto the existing memo with `appendBillNote`, and write the combined string to the same target field already handled in `handleSave` (consolidated → `bill_payments.memo`; bill_payment → first `bill_lines.memo`; default → first lines table memo). Keep `journal_entry_lines.memo` sync, but write only the **latest entry's content** there (not the full history) so the GL register stays clean. Same invalidations as today.
-
-4. **Seeding "original bill" entry** — no migration. The existing memo text is preserved and rendered as a legacy entry. For Bill Payment rows where no entries exist yet, the underlying bill description (`bill_lines.memo` from the original bill, already fetched by the dialog) is shown as a one-off legacy "Original" entry in the history list (read-only, sourced from the bill, not from this memo). It is not written into the payment's memo on save — only new user entries are.
-
-## Technical details
-
-Files:
-- `src/components/accounting/EditDescriptionDialog.tsx` — add history UI, fetch existing memo + user name, prepend new entry via `appendBillNote`/`formatBillNote`. Accept new optional prop `originalBillDescription?: string | null` rendered as a seeded legacy entry at the bottom of the history list when provided.
-- `src/components/accounting/TransactionDetailDialog.tsx` — when rendering the Description row, run `parseBillNotes(value)` and show the first parsed entry's content (fallback to raw). Pass `originalBillDescription` through to `EditDescriptionDialog` for bill payments.
-- `src/components/accounting/AccountDetailDialog.tsx` (only the prop wiring if it constructs `EditDescriptionDialog`) — pass through `originalBillDescription` when available.
-
-No DB schema changes. No new tables. Backward-compatible with all existing memos.
-
-## Out of scope
-
-- Editing or deleting individual history entries.
-- Backfilling existing memos into structured entries.
-- Changes to Bill Notes dialog itself.
+- `src/components/accounting/TransactionDetailDialog.tsx` — adjust the bill lookup effect only. No DB changes, no other dialogs touched.
