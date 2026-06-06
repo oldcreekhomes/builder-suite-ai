@@ -4,6 +4,8 @@ import { supabase } from "@/integrations/supabase/client";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Label } from "@/components/ui/label";
 import { ChevronDown, ChevronRight, Star } from "lucide-react";
 import { useState, useMemo } from "react";
 import { useToast } from "@/hooks/use-toast";
@@ -219,8 +221,46 @@ export function ProjectAccountsTab({ projectId }: ProjectAccountsTabProps) {
     <div className="space-y-2 py-2 max-h-[60vh] overflow-y-auto">
       <p className="text-sm text-muted-foreground mb-3">
         Uncheck accounts that are not applicable to this project. Excluded accounts won't appear on the Balance Sheet or Income Statement.
-        Star a bank account to set this project's default bank for Write Checks, Make Deposits, Pay Bill, and Reconcile. You can still pick a different bank account on any individual transaction.
       </p>
+
+      {(() => {
+        const bankAccounts = (accounts ?? []).filter(
+          (a) => a.type === 'asset' && a.subtype === 'bank' && !exclusions?.has(a.id)
+        );
+        return (
+          <div className="mb-4 p-3 border rounded-md bg-muted/30 space-y-2">
+            <Label htmlFor="project-default-bank" className="text-sm font-semibold">
+              Default Bank Account for Deposits, Checks, Pay Bill & Reconcile
+            </Label>
+            <Select
+              value={projectDefaultBankId ?? ''}
+              onValueChange={(val) =>
+                setDefaultBankMutation.mutate({ accountId: val, clear: false })
+              }
+              disabled={setDefaultBankMutation.isPending || bankAccounts.length === 0}
+            >
+              <SelectTrigger id="project-default-bank" className="bg-background">
+                <SelectValue placeholder={
+                  bankAccounts.length === 0
+                    ? 'No bank accounts available — check at least one bank account below'
+                    : 'Select a bank account...'
+                } />
+              </SelectTrigger>
+              <SelectContent>
+                {bankAccounts.map((a) => (
+                  <SelectItem key={a.id} value={a.id}>
+                    {a.code} - {a.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            <p className="text-xs text-muted-foreground">
+              This is the default bank for this project. Each individual deposit, check, payment, or reconciliation can still pick a different bank.
+            </p>
+          </div>
+        );
+      })()}
+
       {TYPE_ORDER.map((type) => {
         const typeAccounts = grouped[type] || [];
         if (typeAccounts.length === 0) return null;
