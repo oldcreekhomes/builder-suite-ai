@@ -149,11 +149,38 @@ export function TransactionDetailDialog({
           }
 
           if (billIds.size > 0) {
+            const billIdArr = Array.from(billIds);
             const { data: rows } = await supabase
               .from('bill_attachments')
               .select('id, file_name, file_path, content_type, file_size')
-              .in('bill_id', Array.from(billIds));
+              .in('bill_id', billIdArr);
             data = rows || [];
+
+            const { data: billRows } = await supabase
+              .from('bills')
+              .select('id, reference_number, notes')
+              .in('id', billIdArr);
+            const invoices = (billRows || [])
+              .map((b: { reference_number: string | null }) => b.reference_number)
+              .filter((v): v is string => !!v && v.trim().length > 0);
+            setOriginalInvoiceNumbers(Array.from(new Set(invoices)));
+
+            const notes = (billRows || [])
+              .map((b: { notes: string | null }) => b.notes)
+              .filter((v): v is string => !!v && v.trim().length > 0);
+            if (notes.length > 0) {
+              setOriginalBillDescription(Array.from(new Set(notes)).join('; '));
+            } else {
+              // Fall back to bill line memos for these bills
+              const { data: lineRows } = await supabase
+                .from('bill_lines')
+                .select('memo')
+                .in('bill_id', billIdArr);
+              const memos = (lineRows || [])
+                .map((l: { memo: string | null }) => l.memo)
+                .filter((v): v is string => !!v && v.trim().length > 0);
+              setOriginalBillDescription(memos.length > 0 ? Array.from(new Set(memos)).join('; ') : null);
+            }
           }
         } else if (sourceType === 'check') {
           const { data: rows } = await supabase
