@@ -170,7 +170,7 @@ export function TransactionDetailDialog({
 
             const { data: billRows } = await supabase
               .from('bills')
-              .select('id, reference_number, notes, total_amount, amount_paid')
+              .select('id, reference_number, total_amount, amount_paid')
               .in('id', billIdArr);
             const invoices = (billRows || [])
               .map((b: { reference_number: string | null }) => b.reference_number)
@@ -188,22 +188,21 @@ export function TransactionDetailDialog({
             setOriginalBillTotal(Math.round(totalSum * 100) / 100);
             setRemainingBillBalance(Math.round((totalSum - paidSum) * 100) / 100);
 
-            const notes = (billRows || [])
-              .map((b: { notes: string | null }) => b.notes)
-              .filter((v): v is string => !!v && v.trim().length > 0);
-            if (notes.length > 0) {
-              setOriginalBillDescription(Array.from(new Set(notes)).join('; '));
-            } else {
-              // Fall back to bill line memos for these bills
-              const { data: lineRows } = await supabase
-                .from('bill_lines')
-                .select('memo')
-                .in('bill_id', billIdArr);
-              const memos = (lineRows || [])
-                .map((l: { memo: string | null }) => l.memo)
-                .filter((v): v is string => !!v && v.trim().length > 0);
-              setOriginalBillDescription(memos.length > 0 ? Array.from(new Set(memos)).join('; ') : null);
-            }
+            // Description is sourced from bill_lines.memo (the bill's line Description),
+            // NOT bills.notes (which is the audit/notes log).
+            const { data: lineRows } = await supabase
+              .from('bill_lines')
+              .select('bill_id, memo, line_number')
+              .in('bill_id', billIdArr)
+              .order('line_number', { ascending: true });
+            const firstMemoByBill = new Map<string, string>();
+            (lineRows || []).forEach((l: { bill_id: string; memo: string | null }) => {
+              if (!firstMemoByBill.has(l.bill_id) && l.memo && l.memo.trim().length > 0) {
+                firstMemoByBill.set(l.bill_id, l.memo);
+              }
+            });
+            const memos = Array.from(firstMemoByBill.values());
+            setOriginalBillDescription(memos.length > 0 ? Array.from(new Set(memos)).join('; ') : null);
           }
         } else if (sourceType === 'check') {
           const { data: rows } = await supabase
