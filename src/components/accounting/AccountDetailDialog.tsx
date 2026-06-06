@@ -1005,6 +1005,26 @@ export function AccountDetailDialog({
           const isReconciled = cpFlagRecon || bankAnyRecon;
           const reconciliationDateForRow = cp.reconciliation_date || bankReconDate || null;
 
+          // Build cost-code breakdown across every line of every bill in this payment
+          const cpLabels: string[] = [];
+          const cpSums = new Map<string, number>();
+          allocations.forEach(a => {
+            const lines = allLinesByBillForConsolidated.get(a.bill_id) || [];
+            lines.forEach(l => {
+              let label: string | null = null;
+              if (l.cost_code_id && costCodesMap.has(l.cost_code_id)) {
+                label = costCodesMap.get(l.cost_code_id) || null;
+              } else if (l.account_id && accountsDisplayMap.has(l.account_id)) {
+                label = accountsDisplayMap.get(l.account_id) || null;
+              }
+              if (!label) label = 'Unassigned';
+              if (!cpSums.has(label)) cpLabels.push(label);
+              cpSums.set(label, (cpSums.get(label) || 0) + l.amount);
+            });
+          });
+          const cpBreakdown = cpLabels.map(l => ({ label: l, amount: cpSums.get(l) || 0 }));
+          const cpBreakdownTotal = cpBreakdown.reduce((s, b) => s + b.amount, 0);
+
           const syntheticRow: Transaction = {
             source_id: cp.id,
             line_id: `consolidated:${cp.id}`,
@@ -1024,6 +1044,8 @@ export function AccountDetailDialog({
             status: isReconciled ? 'cleared' : 'approved',
             includedBillPayments: allocations,
             consolidatedTotalAmount: Number(cp.total_amount),
+            accountBreakdown: cpBreakdown.length > 1 ? cpBreakdown : undefined,
+            accountBreakdownTotal: cpBreakdown.length > 1 ? cpBreakdownTotal : undefined,
           };
           
           transactions.push(syntheticRow);
