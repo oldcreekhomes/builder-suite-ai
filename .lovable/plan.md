@@ -1,57 +1,25 @@
-# Per-Project Default Bank Account
+# Fix "1020 - Deposits" Showing a Star
 
-## Goal
-Let each project override the tenant-wide default bank account. New projects inherit the current global default automatically; users can change it freely afterward from Edit Project → Chart of Accounts.
+## Root cause
+The original backfill that set `accounts.subtype` tagged every asset account with code 1000-1039 as `subtype = 'bank'`. That caught `1020 - Deposits`, which is a holding/clearing account, not a real bank account. The star UI is working correctly — it shows for every account whose subtype is `'bank'`. Same logic powers the bank dropdowns in Write Checks, Make Deposits, Pay Bill, and Reconcile, so right now "Deposits" would also appear as a selectable bank in those dropdowns. Both problems disappear once 1020's subtype is corrected.
 
-## Resolution order (used by Write Checks, Make Deposits, Pay Bill, Reconcile)
-1. **Project default** — if the transaction has a `projectId` and that project has a default bank set
-2. **Global default** — tenant-wide default (`accounts.is_default_bank = true`)
-3. **None** — user picks manually
+## Fix
 
-Company-overhead transactions (no `projectId`) always use the global default.
+**Data correction (one row):** set `accounts.subtype = 'other'` (or `NULL`) for the row `code = '1020', name = 'Deposits'` belonging to this tenant.
 
-## Database
+After that:
+- The star next to 1020 disappears in Edit Project → Chart of Accounts.
+- 1020 stops appearing in the bank-account dropdown in Make Deposits, Write Checks, Pay Bill, and Reconcile.
+- `1010 - Atlantic Union Bank` and `1015 - Capital One` remain the only banks, exactly as you want. Capital One stays the company-wide default (star) until you change it.
 
-New table `public.project_default_bank_accounts`:
-- `project_id` (PK, FK → projects, cascade delete)
-- `account_id` (FK → accounts, cascade delete)
-- `home_builder_id` (for RLS / tenant isolation)
-- standard audit columns
+## How you want me to apply it
 
-One row per project = enforced single default. RLS scoped to `home_builder_id`. Standard GRANTs for `authenticated` + `service_role`.
+Pick one — I'll wait for your call before touching anything:
 
-**Backfill / new-project seeding:** when a project is created, if a global default bank exists, insert a matching row. Implemented via a Postgres trigger on `projects` INSERT so it works regardless of which client creates the project.
+1. **Quick data update (recommended).** I run a one-line update on just `1020 - Deposits` for your tenant, flipping its subtype to `other`. Done in seconds. You can change other misclassified accounts later via the Edit Account dialog (the subtype field already exists there).
 
-## UI changes
+2. **You do it manually.** Go to Settings → Chart of Accounts, click Edit on `1020 - Deposits`, change Subtype from "Bank" to "Other", save. Same end result, no migration needed.
 
-**Edit Project → Chart of Accounts dialog**
-- Next to each enabled bank account (subtype = 'bank'), add the same `Star` toggle used in the global Chart of Accounts.
-- Filled star = current project default; click another to switch; click the active one to clear (falls back to global).
-- Only bank accounts the project has enabled can be starred.
-- Small helper text under the section: "Defaults to the company-wide bank account unless overridden here."
+3. **Broader sweep.** I scan all asset accounts in your tenant currently marked `subtype = 'bank'`, list them for you, and you tell me which should be reclassified. Useful if other 10xx codes are also miscategorized (e.g. `1670 - Deposits` may have the same issue if it's tagged bank — it's outside the 1000-1039 range but worth checking).
 
-No other dialogs change.
-
-## Code changes
-
-**New hook** `src/hooks/useProjectDefaultBankAccountId.ts`
-- Args: `projectId?: string`
-- Returns: project override → global default → `null`
-- Reuses existing `useDefaultBankAccountId` as the global fallback.
-
-**Updated callers** (swap `useDefaultBankAccountId` for the new project-aware hook, passing the current `projectId` when available):
-- `src/components/transactions/WriteChecksContent.tsx`
-- `src/components/transactions/MakeDepositsContent.tsx`
-- `src/components/transactions/ReconcileAccountsContent.tsx`
-- `src/components/PayBillDialog.tsx`
-
-When `projectId` is undefined (overhead), the hook naturally falls through to the global default — no special-casing needed.
-
-**Edit Project dialog** (the Chart of Accounts tab component) — add the star column + mutation to upsert/delete the `project_default_bank_accounts` row.
-
-## Technical notes
-
-- Unique constraint on `project_id` guarantees one default per project.
-- Cascade deletes keep the table clean when a project or account is removed.
-- The global default starring UI in `ChartOfAccountsTab.tsx` is unchanged.
-- Existing projects get no automatic backfill row — they'll naturally fall through to the global default until a user stars something at the project level. (Confirm if you'd prefer a one-time backfill for all existing projects instead.)
+No code changes are needed — only data. The star UI and the dropdown filters are behaving correctly given the underlying classification.
