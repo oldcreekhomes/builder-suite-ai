@@ -274,8 +274,10 @@ export const ChartOfAccountsTab = () => {
                 </TableHead>
                 <TableHead>Code</TableHead>
                 <TableHead>Account Name</TableHead>
-                
+
                 <TableHead>Type</TableHead>
+                <TableHead>Subtype</TableHead>
+                <TableHead className="text-center">Default</TableHead>
                 <TableHead>Description</TableHead>
                 <TableHead className="text-center">Actions</TableHead>
 
@@ -284,12 +286,14 @@ export const ChartOfAccountsTab = () => {
             <TableBody>
               {hierarchicalAccounts.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={6} className="text-center text-muted-foreground">
+                  <TableCell colSpan={8} className="text-center text-muted-foreground">
                     {searchQuery ? 'No accounts match your search.' : 'No accounts found. Import from QuickBooks or add accounts manually.'}
                   </TableCell>
                 </TableRow>
               ) : (
-                hierarchicalAccounts.map((account) => {
+                hierarchicalAccounts.map((account: any) => {
+                  const isBank = account.subtype === 'bank';
+                  const isDefault = !!account.is_default_bank;
                   return (
                     <TableRow key={account.id}>
                       <TableCell>
@@ -311,6 +315,26 @@ export const ChartOfAccountsTab = () => {
                         {account.name}
                       </TableCell>
                       <TableCell>{account.type.charAt(0).toUpperCase() + account.type.slice(1)}</TableCell>
+                      <TableCell className="text-muted-foreground">
+                        {account.subtype ? (SUBTYPE_LABEL[account.subtype] || account.subtype) : '—'}
+                      </TableCell>
+                      <TableCell className="text-center">
+                        {isBank ? (
+                          <button
+                            type="button"
+                            onClick={() => !isDefault && handleSetDefaultBank(account.id)}
+                            className="inline-flex items-center justify-center"
+                            aria-label={isDefault ? 'Default bank account' : 'Set as default bank'}
+                            title={isDefault ? 'Default bank account' : 'Set as default bank'}
+                          >
+                            <Star
+                              className={`h-4 w-4 ${isDefault ? 'fill-yellow-400 text-yellow-500' : 'text-muted-foreground hover:text-yellow-500'}`}
+                            />
+                          </button>
+                        ) : (
+                          <span className="text-muted-foreground">—</span>
+                        )}
+                      </TableCell>
                       <TableCell className="text-muted-foreground">{account.description || '—'}</TableCell>
                       <TableCell className="text-right">
                         <div className="flex justify-end">
