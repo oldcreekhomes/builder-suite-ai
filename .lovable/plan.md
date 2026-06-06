@@ -1,48 +1,57 @@
-# Bank Account Subtype + Default Selection
+# Per-Project Default Bank Account
 
-## Problem
-Bank accounts are currently identified by heuristics (account code in 1000-1039 range or names containing "bank/cash/checking"). With multiple real bank accounts plus loan accounts (1040, 1050, 1060) and equity accounts all sharing the "asset/liability/equity" type, the app can't reliably distinguish them, and there's no way to pick a default bank account for new transactions.
+## Goal
+Let each project override the tenant-wide default bank account. New projects inherit the current global default automatically; users can change it freely afterward from Edit Project → Chart of Accounts.
 
-## Solution
+## Resolution order (used by Write Checks, Make Deposits, Pay Bill, Reconcile)
+1. **Project default** — if the transaction has a `projectId` and that project has a default bank set
+2. **Global default** — tenant-wide default (`accounts.is_default_bank = true`)
+3. **None** — user picks manually
 
-### 1. Chart of Accounts schema
-Add two columns to `public.accounts`:
-- `subtype text` — values: `bank`, `loan`, `credit_card`, `equity`, `other` (nullable; only meaningful for asset/liability/equity rows)
-- `is_default_bank boolean default false` — only one row per tenant (`owner_id`) may have this true
+Company-overhead transactions (no `projectId`) always use the global default.
 
-Enforce single default via a partial unique index:
-`create unique index accounts_one_default_bank_per_owner on public.accounts(owner_id) where is_default_bank;`
+## Database
 
-Backfill: mark existing rows with code 1000-1039 OR keyword match as `subtype='bank'`; mark 1040-1069 as `subtype='loan'`; credit card type rows as `subtype='credit_card'`; equity-type rows as `subtype='equity'`.
+New table `public.project_default_bank_accounts`:
+- `project_id` (PK, FK → projects, cascade delete)
+- `account_id` (FK → accounts, cascade delete)
+- `home_builder_id` (for RLS / tenant isolation)
+- standard audit columns
 
-### 2. Chart of Accounts UI (`ChartOfAccountsTab.tsx` + Add/Edit Account dialogs)
-- Add a new **Subtype** column (visible when account type is asset/liability/equity). Editable via dropdown in Add/Edit dialogs.
-- Add a new **Default** column. For rows where `subtype = 'bank'`, render a radio/star toggle. Selecting one clears the flag on any other bank row for the same owner.
+One row per project = enforced single default. RLS scoped to `home_builder_id`. Standard GRANTs for `authenticated` + `service_role`.
 
-### 3. Bank account picker — replace heuristic
-In `src/components/AccountSearchInput.tsx`, change `bankAccountsOnly` logic to filter on `account.subtype === 'bank'` (fallback to current heuristic only if no row has subtype set, for graceful migration).
+**Backfill / new-project seeding:** when a project is created, if a global default bank exists, insert a matching row. Implemented via a Postgres trigger on `projects` INSERT so it works regardless of which client creates the project.
 
-In `src/components/PayBillDialog.tsx`, replace the `name.includes('bank')` filter with the same subtype check (keep credit card branch for credit_card subtype).
+## UI changes
 
-### 4. Default-bank auto-fill
-On mount, when no `bankAccountId` is set yet, look up the `is_default_bank` account for the current tenant and preselect it. Apply to:
-- `src/components/transactions/WriteChecksContent.tsx` (Write Checks)
-- `src/components/transactions/MakeDepositsContent.tsx` (Make Deposits)
-- `src/components/PayBillDialog.tsx` (Pay Bill modal — currently a dropdown with no default)
-- `src/components/transactions/ReconcileAccountsContent.tsx` (Reconcile Accounts)
-- `src/components/checks/EditCheckDialog.tsx` and `src/components/deposits/EditDepositDialog.tsx` only when creating new, not when editing existing records (those keep their stored `bank_account_id`)
+**Edit Project → Chart of Accounts dialog**
+- Next to each enabled bank account (subtype = 'bank'), add the same `Star` toggle used in the global Chart of Accounts.
+- Filled star = current project default; click another to switch; click the active one to clear (falls back to global).
+- Only bank accounts the project has enabled can be starred.
+- Small helper text under the section: "Defaults to the company-wide bank account unless overridden here."
 
-Only preselect when the form is in "new" mode and the field is empty — never override a user's manual choice or an existing transaction's saved account.
+No other dialogs change.
 
-### 5. Other surfaces audited
-Searched the codebase for any other bank account selection point. Found these and they will all use the same default logic:
-- Write Checks, Make Deposits, Pay Bill, Reconcile Accounts (above)
-- Recurring Transactions (if it has a bank picker — verify during implementation in `useRecurringTransactions.ts` / related UI)
+## Code changes
 
-No default needed on `AccountDetailDialog` (read-only view) or `BankReconciliation` history page (always tied to a specific reconciliation).
+**New hook** `src/hooks/useProjectDefaultBankAccountId.ts`
+- Args: `projectId?: string`
+- Returns: project override → global default → `null`
+- Reuses existing `useDefaultBankAccountId` as the global fallback.
+
+**Updated callers** (swap `useDefaultBankAccountId` for the new project-aware hook, passing the current `projectId` when available):
+- `src/components/transactions/WriteChecksContent.tsx`
+- `src/components/transactions/MakeDepositsContent.tsx`
+- `src/components/transactions/ReconcileAccountsContent.tsx`
+- `src/components/PayBillDialog.tsx`
+
+When `projectId` is undefined (overhead), the hook naturally falls through to the global default — no special-casing needed.
+
+**Edit Project dialog** (the Chart of Accounts tab component) — add the star column + mutation to upsert/delete the `project_default_bank_accounts` row.
 
 ## Technical notes
-- Migration adds columns, partial unique index, GRANTs already exist on `accounts`.
-- `useAccounts` hook returns the new fields automatically via `select('*')`.
-- Add a small helper `useDefaultBankAccountId()` that reads from cached accounts and returns the single `is_default_bank` row's id.
-- No change to journal entry math or any posting logic — this is purely classification + UX.
+
+- Unique constraint on `project_id` guarantees one default per project.
+- Cascade deletes keep the table clean when a project or account is removed.
+- The global default starring UI in `ChartOfAccountsTab.tsx` is unchanged.
+- Existing projects get no automatic backfill row — they'll naturally fall through to the global default until a user stars something at the project level. (Confirm if you'd prefer a one-time backfill for all existing projects instead.)
