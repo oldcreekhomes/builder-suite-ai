@@ -451,6 +451,22 @@ export function TransactionDetailDialog({
                 )}
               </div>
             ))}
+            {isBillLike && (
+              <>
+                <span className="text-muted-foreground font-medium">PO Number</span>
+                <span className="break-words">
+                  {poAggregate.poNumbers.length > 0 ? poAggregate.poNumbers.join(', ') : '-'}
+                </span>
+                <span className="text-muted-foreground font-medium">PO Amount</span>
+                <span className="break-words">
+                  {poAggregate.hasAny ? formatCurrency(poAggregate.poAmount) : '-'}
+                </span>
+                <span className="text-muted-foreground font-medium">PO Status</span>
+                <span className="flex items-center">
+                  <POStatusBadge status={poAggregate.status} />
+                </span>
+              </>
+            )}
             <span className="text-muted-foreground font-medium">Cleared</span>
             <span className="flex items-center gap-1">
               {transaction.reconciled ? (
