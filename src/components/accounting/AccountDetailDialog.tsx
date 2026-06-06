@@ -642,7 +642,7 @@ export function AccountDetailDialog({
             (chunk) =>
               supabase
                 .from('bill_lines')
-                .select('bill_id, line_number, cost_code_id, account_id, memo')
+                .select('bill_id, line_number, cost_code_id, account_id, memo, amount')
                 .in('bill_id', chunk)
                 .order('line_number', { ascending: true }),
             allBillIdsInPayments
@@ -650,7 +650,8 @@ export function AccountDetailDialog({
 
 
           // Group by bill_id: take first line for cost code/account, and the
-          // first non-empty memo (bill's user-facing Description).
+          // first non-empty memo (bill's user-facing Description). Also collect
+          // every line into allLinesByBillForConsolidated for cost-code breakdown.
           (billLinesData || []).forEach(bl => {
             const existing = firstLineByBillForConsolidated.get(bl.bill_id);
             if (!existing) {
@@ -662,12 +663,17 @@ export function AccountDetailDialog({
             } else if (!existing.memo && bl.memo && String(bl.memo).trim().length > 0) {
               existing.memo = bl.memo;
             }
+            const arr = allLinesByBillForConsolidated.get(bl.bill_id) || [];
+            arr.push({ cost_code_id: bl.cost_code_id, account_id: bl.account_id, amount: Number(bl.amount || 0) });
+            allLinesByBillForConsolidated.set(bl.bill_id, arr);
           });
 
-          // Collect cost code/account IDs for lookup
-          firstLineByBillForConsolidated.forEach(fl => {
-            if (fl.cost_code_id) allCostCodeIds.add(fl.cost_code_id);
-            if (fl.account_id) allAccountIds.add(fl.account_id);
+          // Collect cost code/account IDs for lookup (across ALL lines)
+          allLinesByBillForConsolidated.forEach(lines => {
+            lines.forEach(l => {
+              if (l.cost_code_id) allCostCodeIds.add(l.cost_code_id);
+              if (l.account_id) allAccountIds.add(l.account_id);
+            });
           });
 
           // Fetch reconciliation status from this bank account's journal_entry_lines
