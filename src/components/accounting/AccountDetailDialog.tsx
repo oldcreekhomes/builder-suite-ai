@@ -577,6 +577,10 @@ export function AccountDetailDialog({
       const billIdsInConsolidatedPayments = new Set<string>();
       let vendorNamesForConsolidated = new Map<string, string>();
       const firstLineByBillForConsolidated = new Map<string, { cost_code_id: string | null; account_id: string | null; memo: string | null }>();
+      // Per-bill bank-line reconciliation status (source of truth: journal_entry_lines on this bank account
+      // for journal entries of source_type='bill_payment' and source_id=<bill_id>). The bill_payments.reconciled
+      // flag is unreliable in legacy data, so we trust the bank-side JE line instead.
+      const bankReconByBillId = new Map<string, { reconciled: boolean; reconciliation_date: string | null }>();
 
       if (consolidatedPayments && consolidatedPayments.length > 0) {
         const consolidatedPaymentIds = consolidatedPayments.map(cp => cp.id);
@@ -660,6 +664,32 @@ export function AccountDetailDialog({
           firstLineByBillForConsolidated.forEach(fl => {
             if (fl.cost_code_id) allCostCodeIds.add(fl.cost_code_id);
             if (fl.account_id) allAccountIds.add(fl.account_id);
+          });
+
+          // Fetch reconciliation status from this bank account's journal_entry_lines
+          // for each bill in the consolidated payments. This is the true cleared-state.
+          const bankJeLines = await batchedIn<any>(
+            (chunk) =>
+              supabase
+                .from('journal_entry_lines')
+                .select('reconciled, reconciliation_id, reconciliation_date, journal_entries!inner(source_id, source_type)')
+                .eq('account_id', accountId)
+                .eq('journal_entries.source_type', 'bill_payment')
+                .in('journal_entries.source_id', chunk),
+            allBillIdsInPayments
+          );
+          (bankJeLines || []).forEach((jel: any) => {
+            const billId = jel.journal_entries?.source_id;
+            if (!billId) return;
+            const isRecon = !!(jel.reconciled || jel.reconciliation_id || jel.reconciliation_date);
+            const existing = bankReconByBillId.get(billId);
+            if (!existing) {
+              bankReconByBillId.set(billId, { reconciled: isRecon, reconciliation_date: jel.reconciliation_date || null });
+            } else {
+              // If multiple lines exist for the same bill on this account, treat as reconciled only if all are.
+              existing.reconciled = existing.reconciled && isRecon;
+              existing.reconciliation_date = existing.reconciliation_date || jel.reconciliation_date || null;
+            }
           });
         }
       }
@@ -929,6 +959,25 @@ export function AccountDetailDialog({
           });
           const consolidatedDescription = billMemos.length > 0 ? billMemos.join('; ') : null;
 
+          // Derive reconciliation from this bank account's JE lines for the payment's bills.
+          // This is the true cleared-state. Fall back to bill_payments flags only when no JE line was found.
+          let bankAllRecon = allocations.length > 0;
+          let bankAnyKnown = false;
+          let bankReconDate: string | null = null;
+          allocations.forEach((a) => {
+            const br = bankReconByBillId.get(a.bill_id);
+            if (br) {
+              bankAnyKnown = true;
+              if (!br.reconciled) bankAllRecon = false;
+              if (br.reconciliation_date && !bankReconDate) bankReconDate = br.reconciliation_date;
+            } else {
+              bankAllRecon = false;
+            }
+          });
+          const cpFlagRecon = !!(cp.reconciled || cp.reconciliation_id || cp.reconciliation_date);
+          const isReconciled = bankAnyKnown ? bankAllRecon : cpFlagRecon;
+          const reconciliationDateForRow = bankReconDate || cp.reconciliation_date || null;
+
           const syntheticRow: Transaction = {
             source_id: cp.id,
             line_id: `consolidated:${cp.id}`,
@@ -942,10 +991,10 @@ export function AccountDetailDialog({
             debit: 0,
             credit: Number(cp.total_amount),
             created_at: cp.created_at || new Date().toISOString(),
-            reconciled: cp.reconciled || !!cp.reconciliation_id || !!cp.reconciliation_date,
-            reconciliation_date: cp.reconciliation_date,
+            reconciled: isReconciled,
+            reconciliation_date: reconciliationDateForRow,
             isPaid: true,
-            status: (cp.reconciled || !!cp.reconciliation_id || !!cp.reconciliation_date) ? 'cleared' : 'approved',
+            status: isReconciled ? 'cleared' : 'approved',
             includedBillPayments: allocations,
             consolidatedTotalAmount: Number(cp.total_amount),
           };
@@ -1424,13 +1473,25 @@ export function AccountDetailDialog({
                         <div className="flex items-center justify-center">
                           {(() => {
                             const s = txn.status || (txn.reconciled ? 'cleared' : 'approved');
+                            // Bill payment rows (Bill Pmt - Check) show "Paid" instead of "Approved"
+                            // when they haven't cleared the bank yet.
+                            const isBillPayment =
+                              txn.source_type === 'consolidated_bill_payment' ||
+                              txn.source_type === 'bill_payment';
                             const cls =
                               s === 'cleared'
                                 ? 'bg-green-100 text-green-800 border-green-200'
                                 : s === 'pending'
                                 ? 'bg-amber-100 text-amber-800 border-amber-200'
                                 : 'bg-blue-100 text-blue-800 border-blue-200';
-                            const label = s === 'cleared' ? 'Cleared' : s === 'pending' ? 'Pending' : 'Approved';
+                            const label =
+                              s === 'cleared'
+                                ? 'Cleared'
+                                : s === 'pending'
+                                ? 'Pending'
+                                : isBillPayment
+                                ? 'Paid'
+                                : 'Approved';
                             return (
                               <span className={`inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-[10px] font-medium ${cls}`}>
                                 {s === 'cleared' && <Check className="h-3 w-3" />}
