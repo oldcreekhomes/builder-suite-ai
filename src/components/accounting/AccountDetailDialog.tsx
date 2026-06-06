@@ -1613,7 +1613,7 @@ export function AccountDetailDialog({
                       </TableCell>
                       <TableCell className="px-2 py-1">
                         <div className="flex items-center justify-center">
-                          {isDateLocked(txn.date) || isConsolidated || txn.reconciled ? (
+                          {isDateLocked(txn.date) || txn.reconciled ? (
                             <div className="flex items-center gap-1 justify-center">
                               <Tooltip>
                                 <TooltipTrigger asChild>
@@ -1627,15 +1627,10 @@ export function AccountDetailDialog({
                                       <p className="font-medium">Books Closed</p>
                                       <p className="text-xs text-muted-foreground">Cannot be edited or deleted</p>
                                     </>
-                                  ) : txn.reconciled ? (
+                                  ) : (
                                     <>
                                       <p className="font-medium">Transaction Reconciled</p>
                                       <p className="text-xs text-muted-foreground">Cannot be edited or deleted</p>
-                                    </>
-                                  ) : (
-                                    <>
-                                      <p className="font-medium">Consolidated Payment</p>
-                                      <p className="text-xs text-muted-foreground">Edit or delete from the bill's Payments tab</p>
                                     </>
                                   )}
                                 </TooltipContent>
@@ -1647,10 +1642,15 @@ export function AccountDetailDialog({
                                 label: txn.source_type === 'bill' ? 'Edit Bill' : txn.source_type === 'deposit' ? 'Edit Deposit' : 'Edit Check',
                                 onClick: () => handleEditTransaction(txn),
                               }] : []),
+                              ...(txn.source_type === 'consolidated_bill_payment' ? [{
+                                label: 'Edit Description',
+                                onClick: () => setEditDescriptionTxn(txn),
+                              }] : []),
                               {
                                 label: 'Delete',
                                 onClick: () => handleDelete(txn),
                                 variant: 'destructive' as const,
+                                hidden: txn.source_type === 'consolidated_bill_payment',
                                 requiresConfirmation: true,
                                 confirmTitle: 'Delete Transaction',
                                 confirmDescription: `Are you sure you want to delete this ${txn.source_type} transaction? This will remove all related journal entries and cannot be undone.`,
