@@ -1627,10 +1627,15 @@ export function AccountDetailDialog({
                                       <p className="font-medium">Books Closed</p>
                                       <p className="text-xs text-muted-foreground">Cannot be edited or deleted</p>
                                     </>
-                                  ) : (
+                                  ) : txn.reconciled ? (
                                     <>
                                       <p className="font-medium">Transaction Reconciled</p>
                                       <p className="text-xs text-muted-foreground">Cannot be edited or deleted</p>
+                                    </>
+                                  ) : (
+                                    <>
+                                      <p className="font-medium">Consolidated Payment</p>
+                                      <p className="text-xs text-muted-foreground">Edit or delete from the bill's Payments tab</p>
                                     </>
                                   )}
                                 </TooltipContent>
