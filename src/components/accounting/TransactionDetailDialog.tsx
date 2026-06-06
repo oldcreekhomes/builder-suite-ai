@@ -104,6 +104,7 @@ export function TransactionDetailDialog({
   const [originalInvoiceNumbers, setOriginalInvoiceNumbers] = useState<string[]>([]);
   const [originalBillTotal, setOriginalBillTotal] = useState<number | null>(null);
   const [remainingBillBalance, setRemainingBillBalance] = useState<number | null>(null);
+  const [previousPaymentsTotal, setPreviousPaymentsTotal] = useState<number | null>(null);
   const [billsForPO, setBillsForPO] = useState<Array<{ id: string; vendor_id: string; project_id?: string; total_amount: number; bill_lines: any[] }>>([]);
   const filePreview = useUniversalFilePreviewContext();
 
