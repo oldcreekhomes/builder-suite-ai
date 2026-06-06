@@ -333,8 +333,42 @@ export function TransactionDetailDialog({
   };
 
   const isBillPayment = transaction.source_type === 'bill_payment' || transaction.source_type === 'consolidated_bill_payment';
+  const isBillLike = isBillPayment || transaction.source_type === 'bill';
   const attachmentSectionTitle = isBillPayment ? 'Original Bill' : 'Attachments';
   const emptyAttachmentMessage = isBillPayment ? 'No original bill found' : 'No attachments found';
+
+  // Aggregate PO info across all underlying bills for this transaction
+  const poAggregate = (() => {
+    if (!isBillLike || !poMatchingData || poMatchingData.size === 0) {
+      return { poNumbers: [] as string[], poAmount: 0, status: 'no_po' as POStatus, hasAny: false };
+    }
+    const seenPoIds = new Set<string>();
+    const poNumbers: string[] = [];
+    let poAmount = 0;
+    const statuses = new Set<string>();
+    let hasAny = false;
+    poMatchingData.forEach((res) => {
+      statuses.add(res.overall_status);
+      res.matches.forEach((m) => {
+        if (m.po_id && !seenPoIds.has(m.po_id)) {
+          seenPoIds.add(m.po_id);
+          if (m.po_number) poNumbers.push(m.po_number);
+          poAmount += Number(m.po_amount) || 0;
+          hasAny = true;
+        }
+      });
+    });
+    // Reduce overall status across bills: if all share one status use it; otherwise prefer escalations
+    let status: POStatus = 'no_po';
+    if (statuses.has('over_po') && statuses.has('matched')) status = 'numerous';
+    else if (statuses.has('over_and_partial')) status = 'partial';
+    else if (statuses.has('over_po')) status = 'over_po';
+    else if (statuses.has('partial')) status = 'partial';
+    else if (statuses.has('numerous')) status = 'numerous';
+    else if (statuses.has('draw')) status = 'draw';
+    else if (statuses.has('matched')) status = 'matched';
+    return { poNumbers, poAmount: Math.round(poAmount * 100) / 100, status, hasAny };
+  })();
 
   const details: DetailItem[] = isBillPayment
     ? [
