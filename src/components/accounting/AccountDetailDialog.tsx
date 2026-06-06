@@ -1473,13 +1473,25 @@ export function AccountDetailDialog({
                         <div className="flex items-center justify-center">
                           {(() => {
                             const s = txn.status || (txn.reconciled ? 'cleared' : 'approved');
+                            // Bill payment rows (Bill Pmt - Check) show "Paid" instead of "Approved"
+                            // when they haven't cleared the bank yet.
+                            const isBillPayment =
+                              txn.source_type === 'consolidated_bill_payment' ||
+                              txn.source_type === 'bill_payment';
                             const cls =
                               s === 'cleared'
                                 ? 'bg-green-100 text-green-800 border-green-200'
                                 : s === 'pending'
                                 ? 'bg-amber-100 text-amber-800 border-amber-200'
                                 : 'bg-blue-100 text-blue-800 border-blue-200';
-                            const label = s === 'cleared' ? 'Cleared' : s === 'pending' ? 'Pending' : 'Approved';
+                            const label =
+                              s === 'cleared'
+                                ? 'Cleared'
+                                : s === 'pending'
+                                ? 'Pending'
+                                : isBillPayment
+                                ? 'Paid'
+                                : 'Approved';
                             return (
                               <span className={`inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-[10px] font-medium ${cls}`}>
                                 {s === 'cleared' && <Check className="h-3 w-3" />}
