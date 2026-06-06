@@ -8,7 +8,7 @@ import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
 import { useAuth } from "@/hooks/useAuth";
 import { useAccounts } from "@/hooks/useAccounts";
-import { useDefaultBankAccountId } from "@/hooks/useDefaultBankAccountId";
+import { useProjectDefaultBankAccountId } from "@/hooks/useProjectDefaultBankAccountId";
 import { useProject } from "@/hooks/useProject";
 import { useBankReconciliation, AllocationBreakdown } from "@/hooks/useBankReconciliation";
 import { useUndoReconciliationPermissions } from "@/hooks/useUndoReconciliationPermissions";
@@ -136,7 +136,7 @@ export function ReconcileAccountsContent({ projectId }: ReconcileAccountsContent
   const { user } = useAuth();
   const { data: project } = useProject(projectId!);
   const { accounts } = useAccounts();
-  const defaultBankAccountId = useDefaultBankAccountId();
+  const defaultBankAccountId = useProjectDefaultBankAccountId(projectId);
 
   // Restore selected bank account from localStorage
   const storageKey = `reconciliation_bank_${projectId || 'global'}`;

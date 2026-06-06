@@ -20,7 +20,7 @@ import { Badge } from "@/components/ui/badge";
 import { DeleteButton } from "@/components/ui/delete-button";
 import { useProject } from "@/hooks/useProject";
 import { useAccounts } from "@/hooks/useAccounts";
-import { useDefaultBankAccountId } from "@/hooks/useDefaultBankAccountId";
+import { useProjectDefaultBankAccountId } from "@/hooks/useProjectDefaultBankAccountId";
 import { useChecks, CheckData, CheckLineData } from "@/hooks/useChecks";
 import { useProjectCheckSettings } from "@/hooks/useProjectCheckSettings";
 import { toast } from "@/hooks/use-toast";
@@ -138,7 +138,7 @@ export function WriteChecksContent({ projectId, recurringTemplate, onClearTempla
 
   const { data: project } = useProject(projectId || "");
   const { accounts } = useAccounts();
-  const defaultBankAccountId = useDefaultBankAccountId();
+  const defaultBankAccountId = useProjectDefaultBankAccountId(projectId);
 
   // Auto-fill the default bank account when starting a new check
   useEffect(() => {
