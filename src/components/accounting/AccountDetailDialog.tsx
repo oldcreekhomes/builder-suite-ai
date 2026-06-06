@@ -580,6 +580,7 @@ export function AccountDetailDialog({
       const billIdsInConsolidatedPayments = new Set<string>();
       let vendorNamesForConsolidated = new Map<string, string>();
       const firstLineByBillForConsolidated = new Map<string, { cost_code_id: string | null; account_id: string | null; memo: string | null }>();
+      const allLinesByBillForConsolidated = new Map<string, { cost_code_id: string | null; account_id: string | null; amount: number }[]>();
       // Per-bill bank-line reconciliation status (source of truth: journal_entry_lines on this bank account
       // for journal entries of source_type='bill_payment' and source_id=<bill_id>). The bill_payments.reconciled
       // flag is unreliable in legacy data, so we trust the bank-side JE line instead.
