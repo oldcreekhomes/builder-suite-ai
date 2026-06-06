@@ -1,33 +1,43 @@
-## Why "An Exterior" looks broken
+## Problem
 
-An Exterior's $27,180 payment is stored as a single-allocation `bill_payments` row (1 bill, 1 payment). The Account Detail dialog routes any bill that belongs to ANY `bill_payments` row through the synthetic `consolidated_bill_payment` path — even when there's only one allocation. Because `extraCount = allocations.length - 1 = 0`, the consolidated "+N" tooltip is suppressed, and the breakdown I just added only attaches to the non-consolidated bill / bill_payment rows. Result: the row falls through to the plain single-label display ("4470: Siding"), hiding the second cost code.
+In `TransactionDetailDialog`, Balance for a Bill Pmt row is computed as `total_amount − amount_paid` on the underlying bill(s). `amount_paid` is the cumulative total of every payment, so once the bill is fully paid, every individual payment shows Balance = $0 and there's no indication of prior payments.
 
-Homestead works because it has 3 allocations, so the consolidated "Included Bills" tooltip ("+2") fires.
+City Concrete example (bill $15,028, two payments $10,000 + $5,028):
+- Payment 1 (3/9, $10,000) shows Balance $0 (wrong, should be $5,028).
+- Payment 2 (3/9, $5,028) shows Balance $0 with no context (should show "Previous Payments: ($10,000)" and Balance $0).
 
 ## Fix
 
-Single file: `src/components/accounting/AccountDetailDialog.tsx`.
+Single file: `src/components/accounting/TransactionDetailDialog.tsx`.
 
-For synthetic `consolidated_bill_payment` rows, build the same cost-code breakdown across every `bill_line` of every bill in the payment, and attach it as `accountBreakdown` / `accountBreakdownTotal`. The renderer already shows "primary +{N-1}" with the per-cost-code tooltip whenever `accountBreakdown.length > 1`, so single-allocation multi-cost-code payments will start displaying correctly.
+### 1. Load every allocation with its payment date
+Inside the `bill_payment` / `consolidated_bill_payment` branch of the existing `fetchAttachments` effect (the place that already loads `bills`/`bill_lines` for the bill IDs):
 
-### 1. Load all line data (not just the first line)
-At line ~640 the bill_lines query for consolidated payments selects only the first-line-style fields. Change it to:
-- Add `amount` to the select.
-- After grouping, keep the existing `firstLineByBillForConsolidated` (used for description + primary label) unchanged.
-- Build a new map `allLinesByBillForConsolidated: Map<billId, { cost_code_id, account_id, amount }[]>`.
-- Push every cost_code_id / account_id from every line into `allCostCodeIds` / `allAccountIds` so the label maps cover them.
+- Query `bill_payment_allocations` joined with `bill_payments(payment_date)` for all collected `billIds`. Select `bill_id, amount_allocated, bill_payment_id, bill_payments(payment_date)`.
+- Also keep track of which `bill_payment_id`s belong to the CURRENT transaction. For `consolidated_bill_payment` rows `transaction.source_id` is the `bill_payment.id`. For single `bill_payment` rows we don't have the payment id directly, so identify "current" allocations by `payment_date === transaction.date` AND `bill_payment_id ∈ paymentIds` if known; otherwise just by date.
 
-### 2. Compute breakdown in the synthetic row builder
-In the `consolidatedPayments.forEach(cp => { ... })` block (~line 953), after computing `accountDisplay`, iterate `allocations` → for each `a.bill_id` look up `allLinesByBillForConsolidated.get(a.bill_id)` and aggregate `{ label, amount }` using the same rules as the bill path:
-- Label = costCodesMap.get(cost_code_id) ?? accountsDisplayMap.get(account_id) ?? 'Unassigned'.
-- Preserve first-seen order; sum amounts per label.
+### 2. Compute previous + balance
+Cent-precise math (already the project standard):
+- `originalBillTotal` = Σ bill.total_amount (unchanged).
+- `previousPaymentsTotal` = Σ allocation.amount_allocated where `payment_date < transaction.date`.
+- `currentPaymentTotal` = `abs(transaction.debit − transaction.credit)` (already used as Current Payment).
+- `remainingBillBalance` = `originalBillTotal − previousPaymentsTotal − currentPaymentTotal`.
 
-Attach `accountBreakdown` and `accountBreakdownTotal` on the synthetic `Transaction`.
+Store `previousPaymentsTotal` in new state `previousPaymentsTotal: number | null`.
 
 ### 3. Render
-No render change needed — the existing branch added previously already handles `accountBreakdown.length > 1` and shows the "Included Cost Codes:" tooltip. For true multi-bill consolidated payments (Homestead) the `isConsolidated && extraCount > 0` branch still wins and continues to show the per-bill tooltip exactly as before.
+In the bill-like `details` array (around line 387), insert a new row between "Original Bill" and "Current Payment" — only when `previousPaymentsTotal > 0`:
+
+```text
+{ label: 'Previous Payments', value: '(formatCurrency(prev))', valueClassName: 'text-destructive' }
+```
+
+`Balance` row stays in the same position but uses the new corrected `remainingBillBalance`.
+
+Reset `previousPaymentsTotal` to `null` in the existing dialog-close cleanup block alongside the other state resets.
 
 ## Out of scope
 - No DB changes.
-- Multi-bill consolidated tooltips (Homestead "Included Bills") stay exactly as they are.
-- Checks, deposits, credit card lines, journal entries: unchanged.
+- No changes to the AccountDetailDialog row Balance column (that's the running bank balance and is correct).
+- No changes for non-bill transactions (Check / Deposit / CC / JE).
+- No changes to PO rows, attachments, or lock logic.
