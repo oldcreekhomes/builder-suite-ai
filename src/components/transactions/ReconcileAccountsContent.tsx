@@ -136,7 +136,7 @@ export function ReconcileAccountsContent({ projectId }: ReconcileAccountsContent
   const { user } = useAuth();
   const { data: project } = useProject(projectId!);
   const { accounts } = useAccounts();
-  const defaultBankAccountId = useDefaultBankAccountId();
+  const defaultBankAccountId = useProjectDefaultBankAccountId(projectId);
 
   // Restore selected bank account from localStorage
   const storageKey = `reconciliation_bank_${projectId || 'global'}`;
