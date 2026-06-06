@@ -268,20 +268,41 @@ export function TransactionDetailDialog({
     }
   };
 
-  const details: DetailItem[] = [
-    { label: 'Type', value: getTypeLabel(transaction.source_type) },
-    { label: 'Date', value: formatDateSafe(transaction.date, 'MM/dd/yyyy') },
-    { label: 'Name', value: transaction.reference || '-' },
-    { label: 'Account', value: transaction.accountDisplay || '-' },
-    { label: 'Description', value: transaction.description || '-', isDescription: true },
-    { label: 'Debit', value: transaction.debit > 0 ? formatCurrency(transaction.debit) : '-' },
-    { label: 'Credit', value: transaction.credit > 0 ? formatCurrency(transaction.credit) : '-' },
-    { label: 'Amount', value: formatCurrency(netAmount) },
-    { label: 'Balance', value: formatCurrency(balance) },
-  ];
   const isBillPayment = transaction.source_type === 'bill_payment' || transaction.source_type === 'consolidated_bill_payment';
   const attachmentSectionTitle = isBillPayment ? 'Original Bill' : 'Attachments';
   const emptyAttachmentMessage = isBillPayment ? 'No original bill found' : 'No attachments found';
+
+  const details: DetailItem[] = isBillPayment
+    ? [
+        { label: 'Type', value: getTypeLabel(transaction.source_type) },
+        { label: 'Date', value: formatDateSafe(transaction.date, 'MM/dd/yyyy') },
+        { label: 'Name', value: transaction.reference || '-' },
+        { label: 'Account', value: transaction.accountDisplay || '-' },
+        {
+          label: 'Description',
+          value: originalBillDescription || transaction.description || '-',
+          isDescription: true,
+        },
+        {
+          label: 'Invoice',
+          value: originalInvoiceNumbers.length > 0 ? originalInvoiceNumbers.join(', ') : '-',
+        },
+        {
+          label: 'Current Payment',
+          value: formatCurrency(Math.abs(netAmount)),
+        },
+      ]
+    : [
+        { label: 'Type', value: getTypeLabel(transaction.source_type) },
+        { label: 'Date', value: formatDateSafe(transaction.date, 'MM/dd/yyyy') },
+        { label: 'Name', value: transaction.reference || '-' },
+        { label: 'Account', value: transaction.accountDisplay || '-' },
+        { label: 'Description', value: transaction.description || '-', isDescription: true },
+        { label: 'Debit', value: transaction.debit > 0 ? formatCurrency(transaction.debit) : '-' },
+        { label: 'Credit', value: transaction.credit > 0 ? formatCurrency(transaction.credit) : '-' },
+        { label: 'Amount', value: formatCurrency(netAmount) },
+        { label: 'Balance', value: formatCurrency(balance) },
+      ];
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
