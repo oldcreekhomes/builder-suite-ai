@@ -87,21 +87,28 @@ export function AccountSearchInput({
     // Hide accounts excluded from this project's Chart of Accounts
     if (excludedIds && excludedIds.has(account.id)) return false;
 
-    // If bankAccountsOnly is true, restrict to bank/cash-type accounts.
-    // Detection: code in the cash/bank range 1000-1039, or common keywords.
+    // If bankAccountsOnly is true, restrict to bank-type accounts.
+    // Prefer the explicit accounts.subtype = 'bank' classification. Fall back to
+    // the legacy heuristic only when no row in the tenant has subtype set yet
+    // (graceful migration window).
     if (bankAccountsOnly) {
-      const code = (account.code ?? '').trim();
-      const codeNum = Number(code);
-      const inCashRange = Number.isFinite(codeNum) && codeNum >= 1000 && codeNum <= 1039;
-      const name = account.name.toLowerCase();
-      const keywordMatch =
-        name.includes('bank') ||
-        name.includes('checking') ||
-        name.includes('savings') ||
-        name.includes('clearing') ||
-        name.includes('cash') ||
-        name.includes('money market');
-      if (!inCashRange && !keywordMatch) return false;
+      const anyHasSubtype = accounts.some((a: any) => a?.subtype);
+      if (anyHasSubtype) {
+        if ((account as any).subtype !== 'bank') return false;
+      } else {
+        const code = (account.code ?? '').trim();
+        const codeNum = Number(code);
+        const inCashRange = Number.isFinite(codeNum) && codeNum >= 1000 && codeNum <= 1039;
+        const name = account.name.toLowerCase();
+        const keywordMatch =
+          name.includes('bank') ||
+          name.includes('checking') ||
+          name.includes('savings') ||
+          name.includes('clearing') ||
+          name.includes('cash') ||
+          name.includes('money market');
+        if (!inCashRange && !keywordMatch) return false;
+      }
     }
 
     return true;

@@ -3,7 +3,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Upload, Plus, Search } from "lucide-react";
+import { Upload, Plus, Search, Star } from "lucide-react";
 import { useAccounts } from "@/hooks/useAccounts";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
@@ -156,6 +156,39 @@ export const ChartOfAccountsTab = () => {
     }
   };
 
+  const handleSetDefaultBank = async (accountId: string) => {
+    // Clear any existing default for this tenant, then set the new one
+    const target = accounts.find((a: any) => a.id === accountId) as any;
+    if (!target?.owner_id) return;
+    const { error: clearErr } = await supabase
+      .from('accounts')
+      .update({ is_default_bank: false } as any)
+      .eq('owner_id', target.owner_id)
+      .eq('is_default_bank', true);
+    if (clearErr) {
+      toast({ title: "Error", description: "Failed to update default bank account.", variant: "destructive" });
+      return;
+    }
+    const { error: setErr } = await supabase
+      .from('accounts')
+      .update({ is_default_bank: true } as any)
+      .eq('id', accountId);
+    if (setErr) {
+      toast({ title: "Error", description: "Failed to set default bank account.", variant: "destructive" });
+      return;
+    }
+    toast({ title: "Default bank updated", description: `${target.code} - ${target.name} is now the default.` });
+    queryClient.invalidateQueries({ queryKey: ['accounts'] });
+  };
+
+  const SUBTYPE_LABEL: Record<string, string> = {
+    bank: 'Bank',
+    loan: 'Loan',
+    credit_card: 'Credit Card',
+    equity: 'Equity',
+    other: 'Other',
+  };
+
   if (isLoading) {
     return <div className="text-center py-2 text-sm">Loading chart of accounts...</div>;
   }
@@ -241,8 +274,10 @@ export const ChartOfAccountsTab = () => {
                 </TableHead>
                 <TableHead>Code</TableHead>
                 <TableHead>Account Name</TableHead>
-                
+
                 <TableHead>Type</TableHead>
+                <TableHead>Subtype</TableHead>
+                <TableHead className="text-center">Default</TableHead>
                 <TableHead>Description</TableHead>
                 <TableHead className="text-center">Actions</TableHead>
 
@@ -251,12 +286,14 @@ export const ChartOfAccountsTab = () => {
             <TableBody>
               {hierarchicalAccounts.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={6} className="text-center text-muted-foreground">
+                  <TableCell colSpan={8} className="text-center text-muted-foreground">
                     {searchQuery ? 'No accounts match your search.' : 'No accounts found. Import from QuickBooks or add accounts manually.'}
                   </TableCell>
                 </TableRow>
               ) : (
-                hierarchicalAccounts.map((account) => {
+                hierarchicalAccounts.map((account: any) => {
+                  const isBank = account.subtype === 'bank';
+                  const isDefault = !!account.is_default_bank;
                   return (
                     <TableRow key={account.id}>
                       <TableCell>
@@ -278,6 +315,26 @@ export const ChartOfAccountsTab = () => {
                         {account.name}
                       </TableCell>
                       <TableCell>{account.type.charAt(0).toUpperCase() + account.type.slice(1)}</TableCell>
+                      <TableCell className="text-muted-foreground">
+                        {account.subtype ? (SUBTYPE_LABEL[account.subtype] || account.subtype) : '—'}
+                      </TableCell>
+                      <TableCell className="text-center">
+                        {isBank ? (
+                          <button
+                            type="button"
+                            onClick={() => !isDefault && handleSetDefaultBank(account.id)}
+                            className="inline-flex items-center justify-center"
+                            aria-label={isDefault ? 'Default bank account' : 'Set as default bank'}
+                            title={isDefault ? 'Default bank account' : 'Set as default bank'}
+                          >
+                            <Star
+                              className={`h-4 w-4 ${isDefault ? 'fill-yellow-400 text-yellow-500' : 'text-muted-foreground hover:text-yellow-500'}`}
+                            />
+                          </button>
+                        ) : (
+                          <span className="text-muted-foreground">—</span>
+                        )}
+                      </TableCell>
                       <TableCell className="text-muted-foreground">{account.description || '—'}</TableCell>
                       <TableCell className="text-right">
                         <div className="flex justify-end">

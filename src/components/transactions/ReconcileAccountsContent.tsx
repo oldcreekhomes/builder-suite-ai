@@ -8,6 +8,7 @@ import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
 import { useAuth } from "@/hooks/useAuth";
 import { useAccounts } from "@/hooks/useAccounts";
+import { useDefaultBankAccountId } from "@/hooks/useDefaultBankAccountId";
 import { useProject } from "@/hooks/useProject";
 import { useBankReconciliation, AllocationBreakdown } from "@/hooks/useBankReconciliation";
 import { useUndoReconciliationPermissions } from "@/hooks/useUndoReconciliationPermissions";
@@ -135,12 +136,20 @@ export function ReconcileAccountsContent({ projectId }: ReconcileAccountsContent
   const { user } = useAuth();
   const { data: project } = useProject(projectId!);
   const { accounts } = useAccounts();
+  const defaultBankAccountId = useDefaultBankAccountId();
 
   // Restore selected bank account from localStorage
   const storageKey = `reconciliation_bank_${projectId || 'global'}`;
   const [selectedBankAccountId, setSelectedBankAccountId] = useState<string | null>(() => {
     return localStorage.getItem(storageKey);
   });
+
+  // If nothing was stored, fall back to the tenant's default bank account
+  useEffect(() => {
+    if (!selectedBankAccountId && defaultBankAccountId) {
+      setSelectedBankAccountId(defaultBankAccountId);
+    }
+  }, [selectedBankAccountId, defaultBankAccountId]);
   const [statementDate, setStatementDate] = useState<Date>();
   const [hideTransactionsAfterDate, setHideTransactionsAfterDate] = useState<Date | undefined>();
   const [beginningBalance, setBeginningBalance] = useState<string>("");

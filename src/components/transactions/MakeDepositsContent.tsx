@@ -19,6 +19,7 @@ import { useClosedPeriodCheck } from "@/hooks/useClosedPeriodCheck";
 import { cn } from "@/lib/utils";
 import { useProject } from "@/hooks/useProject";
 import { useAccounts } from "@/hooks/useAccounts";
+import { useDefaultBankAccountId } from "@/hooks/useDefaultBankAccountId";
 import { useDeposits, DepositData, DepositLineData } from "@/hooks/useDeposits";
 import { useProjectCheckSettings } from "@/hooks/useProjectCheckSettings";
 import { toast } from "@/hooks/use-toast";
@@ -90,6 +91,18 @@ export function MakeDepositsContent({ projectId, activeTab: parentActiveTab }: M
 
   const { data: project } = useProject(projectId || "");
   const { accounts } = useAccounts();
+  const defaultBankAccountId = useDefaultBankAccountId();
+
+  // Auto-fill the default bank account when starting a new deposit
+  useEffect(() => {
+    if (!isViewingMode && !bankAccountId && defaultBankAccountId) {
+      const acct = accounts.find((a: any) => a.id === defaultBankAccountId);
+      if (acct) {
+        setBankAccountId(acct.id);
+        setBankAccount(`${acct.code} - ${acct.name}`);
+      }
+    }
+  }, [isViewingMode, bankAccountId, defaultBankAccountId, accounts]);
   const { createDeposit, deleteDeposit, updateDepositFull } = useDeposits();
   
   // Submit lock to prevent duplicate saves
