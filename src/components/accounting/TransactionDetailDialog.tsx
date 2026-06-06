@@ -303,7 +303,10 @@ export function TransactionDetailDialog({
         { label: 'Account', value: transaction.accountDisplay || '-' },
         {
           label: 'Description',
-          value: originalBillDescription || transaction.description || '-',
+          value:
+            getLatestDescription(originalBillDescription) ||
+            getLatestDescription(transaction.description) ||
+            '-',
           isDescription: true,
         },
         {
