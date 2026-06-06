@@ -920,13 +920,22 @@ export function AccountDetailDialog({
             }
           }
 
+          // Description = original bill's first line memo(s), joined for multi-bill.
+          // Never show bill_payments.memo (it may be system text like "Backfilled from JE ...").
+          const billMemos: string[] = [];
+          allocations.forEach((a) => {
+            const fl = firstLineByBillForConsolidated.get(a.bill_id);
+            if (fl?.memo && !billMemos.includes(fl.memo)) billMemos.push(fl.memo);
+          });
+          const consolidatedDescription = billMemos.length > 0 ? billMemos.join('; ') : null;
+
           const syntheticRow: Transaction = {
             source_id: cp.id,
             line_id: `consolidated:${cp.id}`,
             journal_entry_id: `consolidated:${cp.id}`,
             date: cp.payment_date,
             memo: cp.memo,
-            description: cp.memo || cp.check_number || null,
+            description: consolidatedDescription,
             reference: vendorName,
             accountDisplay: accountDisplay,
             source_type: 'consolidated_bill_payment',
