@@ -217,23 +217,66 @@ export function TransactionDetailDialog({
             // Balance is computed per-payment below using payment_date cutoff.
             setOriginalBillTotal(Math.round(totalSum * 100) / 100);
 
-            // Per-payment history: sum allocations dated BEFORE this transaction's date,
-            // so Balance reflects the bill's remaining balance immediately after this payment.
+            // Per-payment history. For payments that share a payment_date (e.g. two
+            // payments minutes apart on the same day), we order by the bank-side
+            // journal entry created_at so "Previous Payments" reflects what was
+            // actually paid before this row.
             const { data: allocRows } = await supabase
               .from('bill_payment_allocations')
-              .select('amount_allocated, bill_payment_id, bill_payments(payment_date)')
+              .select('amount_allocated, bill_payment_id, bill_id, bill_payments(payment_date)')
               .in('bill_id', billIdArr);
-            const txDate = transaction.date; // YYYY-MM-DD string
+
+            // Fetch active (non-reversed) bill_payment journal entries for these bills
+            // along with their lines so we can match each allocation to a JE timestamp.
+            const { data: jeRows } = await supabase
+              .from('journal_entries')
+              .select('id, source_id, entry_date, created_at, journal_entry_lines(debit, credit)')
+              .eq('source_type', 'bill_payment')
+              .in('source_id', billIdArr)
+              .eq('is_reversal', false)
+              .is('reversed_at', null)
+              .is('reversed_by_id', null);
+
+            // Build event timestamp map keyed by `${bill_id}|${entry_date}|${amountCents}`.
+            // amountCents uses the largest line amount in the JE, which equals the payment amount.
+            const eventTsMap = new Map<string, string>();
+            (jeRows || []).forEach((je: any) => {
+              const lines = je.journal_entry_lines || [];
+              let maxAmt = 0;
+              lines.forEach((l: any) => {
+                const d = Number(l.debit) || 0;
+                const c = Number(l.credit) || 0;
+                if (d > maxAmt) maxAmt = d;
+                if (c > maxAmt) maxAmt = c;
+              });
+              if (maxAmt > 0 && je.source_id && je.entry_date && je.created_at) {
+                const key = `${je.source_id}|${je.entry_date}|${Math.round(maxAmt * 100)}`;
+                if (!eventTsMap.has(key)) eventTsMap.set(key, je.created_at);
+              }
+            });
+
+            const txDate = transaction.date; // YYYY-MM-DD
+            const txTs = transaction.created_at; // ISO timestamp
             let prevSum = 0;
             let currentAllocSum = 0;
             (allocRows || []).forEach((a: any) => {
               const pDate: string | undefined = a?.bill_payments?.payment_date;
               const amt = Number(a?.amount_allocated) || 0;
               if (!pDate) return;
+              const key = `${a.bill_id}|${pDate}|${Math.round(amt * 100)}`;
+              const evTs = eventTsMap.get(key);
+
               if (pDate < txDate) {
                 prevSum += amt;
-              } else if (pDate === txDate && paymentIds.has(a.bill_payment_id)) {
-                currentAllocSum += amt;
+              } else if (pDate === txDate) {
+                if (evTs && txTs && evTs < txTs) {
+                  prevSum += amt;
+                } else if (evTs && txTs && evTs === txTs) {
+                  currentAllocSum += amt;
+                } else if (paymentIds.has(a.bill_payment_id)) {
+                  // Fallback when JE match is unavailable: trust the current payment id linkage.
+                  currentAllocSum += amt;
+                }
               }
             });
             const prevRounded = Math.round(prevSum * 100) / 100;
