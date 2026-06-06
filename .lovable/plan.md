@@ -1,40 +1,21 @@
-Fix the mistaken coupling between the project default bank account and the project default Deposit To account.
+Update the Transactions > Reconcile Accounts screen app-wide so it uses the project’s default bank account and only offers reconcilable accounts.
 
-## Current mistake
+Plan:
+1. **Default selection**
+   - Change the Reconcile Accounts initial selection so the project default bank account (`project_default_bank_accounts`, falling back to global `accounts.is_default_bank`) takes priority over the saved local browser selection.
+   - If the saved browser selection is no longer valid for the project/reconcilable list, replace it with the project default.
+   - This will make 126 Longview Drive default to Capital One when Capital One is the project default.
 
-The star beside bank accounts and the dropdown on `1020 - Deposits` both write to `project_default_bank_accounts`. That means changing the deposit dropdown changes the default bank star, and changing the star changes the deposit dropdown.
+2. **Dropdown filtering**
+   - Replace the current broad `asset` filter with a reconcilable-account filter:
+     - include active project bank accounts (`accounts.subtype = 'bank'`), respecting project chart-of-account exclusions;
+     - include active project credit card accounts (`accounts.subtype = 'credit_card'`), respecting exclusions.
+   - Exclude non-reconcilable accounts like Deposits, Clearing, Loans, Land, WIP, Ask Owner, etc.
 
-These must be independent:
+3. **Label and naming**
+   - Change the field label from **Bank Account** to **Account**.
+   - Change the dropdown placeholder from “Select a bank account...” to “Select an account...”.
 
-- Bank account default: used by Write Checks, Pay Bills, Reconcile, etc.
-- Deposit To default: used only by Make Deposits as the default account money is deposited into.
-
-## Changes to make
-
-1. Add a separate project-level setting for the default deposit-to bank account.
-   - New table: `public.project_default_deposit_accounts`
-   - Columns: `project_id`, `account_id`, `created_at`, `updated_at`
-   - RLS and grants will mirror `project_default_bank_accounts`.
-   - Seed existing rows from current `project_default_bank_accounts` so users do not lose their current defaults during migration.
-
-2. Update `Edit Project -> Chart of Accounts`.
-   - The star remains tied only to `project_default_bank_accounts`.
-   - The dropdown on `1020 - Deposits` reads/writes only `project_default_deposit_accounts`.
-   - Changing one will no longer change the other.
-
-3. Update Make Deposits.
-   - New deposits should auto-fill from `project_default_deposit_accounts`.
-   - If a project has no deposit default yet, fall back to the project default bank/global bank so the app still has a sensible initial value.
-   - The Deposit To field still allows changing to any included bank account.
-
-4. Do not change Write Checks, Pay Bills, or Reconcile behavior.
-   - They continue using the star/default bank account only.
-
-## Files / database
-
-- Add one Supabase migration for the new setting table, grants, RLS, and seed data.
-- Add a hook like `useProjectDefaultDepositAccountId`.
-- Update `src/components/ProjectAccountsTab.tsx`.
-- Update `src/components/transactions/MakeDepositsContent.tsx`.
-
-This is an app-wide fix, not specific to Longview Drive.
+4. **Validation/compatibility**
+   - Keep the existing reconciliation transaction logic intact; only change the account selector/default behavior in this pass.
+   - Keep stored selection behavior only as a fallback after validating it against the allowed accounts and project default.

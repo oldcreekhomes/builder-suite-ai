@@ -144,12 +144,19 @@ export function ReconcileAccountsContent({ projectId }: ReconcileAccountsContent
     return localStorage.getItem(storageKey);
   });
 
-  // If nothing was stored, fall back to the tenant's default bank account
-  useEffect(() => {
-    if (!selectedBankAccountId && defaultBankAccountId) {
-      setSelectedBankAccountId(defaultBankAccountId);
-    }
-  }, [selectedBankAccountId, defaultBankAccountId]);
+  // Project-scoped account exclusions (Edit Project -> Chart of Accounts)
+  const { data: excludedAccountIds } = useQuery({
+    queryKey: ['project-account-exclusions', projectId],
+    enabled: !!projectId,
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('project_account_exclusions')
+        .select('account_id')
+        .eq('project_id', projectId!);
+      if (error) throw error;
+      return new Set((data ?? []).map((r: { account_id: string }) => r.account_id));
+    },
+  });
   const [statementDate, setStatementDate] = useState<Date>();
   const [hideTransactionsAfterDate, setHideTransactionsAfterDate] = useState<Date | undefined>();
   const [beginningBalance, setBeginningBalance] = useState<string>("");
@@ -260,9 +267,29 @@ export function ReconcileAccountsContent({ projectId }: ReconcileAccountsContent
     staleTime: Infinity,          // Never auto-refetch
   });
 
-  const bankAccounts = accounts?.filter(
-    (acc) => acc.type === 'asset' && acc.is_active
-  ) || [];
+  // Reconcilable accounts: bank + credit card subtypes, active, not excluded for this project
+  const bankAccounts = (accounts ?? []).filter((acc: any) => {
+    if (!acc?.is_active) return false;
+    if (excludedAccountIds && excludedAccountIds.has(acc.id)) return false;
+    return acc.subtype === 'bank' || acc.subtype === 'credit_card';
+  });
+
+  // Prefer the project default bank account over any stale localStorage value.
+  // Only keep the saved selection if it's still a valid reconcilable account.
+  useEffect(() => {
+    if (!accounts || accounts.length === 0) return;
+    const validIds = new Set(bankAccounts.map((a: any) => a.id));
+
+    if (selectedBankAccountId && !validIds.has(selectedBankAccountId)) {
+      setSelectedBankAccountId(null);
+      return;
+    }
+    if (!selectedBankAccountId && defaultBankAccountId && validIds.has(defaultBankAccountId)) {
+      setSelectedBankAccountId(defaultBankAccountId);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [accounts, excludedAccountIds, defaultBankAccountId]);
+
 
 
   const clearedChecks = transactions?.checks.filter(c => checkedTransactions.has(c.id)) || [];
@@ -1042,7 +1069,7 @@ export function ReconcileAccountsContent({ projectId }: ReconcileAccountsContent
         {/* All fields in one row */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-12 gap-4 mb-6">
           <div className="lg:col-span-2">
-            <Label htmlFor="bank-account">Bank Account</Label>
+            <Label htmlFor="bank-account">Account</Label>
             <Select
               value={selectedBankAccountId || ""}
               onValueChange={(value) => {
@@ -1055,7 +1082,7 @@ export function ReconcileAccountsContent({ projectId }: ReconcileAccountsContent
               disabled={isReconciliationMode}
             >
               <SelectTrigger className="w-full mt-1">
-                <SelectValue placeholder="Select a bank account..." />
+                <SelectValue placeholder="Select an account..." />
               </SelectTrigger>
               <SelectContent>
                 {bankAccounts.map((account) => (
