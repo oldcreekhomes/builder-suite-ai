@@ -91,6 +91,18 @@ export function MakeDepositsContent({ projectId, activeTab: parentActiveTab }: M
 
   const { data: project } = useProject(projectId || "");
   const { accounts } = useAccounts();
+  const defaultBankAccountId = useDefaultBankAccountId();
+
+  // Auto-fill the default bank account when starting a new deposit
+  useEffect(() => {
+    if (!isViewingMode && !bankAccountId && defaultBankAccountId) {
+      const acct = accounts.find((a: any) => a.id === defaultBankAccountId);
+      if (acct) {
+        setBankAccountId(acct.id);
+        setBankAccount(`${acct.code} - ${acct.name}`);
+      }
+    }
+  }, [isViewingMode, bankAccountId, defaultBankAccountId, accounts]);
   const { createDeposit, deleteDeposit, updateDepositFull } = useDeposits();
   
   // Submit lock to prevent duplicate saves
