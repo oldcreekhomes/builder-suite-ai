@@ -81,13 +81,12 @@ export const JournalEntryForm = ({ projectId, activeTab: parentActiveTab }: Jour
 
   // Filter entries by projectId if specified
   const filteredEntries = useMemo(() => {
-    const base = !projectId
-      ? journalEntries
-      : journalEntries.filter(entry =>
-          entry.lines?.some((line: any) => line.project_id === projectId)
-        );
-    // Reverse so oldest = index 0 → Journal Entry #1 ascends chronologically
-    return [...base].reverse();
+    if (!projectId) {
+      return journalEntries;
+    }
+    return journalEntries.filter(entry =>
+      entry.lines?.some((line: any) => line.project_id === projectId)
+    );
   }, [journalEntries, projectId]);
 
   console.debug('Journal Entry Navigation State:', {
@@ -135,7 +134,7 @@ export const JournalEntryForm = ({ projectId, activeTab: parentActiveTab }: Jour
 
   // Calculate position counter (includes "new" entry in count)
   const totalCount = isViewingMode ? filteredEntries.length : filteredEntries.length + 1;
-  const currentPosition = isViewingMode ? currentEntryIndex + 1 : 1;
+  const currentPosition = isViewingMode ? filteredEntries.length - currentEntryIndex : filteredEntries.length + 1;
 
   // Format number with commas
   const formatNumber = (value: string | number): string => {
@@ -641,7 +640,7 @@ export const JournalEntryForm = ({ projectId, activeTab: parentActiveTab }: Jour
             <Label htmlFor="journalEntryNumber">Journal Entry #</Label>
             <Input
               id="journalEntryNumber"
-              value={isViewingMode ? (currentEntryIndex + 1).toString() : (filteredEntries.length + 1).toString()}
+              value={isViewingMode ? (filteredEntries.length - currentEntryIndex).toString() : (filteredEntries.length + 1).toString()}
               readOnly
               className="h-10 bg-muted"
             />
