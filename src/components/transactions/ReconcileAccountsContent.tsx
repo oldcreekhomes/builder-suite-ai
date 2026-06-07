@@ -16,8 +16,8 @@ import { format, addMonths, endOfMonth } from "date-fns";
 import { formatDateSafe } from "@/utils/dateOnly";
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { CalendarIcon, Save, CheckCircle2, Lock, LockOpen, ChevronDown, ChevronUp, Loader2, ArrowUpDown, ArrowUp, ArrowDown, StickyNote, Eye, MoreHorizontal } from "lucide-react";
-import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem } from "@/components/ui/dropdown-menu";
+import { CalendarIcon, Save, CheckCircle2, Lock, LockOpen, ChevronDown, ChevronUp, Loader2, ArrowUpDown, ArrowUp, ArrowDown, StickyNote } from "lucide-react";
+import { TableRowActions } from "@/components/ui/table-row-actions";
 import { ReconciliationReviewDialog } from "./ReconciliationReviewDialog";
 import {
   Dialog,
@@ -1686,34 +1686,21 @@ export function ReconcileAccountsContent({ projectId }: ReconcileAccountsContent
                             )}
                           </td>
                           <td className="p-3 text-center">
-                            <DropdownMenu>
-                              <DropdownMenuTrigger asChild>
-                                <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
-                                  <MoreHorizontal className="h-4 w-4" />
-                                </Button>
-                              </DropdownMenuTrigger>
-                              <DropdownMenuContent align="end">
-                                <DropdownMenuItem
-                                  onClick={() => {
-                                    setSelectedReconciliationForReview(rec);
-                                    setReviewDialogOpen(true);
-                                  }}
-                                >
-                                  <Eye className="h-4 w-4 mr-2" />
-                                  Review cleared transactions
-                                </DropdownMenuItem>
-                                {canUndoReconciliation && (
-                                  <DropdownMenuItem
-                                    onClick={() => handleUndoReconciliation(rec)}
-                                    disabled={!isLatestCompleted(rec)}
-                                    className="text-red-600 focus:text-red-700"
-                                  >
-                                    <Lock className="h-4 w-4 mr-2" />
-                                    Undo reconciliation
-                                  </DropdownMenuItem>
-                                )}
-                              </DropdownMenuContent>
-                            </DropdownMenu>
+                            <TableRowActions actions={[
+                              {
+                                label: "Review cleared transactions",
+                                onClick: () => {
+                                  setSelectedReconciliationForReview(rec);
+                                  setReviewDialogOpen(true);
+                                },
+                              },
+                              ...(canUndoReconciliation ? [{
+                                label: "Undo reconciliation",
+                                onClick: () => handleUndoReconciliation(rec),
+                                variant: "destructive" as const,
+                                disabled: !isLatestCompleted(rec),
+                              }] : []),
+                            ]} />
                           </td>
                         </tr>
                       ))}
