@@ -33,6 +33,9 @@ export interface DepositData {
   reconciliation_date?: string;
 }
 
+const toCents = (amount: number) => Math.round(Number(amount || 0) * 100);
+const fromCents = (cents: number) => cents / 100;
+
 export const useDeposits = () => {
   const queryClient = useQueryClient();
 
@@ -47,11 +50,19 @@ export const useDeposits = () => {
       console.log('Creating deposit:', depositData);
       console.log('Deposit lines:', depositLines);
 
-      // CRITICAL: Validate that header amount equals sum of line amounts
-      const linesTotal = depositLines.reduce((sum, line) => sum + line.amount, 0);
-      if (Math.abs(depositData.amount - linesTotal) > 0.01) {
-        throw new Error(`Deposit amount ($${depositData.amount.toFixed(2)}) does not match line items total ($${linesTotal.toFixed(2)}). Balance sheet would be out of balance.`);
+      const normalizedDepositLines = depositLines.map((line) => ({
+        ...line,
+        amount: fromCents(toCents(line.amount)),
+      }));
+
+      // CRITICAL: Validate that header amount equals sum of line amounts to the cent.
+      const depositAmountCents = toCents(depositData.amount);
+      const linesTotalCents = normalizedDepositLines.reduce((sum, line) => sum + toCents(line.amount), 0);
+      if (depositAmountCents !== linesTotalCents) {
+        throw new Error(`Deposit amount ($${fromCents(depositAmountCents).toFixed(2)}) does not match line items total ($${fromCents(linesTotalCents).toFixed(2)}). Balance sheet would be out of balance.`);
       }
+      const depositAmount = fromCents(depositAmountCents);
+      const linesTotal = fromCents(linesTotalCents);
 
       // Get authenticated user
       const { data: { user } } = await supabase.auth.getUser();
@@ -75,7 +86,7 @@ export const useDeposits = () => {
           deposit_date: depositData.deposit_date,
           bank_account_id: depositData.bank_account_id,
           project_id: depositData.project_id || null,
-          amount: depositData.amount,
+          amount: depositAmount,
           memo: depositData.memo || null,
           company_id: depositData.company_id || null,  // Changed from deposit_source_id
           check_number: depositData.check_number || null,
