@@ -16,6 +16,7 @@ export interface NotificationPreferences {
   can_close_books: boolean;
   can_lock_budgets: boolean;
   can_undo_reconciliation: boolean;
+  can_reallocate: boolean;
   can_edit_projects: boolean;
   can_access_pm_dashboard: boolean;
   can_access_owner_dashboard: boolean;
