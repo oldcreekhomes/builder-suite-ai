@@ -1686,53 +1686,34 @@ export function ReconcileAccountsContent({ projectId }: ReconcileAccountsContent
                             )}
                           </td>
                           <td className="p-3 text-center">
-                            <div className="flex items-center justify-center gap-1">
-                              <TooltipProvider>
-                                <Tooltip>
-                                  <TooltipTrigger asChild>
-                                    <Button
-                                      variant="ghost"
-                                      size="sm"
-                                      onClick={() => {
-                                        setSelectedReconciliationForReview(rec);
-                                        setReviewDialogOpen(true);
-                                      }}
-                                      className="h-8 w-8 p-0"
-                                    >
-                                      <Eye className="h-4 w-4" />
-                                    </Button>
-                                  </TooltipTrigger>
-                                  <TooltipContent>
-                                    Review cleared transactions for this reconciliation
-                                  </TooltipContent>
-                                </Tooltip>
-                              </TooltipProvider>
-                              {canUndoReconciliation && (
-                                <TooltipProvider>
-                                  <Tooltip>
-                                    <TooltipTrigger asChild>
-                                      <Button
-                                        variant="ghost"
-                                        size="sm"
-                                        onClick={() => handleUndoReconciliation(rec)}
-                                        disabled={!isLatestCompleted(rec)}
-                                        className={cn(
-                                          "h-8 w-8 p-0",
-                                          isLatestCompleted(rec) ? "text-red-600 hover:text-red-700" : "text-muted-foreground"
-                                        )}
-                                      >
-                                        <Lock className="h-4 w-4 text-red-600" />
-                                      </Button>
-                                    </TooltipTrigger>
-                                    <TooltipContent>
-                                      {isLatestCompleted(rec) 
-                                        ? "Undo this reconciliation" 
-                                        : "Only the most recent completed reconciliation can be undone"}
-                                    </TooltipContent>
-                                  </Tooltip>
-                                </TooltipProvider>
-                              )}
-                            </div>
+                            <DropdownMenu>
+                              <DropdownMenuTrigger asChild>
+                                <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
+                                  <MoreHorizontal className="h-4 w-4" />
+                                </Button>
+                              </DropdownMenuTrigger>
+                              <DropdownMenuContent align="end">
+                                <DropdownMenuItem
+                                  onClick={() => {
+                                    setSelectedReconciliationForReview(rec);
+                                    setReviewDialogOpen(true);
+                                  }}
+                                >
+                                  <Eye className="h-4 w-4 mr-2" />
+                                  Review cleared transactions
+                                </DropdownMenuItem>
+                                {canUndoReconciliation && (
+                                  <DropdownMenuItem
+                                    onClick={() => handleUndoReconciliation(rec)}
+                                    disabled={!isLatestCompleted(rec)}
+                                    className="text-red-600 focus:text-red-700"
+                                  >
+                                    <Lock className="h-4 w-4 mr-2" />
+                                    Undo reconciliation
+                                  </DropdownMenuItem>
+                                )}
+                              </DropdownMenuContent>
+                            </DropdownMenu>
                           </td>
                         </tr>
                       ))}
