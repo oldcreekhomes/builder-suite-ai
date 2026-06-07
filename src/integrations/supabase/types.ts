@@ -6079,6 +6079,7 @@ export type Database = {
           can_edit_projects: boolean
           can_edit_templates: boolean
           can_lock_budgets: boolean | null
+          can_reallocate: boolean
           can_undo_reconciliation: boolean
           created_at: string
           created_by: string | null
@@ -6109,6 +6110,7 @@ export type Database = {
           can_edit_projects?: boolean
           can_edit_templates?: boolean
           can_lock_budgets?: boolean | null
+          can_reallocate?: boolean
           can_undo_reconciliation?: boolean
           created_at?: string
           created_by?: string | null
@@ -6139,6 +6141,7 @@ export type Database = {
           can_edit_projects?: boolean
           can_edit_templates?: boolean
           can_lock_budgets?: boolean | null
+          can_reallocate?: boolean
           can_undo_reconciliation?: boolean
           created_at?: string
           created_by?: string | null

@@ -144,6 +144,24 @@ export function EmployeeAccessPreferences({ employeeId }: EmployeeAccessPreferen
 
           <div className="flex items-center justify-between gap-4">
             <div className="space-y-0.5 flex-1">
+              <Label htmlFor="can-reallocate" className="text-sm font-normal cursor-pointer">
+                Reallocations
+              </Label>
+              <p className="text-xs text-muted-foreground">
+                Ability to reallocate a transaction's account or cost code after the period has been closed or reconciled (amount and date are not changed)
+              </p>
+            </div>
+            <Switch
+              id="can-reallocate"
+              checked={(preferences as any).can_reallocate ?? false}
+              onCheckedChange={(checked) =>
+                updatePreferences({ can_reallocate: checked } as any)
+              }
+            />
+          </div>
+
+          <div className="flex items-center justify-between gap-4">
+            <div className="space-y-0.5 flex-1">
               <Label htmlFor="can-undo-reconciliation" className="text-sm font-normal cursor-pointer">
                 Undo Reconciliation
               </Label>
