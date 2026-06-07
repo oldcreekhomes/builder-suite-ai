@@ -33,6 +33,9 @@ export interface DepositData {
   reconciliation_date?: string;
 }
 
+const toCents = (amount: number) => Math.round(Number(amount || 0) * 100);
+const fromCents = (cents: number) => cents / 100;
+
 export const useDeposits = () => {
   const queryClient = useQueryClient();
 
@@ -47,11 +50,19 @@ export const useDeposits = () => {
       console.log('Creating deposit:', depositData);
       console.log('Deposit lines:', depositLines);
 
-      // CRITICAL: Validate that header amount equals sum of line amounts
-      const linesTotal = depositLines.reduce((sum, line) => sum + line.amount, 0);
-      if (Math.abs(depositData.amount - linesTotal) > 0.01) {
-        throw new Error(`Deposit amount ($${depositData.amount.toFixed(2)}) does not match line items total ($${linesTotal.toFixed(2)}). Balance sheet would be out of balance.`);
+      const normalizedDepositLines = depositLines.map((line) => ({
+        ...line,
+        amount: fromCents(toCents(line.amount)),
+      }));
+
+      // CRITICAL: Validate that header amount equals sum of line amounts to the cent.
+      const depositAmountCents = toCents(depositData.amount);
+      const linesTotalCents = normalizedDepositLines.reduce((sum, line) => sum + toCents(line.amount), 0);
+      if (depositAmountCents !== linesTotalCents) {
+        throw new Error(`Deposit amount ($${fromCents(depositAmountCents).toFixed(2)}) does not match line items total ($${fromCents(linesTotalCents).toFixed(2)}). Balance sheet would be out of balance.`);
       }
+      const depositAmount = fromCents(depositAmountCents);
+      const linesTotal = fromCents(linesTotalCents);
 
       // Get authenticated user
       const { data: { user } } = await supabase.auth.getUser();
@@ -75,7 +86,7 @@ export const useDeposits = () => {
           deposit_date: depositData.deposit_date,
           bank_account_id: depositData.bank_account_id,
           project_id: depositData.project_id || null,
-          amount: depositData.amount,
+          amount: depositAmount,
           memo: depositData.memo || null,
           company_id: depositData.company_id || null,  // Changed from deposit_source_id
           check_number: depositData.check_number || null,
@@ -94,7 +105,7 @@ export const useDeposits = () => {
       if (!deposit) throw new Error("Failed to create deposit");
 
       // Insert deposit lines
-      const depositLinesData = depositLines.map((line, index) => ({
+      const depositLinesData = normalizedDepositLines.map((line, index) => ({
         deposit_id: deposit.id,
         owner_id,
         line_number: index + 1,
@@ -146,13 +157,13 @@ export const useDeposits = () => {
         line_number: 1,
         account_id: depositData.bank_account_id,
         project_id: depositData.project_id || null,
-        debit: depositData.amount,
+        debit: linesTotal,
         credit: 0,
-        memo: depositLines[0]?.memo || 'Deposit'
+        memo: normalizedDepositLines[0]?.memo || 'Deposit'
       };
 
       // Remaining lines: CREDIT source accounts (revenue/customer payments)
-      const sourceLinesData = depositLines.map((line, index) => {
+      const sourceLinesData = normalizedDepositLines.map((line, index) => {
         let creditAccountId = line.account_id;
         let costCodeId = null;
 
@@ -493,11 +504,19 @@ export const useDeposits = () => {
     }) => {
       console.log('Updating deposit:', depositId, depositData);
 
-      // CRITICAL: Validate that header amount equals sum of line amounts
-      const linesTotal = depositLines.reduce((sum, line) => sum + line.amount, 0);
-      if (Math.abs(depositData.amount - linesTotal) > 0.01) {
-        throw new Error(`Deposit amount ($${depositData.amount.toFixed(2)}) does not match line items total ($${linesTotal.toFixed(2)}). Balance sheet would be out of balance.`);
+      const normalizedDepositLines = depositLines.map((line) => ({
+        ...line,
+        amount: fromCents(toCents(line.amount)),
+      }));
+
+      // CRITICAL: Validate that header amount equals sum of line amounts to the cent.
+      const depositAmountCents = toCents(depositData.amount);
+      const linesTotalCents = normalizedDepositLines.reduce((sum, line) => sum + toCents(line.amount), 0);
+      if (depositAmountCents !== linesTotalCents) {
+        throw new Error(`Deposit amount ($${fromCents(depositAmountCents).toFixed(2)}) does not match line items total ($${fromCents(linesTotalCents).toFixed(2)}). Balance sheet would be out of balance.`);
       }
+      const depositAmount = fromCents(depositAmountCents);
+      const linesTotal = fromCents(linesTotalCents);
 
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error("User not authenticated");
@@ -519,7 +538,7 @@ export const useDeposits = () => {
           deposit_date: depositData.deposit_date,
           bank_account_id: depositData.bank_account_id,
           project_id: depositData.project_id || null,
-          amount: depositData.amount,
+          amount: depositAmount,
           memo: depositData.memo || null,
           company_id: depositData.company_id || null,
           check_number: depositData.check_number || null,
@@ -544,7 +563,7 @@ export const useDeposits = () => {
       if (deleteLinesError) throw deleteLinesError;
 
       // Step 3: Insert new deposit lines
-      const depositLinesData = depositLines.map((line, index) => ({
+      const depositLinesData = normalizedDepositLines.map((line, index) => ({
         deposit_id: depositId,
         owner_id,
         line_number: index + 1,
@@ -613,13 +632,13 @@ export const useDeposits = () => {
         line_number: 1,
         account_id: depositData.bank_account_id,
         project_id: depositData.project_id || null,
-        debit: depositData.amount,
+        debit: linesTotal,
         credit: 0,
-        memo: depositLines[0]?.memo || 'Deposit'
+        memo: normalizedDepositLines[0]?.memo || 'Deposit'
       };
 
       // Remaining lines: CREDIT source accounts
-      const sourceLinesData = depositLines.map((line, index) => {
+      const sourceLinesData = normalizedDepositLines.map((line, index) => {
         let creditAccountId = line.account_id;
         let costCodeId = null;
 
