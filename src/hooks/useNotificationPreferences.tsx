@@ -40,6 +40,7 @@ const defaultPreferences: Omit<NotificationPreferences, 'id' | 'user_id'> = {
   can_close_books: false,
   can_lock_budgets: false,
   can_undo_reconciliation: false,
+  can_reallocate: false,
   can_edit_projects: false,
   can_access_pm_dashboard: true,
   can_access_owner_dashboard: false,
