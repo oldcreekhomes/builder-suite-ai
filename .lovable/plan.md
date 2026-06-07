@@ -1,41 +1,36 @@
-## Global Reconciliation Cleared-Marker Backfill
+## What is happening
 
-Run a one-time, system-wide pass that walks **every** `bank_reconciliations` row with `status = 'completed'` (across all home builders, projects, and bank accounts) and stamps the cleared markers on the underlying transaction rows they reference.
+The earlier fix did not fully work because the database column that stores reconciled transaction IDs is an array, but the backfill/trigger treated it like JSON. That means parts of the process silently produced an empty list and skipped many transactions instead of stamping them as cleared.
 
-### What gets stamped
+For 103 East Oxford / Atlantic Union Bank, I confirmed the database still has completed reconciliation IDs pointing at transactions that are not marked cleared:
 
-For each completed reconciliation, read its `checked_transaction_ids` and, where the matching row is currently missing its cleared marker, set:
+- Bills: 55 still missing cleared markers
+- Checks: 18 still missing cleared markers
+- Deposits: 11 still missing cleared markers
+- Journal entry lines: 1 still missing cleared marker
 
-- `reconciled = true`
-- `reconciliation_id = <that reconciliation's id>`
-- `reconciliation_date = <that reconciliation's statement_date>`
-- `updated_at = now()`
+That is why the register still shows regular business statuses like Approved or Paid instead of Cleared.
 
-Applied to all five transaction tables that can appear in a reconciliation:
+## Plan
 
-1. `checks`
-2. `deposits`
-3. `bills` (and/or `bill_payments` where applicable)
-4. `credit_cards`
-5. `journal_entry_lines`
+1. Correct the reconciliation sync function
+   - Update `sync_reconciliation_row_flags()` so it reads `checked_transaction_ids` as an actual UUID array.
+   - Keep the same safety behavior: only completed reconciliations stamp rows, and rows already tied to a different reconciliation are not overwritten.
 
-### Safety rules
+2. Run a corrected global data backfill
+   - Re-process every completed reconciliation across all jobs, builders, and bank accounts.
+   - Stamp only these cleared-marker fields:
+     - `reconciled = true`
+     - `reconciliation_id`
+     - `reconciliation_date`
+     - `updated_at`
+   - Do not change money amounts, dates, vendors, accounts, descriptions, or balances.
 
-- **Idempotent.** A row that already has a `reconciliation_id` is left alone — we never overwrite a row that is already attributed to a different reconciliation.
-- **No financial data changes.** No amounts, dates, accounts, memos, projects, or cost codes are touched. Only the cleared/reconciliation stamp fields above.
-- **Scoped to completed reconciliations only.** In-progress reconciliations are ignored.
-- **All tenants.** Runs once globally; not filtered by project or home builder.
+3. Fix the visible register status if needed
+   - Review the report/register code path that displays the status badge.
+   - Ensure a transaction with `reconciled = true` displays as Cleared instead of Approved/Paid.
 
-### Permanent safety net (same migration)
-
-Install the `sync_reconciliation_row_flags()` trigger on `bank_reconciliations` (AFTER INSERT OR UPDATE OF status, checked_transaction_ids) so that from this point forward, completing or editing a reconciliation **always** stamps the matching rows automatically — regardless of which app code path performed the action. This prevents the drift from recurring.
-
-### Verification after run
-
-Report counts per table of rows newly stamped, and confirm that for the user's current project (103 East Oxford) the historical 2024–2025 transactions in the bank register now show as cleared.
-
-### Out of scope
-
-- No UI changes.
-- No changes to reconciliation math, balances, or statement records.
-- No deletion or merging of any reconciliation records.
+4. Verify the result
+   - Re-check 103 East Oxford / Atlantic Union Bank specifically.
+   - Confirm completed reconciliation transaction IDs have no missing cleared markers.
+   - Confirm future completed reconciliations will auto-stamp correctly.
