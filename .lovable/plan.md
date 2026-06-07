@@ -1,27 +1,26 @@
-# Guard: Prevent Unchecking COA Rows With Activity
+## Findings
 
-## Goal
-In the project-level Chart of Accounts toggle UI (`ProjectAccountsTab.tsx`), block users from unchecking any account that has non-zero journal activity scoped to the current project. Show a toast that names the account and its current project balance.
+- January and February are both off by **$0.13** because the Oxford project has **13 unbalanced journal entries** where total debits and credits differ by pennies.
+- Those entry-level differences add up to exactly the Balance Sheet difference shown in the screenshots.
+- The recurring cause is journal creation code that sometimes uses a header total on one side and line totals on the other side, especially in corrected bills and deposits.
 
-## Behavior
-- Checking an account: unchanged (always allowed).
-- Unchecking an account:
-  1. Query `journal_entry_lines` filtered by `account_id` and `project_id` (current project).
-  2. Compute `balance = SUM(debit) - SUM(credit)` using cent-precise math (`Math.round(x*100)/100`).
-  3. If `|balance| > 0.005`: block the uncheck (do not mutate state, do not persist) and show an error toast:
-     - Title: "Cannot disable account"
-     - Description: `"{account_number} {account_name} has a project balance of {formatted $balance}. Clear or reassign the activity before disabling."`
-  4. If balance is exactly $0 (or no lines exist for this project): allow the uncheck as today.
+## Plan
 
-## Implementation Notes
-- File: `src/components/projects/.../ProjectAccountsTab.tsx` (the component owning the COA checkbox toggle).
-- Use existing supabase client and the existing batching helper (`batchedIn`) is not needed — single account_id query.
-- Use `sonner` toast (`toast.error`).
-- Format balance with the project's currency formatter (2 fraction digits, matches Currency Formatting Standard memory).
-- Guard runs client-side at uncheck time; no DB schema or migration required.
-- No change to check (enable) flow, no change to other tabs, no balance sheet logic touched in this task.
+1. **Repair the existing Oxford data**
+   - Add a one-time SQL data migration that finds penny-level unbalanced journal entries for the Oxford project.
+   - For bill entries, adjust the A/P line by the exact residual penny amount.
+   - For the one deposit entry, adjust the bank line by the exact residual penny amount.
+   - Only repair small rounding residuals under $1.00; do not touch large mismatches.
 
-## Verification
-- Try to uncheck `1050 Loan to OCH at Lexington` on Oxford project → blocked with toast showing $75,000.00.
-- Uncheck an account with zero project activity → succeeds as before.
-- Re-check a previously disabled account → succeeds as before.
+2. **Fix bill journal creation going forward**
+   - Patch `useBills.ts` corrected-bill logic so the A/P line is calculated from the rounded sum of the actual journal lines, not from `correctedBill.total_amount`.
+   - Keep the existing posted-bill path that already uses actual line totals.
+
+3. **Fix deposit journal creation going forward**
+   - Patch `useDeposits.ts` create/update logic so the bank line is calculated from the rounded sum of the deposit source lines.
+   - Tighten validation to cent-precise equality so a $0.01 header-vs-lines difference cannot create an unbalanced entry.
+
+4. **Verify the Balance Sheet**
+   - Re-query Oxford as of **January 31, 2026** and **February 28, 2026**.
+   - Confirm Assets equal Liabilities & Equity to the cent for both months.
+   - Confirm the remaining unbalanced-entry query returns zero rows for Oxford through February.
