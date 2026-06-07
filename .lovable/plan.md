@@ -1,43 +1,22 @@
-## Problem
+## Fix two Journal Entry issues
 
-In the `2010 - Accounts Payable` register (opened from the Balance Sheet), the **Hide Paid** toggle is ON by default but several fully-paid bills and their matching `Bill Pmt - Check` rows still appear (e.g. RC Fields $2,475 bill on 11/14/2025 and its 01/08/2026 payment, OCH at Oxford $316.57, etc.). When Hide Paid is on, only bills with an open balance should remain in the list.
+### 1. Journal Entry # is reversed
+The form numbers entries from a list sorted newest-first, so the oldest entry shows as #5 and the newest as #1 (chronologically reversed). Numbering should ascend: the first/oldest entry is #1, the newest is the highest number. The Prev/Next arrows should also walk in ascending chronological order.
 
-The footer totals (34 bills / $63,311.58) actually match the current open AP balance, so the math is right — the row visibility filter is the only thing wrong.
+**Change in `src/components/journal/JournalEntryForm.tsx`:**
+- Reverse `filteredEntries` so index 0 = oldest entry. This single change makes:
+  - `Journal Entry #` field display the correct ascending number (index + 1).
+  - `Position N of M` counter ascend chronologically.
+  - The `<` / `>` arrow buttons step from #1 → #2 → … → #N in date order.
+- No DB or hook changes; ordering for other consumers (`useJournalEntries`) stays as-is.
 
-## Root cause
+### 2. Attachments are locked when the period is closed
+Currently, when the entry is in a closed period (or has reconciled lines), the entire Attachments block has `pointer-events-none`, which blocks the preview/open button as well. Opening a PDF doesn't modify anything, so it should always work — only adding/removing files should be blocked.
 
-The visibility filter in `AccountDetailDialog.tsx` only hides a `bill` / `bill_payment` / `consolidated_bill_payment` row when `txn.isPaid === true`. `isPaid` is sourced exclusively from a per-bill calculation:
+**Change in `src/components/journal/JournalEntryForm.tsx` (Attachments wrapper, ~line 649):**
+- Remove the `pointer-events-none` wrapper class when `isTransactionLocked` is true.
+- Keep the existing `disabled={isTransactionLocked || isUploading}` on `JournalEntryAttachmentUpload`, which already disables only the Add Files button and the Remove (X) button while leaving the file-name preview click handler active.
+- Result: users can click a listed attachment to open/preview/download it even when the entry is locked; they still cannot add new files or delete existing ones.
 
-- With `asOfDate` (the case used by the AP click-through from Balance Sheet): `billsPaidBeforeAsOf` is built by summing AP-account debits vs. credits per `bills.id`. Any bill whose AP credit/debit lines are not all attributable to a single `bills.id` (consolidated multi-bill payments, reversed-and-recreated bills, partial reference-number rewrites, payments whose JE `source_id` resolves to a different bill row) silently fails this check and stays visible.
-- Without `asOfDate`: it falls back to `bill.amount_paid >= bill.total_amount || bill.status === 'paid'`, which is not consulted in the AP-from-BS path even though `bills.status = 'paid'` is already true in the DB for the leaking rows.
-
-So bills that the database already considers paid (and their payment rows) leak through the filter.
-
-## Fix
-
-Make Hide Paid a strict "open balance only" filter in `AccountDetailDialog.tsx`:
-
-1. **Treat a bill as paid for Hide Paid purposes when ANY of these is true:**
-   - `bill.status === 'paid'`
-   - `bill.amount_paid` (cent-precise) `>= bill.total_amount`
-   - Existing historical `billsPaidBeforeAsOf` membership (kept for as-of correctness)
-   - Successor-of-reversed-paid-bill mapping (already present, keep it)
-
-2. **Propagate `isPaid` to every row tied to a paid bill:**
-   - `bill` rows → hidden when bill is paid.
-   - `bill_payment` rows → hidden when their parent bill is paid (today this is already wired through `billsMap`, but with the broader paid definition above it will now cover the leaking rows).
-   - `consolidated_bill_payment` rows → hidden when every bill in `includedBillPayments` is paid (already always `isPaid: true`, no change).
-
-3. **Don't change** the running balance / opening balance / totals / status badge / `as of date` query logic. Only the boolean used by the Hide Paid filter is broadened.
-
-4. **Verification after edit:**
-   - Confirm RC Fields 11/14/2025 + its 01/08/2026 payment disappear with Hide Paid on.
-   - Confirm the footer still reads 34 bills / $63,311.58 (or recompute from DB if it shifts; current value matches the live open AP balance so it should stay).
-   - Confirm partial payments stay visible (an unpaid remainder must still appear).
-   - Confirm toggling Hide Paid OFF restores every row exactly as today.
-
-## Files touched
-
-- `src/components/accounting/AccountDetailDialog.tsx` — broaden the paid-bill detection used for the Hide Paid filter and ensure `bill_payment` rows inherit that flag from `billsMap`.
-
-No DB migrations, no changes to Balance Sheet, AP Aging report, or any other surface.
+### Out of scope
+No changes to the locked-state badge, save/edit gating, period-close logic, reconciliation logic, or other transaction types.

@@ -81,12 +81,13 @@ export const JournalEntryForm = ({ projectId, activeTab: parentActiveTab }: Jour
 
   // Filter entries by projectId if specified
   const filteredEntries = useMemo(() => {
-    if (!projectId) {
-      return journalEntries;
-    }
-    return journalEntries.filter(entry => 
-      entry.lines?.some((line: any) => line.project_id === projectId)
-    );
+    const base = !projectId
+      ? journalEntries
+      : journalEntries.filter(entry =>
+          entry.lines?.some((line: any) => line.project_id === projectId)
+        );
+    // Reverse so oldest = index 0 → Journal Entry #1 ascends chronologically
+    return [...base].reverse();
   }, [journalEntries, projectId]);
 
   console.debug('Journal Entry Navigation State:', {
@@ -646,7 +647,7 @@ export const JournalEntryForm = ({ projectId, activeTab: parentActiveTab }: Jour
             />
           </div>
 
-          <div className={`col-span-2 min-w-0 ${isTransactionLocked ? 'pointer-events-none' : ''}`}>
+          <div className="col-span-2 min-w-0">
             <Label>Attachments</Label>
             <JournalEntryAttachmentUpload
               attachments={attachments.map(a => ({
