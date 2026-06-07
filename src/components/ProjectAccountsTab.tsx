@@ -224,10 +224,48 @@ export function ProjectAccountsTab({ projectId }: ProjectAccountsTabProps) {
         <label className="flex items-center gap-3 cursor-pointer flex-1 min-w-0">
           <Checkbox
             checked={!isExcluded}
-            onCheckedChange={(checked) => {
+            onCheckedChange={async (checked) => {
+              const wantExclude = !checked;
+              if (wantExclude) {
+                // Guard: block disabling an account that has non-zero project activity
+                const { data, error } = await supabase
+                  .from('journal_entry_lines')
+                  .select('debit, credit')
+                  .eq('account_id', account.id)
+                  .eq('project_id', projectId);
+                if (error) {
+                  toast({
+                    title: "Error",
+                    description: `Failed to verify account balance: ${error.message}`,
+                    variant: "destructive",
+                  });
+                  return;
+                }
+                const totalDebit = Math.round(
+                  (data ?? []).reduce((s, l: any) => s + Number(l.debit || 0), 0) * 100
+                ) / 100;
+                const totalCredit = Math.round(
+                  (data ?? []).reduce((s, l: any) => s + Number(l.credit || 0), 0) * 100
+                ) / 100;
+                const balance = Math.round((totalDebit - totalCredit) * 100) / 100;
+                if (Math.abs(balance) > 0.005) {
+                  const formatted = new Intl.NumberFormat('en-US', {
+                    style: 'currency',
+                    currency: 'USD',
+                    minimumFractionDigits: 2,
+                    maximumFractionDigits: 2,
+                  }).format(balance);
+                  toast({
+                    title: "Cannot disable account",
+                    description: `${account.code} ${account.name} has a project balance of ${formatted}. Clear or reassign the activity before disabling.`,
+                    variant: "destructive",
+                  });
+                  return;
+                }
+              }
               toggleMutation.mutate({
                 accountId: account.id,
-                exclude: !checked,
+                exclude: wantExclude,
               });
             }}
             disabled={toggleMutation.isPending}
