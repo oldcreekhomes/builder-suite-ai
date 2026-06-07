@@ -105,7 +105,7 @@ export const useDeposits = () => {
       if (!deposit) throw new Error("Failed to create deposit");
 
       // Insert deposit lines
-      const depositLinesData = depositLines.map((line, index) => ({
+      const depositLinesData = normalizedDepositLines.map((line, index) => ({
         deposit_id: deposit.id,
         owner_id,
         line_number: index + 1,
@@ -157,13 +157,13 @@ export const useDeposits = () => {
         line_number: 1,
         account_id: depositData.bank_account_id,
         project_id: depositData.project_id || null,
-        debit: depositData.amount,
+        debit: linesTotal,
         credit: 0,
-        memo: depositLines[0]?.memo || 'Deposit'
+        memo: normalizedDepositLines[0]?.memo || 'Deposit'
       };
 
       // Remaining lines: CREDIT source accounts (revenue/customer payments)
-      const sourceLinesData = depositLines.map((line, index) => {
+      const sourceLinesData = normalizedDepositLines.map((line, index) => {
         let creditAccountId = line.account_id;
         let costCodeId = null;
 
