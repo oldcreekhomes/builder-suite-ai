@@ -1688,14 +1688,14 @@ export function ReconcileAccountsContent({ projectId }: ReconcileAccountsContent
                           <td className="p-3 text-center">
                             <TableRowActions actions={[
                               {
-                                label: "Review cleared transactions",
+                                label: "Review",
                                 onClick: () => {
                                   setSelectedReconciliationForReview(rec);
                                   setReviewDialogOpen(true);
                                 },
                               },
                               ...(canUndoReconciliation ? [{
-                                label: "Undo reconciliation",
+                                label: "Undo",
                                 onClick: () => handleUndoReconciliation(rec),
                                 variant: "destructive" as const,
                                 disabled: !isLatestCompleted(rec),
