@@ -1,22 +1,20 @@
-## Fix two Journal Entry issues
+## Fix: keep newest-first navigation, only flip the displayed number
 
-### 1. Journal Entry # is reversed
-The form numbers entries from a list sorted newest-first, so the oldest entry shows as #5 and the newest as #1 (chronologically reversed). Numbering should ascend: the first/oldest entry is #1, the newest is the highest number. The Prev/Next arrows should also walk in ascending chronological order.
+The previous fix reversed `filteredEntries` so #1 became the oldest. That fixed the number labels but broke navigation direction — landing on "New" and pressing the left arrow now loads #1 (oldest) instead of #6 (newest).
 
-**Change in `src/components/journal/JournalEntryForm.tsx`:**
-- Reverse `filteredEntries` so index 0 = oldest entry. This single change makes:
-  - `Journal Entry #` field display the correct ascending number (index + 1).
-  - `Position N of M` counter ascend chronologically.
-  - The `<` / `>` arrow buttons step from #1 → #2 → … → #N in date order.
-- No DB or hook changes; ordering for other consumers (`useJournalEntries`) stays as-is.
+The correct behavior: navigation order stays newest → older (left arrow = older, right arrow = newer, same as before), while the Journal Entry # label still ascends chronologically (oldest = #1, newest = highest).
 
-### 2. Attachments are locked when the period is closed
-Currently, when the entry is in a closed period (or has reconciled lines), the entire Attachments block has `pointer-events-none`, which blocks the preview/open button as well. Opening a PDF doesn't modify anything, so it should always work — only adding/removing files should be blocked.
+### Change in `src/components/journal/JournalEntryForm.tsx`
 
-**Change in `src/components/journal/JournalEntryForm.tsx` (Attachments wrapper, ~line 649):**
-- Remove the `pointer-events-none` wrapper class when `isTransactionLocked` is true.
-- Keep the existing `disabled={isTransactionLocked || isUploading}` on `JournalEntryAttachmentUpload`, which already disables only the Add Files button and the Remove (X) button while leaving the file-name preview click handler active.
-- Result: users can click a listed attachment to open/preview/download it even when the entry is locked; they still cannot add new files or delete existing ones.
+1. **Revert the reversal** of `filteredEntries` (line ~83-91) back to the original newest-first order so `goToPrevious`/`goToNext` and the New→back-arrow handoff behave as they did originally.
+2. **Compute the displayed Journal Entry #** from `filteredEntries.length - currentEntryIndex`:
+   - In viewing mode: `Journal Entry # = filteredEntries.length - currentEntryIndex` (index 0 = newest → highest #).
+   - In new-entry mode: `Journal Entry # = filteredEntries.length + 1` (unchanged).
+3. **Position counter** (line 138): mirror the same inversion so "Position N of M" matches the number — `currentPosition = filteredEntries.length - currentEntryIndex` in viewing mode.
 
-### Out of scope
-No changes to the locked-state badge, save/edit gating, period-close logic, reconciliation logic, or other transaction types.
+### Result
+- Land on form → New entry shows #6 (5 existing + 1).
+- Press ← → loads newest existing entry, shows #5.
+- Press ← again → #4, then #3, #2, #1.
+- Press → reverses back toward newer entries.
+- Attachment unlock behavior from the prior fix stays in place.
