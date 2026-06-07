@@ -16,8 +16,8 @@ import { format, addMonths, endOfMonth } from "date-fns";
 import { formatDateSafe } from "@/utils/dateOnly";
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { CalendarIcon, Save, CheckCircle2, Lock, LockOpen, ChevronDown, ChevronUp, Loader2, ArrowUpDown, ArrowUp, ArrowDown, StickyNote, Eye, MoreHorizontal } from "lucide-react";
-import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem } from "@/components/ui/dropdown-menu";
+import { CalendarIcon, Save, CheckCircle2, Lock, LockOpen, ChevronDown, ChevronUp, Loader2, ArrowUpDown, ArrowUp, ArrowDown, StickyNote } from "lucide-react";
+import { TableRowActions } from "@/components/ui/table-row-actions";
 import { ReconciliationReviewDialog } from "./ReconciliationReviewDialog";
 import {
   Dialog,
