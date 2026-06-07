@@ -55,7 +55,7 @@ export const useBills = () => {
           ...billData,
           owner_id,
           created_by: user.id,
-          total_amount: billLines.reduce((sum, line) => sum + line.amount, 0)
+          total_amount: Math.round(billLines.reduce((sum, line) => sum + line.amount, 0) * 100) / 100
         })
         .select()
         .maybeSingle();
@@ -165,7 +165,7 @@ export const useBills = () => {
         // Skip zero-amount lines - they can't create valid journal entries
         if (line.amount === 0 || line.amount === null) continue;
         
-        const lineAmount = Math.abs(line.amount);
+        const lineAmount = Math.round(Math.abs(line.amount) * 100) / 100;
         const isCredit = line.amount < 0;
         
         if (line.line_type === 'job_cost') {
@@ -1538,7 +1538,7 @@ export const useBills = () => {
           let lineNumber = 1;
 
           for (const line of correctedBillLinesData) {
-            const lineAmount = Math.abs(line.amount);
+            const lineAmount = Math.round(Math.abs(line.amount) * 100) / 100;
             const isCredit = line.amount < 0;
             
             if (line.line_type === 'job_cost') {
