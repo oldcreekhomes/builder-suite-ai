@@ -1686,34 +1686,21 @@ export function ReconcileAccountsContent({ projectId }: ReconcileAccountsContent
                             )}
                           </td>
                           <td className="p-3 text-center">
-                            <DropdownMenu>
-                              <DropdownMenuTrigger asChild>
-                                <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
-                                  <MoreHorizontal className="h-4 w-4" />
-                                </Button>
-                              </DropdownMenuTrigger>
-                              <DropdownMenuContent align="end">
-                                <DropdownMenuItem
-                                  onClick={() => {
-                                    setSelectedReconciliationForReview(rec);
-                                    setReviewDialogOpen(true);
-                                  }}
-                                >
-                                  <Eye className="h-4 w-4 mr-2" />
-                                  Review cleared transactions
-                                </DropdownMenuItem>
-                                {canUndoReconciliation && (
-                                  <DropdownMenuItem
-                                    onClick={() => handleUndoReconciliation(rec)}
-                                    disabled={!isLatestCompleted(rec)}
-                                    className="text-red-600 focus:text-red-700"
-                                  >
-                                    <Lock className="h-4 w-4 mr-2" />
-                                    Undo reconciliation
-                                  </DropdownMenuItem>
-                                )}
-                              </DropdownMenuContent>
-                            </DropdownMenu>
+                            <TableRowActions actions={[
+                              {
+                                label: "Review cleared transactions",
+                                onClick: () => {
+                                  setSelectedReconciliationForReview(rec);
+                                  setReviewDialogOpen(true);
+                                },
+                              },
+                              ...(canUndoReconciliation ? [{
+                                label: "Undo reconciliation",
+                                onClick: () => handleUndoReconciliation(rec),
+                                variant: "destructive" as const,
+                                disabled: !isLatestCompleted(rec),
+                              }] : []),
+                            ]} />
                           </td>
                         </tr>
                       ))}
