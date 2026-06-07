@@ -1,28 +1,41 @@
-## Goal
+## Global Reconciliation Cleared-Marker Backfill
 
-Add a new **Reallocations** permission to the Edit Employee → Access tab, positioned between **Delete Invoices** and **Undo Reconciliation**. Default OFF for everyone (including owners). This permission will later gate the ability to reallocate a transaction's account/cost code after the period is closed or reconciled (date and amount stay untouched, so books are unaffected).
+Run a one-time, system-wide pass that walks **every** `bank_reconciliations` row with `status = 'completed'` (across all home builders, projects, and bank accounts) and stamps the cleared markers on the underlying transaction rows they reference.
 
-This plan covers only the permission scaffolding. The actual reallocation UI inside the Transaction Details dialog will be a follow-up once the toggle exists and you confirm placement.
+### What gets stamped
 
-## Changes
+For each completed reconciliation, read its `checked_transaction_ids` and, where the matching row is currently missing its cleared marker, set:
 
-1. **Database migration** — add `can_reallocate boolean not null default false` to `public.user_notification_preferences`. No backfill needed (default false satisfies "off for all employees including owner").
+- `reconciled = true`
+- `reconciliation_id = <that reconciliation's id>`
+- `reconciliation_date = <that reconciliation's statement_date>`
+- `updated_at = now()`
 
-2. **`src/hooks/useNotificationPreferences.tsx`**
-   - Add `can_reallocate: boolean` to the `NotificationPreferences` interface.
-   - Add `can_reallocate: false` to `defaultPreferences`.
-   - Do NOT add it to the `ownerPermissions` override (owners also default to off).
+Applied to all five transaction tables that can appear in a reconciliation:
 
-3. **`src/components/employees/EmployeeAccessPreferences.tsx`** — insert a new toggle block between the existing "Delete Invoices" and "Undo Reconciliation" blocks:
-   - Label: **Reallocations**
-   - Description: "Ability to reallocate a transaction's account or cost code after the period has been closed or reconciled (amount and date are not changed)."
-   - Bound to `preferences.can_reallocate` / `updatePreferences({ can_reallocate: checked })`.
+1. `checks`
+2. `deposits`
+3. `bills` (and/or `bill_payments` where applicable)
+4. `credit_cards`
+5. `journal_entry_lines`
 
-4. **New hook `src/hooks/useReallocationPermissions.ts`** mirroring `useUndoReconciliationPermissions`, but WITHOUT the automatic owner override — returns `canReallocate = preferences?.can_reallocate ?? false`. This keeps the default truly off for everyone, including owners, until they explicitly enable it on their own employee record.
+### Safety rules
 
-## Out of scope (follow-up)
+- **Idempotent.** A row that already has a `reconciliation_id` is left alone — we never overwrite a row that is already attributed to a different reconciliation.
+- **No financial data changes.** No amounts, dates, accounts, memos, projects, or cost codes are touched. Only the cleared/reconciliation stamp fields above.
+- **Scoped to completed reconciliations only.** In-progress reconciliations are ignored.
+- **All tenants.** Runs once globally; not filtered by project or home builder.
 
-- Wiring `canReallocate` into the Transaction Details dialog / journal entry edit flow to actually permit changing the account on a locked/closed-period transaction.
-- Audit logging of reallocations.
+### Permanent safety net (same migration)
 
-Confirm and I'll implement the four items above.
+Install the `sync_reconciliation_row_flags()` trigger on `bank_reconciliations` (AFTER INSERT OR UPDATE OF status, checked_transaction_ids) so that from this point forward, completing or editing a reconciliation **always** stamps the matching rows automatically — regardless of which app code path performed the action. This prevents the drift from recurring.
+
+### Verification after run
+
+Report counts per table of rows newly stamped, and confirm that for the user's current project (103 East Oxford) the historical 2024–2025 transactions in the bank register now show as cleared.
+
+### Out of scope
+
+- No UI changes.
+- No changes to reconciliation math, balances, or statement records.
+- No deletion or merging of any reconciliation records.
