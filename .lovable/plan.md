@@ -1,32 +1,19 @@
-## Plan
+## Goal
+Standardize the Reconciliation History Actions column in `src/components/transactions/ReconcileAccountsContent.tsx` to match the rest of the app: remove the two inline icons (Eye / red Lock) and replace them with a single three-dot (MoreHorizontal) trigger that opens a DropdownMenu.
 
-1. **Fix the remaining cleared-state gap for Atlantic Union Bank**
-   - Treat the last completed reconciliation for 1010 - Atlantic Union Bank as the cutoff.
-   - For project `103 East Oxford`, stamp every bank-register transaction dated on or before that cutoff as cleared when it belongs to account `1010 - Atlantic Union Bank`.
-   - This includes the two row types still showing incorrectly in the screenshots:
-     - `Bill Pmt - Check` rows from `bill_payments`
-     - `Journal Entry` rows from `journal_entry_lines`
+## Changes
+File: `src/components/transactions/ReconcileAccountsContent.tsx`
 
-2. **Use the right reconciliation marker**
-   - Attach those uncleared rows to the appropriate completed monthly reconciliation by transaction date.
-   - Set the row to cleared with `reconciled = true`, `reconciliation_id`, and `reconciliation_date`.
-   - Preserve existing reconciled rows and do not overwrite rows already attached to another reconciliation.
+1. Add imports:
+   - `MoreHorizontal` from `lucide-react`
+   - `DropdownMenu`, `DropdownMenuTrigger`, `DropdownMenuContent`, `DropdownMenuItem` from `@/components/ui/dropdown-menu` (if not already imported)
 
-3. **Prevent this from coming back**
-   - Update the reconciliation sync/backfill logic so future completed reconciliations mark all bank-side register rows consistently, not just source tables like `checks` and `deposits`.
-   - Specifically include legacy/backfilled `bill_payments` and bank-side `journal_entry_lines`, because those are what the Account Detail dialog uses for the visible register.
+2. Replace the Actions `<td>` (lines ~1687–1735) with a single dropdown:
+   - Trigger: ghost `Button` `h-8 w-8 p-0` with `<MoreHorizontal className="h-4 w-4" />`
+   - Item 1: "Review cleared transactions" (with Eye icon on left) — opens review dialog (existing handler)
+   - Item 2 (only when `canUndoReconciliation`): "Undo reconciliation" (with Lock icon on left, red text) — calls `handleUndoReconciliation(rec)`, `disabled={!isLatestCompleted(rec)}`
+   - Drop the TooltipProvider wrappers; tooltips no longer needed since labels are visible in the menu.
 
-4. **Verify after applying**
-   - Run a read-only check for 103 East Oxford / Atlantic Union Bank showing:
-     - zero `Paid` bill-payment rows dated on or before the last completed reconciliation that remain uncleared
-     - zero `Approved` bank journal-entry rows dated on or before the last completed reconciliation that remain uncleared
-     - checks and deposits still remain cleared
+3. Keep all existing handlers, dialogs, and column header ("Actions") unchanged.
 
-## Technical notes
-
-- The earlier fix correctly stamped `checks` and `deposits`, which is why those show green `Cleared`.
-- The attached screenshots are coming from `AccountDetailDialog`, which reads the bank register primarily from `journal_entry_lines` plus synthetic/consolidated `bill_payments` rows.
-- Current database check shows the remaining issue is concentrated in:
-  - `bill_payments`: all visible legacy rows are still missing reconciliation flags
-  - `journal_entry_lines`: the bank-side lines behind many register rows are still missing reconciliation flags
-- This should be a data correction plus a reconciliation-sync hardening change, not a frontend-only display workaround.
+No business logic changes; purely a UI standardization to the three-dot menu pattern used elsewhere.
