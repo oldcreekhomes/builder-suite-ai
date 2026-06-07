@@ -1574,16 +1574,19 @@ export const useBills = () => {
             }
           }
 
-          // Credit AP for normal bills, Debit AP for credits
-          const totalAmount = Math.abs(correctedBill.total_amount);
-          const isBillCredit = correctedBill.total_amount < 0;
+          // Credit AP for normal bills, Debit AP for credits.
+          // Use sum of actual corrected lines so every journal entry balances to the cent.
+          const totalDebits = correctedJELines.reduce((sum, l) => sum + (l.debit || 0), 0);
+          const totalCredits = correctedJELines.reduce((sum, l) => sum + (l.credit || 0), 0);
+          const totalAmount = Math.round((totalDebits - totalCredits) * 100) / 100;
+          const isBillCredit = totalAmount < 0;
           
           correctedJELines.push({
             journal_entry_id: correctedJE.id,
             line_number: lineNumber,
             account_id: settings.ap_account_id,
-            debit: isBillCredit ? totalAmount : 0,
-            credit: isBillCredit ? 0 : totalAmount,
+            debit: isBillCredit ? Math.abs(totalAmount) : 0,
+            credit: isBillCredit ? 0 : Math.abs(totalAmount),
             memo: `AP - ${correctedBill.reference_number || 'Bill'}${isBillCredit ? ' (Credit)' : ''}`,
             owner_id: originalBill.owner_id,
             project_id: correctedBill.project_id || null
