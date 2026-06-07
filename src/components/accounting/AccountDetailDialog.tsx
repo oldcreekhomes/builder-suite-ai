@@ -450,10 +450,14 @@ export function AccountDetailDialog({
           const sortedLines = (bill.bill_lines || []).sort((a: any, b: any) => a.line_number - b.line_number);
           const firstLine = sortedLines[0];
           
-          // Determine if bill is fully paid - use historical data when asOfDate provided
-          const isPaid = asOfDate
-            ? billsPaidBeforeAsOf.has(bill.id)
-            : bill.amount_paid >= bill.total_amount || bill.status === 'paid';
+          // Determine if bill is fully paid. Combine signals so Hide Paid never leaks:
+          //  - DB status flag
+          //  - cent-precise amount_paid vs total_amount
+          //  - historical AP debit/credit balance as of asOfDate (when provided)
+          const totalCents = Math.round(Number(bill.total_amount || 0) * 100);
+          const paidCents = Math.round(Number(bill.amount_paid || 0) * 100);
+          const dbPaid = bill.status === 'paid' || (totalCents > 0 && paidCents >= totalCents);
+          const isPaid = dbPaid || (asOfDate ? billsPaidBeforeAsOf.has(bill.id) : false);
           
           billsMap.set(bill.id, {
             ...bill,
