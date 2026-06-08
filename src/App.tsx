@@ -40,11 +40,53 @@ const PageLoader = () => (
   </div>
 );
 
-// Helper: wraps React.lazy with an error boundary so one bad page can't blank the app
+// Helper: wraps React.lazy with an error boundary so one bad page can't blank the app.
+// On chunk-load failures (typical after a new deploy makes old hashes 404),
+// auto-reload once to fetch the fresh index.html + matching chunk hashes.
+const CHUNK_RELOAD_KEY = "lovable:chunk-reload";
+
+function isChunkLoadError(err: unknown): boolean {
+  const msg = String((err as any)?.message ?? err ?? "");
+  const name = String((err as any)?.name ?? "");
+  return (
+    /Failed to fetch dynamically imported module/i.test(msg) ||
+    /error loading dynamically imported module/i.test(msg) ||
+    /Importing a module script failed/i.test(msg) ||
+    /ChunkLoadError/i.test(name) ||
+    /ChunkLoadError/i.test(msg)
+  );
+}
+
+// Clear the one-shot sentinel once the app boots successfully so the self-heal
+// re-arms for the next deploy.
+if (typeof window !== "undefined") {
+  window.addEventListener("load", () => {
+    try {
+      sessionStorage.removeItem(CHUNK_RELOAD_KEY);
+    } catch {}
+  });
+}
+
 function safeLazy(factory: () => Promise<{ default: ComponentType<any> }>) {
   return lazy(() =>
     factory().catch((err) => {
       console.error("[LazyLoad] Failed to load module:", err);
+
+      // Stale-chunk after a new deploy: try a one-shot reload to pick up the
+      // fresh index.html. Guarded by sessionStorage to avoid infinite loops.
+      if (isChunkLoadError(err)) {
+        try {
+          const alreadyReloaded = sessionStorage.getItem(CHUNK_RELOAD_KEY);
+          if (!alreadyReloaded) {
+            sessionStorage.setItem(CHUNK_RELOAD_KEY, String(Date.now()));
+            window.location.reload();
+            return { default: () => null };
+          }
+        } catch {
+          // sessionStorage unavailable (private mode, etc.) — fall through to fallback UI
+        }
+      }
+
       return {
         default: () => (
           <div style={{ padding: 40, textAlign: "center", fontFamily: "system-ui" }}>
@@ -53,7 +95,10 @@ function safeLazy(factory: () => Promise<{ default: ComponentType<any> }>) {
               This page could not be loaded. Please try refreshing.
             </p>
             <button
-              onClick={() => window.location.reload()}
+              onClick={() => {
+                try { sessionStorage.removeItem(CHUNK_RELOAD_KEY); } catch {}
+                window.location.reload();
+              }}
               style={{
                 padding: "8px 16px",
                 backgroundColor: "#2563eb",
