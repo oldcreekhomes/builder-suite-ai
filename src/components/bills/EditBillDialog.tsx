@@ -940,7 +940,7 @@ export function EditBillDialog({ open, onOpenChange, billId }: EditBillDialogPro
                         <TableHead className="w-[90px]">Quantity</TableHead>
                         <TableHead className="w-[100px]">Unit Cost</TableHead>
                         <TableHead className="w-[100px]">Total</TableHead>
-                        {showAddressColumn && <TableHead className="w-[110px]">Lot Cost</TableHead>}
+                        
                         {showAddressColumn && <TableHead className="w-[130px]">Address</TableHead>}
                         <TableHead className="w-[180px]">Purchase Order</TableHead>
                         {showAddressColumn && <TableHead className="w-[50px] text-center"></TableHead>}
