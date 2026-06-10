@@ -41,7 +41,9 @@ export function rowTotal(quantity: number, unitCost: number): number {
 }
 
 // Group an array of lines by (costCode + unitCost + memo + PO).
-// Each child is preserved so the caller can map it back to its underlying row.
+// Lot-distributed rows (every child has a lotId) are further merged across
+// differing unitCosts so a remainder lot (rounded cents) collapses into the
+// same display group as the main lots.
 export function groupBillLines<T>(
   items: T[],
   pick: (item: T) => NormalizedLine,
@@ -65,17 +67,92 @@ export function groupBillLines<T>(
     buckets.get(key)!.push(item);
   }
 
-  return order.map((key) => {
+  // Second pass: merge lot-distributed groups that share
+  // (costCode + memo + PO + POLine), regardless of unitCost, so a remainder
+  // lot at a different per-lot rate collapses into the main row.
+  const lotMergeKey = (n: NormalizedLine) =>
+    [n.costCodeKey, n.memo.trim(), n.purchaseOrderId, n.purchaseOrderLineId].join('|');
+
+  const mergedBuckets = new Map<string, T[]>();
+  const mergedOrder: string[] = [];
+  const used = new Set<string>();
+
+  for (const key of order) {
+    if (used.has(key)) continue;
     const children = buckets.get(key)!;
-    const firstN = pick(children[0]);
-    const totalQty = children.reduce((s, c) => s + (pick(c).quantity || 0), 0);
-    // Display the clean 2dp quantity (matches what user typed on the invoice).
-    const cleanQty = Math.round(totalQty * 100) / 100;
-    // Displayed group total = quantity * unitCost (matches each row visually).
-    const amount = rowTotal(cleanQty, firstN.unitCost);
+    const allHaveLot = children.every((c) => Boolean(pick(c).lotId));
+    if (!allHaveLot) {
+      mergedBuckets.set(key, children);
+      mergedOrder.push(key);
+      used.add(key);
+      continue;
+    }
+    const mk = lotMergeKey(pick(children[0]));
+    const merged: T[] = [...children];
+    used.add(key);
+    for (const otherKey of order) {
+      if (used.has(otherKey)) continue;
+      const otherChildren = buckets.get(otherKey)!;
+      const otherAllLot = otherChildren.every((c) => Boolean(pick(c).lotId));
+      if (!otherAllLot) continue;
+      if (lotMergeKey(pick(otherChildren[0])) !== mk) continue;
+      merged.push(...otherChildren);
+      used.add(otherKey);
+    }
+    mergedBuckets.set(key, merged);
+    mergedOrder.push(key);
+  }
+
+  return mergedOrder.map((key) => {
+    const children = mergedBuckets.get(key)!;
     const lotIds = children
       .map((c) => pick(c).lotId)
       .filter((x): x is string => Boolean(x));
+    const allHaveLot = children.length > 0 && children.every((c) => Boolean(pick(c).lotId));
+
+    if (allHaveLot && children.length >= 2) {
+      // Lot-distributed: amount = sum of each child's row total (naturally
+      // includes the remainder lot's rounded cents). Display unitCost = modal
+      // (most common) child rate, shown as the per-lot value.
+      const amount = roundCents(
+        children.reduce((s, c) => {
+          const n = pick(c);
+          return s + rowTotal(n.quantity, n.unitCost);
+        }, 0),
+      );
+      const totalQty = children.reduce((s, c) => s + (pick(c).quantity || 0), 0);
+      const cleanQty = Math.round(totalQty * 100) / 100;
+      const counts = new Map<number, number>();
+      for (const c of children) {
+        const u = pick(c).unitCost;
+        counts.set(u, (counts.get(u) || 0) + 1);
+      }
+      let modalUnit = pick(children[0]).unitCost;
+      let best = -1;
+      for (const [u, n] of counts.entries()) {
+        if (n > best) {
+          best = n;
+          modalUnit = u;
+        }
+      }
+      const lotCount = Math.max(lotIds.length, children.length, 1);
+      return {
+        key,
+        children,
+        isGrouped: true,
+        quantity: cleanQty,
+        unitCost: modalUnit,
+        amount,
+        lotCost: amount / lotCount,
+        lotIds,
+      };
+    }
+
+    // Non-lot path: unchanged.
+    const firstN = pick(children[0]);
+    const totalQty = children.reduce((s, c) => s + (pick(c).quantity || 0), 0);
+    const cleanQty = Math.round(totalQty * 100) / 100;
+    const amount = rowTotal(cleanQty, firstN.unitCost);
     const lotCount = Math.max(lotIds.length, children.length, 1);
     return {
       key,
