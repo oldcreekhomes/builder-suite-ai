@@ -192,18 +192,19 @@ export function POSelectionDropdown({
         </Button>
       )}
 
-      <PODetailsDialog
-        open={dialogOpen}
-        onOpenChange={setDialogOpen}
-        purchaseOrder={selectedPOForDialog}
-        projectId={projectId}
-        vendorId={vendorId}
-        currentBillId={currentBillId}
-        currentBillAmount={currentBillAmount}
-        currentBillReference={currentBillReference}
-        pendingBillLines={pendingBillLines}
-      />
-    </div>
+      {!onInfoClick && (
+        <PODetailsDialog
+          open={dialogOpen}
+          onOpenChange={setDialogOpen}
+          purchaseOrder={selectedPOForDialog}
+          projectId={projectId}
+          vendorId={vendorId}
+          currentBillId={currentBillId}
+          currentBillAmount={currentBillAmount}
+          currentBillReference={currentBillReference}
+          pendingBillLines={pendingBillLines}
+        />
+      )}
   );
 }
 
