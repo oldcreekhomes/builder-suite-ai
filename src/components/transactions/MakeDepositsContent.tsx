@@ -16,7 +16,7 @@ import { CostCodeSearchInput } from "@/components/CostCodeSearchInput";
 import { DeleteButton } from "@/components/ui/delete-button";
 import { format } from "date-fns";
 import { CalendarIcon, Plus, Trash2, ChevronLeft, ChevronRight, Search, Lock, Divide } from "lucide-react";
-import { toast } from "sonner";
+
 import { useClosedPeriodCheck } from "@/hooks/useClosedPeriodCheck";
 import { cn } from "@/lib/utils";
 import { useProject } from "@/hooks/useProject";
@@ -535,7 +535,8 @@ export function MakeDepositsContent({ projectId, activeTab: parentActiveTab }: M
 
     setRows(updatedRows);
 
-    toast.success("Row Split", {
+    toast({
+      title: "Row Split",
       description: `Split $${totalValue.toFixed(2)} evenly across ${lots.length} addresses`,
     });
   };
