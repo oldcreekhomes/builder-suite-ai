@@ -72,6 +72,7 @@ export function POSelectionDropdown({
   currentBillAmount,
   currentBillReference,
   pendingBillLines,
+  onInfoClick,
 }: POSelectionDropdownProps) {
   const { data: purchaseOrders, isLoading } = useVendorPurchaseOrders(projectId, vendorId);
   const [dialogOpen, setDialogOpen] = useState(false);
