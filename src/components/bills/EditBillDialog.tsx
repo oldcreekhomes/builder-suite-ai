@@ -1419,7 +1419,14 @@ export function EditBillDialog({ open, onOpenChange, billId }: EditBillDialogPro
           </DialogContent>
         </Dialog>
         </TooltipProvider>
-      </DialogContent>
-    </Dialog>
+        </DialogContent>
+      </Dialog>
+      <BillPOSummaryDialog
+        open={poSummaryOpen}
+        onOpenChange={setPoSummaryOpen}
+        matches={poSummaryMatches}
+        bill={poSummaryBill}
+      />
+    </>
   );
 }
