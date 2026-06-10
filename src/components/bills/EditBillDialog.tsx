@@ -1045,18 +1045,6 @@ export function EditBillDialog({ open, onOpenChange, billId }: EditBillDialogPro
                             {showAddressColumn && (
                               <TableCell>
                                 {group.isGrouped ? (
-                                  <span className="text-sm font-medium">
-                                    ${group.lotCost.toFixed(2)}
-                                    <span className="text-muted-foreground font-normal"> /lot</span>
-                                  </span>
-                                ) : (
-                                  <span className="text-sm text-muted-foreground">—</span>
-                                )}
-                              </TableCell>
-                            )}
-                            {showAddressColumn && (
-                              <TableCell>
-                                {group.isGrouped ? (
                                   <Tooltip>
                                     <TooltipTrigger asChild>
                                       <span className="text-sm font-medium underline decoration-dotted cursor-help">
