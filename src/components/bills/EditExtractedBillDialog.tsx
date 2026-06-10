@@ -1530,6 +1530,7 @@ export function EditExtractedBillDialog({
                                     }))
                                 : undefined
                             }
+                            onInfoClick={() => setPoSummaryOpen(true)}
                           />
                         </TableCell>
                       )}
