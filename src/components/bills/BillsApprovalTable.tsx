@@ -1254,7 +1254,7 @@ export function BillsApprovalTable({ status, projectId, projectIds, showProjectC
         </TableCell>
       )}
       {canShowDeleteButton && (
-        <TableCell className="text-center w-16">
+        <TableCell className="text-center w-16" onClick={(e) => e.stopPropagation()}>
           {(() => {
             const lockedReason = bill.reconciled
               ? "Locked — payment has cleared the bank. Unreconcile to edit."
