@@ -29,6 +29,8 @@ import { getFileIcon, getFileIconColor, getCleanFileName } from "@/components/bi
 import { useUniversalFilePreviewContext } from "@/components/files/UniversalFilePreviewProvider";
 import { useReferenceNumberValidation } from "@/hooks/useReferenceNumberValidation";
 import { POSelectionDropdown, useShouldShowPOSelection } from "./POSelectionDropdown";
+import { BillPOSummaryDialog } from "./BillPOSummaryDialog";
+import { useBillPOMatching } from "@/hooks/useBillPOMatching";
 import { sanitizePoId } from "@/utils/poSentinelUtils";
 import { useVendorPurchaseOrders } from "@/hooks/useVendorPurchaseOrders";
 import { getBestPOLineMatch, POLineCandidate } from "@/utils/poLineMatching";
