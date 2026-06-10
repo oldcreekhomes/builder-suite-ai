@@ -2168,6 +2168,7 @@ export function BillsApprovalTable({ status, projectId, projectIds, showProjectC
           billInfo: undefined, 
           initialNotes: '' 
         })}
+        billId={notesDialog.billId}
         billInfo={notesDialog.billInfo || { vendor: '', amount: 0 }}
         initialValue={notesDialog.initialNotes}
         onSave={handleSaveNotes}
