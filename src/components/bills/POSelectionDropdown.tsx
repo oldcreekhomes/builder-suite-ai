@@ -98,6 +98,11 @@ export function POSelectionDropdown({
     return `${po.po_number} | ${costCodeStr} | ${amountStr}`;
   };
 
+  const getPOCostCodeLabel = (po: VendorPurchaseOrder) => {
+    if (!po.cost_code) return po.po_number;
+    return `${po.cost_code.code}: ${po.cost_code.name}`;
+  };
+
   const handleChange = (val: string) => {
     if (val === '__none__') {
       onChange('__none__', undefined);
