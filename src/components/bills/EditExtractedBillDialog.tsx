@@ -32,6 +32,7 @@ import { POSelectionDropdown, useShouldShowPOSelection } from "./POSelectionDrop
 import { sanitizePoId } from "@/utils/poSentinelUtils";
 import { useVendorPurchaseOrders } from "@/hooks/useVendorPurchaseOrders";
 import { getBestPOLineMatch, POLineCandidate } from "@/utils/poLineMatching";
+import { EditableNumberInput } from "./EditableNumberInput";
 // Normalize terms from any format to standardized dropdown values
 function normalizeTermsForUI(terms: string | null | undefined): string {
   if (!terms) return 'net-30';
