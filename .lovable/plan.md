@@ -1,26 +1,10 @@
-## Issue
+## Footer row updates in `BillPOSummaryDialog.tsx`
 
-In the **PO Status Summary** dialog opened from the regular **Edit Bill** dialog, the `Lots` column shows `—` for every row. Reason: the `EditBillDialog` Supabase query selects `bill_lines (*)` but does not join `project_lots`, so `project_lots` is `null` on every line and `LotsCell` renders the em-dash fallback.
+Update only the `<TableFooter>` row (around lines 414-422):
 
-The dialog already knows how to render lots correctly — `BillsApprovalTable` joins `project_lots!bill_lines_lot_id_fkey` and lots display properly there. `EditExtractedBillDialog` already builds the lot object locally too. Only `EditBillDialog` is missing it.
+1. **Move "Total" to far left** — under the PO Number column. Change the first cell from a right-aligned `colSpan={6}` to a left-aligned single cell with label "Total".
+2. **Add PO Amount total** — sum `match.po_amount` across **distinct PO IDs** (so a PO appearing on multiple rows is only counted once). Render in the PO Amount column using the same green badge styling used by the This Bill cell (`inline-flex items-center rounded px-1.5 py-0.5 text-xs font-medium bg-green-100 text-green-700`).
+3. **Keep This Bill total** as-is (same green badge style applied for consistency).
+4. Empty cells for Cost Code, Description, Lots, Billed to Date, Remaining, Files, Status.
 
-## Change
-
-In `src/components/bills/EditBillDialog.tsx`, update the bill query so each `bill_lines` row also pulls its lot:
-
-```diff
-bill_lines (
-  *,
-  cost_codes (code, name),
-- accounts (code, name)
-+ accounts (code, name),
-+ project_lots!bill_lines_lot_id_fkey ( lot_name, lot_number )
-),
-```
-
-No other change. The existing `poSummaryBill` mapper already forwards `lot_id` and `project_lots` into the shared `BillPOSummaryDialog`, so once the join returns lot data the `LotsCell` will render real lot names (single name, or `+N` with hover breakdown when multiple).
-
-## Scope
-
-- One file: `src/components/bills/EditBillDialog.tsx`.
-- No changes to the shared dialog, matching logic, save behavior, or other consumers.
+No other file changes; no logic or query changes.
