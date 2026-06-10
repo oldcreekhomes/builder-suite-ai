@@ -141,7 +141,11 @@ export function POSelectionDropdown({
               </SelectItem>
             )}
             
-            {hasPurchaseOrders && purchaseOrders.map((po) => {
+            {hasPurchaseOrders && [...purchaseOrders].sort((a, b) => {
+              const aCode = a.cost_code?.code ?? '';
+              const bCode = b.cost_code?.code ?? '';
+              return aCode.localeCompare(bCode, undefined, { numeric: true });
+            }).map((po) => {
               const isMatchingCostCode = costCodeId && po.cost_code_id === costCodeId;
               return (
                 <SelectItem 
