@@ -940,7 +940,7 @@ export function EditBillDialog({ open, onOpenChange, billId }: EditBillDialogPro
                         <TableHead className="w-[90px]">Quantity</TableHead>
                         <TableHead className="w-[100px]">Unit Cost</TableHead>
                         <TableHead className="w-[100px]">Total</TableHead>
-                        {showAddressColumn && <TableHead className="w-[110px]">Lot Cost</TableHead>}
+                        
                         {showAddressColumn && <TableHead className="w-[130px]">Address</TableHead>}
                         <TableHead className="w-[180px]">Purchase Order</TableHead>
                         {showAddressColumn && <TableHead className="w-[50px] text-center"></TableHead>}
@@ -1042,18 +1042,6 @@ export function EditBillDialog({ open, onOpenChange, billId }: EditBillDialogPro
                             <TableCell>
                               <span className="font-medium">${group.amount.toFixed(2)}</span>
                             </TableCell>
-                            {showAddressColumn && (
-                              <TableCell>
-                                {group.isGrouped ? (
-                                  <span className="text-sm font-medium">
-                                    ${group.lotCost.toFixed(2)}
-                                    <span className="text-muted-foreground font-normal"> /lot</span>
-                                  </span>
-                                ) : (
-                                  <span className="text-sm text-muted-foreground">—</span>
-                                )}
-                              </TableCell>
-                            )}
                             {showAddressColumn && (
                               <TableCell>
                                 {group.isGrouped ? (
