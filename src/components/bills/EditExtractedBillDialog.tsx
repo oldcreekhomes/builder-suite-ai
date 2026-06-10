@@ -1343,13 +1343,11 @@ export function EditExtractedBillDialog({
                         />
                       </TableCell>
                       <TableCell>
-                        <Input
+                        <EditableNumberInput
                           className="h-7 px-1 border-0 bg-transparent shadow-none focus-visible:ring-1 focus-visible:ring-ring focus-visible:ring-offset-0 text-sm font-medium [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
-                          type="number"
-                          step="0.01"
-                          value={Number.isFinite(group.quantity) ? group.quantity.toFixed(2) : '0.00'}
-                          onChange={(e) => {
-                            const v = parseFloat(e.target.value) || 0;
+                          value={Number(group.quantity) || 0}
+                          placeholder="1.00"
+                          onCommit={(v) => {
                             if (singleLine) {
                               updateJobCostLine(singleLine.id, 'quantity', v);
                             } else {
@@ -1359,13 +1357,10 @@ export function EditExtractedBillDialog({
                         />
                       </TableCell>
                       <TableCell>
-                        <Input
+                        <EditableNumberInput
                           className="h-7 px-1 border-0 bg-transparent shadow-none focus-visible:ring-1 focus-visible:ring-ring focus-visible:ring-offset-0 text-sm font-medium [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
-                          type="number"
-                          step="0.01"
-                          value={Number.isFinite(group.unit_cost) ? group.unit_cost.toFixed(2) : '0.00'}
-                          onChange={(e) => {
-                            const v = parseFloat(e.target.value) || 0;
+                          value={Number(group.unit_cost) || 0}
+                          onCommit={(v) => {
                             if (singleLine) {
                               updateJobCostLine(singleLine.id, 'unit_cost', v);
                             } else {
@@ -1374,6 +1369,7 @@ export function EditExtractedBillDialog({
                           }}
                         />
                       </TableCell>
+
                       <TableCell>
                         <span className="font-medium">${group.amount.toFixed(2)}</span>
                       </TableCell>
