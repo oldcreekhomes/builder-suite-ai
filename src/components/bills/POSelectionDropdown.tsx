@@ -5,6 +5,7 @@ import { useVendorPurchaseOrders, VendorPurchaseOrder } from "@/hooks/useVendorP
 import { PODetailsDialog, PendingBillLine } from "./PODetailsDialog";
 import { Info } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 
 /**
  * Helper function to find a matching PO for a given cost code.
@@ -97,6 +98,11 @@ export function POSelectionDropdown({
     return `${po.po_number} | ${costCodeStr} | ${amountStr}`;
   };
 
+  const getPOCostCodeLabel = (po: VendorPurchaseOrder) => {
+    if (!po.cost_code) return po.po_number;
+    return `${po.cost_code.code}: ${po.cost_code.name}`;
+  };
+
   const handleChange = (val: string) => {
     if (val === '__none__') {
       onChange('__none__', undefined);
@@ -134,6 +140,12 @@ export function POSelectionDropdown({
 
   const selectValue = value != null && value !== '' ? value : (hasPurchaseOrders ? '__auto__' : '__none__');
 
+  const selectedPO = value && value !== '__auto__' && value !== '__none__'
+    ? purchaseOrders?.find(po => po.id === value)
+    : undefined;
+  const triggerDisplay = selectedPO ? getPOCostCodeLabel(selectedPO) : undefined;
+  const tooltipText = selectedPO ? getPOLabel(selectedPO) : undefined;
+
   return (
     <div className="flex items-center gap-1">
       <div className="flex flex-col gap-1 flex-1">
@@ -142,9 +154,22 @@ export function POSelectionDropdown({
           onValueChange={handleChange}
           disabled={disabled || isLoading}
         >
-          <SelectTrigger className={cn("h-8", className)}>
-            <SelectValue placeholder="No Purchase Order" />
-          </SelectTrigger>
+          <TooltipProvider delayDuration={200}>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <SelectTrigger className={cn("h-8", className)}>
+                  {triggerDisplay ? (
+                    <span className="truncate text-left">{triggerDisplay}</span>
+                  ) : (
+                    <SelectValue placeholder="No Purchase Order" />
+                  )}
+                </SelectTrigger>
+              </TooltipTrigger>
+              {tooltipText && (
+                <TooltipContent side="top">{tooltipText}</TooltipContent>
+              )}
+            </Tooltip>
+          </TooltipProvider>
           <SelectContent>
             {hasPurchaseOrders && (
               <SelectItem value="__auto__" className="text-muted-foreground">
