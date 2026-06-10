@@ -146,6 +146,14 @@ export function PayBillDialog({
     }
   }, [open, defaultBankAccountId, paymentAccountId]);
 
+  // Auto-fill payment amount with remaining balance when dialog opens for a single bill.
+  useEffect(() => {
+    if (open && !isMultiple && singleBill) {
+      setPaymentAmount(remainingBalance.toFixed(2));
+      setPaymentAmountError("");
+    }
+  }, [open, isMultiple, singleBill?.id, remainingBalance]);
+
   const resetForm = () => {
     setPaymentAccountId("");
     setPaymentDate(new Date());
