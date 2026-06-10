@@ -1010,41 +1010,35 @@ export function EditBillDialog({ open, onOpenChange, billId }: EditBillDialogPro
                               </Tooltip>
                             </TableCell>
                             <TableCell>
-                              <Input
-                                type="number"
-                                step="0.01"
-                                placeholder="1"
-                                value={singleRow ? (singleRow.quantity ?? '') : (Number.isFinite(group.quantity) ? group.quantity.toFixed(2) : '0.00')}
-                                onChange={(e) => {
+                              <EditableNumberInput
+                                value={singleRow ? (parseFloat(singleRow.quantity) || 0) : (Number(group.quantity) || 0)}
+                                onCommit={(v) => {
                                   if (singleRow) {
-                                    updateJobCostRow(singleRow.id, 'quantity', e.target.value);
+                                    updateJobCostRow(singleRow.id, 'quantity', v.toString());
                                   } else {
-                                    const v = parseFloat(e.target.value) || 0;
                                     updateJobCostGroup(group, { quantity: v });
                                   }
                                 }}
-                                className="h-7 px-1 border-0 bg-transparent shadow-none focus-visible:ring-1 focus-visible:ring-ring focus-visible:ring-offset-0 text-sm font-medium [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
                                 readOnly={isApprovedBill}
+                                className="h-7 px-1 border-0 bg-transparent shadow-none focus-visible:ring-1 focus-visible:ring-ring focus-visible:ring-offset-0 text-sm font-medium [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                                placeholder="1.00"
                               />
                             </TableCell>
                             <TableCell>
-                              <Input
-                                type="number"
-                                step="0.01"
-                                placeholder="0.00"
-                                value={singleRow ? (singleRow.amount ?? '') : (Number.isFinite(group.unitCost) ? group.unitCost.toFixed(2) : '0.00')}
-                                onChange={(e) => {
+                              <EditableNumberInput
+                                value={singleRow ? (parseFloat(singleRow.amount) || 0) : (Number(group.unitCost) || 0)}
+                                onCommit={(v) => {
                                   if (singleRow) {
-                                    updateJobCostRow(singleRow.id, 'amount', e.target.value);
+                                    updateJobCostRow(singleRow.id, 'amount', v.toString());
                                   } else {
-                                    const v = parseFloat(e.target.value) || 0;
                                     updateJobCostGroup(group, { unit_cost: v });
                                   }
                                 }}
-                                className="h-7 px-1 border-0 bg-transparent shadow-none focus-visible:ring-1 focus-visible:ring-ring focus-visible:ring-offset-0 text-sm font-medium [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
                                 readOnly={isApprovedBill}
+                                className="h-7 px-1 border-0 bg-transparent shadow-none focus-visible:ring-1 focus-visible:ring-ring focus-visible:ring-offset-0 text-sm font-medium [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
                               />
                             </TableCell>
+
                             <TableCell>
                               <span className="font-medium">${group.amount.toFixed(2)}</span>
                             </TableCell>
