@@ -1289,7 +1289,7 @@ export function EditExtractedBillDialog({
                       <TableHead className="w-[90px]">Quantity</TableHead>
                       <TableHead className="w-[100px]">Unit Cost</TableHead>
                       <TableHead className="w-[100px]">Total</TableHead>
-                      {showAddressColumn && <TableHead className="w-[110px]">Lot Cost</TableHead>}
+                      
                       {showAddressColumn && <TableHead className="w-[130px]">Address</TableHead>}
                       {showPOSelection && <TableHead className="w-[180px]">Purchase Order</TableHead>}
                       {showPOSelection && <TableHead className="w-[55px] text-center">Match</TableHead>}
