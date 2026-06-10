@@ -412,13 +412,37 @@ export function BillPOSummaryDialog({
                 })}
               </TableBody>
               <TableFooter>
-                <TableRow>
-                  <TableCell colSpan={6} className="text-right font-semibold">Total</TableCell>
-                  <TableCell className="whitespace-nowrap font-semibold">
-                    {formatCurrency(billLines.reduce((sum, l) => sum + (l.amount || 0), 0))}
-                  </TableCell>
-                  <TableCell colSpan={4}></TableCell>
-                </TableRow>
+                {(() => {
+                  const seenPo = new Set<string>();
+                  let poAmountTotal = 0;
+                  sortedGroups.forEach(({ group }) => {
+                    const resolvedPoId = resolveLineToPoId(group.representative);
+                    const m = resolvedPoId ? matchByPoId.get(resolvedPoId) : undefined;
+                    if (m && !seenPo.has(m.po_id)) {
+                      seenPo.add(m.po_id);
+                      poAmountTotal += m.po_amount || 0;
+                    }
+                  });
+                  const thisBillTotal = billLines.reduce((sum, l) => sum + (l.amount || 0), 0);
+                  return (
+                    <TableRow>
+                      <TableCell className="font-semibold">Total</TableCell>
+                      <TableCell colSpan={3}></TableCell>
+                      <TableCell className="whitespace-nowrap">
+                        <span className="inline-flex items-center rounded px-1.5 py-0.5 text-xs font-medium bg-green-100 text-green-700">
+                          {formatCurrency(poAmountTotal)}
+                        </span>
+                      </TableCell>
+                      <TableCell></TableCell>
+                      <TableCell className="whitespace-nowrap">
+                        <span className="inline-flex items-center rounded px-1.5 py-0.5 text-xs font-medium bg-green-100 text-green-700">
+                          {formatCurrency(thisBillTotal)}
+                        </span>
+                      </TableCell>
+                      <TableCell colSpan={3}></TableCell>
+                    </TableRow>
+                  );
+                })()}
               </TableFooter>
             </Table>
           </SettingsTableWrapper>
