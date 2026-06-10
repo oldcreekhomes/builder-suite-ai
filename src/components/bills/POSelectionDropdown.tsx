@@ -205,6 +205,7 @@ export function POSelectionDropdown({
           pendingBillLines={pendingBillLines}
         />
       )}
+    </div>
   );
 }
 
