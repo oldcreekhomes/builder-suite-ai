@@ -1119,6 +1119,19 @@ export function MakeDepositsContent({ projectId, activeTab: parentActiveTab }: M
                       </div>
                     )}
                     <div className="col-span-1 flex justify-center items-center gap-1">
+                      {showAddressColumn && (
+                        <Button
+                          type="button"
+                          onClick={() => splitRowEvenly(row.id, 'other')}
+                          size="sm"
+                          variant="ghost"
+                          disabled={!!row.lotId || (parseFloat(row.amount || "0") || 0) <= 0}
+                          className="h-10 w-10 p-0"
+                          title="Split evenly across all lots"
+                        >
+                          <Divide className="h-4 w-4" />
+                        </Button>
+                      )}
                       <Button
                         onClick={() => removeOtherRow(row.id)}
                         size="sm"
@@ -1230,6 +1243,19 @@ export function MakeDepositsContent({ projectId, activeTab: parentActiveTab }: M
                       </div>
                     )}
                     <div className="col-span-1 flex justify-center items-center gap-1">
+                      {showAddressColumn && (
+                        <Button
+                          type="button"
+                          onClick={() => splitRowEvenly(row.id, 'revenue')}
+                          size="sm"
+                          variant="ghost"
+                          disabled={!!row.lotId || (parseFloat(row.amount || "0") || 0) <= 0}
+                          className="h-10 w-10 p-0"
+                          title="Split evenly across all lots"
+                        >
+                          <Divide className="h-4 w-4" />
+                        </Button>
+                      )}
                       <Button
                         onClick={() => removeRevenueRow(row.id)}
                         size="sm"
