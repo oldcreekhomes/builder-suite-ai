@@ -15,7 +15,8 @@ import { AccountSearchInput } from "@/components/AccountSearchInput";
 import { CostCodeSearchInput } from "@/components/CostCodeSearchInput";
 import { DeleteButton } from "@/components/ui/delete-button";
 import { format } from "date-fns";
-import { CalendarIcon, Plus, Trash2, ChevronLeft, ChevronRight, Search, Lock } from "lucide-react";
+import { CalendarIcon, Plus, Trash2, ChevronLeft, ChevronRight, Search, Lock, Divide } from "lucide-react";
+
 import { useClosedPeriodCheck } from "@/hooks/useClosedPeriodCheck";
 import { cn } from "@/lib/utils";
 import { useProject } from "@/hooks/useProject";
@@ -492,6 +493,52 @@ export function MakeDepositsContent({ projectId, activeTab: parentActiveTab }: M
     setOtherRows(prev => prev.map(row => 
       row.id === id ? { ...row, [field]: value } : row
     ));
+  };
+
+  // Split a row evenly across all project lots
+  const splitRowEvenly = (rowId: string, rowType: 'revenue' | 'other') => {
+    const rows = rowType === 'revenue' ? revenueRows : otherRows;
+    const setRows = rowType === 'revenue' ? setRevenueRows : setOtherRows;
+
+    const rowToSplit = rows.find(r => r.id === rowId);
+    if (!rowToSplit || lots.length < 2) return;
+
+    const originalAmount = parseFloat(rowToSplit.amount) || 0;
+    const originalQty = parseFloat(rowToSplit.quantity || "1") || 1;
+    const totalValue = originalAmount * originalQty;
+    if (totalValue <= 0) return;
+
+    const perLotAmount = Math.floor((totalValue / lots.length) * 100) / 100;
+    const remainder = Math.round((totalValue - (perLotAmount * (lots.length - 1))) * 100) / 100;
+
+    const newRows: DepositRow[] = lots.map((lot, index) => ({
+      id: `${rowId}_split_${lot.id}`,
+      account: rowToSplit.account,
+      accountId: rowToSplit.accountId,
+      costCodeId: rowToSplit.costCodeId,
+      project: rowToSplit.project,
+      projectId: rowToSplit.projectId,
+      lotId: lot.id,
+      quantity: '1',
+      amount: index === lots.length - 1
+        ? remainder.toFixed(2)
+        : perLotAmount.toFixed(2),
+      memo: rowToSplit.memo,
+    }));
+
+    const rowIndex = rows.findIndex(r => r.id === rowId);
+    const updatedRows = [
+      ...rows.slice(0, rowIndex),
+      ...newRows,
+      ...rows.slice(rowIndex + 1),
+    ];
+
+    setRows(updatedRows);
+
+    toast({
+      title: "Row Split",
+      description: `Split $${totalValue.toFixed(2)} evenly across ${lots.length} addresses`,
+    });
   };
 
   const handleClear = () => {
@@ -1072,6 +1119,19 @@ export function MakeDepositsContent({ projectId, activeTab: parentActiveTab }: M
                       </div>
                     )}
                     <div className="col-span-1 flex justify-center items-center gap-1">
+                      {showAddressColumn && (
+                        <Button
+                          type="button"
+                          onClick={() => splitRowEvenly(row.id, 'other')}
+                          size="sm"
+                          variant="ghost"
+                          disabled={!!row.lotId || (parseFloat(row.amount || "0") || 0) <= 0}
+                          className="h-10 w-10 p-0"
+                          title="Split evenly across all lots"
+                        >
+                          <Divide className="h-4 w-4" />
+                        </Button>
+                      )}
                       <Button
                         onClick={() => removeOtherRow(row.id)}
                         size="sm"
@@ -1183,6 +1243,19 @@ export function MakeDepositsContent({ projectId, activeTab: parentActiveTab }: M
                       </div>
                     )}
                     <div className="col-span-1 flex justify-center items-center gap-1">
+                      {showAddressColumn && (
+                        <Button
+                          type="button"
+                          onClick={() => splitRowEvenly(row.id, 'revenue')}
+                          size="sm"
+                          variant="ghost"
+                          disabled={!!row.lotId || (parseFloat(row.amount || "0") || 0) <= 0}
+                          className="h-10 w-10 p-0"
+                          title="Split evenly across all lots"
+                        >
+                          <Divide className="h-4 w-4" />
+                        </Button>
+                      )}
                       <Button
                         onClick={() => removeRevenueRow(row.id)}
                         size="sm"
