@@ -1686,6 +1686,12 @@ export function EditExtractedBillDialog({
       initialValue={internalNotes}
       onSave={(notes) => setInternalNotes(notes)}
     />
+    <BillPOSummaryDialog
+      open={poSummaryOpen}
+      onOpenChange={setPoSummaryOpen}
+      matches={poSummaryMatches}
+      bill={poSummaryBill}
+    />
     </>
   );
 }
