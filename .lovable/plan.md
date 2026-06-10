@@ -1,13 +1,23 @@
-Plan to update this only after you approve:
+## Change
 
-1. Replace the PO info icon behavior inside the bill edit dialogs so it opens the existing shared **PO Status Summary** dialog instead of the separate PO details popup.
+In `src/components/bills/POSelectionDropdown.tsx`, update how the selected PO is displayed in the dropdown trigger (the collapsed row in the table).
 
-2. Wire the same shared dialog into both places where bill line PO info is shown:
-   - regular bill edit dialog
-   - extracted/pending bill edit dialog
+### Trigger label
+Currently the trigger shows `PO# | Cost Code | Amount`. Change it to show only the cost code, e.g.:
 
-3. Keep the current PO selection dropdown, matching logic, and save behavior unchanged.
+`3180: Sediment & Erosion Control`
 
-4. Leave the old PO details dialog file in place only if it still has other app consumers, but stop using it from these bill edit flows.
+(Same format as the Cost Code column for visual consistency.)
 
-Result: the information icon will use the same **PO Status Summary** dialog across the application, so we are editing/maintaining one dialog style instead of two.
+### Hover tooltip
+Wrap the SelectTrigger in a shadcn Tooltip. On hover, show the full PO info string for the currently selected PO, matching the dropdown option format:
+
+`2026-100N-0013 | 3180 - Sediment & Erosion Control | $22,347.30 / $22,347.30`
+
+### Dropdown options (open list)
+Leave the open dropdown list as-is — it already shows the full `PO# | Cost Code | Remaining / Total` line that the user likes.
+
+## Scope
+
+- Single file: `src/components/bills/POSelectionDropdown.tsx`.
+- No changes to matching logic, save behavior, the info (ⓘ) icon, or the shared PO Status Summary dialog.

@@ -5,6 +5,7 @@ import { useVendorPurchaseOrders, VendorPurchaseOrder } from "@/hooks/useVendorP
 import { PODetailsDialog, PendingBillLine } from "./PODetailsDialog";
 import { Info } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 
 /**
  * Helper function to find a matching PO for a given cost code.
