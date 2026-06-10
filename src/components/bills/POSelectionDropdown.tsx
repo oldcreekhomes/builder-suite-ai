@@ -47,6 +47,12 @@ interface POSelectionDropdownProps {
   currentBillAmount?: number;
   currentBillReference?: string;
   pendingBillLines?: PendingBillLine[];
+  /**
+   * When provided, clicking the info (ⓘ) icon calls this handler instead of
+   * opening the internal PODetailsDialog. Use this to route to a shared
+   * dialog (e.g. BillPOSummaryDialog) at the parent level.
+   */
+  onInfoClick?: () => void;
 }
 
 /**
