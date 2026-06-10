@@ -1159,6 +1159,7 @@ export function EditBillDialog({ open, onOpenChange, billId }: EditBillDialogPro
                                 }}
                                 costCodeId={group.accountId}
                                 className="h-8"
+                                onInfoClick={() => setPoSummaryOpen(true)}
                               />
                             </TableCell>
                             {showAddressColumn && (
