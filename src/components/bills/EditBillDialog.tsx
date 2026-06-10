@@ -103,6 +103,7 @@ export function EditBillDialog({ open, onOpenChange, billId }: EditBillDialogPro
   const [activeTab, setActiveTab] = useState<string>("job-cost");
   const [notesDialogOpen, setNotesDialogOpen] = useState(false);
   const [showReviewNotesDialog, setShowReviewNotesDialog] = useState(false);
+  const [poSummaryOpen, setPoSummaryOpen] = useState(false);
   
   const { updateBill, updateApprovedBill, correctBill } = useBills();
   const { openBillAttachment } = useUniversalFilePreviewContext();
