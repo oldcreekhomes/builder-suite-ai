@@ -428,16 +428,12 @@ export function BillPOSummaryDialog({
                     <TableRow>
                       <TableCell className="font-semibold">Total</TableCell>
                       <TableCell colSpan={3}></TableCell>
-                      <TableCell className="whitespace-nowrap">
-                        <span className="inline-flex items-center rounded px-1.5 py-0.5 text-xs font-medium bg-green-100 text-green-700">
-                          {formatCurrency(poAmountTotal)}
-                        </span>
+                      <TableCell className="whitespace-nowrap font-semibold">
+                        {formatCurrency(poAmountTotal)}
                       </TableCell>
                       <TableCell></TableCell>
-                      <TableCell className="whitespace-nowrap">
-                        <span className="inline-flex items-center rounded px-1.5 py-0.5 text-xs font-medium bg-green-100 text-green-700">
-                          {formatCurrency(thisBillTotal)}
-                        </span>
+                      <TableCell className="whitespace-nowrap font-semibold">
+                        {formatCurrency(thisBillTotal)}
                       </TableCell>
                       <TableCell colSpan={3}></TableCell>
                     </TableRow>
