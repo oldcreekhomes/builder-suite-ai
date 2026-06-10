@@ -119,8 +119,12 @@ export function POSelectionDropdown({
 
   const handleInfoClick = (e: React.MouseEvent) => {
     e.stopPropagation();
-    const poToShow = value 
-      ? purchaseOrders?.find(po => po.id === value) 
+    if (onInfoClick) {
+      onInfoClick();
+      return;
+    }
+    const poToShow = value
+      ? purchaseOrders?.find(po => po.id === value)
       : purchaseOrders?.[0];
     if (poToShow) {
       setSelectedPOForDialog(poToShow);
