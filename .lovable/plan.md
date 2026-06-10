@@ -1,26 +1,13 @@
-## Changes
+Plan to update this only after you approve:
 
-### 1. Remove "Lot Cost" column (duplicates Quantity × Unit Cost info)
+1. Replace the PO info icon behavior inside the bill edit dialogs so it opens the existing shared **PO Status Summary** dialog instead of the separate PO details popup.
 
-**`src/components/bills/EditBillDialog.tsx`**
-- Remove the `Lot Cost` `<TableHead>` (line 943)
-- Remove the corresponding `<TableCell>` block (lines 1045–1056) that renders `${group.lotCost.toFixed(2)} /lot`
+2. Wire the same shared dialog into both places where bill line PO info is shown:
+   - regular bill edit dialog
+   - extracted/pending bill edit dialog
 
-**`src/components/bills/EditExtractedBillDialog.tsx`**
-- Remove the `Lot Cost` `<TableHead>` (line 1292)
-- Remove the corresponding `<TableCell>` block (lines 1376–1387)
+3. Keep the current PO selection dropdown, matching logic, and save behavior unchanged.
 
-### 2. Sort PO dropdown by cost code number ascending (3180, 3200, 3220, …)
+4. Leave the old PO details dialog file in place only if it still has other app consumers, but stop using it from these bill edit flows.
 
-**`src/components/bills/POSelectionDropdown.tsx`**
-- Before the `.map((po) => ...)` at line 144, derive a sorted copy:
-  ```ts
-  const sortedPOs = [...purchaseOrders].sort((a, b) => {
-    const aCode = a.cost_code?.code ?? '';
-    const bCode = b.cost_code?.code ?? '';
-    return aCode.localeCompare(bCode, undefined, { numeric: true });
-  });
-  ```
-- Iterate `sortedPOs` instead of `purchaseOrders`.
-
-No other files affected; no DB or save-path changes.
+Result: the information icon will use the same **PO Status Summary** dialog across the application, so we are editing/maintaining one dialog style instead of two.
