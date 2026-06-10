@@ -139,6 +139,52 @@ export function EditBillDialog({ open, onOpenChange, billId }: EditBillDialogPro
   // Determine if bill is in read-only mode (approved, posted, or paid)
   const isApprovedBill = ['approved', 'posted', 'paid'].includes(billData?.status || '');
 
+  // Build a single-bill input for the shared PO matching hook so the info icon
+  // can open the canonical BillPOSummaryDialog used elsewhere in the app.
+  const billsForMatching = useMemo(() => {
+    if (!billData) return [];
+    return [{
+      id: billData.id,
+      vendor_id: billData.vendor_id,
+      project_id: billData.project_id,
+      total_amount: billData.total_amount,
+      status: billData.status,
+      bill_lines: (billData.bill_lines || []).map((l: any) => ({
+        cost_code_id: l.cost_code_id,
+        amount: l.amount,
+        purchase_order_id: l.po_assignment === 'none' ? '__none__' : l.purchase_order_id,
+        purchase_order_line_id: l.purchase_order_line_id,
+        po_reference: (l as any).po_reference || null,
+        po_assignment: l.po_assignment || null,
+        cost_codes: l.cost_codes,
+      })),
+    }];
+  }, [billData]);
+  const { data: poMatchingData } = useBillPOMatching(billsForMatching);
+  const poSummaryMatches = billData ? (poMatchingData?.get(billData.id)?.matches || []) : [];
+  const poSummaryBill = billData ? {
+    id: billData.id,
+    project_id: billData.project_id,
+    vendor_id: billData.vendor_id,
+    total_amount: billData.total_amount,
+    reference_number: billData.reference_number,
+    bill_date: billData.bill_date,
+    status: billData.status,
+    bill_lines: (billData.bill_lines || []).map((l: any) => ({
+      cost_code_id: l.cost_code_id,
+      cost_code_display: l.cost_codes ? `${l.cost_codes.code}: ${l.cost_codes.name}` : undefined,
+      cost_codes: l.cost_codes,
+      amount: l.amount,
+      purchase_order_id: l.purchase_order_id,
+      purchase_order_line_id: l.purchase_order_line_id,
+      po_reference: (l as any).po_reference || null,
+      po_assignment: l.po_assignment || null,
+      memo: l.memo,
+      lot_id: l.lot_id,
+      project_lots: (l as any).project_lots || null,
+    })),
+  } : null;
+
   // Fetch companies for the notes dialog - use separate cache key to avoid collision with full table data
   const { data: companies } = useQuery({
     queryKey: ['companies-dropdown'],
