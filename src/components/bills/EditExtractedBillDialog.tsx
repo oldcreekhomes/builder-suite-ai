@@ -1376,18 +1376,6 @@ export function EditExtractedBillDialog({
                       {showAddressColumn && (
                         <TableCell>
                           {group.isGrouped ? (
-                            <span className="text-sm font-medium">
-                              ${group.lotCost.toFixed(2)}
-                              <span className="text-muted-foreground font-normal"> /lot</span>
-                            </span>
-                          ) : (
-                            <span className="text-sm text-muted-foreground">—</span>
-                          )}
-                        </TableCell>
-                      )}
-                      {showAddressColumn && (
-                        <TableCell>
-                          {group.isGrouped ? (
                             <TooltipProvider>
                               <Tooltip>
                                 <TooltipTrigger asChild>
