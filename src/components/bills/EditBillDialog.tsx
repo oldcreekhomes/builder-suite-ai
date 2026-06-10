@@ -28,6 +28,7 @@ import { useUniversalFilePreviewContext } from '@/components/files/UniversalFile
 import { BillAttachmentUpload, BillAttachment as BillPDFAttachment } from "@/components/BillAttachmentUpload";
 import { BillNotesDialog } from "./BillNotesDialog";
 import { useReferenceNumberValidation } from "@/hooks/useReferenceNumberValidation";
+import { EditableNumberInput } from "./EditableNumberInput";
 import {
   AlertDialog,
   AlertDialogAction,
