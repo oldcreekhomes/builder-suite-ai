@@ -120,7 +120,8 @@ export function EditBillDialog({ open, onOpenChange, billId }: EditBillDialogPro
           bill_lines (
             *,
             cost_codes (code, name),
-            accounts (code, name)
+            accounts (code, name),
+            project_lots!bill_lines_lot_id_fkey ( lot_name, lot_number )
           ),
           bill_attachments (*)
         `)
