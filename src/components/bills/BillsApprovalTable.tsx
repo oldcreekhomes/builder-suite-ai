@@ -1242,10 +1242,10 @@ export function BillsApprovalTable({ status, projectId, projectIds, showProjectC
       )}
 
       {showPayBillButton && (
-        <TableCell className="text-center w-24">
+        <TableCell className="text-center w-24" onClick={(e) => e.stopPropagation()}>
           <Button
             size="sm"
-            onClick={() => handlePayBill(bill)}
+            onClick={(e) => { e.stopPropagation(); handlePayBill(bill); }}
             disabled={payBill.isPending}
             className="h-7 text-xs px-2"
           >
