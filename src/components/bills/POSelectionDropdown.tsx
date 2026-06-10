@@ -47,6 +47,12 @@ interface POSelectionDropdownProps {
   currentBillAmount?: number;
   currentBillReference?: string;
   pendingBillLines?: PendingBillLine[];
+  /**
+   * When provided, clicking the info (ⓘ) icon calls this handler instead of
+   * opening the internal PODetailsDialog. Use this to route to a shared
+   * dialog (e.g. BillPOSummaryDialog) at the parent level.
+   */
+  onInfoClick?: () => void;
 }
 
 /**
@@ -66,6 +72,7 @@ export function POSelectionDropdown({
   currentBillAmount,
   currentBillReference,
   pendingBillLines,
+  onInfoClick,
 }: POSelectionDropdownProps) {
   const { data: purchaseOrders, isLoading } = useVendorPurchaseOrders(projectId, vendorId);
   const [dialogOpen, setDialogOpen] = useState(false);
@@ -112,8 +119,12 @@ export function POSelectionDropdown({
 
   const handleInfoClick = (e: React.MouseEvent) => {
     e.stopPropagation();
-    const poToShow = value 
-      ? purchaseOrders?.find(po => po.id === value) 
+    if (onInfoClick) {
+      onInfoClick();
+      return;
+    }
+    const poToShow = value
+      ? purchaseOrders?.find(po => po.id === value)
       : purchaseOrders?.[0];
     if (poToShow) {
       setSelectedPOForDialog(poToShow);
@@ -181,17 +192,19 @@ export function POSelectionDropdown({
         </Button>
       )}
 
-      <PODetailsDialog
-        open={dialogOpen}
-        onOpenChange={setDialogOpen}
-        purchaseOrder={selectedPOForDialog}
-        projectId={projectId}
-        vendorId={vendorId}
-        currentBillId={currentBillId}
-        currentBillAmount={currentBillAmount}
-        currentBillReference={currentBillReference}
-        pendingBillLines={pendingBillLines}
-      />
+      {!onInfoClick && (
+        <PODetailsDialog
+          open={dialogOpen}
+          onOpenChange={setDialogOpen}
+          purchaseOrder={selectedPOForDialog}
+          projectId={projectId}
+          vendorId={vendorId}
+          currentBillId={currentBillId}
+          currentBillAmount={currentBillAmount}
+          currentBillReference={currentBillReference}
+          pendingBillLines={pendingBillLines}
+        />
+      )}
     </div>
   );
 }

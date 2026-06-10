@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useMemo } from "react";
 import { useParams } from "react-router-dom";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
@@ -29,6 +29,8 @@ import { getFileIcon, getFileIconColor, getCleanFileName } from "@/components/bi
 import { useUniversalFilePreviewContext } from "@/components/files/UniversalFilePreviewProvider";
 import { useReferenceNumberValidation } from "@/hooks/useReferenceNumberValidation";
 import { POSelectionDropdown, useShouldShowPOSelection } from "./POSelectionDropdown";
+import { BillPOSummaryDialog } from "./BillPOSummaryDialog";
+import { useBillPOMatching } from "@/hooks/useBillPOMatching";
 import { sanitizePoId } from "@/utils/poSentinelUtils";
 import { useVendorPurchaseOrders } from "@/hooks/useVendorPurchaseOrders";
 import { getBestPOLineMatch, POLineCandidate } from "@/utils/poLineMatching";
@@ -123,6 +125,7 @@ export function EditExtractedBillDialog({
   const [internalNotes, setInternalNotes] = useState<string>("");
   const [notesDialogOpen, setNotesDialogOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+  const [poSummaryOpen, setPoSummaryOpen] = useState(false);
   const { openBillAttachment } = useUniversalFilePreviewContext();
   const { checkDuplicate } = useReferenceNumberValidation();
   const showPOSelection = useShouldShowPOSelection(projectId, vendorId);
@@ -133,6 +136,58 @@ export function EditExtractedBillDialog({
   // Lines the user has manually picked a PO (or "No PO") for during this session.
   // The auto-matcher must never overwrite these.
   const userTouchedPoLineIds = useRef<Set<string>>(new Set());
+
+  // Build a single-bill input for the shared PO matching hook so the info icon
+  // opens the canonical BillPOSummaryDialog (same as elsewhere in the app).
+  const allEditLines = useMemo(
+    () => [...jobCostLines, ...expenseLines],
+    [jobCostLines, expenseLines]
+  );
+  const billsForMatching = useMemo(() => {
+    if (!pendingUploadId || !vendorId) return [];
+    return [{
+      id: pendingUploadId,
+      vendor_id: vendorId,
+      project_id: projectId,
+      total_amount: allEditLines.reduce((s, l) => s + (l.amount || 0), 0),
+      status: 'pending',
+      bill_lines: allEditLines.map((l) => ({
+        cost_code_id: l.cost_code_id,
+        amount: l.amount,
+        purchase_order_id: l.po_assignment === 'none' ? '__none__' : l.purchase_order_id,
+        purchase_order_line_id: l.purchase_order_line_id,
+        po_reference: null,
+        po_assignment: l.po_assignment || null,
+      })),
+    }];
+  }, [pendingUploadId, vendorId, projectId, allEditLines]);
+  const { data: poMatchingData } = useBillPOMatching(billsForMatching);
+  const poSummaryMatches = poMatchingData?.get(pendingUploadId)?.matches || [];
+  const poSummaryBill = vendorId ? {
+    id: pendingUploadId,
+    project_id: projectId,
+    vendor_id: vendorId,
+    total_amount: allEditLines.reduce((s, l) => s + (l.amount || 0), 0),
+    reference_number: refNo,
+    bill_date: format(billDate, 'yyyy-MM-dd'),
+    status: 'pending',
+    bill_lines: allEditLines.map((l) => {
+      const lot = lots.find((lt) => lt.id === l.lot_id);
+      return {
+        cost_code_id: l.cost_code_id,
+        cost_code_display: l.cost_code_display,
+        amount: l.amount,
+        purchase_order_id: l.purchase_order_id,
+        purchase_order_line_id: l.purchase_order_line_id,
+        po_reference: null,
+        po_assignment: l.po_assignment || null,
+        memo: l.memo,
+        lot_id: l.lot_id,
+        project_lots: lot ? { lot_name: lot.lot_name, lot_number: lot.lot_number } : null,
+      };
+    }),
+  } : null;
+
 
   const handleRemoveAttachment = async (attachment: { id: string; file_name: string; file_path: string }) => {
     try {
@@ -1475,6 +1530,7 @@ export function EditExtractedBillDialog({
                                     }))
                                 : undefined
                             }
+                            onInfoClick={() => setPoSummaryOpen(true)}
                           />
                         </TableCell>
                       )}
@@ -1629,6 +1685,12 @@ export function EditExtractedBillDialog({
       }}
       initialValue={internalNotes}
       onSave={(notes) => setInternalNotes(notes)}
+    />
+    <BillPOSummaryDialog
+      open={poSummaryOpen}
+      onOpenChange={setPoSummaryOpen}
+      matches={poSummaryMatches}
+      bill={poSummaryBill}
     />
     </>
   );
