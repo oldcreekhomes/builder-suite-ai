@@ -1382,6 +1382,7 @@ export function EditBillDialog({ open, onOpenChange, billId }: EditBillDialogPro
         <BillNotesDialog
           open={notesDialogOpen}
           onOpenChange={setNotesDialogOpen}
+          billId={billId}
           billInfo={{
             vendor: companies?.find(c => c.id === vendor)?.company_name || 'Unknown Vendor',
             amount: roundCents(jobCostSubtotal + expenseSubtotal)
