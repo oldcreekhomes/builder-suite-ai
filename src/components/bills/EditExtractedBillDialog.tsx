@@ -1398,11 +1398,23 @@ export function EditExtractedBillDialog({
                                     All {group.children.length} lots
                                   </span>
                                 </TooltipTrigger>
-                                <TooltipContent>
-                                  <div className="space-y-1 text-xs">
-                                    {group.lotIds.map((id) => (
-                                      <div key={id}>{lotNameById(id)}</div>
-                                    ))}
+                                <TooltipContent className="max-w-xs">
+                                  <div className="space-y-2">
+                                    {group.cost_code_display && (
+                                      <div className="font-medium text-xs">{group.cost_code_display}</div>
+                                    )}
+                                    <div className="pl-2 space-y-0.5">
+                                      {group.children.map((child: any) => (
+                                        <div key={child.id} className="flex justify-between gap-4 text-xs">
+                                          <span className="text-muted-foreground">{lotNameById(child.lot_id || '')}:</span>
+                                          <span>${(Number(child.amount) || 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+                                        </div>
+                                      ))}
+                                    </div>
+                                    <div className="border-t pt-1 flex justify-between gap-4 font-medium text-xs">
+                                      <span>Total:</span>
+                                      <span>${(Number(group.amount) || 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+                                    </div>
                                   </div>
                                 </TooltipContent>
                               </Tooltip>
