@@ -1,24 +1,25 @@
-# Fix "Unknown User / (no date)" in Bill Notes
+# Cascade-delete payments when deleting a bill
 
 ## Problem
-Legacy notes (saved before user-attribution was introduced) are stored as raw text with no `User | MM/DD/YYYY:` prefix. The `BillNotesDialog` therefore renders them as "Unknown User" with "(no date)".
+Clicking Delete on a paid bill throws: "Cannot delete this bill because it has a recorded payment. Void or delete the payment first..." This guard lives in the Postgres RPC `delete_bill_with_journal_entries`. The user wants one click to remove the bill and its payment together (with proper GL reversal), as long as nothing is reconciled.
 
-The bill itself knows who created it (`bills.created_by`) and when (`bills.created_at`). We should use those as a fallback for legacy notes — exactly like `EditDescriptionDialog` already does for legacy memos.
+## Fix
+Update the RPC `public.delete_bill_with_journal_entries(bill_id_param uuid)` so that, instead of blocking when `bill_payment_allocations` exist, it cascades the cleanup:
 
-## Changes
+1. Keep the existing hard-stop when the bill (or any linked payment) is reconciled — reconciled payments must still be unreconciled first.
+2. For each `bill_payment_allocations` row tied to this bill:
+   - Find the parent `bill_payments` row.
+   - Delete its journal entries (`journal_entry_lines` then `journal_entries` where `source_type = 'bill_payment'` and `source_id = bill_payments.id`).
+   - Delete the `bill_payments` row. The allocation row cascades via the existing `ON DELETE CASCADE` FK; if the payment covered other bills, those allocations are also removed and we additionally roll back `bills.amount_paid` / `status` on any sibling bills the payment touched so they return to posted/open.
+3. Then proceed with the existing bill JE + bill_lines + bill_attachments + bill delete.
+4. Also block (with a clear message) when any linked `bill_payments.reconciled = true`, not only the bill row itself, so partially-reconciled payments aren't silently torn down.
 
-### 1. `src/components/bills/BillNotesDialog.tsx`
-- Add an optional `billId?: string` prop.
-- When the dialog opens with a `billId`, fetch `bills.created_by` + `bills.created_at`, then resolve the user's display name from `users` (first/last name, falling back to email).
-- Store `legacyUserName` and `legacyDate` in state.
-- In the "Previous notes" list, for any parsed note where `isLegacy` is true and `userName`/`date` are empty, render `legacyUserName` and `legacyDate` instead of "Unknown User" / "(no date)".
+All work happens inside the existing SECURITY DEFINER function, so it stays atomic in a single transaction.
 
-### 2. Pass `billId` from each caller
-- `src/components/bills/BillsApprovalTable.tsx` (line 2163)
-- `src/components/bills/EditBillDialog.tsx` (line 1382)
-- `src/components/bills/EditExtractedBillDialog.tsx` (line 1679)
-- `src/components/bills/ManualBillEntry.tsx` (line 1201) — pass only if a bill id exists (new manual entries won't have one, which is fine; there are no legacy notes in that case).
+## Scope
+- One migration updating the RPC. No frontend changes — `BillsApprovalTable` already calls this RPC, so the Paid tab Delete action starts working immediately.
+- No schema changes, no new tables, no RLS changes.
 
 ## Out of scope
-- No DB migration. Stored note text is left untouched; only display is enriched.
-- No change to `formatBillNote` or `parseBillNotes`.
+- Voiding vs deleting UI for standalone payments (Bank Register flow) — unchanged.
+- Reconciled payments — still blocked with an explanatory error.
