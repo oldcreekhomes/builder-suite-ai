@@ -1,25 +1,28 @@
-# Cascade-delete payments when deleting a bill
+## Root cause
 
-## Problem
-Clicking Delete on a paid bill throws: "Cannot delete this bill because it has a recorded payment. Void or delete the payment first..." This guard lives in the Postgres RPC `delete_bill_with_journal_entries`. The user wants one click to remove the bill and its payment together (with proper GL reversal), as long as nothing is reconciled.
+The "Failed to complete reconciliation" error is being thrown by a Postgres trigger, not by your data. When the app updates `bank_reconciliations.status` to `completed`, the trigger `sync_reconciliation_row_flags` fires and tries to update the `credit_cards` table using a column called `bank_account_id`. That column does not exist on `credit_cards` (the real column is `credit_card_account_id`), so Postgres raises:
+
+```
+ERROR: column "bank_account_id" does not exist
+```
+
+The Supabase Postgres logs confirm this — the error fires every time you click **Finish Reconciliation**. Because the trigger raises, the whole `UPDATE bank_reconciliations ... SET status='completed'` is rolled back, the React mutation rejects, and the UI surfaces the generic toast you're seeing. Nothing is wrong with the Oceanwatch data or the $0.00 difference — the bug exists for every project that uses this trigger.
 
 ## Fix
-Update the RPC `public.delete_bill_with_journal_entries(bill_id_param uuid)` so that, instead of blocking when `bill_payment_allocations` exist, it cascades the cleanup:
 
-1. Keep the existing hard-stop when the bill (or any linked payment) is reconciled — reconciled payments must still be unreconciled first.
-2. For each `bill_payment_allocations` row tied to this bill:
-   - Find the parent `bill_payments` row.
-   - Delete its journal entries (`journal_entry_lines` then `journal_entries` where `source_type = 'bill_payment'` and `source_id = bill_payments.id`).
-   - Delete the `bill_payments` row. The allocation row cascades via the existing `ON DELETE CASCADE` FK; if the payment covered other bills, those allocations are also removed and we additionally roll back `bills.amount_paid` / `status` on any sibling bills the payment touched so they return to posted/open.
-3. Then proceed with the existing bill JE + bill_lines + bill_attachments + bill delete.
-4. Also block (with a clear message) when any linked `bill_payments.reconciled = true`, not only the bill row itself, so partially-reconciled payments aren't silently torn down.
+Patch the trigger function `public.sync_reconciliation_row_flags()` so the two `UPDATE public.credit_cards ...` statements use the correct column. Credit-card reconciliations identify the account via `credit_card_account_id`, so the comparison should be `credit_card_account_id = NEW.bank_account_id` (the column on `bank_reconciliations` is named generically — it holds whatever account is being reconciled). One migration, two tiny edits inside the existing function, no schema/RLS/data changes.
 
-All work happens inside the existing SECURITY DEFINER function, so it stays atomic in a single transaction.
+After the migration the user can re-click **Finish Reconciliation** on the April 30 statement and it will complete normally.
 
-## Scope
-- One migration updating the RPC. No frontend changes — `BillsApprovalTable` already calls this RPC, so the Paid tab Delete action starts working immediately.
-- No schema changes, no new tables, no RLS changes.
+## Technical details
+
+- File: new migration that runs `CREATE OR REPLACE FUNCTION public.sync_reconciliation_row_flags()` with the same body it has today, except:
+  - In the "removed_ids" block: `UPDATE public.credit_cards ... WHERE id = ANY(removed_ids) AND reconciliation_id = NEW.id` — already correct, no `bank_account_id` clause to remove there.
+  - In the "added ids" block: change `AND bank_account_id = NEW.bank_account_id` to `AND credit_card_account_id = NEW.bank_account_id`.
+- Keep `SECURITY DEFINER` and `SET search_path = public`.
+- No frontend changes.
 
 ## Out of scope
-- Voiding vs deleting UI for standalone payments (Bank Register flow) — unchanged.
-- Reconciled payments — still blocked with an explanatory error.
+
+- The autosave / `bill_payments` cascade work from earlier turns — untouched.
+- UI copy for the error toast — the underlying error is fixed so the toast won't fire on success.
