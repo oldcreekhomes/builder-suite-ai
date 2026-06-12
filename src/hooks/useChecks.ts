@@ -334,7 +334,7 @@ export const useChecks = () => {
       checkLines 
     }: { 
       checkId: string; 
-      updates: { check_date?: string; check_number?: string; pay_to?: string; memo?: string; amount?: number };
+      updates: { check_date?: string; check_number?: string; pay_to?: string; memo?: string; amount?: number; bank_account_id?: string; project_id?: string; company_name?: string; company_address?: string; company_city_state?: string; bank_name?: string };
       checkLines?: CheckLineData[];
     }) => {
       const { data: { user } } = await supabase.auth.getUser();
@@ -356,6 +356,12 @@ export const useChecks = () => {
       if (updates.pay_to !== undefined) updateData.pay_to = updates.pay_to;
       if (updates.memo !== undefined) updateData.memo = updates.memo;
       if (updates.amount !== undefined) updateData.amount = updates.amount;
+      if (updates.bank_account_id !== undefined) updateData.bank_account_id = updates.bank_account_id;
+      if (updates.project_id !== undefined) updateData.project_id = updates.project_id;
+      if (updates.company_name !== undefined) updateData.company_name = updates.company_name;
+      if (updates.company_address !== undefined) updateData.company_address = updates.company_address;
+      if (updates.company_city_state !== undefined) updateData.company_city_state = updates.company_city_state;
+      if (updates.bank_name !== undefined) updateData.bank_name = updates.bank_name;
 
       // Update the check with provided fields
       const { error: checkError, data: checkData } = await supabase
