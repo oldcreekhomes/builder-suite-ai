@@ -1,27 +1,26 @@
 ## Problem
 
-In Write Checks, the Quantity input on each row won't let you delete past `1`. Pressing Backspace appears to do nothing — the field snaps back to `1`.
+In Reconcile Accounts, the allocation tooltip lists lots as `1:` and `2:` instead of `Lot 1:` and `Lot 2:` (see screenshot). Other places in the app (e.g. the Address dropdown on Write Checks Job Cost rows) display lots as `Lot 1`, `Lot 2`.
 
 ## Cause
 
-In `src/components/transactions/WriteChecksContent.tsx`, both Quantity inputs render with:
+`src/components/transactions/ReconcileAccountsContent.tsx` (line 111) renders the tooltip row as:
 
 ```tsx
-value={row.quantity || "1"}
+<span className="text-muted-foreground">{lot.name}:</span>
 ```
 
-When the user clears the field, `row.quantity` becomes `""`, and the `|| "1"` fallback immediately re-displays `"1"`. The state update is correct; the display is overriding it.
+`lot.name` comes from `project_lots.lot_number`, which is the bare number ("1", "2"). There is no "Lot " prefix.
 
-## Fix (UI only, no business logic changes)
+## Fix (UI only)
 
-Two one-line edits in `src/components/transactions/WriteChecksContent.tsx`:
+In `src/components/transactions/ReconcileAccountsContent.tsx`, change the lot label render so:
 
-1. Line 1311 (Chart of Accounts / Expense rows Quantity input): change
-   `value={row.quantity || "1"}` → `value={row.quantity ?? ""}`
-2. Line 1438 (Job Cost rows Quantity input): same change.
+- If `lot.name === 'No Lot'`, show `No Lot:` (unchanged).
+- Otherwise show `Lot {lot.name}:` → e.g. `Lot 1:`, `Lot 2:`.
 
-This lets the field be fully cleared while typing. All downstream math already uses `parseFloat(row.quantity || "0") || 0` / `|| "1"` as the numeric fallback at save time, so an empty string in the input does not break totals or saving.
+Single-line change at line 111, no data or hook changes.
 
 ## Out of scope
 
-- No changes to save logic, journal entries, defaults on row creation (new rows still start at `"1"`), or any other field.
+No other tooltips, no DB changes, no changes to `useBankReconciliation`, no changes to the "Total:" row.
