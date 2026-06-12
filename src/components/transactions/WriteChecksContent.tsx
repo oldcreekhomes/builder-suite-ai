@@ -703,6 +703,7 @@ export function WriteChecksContent({ projectId, recurringTemplate, onClearTempla
         await updateCheck.mutateAsync({ 
           checkId: currentCheckId, 
           updates: {
+            bank_account_id: checkData.bank_account_id,
             check_date: checkData.check_date,
             check_number: checkData.check_number,
             pay_to: checkData.pay_to,
@@ -839,6 +840,7 @@ export function WriteChecksContent({ projectId, recurringTemplate, onClearTempla
         await updateCheck.mutateAsync({ 
           checkId: currentCheckId, 
           updates: {
+            bank_account_id: checkData.bank_account_id,
             check_date: checkData.check_date,
             check_number: checkData.check_number,
             pay_to: checkData.pay_to,
@@ -1011,6 +1013,7 @@ export function WriteChecksContent({ projectId, recurringTemplate, onClearTempla
         await updateCheck.mutateAsync({ 
           checkId: currentCheckId, 
           updates: {
+            bank_account_id: checkData.bank_account_id,
             check_date: checkData.check_date,
             check_number: checkData.check_number,
             pay_to: checkData.pay_to,
