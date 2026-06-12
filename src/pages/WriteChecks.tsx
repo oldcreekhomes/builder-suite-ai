@@ -514,7 +514,8 @@ export default function WriteChecks() {
             check_number: checkData.check_number,
             pay_to: checkData.pay_to,
             amount: checkData.amount
-          }
+          },
+          checkLines
         });
       } else {
         // Create new check
@@ -656,7 +657,8 @@ export default function WriteChecks() {
             check_number: checkData.check_number,
             pay_to: checkData.pay_to,
             amount: checkData.amount
-          }
+          },
+          checkLines
         });
       } else {
         // Create new check
@@ -785,7 +787,8 @@ export default function WriteChecks() {
             check_number: checkData.check_number,
             pay_to: checkData.pay_to,
             amount: checkData.amount
-          }
+          },
+          checkLines
         });
       } else {
         const result = await createCheck.mutateAsync({ checkData, checkLines });

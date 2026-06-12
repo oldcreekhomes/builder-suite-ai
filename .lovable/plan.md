@@ -1,28 +1,20 @@
-## Plan
+## Fix Write Checks so the Bank Account always saves
 
-1. **Fix the Write Checks update path**
-   - Update the shared `useChecks` update mutation so `bank_account_id` is an allowed update field.
-   - When an existing check is saved, persist the selected bank account to `checks.bank_account_id`.
-   - Ensure recreated journal entry bank-credit lines use the updated bank account, so the bank register and accounting reports move with the check.
+When you change the Bank Account on an existing check and click Save & New or Save & Close, the new bank account isn't being persisted. This plan fixes that — no data will be moved or changed by me.
 
-2. **Wire every Write Checks save button to pass the bank account**
-   - Add `bank_account_id` to the update payload for:
-     - `Save & New`
-     - `Save & Close`
-     - `Save Entry`
-   - Apply this to the current Transactions Write Checks screen and the standalone Write Checks page for consistency.
+### What I will change
 
-3. **Harden bank account selection before save**
-   - Resolve the bank account from the displayed text when possible, so selecting/typing `1015 - Capital One` cannot leave the hidden account id stuck on Atlantic Union.
-   - Keep validation if no valid bank account can be resolved.
+1. **`src/hooks/useChecks.ts`** — Allow `bank_account_id` in the check update payload so the selected bank account is actually written to the `checks` row. Rebuild the linked journal entry's bank credit line to match the new bank account, so the bank register and reports follow the check.
 
-4. **Correct the current affected check shown in your screenshot**
-   - Move check `OCH at Custis, LLC` dated `05/22/2026` for `$24,899.65` on project `1639 N Woodstock St` from Atlantic Union Bank to Capital One.
-   - Update both:
-     - the `checks` row
-     - the related journal entry bank-credit line
+2. **`src/components/transactions/WriteChecksContent.tsx`** — Resolve the bank account from the visible "Bank Account" field at the moment of save (so what you see is what gets saved), and include it in the update for all three buttons: Save Entry, Save & New, and Save & Close.
 
-## Technical notes
+3. **`src/pages/WriteChecks.tsx`** — Include the resolved `bank_account_id` in the update payload for Save & New and Save & Close on the standalone Write Checks page.
 
-- Root cause found: existing-check updates currently save date, check number, payee, and amount, but they do **not** include `bank_account_id`, so the visible bank-account change is ignored.
-- The current database row still points to `1010 - Atlantic Union Bank`; Capital One is account `1015 - Capital One`.
+### What I will NOT do
+
+- I will not move, edit, or correct any existing checks or journal entries in your data.
+- No SQL migration. The OCH check at 126 Longview Drive stays exactly as it is — you'll fix it yourself once saving works.
+
+### How you'll verify
+
+Open the OCH check, change Bank Account to `1015 - Capital One`, click Save & Close, reopen it — Bank Account should now show Capital One, and the bank register should reflect the change.
