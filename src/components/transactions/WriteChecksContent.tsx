@@ -442,6 +442,18 @@ export function WriteChecksContent({ projectId, recurringTemplate, onClearTempla
 
   const amountOfRow = (row: CheckRow) => ((parseFloat(row.quantity || "1") || 0) * (parseFloat(row.amount || "0") || 0));
 
+  // Always trust the visible bank-account text at save time. If the user typed
+  // or picked a new bank but the hidden id state lagged, resolve from text.
+  const resolveBankAccountIdForSave = (): string => {
+    if (!bankAccount) return bankAccountId;
+    const exact = (accounts as any[]).find(
+      (a) => `${a.code} - ${a.name}`.toLowerCase() === bankAccount.trim().toLowerCase()
+    );
+    if (exact) return String(exact.id);
+    const resolved = findAccountIdFromText(bankAccount);
+    return resolved || bankAccountId;
+  };
+
   const createNewCheck = () => {
     setIsViewingMode(false);
     setCurrentEntryIndex(-1);
