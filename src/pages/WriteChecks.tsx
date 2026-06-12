@@ -650,7 +650,6 @@ export default function WriteChecks() {
         // Update existing check
         await updateCheck.mutateAsync({ 
           checkId: currentCheckId, 
-            bank_account_id: checkData.bank_account_id,
           updates: {
             bank_account_id: checkData.bank_account_id,
             check_date: checkData.check_date,
