@@ -509,10 +509,11 @@ export default function WriteChecks() {
         await updateCheck.mutateAsync({ 
           checkId: currentCheckId, 
           updates: {
+            bank_account_id: checkData.bank_account_id,
             check_date: checkData.check_date,
             check_number: checkData.check_number,
             pay_to: checkData.pay_to,
-            amount: checkData.amount
+            amount: checkData.amount ,
                       bank_account_id: checkData.bank_account_id
           }
         });
@@ -650,7 +651,9 @@ export default function WriteChecks() {
         // Update existing check
         await updateCheck.mutateAsync({ 
           checkId: currentCheckId, 
+            bank_account_id: checkData.bank_account_id,
           updates: {
+            bank_account_id: checkData.bank_account_id,
             check_date: checkData.check_date,
             check_number: checkData.check_number,
             pay_to: checkData.pay_to,
@@ -779,6 +782,7 @@ export default function WriteChecks() {
         await updateCheck.mutateAsync({ 
           checkId: currentCheckId, 
           updates: {
+            bank_account_id: checkData.bank_account_id,
             check_date: checkData.check_date,
             check_number: checkData.check_number,
             pay_to: checkData.pay_to,
