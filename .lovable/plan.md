@@ -1,28 +1,28 @@
-## Root cause
+## Plan
 
-The "Failed to complete reconciliation" error is being thrown by a Postgres trigger, not by your data. When the app updates `bank_reconciliations.status` to `completed`, the trigger `sync_reconciliation_row_flags` fires and tries to update the `credit_cards` table using a column called `bank_account_id`. That column does not exist on `credit_cards` (the real column is `credit_card_account_id`), so Postgres raises:
+1. **Fix the Write Checks update path**
+   - Update the shared `useChecks` update mutation so `bank_account_id` is an allowed update field.
+   - When an existing check is saved, persist the selected bank account to `checks.bank_account_id`.
+   - Ensure recreated journal entry bank-credit lines use the updated bank account, so the bank register and accounting reports move with the check.
 
-```
-ERROR: column "bank_account_id" does not exist
-```
+2. **Wire every Write Checks save button to pass the bank account**
+   - Add `bank_account_id` to the update payload for:
+     - `Save & New`
+     - `Save & Close`
+     - `Save Entry`
+   - Apply this to the current Transactions Write Checks screen and the standalone Write Checks page for consistency.
 
-The Supabase Postgres logs confirm this — the error fires every time you click **Finish Reconciliation**. Because the trigger raises, the whole `UPDATE bank_reconciliations ... SET status='completed'` is rolled back, the React mutation rejects, and the UI surfaces the generic toast you're seeing. Nothing is wrong with the Oceanwatch data or the $0.00 difference — the bug exists for every project that uses this trigger.
+3. **Harden bank account selection before save**
+   - Resolve the bank account from the displayed text when possible, so selecting/typing `1015 - Capital One` cannot leave the hidden account id stuck on Atlantic Union.
+   - Keep validation if no valid bank account can be resolved.
 
-## Fix
+4. **Correct the current affected check shown in your screenshot**
+   - Move check `OCH at Custis, LLC` dated `05/22/2026` for `$24,899.65` on project `1639 N Woodstock St` from Atlantic Union Bank to Capital One.
+   - Update both:
+     - the `checks` row
+     - the related journal entry bank-credit line
 
-Patch the trigger function `public.sync_reconciliation_row_flags()` so the two `UPDATE public.credit_cards ...` statements use the correct column. Credit-card reconciliations identify the account via `credit_card_account_id`, so the comparison should be `credit_card_account_id = NEW.bank_account_id` (the column on `bank_reconciliations` is named generically — it holds whatever account is being reconciled). One migration, two tiny edits inside the existing function, no schema/RLS/data changes.
+## Technical notes
 
-After the migration the user can re-click **Finish Reconciliation** on the April 30 statement and it will complete normally.
-
-## Technical details
-
-- File: new migration that runs `CREATE OR REPLACE FUNCTION public.sync_reconciliation_row_flags()` with the same body it has today, except:
-  - In the "removed_ids" block: `UPDATE public.credit_cards ... WHERE id = ANY(removed_ids) AND reconciliation_id = NEW.id` — already correct, no `bank_account_id` clause to remove there.
-  - In the "added ids" block: change `AND bank_account_id = NEW.bank_account_id` to `AND credit_card_account_id = NEW.bank_account_id`.
-- Keep `SECURITY DEFINER` and `SET search_path = public`.
-- No frontend changes.
-
-## Out of scope
-
-- The autosave / `bill_payments` cascade work from earlier turns — untouched.
-- UI copy for the error toast — the underlying error is fixed so the toast won't fire on success.
+- Root cause found: existing-check updates currently save date, check number, payee, and amount, but they do **not** include `bank_account_id`, so the visible bank-account change is ignored.
+- The current database row still points to `1010 - Atlantic Union Bank`; Capital One is account `1015 - Capital One`.
