@@ -1,20 +1,27 @@
-## Fix Write Checks so the Bank Account always saves
+## Problem
 
-When you change the Bank Account on an existing check and click Save & New or Save & Close, the new bank account isn't being persisted. This plan fixes that — no data will be moved or changed by me.
+In Write Checks, the Quantity input on each row won't let you delete past `1`. Pressing Backspace appears to do nothing — the field snaps back to `1`.
 
-### What I will change
+## Cause
 
-1. **`src/hooks/useChecks.ts`** — Allow `bank_account_id` in the check update payload so the selected bank account is actually written to the `checks` row. Rebuild the linked journal entry's bank credit line to match the new bank account, so the bank register and reports follow the check.
+In `src/components/transactions/WriteChecksContent.tsx`, both Quantity inputs render with:
 
-2. **`src/components/transactions/WriteChecksContent.tsx`** — Resolve the bank account from the visible "Bank Account" field at the moment of save (so what you see is what gets saved), and include it in the update for all three buttons: Save Entry, Save & New, and Save & Close.
+```tsx
+value={row.quantity || "1"}
+```
 
-3. **`src/pages/WriteChecks.tsx`** — Include the resolved `bank_account_id` in the update payload for Save & New and Save & Close on the standalone Write Checks page.
+When the user clears the field, `row.quantity` becomes `""`, and the `|| "1"` fallback immediately re-displays `"1"`. The state update is correct; the display is overriding it.
 
-### What I will NOT do
+## Fix (UI only, no business logic changes)
 
-- I will not move, edit, or correct any existing checks or journal entries in your data.
-- No SQL migration. The OCH check at 126 Longview Drive stays exactly as it is — you'll fix it yourself once saving works.
+Two one-line edits in `src/components/transactions/WriteChecksContent.tsx`:
 
-### How you'll verify
+1. Line 1311 (Chart of Accounts / Expense rows Quantity input): change
+   `value={row.quantity || "1"}` → `value={row.quantity ?? ""}`
+2. Line 1438 (Job Cost rows Quantity input): same change.
 
-Open the OCH check, change Bank Account to `1015 - Capital One`, click Save & Close, reopen it — Bank Account should now show Capital One, and the bank register should reflect the change.
+This lets the field be fully cleared while typing. All downstream math already uses `parseFloat(row.quantity || "0") || 0` / `|| "1"` as the numeric fallback at save time, so an empty string in the input does not break totals or saving.
+
+## Out of scope
+
+- No changes to save logic, journal entries, defaults on row creation (new rows still start at `"1"`), or any other field.
