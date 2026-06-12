@@ -695,11 +695,13 @@ export function WriteChecksContent({ projectId, recurringTemplate, onClearTempla
 
     const checkAmount = useManualAmount && manualAmount ? parseFloat(manualAmount) : parseFloat(calculateTotal());
 
+    const resolvedBankAccountId = resolveBankAccountIdForSave();
+
     const checkData: CheckData = {
       check_number: checkNumber || undefined,
       check_date: checkDate.toISOString().split('T')[0],
       pay_to: payToName || payTo,
-      bank_account_id: bankAccountId,
+      bank_account_id: resolvedBankAccountId,
       project_id: projectId || undefined,
       amount: checkAmount,
       company_name: companyName,
@@ -832,11 +834,13 @@ export function WriteChecksContent({ projectId, recurringTemplate, onClearTempla
 
     const checkAmount = useManualAmount && manualAmount ? parseFloat(manualAmount) : parseFloat(calculateTotal());
 
+    const resolvedBankAccountId = resolveBankAccountIdForSave();
+
     const checkData: CheckData = {
       check_number: checkNumber || undefined,
       check_date: checkDate.toISOString().split('T')[0],
       pay_to: payToName || payTo,
-      bank_account_id: bankAccountId,
+      bank_account_id: resolvedBankAccountId,
       project_id: projectId || undefined,
       amount: checkAmount,
       company_name: companyName,
@@ -1007,11 +1011,13 @@ export function WriteChecksContent({ projectId, recurringTemplate, onClearTempla
 
     const checkAmount = useManualAmount && manualAmount ? parseFloat(manualAmount) : parseFloat(calculateTotal());
 
+    const resolvedBankAccountId = resolveBankAccountIdForSave();
+
     const checkData: CheckData = {
       check_number: checkNumber || undefined,
       check_date: checkDate.toISOString().split('T')[0],
       pay_to: payToName || payTo,
-      bank_account_id: bankAccountId,
+      bank_account_id: resolvedBankAccountId,
       project_id: projectId || undefined,
       amount: checkAmount,
       company_name: companyName,
