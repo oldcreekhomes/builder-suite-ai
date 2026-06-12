@@ -108,7 +108,7 @@ function AllocationCell({ allocations, labelType = 'code' }: { allocations: Allo
                 <div className="pl-2 space-y-0.5">
                   {alloc.lots.map((lot, lotIdx) => (
                     <div key={lotIdx} className="flex justify-between gap-4">
-                      <span className="text-muted-foreground">{lot.name}:</span>
+                      <span className="text-muted-foreground">{lot.name === 'No Lot' ? 'No Lot' : `Lot ${lot.name}`}:</span>
                       <span>{formatCurrencyTooltip(lot.amount)}</span>
                     </div>
                   ))}
