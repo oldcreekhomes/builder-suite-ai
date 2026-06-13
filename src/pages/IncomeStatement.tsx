@@ -283,7 +283,7 @@ export default function IncomeStatement() {
                               className="flex justify-between items-center text-sm cursor-pointer hover:bg-muted/50 p-2 rounded transition-colors"
                               onClick={() => setSelectedAccount(account)}
                             >
-                              <span>{account.code} - {account.name}</span>
+                              <span>{account.code} - {nameFor(account)}</span>
                               <span>{formatCurrency(account.balance)}</span>
                             </div>
                           ))}
@@ -308,7 +308,7 @@ export default function IncomeStatement() {
                               className="flex justify-between items-center text-sm cursor-pointer hover:bg-muted/50 p-2 rounded transition-colors"
                               onClick={() => setSelectedAccount(account)}
                             >
-                              <span>{account.code} - {account.name}</span>
+                              <span>{account.code} - {nameFor(account)}</span>
                               <span>{formatCurrency(account.balance)}</span>
                             </div>
                           ))}
@@ -342,7 +342,7 @@ export default function IncomeStatement() {
       <AccountDetailDialog
         accountId={selectedAccount?.id || null}
         accountCode={selectedAccount?.code || ''}
-        accountName={selectedAccount?.name || ''}
+        accountName={selectedAccount ? nameFor(selectedAccount) : ""}
         accountType={selectedAccount?.type || 'expense'}
         projectId={projectId}
         open={!!selectedAccount}
