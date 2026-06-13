@@ -401,7 +401,7 @@ export function IncomeStatementContent({ projectId, onHeaderActionChange, asOfDa
       <AccountDetailDialog
         accountId={selectedAccount?.id || null}
         accountCode={selectedAccount?.code || ''}
-        accountName={selectedAccount?.name || ''}
+        accountName={selectedAccount ? (nameOverrides?.get(selectedAccount.id) ?? selectedAccount.name) : ''}
         accountType={selectedAccount?.type || 'expense'}
         projectId={projectId}
         asOfDate={asOfDate}
