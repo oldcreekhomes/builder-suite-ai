@@ -209,7 +209,6 @@ export function EditCheckDialog({ open, onOpenChange, checkId }: EditCheckDialog
           check_date: checkDate.toISOString().split('T')[0],
           check_number: checkNumber || undefined,
           pay_to: payTo,
-          memo: memo || undefined,
           amount: total,
         },
         checkLines,
@@ -235,13 +234,6 @@ export function EditCheckDialog({ open, onOpenChange, checkId }: EditCheckDialog
 
     return (
       <div className="space-y-4">
-        <div className="flex items-center justify-between">
-          <Button onClick={() => addRow(type)} size="sm" variant="outline">
-            <Plus className="h-4 w-4 mr-2" />
-            Add Row
-          </Button>
-        </div>
-
         <div className="border rounded-lg overflow-hidden">
           <div className={cn(
             "grid gap-2 p-3 bg-muted font-medium text-sm",
@@ -250,12 +242,12 @@ export function EditCheckDialog({ open, onOpenChange, checkId }: EditCheckDialog
             <div className="col-span-5">{type === 'job_cost' ? 'Cost Code' : 'Account'}</div>
             <div className="col-span-3">Amount</div>
             {showAddressColumn && <div className="col-span-4">Address</div>}
-            <div className={cn(showAddressColumn ? "col-span-4" : "col-span-8")}>Description</div>
-            <div className="col-span-4 text-right">Action</div>
+            <div className={cn(showAddressColumn ? "col-span-5" : "col-span-9")}>Description</div>
+            <div className="col-span-3 text-right">Action</div>
           </div>
 
           {rows.map(row => (
-            <div key={row.id} className="grid gap-2 p-3 border-t grid-cols-20">
+            <div key={row.id} className="grid gap-2 p-3 border-t grid-cols-20 items-center">
               <div className="col-span-5">
                 {type === 'job_cost' ? (
                   <CostCodeSearchInput
@@ -266,7 +258,7 @@ export function EditCheckDialog({ open, onOpenChange, checkId }: EditCheckDialog
                       updateRow(type, row.id, 'costCodeId', cc.id);
                     }}
                     placeholder="Search cost codes..."
-                    className="h-8"
+                    className="h-10"
                   />
                 ) : (
                   <AccountSearchInputInline
@@ -277,7 +269,7 @@ export function EditCheckDialog({ open, onOpenChange, checkId }: EditCheckDialog
                       updateRow(type, row.id, 'accountId', acc.id);
                     }}
                     placeholder="Search accounts..."
-                    className="h-8"
+                    className="h-10"
                   />
                 )}
               </div>
@@ -288,7 +280,7 @@ export function EditCheckDialog({ open, onOpenChange, checkId }: EditCheckDialog
                     value={row.amount}
                     onChange={(e) => updateRow(type, row.id, 'amount', e.target.value)}
                     placeholder="0.00"
-                    className="h-8 pl-6 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                    className="h-10 pl-6 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
                   />
                 </div>
               </div>
@@ -298,7 +290,7 @@ export function EditCheckDialog({ open, onOpenChange, checkId }: EditCheckDialog
                     value={row.lotId || ""}
                     onValueChange={(value) => updateRow(type, row.id, 'lotId', value)}
                   >
-                    <SelectTrigger className="h-8">
+                    <SelectTrigger className="h-10">
                       <SelectValue placeholder="Select" />
                     </SelectTrigger>
                     <SelectContent>
@@ -311,21 +303,31 @@ export function EditCheckDialog({ open, onOpenChange, checkId }: EditCheckDialog
                   </Select>
                 </div>
               )}
-              <div className={cn(showAddressColumn ? "col-span-4" : "col-span-8")}>
+              <div className={cn(showAddressColumn ? "col-span-5" : "col-span-9")}>
                 <Input
                   value={row.memo}
                   onChange={(e) => updateRow(type, row.id, 'memo', e.target.value)}
                   placeholder="Description"
-                  className="h-8"
+                  className="h-10"
                 />
               </div>
-              <div className="col-span-4 flex items-center justify-end">
+              <div className="col-span-3 flex items-center justify-end gap-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="h-10 w-10 p-0"
+                  onClick={() => addRow(type)}
+                  aria-label="Add row"
+                >
+                  <Plus className="h-4 w-4" />
+                </Button>
                 <Button
                   variant="destructive"
                   size="sm"
-                  className="h-8 w-8 p-0"
+                  className="h-10 w-10 p-0"
                   onClick={() => removeRow(type, row.id)}
                   disabled={rows.length === 1}
+                  aria-label="Remove row"
                 >
                   <Trash2 className="h-4 w-4" />
                 </Button>
@@ -409,14 +411,6 @@ export function EditCheckDialog({ open, onOpenChange, checkId }: EditCheckDialog
             </div>
           </div>
 
-          <div className="space-y-2">
-            <Label>Memo</Label>
-            <Input
-              value={memo}
-              onChange={(e) => setMemo(e.target.value)}
-              placeholder="Memo"
-            />
-          </div>
 
           <div className="space-y-4">
             <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
