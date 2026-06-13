@@ -40,6 +40,9 @@ export default function BalanceSheet() {
   const { projectId } = useParams<{ projectId: string }>();
   const { user, session, loading: authLoading } = useAuth();
   const [selectedAccount, setSelectedAccount] = useState<AccountBalance | null>(null);
+  const { data: accountNameOverrides } = useProjectAccountNames(projectId);
+  const nameFor = (a: { id: string; name: string }) => accountNameOverrides?.get(a.id) ?? a.name;
+  
   
   const { data: balanceSheetData, isLoading, error } = useQuery({
     queryKey: ['balance-sheet', user?.id, projectId],
