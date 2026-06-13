@@ -42,6 +42,7 @@ export function IncomeStatementContent({ projectId, onHeaderActionChange, asOfDa
   const { user, session, loading: authLoading } = useAuth();
   const [selectedAccount, setSelectedAccount] = useState<AccountBalance | null>(null);
   const [expandedAccounts, setExpandedAccounts] = useState<Set<string>>(new Set());
+  const { data: nameOverrides } = useProjectAccountNames(projectId);
   
   const { data: incomeStatementData, isLoading, error } = useQuery({
     queryKey: ['income-statement', user?.id, projectId, asOfDate.toISOString().split('T')[0]],
