@@ -1,26 +1,14 @@
+# Fix: Edit Deposit opens both dialogs in Account Detail
+
 ## Problem
+In `AccountDetailDialog` (Balance Sheet → account drawer), each transaction row's `<TableRow>` has an `onClick` that opens the Transaction Details dialog. The Actions (⋯) menu lives inside that same row, so clicking "Edit Deposit" bubbles up to the row handler — opening both Transaction Details *and* Edit Deposit at the same time.
 
-In Reconcile Accounts, the allocation tooltip lists lots as `1:` and `2:` instead of `Lot 1:` and `Lot 2:` (see screenshot). Other places in the app (e.g. the Address dropdown on Write Checks Job Cost rows) display lots as `Lot 1`, `Lot 2`.
+## Fix
+In `src/components/accounting/AccountDetailDialog.tsx`, stop click propagation on the Actions cell wrapper so clicks on the ⋯ menu (Edit Deposit / Edit Bill / Edit Check / Delete / Edit Description) don't trigger the row's `setSelectedTransaction`.
 
-## Cause
-
-`src/components/transactions/ReconcileAccountsContent.tsx` (line 111) renders the tooltip row as:
-
+Change the Actions `<TableCell>` (line 1618) to add:
 ```tsx
-<span className="text-muted-foreground">{lot.name}:</span>
+onClick={(e) => e.stopPropagation()}
 ```
 
-`lot.name` comes from `project_lots.lot_number`, which is the bare number ("1", "2"). There is no "Lot " prefix.
-
-## Fix (UI only)
-
-In `src/components/transactions/ReconcileAccountsContent.tsx`, change the lot label render so:
-
-- If `lot.name === 'No Lot'`, show `No Lot:` (unchanged).
-- Otherwise show `Lot {lot.name}:` → e.g. `Lot 1:`, `Lot 2:`.
-
-Single-line change at line 111, no data or hook changes.
-
-## Out of scope
-
-No other tooltips, no DB changes, no changes to `useBankReconciliation`, no changes to the "Total:" row.
+That's the only change. No behavior change for normal row clicks, no data/hook changes.
