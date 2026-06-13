@@ -206,7 +206,17 @@ export function BalanceSheetContent({ projectId, onHeaderActionChange, asOfDate,
       let revenueBalance = 0;
       let expenseBalance = 0;
 
-      filteredAccounts?.forEach((account) => {
+      accounts?.forEach((account) => {
+        // For balance-sheet accounts, only honor exclusion if the account has no activity.
+        // Hiding a non-zero asset/liability/equity would break Assets = Liabilities + Equity.
+        const rawBal = accountBalances[account.id] || 0;
+        if (
+          projectId &&
+          excludedAccountIds.has(account.id) &&
+          (account.type === 'revenue' || account.type === 'expense' || Math.abs(rawBal) < 0.005)
+        ) {
+          return;
+        }
         const rawBalance = accountBalances[account.id] || 0;
         let displayBalance = rawBalance;
         
