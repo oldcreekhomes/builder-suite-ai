@@ -157,7 +157,7 @@ export function BalanceSheetContent({ projectId, onHeaderActionChange, asOfDate,
       console.log(`📊 Balance Sheet: Processing ${journalLines?.length || 0} journal lines`);
 
       const accountBalances: Record<string, number> = {};
-      const accountsPayableAccountId = filteredAccounts?.find((account) =>
+      const accountsPayableAccountId = accounts?.find((account) =>
         account.type === 'liability' &&
         (account.code === '2010' || account.name.toLowerCase().includes('accounts payable'))
       )?.id;
