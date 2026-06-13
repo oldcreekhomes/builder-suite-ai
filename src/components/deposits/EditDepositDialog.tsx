@@ -453,21 +453,31 @@ export function EditDepositDialog({ open, onOpenChange, depositId }: EditDeposit
               <DateInputPicker
                 date={depositDate}
                 onDateChange={(date) => setDepositDate(date)}
-                className="w-full [&>input]:flex-1 [&>input]:w-auto"
               />
             </div>
             <div className="space-y-2">
               <Label>Deposit To</Label>
-              <AccountSearchInputInline
-                value={bankAccount}
-                onChange={(val) => setBankAccount(val)}
-                onAccountSelect={(acc) => {
-                  setBankAccountId(acc.id);
-                  setBankAccount(`${acc.code} - ${acc.name}`);
+              <Select
+                value={bankAccountId}
+                onValueChange={(value) => {
+                  const acc = bankAccounts.find((a: any) => a.id === value);
+                  if (acc) {
+                    setBankAccountId(acc.id);
+                    setBankAccount(`${acc.code} - ${acc.name}`);
+                  }
                 }}
-                placeholder="Bank account..."
-                className="h-10"
-              />
+              >
+                <SelectTrigger className="h-10">
+                  <SelectValue placeholder="Select bank account..." />
+                </SelectTrigger>
+                <SelectContent>
+                  {bankAccounts.map((acc: any) => (
+                    <SelectItem key={acc.id} value={acc.id}>
+                      {acc.code} - {acc.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
             <div className="space-y-2">
               <Label>Received From</Label>
