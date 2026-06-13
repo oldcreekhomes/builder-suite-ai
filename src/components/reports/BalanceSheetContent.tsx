@@ -13,6 +13,7 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { Button } from "@/components/ui/button";
 import { compareCostCodes } from "@/lib/costCodeSort";
 import { groupAccountsByParent } from "@/lib/accountHierarchy";
+import { useProjectAccountNames } from "@/hooks/useProjectAccountNames";
 
 interface AccountBalance {
   id: string;
