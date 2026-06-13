@@ -377,7 +377,7 @@ export function EditCheckDialog({ open, onOpenChange, checkId }: EditCheckDialog
         </DialogHeader>
 
         <div className="space-y-6">
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-[minmax(140px,180px)_2fr_1fr_1fr] gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-[max-content_2fr_1fr_1fr] gap-4">
             <div className="space-y-2">
               <Label>Date</Label>
               <DateInputPicker
