@@ -1091,7 +1091,7 @@ export function EditBillDialog({ open, onOpenChange, billId }: EditBillDialogPro
                             </TableCell>
 
                             <TableCell>
-                              <span className="font-medium">${group.amount.toFixed(2)}</span>
+                              <span className="font-medium">${(Number(group.amount) || 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
                             </TableCell>
                             {showAddressColumn && (
                               <TableCell>
@@ -1289,7 +1289,7 @@ export function EditBillDialog({ open, onOpenChange, billId }: EditBillDialogPro
                               />
                             </TableCell>
                             <TableCell>
-                              <span className="font-medium">${total.toFixed(2)}</span>
+                              <span className="font-medium">${total.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
                             </TableCell>
                             {!isApprovedBill && (
                               <TableCell className="text-center">
