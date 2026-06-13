@@ -1,48 +1,52 @@
-# Per-Project Account Name Overrides
+# Make per-project account renames flow everywhere
 
-You're right about how it works today: the global Chart of Accounts (the `accounts` table) is the single source of truth. When a project loads its Chart of Accounts tab, it reads the global list and lets you check/uncheck which accounts are excluded for that project — but you can't rename them. So when "3120 Construction Management Fees" doesn't quite fit a particular job, you're stuck with the global label everywhere.
+The override system works, but only the standalone `/project/.../balance-sheet` and `/project/.../income-statement` pages were wired. The actual **Reports** page uses different components (`BalanceSheetContent`, `IncomeStatementContent`, `AccountsPayableContent`, `JobCostsContent`) and PDF exports — that's why "3120 - Income" still shows as "Construction Management Fees" there. Bills, transactions, registers, dropdowns, and reconciliation also still show the global name.
 
-This plan adds a per-project **display name override** so you can rename an account just for one project, without touching the global Chart of Accounts or any other project.
+## What I'll wire up
 
-## What you'll see in the UI
+For every project-scoped surface that shows an account name, resolve through `useProjectAccountNames(projectId)` so the override (when present) replaces `account.name` at render time. Global pages (the company-wide Reports views with no `projectId`, the master Chart of Accounts in Settings, the master Edit/Add Account dialogs) keep using the global name.
 
-In **Edit Project → Chart of Accounts**, each account row's name itself becomes click-to-edit:
+### Reports (the actual ones rendered in the Reports page)
+- `src/components/reports/IncomeStatementContent.tsx`
+- `src/components/reports/BalanceSheetContent.tsx`
+- `src/components/reports/AccountsPayableContent.tsx`
+- `src/components/reports/JobCostsContent.tsx` (account-related rows only — cost-code labels stay as-is)
 
-- Click the account name (e.g. `3120 - Construction Management Fees`) → it turns into an inline text input pre-filled with the current name.
-- Press Enter or click away → saves. Press Esc → cancels.
-- Once overridden, the row shows the new name with a subtle visual cue (italic + a small "overridden" dot) so you can tell it's project-specific.
-- The account code (3120) is not editable — only the name.
+### Report PDFs
+- `src/components/reports/pdf/IncomeStatementPdfDocument.tsx`
+- `src/components/reports/pdf/BalanceSheetPdfDocument.tsx`
+- `src/components/reports/pdf/AccountsPayablePdfDocument.tsx`
+- `src/components/reports/pdf/JobCostsPdfDocument.tsx`
+  Each PDF component takes an optional `accountNameOverrides: Record<string,string>` prop; the parent Content component fetches the overrides via the hook and passes them in.
 
-No pencil icon, no three-dot menu — just click the name to edit.
+### Registers & detail
+- `AccountDetailDialog` — title bar account name + the related-account column (the `accountsDisplayMap` already pulls overrides when `projectId` is present; I'll also update the title bar).
+- `ReconcileAccountsContent.tsx` and `BankReconciliation.tsx` / `useBankReconciliation.ts` — account name shown in the picker, header, and printout.
 
-That custom name then flows everywhere in this project: Balance Sheet, Income Statement, Journal Entry pickers, Bill/Check/Deposit account dropdowns, account registers, reports, PDF exports — anywhere this project displays an account name.
+### Transaction entry surfaces (account dropdowns, line tables)
+- `AccountSearchInput.tsx` and `AccountSearchInputInline.tsx` — the shared account pickers used by bills, checks, deposits, credit cards, journal entries, POs. Both accept an optional `projectId` (most callers already have one in scope). When provided, the rendered name in the dropdown options and the selected-label uses the override.
+- `WriteChecks` / `WriteChecksContent`, `MakeDeposits` / `MakeDepositsContent`, `CreditCardsContent`, `EditCheckDialog`, `EditDepositDialog`, `PayBillDialog`, `EditExtractedBillDialog`, `ManualBillEntry`, `JournalEntryForm` — pass `projectId` through and use override-aware display strings for any place an account name is rendered outside the picker (e.g. summary rows, table cells, headers).
 
-Other projects, and the global Chart of Accounts in Settings, are completely unaffected.
+### Standalone report pages
+- `src/pages/BalanceSheet.tsx` and `src/pages/IncomeStatement.tsx` are already wired (from the previous step) and stay as-is.
 
-## Technical details
+### Out of scope (intentional)
+- `Settings/ChartOfAccountsTab`, `Settings/AddAccountDialog`, `Settings/EditAccountDialog` — these manage the global accounts; they keep showing global names.
+- `SendReportsDialog` — uses the same Content components for body rendering, so it inherits the change automatically; I'll just verify nothing else needs touching.
 
-**New table** `project_account_overrides`:
-- `project_id` → projects.id
-- `account_id` → accounts.id
-- `display_name` text
-- unique (`project_id`, `account_id`)
-- RLS: same tenant pattern as other project-scoped tables (filter by `home_builder_id` via the project)
-- Audit columns auto-stamped by existing `set_audit_user()` trigger
+## Mechanics
 
-**Resolution helper** (client-side): a `useProjectAccountNames(projectId)` hook returns a `Map<account_id, displayName>` for that project. A small util `resolveAccountName(account, overridesMap)` returns the override if present, else `account.name`.
+1. Add a shared `useProjectAccountNames(projectId)` (already exists) to each Content component and any entry-form surface.
+2. Replace every literal `account.name` (or `${account.code} - ${account.name}`) on a project-scoped surface with `overrides?.get(account.id) ?? account.name`.
+3. For PDF components, accept the resolved name from the parent rather than fetching inside the document.
+4. Add the override query key (`['project-account-overrides', projectId]`) to React Query invalidation triggered by the rename mutation in `ProjectAccountsTab` so all open report views refresh immediately after a save (it already invalidates Balance Sheet and Income Statement; I'll add Accounts Payable, Job Costs, Account Detail, bank reconciliation, and registers).
 
-**Wiring** — apply the resolver in the account-display surfaces for project-scoped views:
-- `ProjectAccountsTab` (inline-editable name + display)
-- Balance Sheet / Income Statement (project-scoped versions)
-- Account register / Account Detail report
-- Journal Entry, Bill, Check, Deposit, Credit Card, PO line account dropdowns when opened in a project context
-- Project-scoped report PDFs/exports
+## Verification
 
-Global pages (the master Chart of Accounts in Settings, company-wide reports without a project filter) keep using `account.name` as-is.
-
-**No data migration needed** — the override table starts empty; every account falls back to its current global name until you rename it.
-
-## Out of scope (per your answers)
-
-- No "Reset to global" button — just clear/re-edit the field to whatever you want.
-- Only the name is overridable — code, type, parent, and description stay global.
+After the change, in project `115 E. Oceanwatch Court`:
+- Reports → Income Statement shows "3120 - Income" (not "Construction Management Fees").
+- Reports → Balance Sheet, Accounts Payable, Job Costs all show the new name where 3120 appears.
+- Account dropdowns in Manage Bills, Write Checks, Make Deposits, Journal Entry, and Credit Cards all list "3120 - Income".
+- Account Detail register opened on 3120 shows "3120 - Income" in the title.
+- PDF export of each report shows the new name.
+- Switching to a different project where 3120 has no override still shows "3120 - Construction Management Fees".

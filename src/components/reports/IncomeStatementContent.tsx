@@ -1,4 +1,4 @@
-import { useState, useEffect, ReactNode } from "react";
+import { useState, useEffect, useMemo, ReactNode } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { fetchAllRows } from "@/lib/supabasePaginate";
@@ -12,6 +12,7 @@ import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Button } from "@/components/ui/button";
 import { groupAccountsByParent } from "@/lib/accountHierarchy";
+import { useProjectAccountNames } from "@/hooks/useProjectAccountNames";
 
 interface AccountBalance {
   id: string;
@@ -41,6 +42,7 @@ export function IncomeStatementContent({ projectId, onHeaderActionChange, asOfDa
   const { user, session, loading: authLoading } = useAuth();
   const [selectedAccount, setSelectedAccount] = useState<AccountBalance | null>(null);
   const [expandedAccounts, setExpandedAccounts] = useState<Set<string>>(new Set());
+  const { data: nameOverrides } = useProjectAccountNames(projectId);
   
   const { data: incomeStatementData, isLoading, error } = useQuery({
     queryKey: ['income-statement', user?.id, projectId, asOfDate.toISOString().split('T')[0]],
@@ -162,6 +164,18 @@ export function IncomeStatementContent({ projectId, onHeaderActionChange, asOfDa
       return failureCount < 3;
     }
   });
+
+  const applyOverrides = (list: AccountBalance[] | undefined): AccountBalance[] =>
+    (list || []).map((a) => ({ ...a, name: nameOverrides?.get(a.id) ?? a.name }));
+
+  const displayData = useMemo(() => {
+    if (!incomeStatementData) return incomeStatementData;
+    return {
+      ...incomeStatementData,
+      revenue: applyOverrides(incomeStatementData.revenue),
+      expenses: applyOverrides(incomeStatementData.expenses),
+    };
+  }, [incomeStatementData, nameOverrides]);
 
   const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat('en-US', {
@@ -341,31 +355,31 @@ export function IncomeStatementContent({ projectId, onHeaderActionChange, asOfDa
         <div className="max-w-3xl">
           <Card>
             <CardContent className="pt-6">
-              {incomeStatementData?.revenue && incomeStatementData.revenue.length > 0 && (
+              {displayData?.revenue && displayData.revenue.length > 0 && (
                 <div className="mb-6">
                   <h4 className="font-semibold mb-3 text-sm">Revenue</h4>
                   <div className="space-y-2">
-                    {renderHierarchicalAccounts(incomeStatementData.revenue, setSelectedAccount, formatCurrency)}
+                    {renderHierarchicalAccounts(displayData.revenue, setSelectedAccount, formatCurrency)}
                   </div>
                   <div className="border-t pt-3 mt-4">
                     <div className="flex justify-between items-center font-semibold">
                       <span>Total Revenue</span>
-                      <span>{formatCurrency(incomeStatementData?.totalRevenue || 0)}</span>
+                      <span>{formatCurrency(displayData?.totalRevenue || 0)}</span>
                     </div>
                   </div>
                 </div>
               )}
 
-              {incomeStatementData?.expenses && incomeStatementData.expenses.length > 0 && (
+              {displayData?.expenses && displayData.expenses.length > 0 && (
                 <div className="mb-6">
                   <h4 className="font-semibold mb-3 text-sm">Expenses</h4>
                   <div className="space-y-2">
-                    {renderHierarchicalAccounts(incomeStatementData.expenses, setSelectedAccount, formatCurrency)}
+                    {renderHierarchicalAccounts(displayData.expenses, setSelectedAccount, formatCurrency)}
                   </div>
                   <div className="border-t pt-3 mt-4">
                     <div className="flex justify-between items-center font-semibold">
                       <span>Total Expenses</span>
-                      <span>{formatCurrency(incomeStatementData?.totalExpenses || 0)}</span>
+                      <span>{formatCurrency(displayData?.totalExpenses || 0)}</span>
                     </div>
                   </div>
                 </div>
@@ -374,8 +388,8 @@ export function IncomeStatementContent({ projectId, onHeaderActionChange, asOfDa
               <div className="border-t-2 border-gray-300 pt-4">
                 <div className="flex justify-between items-center font-bold text-lg">
                   <span>Net Income</span>
-                  <span className={incomeStatementData && incomeStatementData.netIncome < 0 ? "text-destructive" : ""}>
-                    {formatCurrency(incomeStatementData?.netIncome || 0)}
+                  <span className={displayData && displayData.netIncome < 0 ? "text-destructive" : ""}>
+                    {formatCurrency(displayData?.netIncome || 0)}
                   </span>
                 </div>
               </div>
@@ -387,7 +401,7 @@ export function IncomeStatementContent({ projectId, onHeaderActionChange, asOfDa
       <AccountDetailDialog
         accountId={selectedAccount?.id || null}
         accountCode={selectedAccount?.code || ''}
-        accountName={selectedAccount?.name || ''}
+        accountName={selectedAccount ? (nameOverrides?.get(selectedAccount.id) ?? selectedAccount.name) : ''}
         accountType={selectedAccount?.type || 'expense'}
         projectId={projectId}
         asOfDate={asOfDate}

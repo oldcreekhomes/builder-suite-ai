@@ -1,4 +1,4 @@
-import { useState, useEffect, ReactNode } from "react";
+import { useState, useEffect, useMemo, ReactNode } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { fetchAllRows } from "@/lib/supabasePaginate";
@@ -13,6 +13,7 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { Button } from "@/components/ui/button";
 import { compareCostCodes } from "@/lib/costCodeSort";
 import { groupAccountsByParent } from "@/lib/accountHierarchy";
+import { useProjectAccountNames } from "@/hooks/useProjectAccountNames";
 
 interface AccountBalance {
   id: string;
@@ -49,6 +50,7 @@ export function BalanceSheetContent({ projectId, onHeaderActionChange, asOfDate,
   const { user, session, loading: authLoading } = useAuth();
   const [selectedAccount, setSelectedAccount] = useState<AccountBalance | null>(null);
   const [expandedAccounts, setExpandedAccounts] = useState<Set<string>>(new Set());
+  const { data: nameOverrides } = useProjectAccountNames(projectId);
   
   const { data: balanceSheetData, isLoading, error } = useQuery({
     queryKey: ['balance-sheet', user?.id, projectId, asOfDate.toISOString().split('T')[0]],
@@ -311,6 +313,25 @@ export function BalanceSheetContent({ projectId, onHeaderActionChange, asOfDate,
     }
   });
 
+  const applyOverrides = (list: AccountBalance[] | undefined): AccountBalance[] =>
+    (list || []).map((a) => ({ ...a, name: nameOverrides?.get(a.id) ?? a.name }));
+
+  const displayData = useMemo(() => {
+    if (!balanceSheetData) return balanceSheetData;
+    return {
+      ...balanceSheetData,
+      assets: {
+        current: applyOverrides(balanceSheetData.assets.current),
+        fixed: applyOverrides(balanceSheetData.assets.fixed),
+      },
+      liabilities: {
+        current: applyOverrides(balanceSheetData.liabilities.current),
+        longTerm: applyOverrides(balanceSheetData.liabilities.longTerm),
+      },
+      equity: applyOverrides(balanceSheetData.equity),
+    };
+  }, [balanceSheetData, nameOverrides]);
+
   const formatCurrency = (amount: number) => {
     const normalized = Math.abs(amount) < 0.005 ? 0 : amount;
     const value = Object.is(normalized, -0) ? 0 : normalized;
@@ -535,20 +556,20 @@ export function BalanceSheetContent({ projectId, onHeaderActionChange, asOfDate,
                 <CardTitle>Assets</CardTitle>
               </CardHeader>
               <CardContent>
-                {balanceSheetData?.assets.current && balanceSheetData.assets.current.length > 0 && (
+                {displayData?.assets.current && displayData.assets.current.length > 0 && (
                   <div className="mb-6">
                     <h4 className="font-semibold mb-3 text-sm">Current Assets</h4>
                     <div className="space-y-2">
-                      {renderHierarchicalAccounts(balanceSheetData.assets.current, setSelectedAccount, formatCurrency)}
+                      {renderHierarchicalAccounts(displayData.assets.current, setSelectedAccount, formatCurrency)}
                     </div>
                   </div>
                 )}
 
-                {balanceSheetData?.assets.fixed && balanceSheetData.assets.fixed.length > 0 && (
+                {displayData?.assets.fixed && displayData.assets.fixed.length > 0 && (
                   <div className="mb-6">
                     <h4 className="font-semibold mb-3 text-sm">Fixed Assets</h4>
                     <div className="space-y-2">
-                      {renderHierarchicalAccounts(balanceSheetData.assets.fixed, setSelectedAccount, formatCurrency)}
+                      {renderHierarchicalAccounts(displayData.assets.fixed, setSelectedAccount, formatCurrency)}
                     </div>
                   </div>
                 )}
@@ -556,7 +577,7 @@ export function BalanceSheetContent({ projectId, onHeaderActionChange, asOfDate,
                 <div className="border-t pt-3 mt-4">
                   <div className="flex justify-between items-center font-semibold px-2">
                     <span>Total Assets</span>
-                    <span>{formatCurrency(balanceSheetData?.totalAssets || 0)}</span>
+                    <span>{formatCurrency(displayData?.totalAssets || 0)}</span>
                   </div>
                 </div>
               </CardContent>
@@ -569,20 +590,20 @@ export function BalanceSheetContent({ projectId, onHeaderActionChange, asOfDate,
                 <CardTitle>Liabilities & Equity</CardTitle>
               </CardHeader>
               <CardContent>
-                {balanceSheetData?.liabilities.current && balanceSheetData.liabilities.current.length > 0 && (
+                {displayData?.liabilities.current && displayData.liabilities.current.length > 0 && (
                   <div className="mb-6">
                     <h4 className="font-semibold mb-3 text-sm">Current Liabilities</h4>
                     <div className="space-y-2">
-                      {renderHierarchicalAccounts(balanceSheetData.liabilities.current, setSelectedAccount, formatCurrency)}
+                      {renderHierarchicalAccounts(displayData.liabilities.current, setSelectedAccount, formatCurrency)}
                     </div>
                   </div>
                 )}
 
-                {balanceSheetData?.liabilities.longTerm && balanceSheetData.liabilities.longTerm.length > 0 && (
+                {displayData?.liabilities.longTerm && displayData.liabilities.longTerm.length > 0 && (
                   <div className="mb-6">
                     <h4 className="font-semibold mb-3 text-sm">Long-term Liabilities</h4>
                     <div className="space-y-2">
-                      {renderHierarchicalAccounts(balanceSheetData.liabilities.longTerm, setSelectedAccount, formatCurrency)}
+                      {renderHierarchicalAccounts(displayData.liabilities.longTerm, setSelectedAccount, formatCurrency)}
                     </div>
                   </div>
                 )}
@@ -590,15 +611,15 @@ export function BalanceSheetContent({ projectId, onHeaderActionChange, asOfDate,
                 <div className="border-t pt-3 mt-4 mb-6">
                   <div className="flex justify-between items-center font-semibold px-2">
                     <span>Total Liabilities</span>
-                    <span>{formatCurrency(balanceSheetData?.totalLiabilities || 0)}</span>
+                    <span>{formatCurrency(displayData?.totalLiabilities || 0)}</span>
                   </div>
                 </div>
 
-                {balanceSheetData?.equity && balanceSheetData.equity.length > 0 && (
+                {displayData?.equity && displayData.equity.length > 0 && (
                   <div className="mb-6">
                     <h4 className="font-semibold mb-3 text-sm">Equity</h4>
                     <div className="space-y-2">
-                      {renderHierarchicalAccounts(balanceSheetData.equity, setSelectedAccount, formatCurrency)}
+                      {renderHierarchicalAccounts(displayData.equity, setSelectedAccount, formatCurrency)}
                     </div>
                   </div>
                 )}
@@ -606,14 +627,14 @@ export function BalanceSheetContent({ projectId, onHeaderActionChange, asOfDate,
                 <div className="border-t pt-3 mt-4 mb-6">
                   <div className="flex justify-between items-center font-semibold px-2">
                     <span>Total Equity</span>
-                    <span>{formatCurrency(balanceSheetData?.totalEquity || 0)}</span>
+                    <span>{formatCurrency(displayData?.totalEquity || 0)}</span>
                   </div>
                 </div>
 
                 <div className="border-t-2 pt-3">
                   <div className="flex justify-between items-center font-bold px-2">
                     <span>Total Liabilities & Equity</span>
-                    <span>{formatCurrency((balanceSheetData?.totalLiabilities || 0) + (balanceSheetData?.totalEquity || 0))}</span>
+                    <span>{formatCurrency((displayData?.totalLiabilities || 0) + (displayData?.totalEquity || 0))}</span>
                   </div>
                 </div>
               </CardContent>
@@ -625,7 +646,7 @@ export function BalanceSheetContent({ projectId, onHeaderActionChange, asOfDate,
       <AccountDetailDialog
         accountId={selectedAccount?.id || null}
         accountCode={selectedAccount?.code || ''}
-        accountName={selectedAccount?.name || ''}
+        accountName={selectedAccount ? (nameOverrides?.get(selectedAccount.id) ?? selectedAccount.name) : ''}
         accountType={selectedAccount?.type || 'asset'}
         projectId={projectId}
         asOfDate={asOfDate}
