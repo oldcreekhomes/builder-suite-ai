@@ -433,18 +433,13 @@ export function EditCheckDialog({ open, onOpenChange, checkId }: EditCheckDialog
           </div>
 
           <DialogFooter>
-            <div className="flex items-center justify-between w-full">
-              <div className="text-sm font-medium">
-                Check Total: {formatCurrency(calculateTotal())}
-              </div>
-              <div className="flex gap-2">
-                <Button variant="outline" onClick={() => onOpenChange(false)} disabled={isSaving}>
-                  Cancel
-                </Button>
-                <Button onClick={handleSave} disabled={isSaving || isLoading}>
-                  {isSaving ? "Saving..." : "Save Changes"}
-                </Button>
-              </div>
+            <div className="flex items-center justify-end gap-2 w-full">
+              <Button variant="outline" onClick={() => onOpenChange(false)} disabled={isSaving}>
+                Cancel
+              </Button>
+              <Button onClick={handleSave} disabled={isSaving || isLoading}>
+                {isSaving ? "Saving..." : "Save Changes"}
+              </Button>
             </div>
           </DialogFooter>
         </div>
