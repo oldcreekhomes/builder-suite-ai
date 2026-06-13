@@ -327,7 +327,7 @@ export function ReconciliationReviewDialog({
                               </td>
                               <td className="p-2 capitalize">
                                 {t.type === 'bill_payment' ? 'Bill Payment' :
-                                 t.type === 'journal_entry' ? 'Journal Entry' : 'Check'}
+                                 t.type === 'journal_entry' ? 'JE' : 'Check'}
                               </td>
                               <td className="p-2">{t.payee}</td>
                               <td className="p-2">{t.reference || '-'}</td>
@@ -372,7 +372,7 @@ export function ReconciliationReviewDialog({
                                 {t.date ? formatDateSafe(t.date, "MM/dd/yyyy") : '-'}
                               </td>
                               <td className="p-2">
-                                {t.type === 'journal_entry' ? 'Journal Entry' : 'Deposit'}
+                                {t.type === 'journal_entry' ? 'JE' : 'Deposit'}
                               </td>
                               <td className="p-2">{t.payee}</td>
                               <td className="p-2 text-right text-green-600 font-medium">
