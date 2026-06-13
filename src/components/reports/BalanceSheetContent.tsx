@@ -313,6 +313,25 @@ export function BalanceSheetContent({ projectId, onHeaderActionChange, asOfDate,
     }
   });
 
+  const applyOverrides = (list: AccountBalance[] | undefined): AccountBalance[] =>
+    (list || []).map((a) => ({ ...a, name: nameOverrides?.get(a.id) ?? a.name }));
+
+  const displayData = useMemo(() => {
+    if (!balanceSheetData) return balanceSheetData;
+    return {
+      ...balanceSheetData,
+      assets: {
+        current: applyOverrides(balanceSheetData.assets.current),
+        fixed: applyOverrides(balanceSheetData.assets.fixed),
+      },
+      liabilities: {
+        current: applyOverrides(balanceSheetData.liabilities.current),
+        longTerm: applyOverrides(balanceSheetData.liabilities.longTerm),
+      },
+      equity: applyOverrides(balanceSheetData.equity),
+    };
+  }, [balanceSheetData, nameOverrides]);
+
   const formatCurrency = (amount: number) => {
     const normalized = Math.abs(amount) < 0.005 ? 0 : amount;
     const value = Object.is(normalized, -0) ? 0 : normalized;
