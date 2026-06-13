@@ -236,19 +236,29 @@ export function EditCheckDialog({ open, onOpenChange, checkId }: EditCheckDialog
       <div className="space-y-4">
         <div className="border rounded-lg overflow-hidden">
           <div className={cn(
-            "grid gap-2 p-3 bg-muted font-medium text-sm",
-            "grid-cols-20"
+            "grid gap-2 p-3 bg-muted font-medium text-sm items-center",
+            showAddressColumn
+              ? "grid-cols-[5fr_3fr_4fr_5fr_auto]"
+              : "grid-cols-[5fr_3fr_9fr_auto]"
           )}>
-            <div className="col-span-5">{type === 'job_cost' ? 'Cost Code' : 'Account'}</div>
-            <div className="col-span-3">Amount</div>
-            {showAddressColumn && <div className="col-span-4">Address</div>}
-            <div className={cn(showAddressColumn ? "col-span-5" : "col-span-9")}>Description</div>
-            <div className="col-span-3 text-right">Action</div>
+            <div>{type === 'job_cost' ? 'Cost Code' : 'Account'}</div>
+            <div>Amount</div>
+            {showAddressColumn && <div>Address</div>}
+            <div>Description</div>
+            <div className="text-right w-[88px]">Action</div>
           </div>
 
           {rows.map(row => (
-            <div key={row.id} className="grid gap-2 p-3 border-t grid-cols-20 items-center">
-              <div className="col-span-5">
+            <div
+              key={row.id}
+              className={cn(
+                "grid gap-2 p-3 border-t items-center",
+                showAddressColumn
+                  ? "grid-cols-[5fr_3fr_4fr_5fr_auto]"
+                  : "grid-cols-[5fr_3fr_9fr_auto]"
+              )}
+            >
+              <div>
                 {type === 'job_cost' ? (
                   <CostCodeSearchInput
                     value={row.account}
@@ -273,7 +283,7 @@ export function EditCheckDialog({ open, onOpenChange, checkId }: EditCheckDialog
                   />
                 )}
               </div>
-              <div className="col-span-3">
+              <div>
                 <div className="relative">
                   <span className="absolute left-2 top-1/2 -translate-y-1/2 text-muted-foreground">$</span>
                   <Input
@@ -285,7 +295,7 @@ export function EditCheckDialog({ open, onOpenChange, checkId }: EditCheckDialog
                 </div>
               </div>
               {showAddressColumn && (
-                <div className="col-span-4">
+                <div>
                   <Select
                     value={row.lotId || ""}
                     onValueChange={(value) => updateRow(type, row.id, 'lotId', value)}
@@ -303,7 +313,7 @@ export function EditCheckDialog({ open, onOpenChange, checkId }: EditCheckDialog
                   </Select>
                 </div>
               )}
-              <div className={cn(showAddressColumn ? "col-span-5" : "col-span-9")}>
+              <div>
                 <Input
                   value={row.memo}
                   onChange={(e) => updateRow(type, row.id, 'memo', e.target.value)}
@@ -311,7 +321,7 @@ export function EditCheckDialog({ open, onOpenChange, checkId }: EditCheckDialog
                   className="h-10"
                 />
               </div>
-              <div className="col-span-3 flex items-center justify-end gap-2">
+              <div className="flex items-center justify-end gap-2">
                 <Button
                   variant="outline"
                   size="sm"
@@ -335,14 +345,9 @@ export function EditCheckDialog({ open, onOpenChange, checkId }: EditCheckDialog
             </div>
           ))}
 
-          <div className="p-3 bg-muted border-t">
-            <div className="grid gap-2 grid-cols-20">
-              <div className="col-span-5 font-medium whitespace-nowrap">{tabLabel}</div>
-              <div className="col-span-3 font-medium">
-                {formatCurrency(tabTotal)}
-              </div>
-              <div className="col-span-12"></div>
-            </div>
+          <div className="p-3 bg-muted border-t flex items-center gap-6">
+            <div className="font-medium">Total</div>
+            <div className="font-medium">{formatCurrency(tabTotal)}</div>
           </div>
         </div>
 
@@ -377,7 +382,7 @@ export function EditCheckDialog({ open, onOpenChange, checkId }: EditCheckDialog
         </DialogHeader>
 
         <div className="space-y-6">
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-[minmax(140px,180px)_2fr_1fr_1fr] gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-[max-content_2fr_1fr_1fr] gap-4">
             <div className="space-y-2">
               <Label>Date</Label>
               <DateInputPicker
@@ -428,18 +433,13 @@ export function EditCheckDialog({ open, onOpenChange, checkId }: EditCheckDialog
           </div>
 
           <DialogFooter>
-            <div className="flex items-center justify-between w-full">
-              <div className="text-sm font-medium">
-                Check Total: {formatCurrency(calculateTotal())}
-              </div>
-              <div className="flex gap-2">
-                <Button variant="outline" onClick={() => onOpenChange(false)} disabled={isSaving}>
-                  Cancel
-                </Button>
-                <Button onClick={handleSave} disabled={isSaving || isLoading}>
-                  {isSaving ? "Saving..." : "Save Changes"}
-                </Button>
-              </div>
+            <div className="flex items-center justify-end gap-2 w-full">
+              <Button variant="outline" onClick={() => onOpenChange(false)} disabled={isSaving}>
+                Cancel
+              </Button>
+              <Button onClick={handleSave} disabled={isSaving || isLoading}>
+                {isSaving ? "Saving..." : "Save Changes"}
+              </Button>
             </div>
           </DialogFooter>
         </div>

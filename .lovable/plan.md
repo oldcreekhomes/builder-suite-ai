@@ -1,24 +1,18 @@
-Plan to fix the Edit Check dialog:
+Edit Check dialog cleanup:
 
-1. Remove the top-level Memo section entirely
-   - Delete the separate Memo label/input area shown between the header fields and the Expenses/Job Cost tabs.
-   - Stop saving that top-level memo from this dialog so it does not reappear from this UI.
+1. Header row spacing
+   - Change the 4-column header grid template so Pay To consumes the leftover space evenly, making the gaps between Date↔Pay To, Pay To↔Check #, and Check #↔Bank Account visually equal. Use `grid-cols-[max-content_2fr_1fr_1fr]` (or equivalent auto sizing on Date) so Date only takes its natural width and Pay To absorbs the rest.
 
-2. Restore line-item description layout
-   - Keep Description as the line-item field, not Memo.
-   - Rebalance the row grid so Account, Amount, Description, and Action have even visual spacing.
-   - Ensure Description fills the empty space before Action instead of leaving a large blank gap.
+2. Description ↔ Action gap
+   - Shrink the Action column span and grow the Description column span so there is no extra whitespace between the Description input and the +/trash buttons. Match the visual gap to the existing Account↔Amount and Amount↔Description gaps.
+   - Applies to both header cells and row cells in expense and job-cost tabs.
 
-3. Restore row controls
-   - Remove the visible “Add Row” button text.
-   - Replace it with a compact plus icon button placed in the Action area beside the delete/trash button.
-   - Keep the existing add-row behavior, only change the placement and appearance.
-
-4. Restore input height
-   - Increase Account, Amount, Description, and Address inputs/selects from the current short height to match the height of the memo field being removed.
-   - Apply the same height consistently across expense and job-cost rows.
+3. Footer total consolidation
+   - Remove the per-tab footer row ("Expense Total" / "Job Cost Total") entirely.
+   - Remove the separate "Check Total: $X" line in the dialog footer.
+   - In its place, render a single line at the bottom of the table that reads `Total   $X.XX` (no "Check" / "Expense" / "Job Cost" prefix), in the same styled muted footer band currently used by the per-tab total.
+   - The dialog footer keeps only Cancel and Save Changes buttons, right-aligned.
 
 Technical details:
-- Update only `src/components/checks/EditCheckDialog.tsx`.
-- No database, accounting logic, report logic, or save-line-item behavior changes.
-- Preserve existing `check_lines.memo` storage behind the line-item Description field, since the database field is still named memo while the UI label should be Description.
+- Only `src/components/checks/EditCheckDialog.tsx` changes.
+- No save logic, no data, no totals math changes — only column spans, header grid template, and footer markup.
