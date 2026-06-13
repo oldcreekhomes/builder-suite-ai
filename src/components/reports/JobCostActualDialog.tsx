@@ -382,7 +382,7 @@ const formatCurrency = (value: number) => {
     switch (sourceType) {
       case 'bill': return 'Bill';
       case 'check': return 'Check';
-      case 'manual': return 'Journal Entry';
+      case 'manual': return 'JE';
       case 'credit_card': return 'Credit Card';
       case 'deposit': return 'Deposit';
       default: return sourceType || '-';

@@ -24,19 +24,23 @@ export function EditableNumberInput({
   step = "0.01",
 }: EditableNumberInputProps) {
   const [buffer, setBuffer] = useState<string | null>(null);
-  const formatted = Number.isFinite(value) ? Number(value).toFixed(2) : "0.00";
+  // Display formatted with thousands separators + 2 decimals when not focused.
+  const formattedDisplay = Number.isFinite(value)
+    ? Number(value).toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })
+    : "0.00";
+  // Plain numeric string used while focused/editing (no commas, easy to type).
+  const editingValue = Number.isFinite(value) ? Number(value).toFixed(2) : "0.00";
 
   return (
     <Input
-      type="number"
-      step={step}
+      type="text"
+      inputMode="decimal"
       placeholder={placeholder}
       readOnly={readOnly}
       className={className}
-      value={buffer ?? formatted}
+      value={buffer ?? formattedDisplay}
       onFocus={(e) => {
-        setBuffer(formatted);
-        // place cursor at end for convenience
+        setBuffer(editingValue);
         requestAnimationFrame(() => {
           try {
             const el = e.target as HTMLInputElement;
@@ -46,7 +50,8 @@ export function EditableNumberInput({
       }}
       onChange={(e) => setBuffer(e.target.value)}
       onBlur={() => {
-        const parsed = buffer === null || buffer === "" ? 0 : parseFloat(buffer);
+        const raw = buffer === null ? "" : buffer.replace(/,/g, "").trim();
+        const parsed = raw === "" ? 0 : parseFloat(raw);
         const next = Number.isFinite(parsed) ? parsed : 0;
         if (next !== value) onCommit(next);
         setBuffer(null);
