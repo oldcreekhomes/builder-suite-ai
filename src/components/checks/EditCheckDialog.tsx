@@ -209,7 +209,6 @@ export function EditCheckDialog({ open, onOpenChange, checkId }: EditCheckDialog
           check_date: checkDate.toISOString().split('T')[0],
           check_number: checkNumber || undefined,
           pay_to: payTo,
-          memo: memo || undefined,
           amount: total,
         },
         checkLines,
