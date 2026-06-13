@@ -77,18 +77,7 @@ interface DetailItem {
   valueClassName?: string;
 }
 
-const getTypeLabel = (sourceType: string) => {
-  switch (sourceType) {
-    case 'bill': return 'Bill';
-    case 'bill_payment': return 'Bill Pmt - Check';
-    case 'consolidated_bill_payment': return 'Bill Pmt - Check';
-    case 'check': return 'Check';
-    case 'deposit': return 'Deposit';
-    case 'credit_card': return 'Credit Card';
-    case 'manual': return 'JE';
-    default: return sourceType;
-  }
-};
+import { getTransactionTypeLabel as getTypeLabel } from "@/lib/transactionTypeLabel";
 
 export function TransactionDetailDialog({
   transaction,

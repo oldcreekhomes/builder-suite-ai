@@ -18,6 +18,7 @@ import { useChecks } from "@/hooks/useChecks";
 import { toast } from "@/hooks/use-toast";
 import { BillFilesCell } from "@/components/bills/BillFilesCell";
 import { TransactionDetailDialog } from "@/components/accounting/TransactionDetailDialog";
+import { getTransactionTypeLabel } from "@/lib/transactionTypeLabel";
 
 interface JobCostActualDialogProps {
   isOpen: boolean;
@@ -378,16 +379,7 @@ const formatCurrency = (value: number) => {
   }).format(value);
 };
 
-  const getTypeLabel = (sourceType: string | undefined) => {
-    switch (sourceType) {
-      case 'bill': return 'Bill';
-      case 'check': return 'Check';
-      case 'manual': return 'JE';
-      case 'credit_card': return 'Credit Card';
-      case 'deposit': return 'Deposit';
-      default: return sourceType || '-';
-    }
-  };
+  const getTypeLabel = getTransactionTypeLabel;
 
   const handleEditBill = (billId: string) => {
     setEditingBillId(billId);

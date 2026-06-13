@@ -37,6 +37,7 @@ import { DateInputPicker } from "@/components/ui/date-input-picker";
 import { formatDateSafe } from "@/utils/dateOnly";
 import { TransactionDetailDialog } from "./TransactionDetailDialog";
 import { EditDescriptionDialog } from "./EditDescriptionDialog";
+import { getTransactionTypeLabel } from "@/lib/transactionTypeLabel";
 
 
 interface IncludedBillPayment {
@@ -1468,19 +1469,8 @@ export function AccountDetailDialog({
               </TableHeader>
               <TableBody>
                 {displayedTransactions.map((txn, index) => {
-                  // Determine transaction type label matching QuickBooks
-                  const getTypeLabel = (sourceType: string) => {
-                    switch (sourceType) {
-                      case 'bill': return 'Bill';
-                      case 'bill_payment': return 'Bill Pmt - Check';
-                      case 'consolidated_bill_payment': return 'Bill Pmt - Check';
-                      case 'check': return 'Check';
-                      case 'deposit': return 'Deposit';
-                      case 'credit_card': return 'Credit Card';
-                      case 'manual': return 'JE';
-                      default: return sourceType;
-                    }
-                  };
+                  // Type label sourced from shared helper for consistency across financial dialogs
+                  const getTypeLabel = getTransactionTypeLabel;
 
                   // Check if this is a consolidated payment with multiple bills
                   const isConsolidated = txn.source_type === 'consolidated_bill_payment';

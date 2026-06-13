@@ -1,17 +1,12 @@
-## Plan
+I found **4 financial transaction/detail dialogs** in the accounting reports area that can display a transaction Type:
 
-Replace the Type column label `Journal Entry` with `JE` everywhere it appears in transaction-style detail dialogs so it never collides with the Date column again.
+1. `AccountDetailDialog` — used by Balance Sheet and Income Statement account drilldowns, including the Equity dialog in your screenshot.
+2. `JobCostActualDialog` — used by Job Cost actual cost drilldowns.
+3. `TransactionDetailDialog` — nested transaction detail dialog opened from account/job-cost rows.
+4. `ReconciliationReviewDialog` — bank reconciliation review dialog with debit/credit transaction Type columns.
 
-**Files to update:**
-
-1. `src/components/accounting/TransactionDetailDialog.tsx` (line 88) — `case 'manual': return 'JE';`
-2. `src/components/accounting/AccountDetailDialog.tsx` (line 1480) — same change in the Type cell renderer.
-3. `src/components/transactions/ReconciliationReviewDialog.tsx` — lines 330 and 375, change `'Journal Entry'` to `'JE'` in both the Debits and Credits tables.
-
-**Left unchanged (not Type-column labels):**
-- `src/pages/JournalEntry.tsx` — page title.
-- `src/components/transactions/TransactionsTabs.tsx` — sidebar tab label.
-- `src/hooks/useBankReconciliation.ts` — fallback payee/source description text.
-- `src/components/reports/JobCostActualDialog.tsx` — already returns `JE` from the prior change.
-
-No data or business logic changes.
+Plan:
+- Create one shared transaction type-label helper so `manual` / `journal_entry` always displays as **JE** everywhere a transaction Type is rendered.
+- Replace the remaining local type-label logic in all 4 financial dialogs with that shared helper.
+- Keep full wording like **Journal Entry #**, **Delete Journal Entry**, and the Journal Entry tab/page unchanged because those are entity/page labels, not Type column values.
+- Re-scan the accounting/report/transaction dialogs after the change to confirm no financial Type display still says **Journal Entry**.
