@@ -409,18 +409,11 @@ export function EditDepositDialog({ open, onOpenChange, depositId }: EditDeposit
           ))}
 
           {/* Table Footer */}
-          <div className="p-3 bg-muted border-t">
-            <div className={cn(
-              "grid gap-2",
-              showAddressColumn ? "grid-cols-24" : "grid-cols-20"
-            )}>
-              <div className="col-span-15 font-medium">{tabLabel}</div>
-              <div className="col-span-3 font-medium">
-                ${tabTotal.toFixed(2)}
-              </div>
-              <div className={showAddressColumn ? "col-span-6" : "col-span-2"}></div>
-            </div>
+          <div className="p-3 bg-muted border-t flex items-center justify-between">
+            <span className="font-medium">{tabLabel}</span>
+            <span className="font-medium">${tabTotal.toFixed(2)}</span>
           </div>
+
         </div>
       </div>
     );
