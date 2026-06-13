@@ -453,6 +453,7 @@ export function EditDepositDialog({ open, onOpenChange, depositId }: EditDeposit
               <DateInputPicker
                 date={depositDate}
                 onDateChange={(date) => setDepositDate(date)}
+                className="w-full [&>input]:flex-1 [&>input]:w-auto"
               />
             </div>
             <div className="space-y-2">
