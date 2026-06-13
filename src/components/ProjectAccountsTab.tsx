@@ -94,6 +94,42 @@ export function ProjectAccountsTab({ projectId }: ProjectAccountsTabProps) {
       return ((data as any)?.account_id as string | null) ?? null;
     },
   });
+  const { data: overrides } = useProjectAccountNames(projectId);
+
+  const setNameOverrideMutation = useMutation({
+    mutationFn: async ({ accountId, name, originalName }: { accountId: string; name: string; originalName: string }) => {
+      const trimmed = name.trim();
+      if (!trimmed || trimmed === originalName) {
+        // Remove override row (reset to global)
+        const { error } = await supabase
+          .from('project_account_overrides' as any)
+          .delete()
+          .eq('project_id', projectId)
+          .eq('account_id', accountId);
+        if (error) throw error;
+        return;
+      }
+      const { error } = await supabase
+        .from('project_account_overrides' as any)
+        .upsert(
+          { project_id: projectId, account_id: accountId, display_name: trimmed } as any,
+          { onConflict: 'project_id,account_id' }
+        );
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['project-account-overrides', projectId] });
+      queryClient.invalidateQueries({ queryKey: ['balance-sheet'] });
+      queryClient.invalidateQueries({ queryKey: ['income-statement'] });
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Error",
+        description: `Failed to rename account: ${error?.message || 'Unknown error'}`,
+        variant: "destructive",
+      });
+    },
+  });
 
 
 
