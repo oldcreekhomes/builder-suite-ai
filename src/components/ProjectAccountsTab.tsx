@@ -413,3 +413,68 @@ export function ProjectAccountsTab({ projectId }: ProjectAccountsTabProps) {
     </div>
   );
 }
+
+interface EditableAccountNameProps {
+  value: string;
+  originalName: string;
+  isOverridden: boolean;
+  onSave: (name: string) => void;
+}
+
+function EditableAccountName({ value, originalName, isOverridden, onSave }: EditableAccountNameProps) {
+  const [editing, setEditing] = useState(false);
+  const [draft, setDraft] = useState(value);
+  const inputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    if (!editing) setDraft(value);
+  }, [value, editing]);
+
+  useEffect(() => {
+    if (editing) {
+      inputRef.current?.focus();
+      inputRef.current?.select();
+    }
+  }, [editing]);
+
+  const commit = () => {
+    setEditing(false);
+    const next = draft.trim();
+    if (next !== value) onSave(next || originalName);
+  };
+
+  if (editing) {
+    return (
+      <Input
+        ref={inputRef}
+        value={draft}
+        onChange={(e) => setDraft(e.target.value)}
+        onBlur={commit}
+        onKeyDown={(e) => {
+          if (e.key === 'Enter') {
+            e.preventDefault();
+            commit();
+          } else if (e.key === 'Escape') {
+            e.preventDefault();
+            setDraft(value);
+            setEditing(false);
+          }
+        }}
+        className="h-7 py-0 px-2 text-sm"
+      />
+    );
+  }
+
+  return (
+    <button
+      type="button"
+      onClick={() => setEditing(true)}
+      title={isOverridden ? `Click to edit (global name: ${originalName})` : 'Click to rename for this project'}
+      className={`truncate text-left hover:underline ${isOverridden ? 'italic text-foreground' : ''}`}
+    >
+      {value}
+      {isOverridden && <span className="ml-1 inline-block h-1.5 w-1.5 rounded-full bg-primary align-middle" aria-label="Overridden for this project" />}
+    </button>
+  );
+}
+
