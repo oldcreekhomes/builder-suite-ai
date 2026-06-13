@@ -470,11 +470,11 @@ function EditableAccountName({ value, originalName, isOverridden, onSave }: Edit
       type="button"
       onClick={() => setEditing(true)}
       title={isOverridden ? `Click to edit (global name: ${originalName})` : 'Click to rename for this project'}
-      className={`truncate text-left hover:underline ${isOverridden ? 'italic text-foreground' : ''}`}
+      className="truncate text-left hover:underline"
     >
       {value}
-      {isOverridden && <span className="ml-1 inline-block h-1.5 w-1.5 rounded-full bg-primary align-middle" aria-label="Overridden for this project" />}
     </button>
   );
 }
+
 
