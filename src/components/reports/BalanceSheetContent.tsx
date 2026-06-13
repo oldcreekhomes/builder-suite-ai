@@ -321,14 +321,14 @@ export function BalanceSheetContent({ projectId, onHeaderActionChange, asOfDate,
     return {
       ...balanceSheetData,
       assets: {
-        current: applyOverrides(balanceSheetData.assets.current),
-        fixed: applyOverrides(balanceSheetData.assets.fixed),
+        current: applyOverrides(displayData.assets.current),
+        fixed: applyOverrides(displayData.assets.fixed),
       },
       liabilities: {
-        current: applyOverrides(balanceSheetData.liabilities.current),
-        longTerm: applyOverrides(balanceSheetData.liabilities.longTerm),
+        current: applyOverrides(displayData.liabilities.current),
+        longTerm: applyOverrides(displayData.liabilities.longTerm),
       },
-      equity: applyOverrides(balanceSheetData.equity),
+      equity: applyOverrides(displayData.equity),
     };
   }, [balanceSheetData, nameOverrides]);
 
@@ -556,20 +556,20 @@ export function BalanceSheetContent({ projectId, onHeaderActionChange, asOfDate,
                 <CardTitle>Assets</CardTitle>
               </CardHeader>
               <CardContent>
-                {balanceSheetData?.assets.current && balanceSheetData.assets.current.length > 0 && (
+                {displayData?.assets.current && displayData.assets.current.length > 0 && (
                   <div className="mb-6">
                     <h4 className="font-semibold mb-3 text-sm">Current Assets</h4>
                     <div className="space-y-2">
-                      {renderHierarchicalAccounts(balanceSheetData.assets.current, setSelectedAccount, formatCurrency)}
+                      {renderHierarchicalAccounts(displayData.assets.current, setSelectedAccount, formatCurrency)}
                     </div>
                   </div>
                 )}
 
-                {balanceSheetData?.assets.fixed && balanceSheetData.assets.fixed.length > 0 && (
+                {displayData?.assets.fixed && displayData.assets.fixed.length > 0 && (
                   <div className="mb-6">
                     <h4 className="font-semibold mb-3 text-sm">Fixed Assets</h4>
                     <div className="space-y-2">
-                      {renderHierarchicalAccounts(balanceSheetData.assets.fixed, setSelectedAccount, formatCurrency)}
+                      {renderHierarchicalAccounts(displayData.assets.fixed, setSelectedAccount, formatCurrency)}
                     </div>
                   </div>
                 )}
@@ -577,7 +577,7 @@ export function BalanceSheetContent({ projectId, onHeaderActionChange, asOfDate,
                 <div className="border-t pt-3 mt-4">
                   <div className="flex justify-between items-center font-semibold px-2">
                     <span>Total Assets</span>
-                    <span>{formatCurrency(balanceSheetData?.totalAssets || 0)}</span>
+                    <span>{formatCurrency(displayData?.totalAssets || 0)}</span>
                   </div>
                 </div>
               </CardContent>
@@ -590,20 +590,20 @@ export function BalanceSheetContent({ projectId, onHeaderActionChange, asOfDate,
                 <CardTitle>Liabilities & Equity</CardTitle>
               </CardHeader>
               <CardContent>
-                {balanceSheetData?.liabilities.current && balanceSheetData.liabilities.current.length > 0 && (
+                {displayData?.liabilities.current && displayData.liabilities.current.length > 0 && (
                   <div className="mb-6">
                     <h4 className="font-semibold mb-3 text-sm">Current Liabilities</h4>
                     <div className="space-y-2">
-                      {renderHierarchicalAccounts(balanceSheetData.liabilities.current, setSelectedAccount, formatCurrency)}
+                      {renderHierarchicalAccounts(displayData.liabilities.current, setSelectedAccount, formatCurrency)}
                     </div>
                   </div>
                 )}
 
-                {balanceSheetData?.liabilities.longTerm && balanceSheetData.liabilities.longTerm.length > 0 && (
+                {displayData?.liabilities.longTerm && displayData.liabilities.longTerm.length > 0 && (
                   <div className="mb-6">
                     <h4 className="font-semibold mb-3 text-sm">Long-term Liabilities</h4>
                     <div className="space-y-2">
-                      {renderHierarchicalAccounts(balanceSheetData.liabilities.longTerm, setSelectedAccount, formatCurrency)}
+                      {renderHierarchicalAccounts(displayData.liabilities.longTerm, setSelectedAccount, formatCurrency)}
                     </div>
                   </div>
                 )}
@@ -611,15 +611,15 @@ export function BalanceSheetContent({ projectId, onHeaderActionChange, asOfDate,
                 <div className="border-t pt-3 mt-4 mb-6">
                   <div className="flex justify-between items-center font-semibold px-2">
                     <span>Total Liabilities</span>
-                    <span>{formatCurrency(balanceSheetData?.totalLiabilities || 0)}</span>
+                    <span>{formatCurrency(displayData?.totalLiabilities || 0)}</span>
                   </div>
                 </div>
 
-                {balanceSheetData?.equity && balanceSheetData.equity.length > 0 && (
+                {displayData?.equity && displayData.equity.length > 0 && (
                   <div className="mb-6">
                     <h4 className="font-semibold mb-3 text-sm">Equity</h4>
                     <div className="space-y-2">
-                      {renderHierarchicalAccounts(balanceSheetData.equity, setSelectedAccount, formatCurrency)}
+                      {renderHierarchicalAccounts(displayData.equity, setSelectedAccount, formatCurrency)}
                     </div>
                   </div>
                 )}
@@ -627,14 +627,14 @@ export function BalanceSheetContent({ projectId, onHeaderActionChange, asOfDate,
                 <div className="border-t pt-3 mt-4 mb-6">
                   <div className="flex justify-between items-center font-semibold px-2">
                     <span>Total Equity</span>
-                    <span>{formatCurrency(balanceSheetData?.totalEquity || 0)}</span>
+                    <span>{formatCurrency(displayData?.totalEquity || 0)}</span>
                   </div>
                 </div>
 
                 <div className="border-t-2 pt-3">
                   <div className="flex justify-between items-center font-bold px-2">
                     <span>Total Liabilities & Equity</span>
-                    <span>{formatCurrency((balanceSheetData?.totalLiabilities || 0) + (balanceSheetData?.totalEquity || 0))}</span>
+                    <span>{formatCurrency((displayData?.totalLiabilities || 0) + (displayData?.totalEquity || 0))}</span>
                   </div>
                 </div>
               </CardContent>
