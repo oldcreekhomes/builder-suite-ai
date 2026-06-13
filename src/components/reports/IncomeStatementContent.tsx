@@ -172,8 +172,8 @@ export function IncomeStatementContent({ projectId, onHeaderActionChange, asOfDa
     if (!incomeStatementData) return incomeStatementData;
     return {
       ...incomeStatementData,
-      revenue: applyOverrides(incomeStatementData.revenue),
-      expenses: applyOverrides(incomeStatementData.expenses),
+      revenue: applyOverrides(displayData.revenue),
+      expenses: applyOverrides(displayData.expenses),
     };
   }, [incomeStatementData, nameOverrides]);
 
@@ -355,31 +355,31 @@ export function IncomeStatementContent({ projectId, onHeaderActionChange, asOfDa
         <div className="max-w-3xl">
           <Card>
             <CardContent className="pt-6">
-              {incomeStatementData?.revenue && incomeStatementData.revenue.length > 0 && (
+              {displayData?.revenue && displayData.revenue.length > 0 && (
                 <div className="mb-6">
                   <h4 className="font-semibold mb-3 text-sm">Revenue</h4>
                   <div className="space-y-2">
-                    {renderHierarchicalAccounts(incomeStatementData.revenue, setSelectedAccount, formatCurrency)}
+                    {renderHierarchicalAccounts(displayData.revenue, setSelectedAccount, formatCurrency)}
                   </div>
                   <div className="border-t pt-3 mt-4">
                     <div className="flex justify-between items-center font-semibold">
                       <span>Total Revenue</span>
-                      <span>{formatCurrency(incomeStatementData?.totalRevenue || 0)}</span>
+                      <span>{formatCurrency(displayData?.totalRevenue || 0)}</span>
                     </div>
                   </div>
                 </div>
               )}
 
-              {incomeStatementData?.expenses && incomeStatementData.expenses.length > 0 && (
+              {displayData?.expenses && displayData.expenses.length > 0 && (
                 <div className="mb-6">
                   <h4 className="font-semibold mb-3 text-sm">Expenses</h4>
                   <div className="space-y-2">
-                    {renderHierarchicalAccounts(incomeStatementData.expenses, setSelectedAccount, formatCurrency)}
+                    {renderHierarchicalAccounts(displayData.expenses, setSelectedAccount, formatCurrency)}
                   </div>
                   <div className="border-t pt-3 mt-4">
                     <div className="flex justify-between items-center font-semibold">
                       <span>Total Expenses</span>
-                      <span>{formatCurrency(incomeStatementData?.totalExpenses || 0)}</span>
+                      <span>{formatCurrency(displayData?.totalExpenses || 0)}</span>
                     </div>
                   </div>
                 </div>
@@ -388,8 +388,8 @@ export function IncomeStatementContent({ projectId, onHeaderActionChange, asOfDa
               <div className="border-t-2 border-gray-300 pt-4">
                 <div className="flex justify-between items-center font-bold text-lg">
                   <span>Net Income</span>
-                  <span className={incomeStatementData && incomeStatementData.netIncome < 0 ? "text-destructive" : ""}>
-                    {formatCurrency(incomeStatementData?.netIncome || 0)}
+                  <span className={displayData && displayData.netIncome < 0 ? "text-destructive" : ""}>
+                    {formatCurrency(displayData?.netIncome || 0)}
                   </span>
                 </div>
               </div>
