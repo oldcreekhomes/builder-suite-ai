@@ -321,14 +321,14 @@ export function BalanceSheetContent({ projectId, onHeaderActionChange, asOfDate,
     return {
       ...balanceSheetData,
       assets: {
-        current: applyOverrides(displayData.assets.current),
-        fixed: applyOverrides(displayData.assets.fixed),
+        current: applyOverrides(balanceSheetData.assets.current),
+        fixed: applyOverrides(balanceSheetData.assets.fixed),
       },
       liabilities: {
-        current: applyOverrides(displayData.liabilities.current),
-        longTerm: applyOverrides(displayData.liabilities.longTerm),
+        current: applyOverrides(balanceSheetData.liabilities.current),
+        longTerm: applyOverrides(balanceSheetData.liabilities.longTerm),
       },
-      equity: applyOverrides(displayData.equity),
+      equity: applyOverrides(balanceSheetData.equity),
     };
   }, [balanceSheetData, nameOverrides]);
 
