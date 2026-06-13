@@ -248,10 +248,10 @@ export function EditCheckDialog({ open, onOpenChange, checkId }: EditCheckDialog
             "grid-cols-20"
           )}>
             <div className="col-span-5">{type === 'job_cost' ? 'Cost Code' : 'Account'}</div>
-            <div className="col-span-4">Memo</div>
             <div className="col-span-3">Amount</div>
             {showAddressColumn && <div className="col-span-4">Address</div>}
-            <div className={cn(showAddressColumn ? "col-span-4" : "col-span-8", "text-right")}>Action</div>
+            <div className={cn(showAddressColumn ? "col-span-4" : "col-span-8")}>Description</div>
+            <div className="col-span-4 text-right">Action</div>
           </div>
 
           {rows.map(row => (
@@ -280,14 +280,6 @@ export function EditCheckDialog({ open, onOpenChange, checkId }: EditCheckDialog
                     className="h-8"
                   />
                 )}
-              </div>
-              <div className="col-span-4">
-                <Input
-                  value={row.memo}
-                  onChange={(e) => updateRow(type, row.id, 'memo', e.target.value)}
-                  placeholder="Memo"
-                  className="h-8"
-                />
               </div>
               <div className="col-span-3">
                 <div className="relative">
@@ -319,7 +311,15 @@ export function EditCheckDialog({ open, onOpenChange, checkId }: EditCheckDialog
                   </Select>
                 </div>
               )}
-              <div className={cn(showAddressColumn ? "col-span-4" : "col-span-8", "flex items-center justify-end")}>
+              <div className={cn(showAddressColumn ? "col-span-4" : "col-span-8")}>
+                <Input
+                  value={row.memo}
+                  onChange={(e) => updateRow(type, row.id, 'memo', e.target.value)}
+                  placeholder="Description"
+                  className="h-8"
+                />
+              </div>
+              <div className="col-span-4 flex items-center justify-end">
                 <Button
                   variant="destructive"
                   size="sm"
@@ -335,14 +335,15 @@ export function EditCheckDialog({ open, onOpenChange, checkId }: EditCheckDialog
 
           <div className="p-3 bg-muted border-t">
             <div className="grid gap-2 grid-cols-20">
-              <div className="col-span-9 font-medium whitespace-nowrap">{tabLabel}</div>
+              <div className="col-span-5 font-medium whitespace-nowrap">{tabLabel}</div>
               <div className="col-span-3 font-medium">
                 {formatCurrency(tabTotal)}
               </div>
-              <div className="col-span-8"></div>
+              <div className="col-span-12"></div>
             </div>
           </div>
         </div>
+
       </div>
     );
   };
@@ -374,7 +375,7 @@ export function EditCheckDialog({ open, onOpenChange, checkId }: EditCheckDialog
         </DialogHeader>
 
         <div className="space-y-6">
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-[minmax(140px,180px)_2fr_1fr_1fr] gap-4">
             <div className="space-y-2">
               <Label>Date</Label>
               <DateInputPicker
