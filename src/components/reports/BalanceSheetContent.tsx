@@ -50,6 +50,7 @@ export function BalanceSheetContent({ projectId, onHeaderActionChange, asOfDate,
   const { user, session, loading: authLoading } = useAuth();
   const [selectedAccount, setSelectedAccount] = useState<AccountBalance | null>(null);
   const [expandedAccounts, setExpandedAccounts] = useState<Set<string>>(new Set());
+  const { data: nameOverrides } = useProjectAccountNames(projectId);
   
   const { data: balanceSheetData, isLoading, error } = useQuery({
     queryKey: ['balance-sheet', user?.id, projectId, asOfDate.toISOString().split('T')[0]],
