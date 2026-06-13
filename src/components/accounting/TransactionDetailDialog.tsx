@@ -85,7 +85,7 @@ const getTypeLabel = (sourceType: string) => {
     case 'check': return 'Check';
     case 'deposit': return 'Deposit';
     case 'credit_card': return 'Credit Card';
-    case 'manual': return 'Journal Entry';
+    case 'manual': return 'JE';
     default: return sourceType;
   }
 };
