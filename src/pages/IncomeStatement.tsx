@@ -11,6 +11,7 @@ import { DashboardHeader } from "@/components/DashboardHeader";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { AccountDetailDialog } from "@/components/accounting/AccountDetailDialog";
+import { useProjectAccountNames } from "@/hooks/useProjectAccountNames";
 
 interface AccountBalance {
   id: string;
