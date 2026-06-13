@@ -3,12 +3,14 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Input } from "@/components/ui/input";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { ChevronDown, ChevronRight, Star } from "lucide-react";
-import { useState, useMemo } from "react";
+import { useState, useMemo, useRef, useEffect } from "react";
 import { useToast } from "@/hooks/use-toast";
 import { groupAccountsByParent } from "@/lib/accountHierarchy";
+import { useProjectAccountNames, resolveAccountName } from "@/hooks/useProjectAccountNames";
 
 interface ProjectAccountsTabProps {
   projectId: string;
@@ -90,6 +92,42 @@ export function ProjectAccountsTab({ projectId }: ProjectAccountsTabProps) {
         .maybeSingle();
       if (error) throw error;
       return ((data as any)?.account_id as string | null) ?? null;
+    },
+  });
+  const { data: overrides } = useProjectAccountNames(projectId);
+
+  const setNameOverrideMutation = useMutation({
+    mutationFn: async ({ accountId, name, originalName }: { accountId: string; name: string; originalName: string }) => {
+      const trimmed = name.trim();
+      if (!trimmed || trimmed === originalName) {
+        // Remove override row (reset to global)
+        const { error } = await supabase
+          .from('project_account_overrides' as any)
+          .delete()
+          .eq('project_id', projectId)
+          .eq('account_id', accountId);
+        if (error) throw error;
+        return;
+      }
+      const { error } = await supabase
+        .from('project_account_overrides' as any)
+        .upsert(
+          { project_id: projectId, account_id: accountId, display_name: trimmed } as any,
+          { onConflict: 'project_id,account_id' }
+        );
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['project-account-overrides', projectId] });
+      queryClient.invalidateQueries({ queryKey: ['balance-sheet'] });
+      queryClient.invalidateQueries({ queryKey: ['income-statement'] });
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Error",
+        description: `Failed to rename account: ${error?.message || 'Unknown error'}`,
+        variant: "destructive",
+      });
     },
   });
 
@@ -215,66 +253,80 @@ export function ProjectAccountsTab({ projectId }: ProjectAccountsTabProps) {
     const isBank = account.subtype === 'bank';
     const isDefaultBank = isBank && projectDefaultBankId === account.id;
     const isDepositControlRow = account.type === 'asset' && account.code === '1020' && account.name.toLowerCase() === 'deposits';
+    const overrideName = overrides?.get(account.id);
+    const displayName = overrideName ?? account.name;
+    const isOverridden = !!overrideName && overrideName !== account.name;
     return (
       <div
         key={account.id}
         className="flex items-center gap-3 py-1.5 px-2 hover:bg-muted/50 rounded text-sm"
         style={{ paddingLeft: `${(depth + 1) * 16}px` }}
       >
-        <label className="flex items-center gap-3 cursor-pointer flex-1 min-w-0">
-          <Checkbox
-            checked={!isExcluded}
-            onCheckedChange={async (checked) => {
-              const wantExclude = !checked;
-              if (wantExclude) {
-                // Guard: block disabling an account that has non-zero project activity
-                const { data, error } = await supabase
-                  .from('journal_entry_lines')
-                  .select('debit, credit')
-                  .eq('account_id', account.id)
-                  .eq('project_id', projectId);
-                if (error) {
-                  toast({
-                    title: "Error",
-                    description: `Failed to verify account balance: ${error.message}`,
-                    variant: "destructive",
-                  });
-                  return;
-                }
-                const totalDebit = Math.round(
-                  (data ?? []).reduce((s, l: any) => s + Number(l.debit || 0), 0) * 100
-                ) / 100;
-                const totalCredit = Math.round(
-                  (data ?? []).reduce((s, l: any) => s + Number(l.credit || 0), 0) * 100
-                ) / 100;
-                const balance = Math.round((totalDebit - totalCredit) * 100) / 100;
-                if (Math.abs(balance) > 0.005) {
-                  const formatted = new Intl.NumberFormat('en-US', {
-                    style: 'currency',
-                    currency: 'USD',
-                    minimumFractionDigits: 2,
-                    maximumFractionDigits: 2,
-                  }).format(balance);
-                  toast({
-                    title: "Cannot disable account",
-                    description: `${account.code} ${account.name} has a project balance of ${formatted}. Clear or reassign the activity before disabling.`,
-                    variant: "destructive",
-                  });
-                  return;
-                }
+        <Checkbox
+          checked={!isExcluded}
+          onCheckedChange={async (checked) => {
+            const wantExclude = !checked;
+            if (wantExclude) {
+              // Guard: block disabling an account that has non-zero project activity
+              const { data, error } = await supabase
+                .from('journal_entry_lines')
+                .select('debit, credit')
+                .eq('account_id', account.id)
+                .eq('project_id', projectId);
+              if (error) {
+                toast({
+                  title: "Error",
+                  description: `Failed to verify account balance: ${error.message}`,
+                  variant: "destructive",
+                });
+                return;
               }
-              toggleMutation.mutate({
+              const totalDebit = Math.round(
+                (data ?? []).reduce((s, l: any) => s + Number(l.debit || 0), 0) * 100
+              ) / 100;
+              const totalCredit = Math.round(
+                (data ?? []).reduce((s, l: any) => s + Number(l.credit || 0), 0) * 100
+              ) / 100;
+              const balance = Math.round((totalDebit - totalCredit) * 100) / 100;
+              if (Math.abs(balance) > 0.005) {
+                const formatted = new Intl.NumberFormat('en-US', {
+                  style: 'currency',
+                  currency: 'USD',
+                  minimumFractionDigits: 2,
+                  maximumFractionDigits: 2,
+                }).format(balance);
+                toast({
+                  title: "Cannot disable account",
+                  description: `${account.code} ${account.name} has a project balance of ${formatted}. Clear or reassign the activity before disabling.`,
+                  variant: "destructive",
+                });
+                return;
+              }
+            }
+            toggleMutation.mutate({
+              accountId: account.id,
+              exclude: wantExclude,
+            });
+          }}
+          disabled={toggleMutation.isPending}
+        />
+        <div className="flex items-center gap-1 min-w-0 flex-1">
+          {depth > 0 && <span className="text-muted-foreground mr-1">↳</span>}
+          <span className="shrink-0">{account.code} -</span>
+          <EditableAccountName
+            value={displayName}
+            originalName={account.name}
+            isOverridden={isOverridden}
+            onSave={(name) =>
+              setNameOverrideMutation.mutate({
                 accountId: account.id,
-                exclude: wantExclude,
-              });
-            }}
-            disabled={toggleMutation.isPending}
+                name,
+                originalName: account.name,
+              })
+            }
           />
-          <span className="truncate">
-            {depth > 0 && <span className="text-muted-foreground mr-1">↳</span>}
-            {account.code} - {account.name}
-          </span>
-        </label>
+        </div>
+
         {isBank && !isExcluded && (
           <button
             type="button"
@@ -361,3 +413,68 @@ export function ProjectAccountsTab({ projectId }: ProjectAccountsTabProps) {
     </div>
   );
 }
+
+interface EditableAccountNameProps {
+  value: string;
+  originalName: string;
+  isOverridden: boolean;
+  onSave: (name: string) => void;
+}
+
+function EditableAccountName({ value, originalName, isOverridden, onSave }: EditableAccountNameProps) {
+  const [editing, setEditing] = useState(false);
+  const [draft, setDraft] = useState(value);
+  const inputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    if (!editing) setDraft(value);
+  }, [value, editing]);
+
+  useEffect(() => {
+    if (editing) {
+      inputRef.current?.focus();
+      inputRef.current?.select();
+    }
+  }, [editing]);
+
+  const commit = () => {
+    setEditing(false);
+    const next = draft.trim();
+    if (next !== value) onSave(next || originalName);
+  };
+
+  if (editing) {
+    return (
+      <Input
+        ref={inputRef}
+        value={draft}
+        onChange={(e) => setDraft(e.target.value)}
+        onBlur={commit}
+        onKeyDown={(e) => {
+          if (e.key === 'Enter') {
+            e.preventDefault();
+            commit();
+          } else if (e.key === 'Escape') {
+            e.preventDefault();
+            setDraft(value);
+            setEditing(false);
+          }
+        }}
+        className="h-7 py-0 px-2 text-sm"
+      />
+    );
+  }
+
+  return (
+    <button
+      type="button"
+      onClick={() => setEditing(true)}
+      title={isOverridden ? `Click to edit (global name: ${originalName})` : 'Click to rename for this project'}
+      className={`truncate text-left hover:underline ${isOverridden ? 'italic text-foreground' : ''}`}
+    >
+      {value}
+      {isOverridden && <span className="ml-1 inline-block h-1.5 w-1.5 rounded-full bg-primary align-middle" aria-label="Overridden for this project" />}
+    </button>
+  );
+}
+

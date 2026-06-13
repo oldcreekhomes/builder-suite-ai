@@ -798,11 +798,24 @@ export function AccountDetailDialog({
             supabase.from('accounts').select('id, code, name').in('id', chunk),
           Array.from(allAccountIds)
         );
+        // Apply per-project name overrides when scoped to a project
+        let overridesMap = new Map<string, string>();
+        if (projectId) {
+          const { data: ovr } = await supabase
+            .from('project_account_overrides' as any)
+            .select('account_id, display_name')
+            .eq('project_id', projectId)
+            .in('account_id', Array.from(allAccountIds));
+          (ovr as any[])?.forEach((r: any) => {
+            if (r?.account_id && r?.display_name) overridesMap.set(r.account_id, r.display_name);
+          });
+        }
         accountsData?.forEach((acc: any) => {
-
-          accountsDisplayMap.set(acc.id, `${acc.code} - ${acc.name}`);
+          const name = overridesMap.get(acc.id) ?? acc.name;
+          accountsDisplayMap.set(acc.id, `${acc.code} - ${name}`);
         });
       }
+
 
       // Populate accountDisplay for consolidated bill payment allocations now that maps are ready
       allocationsByPaymentId.forEach((allocations) => {

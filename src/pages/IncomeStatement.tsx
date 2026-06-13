@@ -11,6 +11,7 @@ import { DashboardHeader } from "@/components/DashboardHeader";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { AccountDetailDialog } from "@/components/accounting/AccountDetailDialog";
+import { useProjectAccountNames } from "@/hooks/useProjectAccountNames";
 
 interface AccountBalance {
   id: string;
@@ -32,6 +33,9 @@ export default function IncomeStatement() {
   const { projectId } = useParams<{ projectId: string }>();
   const { user, session, loading: authLoading } = useAuth();
   const [selectedAccount, setSelectedAccount] = useState<AccountBalance | null>(null);
+  const { data: accountNameOverrides } = useProjectAccountNames(projectId);
+  const nameFor = (a: { id: string; name: string }) => accountNameOverrides?.get(a.id) ?? a.name;
+  
   
   const { data: incomeStatementData, isLoading, error } = useQuery({
     queryKey: ['income-statement', user?.id, projectId],
@@ -279,7 +283,7 @@ export default function IncomeStatement() {
                               className="flex justify-between items-center text-sm cursor-pointer hover:bg-muted/50 p-2 rounded transition-colors"
                               onClick={() => setSelectedAccount(account)}
                             >
-                              <span>{account.code} - {account.name}</span>
+                              <span>{account.code} - {nameFor(account)}</span>
                               <span>{formatCurrency(account.balance)}</span>
                             </div>
                           ))}
@@ -304,7 +308,7 @@ export default function IncomeStatement() {
                               className="flex justify-between items-center text-sm cursor-pointer hover:bg-muted/50 p-2 rounded transition-colors"
                               onClick={() => setSelectedAccount(account)}
                             >
-                              <span>{account.code} - {account.name}</span>
+                              <span>{account.code} - {nameFor(account)}</span>
                               <span>{formatCurrency(account.balance)}</span>
                             </div>
                           ))}
@@ -338,7 +342,7 @@ export default function IncomeStatement() {
       <AccountDetailDialog
         accountId={selectedAccount?.id || null}
         accountCode={selectedAccount?.code || ''}
-        accountName={selectedAccount?.name || ''}
+        accountName={selectedAccount ? nameFor(selectedAccount) : ""}
         accountType={selectedAccount?.type || 'expense'}
         projectId={projectId}
         open={!!selectedAccount}
