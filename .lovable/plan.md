@@ -1,18 +1,7 @@
-Edit Check dialog cleanup:
+The imbalance is $305.27. That exact amount is sitting in account `2150: XYZ Credit Card`, which is currently excluded from the Ocean Watch Court project balance sheet even though it has a non-zero liability balance. Because the report hides that liability but still includes the offsetting asset/job-cost side, Total Assets is $305.27 higher than Total Liabilities & Equity.
 
-1. Header row spacing
-   - Change the 4-column header grid template so Pay To consumes the leftover space evenly, making the gaps between Date↔Pay To, Pay To↔Check #, and Check #↔Bank Account visually equal. Use `grid-cols-[max-content_2fr_1fr_1fr]` (or equivalent auto sizing on Date) so Date only takes its natural width and Pay To absorbs the rest.
-
-2. Description ↔ Action gap
-   - Shrink the Action column span and grow the Description column span so there is no extra whitespace between the Description input and the +/trash buttons. Match the visual gap to the existing Account↔Amount and Amount↔Description gaps.
-   - Applies to both header cells and row cells in expense and job-cost tabs.
-
-3. Footer total consolidation
-   - Remove the per-tab footer row ("Expense Total" / "Job Cost Total") entirely.
-   - Remove the separate "Check Total: $X" line in the dialog footer.
-   - In its place, render a single line at the bottom of the table that reads `Total   $X.XX` (no "Check" / "Expense" / "Job Cost" prefix), in the same styled muted footer band currently used by the per-tab total.
-   - The dialog footer keeps only Cancel and Save Changes buttons, right-aligned.
-
-Technical details:
-- Only `src/components/checks/EditCheckDialog.tsx` changes.
-- No save logic, no data, no totals math changes — only column spans, header grid template, and footer markup.
+Plan:
+1. Remove the Ocean Watch Court project exclusion for `2150: XYZ Credit Card` so the liability appears in the Balance Sheet and totals match.
+2. Update `BalanceSheetContent` so project account exclusions cannot hide non-zero balance sheet accounts. Zero-balance excluded accounts can stay hidden, but any asset/liability/equity account with activity must be included to preserve the accounting equation.
+3. Keep income statement exclusions unchanged.
+4. Verify Ocean Watch Court as of June 13, 2026 balances to the cent after the change.
