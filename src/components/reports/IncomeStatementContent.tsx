@@ -165,6 +165,18 @@ export function IncomeStatementContent({ projectId, onHeaderActionChange, asOfDa
     }
   });
 
+  const applyOverrides = (list: AccountBalance[] | undefined): AccountBalance[] =>
+    (list || []).map((a) => ({ ...a, name: nameOverrides?.get(a.id) ?? a.name }));
+
+  const displayData = useMemo(() => {
+    if (!incomeStatementData) return incomeStatementData;
+    return {
+      ...incomeStatementData,
+      revenue: applyOverrides(incomeStatementData.revenue),
+      expenses: applyOverrides(incomeStatementData.expenses),
+    };
+  }, [incomeStatementData, nameOverrides]);
+
   const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat('en-US', {
       style: 'currency',
