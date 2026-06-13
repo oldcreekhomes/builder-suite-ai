@@ -412,14 +412,6 @@ export function EditCheckDialog({ open, onOpenChange, checkId }: EditCheckDialog
             </div>
           </div>
 
-          <div className="space-y-2">
-            <Label>Memo</Label>
-            <Input
-              value={memo}
-              onChange={(e) => setMemo(e.target.value)}
-              placeholder="Memo"
-            />
-          </div>
 
           <div className="space-y-4">
             <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
