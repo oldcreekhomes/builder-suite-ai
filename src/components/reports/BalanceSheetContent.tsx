@@ -79,11 +79,13 @@ export function BalanceSheetContent({ projectId, onHeaderActionChange, asOfDate,
       const excludedAccountIds = new Set(
         (exclusionsResult.data || []).map((e: { account_id: string }) => e.account_id)
       );
-      
-      // Filter out excluded accounts
-      const filteredAccounts = projectId
-        ? accounts?.filter((a) => !excludedAccountIds.has(a.id))
-        : accounts;
+
+      // Filter out excluded accounts. Exclusions are honored for income statement
+      // accounts (revenue/expense), but on the Balance Sheet we must NEVER hide a
+      // balance sheet account (asset/liability/equity) that has activity — doing so
+      // would break the accounting equation (Assets = Liabilities + Equity).
+      // We finalize this after computing balances below; for now keep all accounts
+      // and re-filter only zero-balance excluded balance-sheet accounts later.
 
       if (accountsError) {
         console.error("🔍 Balance Sheet: Accounts query failed:", accountsError);
@@ -155,7 +157,7 @@ export function BalanceSheetContent({ projectId, onHeaderActionChange, asOfDate,
       console.log(`📊 Balance Sheet: Processing ${journalLines?.length || 0} journal lines`);
 
       const accountBalances: Record<string, number> = {};
-      const accountsPayableAccountId = filteredAccounts?.find((account) =>
+      const accountsPayableAccountId = accounts?.find((account) =>
         account.type === 'liability' &&
         (account.code === '2010' || account.name.toLowerCase().includes('accounts payable'))
       )?.id;
@@ -204,7 +206,17 @@ export function BalanceSheetContent({ projectId, onHeaderActionChange, asOfDate,
       let revenueBalance = 0;
       let expenseBalance = 0;
 
-      filteredAccounts?.forEach((account) => {
+      accounts?.forEach((account) => {
+        // For balance-sheet accounts, only honor exclusion if the account has no activity.
+        // Hiding a non-zero asset/liability/equity would break Assets = Liabilities + Equity.
+        const rawBal = accountBalances[account.id] || 0;
+        if (
+          projectId &&
+          excludedAccountIds.has(account.id) &&
+          (account.type === 'revenue' || account.type === 'expense' || Math.abs(rawBal) < 0.005)
+        ) {
+          return;
+        }
         const rawBalance = accountBalances[account.id] || 0;
         let displayBalance = rawBalance;
         
