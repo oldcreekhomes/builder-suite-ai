@@ -1615,7 +1615,7 @@ export function AccountDetailDialog({
                           })()}
                         </div>
                       </TableCell>
-                      <TableCell className="px-2 py-1">
+                      <TableCell className="px-2 py-1" onClick={(e) => e.stopPropagation()}>
                         <div className="flex items-center justify-center">
                           {isDateLocked(txn.date) || txn.reconciled ? (
                             <div className="flex items-center gap-1 justify-center">
