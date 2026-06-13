@@ -646,7 +646,7 @@ export function BalanceSheetContent({ projectId, onHeaderActionChange, asOfDate,
       <AccountDetailDialog
         accountId={selectedAccount?.id || null}
         accountCode={selectedAccount?.code || ''}
-        accountName={selectedAccount?.name || ''}
+        accountName={selectedAccount ? (nameOverrides?.get(selectedAccount.id) ?? selectedAccount.name) : ''}
         accountType={selectedAccount?.type || 'asset'}
         projectId={projectId}
         asOfDate={asOfDate}
