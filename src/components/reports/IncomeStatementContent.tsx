@@ -172,8 +172,8 @@ export function IncomeStatementContent({ projectId, onHeaderActionChange, asOfDa
     if (!incomeStatementData) return incomeStatementData;
     return {
       ...incomeStatementData,
-      revenue: applyOverrides(displayData.revenue),
-      expenses: applyOverrides(displayData.expenses),
+      revenue: applyOverrides(incomeStatementData.revenue),
+      expenses: applyOverrides(incomeStatementData.expenses),
     };
   }, [incomeStatementData, nameOverrides]);
 
