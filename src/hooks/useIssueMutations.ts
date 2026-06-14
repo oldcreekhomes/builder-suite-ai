@@ -151,11 +151,31 @@ export function useIssueMutations() {
         }
       }
 
+      // Build personalized recipients list (author + CCs), de-duplicated by email
+      const authorFirstName = (author.first_name || '').trim() || (author.email?.split('@')[0] ?? '');
+      const recipientsMap = new Map<string, { email: string; firstName: string }>();
+      recipientsMap.set(author.email.toLowerCase(), { email: author.email, firstName: authorFirstName });
+      if (ccUserIds.length > 0) {
+        const { data: ccUsersFull } = await supabase
+          .from('users')
+          .select('email, first_name, last_name')
+          .in('id', ccUserIds);
+        (ccUsersFull || []).forEach(u => {
+          if (!u.email) return;
+          const key = u.email.toLowerCase();
+          if (recipientsMap.has(key)) return;
+          const firstName = (u.first_name || '').trim() || u.email.split('@')[0];
+          recipientsMap.set(key, { email: u.email, firstName });
+        });
+      }
+      const recipients = Array.from(recipientsMap.values());
+
       // Send resolution email (non-blocking)
       try {
         console.log('📨 Invoking send-issue-closure-email function...');
         const { data: emailResult, error: emailError } = await supabase.functions.invoke('send-issue-closure-email', {
           body: {
+            recipients,
             authorEmail: author.email,
             authorName: `${author.first_name || ''} ${author.last_name || ''}`.trim() || author.email,
             issueTitle: issue.title,
@@ -175,10 +195,9 @@ export function useIssueMutations() {
           console.warn('⚠️ send-issue-closure-email returned unsuccessful:', emailResult);
           toast({ title: 'Issue resolved, email status unknown', description: 'Email provider did not confirm sending.' });
         } else {
-          const ccCount = ccEmails.length;
-          const ccText = ccCount > 0 ? ` (${ccCount} CC'd)` : '';
-          toast({ title: 'Issue resolved', description: `A confirmation email was sent to ${author.email}${ccText}.` });
+          toast({ title: 'Issue resolved', description: `Resolution email sent to ${recipients.length} recipient(s).` });
         }
+
       } catch (emailError) {
         console.error('Failed to send resolution email:', emailError);
         // Don't fail the resolution if email fails
