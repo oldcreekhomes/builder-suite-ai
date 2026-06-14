@@ -1,22 +1,16 @@
 ## Problem
-The schedule notification email sent to subcontractors lists tasks out of chronological order. The "Your Scheduled Tasks" table should display tasks from earliest start date to latest, but currently the tasks appear in whatever order they were retrieved from the database.
+On the Issues page, the horizontal gray divider below "Software Issues" and above "Accounting" sits too low. The `mt-[21px]` on the divider pushes it well below the heading, making it visually misaligned with the Menus/Messages tabs in the left sidebar.
 
 ## Solution
-Sort the tasks array by `start_date` before generating the HTML table in the `send-schedule-notification` edge function.
+In `src/pages/Issues.tsx`, reduce the top margin on the divider so it sits just below the "Software Issues" heading, aligning its top edge with the top of the Menus/Messages tab row in `AppSidebar`.
 
-## File Changed
-- `supabase/functions/send-schedule-notification/index.ts`
+### Change
+```
+// BEFORE
+<div className="border-b border-border mt-[21px] mb-4" />
 
-## Change Detail
-In the `generateEmailHTML` function, before mapping `data.tasks` to HTML `<tr>` rows, create a sorted copy:
-
-```ts
-const sortedTasks = [...data.tasks].sort((a, b) => {
-  return new Date(a.start_date).getTime() - new Date(b.start_date).getTime();
-});
+// AFTER
+<div className="border-b border-border mt-0 mb-4" />
 ```
 
-Then use `sortedTasks` for the `.map()` call that builds `tasksList`.
-
-## Result
-Subcontractors will see their scheduled tasks sorted chronologically from the closest start date at the top to the furthest out at the bottom.
+Optionally adjust the title container padding from `p-4 pb-0` to `px-4 pt-3 pb-0` if needed for fine-tuning, but the primary fix is removing the `mt-[21px]`.
