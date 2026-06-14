@@ -210,7 +210,7 @@ export function PurchaseOrdersTable({ projectId, projectAddress, onHeaderActionC
         open={showCreateModal}
         onOpenChange={handleCloseModal}
         projectId={projectId}
-        onSuccess={() => window.location.reload()}
+        onSuccess={() => queryClient.invalidateQueries({ queryKey: ['purchase-orders', projectId] })}
         editOrder={editingOrder}
       />
     </div>
