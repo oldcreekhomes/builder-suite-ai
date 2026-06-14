@@ -234,32 +234,11 @@ export function IssuesTableRow({
         }}
       />
 
-      <TableCell className="px-2 py-1 w-24">
-        <Select value={issue.category?.toLowerCase() || ''} onValueChange={(value) => {
-          // Convert to Title Case to match tab values and update category
-          const category = value.charAt(0).toUpperCase() + value.slice(1);
-          onUpdate(issue.id, { category });
-        }}>
-          <SelectTrigger className="h-auto w-full p-1 border-0 bg-transparent text-xs font-normal hover:bg-accent/50 rounded-sm transition-colors focus:ring-0 focus:ring-offset-0 focus:outline-none [&>svg]:hidden">
-            <SelectValue placeholder="Select location" />
-          </SelectTrigger>
-          <SelectContent className="bg-background border-border shadow-lg z-50">
-            <SelectItem value="accounting" className="text-xs hover:bg-accent">Accounting</SelectItem>
-            <SelectItem value="authentication" className="text-xs hover:bg-accent">Authentication</SelectItem>
-            <SelectItem value="bidding" className="text-xs hover:bg-accent">Bidding</SelectItem>
-            <SelectItem value="budget" className="text-xs hover:bg-accent">Budget</SelectItem>
-            <SelectItem value="companies" className="text-xs hover:bg-accent">Companies</SelectItem>
-            <SelectItem value="files" className="text-xs hover:bg-accent">Files</SelectItem>
-            <SelectItem value="messages" className="text-xs hover:bg-accent">Messages</SelectItem>
-            <SelectItem value="orders" className="text-xs hover:bg-accent">Purchase Orders</SelectItem>
-            <SelectItem value="photos" className="text-xs hover:bg-accent">Photos</SelectItem>
-            <SelectItem value="schedule" className="text-xs hover:bg-accent">Schedule</SelectItem>
-            <SelectItem value="settings" className="text-xs hover:bg-accent">Settings</SelectItem>
-          </SelectContent>
-        </Select>
-      </TableCell>
-
       <SolutionFilesCell
+        issueId={issue.id}
+        solutionFiles={issue.solution_files}
+        onSolutionChange={handleSolutionChange}
+      />
         issueId={issue.id}
         solutionFiles={issue.solution_files}
         onSolutionChange={handleSolutionChange}

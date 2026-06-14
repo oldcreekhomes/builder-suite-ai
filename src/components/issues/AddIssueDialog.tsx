@@ -16,19 +16,6 @@ interface AddIssueDialogProps {
   category: string;
 }
 
-const LOCATION_OPTIONS = [
-  "Accounting",
-  "Authentication",
-  "Bidding",
-  "Budget",
-  "Companies",
-  "Files",
-  "Messages",
-  "Purchase Orders",
-  "Photos",
-  "Schedule",
-  "Settings",
-];
 
 export function AddIssueDialog({ open, onOpenChange, category }: AddIssueDialogProps) {
   const [title, setTitle] = useState("");
