@@ -44,6 +44,7 @@ import {
 import { Textarea } from "@/components/ui/textarea";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { groupBillLines, rowTotal, sumDisplayedTotal, roundCents, type DisplayGroup } from "@/lib/billLineMath";
+import { toDateLocal, normalizeToYMD } from "@/utils/dateOnly";
 
 interface EditBillDialogProps {
   open: boolean;
@@ -203,8 +204,8 @@ export function EditBillDialog({ open, onOpenChange, billId }: EditBillDialogPro
   // Populate form when bill data loads
   useEffect(() => {
     if (billData) {
-      setBillDate(new Date(billData.bill_date));
-      setBillDueDate(billData.due_date ? new Date(billData.due_date) : undefined);
+      setBillDate(toDateLocal(normalizeToYMD(billData.bill_date)));
+      setBillDueDate(billData.due_date ? toDateLocal(normalizeToYMD(billData.due_date)) : undefined);
       setVendor(billData.vendor_id);
       setTerms(normalizeTermsForUI(billData.terms));
       setReferenceNumber(billData.reference_number || '');
@@ -579,8 +580,8 @@ export function EditBillDialog({ open, onOpenChange, billId }: EditBillDialogPro
     const updateData = {
       vendor_id: vendor,
       project_id: billData.project_id,
-      bill_date: billDate.toISOString().split('T')[0],
-      due_date: billDueDate?.toISOString().split('T')[0],
+      bill_date: normalizeToYMD(billDate),
+      due_date: billDueDate ? normalizeToYMD(billDueDate) : undefined,
       terms,
       reference_number: referenceNumber || undefined,
       notes: finalNotes
@@ -618,7 +619,7 @@ export function EditBillDialog({ open, onOpenChange, billId }: EditBillDialogPro
         await updateApprovedBill.mutateAsync({
           billId,
           billData: {
-            bill_date: billDate.toISOString().split('T')[0],
+            bill_date: normalizeToYMD(billDate),
             notes: finalNotes
           },
           billLines: lineUpdates
