@@ -1,4 +1,5 @@
 import React, { useState, useMemo } from 'react';
+import { useQueryClient } from '@tanstack/react-query';
 import { Table, TableBody, TableCell, TableRow } from '@/components/ui/table';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -23,6 +24,7 @@ export function PurchaseOrdersTable({ projectId, projectAddress, onHeaderActionC
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [editingOrder, setEditingOrder] = useState<any>(null);
   const [searchQuery, setSearchQuery] = useState("");
+  const queryClient = useQueryClient();
   
   const { selectedLotId } = useLotManagement(projectId);
   const { purchaseOrders, groupedPurchaseOrders } = usePurchaseOrders(projectId, selectedLotId);
@@ -208,7 +210,7 @@ export function PurchaseOrdersTable({ projectId, projectAddress, onHeaderActionC
         open={showCreateModal}
         onOpenChange={handleCloseModal}
         projectId={projectId}
-        onSuccess={() => window.location.reload()}
+        onSuccess={() => queryClient.invalidateQueries({ queryKey: ['purchase-orders', projectId] })}
         editOrder={editingOrder}
       />
     </div>
