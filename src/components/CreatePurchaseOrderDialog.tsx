@@ -989,6 +989,11 @@ export const CreatePurchaseOrderDialog = ({
           <Button variant="outline" onClick={() => onOpenChange(false)} disabled={isBidFlow ? isBidPOLoading : isSubmitting}>
             Cancel
           </Button>
+          {!isBidFlow && !isLocked && (
+            <Button variant="outline" onClick={handleSaveDraft} disabled={isSubmitting}>
+              {isSubmitting ? 'Saving...' : 'Save Draft'}
+            </Button>
+          )}
           <Button onClick={handleSubmit} disabled={isSubmitDisabled}>
             {submitLabel}
           </Button>
