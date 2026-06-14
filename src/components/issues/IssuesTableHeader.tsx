@@ -11,7 +11,7 @@ export function IssuesTableHeader() {
         <TableHead>Title</TableHead>
         <TableHead className="w-20">Priority</TableHead>
         <TableHead className="w-28">Issue Files</TableHead>
-        <TableHead className="w-24">Location</TableHead>
+        
         <TableHead>Solution Files</TableHead>
         <TableHead className="w-20">Comment</TableHead>
         <TableHead className="w-16">Actions</TableHead>
