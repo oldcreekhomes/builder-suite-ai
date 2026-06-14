@@ -24,6 +24,7 @@ export function PurchaseOrdersTable({ projectId, projectAddress, onHeaderActionC
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [editingOrder, setEditingOrder] = useState<any>(null);
   const [searchQuery, setSearchQuery] = useState("");
+  const queryClient = useQueryClient();
   
   const { selectedLotId } = useLotManagement(projectId);
   const { purchaseOrders, groupedPurchaseOrders } = usePurchaseOrders(projectId, selectedLotId);
