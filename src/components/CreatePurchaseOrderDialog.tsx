@@ -498,6 +498,7 @@ export const CreatePurchaseOrderDialog = ({
             total_amount: totalAmount,
             notes: notes.trim() || null,
             files: JSON.parse(JSON.stringify(uploadedFiles)),
+            custom_message: customMessage.trim() || null,
             status: 'draft',
           })
           .select('id')
