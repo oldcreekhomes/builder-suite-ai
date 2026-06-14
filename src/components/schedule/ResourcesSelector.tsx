@@ -163,12 +163,9 @@ export function ResourcesSelector({ value, onValueChange, className, readOnly = 
               const parts = value.split('||');
               const companyName = (parts[0] ?? '').toLowerCase();
               const resourceName = (parts[1] ?? '').toLowerCase();
-              const firstName = resourceName.split(/\s+/)[0] ?? '';
-              if (
-                companyName.startsWith(term) ||
-                resourceName.startsWith(term) ||
-                firstName.startsWith(term)
-              ) return 1;
+              if (resourceName.includes(term) || companyName.includes(term)) return 1;
+              const tokens = resourceName.split(/\s+/);
+              if (tokens.some((t) => t.startsWith(term))) return 1;
               return 0;
             }}
           >
