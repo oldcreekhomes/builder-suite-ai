@@ -108,7 +108,7 @@ export const CreatePurchaseOrderDialog = ({
   const isExtracting = !!bidContext?.isExtracting;
 
   const { lines: existingLines, isLoading: isLoadingExistingLines } = usePurchaseOrderLines(editOrder?.id);
-  const { createPOSendEmailAndUpdateStatus, resendPOEmail, isLoading: isBidPOLoading } = usePOMutations(projectId);
+  const { createPOSendEmailAndUpdateStatus, createPOAndSendEmail, resendPOEmail, isLoading: isBidPOLoading } = usePOMutations(projectId);
   const { profile } = useUserProfile();
 
   // Guards: only seed once per dialog open, don't clobber user edits on parent re-renders
