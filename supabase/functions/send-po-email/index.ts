@@ -842,6 +842,20 @@ const handler = async (req: Request): Promise<Response> => {
 
     console.log(`✅ Successfully sent ${successfulEmails} PO notification emails`);
 
+    // Source-of-truth: stamp sent_at on the PO row once at least one email succeeded.
+    // Doing this server-side avoids race conditions with client-side reloads/navigation.
+    if (successfulEmails > 0 && purchaseOrderId) {
+      const { error: stampError } = await supabase
+        .from('project_purchase_orders')
+        .update({ sent_at: new Date().toISOString() })
+        .eq('id', purchaseOrderId);
+      if (stampError) {
+        console.error('❌ Failed to stamp sent_at on PO:', stampError);
+      } else {
+        console.log('✅ Stamped sent_at on PO:', purchaseOrderId);
+      }
+    }
+
     return new Response(
       JSON.stringify({ 
         success: true, 
