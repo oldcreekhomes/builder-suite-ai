@@ -5,7 +5,7 @@ import { Input } from '@/components/ui/input';
 import { Plus, Search } from 'lucide-react';
 import { IssuesTableHeader } from './IssuesTableHeader';
 import { IssuesTableRow } from './IssuesTableRow';
-import { AddIssueRow } from './AddIssueRow';
+import { AddIssueDialog } from './AddIssueDialog';
 import { useCompanyIssues } from '@/hooks/useCompanyIssues';
 import { useIssueMutations } from '@/hooks/useIssueMutations';
 
