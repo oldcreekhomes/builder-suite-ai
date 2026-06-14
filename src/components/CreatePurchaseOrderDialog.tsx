@@ -682,26 +682,13 @@ export const CreatePurchaseOrderDialog = ({
                         )}
                       </TableCell>
                       <TableCell className="p-1">
-                        {line.description ? (
-                          <Tooltip>
-                            <TooltipTrigger asChild>
-                              <Input
-                                value={line.description}
-                                onChange={(e) => updateLine(idx, { description: e.target.value })}
-                                placeholder="Description"
-                                className="w-full"
-                              />
-                            </TooltipTrigger>
-                            <TooltipContent side="top">{line.description}</TooltipContent>
-                          </Tooltip>
-                        ) : (
-                          <Input
-                            value={line.description}
-                            onChange={(e) => updateLine(idx, { description: e.target.value })}
-                            placeholder="Description"
-                            className="w-full"
-                          />
-                        )}
+                        <Input
+                          value={line.description}
+                          onChange={(e) => updateLine(idx, { description: e.target.value })}
+                          placeholder="Description"
+                          className="w-full"
+                          title={line.description || undefined}
+                        />
                       </TableCell>
                       <TableCell className="p-1">
                         {isOriginalLine(idx) ? (
