@@ -667,7 +667,6 @@ export const CreatePurchaseOrderDialog = ({
                                   onChange={(v) => { if (!v) updateLine(idx, { cost_code_id: null, cost_code_display: "" }); }}
                                   onCostCodeSelect={(cc) => updateLine(idx, { cost_code_id: cc.id, cost_code_display: `${cc.code} - ${cc.name}` })}
                                   placeholder="Cost code"
-                                  className="h-8 text-sm"
                                 />
                               </div>
                             </TooltipTrigger>
@@ -679,7 +678,6 @@ export const CreatePurchaseOrderDialog = ({
                             onChange={(v) => { if (!v) updateLine(idx, { cost_code_id: null, cost_code_display: "" }); }}
                             onCostCodeSelect={(cc) => updateLine(idx, { cost_code_id: cc.id, cost_code_display: `${cc.code} - ${cc.name}` })}
                             placeholder="Cost code"
-                            className="h-8 text-sm"
                           />
                         )}
                       </TableCell>
@@ -691,7 +689,7 @@ export const CreatePurchaseOrderDialog = ({
                                 value={line.description}
                                 onChange={(e) => updateLine(idx, { description: e.target.value })}
                                 placeholder="Description"
-                                className="h-8 text-sm"
+                                className="w-full"
                               />
                             </TooltipTrigger>
                             <TooltipContent side="top">{line.description}</TooltipContent>
@@ -701,7 +699,7 @@ export const CreatePurchaseOrderDialog = ({
                             value={line.description}
                             onChange={(e) => updateLine(idx, { description: e.target.value })}
                             placeholder="Description"
-                            className="h-8 text-sm"
+                            className="w-full"
                           />
                         )}
                       </TableCell>
@@ -709,7 +707,7 @@ export const CreatePurchaseOrderDialog = ({
                         {isOriginalLine(idx) ? (
                           <Tooltip>
                             <TooltipTrigger asChild>
-                              <div className="h-8 px-2 flex items-center justify-center text-sm font-medium text-foreground cursor-not-allowed">
+                              <div className="h-9 px-2 flex items-center justify-center font-medium text-foreground cursor-not-allowed">
                                 {line.quantity || ""}
                               </div>
                             </TooltipTrigger>
@@ -720,7 +718,7 @@ export const CreatePurchaseOrderDialog = ({
                             type="number"
                             value={line.quantity || ""}
                             onChange={(e) => updateLine(idx, { quantity: parseFloat(e.target.value) || 0 })}
-                            className="h-8 text-sm text-center no-spinner"
+                            className="text-center no-spinner"
                             min={0}
                           />
                         )}
@@ -729,7 +727,7 @@ export const CreatePurchaseOrderDialog = ({
                         {isOriginalLine(idx) ? (
                           <Tooltip>
                             <TooltipTrigger asChild>
-                              <div className="h-8 px-2 flex items-center text-sm font-medium text-foreground cursor-not-allowed">
+                              <div className="h-9 px-2 flex items-center font-medium text-foreground cursor-not-allowed">
                                 {line.unit_cost ? `$${line.unit_cost.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` : ""}
                               </div>
                             </TooltipTrigger>
@@ -741,12 +739,12 @@ export const CreatePurchaseOrderDialog = ({
                             step="0.01"
                             value={line.unit_cost || ""}
                             onChange={(e) => updateLine(idx, { unit_cost: parseFloat(e.target.value) || 0 })}
-                            className="h-8 text-sm no-spinner"
+                            className="no-spinner"
                             min={0}
                           />
                         )}
                       </TableCell>
-                      <TableCell className="p-1 text-sm font-medium pl-3">
+                      <TableCell className="p-1 font-medium pl-3">
                         ${line.amount.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                       </TableCell>
                       <TableCell className="p-1 text-center">
