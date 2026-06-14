@@ -407,7 +407,10 @@ export const CreatePurchaseOrderDialog = ({
             title: "Purchase order updated",
             description: "Sending email to vendor in the background…",
           });
-          void sendPOEmail(data, selectedCompany, totalAmount, validLines, true);
+          // Fire-and-forget; re-refresh the table once the Edge Function has stamped sent_at server-side
+          sendPOEmail(data, selectedCompany, totalAmount, validLines, true)
+            .then(() => onSuccess())
+            .catch(() => {});
         } else {
           toast({
             title: "Purchase order updated",
