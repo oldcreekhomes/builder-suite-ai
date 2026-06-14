@@ -108,7 +108,7 @@ export const CreatePurchaseOrderDialog = ({
   const isExtracting = !!bidContext?.isExtracting;
 
   const { lines: existingLines, isLoading: isLoadingExistingLines } = usePurchaseOrderLines(editOrder?.id);
-  const { createPOSendEmailAndUpdateStatus, resendPOEmail, isLoading: isBidPOLoading } = usePOMutations(projectId);
+  const { createPOSendEmailAndUpdateStatus, createPOAndSendEmail, resendPOEmail, isLoading: isBidPOLoading } = usePOMutations(projectId);
   const { profile } = useUserProfile();
 
   // Guards: only seed once per dialog open, don't clobber user edits on parent re-renders
@@ -414,29 +414,23 @@ export const CreatePurchaseOrderDialog = ({
           });
         }
       } else {
-        const { data: purchaseOrder, error } = await supabase
-          .from('project_purchase_orders')
-          .insert([{
-            project_id: projectId,
-            company_id: selectedCompany.id,
-            cost_code_id: primaryCostCodeId,
-            extra: validLines.some(l => l.extra),
-            total_amount: totalAmount,
-            notes: notes.trim() || null,
-            files: JSON.parse(JSON.stringify(uploadedFiles)),
-            status: 'approved',
-          }])
-          .select('*, po_number')
-          .single();
-
-        if (error) throw error;
-        await savePOLines(purchaseOrder.id, validLines);
-        // Fire-and-forget: don't block UI on the email send
-        toast({
-          title: "Purchase order created",
-          description: "Sending email to vendor in the background…",
+        // Route standalone PO creation through the same mutation used by the bidding flow
+        // so the vendor email is byte-identical (same Edge Function body, same toasts, same sent_at update).
+        await createPOAndSendEmail.mutateAsync({
+          companyId: selectedCompany.id,
+          costCodeId: primaryCostCodeId,
+          totalAmount,
+          biddingCompany: {
+            companies: {
+              id: selectedCompany.id,
+              company_name: selectedCompany.name,
+            },
+            proposals: [],
+          },
+          customMessage: customMessage?.trim() || undefined,
+          lineItems: validLines,
+          files: uploadedFiles,
         });
-        void sendPOEmail(purchaseOrder, selectedCompany, totalAmount, validLines, false);
       }
 
       setSelectedCompany(null);
