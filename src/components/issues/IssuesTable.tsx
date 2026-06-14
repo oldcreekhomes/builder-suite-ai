@@ -14,7 +14,7 @@ interface IssuesTableProps {
 }
 
 export function IssuesTable({ category }: IssuesTableProps) {
-  const [showAddRow, setShowAddRow] = useState(false);
+  const [dialogOpen, setDialogOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const { data: issues, isLoading } = useCompanyIssues(category);
   const { updateIssue, updateIssueStatus, resolveIssue, deleteIssue } = useIssueMutations();
