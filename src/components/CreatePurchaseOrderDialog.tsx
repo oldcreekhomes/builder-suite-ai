@@ -844,7 +844,19 @@ export const CreatePurchaseOrderDialog = ({
                   </div>
                 </div>
               ) : (
-                <div className="h-[80px] flex flex-wrap items-start content-start gap-2 overflow-auto pt-1">
+                <div className="h-[80px] flex flex-wrap items-center content-start gap-2 overflow-auto pt-1">
+                  <div {...getRootProps()} className="inline-flex">
+                    <input {...getInputProps()} />
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      disabled={isUploading}
+                      className="h-8"
+                    >
+                      {isUploading ? "Uploading..." : "Add Files"}
+                    </Button>
+                  </div>
                   {uploadedFiles.map((file) => {
                     const Icon = getFileIcon(file.name);
                     const iconColor = getFileIconColor(file.name);
