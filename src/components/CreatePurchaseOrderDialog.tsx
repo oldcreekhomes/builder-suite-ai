@@ -892,18 +892,8 @@ export const CreatePurchaseOrderDialog = ({
           </div>
 
           {/* Custom Message + Attachments + Sending To */}
-          <div className={isLocked ? "" : "grid grid-cols-3 gap-4"}>
-            {!isLocked && (
-              <div className="space-y-1.5">
-                <Label>Custom Message (Optional)</Label>
-                <Textarea
-                  placeholder="Add a custom message to include in the email..."
-                  value={customMessage}
-                  onChange={(e) => setCustomMessage(e.target.value)}
-                  className="resize-none h-[80px] min-h-[80px]"
-                />
-              </div>
-            )}
+          <div className={isLocked ? "" : "grid grid-cols-2 gap-4"}>
+
             <div className={`space-y-1.5 ${isLocked ? "max-w-sm" : ""}`}>
               <Label>Attachments</Label>
               {uploadedFiles.length === 0 ? (
