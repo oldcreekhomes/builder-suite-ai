@@ -1,18 +1,42 @@
-Root cause: the email is sent by the Edge Function, but `sent_at` is currently written afterward by the browser in a background task. The create dialog immediately triggers a page reload, which can cancel that browser-side update. That is why the vendor receives the email but the database still shows `sent_at = null`, even after refresh.
+# Add "Save Draft" to Create Purchase Order
 
-Plan:
-1. Move the source-of-truth `sent_at` update into `supabase/functions/send-po-email/index.ts`.
-   - After the email send finishes successfully, update `project_purchase_orders.sent_at` inside the Edge Function using the same `purchaseOrderId`.
-   - Only stamp `sent_at` when at least one email is actually sent.
-   - Keep the existing email content/path unchanged.
+Adds a third button between **Cancel** and **Create Purchase Order** that lets you save a partially-filled PO and return to it later without sending the vendor email.
 
-2. Keep the existing client invalidation as a harmless UI refresh helper.
-   - The browser can still invalidate/refetch the table after the send completes.
-   - The browser should no longer be responsible for the permanent `sent_at` database write.
+## UI change
 
-3. Correct the already-affected PO shown in the screenshot.
-   - Set `sent_at` for PO `2026-228S-0003` using the Edge Function log send time (`2026-06-14T17:46:23Z`).
+In `CreatePurchaseOrderDialog.tsx`, render three buttons in the footer:
 
-4. Verify with a database read.
-   - Confirm PO `2026-228S-0003` has `sent_at` populated.
-   - Confirm the future send path now writes `sent_at` server-side.
+```text
+[ Cancel ]   [ Save Draft ]   [ Create Purchase Order ]
+```
+
+- "Save Draft" is only shown when creating a new PO (not when editing an already-sent PO, since those are locked).
+- It's also shown when editing an existing draft (so you can keep saving without sending).
+- Hidden in the bidding flow (that flow has its own send/confirm semantics).
+
+## Behavior
+
+**Save Draft click:**
+1. Relaxed validation — only requires that *something* has been entered (at least a company OR one line item with any field filled). No requirement for a cost code or non-zero amount.
+2. Inserts (or updates) `project_purchase_orders` with `status = 'draft'`, `sent_at = null`. Saves whatever line items, notes, custom message, and attachments exist.
+3. **Does not** call the `send-po-email` Edge Function. Vendor receives nothing.
+4. Closes dialog, refreshes the table, toast: "Draft saved".
+
+**Reopening a draft:** Clicking the draft row in the Purchase Orders table opens the existing edit dialog pre-filled with all saved values. From there the user can either click **Save Draft** again to keep iterating, or **Create Purchase Order** to finalize — which flips `status` to `approved`, stamps `sent_at` server-side (existing Edge Function path), and sends the vendor email.
+
+## Table display
+
+The Purchase Orders table already shows all statuses. Drafts will render with:
+- **Status** column: "Draft" (existing column already reads `po.status`).
+- **Sent On** column: blank (correct — never sent).
+- **PO #** column: blank until finalized (PO numbers are only assigned on send to avoid burning numbers on abandoned drafts).
+
+No new tab/filter is added; the existing search already matches on status, so typing "draft" filters to drafts.
+
+## Files touched
+
+- `src/components/CreatePurchaseOrderDialog.tsx` — add Save Draft button, `handleSaveDraft` handler, relaxed validation path, conditional rendering rules.
+- `src/hooks/usePOMutations.ts` — add a small `saveDraftPO` mutation (insert/update with `status='draft'`, no email, no PO number assignment).
+- `src/components/purchaseOrders/PurchaseOrdersTableRow.tsx` — title-case "Draft" in the Status cell if it isn't already, and ensure clicking a draft row opens the edit dialog (it already does via `editOrder`).
+
+No database migration needed — `project_purchase_orders.status` already defaults to `'draft'` and accepts text.
