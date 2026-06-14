@@ -4880,6 +4880,7 @@ export type Database = {
           cost_code_id: string | null
           created_at: string
           created_by: string
+          custom_message: string | null
           extra: boolean
           files: Json | null
           id: string
@@ -4899,6 +4900,7 @@ export type Database = {
           cost_code_id?: string | null
           created_at?: string
           created_by?: string
+          custom_message?: string | null
           extra?: boolean
           files?: Json | null
           id?: string
@@ -4918,6 +4920,7 @@ export type Database = {
           cost_code_id?: string | null
           created_at?: string
           created_by?: string
+          custom_message?: string | null
           extra?: boolean
           files?: Json | null
           id?: string

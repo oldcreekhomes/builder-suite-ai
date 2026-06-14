@@ -1,0 +1,1 @@
+ALTER TABLE public.project_purchase_orders ADD COLUMN IF NOT EXISTS custom_message text;

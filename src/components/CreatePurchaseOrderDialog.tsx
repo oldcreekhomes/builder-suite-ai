@@ -160,7 +160,7 @@ export const CreatePurchaseOrderDialog = ({
       });
       setNotes(editOrder.notes || "");
       setUploadedFiles(editOrder.files || []);
-      setCustomMessage("");
+      setCustomMessage(editOrder.custom_message || "");
       // Lines load via the existingLines effect below; mark initialized there
     } else {
       setSelectedCompany(null);
@@ -392,6 +392,7 @@ export const CreatePurchaseOrderDialog = ({
             total_amount: totalAmount,
             notes: notes.trim() || null,
             files: JSON.parse(JSON.stringify(uploadedFiles)),
+            custom_message: customMessage.trim() || null,
           })
           .eq('id', editOrder.id)
           .select('*, po_number')
@@ -476,6 +477,7 @@ export const CreatePurchaseOrderDialog = ({
             total_amount: totalAmount,
             notes: notes.trim() || null,
             files: JSON.parse(JSON.stringify(uploadedFiles)),
+            custom_message: customMessage.trim() || null,
             status: 'draft',
           })
           .eq('id', poId);
@@ -496,6 +498,7 @@ export const CreatePurchaseOrderDialog = ({
             total_amount: totalAmount,
             notes: notes.trim() || null,
             files: JSON.parse(JSON.stringify(uploadedFiles)),
+            custom_message: customMessage.trim() || null,
             status: 'draft',
           })
           .select('id')
