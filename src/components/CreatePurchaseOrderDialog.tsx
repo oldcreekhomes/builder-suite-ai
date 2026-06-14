@@ -448,6 +448,84 @@ export const CreatePurchaseOrderDialog = ({
     }
   };
 
+  // === Save Draft: persists current state without sending email ===
+  const handleSaveDraft = async () => {
+    // Relaxed validation: need at least a company OR one line item with any meaningful field
+    const hasAnyLineContent = lineItems.some(
+      (l) => l.cost_code_id || (l.description && l.description.trim()) || l.amount > 0 || l.unit_cost > 0
+    );
+    if (!selectedCompany && !hasAnyLineContent) {
+      toast({ title: "Nothing to save", description: "Select a company or fill in at least one line item.", variant: "destructive" });
+      return;
+    }
+
+    setIsSubmitting(true);
+    try {
+      const totalAmount = lineItems.reduce((sum, l) => sum + (l.amount || 0), 0);
+      const primaryCostCodeId = lineItems.find((l) => l.cost_code_id)?.cost_code_id ?? null;
+
+      let poId = editOrder?.id as string | undefined;
+
+      if (poId) {
+        const { error } = await supabase
+          .from('project_purchase_orders')
+          .update({
+            company_id: selectedCompany?.id ?? editOrder.company_id,
+            cost_code_id: primaryCostCodeId,
+            extra: lineItems.some((l) => l.extra),
+            total_amount: totalAmount,
+            notes: notes.trim() || null,
+            files: JSON.parse(JSON.stringify(uploadedFiles)),
+            status: 'draft',
+          })
+          .eq('id', poId);
+        if (error) throw error;
+      } else {
+        if (!selectedCompany) {
+          toast({ title: "Validation Error", description: "Select a company to save a draft.", variant: "destructive" });
+          setIsSubmitting(false);
+          return;
+        }
+        const { data, error } = await supabase
+          .from('project_purchase_orders')
+          .insert({
+            project_id: projectId,
+            company_id: selectedCompany.id,
+            cost_code_id: primaryCostCodeId,
+            extra: lineItems.some((l) => l.extra),
+            total_amount: totalAmount,
+            notes: notes.trim() || null,
+            files: JSON.parse(JSON.stringify(uploadedFiles)),
+            status: 'draft',
+          })
+          .select('id')
+          .single();
+        if (error) throw error;
+        poId = data.id;
+      }
+
+      // Persist whatever line items exist (filter out completely empty rows)
+      const linesToSave = lineItems.filter(
+        (l) => l.cost_code_id || (l.description && l.description.trim()) || l.amount > 0 || l.unit_cost > 0
+      );
+      await savePOLines(poId!, linesToSave);
+
+      toast({ title: "Draft saved", description: "Vendor was not notified." });
+      setSelectedCompany(null);
+      setNotes("");
+      setUploadedFiles([]);
+      setCustomMessage("");
+      setLineItems([emptyLine()]);
+      onSuccess();
+      onOpenChange(false);
+    } catch (error) {
+      console.error('Error saving draft:', error);
+      toast({ title: "Error", description: "Failed to save draft", variant: "destructive" });
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
   const savePOLines = async (poId: string, lines: LineItemInput[]) => {
     await supabase.from('purchase_order_lines').delete().eq('purchase_order_id', poId);
     if (lines.length === 0) return;
