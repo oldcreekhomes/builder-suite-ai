@@ -1,15 +1,16 @@
-# Stop hard-reloading after Save / Save Draft
+# Persist Custom Message on PO drafts
 
-The blank-screen flash is `window.location.reload()` firing in `PurchaseOrdersTable.tsx`'s `onSuccess`. Replace it with a React Query cache invalidation so the table re-fetches in place — no page reload, no blank screen.
+The Custom Message field isn't saved anywhere — it's only used as the email body at send time, then discarded. For drafts (and edits in general), we need to persist it so it survives close-and-reopen.
 
-## Change
+## Database
 
-**`src/components/purchaseOrders/PurchaseOrdersTable.tsx`**
-- Import `useQueryClient` from `@tanstack/react-query`.
-- In `onSuccess` of `<CreatePurchaseOrderDialog>`, replace `window.location.reload()` with:
-  ```ts
-  queryClient.invalidateQueries({ queryKey: ['purchase-orders', projectId] });
-  ```
-  This matches the existing query key used by `usePurchaseOrders` and the other mutations in `usePurchaseOrderMutations`, so the table refreshes instantly using cached app shell.
+Add a nullable `custom_message text` column to `public.project_purchase_orders` via migration.
 
-No other call sites need changes — Save Draft, Create, and Edit all funnel through the same `onSuccess`.
+## Code
+
+**`src/components/CreatePurchaseOrderDialog.tsx`**
+- `handleSaveDraft`: include `custom_message: customMessage.trim() || null` in both the insert and update payloads.
+- `handleSubmit` (non-bid edit/create path): include the same field so it persists on full sends too.
+- Pre-population effect: when opening an existing PO (`editOrder`), seed `setCustomMessage(editOrder.custom_message || "")` instead of forcing `""`.
+
+No change to the Edge Function — it already receives `customMessage` from the dialog at send time.
