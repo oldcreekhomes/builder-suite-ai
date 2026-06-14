@@ -134,7 +134,7 @@ export function IssuesTableRow({
       </TableCell>
 
       <TableCell className="px-2 py-1 text-xs w-24">
-        {new Date(issue.created_at).toLocaleDateString('en-GB')}
+        {new Date(issue.created_at).toLocaleDateString('en-US', { month: '2-digit', day: '2-digit', year: '2-digit' })}
       </TableCell>
       
       <TableCell className="px-2 py-1 text-xs w-20">
