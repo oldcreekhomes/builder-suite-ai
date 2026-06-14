@@ -87,15 +87,7 @@ export function IssuesTable({ category }: IssuesTableProps) {
         <Table>
           <IssuesTableHeader />
           <TableBody>
-            {showAddRow && (
-              <AddIssueRow 
-                category={category}
-                onCancel={() => setShowAddRow(false)}
-                onSuccess={() => setShowAddRow(false)}
-              />
-            )}
-            
-            {(!filteredIssues || filteredIssues.length === 0) && !showAddRow ? (
+            {(!filteredIssues || filteredIssues.length === 0) ? (
               <TableRow>
                 <TableCell colSpan={7} className="text-center py-4 text-xs text-muted-foreground">
                   {searchQuery ? (
