@@ -1,29 +1,18 @@
-## Goal
-Make the "Sent On" column populate immediately after a PO is created from the Create Purchase Order dialog (without requiring a page refresh).
+Root cause: the email is sent by the Edge Function, but `sent_at` is currently written afterward by the browser in a background task. The create dialog immediately triggers a page reload, which can cancel that browser-side update. That is why the vendor receives the email but the database still shows `sent_at = null`, even after refresh.
 
-## Root cause
-In `src/hooks/usePOMutations.ts`, `createPOAndSendEmail` does:
+Plan:
+1. Move the source-of-truth `sent_at` update into `supabase/functions/send-po-email/index.ts`.
+   - After the email send finishes successfully, update `project_purchase_orders.sent_at` inside the Edge Function using the same `purchaseOrderId`.
+   - Only stamp `sent_at` when at least one email is actually sent.
+   - Keep the existing email content/path unchanged.
 
-1. Insert the PO row
-2. Insert PO lines
-3. Return success → `onSuccess` invalidates `purchase-orders` query
-4. **In the background (fire-and-forget):** invoke `send-po-email`, then `UPDATE project_purchase_orders SET sent_at = now()`
+2. Keep the existing client invalidation as a harmless UI refresh helper.
+   - The browser can still invalidate/refetch the table after the send completes.
+   - The browser should no longer be responsible for the permanent `sent_at` database write.
 
-Step 3 fires the table refetch **before** step 4 writes `sent_at`, so the UI re-reads the row while `sent_at` is still `NULL`. The email is sent fine (user confirmed receipt), but the column stays "Not sent" until the page is reloaded.
+3. Correct the already-affected PO shown in the screenshot.
+   - Set `sent_at` for PO `2026-228S-0003` using the Edge Function log send time (`2026-06-14T17:46:23Z`).
 
-The bidding flow has the same code path, but in that flow the user navigates away from the bid package after closing it, so the staleness isn't visible. From the standalone dialog you land directly on the table that needs the fresh value.
-
-## Fix
-In `src/hooks/usePOMutations.ts`, inside the background IIFE in `createPOAndSendEmail` (and the matching block in `resendPOEmail`), after the successful `sent_at` update, invalidate the purchase-orders queries again so the table re-fetches and shows the new value:
-
-```ts
-queryClient.invalidateQueries({ queryKey: ['purchase-orders', projectId] });
-queryClient.invalidateQueries({ queryKey: ['project-bidding', projectId] });
-```
-
-This is a one-line follow-up invalidation after the `sent_at` write succeeds. No DB changes, no edge function changes, no behavior change for the bidding flow other than a redundant (cheap) refetch when the background email finishes.
-
-## Verification
-1. Open Create Purchase Order dialog, fill it out, submit.
-2. Table immediately shows the new PO with "Not sent".
-3. Within a couple seconds (once the background `send-po-email` resolves and `sent_at` is written), the row auto-updates to show today's date in the "Sent On" column — no manual refresh required.
+4. Verify with a database read.
+   - Confirm PO `2026-228S-0003` has `sent_at` populated.
+   - Confirm the future send path now writes `sent_at` server-side.
