@@ -118,6 +118,12 @@ export function IssuesTable({ category }: IssuesTableProps) {
           </TableBody>
         </Table>
       </div>
+
+      <AddIssueDialog
+        open={dialogOpen}
+        onOpenChange={setDialogOpen}
+        category={category}
+      />
     </div>
   );
 }
