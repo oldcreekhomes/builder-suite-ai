@@ -20,7 +20,6 @@ interface AddIssueDialogProps {
 export function AddIssueDialog({ open, onOpenChange, category }: AddIssueDialogProps) {
   const [title, setTitle] = useState("");
   const [priority, setPriority] = useState<"Normal" | "High">("Normal");
-  const [location, setLocation] = useState<string>("");
   const [issueFiles, setIssueFiles] = useState<File[]>([]);
   const [solutionFiles, setSolutionFiles] = useState<File[]>([]);
   const [comment, setComment] = useState("");
@@ -32,7 +31,6 @@ export function AddIssueDialog({ open, onOpenChange, category }: AddIssueDialogP
   const reset = () => {
     setTitle("");
     setPriority("Normal");
-    setLocation("");
     setIssueFiles([]);
     setSolutionFiles([]);
     setComment("");
@@ -96,7 +94,6 @@ export function AddIssueDialog({ open, onOpenChange, category }: AddIssueDialogP
     if (!title.trim()) missing.push("Title");
     if (!priority) missing.push("Priority");
     if (issueFiles.length === 0) missing.push("Issue Files");
-    if (!location) missing.push("Location");
     if (solutionFiles.length === 0) missing.push("Solution Files");
     if (!comment.trim()) missing.push("Comment");
 
@@ -115,7 +112,6 @@ export function AddIssueDialog({ open, onOpenChange, category }: AddIssueDialogP
         title: title.trim(),
         category,
         priority,
-        location,
       });
 
       await uploadIssueFiles(newIssue.id);
@@ -217,22 +213,6 @@ export function AddIssueDialog({ open, onOpenChange, category }: AddIssueDialogP
               Add Files
             </Button>
             <FileList files={issueFiles} onRemove={(i) => removeFile(setIssueFiles, i)} />
-          </div>
-
-          <div className="space-y-2">
-            <Label htmlFor="location">Location *</Label>
-            <Select value={location} onValueChange={setLocation}>
-              <SelectTrigger id="location">
-                <SelectValue placeholder="Select location" />
-              </SelectTrigger>
-              <SelectContent>
-                {LOCATION_OPTIONS.map((loc) => (
-                  <SelectItem key={loc} value={loc}>
-                    {loc}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
           </div>
 
           <div className="space-y-2">
