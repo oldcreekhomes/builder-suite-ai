@@ -165,6 +165,9 @@ export const usePOMutations = (projectId: string) => {
             .update({ sent_at: new Date().toISOString() })
             .eq('id', purchaseOrder.id);
 
+          queryClient.invalidateQueries({ queryKey: ['purchase-orders', projectId] });
+          queryClient.invalidateQueries({ queryKey: ['project-bidding', projectId] });
+
           toast({
             title: "PO Email Sent",
             description: emailData?.message || `PO notification sent to ${emailData?.emailsSent ?? 0} recipients`,
@@ -331,6 +334,9 @@ export const usePOMutations = (projectId: string) => {
               .from('project_purchase_orders')
               .update({ sent_at: new Date().toISOString() })
               .eq('id', poForBackground.id);
+
+            queryClient.invalidateQueries({ queryKey: ['purchase-orders', projectId] });
+            queryClient.invalidateQueries({ queryKey: ['project-bidding', projectId] });
 
             toast({
               title: "PO Email Resent",
