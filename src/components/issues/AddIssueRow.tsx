@@ -137,6 +137,10 @@ export function AddIssueRow({ category, onCancel, onSuccess }: AddIssueRowProps)
       </TableCell>
       
       <TableCell className="text-muted-foreground">
+        {/* Date placeholder for new issue */}
+      </TableCell>
+      
+      <TableCell className="text-muted-foreground">
         You
       </TableCell>
       
