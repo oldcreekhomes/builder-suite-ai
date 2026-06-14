@@ -912,7 +912,7 @@ export const CreatePurchaseOrderDialog = ({
                   </div>
                 </div>
               ) : (
-                <div className="h-[80px] flex flex-wrap items-center content-start gap-2 overflow-auto pt-1">
+                <div className="border border-input rounded-md p-3 h-[80px] flex flex-wrap items-center content-start gap-2 overflow-auto">
                   <div {...getRootProps()} className="inline-flex">
                     <input {...getInputProps()} />
                     <Button
