@@ -132,6 +132,10 @@ export function IssuesTableRow({
       <TableCell className="px-2 py-1 text-xs font-medium w-12">
         {issueNumber}
       </TableCell>
+
+      <TableCell className="px-2 py-1 text-xs w-24">
+        {new Date(issue.created_at).toLocaleDateString('en-GB')}
+      </TableCell>
       
       <TableCell className="px-2 py-1 text-xs w-20">
         {getAuthorInitials()}
