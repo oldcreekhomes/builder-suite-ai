@@ -239,10 +239,6 @@ export function IssuesTableRow({
         solutionFiles={issue.solution_files}
         onSolutionChange={handleSolutionChange}
       />
-        issueId={issue.id}
-        solutionFiles={issue.solution_files}
-        onSolutionChange={handleSolutionChange}
-      />
 
       <IssueCommentCell
         issueId={issue.id}
