@@ -1,42 +1,32 @@
-## Goal
-Replace the inline "Add Issue" row with a modal dialog. All fields visible in the row become required.
+## Changes to `src/components/issues/AddIssueDialog.tsx`
 
-## Changes
+### Remove
+- **Solution Files** section (state `solutionFiles`, `setSolutionFiles`, `uploadSolutionFiles`, validation entry, JSX block).
+- **Comment** section (state `comment`, `setComment`, validation entry, JSX block).
+- Trailing `updateIssue.mutateAsync({ solution, solution_files })` call.
+- `updateIssue` from `useIssueMutations` destructure (no longer needed).
+- `Textarea` import (unused).
 
-### 1. `src/components/issues/AddIssueDialog.tsx` (rewrite)
-Replace the current minimal dialog with a full form containing every field from the inline row, all marked required:
+After cleanup, required fields are: **Title**, **Priority** (defaults Normal), **Issue Files** (≥1).
 
-- **Title** (text input) — required
-- **Priority** (Select: Normal / High) — required (defaults to Normal but cannot be cleared)
-- **Issue Files** (multi-file upload with selected list + remove buttons) — required, at least 1 file
-- **Location** (Select with the full module list: Accounting, Authentication, Bidding, Budget, Companies, Files, Messages, Purchase Orders, Photos, Schedule, Settings) — required
-- **Solution Files** (multi-file upload) — required, at least 1 file
-- **Comment** (textarea) — required, non-empty
+Submit flow becomes:
+1. `createIssue.mutateAsync({ title, category, priority })`
+2. `uploadIssueFiles(newIssue.id)`
+3. Toast success, reset, close.
 
-Author/Date/# are auto-populated server side and not shown in the dialog (they aren't editable in the row either).
+### Redesign Issue Files display (match `IssueFilesCell` style)
+Replace the current `FileList` chip component with an icon-based row that mirrors `src/components/issues/IssueFilesCell.tsx`:
 
-Validation: on submit, collect missing required fields and show a single destructive toast listing them (same pattern as current `AddIssueRow.handleSave`). Disable submit while `createIssue.isPending` or uploads are in flight.
+- For each pending file, render a relative-positioned wrapper with:
+  - The file-type icon from `getFileIcon(file.name)` colored via `getFileIconColor(file.name)`, sized `h-5 w-5` with `p-1` padding.
+  - A small red circular `×` button absolutely positioned at `-top-1 -right-1` (`bg-red-500 hover:bg-red-600 text-white rounded-full w-3 h-3`) that removes that file from state.
+  - `title` tooltip showing the clean filename via `getCleanFileName`.
+- Layout: `flex items-center gap-1 flex-wrap` immediately under the Add Files button (no chip with filename text — icon only, matching the rest of the app).
 
-Submit flow (mirrors `AddIssueRow` + `IssuesTableRow` logic):
-1. `createIssue.mutateAsync({ title, category, priority, location })`
-2. On success, upload Issue Files to `issue-files` storage bucket and insert rows into `issue_files` keyed to the new `issue_id` (port `uploadFilesToIssue` from `AddIssueRow.tsx`).
-3. Upload Solution Files using the same pattern used by `SolutionFilesCell` (read that file in build mode for exact bucket/table — likely `solution-files` / `solution_files`), then call `updateIssue` with the resulting `solution_files` paths.
-4. Insert the comment row using the same path `IssueCommentCell` uses (read in build mode).
-5. Reset form, close dialog, success toast.
+Imports to add:
+```ts
+import { getFileIcon, getFileIconColor, getCleanFileName } from "@/components/bidding/utils/fileIconUtils";
+```
+Remove the `X` lucide import (no longer used).
 
-Dialog sizing: `sm:max-w-[600px]`, vertically scrollable content area.
-
-### 2. `src/components/issues/IssuesTable.tsx`
-- Remove `AddIssueRow` import and the conditional `<AddIssueRow … />` render inside `<TableBody>`.
-- Replace `showAddRow` state usage so the "Add Issue" button opens `AddIssueDialog` instead:
-  - `const [dialogOpen, setDialogOpen] = useState(false);`
-  - Button `onClick={() => setDialogOpen(true)}`
-  - Render `<AddIssueDialog open={dialogOpen} onOpenChange={setDialogOpen} category={category} />` at the bottom of the component.
-- Simplify the empty-state condition (no more `!showAddRow` branch).
-
-### 3. `src/components/issues/AddIssueRow.tsx`
-Delete the file — no longer used.
-
-## Out of scope
-- No schema changes; reuses existing `issues`, `issue_files`, `solution_files`, `issue_comments` tables and storage buckets.
-- Inline editing in existing rows is untouched.
+No other files change. No schema/backend changes.
