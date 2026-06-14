@@ -662,10 +662,10 @@ export const CreatePurchaseOrderDialog = ({
   const submitLabel = isBidFlow
     ? (isBidPOLoading
         ? 'Creating...'
-        : 'Create Purchase Order')
+        : 'Send Purchase Order')
     : (isSubmitting
         ? (editOrder ? 'Updating...' : 'Creating...')
-        : (editOrder ? 'Update Purchase Order' : 'Create Purchase Order'));
+        : (editOrder ? 'Update Purchase Order' : 'Send Purchase Order'));
 
   const isSubmitDisabled = isBidFlow
     ? (isBidPOLoading || isExtracting)
