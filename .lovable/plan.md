@@ -1,18 +1,40 @@
 ## Plan
 
-Three small UI tweaks in `src/components/CreatePurchaseOrderDialog.tsx`:
+### Goal
+When a user manually creates a PO from the Create Purchase Order dialog (non-bid flow) and clicks "Create Purchase Order", send the exact same vendor email that the bidding flow sends when closing out a bid package.
 
-1. **Shrink Quantity column** — reduce the Quantity column width from `w-[100px]` to `w-[60px]` (about half), freeing horizontal space for the Description field, which already uses the remaining flexible width.
+### What's happening today
+Both flows already invoke the same Edge Function (`send-po-email`), but the standalone dialog uses an inline `sendPOEmail` helper in `CreatePurchaseOrderDialog.tsx` that:
 
-2. **Move Amount closer to Extra** — narrow the Amount column from `w-[110px]` to `w-[90px]` and right-align it so the dollar value sits next to the Extra checkbox rather than leaving a large gap. The Subtotal row's amount cell will get the same right-alignment to stay consistent.
+- Passes `isUpdate: false` and a manually-built `lineItems` array — the bidding flow does not. The Edge Function uses `isUpdate` to change the subject line to `UPDATED - …` (harmless when false) and pulls line items from the DB when `lineItems` is omitted (which is the bidding behavior).
+- Is fire-and-forget but lives in dialog code instead of the shared `usePOMutations` hook, so error handling, toasts, and `sent_at` updates can drift from the bidding path.
 
-3. **Add inline "+" Add Line button in Actions column** — add a small ghost "+" icon button next to the trash icon on each line row so the user can add a new line without scrolling down. Remove the separate "Add Line" button below the table. Keep the locked-state tooltip behavior ("PO already sent — create a new PO for additional work.") on the inline + button when `isLocked` is true.
+The most reliable way to keep them identical going forward is to route the standalone "create new PO" through the same `usePOMutations.createPOAndSendEmail` mutation the bidding flow uses.
 
-### Technical details
+### Changes (single file: `src/components/CreatePurchaseOrderDialog.tsx`)
 
-- File: `src/components/CreatePurchaseOrderDialog.tsx`
-- Header column widths: change `Quantity` head from `w-[100px]` to `w-[60px]`, `Amount` head from `w-[110px]` to `w-[90px] text-right`.
-- Amount body cell: change `pl-3` to `text-right pr-3`.
-- Subtotal row: change colSpan and alignment to match new layout (`Subtotal` label right-aligned in col 4, amount right-aligned in col 5).
-- Actions cell: wrap trash button and a new `Plus` icon button in a `flex items-center justify-center gap-1` container. The + button calls `addLine()` and is disabled / tooltip-wrapped when `isLocked`.
-- Delete the standalone `Add Line` / locked-tooltip block beneath the table (lines ~798–813).
+1. In the non-bid, non-edit branch of `handleSubmit` (the standalone "create new PO" path), replace the inline `supabase.from('project_purchase_orders').insert(...)` + `savePOLines` + `sendPOEmail` with a single call to `createPOAndSendEmail.mutateAsync({...})` from the existing `usePOMutations(projectId)` hook. Pass:
+   - `companyId: selectedCompany.id`
+   - `costCodeId: validLines[0].cost_code_id`
+   - `totalAmount`
+   - `biddingCompany`: a minimal synthesized shape `{ companies: { id, company_name }, proposals: [] }` so the shared mutation can read the company name for the email
+   - `customMessage`
+   - `lineItems: validLines`
+   - `files: uploadedFiles`
+   - (no `bidPackageId` / `bidId`)
+   
+2. Leave the **edit** branch untouched — it still needs `isUpdate: true` and the vendor-visible-change detection, which is specific to edits.
+
+3. Remove the now-unused local `sendPOEmail` helper if nothing else references it. (`savePOLines` is still used by the edit branch, so keep it.)
+
+### Why this works
+`createPOAndSendEmail` already:
+- Inserts the PO row with `status: 'approved'`
+- Persists `purchase_order_lines`
+- Fires `send-po-email` with the bidding-flow body (no `isUpdate`, no `lineItems` — Edge Function pulls lines from DB)
+- Updates `sent_at` on success and surfaces toasts
+
+So the vendor email rendered for a manually-created PO will be byte-identical to the bidding flow's email.
+
+### Verification
+After implementing, manually create a PO from the dialog; the row's "Sent On" column should populate with the current date and the vendor should receive the standard PO email (same subject, body, line-items table, and footer as the bidding flow).
