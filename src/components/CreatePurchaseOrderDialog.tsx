@@ -160,7 +160,7 @@ export const CreatePurchaseOrderDialog = ({
       });
       setNotes(editOrder.notes || "");
       setUploadedFiles(editOrder.files || []);
-      setCustomMessage("");
+      setCustomMessage(editOrder.custom_message || "");
       // Lines load via the existingLines effect below; mark initialized there
     } else {
       setSelectedCompany(null);
