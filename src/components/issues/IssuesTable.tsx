@@ -66,7 +66,7 @@ export function IssuesTable({ category }: IssuesTableProps) {
           <h3 className="text-lg font-semibold text-foreground">{category}</h3>
           <p className="text-sm text-muted-foreground">Report issues in the {category} module</p>
         </div>
-        <Button onClick={() => setShowAddRow(true)} size="sm">
+        <Button onClick={() => setDialogOpen(true)} size="sm">
           <Plus className="w-4 h-4 mr-2" />
           Add Issue
         </Button>
