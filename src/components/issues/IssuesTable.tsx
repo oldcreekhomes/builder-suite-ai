@@ -5,7 +5,7 @@ import { Input } from '@/components/ui/input';
 import { Plus, Search } from 'lucide-react';
 import { IssuesTableHeader } from './IssuesTableHeader';
 import { IssuesTableRow } from './IssuesTableRow';
-import { AddIssueRow } from './AddIssueRow';
+import { AddIssueDialog } from './AddIssueDialog';
 import { useCompanyIssues } from '@/hooks/useCompanyIssues';
 import { useIssueMutations } from '@/hooks/useIssueMutations';
 
@@ -14,7 +14,7 @@ interface IssuesTableProps {
 }
 
 export function IssuesTable({ category }: IssuesTableProps) {
-  const [showAddRow, setShowAddRow] = useState(false);
+  const [dialogOpen, setDialogOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const { data: issues, isLoading } = useCompanyIssues(category);
   const { updateIssue, updateIssueStatus, resolveIssue, deleteIssue } = useIssueMutations();
@@ -66,7 +66,7 @@ export function IssuesTable({ category }: IssuesTableProps) {
           <h3 className="text-lg font-semibold text-foreground">{category}</h3>
           <p className="text-sm text-muted-foreground">Report issues in the {category} module</p>
         </div>
-        <Button onClick={() => setShowAddRow(true)} size="sm">
+        <Button onClick={() => setDialogOpen(true)} size="sm">
           <Plus className="w-4 h-4 mr-2" />
           Add Issue
         </Button>
@@ -87,15 +87,7 @@ export function IssuesTable({ category }: IssuesTableProps) {
         <Table>
           <IssuesTableHeader />
           <TableBody>
-            {showAddRow && (
-              <AddIssueRow 
-                category={category}
-                onCancel={() => setShowAddRow(false)}
-                onSuccess={() => setShowAddRow(false)}
-              />
-            )}
-            
-            {(!filteredIssues || filteredIssues.length === 0) && !showAddRow ? (
+            {(!filteredIssues || filteredIssues.length === 0) ? (
               <TableRow>
                 <TableCell colSpan={7} className="text-center py-4 text-xs text-muted-foreground">
                   {searchQuery ? (
@@ -126,6 +118,12 @@ export function IssuesTable({ category }: IssuesTableProps) {
           </TableBody>
         </Table>
       </div>
+
+      <AddIssueDialog
+        open={dialogOpen}
+        onOpenChange={setDialogOpen}
+        category={category}
+      />
     </div>
   );
 }

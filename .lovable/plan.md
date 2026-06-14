@@ -1,52 +1,42 @@
-# Make per-project account renames flow everywhere
+## Goal
+Replace the inline "Add Issue" row with a modal dialog. All fields visible in the row become required.
 
-The override system works, but only the standalone `/project/.../balance-sheet` and `/project/.../income-statement` pages were wired. The actual **Reports** page uses different components (`BalanceSheetContent`, `IncomeStatementContent`, `AccountsPayableContent`, `JobCostsContent`) and PDF exports — that's why "3120 - Income" still shows as "Construction Management Fees" there. Bills, transactions, registers, dropdowns, and reconciliation also still show the global name.
+## Changes
 
-## What I'll wire up
+### 1. `src/components/issues/AddIssueDialog.tsx` (rewrite)
+Replace the current minimal dialog with a full form containing every field from the inline row, all marked required:
 
-For every project-scoped surface that shows an account name, resolve through `useProjectAccountNames(projectId)` so the override (when present) replaces `account.name` at render time. Global pages (the company-wide Reports views with no `projectId`, the master Chart of Accounts in Settings, the master Edit/Add Account dialogs) keep using the global name.
+- **Title** (text input) — required
+- **Priority** (Select: Normal / High) — required (defaults to Normal but cannot be cleared)
+- **Issue Files** (multi-file upload with selected list + remove buttons) — required, at least 1 file
+- **Location** (Select with the full module list: Accounting, Authentication, Bidding, Budget, Companies, Files, Messages, Purchase Orders, Photos, Schedule, Settings) — required
+- **Solution Files** (multi-file upload) — required, at least 1 file
+- **Comment** (textarea) — required, non-empty
 
-### Reports (the actual ones rendered in the Reports page)
-- `src/components/reports/IncomeStatementContent.tsx`
-- `src/components/reports/BalanceSheetContent.tsx`
-- `src/components/reports/AccountsPayableContent.tsx`
-- `src/components/reports/JobCostsContent.tsx` (account-related rows only — cost-code labels stay as-is)
+Author/Date/# are auto-populated server side and not shown in the dialog (they aren't editable in the row either).
 
-### Report PDFs
-- `src/components/reports/pdf/IncomeStatementPdfDocument.tsx`
-- `src/components/reports/pdf/BalanceSheetPdfDocument.tsx`
-- `src/components/reports/pdf/AccountsPayablePdfDocument.tsx`
-- `src/components/reports/pdf/JobCostsPdfDocument.tsx`
-  Each PDF component takes an optional `accountNameOverrides: Record<string,string>` prop; the parent Content component fetches the overrides via the hook and passes them in.
+Validation: on submit, collect missing required fields and show a single destructive toast listing them (same pattern as current `AddIssueRow.handleSave`). Disable submit while `createIssue.isPending` or uploads are in flight.
 
-### Registers & detail
-- `AccountDetailDialog` — title bar account name + the related-account column (the `accountsDisplayMap` already pulls overrides when `projectId` is present; I'll also update the title bar).
-- `ReconcileAccountsContent.tsx` and `BankReconciliation.tsx` / `useBankReconciliation.ts` — account name shown in the picker, header, and printout.
+Submit flow (mirrors `AddIssueRow` + `IssuesTableRow` logic):
+1. `createIssue.mutateAsync({ title, category, priority, location })`
+2. On success, upload Issue Files to `issue-files` storage bucket and insert rows into `issue_files` keyed to the new `issue_id` (port `uploadFilesToIssue` from `AddIssueRow.tsx`).
+3. Upload Solution Files using the same pattern used by `SolutionFilesCell` (read that file in build mode for exact bucket/table — likely `solution-files` / `solution_files`), then call `updateIssue` with the resulting `solution_files` paths.
+4. Insert the comment row using the same path `IssueCommentCell` uses (read in build mode).
+5. Reset form, close dialog, success toast.
 
-### Transaction entry surfaces (account dropdowns, line tables)
-- `AccountSearchInput.tsx` and `AccountSearchInputInline.tsx` — the shared account pickers used by bills, checks, deposits, credit cards, journal entries, POs. Both accept an optional `projectId` (most callers already have one in scope). When provided, the rendered name in the dropdown options and the selected-label uses the override.
-- `WriteChecks` / `WriteChecksContent`, `MakeDeposits` / `MakeDepositsContent`, `CreditCardsContent`, `EditCheckDialog`, `EditDepositDialog`, `PayBillDialog`, `EditExtractedBillDialog`, `ManualBillEntry`, `JournalEntryForm` — pass `projectId` through and use override-aware display strings for any place an account name is rendered outside the picker (e.g. summary rows, table cells, headers).
+Dialog sizing: `sm:max-w-[600px]`, vertically scrollable content area.
 
-### Standalone report pages
-- `src/pages/BalanceSheet.tsx` and `src/pages/IncomeStatement.tsx` are already wired (from the previous step) and stay as-is.
+### 2. `src/components/issues/IssuesTable.tsx`
+- Remove `AddIssueRow` import and the conditional `<AddIssueRow … />` render inside `<TableBody>`.
+- Replace `showAddRow` state usage so the "Add Issue" button opens `AddIssueDialog` instead:
+  - `const [dialogOpen, setDialogOpen] = useState(false);`
+  - Button `onClick={() => setDialogOpen(true)}`
+  - Render `<AddIssueDialog open={dialogOpen} onOpenChange={setDialogOpen} category={category} />` at the bottom of the component.
+- Simplify the empty-state condition (no more `!showAddRow` branch).
 
-### Out of scope (intentional)
-- `Settings/ChartOfAccountsTab`, `Settings/AddAccountDialog`, `Settings/EditAccountDialog` — these manage the global accounts; they keep showing global names.
-- `SendReportsDialog` — uses the same Content components for body rendering, so it inherits the change automatically; I'll just verify nothing else needs touching.
+### 3. `src/components/issues/AddIssueRow.tsx`
+Delete the file — no longer used.
 
-## Mechanics
-
-1. Add a shared `useProjectAccountNames(projectId)` (already exists) to each Content component and any entry-form surface.
-2. Replace every literal `account.name` (or `${account.code} - ${account.name}`) on a project-scoped surface with `overrides?.get(account.id) ?? account.name`.
-3. For PDF components, accept the resolved name from the parent rather than fetching inside the document.
-4. Add the override query key (`['project-account-overrides', projectId]`) to React Query invalidation triggered by the rename mutation in `ProjectAccountsTab` so all open report views refresh immediately after a save (it already invalidates Balance Sheet and Income Statement; I'll add Accounts Payable, Job Costs, Account Detail, bank reconciliation, and registers).
-
-## Verification
-
-After the change, in project `115 E. Oceanwatch Court`:
-- Reports → Income Statement shows "3120 - Income" (not "Construction Management Fees").
-- Reports → Balance Sheet, Accounts Payable, Job Costs all show the new name where 3120 appears.
-- Account dropdowns in Manage Bills, Write Checks, Make Deposits, Journal Entry, and Credit Cards all list "3120 - Income".
-- Account Detail register opened on 3120 shows "3120 - Income" in the title.
-- PDF export of each report shows the new name.
-- Switching to a different project where 3120 has no override still shows "3120 - Construction Management Fees".
+## Out of scope
+- No schema changes; reuses existing `issues`, `issue_files`, `solution_files`, `issue_comments` tables and storage buckets.
+- Inline editing in existing rows is untouched.
