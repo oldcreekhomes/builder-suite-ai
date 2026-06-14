@@ -1,13 +1,22 @@
-Fix the resource search filter in `src/components/schedule/ResourcesSelector.tsx` so it matches any word in the resource name (and company name), not just the first word.
+## Problem
+The schedule notification email sent to subcontractors lists tasks out of chronological order. The "Your Scheduled Tasks" table should display tasks from earliest start date to latest, but currently the tasks appear in whatever order they were retrieved from the database.
 
-## Change
+## Solution
+Sort the tasks array by `start_date` before generating the HTML table in the `send-schedule-notification` edge function.
 
-In the `Command` `filter` function, replace the `startsWith` checks with substring matching across all name tokens:
+## File Changed
+- `supabase/functions/send-schedule-notification/index.ts`
 
-- Match if the search term is a substring of the full resource name (e.g. "irw" → "Dick Irwin").
-- Match if the search term is the prefix of any whitespace-separated token in the resource name (covers last names, middle names).
-- Keep existing company-name matching, but also allow substring match so "tnt" finds "TNT Services Group" anywhere.
+## Change Detail
+In the `generateEmailHTML` function, before mapping `data.tasks` to HTML `<tr>` rows, create a sorted copy:
 
-Effectively: lowercase the term, then return 1 if `resourceName.includes(term)` OR any token in `resourceName.split(/\s+/)` starts with `term` OR `companyName.includes(term)`.
+```ts
+const sortedTasks = [...data.tasks].sort((a, b) => {
+  return new Date(a.start_date).getTime() - new Date(b.start_date).getTime();
+});
+```
 
-No other files change. No behavior change to the selected-list pinning (`selected-` prefix still returns 1).
+Then use `sortedTasks` for the `.map()` call that builds `tasksList`.
+
+## Result
+Subcontractors will see their scheduled tasks sorted chronologically from the closest start date at the top to the furthest out at the bottom.

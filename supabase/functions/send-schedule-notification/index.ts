@@ -43,8 +43,15 @@ const formatDate = (dateString: string): string => {
 
 const generateEmailHTML = (data: ScheduleNotificationRequest): string => {
   const { recipientName, projectName, projectAddress, projectManagerName, projectManagerPhone, projectManagerEmail, tasks, timeframe, customMessage, companyId, representativeId } = data;
-  
-  const tasksList = tasks.map(task => `
+
+  // Sort tasks chronologically by start date (earliest first)
+  const sortedTasks = [...tasks].sort((a, b) => {
+    const aDate = (a.start_date || '').split(' ')[0].split('T')[0];
+    const bDate = (b.start_date || '').split(' ')[0].split('T')[0];
+    return aDate.localeCompare(bDate);
+  });
+
+  const tasksList = sortedTasks.map(task => `
     <tr>
       <td style="padding: 10px 8px; border-bottom: 1px solid #e5e5e5; font-size: 13px; color: #000000; white-space: nowrap; font-weight: 600; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif; margin: 0;">${task.task_name}</td>
       <td style="padding: 10px 8px; border-bottom: 1px solid #e5e5e5; font-size: 13px; color: #333333; white-space: nowrap; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif; margin: 0;">${formatDate(task.start_date)}</td>
