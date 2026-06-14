@@ -744,7 +744,7 @@ export const CreatePurchaseOrderDialog = ({
                           />
                         )}
                       </TableCell>
-                      <TableCell className="p-1 font-medium pl-3">
+                      <TableCell className="p-1 font-medium text-right pr-3">
                         ${line.amount.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                       </TableCell>
                       <TableCell className="p-1 text-center">
@@ -753,28 +753,59 @@ export const CreatePurchaseOrderDialog = ({
                           onCheckedChange={(checked) => updateLine(idx, { extra: checked as boolean })}
                         />
                       </TableCell>
-                      <TableCell className="p-1 text-center">
-                        {isOriginalLine(idx) ? (
-                          <Tooltip>
-                            <TooltipTrigger asChild>
-                              <span className="inline-flex h-7 w-7 items-center justify-center">
-                                <Lock className="h-3.5 w-3.5 text-destructive" />
-                              </span>
-                            </TooltipTrigger>
-                            <TooltipContent side="top">Locked — PO already sent to vendor</TooltipContent>
-                          </Tooltip>
-                        ) : (
-                          <Button
-                            type="button"
-                            variant="ghost"
-                            size="sm"
-                            className="h-7 w-7 p-0 hover:bg-destructive/10"
-                            onClick={() => removeLine(idx)}
-                            disabled={lineItems.length <= 1}
-                          >
-                            <Trash2 className="h-3.5 w-3.5 text-destructive" />
-                          </Button>
-                        )}
+                      <TableCell className="p-1">
+                        <div className="flex items-center justify-center gap-0.5">
+                          {isOriginalLine(idx) ? (
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <span className="inline-flex h-7 w-7 items-center justify-center">
+                                  <Lock className="h-3.5 w-3.5 text-destructive" />
+                                </span>
+                              </TooltipTrigger>
+                              <TooltipContent side="top">Locked — PO already sent to vendor</TooltipContent>
+                            </Tooltip>
+                          ) : (
+                            <Button
+                              type="button"
+                              variant="ghost"
+                              size="sm"
+                              className="h-7 w-7 p-0 hover:bg-destructive/10"
+                              onClick={() => removeLine(idx)}
+                              disabled={lineItems.length <= 1}
+                            >
+                              <Trash2 className="h-3.5 w-3.5 text-destructive" />
+                            </Button>
+                          )}
+                          {isLocked ? (
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <span className="inline-flex">
+                                  <Button
+                                    type="button"
+                                    variant="ghost"
+                                    size="sm"
+                                    className="h-7 w-7 p-0"
+                                    disabled
+                                  >
+                                    <Plus className="h-3.5 w-3.5" />
+                                  </Button>
+                                </span>
+                              </TooltipTrigger>
+                              <TooltipContent side="top">PO already sent — create a new PO for additional work.</TooltipContent>
+                            </Tooltip>
+                          ) : (
+                            <Button
+                              type="button"
+                              variant="ghost"
+                              size="sm"
+                              className="h-7 w-7 p-0 hover:bg-primary/10"
+                              onClick={addLine}
+                              title="Add line"
+                            >
+                              <Plus className="h-3.5 w-3.5" />
+                            </Button>
+                          )}
+                        </div>
                       </TableCell>
 
                     </TableRow>
@@ -785,7 +816,7 @@ export const CreatePurchaseOrderDialog = ({
                     <TableCell colSpan={4} className="text-right font-medium text-sm pr-3">
                       Subtotal
                     </TableCell>
-                    <TableCell className="font-semibold text-sm pl-3">
+                    <TableCell className="font-semibold text-sm text-right pr-3">
                       ${subtotal.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                     </TableCell>
                     <TableCell colSpan={2} />
@@ -793,22 +824,6 @@ export const CreatePurchaseOrderDialog = ({
                 </TableBody>
               </Table>
             </div>
-            {isLocked ? (
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <span className="inline-flex">
-                    <Button type="button" variant="outline" size="sm" disabled className="gap-1">
-                      <Plus className="h-3.5 w-3.5" /> Add Line
-                    </Button>
-                  </span>
-                </TooltipTrigger>
-                <TooltipContent side="top">PO already sent — create a new PO for additional work.</TooltipContent>
-              </Tooltip>
-            ) : (
-              <Button type="button" variant="outline" size="sm" onClick={addLine} className="gap-1">
-                <Plus className="h-3.5 w-3.5" /> Add Line
-              </Button>
-            )}
           </div>
 
           {/* Custom Message + Attachments + Sending To */}
