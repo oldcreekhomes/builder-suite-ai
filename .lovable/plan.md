@@ -1,24 +1,18 @@
 ## Plan
 
-### Problem
-In the Create Purchase Order dialog (`src/components/CreatePurchaseOrderDialog.tsx`), the line item input fields (Cost Code, Description, Quantity, Unit Cost) are rendered with `h-8 text-sm`, making them visibly smaller/shorter than the Company and Notes inputs at the top of the dialog which use the default shadcn Input height (`h-9`). Additionally, the Description input does not stretch to fill its table cell, leaving awkward empty space between the Amount and Extra columns.
+Three small UI tweaks in `src/components/CreatePurchaseOrderDialog.tsx`:
 
-### Changes
-All edits are in `src/components/CreatePurchaseOrderDialog.tsx`:
+1. **Shrink Quantity column** — reduce the Quantity column width from `w-[100px]` to `w-[60px]` (about half), freeing horizontal space for the Description field, which already uses the remaining flexible width.
 
-1. **Unify input heights**
-   - Remove `h-8 text-sm` from all line item inputs so they use the default shadcn `Input` height, matching the Company and Notes fields:
-     - `CostCodeSearchInput` (2 instances)
-     - `Input` for Description (2 instances)
-     - `Input` for Quantity (1 instance)
-     - `Input` for Unit Cost (1 instance)
-   - Update the locked-display divs for Quantity and Unit Cost to remove `h-8 text-sm` so they remain vertically aligned with the editable inputs.
-   - Preserve functional classes (`text-center`, `no-spinner`, cursor styles) on each element.
+2. **Move Amount closer to Extra** — narrow the Amount column from `w-[110px]` to `w-[90px]` and right-align it so the dollar value sits next to the Extra checkbox rather than leaving a large gap. The Subtotal row's amount cell will get the same right-alignment to stay consistent.
 
-2. **Widen Description**
-   - Add `w-full` to both Description `Input` instances so the field stretches across its table cell and fills the available horizontal space.
+3. **Add inline "+" Add Line button in Actions column** — add a small ghost "+" icon button next to the trash icon on each line row so the user can add a new line without scrolling down. Remove the separate "Add Line" button below the table. Keep the locked-state tooltip behavior ("PO already sent — create a new PO for additional work.") on the inline + button when `isLocked` is true.
 
-3. **Align Amount text**
-   - Remove `text-sm` from the read-only Amount cell so its font size matches the now-default-size inputs in the same row.
+### Technical details
 
-### No schema or data changes needed — this is a purely presentational CSS update.
+- File: `src/components/CreatePurchaseOrderDialog.tsx`
+- Header column widths: change `Quantity` head from `w-[100px]` to `w-[60px]`, `Amount` head from `w-[110px]` to `w-[90px] text-right`.
+- Amount body cell: change `pl-3` to `text-right pr-3`.
+- Subtotal row: change colSpan and alignment to match new layout (`Subtotal` label right-aligned in col 4, amount right-aligned in col 5).
+- Actions cell: wrap trash button and a new `Plus` icon button in a `flex items-center justify-center gap-1` container. The + button calls `addLine()` and is disabled / tooltip-wrapped when `isLocked`.
+- Delete the standalone `Add Line` / locked-tooltip block beneath the table (lines ~798–813).
