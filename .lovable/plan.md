@@ -1,16 +1,15 @@
-# Persist Custom Message on PO drafts
+Fix the Bid Package header spacing (Status / Due Date / Reminder / Specs / Files / Actions) so the fields don't leave large empty gaps on the right.
 
-The Custom Message field isn't saved anywhere — it's only used as the email body at send time, then discarded. For drafts (and edits in general), we need to persist it so it survives close-and-reopen.
+Problem
+--------
+In `src/components/bidding/BidPackageDetailsModal.tsx` line 209 the header uses `grid grid-cols-6 gap-4 items-end`. This forces six equal columns, but Specs, Files, and Actions contain narrow controls (icon, small button, `...` menu). The result is a wide empty gutter on the far right of the Actions column.
 
-## Database
+Fix
+----
+Replace `grid grid-cols-6` with a flex-based layout that sizes each column to its content and lets the first three fields (Status, Due Date, Reminder) expand to fill the available width. This keeps the row visually balanced with no orphaned space on the right.
 
-Add a nullable `custom_message text` column to `public.project_purchase_orders` via migration.
+Specific change:
+- Line 209 className: swap `grid grid-cols-6 gap-4 items-end` for `flex flex-wrap gap-4 items-end`
+- Each of the six child `<div>` wrappers gets `className="flex-1 min-w-0"` so they share space proportionally and wrap naturally on narrow viewports
 
-## Code
-
-**`src/components/CreatePurchaseOrderDialog.tsx`**
-- `handleSaveDraft`: include `custom_message: customMessage.trim() || null` in both the insert and update payloads.
-- `handleSubmit` (non-bid edit/create path): include the same field so it persists on full sends too.
-- Pre-population effect: when opening an existing PO (`editOrder`), seed `setCustomMessage(editOrder.custom_message || "")` instead of forcing `""`.
-
-No change to the Edge Function — it already receives `customMessage` from the dialog at send time.
+No other logic changes.

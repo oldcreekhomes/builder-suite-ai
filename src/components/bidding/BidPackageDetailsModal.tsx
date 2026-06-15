@@ -206,8 +206,8 @@ export function BidPackageDetailsModal({
           )}
 
           {/* Bid Package Management Section */}
-          <div className="grid grid-cols-6 gap-4 items-end border rounded-lg p-4">
-            <div className="min-w-0">
+          <div className="flex flex-wrap gap-4 items-end border rounded-lg p-4">
+            <div className="flex-1 min-w-0">
               <label className="text-xs font-medium text-muted-foreground mb-1 block">Status</label>
               <Select
                 value={item.status || 'draft'}
