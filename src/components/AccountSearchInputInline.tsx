@@ -3,6 +3,7 @@ import { useQuery } from "@tanstack/react-query";
 import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
 import { useAccounts } from "@/hooks/useAccounts";
+import { useProjectAccountNames, resolveAccountName } from "@/hooks/useProjectAccountNames";
 import { supabase } from "@/integrations/supabase/client";
 
 interface AccountSearchInputInlineProps {
@@ -27,6 +28,7 @@ export function AccountSearchInputInline({
   const [searchQuery, setSearchQuery] = useState(value);
   const [showResults, setShowResults] = useState(false);
   const { accounts, isLoading } = useAccounts();
+  const { data: overrides } = useProjectAccountNames(projectId);
 
   const { data: excludedIds } = useQuery({
     queryKey: ['project-account-exclusions', projectId],
@@ -45,15 +47,19 @@ export function AccountSearchInputInline({
     setSearchQuery(value);
   }, [value]);
 
-  // Filter accounts by type, exclusions, and search query
+  const displayNameOf = (acc: { id: string; name: string }) =>
+    resolveAccountName(acc, overrides ?? null);
+
+  // Filter accounts by type, exclusions, and search query (against override name)
   const filteredAccounts = searchQuery.trim().length >= 1 
     ? (accounts || [])
         .filter(acc => !accountType || acc.type === accountType)
         .filter(acc => !excludedIds || !excludedIds.has(acc.id))
-        .filter(acc => 
-          acc.code.toLowerCase().includes(searchQuery.toLowerCase()) ||
-          acc.name.toLowerCase().includes(searchQuery.toLowerCase())
-        )
+        .filter(acc => {
+          const n = displayNameOf(acc).toLowerCase();
+          const q = searchQuery.toLowerCase();
+          return acc.code.toLowerCase().includes(q) || n.includes(q);
+        })
     : [];
 
 
@@ -71,19 +77,18 @@ export function AccountSearchInputInline({
   };
 
   const handleInputBlur = () => {
-    // Try auto-select on blur if there's a clear match
     attemptAutoSelect();
-    // Delay hiding results to allow for selection
     setTimeout(() => setShowResults(false), 200);
   };
 
   const handleSelectAccount = (account: { id: string; code: string; name: string }) => {
-    const selectedValue = `${account.code} - ${account.name}`;
+    const resolvedName = displayNameOf(account);
+    const selectedValue = `${account.code} - ${resolvedName}`;
     setSearchQuery(selectedValue);
     onChange(selectedValue);
     setShowResults(false);
     if (onAccountSelect) {
-      onAccountSelect(account);
+      onAccountSelect({ id: account.id, code: account.code, name: resolvedName });
     }
   };
 
@@ -94,10 +99,9 @@ export function AccountSearchInputInline({
 
     const lc = normalize(q);
 
-    // Try exact code or full "code - name" match
     const exact = (accounts || []).find(acc => {
       const code = acc.code ?? '';
-      const name = acc.name ?? '';
+      const name = displayNameOf(acc);
       const full = `${code} - ${name}`;
       return normalize(code) === lc || normalize(full) === lc || normalize(`${code} ${name}`) === lc;
     });
@@ -107,7 +111,6 @@ export function AccountSearchInputInline({
       return;
     }
 
-    // If typing uniquely identifies one filtered account, select it
     if (filteredAccounts.length === 1) {
       const a = filteredAccounts[0];
       handleSelectAccount({ id: String(a.id), code: a.code, name: a.name });
@@ -140,7 +143,7 @@ export function AccountSearchInputInline({
                 name: account.name 
               })}
             >
-              <div className="font-medium">{account.code} - {account.name}</div>
+              <div className="font-medium">{account.code} - {displayNameOf(account)}</div>
             </button>
           ))}
         </div>
