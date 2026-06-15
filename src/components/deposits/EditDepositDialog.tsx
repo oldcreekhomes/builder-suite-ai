@@ -11,6 +11,7 @@ import { DateInputPicker } from "@/components/ui/date-input-picker";
 import { Plus, Trash2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useAccounts } from "@/hooks/useAccounts";
+import { useProjectAccountNames, resolveAccountName } from "@/hooks/useProjectAccountNames";
 import { useDeposits, DepositData, DepositLineData } from "@/hooks/useDeposits";
 import { useCostCodeSearch } from "@/hooks/useCostCodeSearch";
 import { useLots } from "@/hooks/useLots";
@@ -60,6 +61,10 @@ export function EditDepositDialog({ open, onOpenChange, depositId }: EditDeposit
   const { accounts } = useAccounts();
   const { updateDepositFull } = useDeposits();
   const { costCodes } = useCostCodeSearch();
+  const projectIdForOverrides = depositData?.project_id ?? undefined;
+  const { data: accountOverrides } = useProjectAccountNames(projectIdForOverrides);
+  const displayAccountName = (acc: { id: string; name: string }) =>
+    resolveAccountName(acc, accountOverrides ?? null);
 
   // Active bank accounts for "Deposit To" dropdown
   const anyHasSubtype = accounts.some((a: any) => a?.subtype);
