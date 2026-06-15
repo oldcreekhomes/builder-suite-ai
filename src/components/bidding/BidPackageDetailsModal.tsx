@@ -277,7 +277,7 @@ export function BidPackageDetailsModal({
             </div>
             <div className="shrink-0">
               <label className="text-xs font-medium text-muted-foreground mb-1 block">Actions</label>
-              <div className="h-9 flex items-center">
+              <div className="h-9 flex items-center justify-center">
                 <BiddingTableRowActions
                   item={item}
                   costCode={costCode}
