@@ -4,6 +4,7 @@ import { useQuery } from "@tanstack/react-query";
 import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
 import { useAccounts } from "@/hooks/useAccounts";
+import { useProjectAccountNames, resolveAccountName } from "@/hooks/useProjectAccountNames";
 import { supabase } from "@/integrations/supabase/client";
 
 interface AccountSearchInputProps {
@@ -34,6 +35,9 @@ export function AccountSearchInput({
   const inputRef = useRef<HTMLInputElement>(null);
   const justSelectedRef = useRef(false);
   const { accounts, isLoading } = useAccounts();
+  const { data: overrides } = useProjectAccountNames(projectId);
+  const displayNameOf = (acc: { id: string; name: string }) =>
+    resolveAccountName(acc, overrides ?? null);
 
   const { data: excludedIds } = useQuery({
     queryKey: ['project-account-exclusions', projectId],
