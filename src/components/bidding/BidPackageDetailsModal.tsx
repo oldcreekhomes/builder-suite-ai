@@ -206,8 +206,8 @@ export function BidPackageDetailsModal({
           )}
 
           {/* Bid Package Management Section */}
-          <div className="grid grid-cols-6 gap-4 items-end border rounded-lg p-4">
-            <div className="min-w-0">
+          <div className="flex flex-wrap gap-4 items-end border rounded-lg p-4">
+            <div className="flex-1 min-w-0">
               <label className="text-xs font-medium text-muted-foreground mb-1 block">Status</label>
               <Select
                 value={item.status || 'draft'}
@@ -224,7 +224,7 @@ export function BidPackageDetailsModal({
                 </SelectContent>
               </Select>
             </div>
-            <div className="min-w-0">
+            <div className="flex-1 min-w-0">
               <label className="text-xs font-medium text-muted-foreground mb-1 block">Due Date</label>
               <BiddingDatePicker
                 value={item.due_date}
@@ -236,7 +236,7 @@ export function BidPackageDetailsModal({
                 field="due_date"
               />
             </div>
-            <div className="min-w-0">
+            <div className="flex-1 min-w-0">
               <label className="text-xs font-medium text-muted-foreground mb-1 block">Reminder</label>
               <BiddingDatePicker
                 value={item.reminder_date}
@@ -249,7 +249,7 @@ export function BidPackageDetailsModal({
                 dueDate={item.due_date}
               />
             </div>
-            <div className="min-w-0">
+            <div className="shrink-0">
               <label className="text-xs font-medium text-muted-foreground mb-1 block">Specs</label>
               <div className="h-9 flex items-center">
                 <BiddingTableRowSpecs
@@ -261,7 +261,7 @@ export function BidPackageDetailsModal({
                 />
               </div>
             </div>
-            <div className="min-w-0">
+            <div className="shrink-0">
               <label className="text-xs font-medium text-muted-foreground mb-1 block">Files</label>
               <div className="h-9 flex items-center">
                 <BiddingTableRowFiles
@@ -275,7 +275,7 @@ export function BidPackageDetailsModal({
                 />
               </div>
             </div>
-            <div className="min-w-0">
+            <div className="shrink-0">
               <label className="text-xs font-medium text-muted-foreground mb-1 block">Actions</label>
               <div className="h-9 flex items-center">
                 <BiddingTableRowActions
