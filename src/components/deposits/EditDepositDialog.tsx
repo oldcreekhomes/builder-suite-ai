@@ -116,7 +116,7 @@ export function EditDepositDialog({ open, onOpenChange, depositId }: EditDeposit
     const bankAcct = accounts.find(a => a.id === depositData.bank_account_id);
     if (bankAcct) {
       setBankAccountId(bankAcct.id);
-      setBankAccount(`${bankAcct.code} - ${bankAcct.name}`);
+      setBankAccount(`${bankAcct.code} - ${displayAccountName(bankAcct)}`);
     }
 
     if (depositData.company_id && depositData.companies) {
@@ -150,7 +150,7 @@ export function EditDepositDialog({ open, onOpenChange, depositId }: EditDeposit
         newRevenueRows.push(row);
       } else {
         const account = accounts.find(a => a.id === line.account_id);
-        if (account) row.account = `${account.code} - ${account.name}`;
+        if (account) row.account = `${account.code} - ${displayAccountName(account)}`;
         newOtherRows.push(row);
       }
     }
@@ -358,6 +358,7 @@ export function EditDepositDialog({ open, onOpenChange, depositId }: EditDeposit
                       updateRow(type, row.id, 'accountId', acc.id);
                     }}
                     placeholder="Search accounts..."
+                    projectId={projectIdForOverrides}
                     className="h-8"
                   />
                 )}
@@ -482,7 +483,7 @@ export function EditDepositDialog({ open, onOpenChange, depositId }: EditDeposit
                   const acc = bankAccounts.find((a: any) => a.id === value);
                   if (acc) {
                     setBankAccountId(acc.id);
-                    setBankAccount(`${acc.code} - ${acc.name}`);
+                    setBankAccount(`${acc.code} - ${displayAccountName(acc)}`);
                   }
                 }}
               >
@@ -492,7 +493,7 @@ export function EditDepositDialog({ open, onOpenChange, depositId }: EditDeposit
                 <SelectContent>
                   {bankAccounts.map((acc: any) => (
                     <SelectItem key={acc.id} value={acc.id}>
-                      {acc.code} - {acc.name}
+                      {acc.code} - {displayAccountName(acc)}
                     </SelectItem>
                   ))}
                 </SelectContent>
