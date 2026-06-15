@@ -279,6 +279,25 @@ export function BidPackageDetailsModal({
                 />
               </div>
             </div>
+            <div className="flex-1 min-w-0">
+              <label className="text-xs font-medium text-muted-foreground mb-1 block">Historical</label>
+              <Select
+                value={selectedHistoricalProjectId || "none"}
+                onValueChange={(val) => setSelectedHistoricalProjectId(val === "none" ? null : val)}
+              >
+                <SelectTrigger className="h-9 w-full">
+                  <SelectValue placeholder="Historical" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="none">No Historical</SelectItem>
+                  {historicalProjects?.map((project: any) => (
+                    <SelectItem key={project.id} value={project.id}>
+                      {project.address}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
             <div className="shrink-0">
               <label className="text-xs font-medium text-muted-foreground mb-1 block">Actions</label>
               <div className="h-9 flex items-center justify-center">
