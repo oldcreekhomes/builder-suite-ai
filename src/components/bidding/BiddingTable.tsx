@@ -234,25 +234,6 @@ export function BiddingTable({ projectId, projectAddress, status, onHeaderAction
   const selectedCount = selectedItems.size;
   const isDeletingSelected = Array.from(selectedItems).some(id => deletingItems.has(id));
 
-  const historicalDropdown = (
-    <Select
-      value={selectedHistoricalProjectId || "none"}
-      onValueChange={(val) => onHistoricalProjectChange(val === "none" ? null : val)}
-    >
-      <SelectTrigger className="h-9 w-auto text-sm font-medium">
-        <SelectValue placeholder="Historical" />
-      </SelectTrigger>
-      <SelectContent>
-        <SelectItem value="none">No Historical</SelectItem>
-        {historicalProjects?.map((project: any) => (
-          <SelectItem key={project.id} value={project.id}>
-            {project.address}
-          </SelectItem>
-        ))}
-      </SelectContent>
-    </Select>
-  );
-
   // Emit toolbar to header via bridge
   React.useEffect(() => {
     if (onHeaderActionChange) {
@@ -260,7 +241,6 @@ export function BiddingTable({ projectId, projectAddress, status, onHeaderAction
         onHeaderActionChange(
           <div className="flex items-center gap-2">
             <DebouncedSearchInput onSearch={setSearchQuery} />
-            {historicalDropdown}
             <Button 
               variant="outline"
               size="sm"
@@ -280,13 +260,12 @@ export function BiddingTable({ projectId, projectAddress, status, onHeaderAction
         onHeaderActionChange(
           <div className="flex items-center gap-2">
             <DebouncedSearchInput onSearch={setSearchQuery} />
-            {historicalDropdown}
           </div>
         );
       }
       return () => onHeaderActionChange(null);
     }
-  }, [onHeaderActionChange, status, biddingItems.length, selectedHistoricalProjectId, historicalProjects]);
+  }, [onHeaderActionChange, status, biddingItems.length]);
 
   const toolbarInContent = !onHeaderActionChange ? (
     status === 'draft' ? (
