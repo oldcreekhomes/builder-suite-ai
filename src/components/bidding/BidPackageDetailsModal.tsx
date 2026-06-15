@@ -19,6 +19,8 @@ import { format } from 'date-fns';
 import { cn } from '@/lib/utils';
 import { useBidPackagePO } from '@/hooks/useBidPackagePO';
 import { useCostCodeSubcategories } from '@/hooks/useCostCodeSubcategories';
+import { useHistoricalProjects, parseHistoricalKey } from '@/hooks/useHistoricalProjects';
+import { useHistoricalActualCosts } from '@/hooks/useHistoricalActualCosts';
 import { CloseBidPackageDialog } from './components/CloseBidPackageDialog';
 import type { Tables } from '@/integrations/supabase/types';
 
