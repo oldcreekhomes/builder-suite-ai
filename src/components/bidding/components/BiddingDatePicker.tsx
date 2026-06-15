@@ -78,7 +78,7 @@ export function BiddingDatePicker({
           variant="outline"
           size="sm"
           className={cn(
-            "w-full justify-start text-left max-w-[120px]",
+            "w-full justify-start text-left",
             !date && "text-muted-foreground"
           )}
           disabled={disabled}
