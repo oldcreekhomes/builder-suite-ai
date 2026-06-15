@@ -8,6 +8,7 @@ import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
 import { useAuth } from "@/hooks/useAuth";
 import { useAccounts } from "@/hooks/useAccounts";
+import { useProjectAccountNames, resolveAccountName } from "@/hooks/useProjectAccountNames";
 import { useProjectDefaultBankAccountId } from "@/hooks/useProjectDefaultBankAccountId";
 import { useProject } from "@/hooks/useProject";
 import { useBankReconciliation, AllocationBreakdown } from "@/hooks/useBankReconciliation";
@@ -137,6 +138,9 @@ export function ReconcileAccountsContent({ projectId }: ReconcileAccountsContent
   const { user } = useAuth();
   const { data: project } = useProject(projectId!);
   const { accounts } = useAccounts();
+  const { data: accountOverrides } = useProjectAccountNames(projectId);
+  const displayAccountName = (acc: { id: string; name: string }) =>
+    resolveAccountName(acc, accountOverrides ?? null);
   const defaultBankAccountId = useProjectDefaultBankAccountId(projectId);
 
   // Restore selected bank account from localStorage
@@ -1088,7 +1092,7 @@ export function ReconcileAccountsContent({ projectId }: ReconcileAccountsContent
               <SelectContent>
                 {bankAccounts.map((account) => (
                   <SelectItem key={account.id} value={account.id}>
-                    {account.code} - {account.name}
+                    {account.code} - {displayAccountName(account)}
                   </SelectItem>
                 ))}
               </SelectContent>
