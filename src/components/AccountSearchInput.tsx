@@ -121,7 +121,7 @@ export function AccountSearchInput({
 
   const normalizedSearchQuery = searchQuery.trim().toLowerCase();
   const matchesSelectedAccount = typeFilteredAccounts.some(account =>
-    `${account.code} - ${account.name}`.toLowerCase() === normalizedSearchQuery
+    `${account.code} - ${displayNameOf(account)}`.toLowerCase() === normalizedSearchQuery
   );
 
   // Show all accounts when empty or when the field already contains a selected account;
@@ -130,11 +130,12 @@ export function AccountSearchInput({
     ? typeFilteredAccounts
     : (() => {
         const tokens = normalizedSearchQuery.split(/[-\s]+/).filter(Boolean);
-        return typeFilteredAccounts.filter(account => 
-          tokens.every(t =>
-            account.code.toLowerCase().includes(t) || account.name.toLowerCase().includes(t)
-          )
-        );
+        return typeFilteredAccounts.filter(account => {
+          const name = displayNameOf(account).toLowerCase();
+          return tokens.every(t =>
+            account.code.toLowerCase().includes(t) || name.includes(t)
+          );
+        });
       })();
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -169,24 +170,28 @@ export function AccountSearchInput({
       match = typeFilteredAccounts.find(account => account.code.toLowerCase() === codeToMatch.toLowerCase());
     }
     
-    // Try matching full "code - name" or "code name" format
+    // Try matching full "code - name" or "code name" format (using override name)
     if (!match) {
       const normalized = query.toLowerCase();
-      match = typeFilteredAccounts.find(account => 
-        `${account.code} - ${account.name}`.toLowerCase() === normalized ||
-        `${account.code} ${account.name}`.toLowerCase() === normalized
-      );
+      match = typeFilteredAccounts.find(account => {
+        const name = displayNameOf(account);
+        return (
+          `${account.code} - ${name}`.toLowerCase() === normalized ||
+          `${account.code} ${name}`.toLowerCase() === normalized
+        );
+      });
     }
     
     // If still no match, try tokenized match with exactly one result
     if (!match) {
       const tokens = query.toLowerCase().split(/[-\s]+/).filter(Boolean);
       if (tokens.length > 0) {
-        const matches = typeFilteredAccounts.filter(account => 
-          tokens.every(t =>
-            account.code.toLowerCase().includes(t) || account.name.toLowerCase().includes(t)
-          )
-        );
+        const matches = typeFilteredAccounts.filter(account => {
+          const name = displayNameOf(account).toLowerCase();
+          return tokens.every(t =>
+            account.code.toLowerCase().includes(t) || name.includes(t)
+          );
+        });
         if (matches.length === 1) {
           match = matches[0];
         }
@@ -221,12 +226,13 @@ export function AccountSearchInput({
 
   const handleSelectAccount = (account: { id: string; code: string; name: string }) => {
     justSelectedRef.current = true;
-    const selectedValue = `${account.code} - ${account.name}`;
+    const resolvedName = displayNameOf(account);
+    const selectedValue = `${account.code} - ${resolvedName}`;
     setSearchQuery(selectedValue);
     onChange(selectedValue);
     setShowResults(false);
     if (onAccountSelect) {
-      onAccountSelect(account);
+      onAccountSelect({ id: account.id, code: account.code, name: resolvedName });
     }
   };
 
@@ -274,7 +280,7 @@ export function AccountSearchInput({
                 handleSelectAccount(account);
               }}
             >
-              <div className="font-medium">{account.code} - {account.name}</div>
+              <div className="font-medium">{account.code} - {displayNameOf(account)}</div>
             </button>
           ))}
         </div>,
