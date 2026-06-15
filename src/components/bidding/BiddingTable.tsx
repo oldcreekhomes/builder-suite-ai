@@ -26,8 +26,6 @@ function DebouncedSearchInput({ onSearch }: { onSearch: (q: string) => void }) {
     </div>
   );
 }
-import { useHistoricalProjects, parseHistoricalKey } from '@/hooks/useHistoricalProjects';
-import { useHistoricalActualCosts } from '@/hooks/useHistoricalActualCosts';
 import { AddBiddingModal } from './AddBiddingModal';
 import { GlobalBiddingSettingsModal } from './GlobalBiddingSettingsModal';
 import { BiddingTableHeader } from './BiddingTableHeader';
@@ -48,20 +46,14 @@ interface BiddingTableProps {
   projectAddress?: string;
   status: 'draft' | 'sent' | 'closed';
   onHeaderActionChange?: (actions: React.ReactNode) => void;
-  selectedHistoricalProjectId: string | null;
-  onHistoricalProjectChange: (projectId: string | null) => void;
 }
 
-export function BiddingTable({ projectId, projectAddress, status, onHeaderActionChange, selectedHistoricalProjectId, onHistoricalProjectChange }: BiddingTableProps) {
+export function BiddingTable({ projectId, projectAddress, status, onHeaderActionChange }: BiddingTableProps) {
   const [showAddBiddingModal, setShowAddBiddingModal] = useState(false);
   const [showGlobalSettingsModal, setShowGlobalSettingsModal] = useState(false);
   const [selectedCompanies, setSelectedCompanies] = useState<Set<string>>(new Set());
   const [searchQuery, setSearchQuery] = useState("");
-  
-  const { data: historicalProjects } = useHistoricalProjects();
-  const parsedHistorical = selectedHistoricalProjectId ? parseHistoricalKey(selectedHistoricalProjectId) : null;
-  const { data: historicalCosts } = useHistoricalActualCosts(parsedHistorical?.projectId || null, parsedHistorical?.lotId);
-  const historicalProjectAddress = historicalProjects?.find((p: any) => p.id === selectedHistoricalProjectId)?.address;
+
   
   
   const { biddingItems, groupedBiddingItems } = useBiddingData(projectId, status);
