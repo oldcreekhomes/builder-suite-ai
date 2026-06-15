@@ -96,13 +96,17 @@ export function BidPackageDetailsModal({
   uploadingFiles = [],
   cancelUpload,
   removeUpload,
-  historicalProjectAddress,
-  historicalCost
 }: BidPackageDetailsModalProps) {
   const [showCloseDialog, setShowCloseDialog] = useState(false);
   const [adjustmentPercent, setAdjustmentPercent] = useState(100);
+  const [selectedHistoricalProjectId, setSelectedHistoricalProjectId] = useState<string | null>(null);
   const { awardedPOs } = useBidPackagePO(isReadOnly ? item?.id : null);
   const { data: subcategories = [] } = useCostCodeSubcategories(costCode?.code);
+  const { data: historicalProjects } = useHistoricalProjects();
+  const parsedHistorical = selectedHistoricalProjectId ? parseHistoricalKey(selectedHistoricalProjectId) : null;
+  const { data: historicalCosts } = useHistoricalActualCosts(parsedHistorical?.projectId || null, parsedHistorical?.lotId);
+  const historicalProjectAddress = historicalProjects?.find((p: any) => p.id === selectedHistoricalProjectId)?.address;
+  const historicalCost = historicalCosts?.mapByCode?.[item?.cost_codes?.code] ?? undefined;
 
   const adjustedCost = historicalCost !== undefined ? historicalCost * (adjustmentPercent / 100) : undefined;
 
