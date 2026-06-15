@@ -1060,6 +1060,8 @@ export function MakeDepositsContent({ projectId, activeTab: parentActiveTab }: M
                         }}
                         placeholder="Select account..."
                         projectId={projectId}
+                        placeholder="Select account..."
+                        projectId={projectId}
                         className="h-10"
                       />
                     </div>
