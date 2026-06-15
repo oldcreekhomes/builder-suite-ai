@@ -1040,6 +1040,7 @@ export default function WriteChecks() {
                                 }}
                                 placeholder="Select account..."
                                 accountType="expense"
+                                projectId={projectId}
                                 className={cn("h-10", rowErrors[row.id] && "border-red-500 border-2")}
                               />
                             </div>

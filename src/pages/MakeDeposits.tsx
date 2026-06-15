@@ -450,6 +450,7 @@ export default function MakeDeposits() {
                         setBankAccount(`${account.code} - ${account.name}`);
                       }}
                       accountType="asset"
+                      projectId={projectId}
                       placeholder="Select bank account"
                     />
                   </div>
@@ -531,6 +532,7 @@ export default function MakeDeposits() {
                                   updateOtherRow(row.id, "account", `${account.code} - ${account.name}`);
                                 }}
                                 placeholder="Select account..."
+                                projectId={projectId}
                                 className="h-8"
                               />
                             </div>
