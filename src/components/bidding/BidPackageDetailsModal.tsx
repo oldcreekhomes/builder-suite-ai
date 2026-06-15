@@ -19,6 +19,8 @@ import { format } from 'date-fns';
 import { cn } from '@/lib/utils';
 import { useBidPackagePO } from '@/hooks/useBidPackagePO';
 import { useCostCodeSubcategories } from '@/hooks/useCostCodeSubcategories';
+import { useHistoricalProjects, parseHistoricalKey } from '@/hooks/useHistoricalProjects';
+import { useHistoricalActualCosts } from '@/hooks/useHistoricalActualCosts';
 import { CloseBidPackageDialog } from './components/CloseBidPackageDialog';
 import type { Tables } from '@/integrations/supabase/types';
 
@@ -58,8 +60,6 @@ interface BidPackageDetailsModalProps {
   uploadingFiles?: any[];
   cancelUpload?: (uploadId: string) => void;
   removeUpload?: (uploadId: string) => void;
-  historicalProjectAddress?: string;
-  historicalCost?: number;
 }
 
 export function BidPackageDetailsModal({
@@ -96,13 +96,17 @@ export function BidPackageDetailsModal({
   uploadingFiles = [],
   cancelUpload,
   removeUpload,
-  historicalProjectAddress,
-  historicalCost
 }: BidPackageDetailsModalProps) {
   const [showCloseDialog, setShowCloseDialog] = useState(false);
   const [adjustmentPercent, setAdjustmentPercent] = useState(100);
+  const [selectedHistoricalProjectId, setSelectedHistoricalProjectId] = useState<string | null>(null);
   const { awardedPOs } = useBidPackagePO(isReadOnly ? item?.id : null);
   const { data: subcategories = [] } = useCostCodeSubcategories(costCode?.code);
+  const { data: historicalProjects } = useHistoricalProjects();
+  const parsedHistorical = selectedHistoricalProjectId ? parseHistoricalKey(selectedHistoricalProjectId) : null;
+  const { data: historicalCosts } = useHistoricalActualCosts(parsedHistorical?.projectId || null, parsedHistorical?.lotId);
+  const historicalProjectAddress = historicalProjects?.find((p: any) => p.id === selectedHistoricalProjectId)?.address;
+  const historicalCost = historicalCosts?.mapByCode?.[item?.cost_codes?.code] ?? undefined;
 
   const adjustedCost = historicalCost !== undefined ? historicalCost * (adjustmentPercent / 100) : undefined;
 
@@ -274,6 +278,25 @@ export function BidPackageDetailsModal({
                   asDiv
                 />
               </div>
+            </div>
+            <div className="flex-1 min-w-0">
+              <label className="text-xs font-medium text-muted-foreground mb-1 block">Historical</label>
+              <Select
+                value={selectedHistoricalProjectId || "none"}
+                onValueChange={(val) => setSelectedHistoricalProjectId(val === "none" ? null : val)}
+              >
+                <SelectTrigger className="h-9 w-full">
+                  <SelectValue placeholder="Historical" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="none">No Historical</SelectItem>
+                  {historicalProjects?.map((project: any) => (
+                    <SelectItem key={project.id} value={project.id}>
+                      {project.address}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
             <div className="shrink-0">
               <label className="text-xs font-medium text-muted-foreground mb-1 block">Actions</label>

@@ -26,8 +26,6 @@ function DebouncedSearchInput({ onSearch }: { onSearch: (q: string) => void }) {
     </div>
   );
 }
-import { useHistoricalProjects, parseHistoricalKey } from '@/hooks/useHistoricalProjects';
-import { useHistoricalActualCosts } from '@/hooks/useHistoricalActualCosts';
 import { AddBiddingModal } from './AddBiddingModal';
 import { GlobalBiddingSettingsModal } from './GlobalBiddingSettingsModal';
 import { BiddingTableHeader } from './BiddingTableHeader';
@@ -48,20 +46,14 @@ interface BiddingTableProps {
   projectAddress?: string;
   status: 'draft' | 'sent' | 'closed';
   onHeaderActionChange?: (actions: React.ReactNode) => void;
-  selectedHistoricalProjectId: string | null;
-  onHistoricalProjectChange: (projectId: string | null) => void;
 }
 
-export function BiddingTable({ projectId, projectAddress, status, onHeaderActionChange, selectedHistoricalProjectId, onHistoricalProjectChange }: BiddingTableProps) {
+export function BiddingTable({ projectId, projectAddress, status, onHeaderActionChange }: BiddingTableProps) {
   const [showAddBiddingModal, setShowAddBiddingModal] = useState(false);
   const [showGlobalSettingsModal, setShowGlobalSettingsModal] = useState(false);
   const [selectedCompanies, setSelectedCompanies] = useState<Set<string>>(new Set());
   const [searchQuery, setSearchQuery] = useState("");
-  
-  const { data: historicalProjects } = useHistoricalProjects();
-  const parsedHistorical = selectedHistoricalProjectId ? parseHistoricalKey(selectedHistoricalProjectId) : null;
-  const { data: historicalCosts } = useHistoricalActualCosts(parsedHistorical?.projectId || null, parsedHistorical?.lotId);
-  const historicalProjectAddress = historicalProjects?.find((p: any) => p.id === selectedHistoricalProjectId)?.address;
+
   
   
   const { biddingItems, groupedBiddingItems } = useBiddingData(projectId, status);
@@ -242,25 +234,6 @@ export function BiddingTable({ projectId, projectAddress, status, onHeaderAction
   const selectedCount = selectedItems.size;
   const isDeletingSelected = Array.from(selectedItems).some(id => deletingItems.has(id));
 
-  const historicalDropdown = (
-    <Select
-      value={selectedHistoricalProjectId || "none"}
-      onValueChange={(val) => onHistoricalProjectChange(val === "none" ? null : val)}
-    >
-      <SelectTrigger className="h-9 w-auto text-sm font-medium">
-        <SelectValue placeholder="Historical" />
-      </SelectTrigger>
-      <SelectContent>
-        <SelectItem value="none">No Historical</SelectItem>
-        {historicalProjects?.map((project: any) => (
-          <SelectItem key={project.id} value={project.id}>
-            {project.address}
-          </SelectItem>
-        ))}
-      </SelectContent>
-    </Select>
-  );
-
   // Emit toolbar to header via bridge
   React.useEffect(() => {
     if (onHeaderActionChange) {
@@ -268,7 +241,6 @@ export function BiddingTable({ projectId, projectAddress, status, onHeaderAction
         onHeaderActionChange(
           <div className="flex items-center gap-2">
             <DebouncedSearchInput onSearch={setSearchQuery} />
-            {historicalDropdown}
             <Button 
               variant="outline"
               size="sm"
@@ -288,13 +260,12 @@ export function BiddingTable({ projectId, projectAddress, status, onHeaderAction
         onHeaderActionChange(
           <div className="flex items-center gap-2">
             <DebouncedSearchInput onSearch={setSearchQuery} />
-            {historicalDropdown}
           </div>
         );
       }
       return () => onHeaderActionChange(null);
     }
-  }, [onHeaderActionChange, status, biddingItems.length, selectedHistoricalProjectId, historicalProjects]);
+  }, [onHeaderActionChange, status, biddingItems.length]);
 
   const toolbarInContent = !onHeaderActionChange ? (
     status === 'draft' ? (
@@ -457,8 +428,7 @@ export function BiddingTable({ projectId, projectAddress, status, onHeaderAction
                        uploadingFiles={uploadingFiles}
                        cancelUpload={cancelUpload}
                        removeUpload={removeUpload}
-                       historicalProjectAddress={historicalProjectAddress}
-                       historicalCost={historicalCosts?.mapByCode?.[item.cost_codes?.code] ?? undefined}
+                     
                      />
                    )) : [])
                 ]).flat()}
