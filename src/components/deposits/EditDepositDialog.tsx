@@ -61,10 +61,6 @@ export function EditDepositDialog({ open, onOpenChange, depositId }: EditDeposit
   const { accounts } = useAccounts();
   const { updateDepositFull } = useDeposits();
   const { costCodes } = useCostCodeSearch();
-  const projectIdForOverrides = depositData?.project_id ?? undefined;
-  const { data: accountOverrides } = useProjectAccountNames(projectIdForOverrides);
-  const displayAccountName = (acc: { id: string; name: string }) =>
-    resolveAccountName(acc, accountOverrides ?? null);
 
   // Active bank accounts for "Deposit To" dropdown
   const anyHasSubtype = accounts.some((a: any) => a?.subtype);
@@ -101,6 +97,11 @@ export function EditDepositDialog({ open, onOpenChange, depositId }: EditDeposit
     },
     enabled: open && !!depositId,
   });
+
+  const projectIdForOverrides = depositData?.project_id ?? undefined;
+  const { data: accountOverrides } = useProjectAccountNames(projectIdForOverrides);
+  const displayAccountName = (acc: { id: string; name: string }) =>
+    resolveAccountName(acc, accountOverrides ?? null);
 
   const { lots } = useLots(depositData?.project_id);
   const showAddressColumn = lots.length > 1;
