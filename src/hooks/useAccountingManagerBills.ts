@@ -46,7 +46,7 @@ export function useAccountingManagerBills() {
       const { data: projects, error: projectsError } = await supabase
         .from('projects')
         .select('id, address, status, qb_invoices_approved_date')
-        .eq('accounting_manager', user.id)
+        .eq('accounting_manager', userId)
         .not('status', 'in', '("Completed","Template","Permanently Closed")');
 
       if (projectsError) {
