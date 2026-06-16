@@ -538,7 +538,7 @@ export function AccountantJobsTable() {
         <TableFooter>
           <TableRow className="bg-muted/50 font-semibold">
             {isReorderEnabled && <TableCell />}
-            <TableCell colSpan={showQuickBooks ? 5 : 4} className="text-right">Totals</TableCell>
+            <TableCell colSpan={6} className="text-right">Totals</TableCell>
             <TableCell className="text-center">
               <Badge className="bg-green-100 text-green-800 hover:bg-green-100">
                 {sortedProjects.reduce((sum, p) => sum + (billCounts[p.id]?.currentCount || 0), 0)}
