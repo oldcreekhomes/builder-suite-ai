@@ -150,5 +150,7 @@ export function useAccountingManagerBills() {
     },
     refetchInterval: 30000, // Refetch every 30 seconds
     refetchOnWindowFocus: true,
+    refetchOnMount: "always",
+    staleTime: 0,
   });
 }
