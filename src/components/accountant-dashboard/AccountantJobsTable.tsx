@@ -302,7 +302,19 @@ export function AccountantJobsTable() {
                 {getSortIcon('address')}
               </div>
             </TableHead>
-            <TableHead rowSpan={2} className="align-bottom">Accounting Manager</TableHead>
+            <TableHead
+              rowSpan={2}
+              className={cn(
+                "select-none align-bottom",
+                isReorderEnabled && "cursor-pointer hover:bg-muted/50"
+              )}
+              onClick={() => handleSort('manager')}
+            >
+              <div className="flex items-center">
+                Accounting Manager
+                {getSortIcon('manager')}
+              </div>
+            </TableHead>
             <TableHead rowSpan={2} className="align-bottom">Last Reconciliation</TableHead>
             <TableHead rowSpan={2} className="align-bottom">Closed Books</TableHead>
             <TableHead rowSpan={2} className="align-bottom">Invoices Approved?</TableHead>
