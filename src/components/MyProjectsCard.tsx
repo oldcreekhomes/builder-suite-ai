@@ -66,7 +66,7 @@ export function MyProjectsCard() {
       const { data, error } = await supabase
         .from('projects')
         .select('id, address, status')
-        .eq('construction_manager', user.id)
+        .or(`construction_manager.eq.${user.id},accounting_manager.eq.${user.id}`)
         .order('address');
 
       if (error) {
