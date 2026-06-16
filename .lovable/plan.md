@@ -1,28 +1,8 @@
-## Diagnosis
-Both views read from the same `projects.qb_invoices_approved_date` column, so the data is shared. The desync is a React Query cache problem in `useUpdateProjectQBInvoiceDates`:
+Root issue: both dashboards are reading the same project date columns, but they rely on separate React Query caches and the PM Accounting Alerts card only has an Approved column. The safest fix is to update the shared project cache immediately when a date is changed, then invalidate every affected query so both dashboards converge on the database value.
 
-- Mutation only invalidates `["projects"]`.
-- PM Accounting Alerts card uses `useAccountingManagerBills` keyed `['accounting-manager-bills']` — never invalidated, so the card you just edited keeps showing stale values until a full reload.
-- Accountant `useProjects` (`['projects', user.id]`) is prefix-matched by `["projects"]`, but only active queries refetch immediately; switching tabs can serve cached data first.
-
-Net effect: edits made in the PM card don't visibly propagate to the Accountant dashboard (and vice-versa) without a hard refresh.
-
-## Fix (one file)
-
-Edit `src/hooks/useUpdateProjectQBInvoiceDates.ts` `onSuccess`:
-
-1. Invalidate every cache key that reads these dates and force an immediate refetch on all of them:
-   - `["projects"]` (covers `useProjects` → Accountant table)
-   - `["accounting-manager-bills"]` (PM Accounting Alerts card)
-   - `["accountant-project-alerts"]` (per-project alerts, if present)
-2. Pass `refetchType: 'all'` so background/inactive queries also refetch, guaranteeing the other dashboard view shows fresh data the moment the user switches to it.
-
-Apply the same fix to the sibling mutations so all accountant-editable fields sync both ways:
-- `src/hooks/useUpdateProjectQBReconciliationDate.ts`
-- `src/hooks/useUpdateProjectQBClosedBooksDate.ts`
-
-(Each adds the extra `invalidateQueries` calls with `refetchType: 'all'`. No schema, UI, or business-logic changes.)
-
-## Out of scope
-- The "10300 Glen Way" row appearing on PM but not on Accountant is a separate filter (`accounting_software` toggle on Accountant view), not a sync bug.
-- No changes to layouts or columns.
+Plan:
+1. Update `useUpdateProjectQBInvoiceDates.ts` so successful invoice date edits immediately patch all cached `projects` query results for the edited project, then refetch `projects`, `accounting-manager-bills`, `accountant-project-alerts`, and `bill-counts-by-project`.
+2. Apply the same immediate cache-patch/refetch pattern to `useUpdateProjectQBReconciliationDate.ts` and `useUpdateProjectQBClosedBooksDate.ts` so all accountant dashboard date fields sync consistently.
+3. Remove the extra one-off invalidation in `ProjectWarnings.tsx` because the mutation hook should be the single sync source.
+4. Adjust `ProjectWarnings.tsx` to support the same invoice date fields shown on the Accountant dashboard, so Accounting Alerts can display and edit both Approved and Paid dates if needed instead of showing only one stale value path.
+5. Verify by checking the updated files and confirming the cache keys and date columns are aligned across both dashboards.
