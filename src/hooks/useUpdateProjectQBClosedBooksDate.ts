@@ -1,6 +1,7 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
+import { refetchProjectDateQueries, updateCachedProjectDateFields } from "@/hooks/useProjectQBDateSync";
 
 export const useUpdateProjectQBClosedBooksDate = () => {
   const queryClient = useQueryClient();
@@ -20,10 +21,11 @@ export const useUpdateProjectQBClosedBooksDate = () => {
 
       if (error) throw error;
     },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["projects"], refetchType: "all" });
-      queryClient.invalidateQueries({ queryKey: ["accounting-manager-bills"], refetchType: "all" });
-      queryClient.invalidateQueries({ queryKey: ["accountant-project-alerts"], refetchType: "all" });
+    onSuccess: (_, variables) => {
+      updateCachedProjectDateFields(queryClient, variables.projectId, {
+        qb_closed_books_date: variables.date,
+      });
+      refetchProjectDateQueries(queryClient);
       toast({
         title: "Date updated",
         description: "Closed books date has been saved.",

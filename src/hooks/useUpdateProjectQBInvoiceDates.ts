@@ -1,6 +1,7 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
+import { refetchProjectDateQueries, updateCachedProjectDateFields } from "@/hooks/useProjectQBDateSync";
 
 type InvoiceDateField = 'invoices_approved' | 'invoices_paid';
 
@@ -29,9 +30,14 @@ export const useUpdateProjectQBInvoiceDates = () => {
       if (error) throw error;
     },
     onSuccess: (_, variables) => {
-      queryClient.invalidateQueries({ queryKey: ["projects"], refetchType: "all" });
-      queryClient.invalidateQueries({ queryKey: ["accounting-manager-bills"], refetchType: "all" });
-      queryClient.invalidateQueries({ queryKey: ["accountant-project-alerts"], refetchType: "all" });
+      const columnName = variables.field === 'invoices_approved'
+        ? 'qb_invoices_approved_date'
+        : 'qb_invoices_paid_date';
+
+      updateCachedProjectDateFields(queryClient, variables.projectId, {
+        [columnName]: variables.date,
+      });
+      refetchProjectDateQueries(queryClient);
       const fieldLabel = variables.field === 'invoices_approved' 
         ? 'Invoices Approved' 
         : 'Invoices Paid';
