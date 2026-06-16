@@ -1,9 +1,26 @@
-Revert the unwanted changes to the PM Accounting Alerts card:
+## Plan
 
-1. **`src/components/ProjectWarnings.tsx`** — Remove the "Paid" column and its date picker entirely. Restore original 3-column layout (Current / Late / Approved). Keep the Approved date picker/sync logic working.
+1. **Fix the shared date cache invalidation**
+   - Update the existing date-sync helper so it invalidates the real query keys used by both dashboards:
+     - PM Accounting Alerts: `accounting-manager-bills`
+     - Accountant dashboard project table: `projects`
+     - Accountant bill counts: `bill-counts-by-project`
+   - Remove/replace the stale `accountant-project-alerts` key, since the current accountant dashboard does not use it for the Active Jobs table.
 
-2. **`src/hooks/useAccountingManagerBills.ts`** — Restore the `.eq('accounting_manager', user.id)` filter so the card only shows projects where the current user is the accounting manager. Remove the `qb_invoices_paid_date` field from the query and `ProjectBillSummary` interface (no longer needed without Paid column).
+2. **Make project date updates patch both dashboard caches immediately**
+   - When `Invoices Approved`, `Invoices Paid`, `Closed Books`, or `Last Reconciliation` is updated, patch cached `projects` rows even when the query key includes the user id (`['projects', userId]`).
+   - Patch `accounting-manager-bills.projectsWithCounts` for `qbInvoicesApprovedDate` so the PM dashboard updates instantly after editing from the Accountant dashboard.
+   - Keep the existing PM dashboard constraints: no Paid column, only projects where the user is accounting manager, street-only display.
 
-3. **`src/components/ProjectWarnings.tsx` (address display)** — Truncate the displayed project name to just the street number + street name. Strip city/state/zip (e.g. "6330 Stevenson Avenue Alexandria VA 22304" → "6330 Stevenson Avenue"). Apply via a small helper that splits on the city token or trims trailing state/zip patterns.
+3. **Ensure Accountant dashboard reads the updated project date fields**
+   - Confirm `useProjects()` returns the QuickBooks date fields from `projects` and is invalidated/refetched after date edits.
+   - No UI expansion or new columns; this is only sync behavior.
 
-Sync hooks (`useUpdateProjectQBInvoiceDates`, etc.) stay as-is — they still correctly invalidate caches for the Approved date.
+4. **Preserve current filtering and layout**
+   - Do not re-add the PM `Paid` column.
+   - Do not remove the `.eq('accounting_manager', user.id)` filter in the PM Accounting Alerts hook.
+   - Do not change the street-only address display in the PM Accounting Alerts card.
+
+## Technical notes
+
+The apparent mismatch is because the two dashboards use different React Query caches: PM reads `useAccountingManagerBills()`, while Accountant reads `useProjects()`. Updates save to the same database table, but the cache invalidation/patching needs to target both actual query families, including user-scoped project query keys.
