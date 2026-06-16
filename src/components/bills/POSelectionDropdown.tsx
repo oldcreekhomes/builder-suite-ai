@@ -95,18 +95,37 @@ export function POSelectionDropdown({
     }).format(amount);
   };
 
+  // When the bill line has a cost code, prefer the matching PO line for label/amount.
+  const getMatchingLine = (po: VendorPurchaseOrder) =>
+    costCodeId ? po.line_items.find(l => l.cost_code_id === costCodeId) : undefined;
+
   const getPOLabel = (po: VendorPurchaseOrder) => {
-    const costCodeStr = po.cost_code 
-      ? `${po.cost_code.code} - ${po.cost_code.name}` 
-      : '';
-    const amountStr = `${formatCurrency(po.remaining)} / ${formatCurrency(po.total_amount)}`;
+    const line = getMatchingLine(po);
+    const cc = line?.cost_code ?? po.cost_code;
+    const costCodeStr = cc ? `${cc.code} - ${cc.name}` : '';
+    const amountStr = line
+      ? `${formatCurrency(line.remaining)} / ${formatCurrency(line.amount)}`
+      : `${formatCurrency(po.remaining)} / ${formatCurrency(po.total_amount)}`;
     return `${po.po_number} | ${costCodeStr} | ${amountStr}`;
   };
 
   const getPOCostCodeLabel = (po: VendorPurchaseOrder) => {
-    if (!po.cost_code) return po.po_number;
-    return `${po.cost_code.code}: ${po.cost_code.name}`;
+    const line = getMatchingLine(po);
+    const cc = line?.cost_code ?? po.cost_code;
+    if (!cc) return po.po_number;
+    return `${cc.code}: ${cc.name}`;
   };
+
+  // Filter POs: when costCodeId is provided, only show POs that have at least
+  // one line item with that cost code (header match kept as fallback).
+  const filteredPOs = (purchaseOrders || []).filter(po => {
+    if (!costCodeId) return true;
+    return (
+      po.line_items.some(l => l.cost_code_id === costCodeId) ||
+      po.cost_code_id === costCodeId
+    );
+  });
+  const hasFilteredPOs = filteredPOs.length > 0;
 
   const handleChange = (val: string) => {
     if (val === '__none__') {
@@ -114,14 +133,12 @@ export function POSelectionDropdown({
     } else if (val === '__auto__') {
       onChange('__auto__', undefined);
     } else {
-      // Check if this PO has exactly one line item — auto-assign it
       const selectedPO = purchaseOrders?.find(po => po.id === val);
-      if (selectedPO && selectedPO.line_items.length === 1) {
-        onChange(val, selectedPO.line_items[0].id);
-      } else if (selectedPO && costCodeId) {
-        // Try to auto-match line by cost code
+      if (selectedPO && costCodeId) {
         const matchingLine = selectedPO.line_items.find(l => l.cost_code_id === costCodeId);
         onChange(val, matchingLine?.id);
+      } else if (selectedPO && selectedPO.line_items.length === 1) {
+        onChange(val, selectedPO.line_items[0].id);
       } else {
         onChange(val, undefined);
       }
@@ -136,14 +153,14 @@ export function POSelectionDropdown({
     }
     const poToShow = value
       ? purchaseOrders?.find(po => po.id === value)
-      : purchaseOrders?.[0];
+      : filteredPOs[0] || purchaseOrders?.[0];
     if (poToShow) {
       setSelectedPOForDialog(poToShow);
       setDialogOpen(true);
     }
   };
 
-  const selectValue = value != null && value !== '' ? value : (hasPurchaseOrders ? '__auto__' : '__none__');
+  const selectValue = value != null && value !== '' ? value : (hasFilteredPOs ? '__auto__' : '__none__');
 
   const selectedPO = value && value !== '__auto__' && value !== '__none__'
     ? purchaseOrders?.find(po => po.id === value)
@@ -176,18 +193,21 @@ export function POSelectionDropdown({
             </Tooltip>
           </TooltipProvider>
           <SelectContent>
-            {hasPurchaseOrders && (
+            {hasFilteredPOs && (
               <SelectItem value="__auto__" className="text-muted-foreground">
                 Auto-match by cost code
               </SelectItem>
             )}
             
-            {hasPurchaseOrders && [...purchaseOrders].sort((a, b) => {
-              const aCode = a.cost_code?.code ?? '';
-              const bCode = b.cost_code?.code ?? '';
+            {hasFilteredPOs && [...filteredPOs].sort((a, b) => {
+              const aCode = (getMatchingLine(a)?.cost_code?.code ?? a.cost_code?.code) ?? '';
+              const bCode = (getMatchingLine(b)?.cost_code?.code ?? b.cost_code?.code) ?? '';
               return aCode.localeCompare(bCode, undefined, { numeric: true });
             }).map((po) => {
-              const isMatchingCostCode = costCodeId && po.cost_code_id === costCodeId;
+              const matchingLine = getMatchingLine(po);
+              const isMatchingCostCode = !!costCodeId && (
+                !!matchingLine || po.cost_code_id === costCodeId
+              );
               return (
                 <SelectItem 
                   key={po.id} 
@@ -209,7 +229,7 @@ export function POSelectionDropdown({
 
       </div>
       
-      {hasPurchaseOrders && (
+      {hasFilteredPOs && (
         <Button
           type="button"
           variant="ghost"
