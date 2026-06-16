@@ -17,6 +17,7 @@ interface ProjectBillSummary {
   lateCount: number;
   totalCount: number;
   qbInvoicesApprovedDate: string | null;
+  qbInvoicesPaidDate: string | null;
 }
 
 interface AccountingManagerBillsData {
@@ -42,7 +43,7 @@ export function useAccountingManagerBills() {
       // Get active projects where current user is the accounting manager
       const { data: projects, error: projectsError } = await supabase
         .from('projects')
-        .select('id, address, status, qb_invoices_approved_date')
+        .select('id, address, status, qb_invoices_approved_date, qb_invoices_paid_date')
         .eq('accounting_manager', user.id)
         .not('status', 'in', '("Completed","Template","Permanently Closed")');
 
@@ -106,6 +107,7 @@ export function useAccountingManagerBills() {
           lateCount: lateBills.length,
           totalCount: projectBills.length,
           qbInvoicesApprovedDate: (project as any).qb_invoices_approved_date ?? null,
+          qbInvoicesPaidDate: (project as any).qb_invoices_paid_date ?? null,
         };
       });
 
