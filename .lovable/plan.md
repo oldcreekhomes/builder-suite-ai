@@ -1,27 +1,14 @@
-You're right — I misspoke. The actual buttons are "Send Purchase Order" (in the Create dialog) and "Send Purchase Order" (in the Actions menu of the PO list). Both should flip status to `approved`. Here's the fix:
+## Problem
 
-## What's broken now
+The Edit Bill PO dropdown shows PO 2026-1E-0002 with label "2030 - Entitlement Engineering" for a bill line whose cost code is **2050: Civil Engineering**. The PO actually has three lines (2030, 2050, 2055) — so 2050 *does* match — but the dropdown labels the PO by its **header cost code** (2030), making it look wrong, and doesn't filter out POs that have zero lines matching the bill line's cost code.
 
-Three send paths exist. Only one sets status correctly:
+## Fix — `src/components/bills/POSelectionDropdown.tsx` only
 
-1. **Create Purchase Order dialog → "Send Purchase Order" (new PO)** — `usePOMutations.createPOAndSendEmail` inserts with `status: 'approved'` ✅
-2. **Create Purchase Order dialog → "Send Purchase Order" (editing an existing draft)** — `CreatePurchaseOrderDialog.tsx` line 609 stamps `sent_at` but never touches `status`. ❌
-3. **PO list → Actions menu → "Send Purchase Order"** — opens `SendPOEmailModal`, which at line 76 stamps `sent_at` but never touches `status`. ❌
+1. **Filter the PO list by the bill line's cost code.** When `costCodeId` is provided, only render POs that have at least one `line_items[].cost_code_id === costCodeId`. Auto-match and "No purchase order" stay. If none match, show only those two options.
+2. **Label each PO by its matching line, not its header.** Replace `getPOLabel`/`getPOCostCodeLabel` cost-code display with the cost code of the matched line item (`po.line_items.find(l => l.cost_code_id === costCodeId)`). Amount shown becomes that line's `remaining / amount` so the user sees the right bucket. Fall back to current PO-header label when no `costCodeId` is supplied.
+3. **`findMatchingPOForCostCode`** — update to search `po.line_items` for a matching cost code (not just `po.cost_code_id`), so auto-match works for multi-line POs too.
+4. **Selected trigger display** — use the matched line's cost code label for the same reason.
 
-That's why PO 2026-1E-0002 is stuck on `status='draft'` despite being sent.
-
-## Fix
-
-1. **`src/components/purchaseOrders/SendPOEmailModal.tsx`** (line ~76) — change the update to also set `status: 'approved'` alongside `sent_at`.
-2. **`src/components/CreatePurchaseOrderDialog.tsx`** (line ~609) — same change: include `status: 'approved'` in the update when sending an edited PO.
-3. **`src/hooks/usePOMutations.ts`** (lines 165 and 335) — same change on the post-email `sent_at` stamps, so the field is guaranteed `approved` even if the original insert ever drifts.
-4. **One-time DB backfill** — set `status='approved'` for every PO where `sent_at IS NOT NULL AND status='draft'` (fixes PO 2026-1E-0002 and any others in the same state).
-5. **`src/hooks/useVendorPurchaseOrders.ts`** — leave the `.eq('status','approved')` filter as-is. Once the above is fixed, every sent PO is `approved`, so the bill PO dropdown will correctly show it. (No need to broaden the filter.)
-
-## Out of scope (unchanged)
-
-- "Save Draft" button — still saves as `draft` and does not send.
-- "Send Test Email" — unchanged, doesn't affect status or `sent_at`.
-- Cancel Purchase Order — unchanged.
+No backend / hook changes. No DB changes. Behavior with single-cost-code POs is unchanged.
 
 Approve and I'll implement.
