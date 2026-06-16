@@ -40,11 +40,10 @@ export function useAccountingManagerBills() {
         return { pendingCount: 0, currentCount: 0, lateCount: 0, totalAmount: 0, recentBills: [], projectIds: [], projectsWithCounts: [] };
       }
 
-      // Get active projects where current user is the accounting manager
+      // Get all active projects visible to the current user
       const { data: projects, error: projectsError } = await supabase
         .from('projects')
         .select('id, address, status, qb_invoices_approved_date, qb_invoices_paid_date')
-        .eq('accounting_manager', user.id)
         .not('status', 'in', '("Completed","Template","Permanently Closed")');
 
       if (projectsError) {
