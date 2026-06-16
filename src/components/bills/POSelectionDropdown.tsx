@@ -16,8 +16,13 @@ export function findMatchingPOForCostCode(
   costCodeId: string | undefined
 ): string | undefined {
   if (!purchaseOrders || !costCodeId) return undefined;
-  const match = purchaseOrders.find(po => po.cost_code_id === costCodeId);
-  return match?.id;
+  // Prefer a PO that has a line matching this cost code; fall back to header match.
+  const lineMatch = purchaseOrders.find(po =>
+    po.line_items.some(l => l.cost_code_id === costCodeId)
+  );
+  if (lineMatch) return lineMatch.id;
+  const headerMatch = purchaseOrders.find(po => po.cost_code_id === costCodeId);
+  return headerMatch?.id;
 }
 
 /**
