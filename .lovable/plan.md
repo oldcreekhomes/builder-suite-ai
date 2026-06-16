@@ -1,26 +1,40 @@
-## Plan
+## Problem
 
-1. **Fix the shared date cache invalidation**
-   - Update the existing date-sync helper so it invalidates the real query keys used by both dashboards:
-     - PM Accounting Alerts: `accounting-manager-bills`
-     - Accountant dashboard project table: `projects`
-     - Accountant bill counts: `bill-counts-by-project`
-   - Remove/replace the stale `accountant-project-alerts` key, since the current accountant dashboard does not use it for the Active Jobs table.
+When viewing Erica Gray's Project Manager dashboard, the **Accounting Alerts** card is empty even though she is the `accounting_manager` on 4 active projects (2 of them with pending draft bills).
 
-2. **Make project date updates patch both dashboard caches immediately**
-   - When `Invoices Approved`, `Invoices Paid`, `Closed Books`, or `Last Reconciliation` is updated, patch cached `projects` rows even when the query key includes the user id (`['projects', userId]`).
-   - Patch `accounting-manager-bills.projectsWithCounts` for `qbInvoicesApprovedDate` so the PM dashboard updates instantly after editing from the Accountant dashboard.
-   - Keep the existing PM dashboard constraints: no Paid column, only projects where the user is accounting manager, street-only display.
+## Root cause
 
-3. **Ensure Accountant dashboard reads the updated project date fields**
-   - Confirm `useProjects()` returns the QuickBooks date fields from `projects` and is invalidated/refetched after date edits.
-   - No UI expansion or new columns; this is only sync behavior.
+`src/hooks/useAccountingManagerBills.ts` resolves the current user with:
 
-4. **Preserve current filtering and layout**
-   - Do not re-add the PM `Paid` column.
-   - Do not remove the `.eq('accounting_manager', user.id)` filter in the PM Accounting Alerts hook.
-   - Do not change the street-only address display in the PM Accounting Alerts card.
+```ts
+const { data: { user } } = await supabase.auth.getUser();
+...
+.eq('accounting_manager', user.id)
+```
 
-## Technical notes
+`supabase.auth.getUser()` always returns the **real** Supabase auth user — it has no awareness of Lovable's impersonation layer. So whenever the owner is impersonating Erica (which is how "her" PM page is being viewed), the query filters by the owner's id, not Erica's, and returns zero projects → the Accounting Alerts card renders empty.
 
-The apparent mismatch is because the two dashboards use different React Query caches: PM reads `useAccountingManagerBills()`, while Accountant reads `useProjects()`. Updates save to the same database table, but the cache invalidation/patching needs to target both actual query families, including user-scoped project query keys.
+Every other hook in the project that needs the "current effective user" reads from `useAuth()`, which already merges in `impersonatedProfile.id` when `isImpersonating` is true.
+
+## Fix (single, minimal change)
+
+Update `src/hooks/useAccountingManagerBills.ts`:
+
+1. Import `useAuth` from `@/hooks/useAuth`.
+2. Read `const { user } = useAuth();` at the top of the hook.
+3. Drop the in-`queryFn` call to `supabase.auth.getUser()`.
+4. Pass the resolved `user.id` into the query, and include it in the `queryKey` so impersonation switches correctly bust the cache:
+   ```ts
+   queryKey: ['accounting-manager-bills', user?.id],
+   enabled: !!user?.id,
+   ```
+5. Use `user.id` in `.eq('accounting_manager', user.id)`.
+
+No other files change. No UI, layout, filter, or address-formatting changes. No DB or RLS changes (RLS already permits Erica to read her company's projects via `home_builder_id`).
+
+## Verification
+
+After the change, with the owner impersonating Erica:
+- The `projects` query in the hook returns Erica's 4 active accounting-manager projects.
+- `ProjectWarnings` renders rows for those projects, including the 2 with draft-bill counts (17 and 5).
+- Switching impersonation off (or to another employee) refetches because `user.id` is part of the query key.
