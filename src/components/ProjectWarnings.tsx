@@ -93,12 +93,16 @@ export function ProjectWarnings() {
                 <div className="flex items-center gap-2">
                   <span className="text-[10px] text-muted-foreground text-center w-[50px]">Current</span>
                   <span className="text-[10px] text-muted-foreground text-center w-[50px]">Late</span>
-                  <span className="text-[10px] text-muted-foreground text-center w-[110px]">Approved</span>
+                  <span className="text-[10px] text-muted-foreground text-center w-[95px]">Approved</span>
+                  <span className="text-[10px] text-muted-foreground text-center w-[95px]">Paid</span>
                 </div>
               </div>
               {projectsWithCounts.map((project) => {
                 const approvedDate = project.qbInvoicesApprovedDate
                   ? new Date(project.qbInvoicesApprovedDate + 'T00:00:00')
+                  : undefined;
+                const paidDate = project.qbInvoicesPaidDate
+                  ? new Date(project.qbInvoicesPaidDate + 'T00:00:00')
                   : undefined;
                 return (
                   <div
@@ -141,7 +145,7 @@ export function ProjectWarnings() {
                         )}
                       </div>
                       <div
-                        className="w-[110px] flex justify-center"
+                        className="w-[95px] flex justify-center"
                         onClick={(e) => e.stopPropagation()}
                       >
                         <Popover>
@@ -161,7 +165,7 @@ export function ProjectWarnings() {
                             <Calendar
                               mode="single"
                               selected={approvedDate}
-                              onSelect={(date) => handleDateSelect(project.projectId, date)}
+                              onSelect={(date) => handleDateSelect(project.projectId, 'invoices_approved', date)}
                               initialFocus
                               className={cn("p-3 pointer-events-auto")}
                             />
@@ -171,7 +175,47 @@ export function ProjectWarnings() {
                                   variant="ghost"
                                   size="sm"
                                   className="w-full text-xs"
-                                  onClick={() => handleDateSelect(project.projectId, undefined)}
+                                  onClick={() => handleDateSelect(project.projectId, 'invoices_approved', undefined)}
+                                >
+                                  Clear date
+                                </Button>
+                              </div>
+                            )}
+                          </PopoverContent>
+                        </Popover>
+                      </div>
+                      <div
+                        className="w-[95px] flex justify-center"
+                        onClick={(e) => e.stopPropagation()}
+                      >
+                        <Popover>
+                          <PopoverTrigger asChild>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              className={cn(
+                                "h-6 px-2 text-xs font-normal",
+                                !paidDate && "text-muted-foreground"
+                              )}
+                            >
+                              {paidDate ? format(paidDate, "MMM dd, yyyy") : "—"}
+                            </Button>
+                          </PopoverTrigger>
+                          <PopoverContent className="w-auto p-0" align="end">
+                            <Calendar
+                              mode="single"
+                              selected={paidDate}
+                              onSelect={(date) => handleDateSelect(project.projectId, 'invoices_paid', date)}
+                              initialFocus
+                              className={cn("p-3 pointer-events-auto")}
+                            />
+                            {paidDate && (
+                              <div className="p-2 border-t">
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  className="w-full text-xs"
+                                  onClick={() => handleDateSelect(project.projectId, 'invoices_paid', undefined)}
                                 >
                                   Clear date
                                 </Button>
