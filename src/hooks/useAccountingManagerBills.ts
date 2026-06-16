@@ -31,12 +31,14 @@ interface AccountingManagerBillsData {
 }
 
 export function useAccountingManagerBills() {
+  const { user } = useAuth();
+  const userId = user?.id;
+
   return useQuery({
-    queryKey: ['accounting-manager-bills'],
+    queryKey: ['accounting-manager-bills', userId],
+    enabled: !!userId,
     queryFn: async (): Promise<AccountingManagerBillsData> => {
-      // Get current user
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) {
+      if (!userId) {
         return { pendingCount: 0, currentCount: 0, lateCount: 0, totalAmount: 0, recentBills: [], projectIds: [], projectsWithCounts: [] };
       }
 
