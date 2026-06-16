@@ -21,7 +21,9 @@ export const useUpdateProjectQBClosedBooksDate = () => {
       if (error) throw error;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["projects"] });
+      queryClient.invalidateQueries({ queryKey: ["projects"], refetchType: "all" });
+      queryClient.invalidateQueries({ queryKey: ["accounting-manager-bills"], refetchType: "all" });
+      queryClient.invalidateQueries({ queryKey: ["accountant-project-alerts"], refetchType: "all" });
       toast({
         title: "Date updated",
         description: "Closed books date has been saved.",
