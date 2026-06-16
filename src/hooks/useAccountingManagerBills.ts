@@ -105,6 +105,7 @@ export function useAccountingManagerBills() {
           currentCount: currentBills.length,
           lateCount: lateBills.length,
           totalCount: projectBills.length,
+          qbInvoicesApprovedDate: (project as any).qb_invoices_approved_date ?? null,
         };
       });
 
