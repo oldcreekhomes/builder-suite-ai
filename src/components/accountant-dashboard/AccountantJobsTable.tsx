@@ -40,7 +40,7 @@ export function AccountantJobsTable() {
   const updateClosedBooksDate = useUpdateProjectQBClosedBooksDate();
   const updateInvoiceDates = useUpdateProjectQBInvoiceDates();
   
-  const [sortColumn, setSortColumn] = useState<'address'>('address');
+  const [sortColumn, setSortColumn] = useState<'address' | 'manager'>('manager');
   const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('asc');
   const [isReorderEnabled, setIsReorderEnabled] = useState(false);
   const [showQuickBooks, setShowQuickBooks] = useState(true);
@@ -97,6 +97,16 @@ export function AccountantJobsTable() {
       return priorityA - priorityB;
     }
     
+    if (sortColumn === 'manager') {
+      const nameA = (a.accounting_manager_user?.first_name || '').toLowerCase();
+      const nameB = (b.accounting_manager_user?.first_name || '').toLowerCase();
+      // Put projects without a manager at the end
+      if (!nameA && nameB) return 1;
+      if (nameA && !nameB) return -1;
+      const cmp = nameA.localeCompare(nameB);
+      return sortDirection === 'asc' ? cmp : -cmp;
+    }
+
     const addressA = (a.address || "").toLowerCase();
     const addressB = (b.address || "").toLowerCase();
     return sortDirection === 'asc' 
@@ -104,7 +114,7 @@ export function AccountantJobsTable() {
       : addressB.localeCompare(addressA);
   });
 
-  const handleSort = (column: 'address') => {
+  const handleSort = (column: 'address' | 'manager') => {
     if (!isReorderEnabled) return;
     if (sortColumn === column) {
       setSortDirection(prev => prev === 'asc' ? 'desc' : 'asc');
@@ -114,7 +124,7 @@ export function AccountantJobsTable() {
     }
   };
 
-  const getSortIcon = (column: 'address') => {
+  const getSortIcon = (column: 'address' | 'manager') => {
     if (!isReorderEnabled) return null;
     if (sortColumn !== column) return <ArrowUpDown className="h-4 w-4 ml-1" />;
     return sortDirection === 'asc' 
@@ -292,7 +302,19 @@ export function AccountantJobsTable() {
                 {getSortIcon('address')}
               </div>
             </TableHead>
-            <TableHead rowSpan={2} className="align-bottom">Accounting Manager</TableHead>
+            <TableHead
+              rowSpan={2}
+              className={cn(
+                "select-none align-bottom",
+                isReorderEnabled && "cursor-pointer hover:bg-muted/50"
+              )}
+              onClick={() => handleSort('manager')}
+            >
+              <div className="flex items-center">
+                Accounting Manager
+                {getSortIcon('manager')}
+              </div>
+            </TableHead>
             <TableHead rowSpan={2} className="align-bottom">Last Reconciliation</TableHead>
             <TableHead rowSpan={2} className="align-bottom">Closed Books</TableHead>
             <TableHead rowSpan={2} className="align-bottom">Invoices Approved?</TableHead>
