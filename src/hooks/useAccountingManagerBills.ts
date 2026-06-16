@@ -47,7 +47,7 @@ export function useAccountingManagerBills() {
         .from('projects')
         .select('id, address, status, qb_invoices_approved_date')
         .eq('accounting_manager', userId)
-        .not('status', 'in', '("Completed","Template","Permanently Closed")');
+        .not('status', 'in', '("Template","Permanently Closed")');
 
       if (projectsError) {
         console.error('Error fetching managed projects:', projectsError);

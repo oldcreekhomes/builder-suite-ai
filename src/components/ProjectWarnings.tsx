@@ -86,7 +86,7 @@ export function ProjectWarnings() {
             <div className="text-center">
               <CheckCircle2 className="h-8 w-8 text-green-500 mx-auto mb-2" />
               <p className="font-medium text-sm">All Caught Up</p>
-              <p className="text-xs text-muted-foreground">No active projects</p>
+              <p className="text-xs text-muted-foreground">No projects</p>
             </div>
           </div>
         ) : (
