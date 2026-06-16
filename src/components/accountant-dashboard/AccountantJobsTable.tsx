@@ -40,7 +40,7 @@ export function AccountantJobsTable() {
   const updateClosedBooksDate = useUpdateProjectQBClosedBooksDate();
   const updateInvoiceDates = useUpdateProjectQBInvoiceDates();
   
-  const [sortColumn, setSortColumn] = useState<'address'>('address');
+  const [sortColumn, setSortColumn] = useState<'address' | 'manager'>('manager');
   const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('asc');
   const [isReorderEnabled, setIsReorderEnabled] = useState(false);
   const [showQuickBooks, setShowQuickBooks] = useState(true);

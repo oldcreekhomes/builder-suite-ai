@@ -1,17 +1,11 @@
-## Goal
-Make the Accountant dashboard's Builder Suite (BS) tab show the same "Invoices Approved?" and "Invoices Paid?" date-picker columns that already exist on the QuickBooks (QB) tab, so the two tables are visually identical.
+Change the default sort on the accountant dashboard jobs table from "Address" (ascending) to "Accounting Manager" (ascending by first name). Update the sort state type to include `'manager'`, make the Accounting Manager column header clickable, and add the corresponding sort logic.
 
-## Change
-Single file: `src/components/accountant-dashboard/AccountantJobsTable.tsx`
+Files changed:
+- `src/components/accountant-dashboard/AccountantJobsTable.tsx`
 
-Remove the `showQuickBooks &&` gating on the two columns (headers + cells) so they always render. Specifically:
-
-1. **Headers (lines 298–303)** — drop the `showQuickBooks &&` wrappers around the `<TableHead>Invoices Approved?</TableHead>` and `<TableHead>Invoices Paid?</TableHead>`.
-2. **Body cells (lines 431–488)** — drop the `showQuickBooks &&` wrappers around the two `<TableCell>` blocks containing the popover/calendar for `qb_invoices_approved_date` and `qb_invoices_paid_date`. The popovers and `handleDateSelect('invoices_approved' | 'invoices_paid', ...)` calls (already wired through `useUpdateProjectQBInvoiceDates`) stay as-is, so editing dates works identically on both tabs.
-3. **Empty-state colSpan (line 324)** — change from `showQuickBooks ? 11 : 9 / 10 : 8` to a constant 11/10 (with/without reorder column) since the two columns are now always shown.
-4. **Footer "Totals" colSpan (line 549)** — change from `showQuickBooks ? 5 : 4` to a constant `6` so the Totals label still spans Address, Manager, Last Reconciliation, Closed Books, Invoices Approved, Invoices Paid before the four Bills cells.
-
-The underlying data columns on `projects` (`qb_invoices_approved_date`, `qb_invoices_paid_date`) are already used by both tabs through `useUpdateProjectQBInvoiceDates`, so no DB or hook changes are needed — and the dates persist regardless of which tab is active.
-
-## Out of scope
-No changes to bill-count columns, no schema changes, no renaming of the `qb_…` fields.
+Changes:
+1. Update `sortColumn` state type from `'address'` to `'address' | 'manager'` and default from `'address'` to `'manager'`.
+2. Update `handleSort` parameter type and implementation to support `'manager'`.
+3. Update `getSortIcon` parameter type accordingly.
+4. Add sort logic for manager: sort by `accounting_manager_user.first_name` (case-insensitive) ascending/descending.
+5. Make the "Accounting Manager" `<TableHead>` clickable with the same hover/sort-icon styling as the Address column.
