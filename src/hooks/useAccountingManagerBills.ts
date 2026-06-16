@@ -16,6 +16,7 @@ interface ProjectBillSummary {
   currentCount: number;
   lateCount: number;
   totalCount: number;
+  qbInvoicesApprovedDate: string | null;
 }
 
 interface AccountingManagerBillsData {
