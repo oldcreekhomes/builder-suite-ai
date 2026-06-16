@@ -295,12 +295,8 @@ export function AccountantJobsTable() {
             <TableHead rowSpan={2} className="align-bottom">Accounting Manager</TableHead>
             <TableHead rowSpan={2} className="align-bottom">Last Reconciliation</TableHead>
             <TableHead rowSpan={2} className="align-bottom">Closed Books</TableHead>
-            {showQuickBooks && (
-              <TableHead rowSpan={2} className="align-bottom">Invoices Approved?</TableHead>
-            )}
-            {showQuickBooks && (
-              <TableHead rowSpan={2} className="align-bottom">Invoices Paid?</TableHead>
-            )}
+            <TableHead rowSpan={2} className="align-bottom">Invoices Approved?</TableHead>
+            <TableHead rowSpan={2} className="align-bottom">Invoices Paid?</TableHead>
             <TableHead colSpan={4} className="text-center py-1 h-auto border-b-0">
               <div className="flex items-center justify-center gap-1">
                 <div className="flex-1 h-px bg-muted-foreground/30"></div>
