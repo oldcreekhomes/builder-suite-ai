@@ -29,7 +29,9 @@ export const useUpdateProjectQBInvoiceDates = () => {
       if (error) throw error;
     },
     onSuccess: (_, variables) => {
-      queryClient.invalidateQueries({ queryKey: ["projects"] });
+      queryClient.invalidateQueries({ queryKey: ["projects"], refetchType: "all" });
+      queryClient.invalidateQueries({ queryKey: ["accounting-manager-bills"], refetchType: "all" });
+      queryClient.invalidateQueries({ queryKey: ["accountant-project-alerts"], refetchType: "all" });
       const fieldLabel = variables.field === 'invoices_approved' 
         ? 'Invoices Approved' 
         : 'Invoices Paid';
