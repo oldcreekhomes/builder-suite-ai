@@ -11,7 +11,6 @@ import { format } from "date-fns";
 import { cn } from "@/lib/utils";
 import { useAccountingManagerBills } from "@/hooks/useAccountingManagerBills";
 import { useUpdateProjectQBInvoiceDates } from "@/hooks/useUpdateProjectQBInvoiceDates";
-import { useQueryClient } from "@tanstack/react-query";
 
 // Helper function to get street address only (before first comma)
 const getStreetAddress = (address: string) => {
@@ -22,7 +21,6 @@ const getStreetAddress = (address: string) => {
 
 export function ProjectWarnings() {
   const navigate = useNavigate();
-  const queryClient = useQueryClient();
   const updateDate = useUpdateProjectQBInvoiceDates();
 
   const { data: pendingData, isLoading: pendingLoading, error: pendingError } = useAccountingManagerBills();
@@ -61,16 +59,13 @@ export function ProjectWarnings() {
 
   const { projectsWithCounts } = pendingData || { projectsWithCounts: [] };
 
-  const handleDateSelect = (projectId: string, date: Date | undefined) => {
+  const handleDateSelect = (
+    projectId: string,
+    field: 'invoices_approved' | 'invoices_paid',
+    date: Date | undefined
+  ) => {
     const dateStr = date ? format(date, 'yyyy-MM-dd') : null;
-    updateDate.mutate(
-      { projectId, field: 'invoices_approved', date: dateStr },
-      {
-        onSuccess: () => {
-          queryClient.invalidateQueries({ queryKey: ['accounting-manager-bills'] });
-        },
-      }
-    );
+    updateDate.mutate({ projectId, field, date: dateStr });
   };
 
   return (
