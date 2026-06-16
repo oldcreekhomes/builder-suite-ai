@@ -162,7 +162,7 @@ export const usePOMutations = (projectId: string) => {
 
           await supabase
             .from('project_purchase_orders')
-            .update({ sent_at: new Date().toISOString() })
+            .update({ sent_at: new Date().toISOString(), status: 'approved' })
             .eq('id', purchaseOrder.id);
 
           queryClient.invalidateQueries({ queryKey: ['purchase-orders', projectId] });
@@ -332,7 +332,7 @@ export const usePOMutations = (projectId: string) => {
 
             await supabase
               .from('project_purchase_orders')
-              .update({ sent_at: new Date().toISOString() })
+              .update({ sent_at: new Date().toISOString(), status: 'approved' })
               .eq('id', poForBackground.id);
 
             queryClient.invalidateQueries({ queryKey: ['purchase-orders', projectId] });

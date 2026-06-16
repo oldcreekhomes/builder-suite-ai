@@ -606,7 +606,7 @@ export const CreatePurchaseOrderDialog = ({
       } else {
         await supabase
           .from('project_purchase_orders')
-          .update({ sent_at: new Date().toISOString() })
+          .update({ sent_at: new Date().toISOString(), status: 'approved' })
           .eq('id', poData.id);
         toast({ title: "Success", description: `Purchase order ${isUpdate ? 'updated' : 'created'} and email sent to ${emailData.emailsSent} recipients` });
       }
