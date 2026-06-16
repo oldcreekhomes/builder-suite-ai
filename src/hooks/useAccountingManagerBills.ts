@@ -1,5 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/hooks/useAuth";
 
 interface BillSummary {
   id: string;
@@ -30,12 +31,14 @@ interface AccountingManagerBillsData {
 }
 
 export function useAccountingManagerBills() {
+  const { user } = useAuth();
+  const userId = user?.id;
+
   return useQuery({
-    queryKey: ['accounting-manager-bills'],
+    queryKey: ['accounting-manager-bills', userId],
+    enabled: !!userId,
     queryFn: async (): Promise<AccountingManagerBillsData> => {
-      // Get current user
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) {
+      if (!userId) {
         return { pendingCount: 0, currentCount: 0, lateCount: 0, totalAmount: 0, recentBills: [], projectIds: [], projectsWithCounts: [] };
       }
 
@@ -43,7 +46,7 @@ export function useAccountingManagerBills() {
       const { data: projects, error: projectsError } = await supabase
         .from('projects')
         .select('id, address, status, qb_invoices_approved_date')
-        .eq('accounting_manager', user.id)
+        .eq('accounting_manager', userId)
         .not('status', 'in', '("Completed","Template","Permanently Closed")');
 
       if (projectsError) {
