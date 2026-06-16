@@ -1,11 +1,17 @@
 import { useNavigate } from "react-router-dom";
 import { Card, CardContent } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Tooltip, TooltipContent, TooltipTrigger, TooltipProvider } from "@/components/ui/tooltip";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Calendar } from "@/components/ui/calendar";
+import { Button } from "@/components/ui/button";
 import { AlertTriangle, CheckCircle2 } from "lucide-react";
+import { format } from "date-fns";
+import { cn } from "@/lib/utils";
 import { useAccountingManagerBills } from "@/hooks/useAccountingManagerBills";
+import { useUpdateProjectQBInvoiceDates } from "@/hooks/useUpdateProjectQBInvoiceDates";
+import { useQueryClient } from "@tanstack/react-query";
 
 // Helper function to get street address only (before first comma)
 const getStreetAddress = (address: string) => {
@@ -16,7 +22,9 @@ const getStreetAddress = (address: string) => {
 
 export function ProjectWarnings() {
   const navigate = useNavigate();
-  
+  const queryClient = useQueryClient();
+  const updateDate = useUpdateProjectQBInvoiceDates();
+
   const { data: pendingData, isLoading: pendingLoading, error: pendingError } = useAccountingManagerBills();
 
   if (pendingLoading) {
@@ -51,11 +59,19 @@ export function ProjectWarnings() {
     );
   }
 
-  const { projectsWithCounts } = pendingData || { 
-    projectsWithCounts: [] 
+  const { projectsWithCounts } = pendingData || { projectsWithCounts: [] };
+
+  const handleDateSelect = (projectId: string, date: Date | undefined) => {
+    const dateStr = date ? format(date, 'yyyy-MM-dd') : null;
+    updateDate.mutate(
+      { projectId, field: 'invoices_approved', date: dateStr },
+      {
+        onSuccess: () => {
+          queryClient.invalidateQueries({ queryKey: ['accounting-manager-bills'] });
+        },
+      }
+    );
   };
-  
-  const hasAlerts = projectsWithCounts.some(p => p.totalCount > 0);
 
   return (
     <Card className="h-full flex flex-col">
@@ -66,12 +82,12 @@ export function ProjectWarnings() {
         </div>
       </div>
       <CardContent className="p-0 flex-1 overflow-hidden">
-        {!hasAlerts ? (
+        {projectsWithCounts.length === 0 ? (
           <div className="flex-1 flex items-center justify-center p-6">
             <div className="text-center">
               <CheckCircle2 className="h-8 w-8 text-green-500 mx-auto mb-2" />
               <p className="font-medium text-sm">All Caught Up</p>
-              <p className="text-xs text-muted-foreground">No pending accounting alerts</p>
+              <p className="text-xs text-muted-foreground">No active projects</p>
             </div>
           </div>
         ) : (
@@ -82,10 +98,14 @@ export function ProjectWarnings() {
                 <div className="flex items-center gap-2">
                   <span className="text-[10px] text-muted-foreground text-center w-[50px]">Current</span>
                   <span className="text-[10px] text-muted-foreground text-center w-[50px]">Late</span>
+                  <span className="text-[10px] text-muted-foreground text-center w-[110px]">Approved</span>
                 </div>
               </div>
-              {projectsWithCounts.map((project) => (
-                project.totalCount > 0 && (
+              {projectsWithCounts.map((project) => {
+                const approvedDate = project.qbInvoicesApprovedDate
+                  ? new Date(project.qbInvoicesApprovedDate + 'T00:00:00')
+                  : undefined;
+                return (
                   <div
                     key={project.projectId}
                     className="py-1 px-2 pr-1 cursor-pointer hover:bg-muted/50 transition-colors flex items-center rounded"
@@ -105,22 +125,70 @@ export function ProjectWarnings() {
                         </Tooltip>
                       </TooltipProvider>
                     </div>
-                    
+
                     <div className="flex items-center gap-2 shrink-0">
                       <div className="w-[50px] flex justify-center">
-                        <span className="bg-green-100 text-green-700 rounded-full min-w-5 h-5 flex items-center justify-center text-xs font-medium">
-                          {project.currentCount}
-                        </span>
+                        {project.currentCount > 0 ? (
+                          <span className="bg-green-100 text-green-700 rounded-full min-w-5 h-5 flex items-center justify-center text-xs font-medium px-1.5">
+                            {project.currentCount}
+                          </span>
+                        ) : (
+                          <span className="text-xs text-muted-foreground">—</span>
+                        )}
                       </div>
                       <div className="w-[50px] flex justify-center">
-                        <span className="bg-red-600 text-white rounded-full min-w-5 h-5 flex items-center justify-center text-xs font-medium">
-                          {project.lateCount}
-                        </span>
+                        {project.lateCount > 0 ? (
+                          <span className="bg-red-600 text-white rounded-full min-w-5 h-5 flex items-center justify-center text-xs font-medium px-1.5">
+                            {project.lateCount}
+                          </span>
+                        ) : (
+                          <span className="text-xs text-muted-foreground">—</span>
+                        )}
+                      </div>
+                      <div
+                        className="w-[110px] flex justify-center"
+                        onClick={(e) => e.stopPropagation()}
+                      >
+                        <Popover>
+                          <PopoverTrigger asChild>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              className={cn(
+                                "h-6 px-2 text-xs font-normal",
+                                !approvedDate && "text-muted-foreground"
+                              )}
+                            >
+                              {approvedDate ? format(approvedDate, "MMM dd, yyyy") : "—"}
+                            </Button>
+                          </PopoverTrigger>
+                          <PopoverContent className="w-auto p-0" align="end">
+                            <Calendar
+                              mode="single"
+                              selected={approvedDate}
+                              onSelect={(date) => handleDateSelect(project.projectId, date)}
+                              initialFocus
+                              className={cn("p-3 pointer-events-auto")}
+                            />
+                            {approvedDate && (
+                              <div className="p-2 border-t">
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  className="w-full text-xs"
+                                  onClick={() => handleDateSelect(project.projectId, undefined)}
+                                >
+                                  Clear date
+                                </Button>
+                              </div>
+                            )}
+                          </PopoverContent>
+                        </Popover>
                       </div>
                     </div>
                   </div>
-                )
-              ))}
+                );
+              })}
             </div>
           </ScrollArea>
         )}
