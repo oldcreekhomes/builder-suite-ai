@@ -1,28 +1,36 @@
 ## Goal
+Reorganize the Project Manager dashboard grid in `src/pages/Index.tsx` so the Accounting Alerts card has enough horizontal room to display the new "Approved" date picker column.
 
-On the Project Manager dashboard, extend the **Accounting Alerts** card so it lists every active project and shows an **Invoices Approved** date column (with a date picker) to the right of the Late column. Editing the date writes to the same `projects.qb_invoices_approved_date` column used on the Accountant dashboard, so both views stay in sync automatically.
+## New layout (4 columns × 2 rows)
 
-> Note: you asked for "Invoices Paid date only" editable but also said "just add the Approved column with a date picker." I'm going with the literal layout answer — one new **Invoices Approved** column, editable via date picker. If you'd rather it be the Paid column (or both), tell me and I'll swap.
+```text
+┌──────────────┬──────────────┬──────────────┬──────────────┐
+│              │ Project Bids │  Insurance   │              │
+│  My Projects │  (short)     │  Alerts      │  Recent      │
+│  (full       ├──────────────┴──────────────┤  Photos      │
+│   height)    │   Accounting Alerts          │  (full       │
+│              │   (spans 2 columns)          │   height)    │
+└──────────────┴──────────────────────────────┴──────────────┘
+```
 
-## Changes
+- **Insurance Alerts** moves up to the top of column 3 (where Accounting Alerts used to be).
+- **Project Bids** is shortened to match Insurance Alerts' height so their tops/bottoms align.
+- **Accounting Alerts** moves to a wider row below, spanning columns 2–3, giving room for Address | Current | Late | Approved (date picker).
+- **My Projects** (col 1) and **Recent Photos** (col 4) remain full height.
 
-### 1. Data source (`src/hooks/useAccountingManagerBills.ts`)
-- Extend the existing query so each project row also returns `qb_invoices_approved_date`.
-- Return every active project (not just those with current/late bills) so the card lists them all. Active = status not in `Completed`, `Template`, `Permanently Closed`.
+## Implementation
 
-### 2. UI (`src/components/ProjectWarnings.tsx`)
-- Render every active project row (drop the `project.totalCount > 0` filter).
-- Add a third header column "Approved" to the right of Late.
-- In each row, add a Popover + Calendar date picker (shadcn pattern, `pointer-events-auto`) bound to `qb_invoices_approved_date`. Empty state shows "—".
-- Clicking the date picker must `stopPropagation` so the row-level navigate to project doesn't fire.
+Edit only the PM dashboard grid block in `src/pages/Index.tsx` (lines ~65–85). Replace the single `md:grid-cols-4` flex stack with an explicit 4-col × 2-row CSS grid:
 
-### 3. Mutation
-- Reuse the existing `useUpdateProjectQBInvoiceDates` hook with `field: 'invoices_approved'`. It already invalidates `['projects']`; we'll also invalidate the accounting-manager-bills query key so the card refreshes immediately.
+- `grid-cols-4`, `grid-rows-2`, fixed total height (keep `calc(100vh - 220px)`).
+- `MyProjectsCard`: `col-start-1 row-span-2`.
+- `ProjectBidsCard`: `col-start-2 row-start-1`.
+- `InsuranceAlertsCard`: `col-start-3 row-start-1`.
+- `ProjectWarnings` (Accounting Alerts): `col-start-2 col-span-2 row-start-2`.
+- `RecentPhotos` wrapper: `col-start-4 row-span-2`.
 
-### 4. Sync with Accountant dashboard
-- Both dashboards already read/write `projects.qb_invoices_approved_date`. By using the same mutation and invalidating the shared `['projects']` cache key, edits from either view are reflected on the other.
+Each cell uses `h-full min-h-0` so children fill correctly. No changes to the cards themselves — the existing `ProjectWarnings` Approved date-picker column will now be visible because the card is roughly twice as wide.
 
 ## Out of scope
-- No schema changes (column already exists).
-- No changes to per-project `ProjectAccountingAlerts` card.
-- Reorder, sorting, and other PM dashboard cards untouched.
+- No changes to card internals, data hooks, or other dashboard views (owner/accountant).
+- No changes to the Weather Forecast row below.
