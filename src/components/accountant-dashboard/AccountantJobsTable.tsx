@@ -602,7 +602,8 @@ export function AccountantJobsTable() {
 
                 </TableRow>
               );
-            })
+            }),
+            ])
           )}
         </TableBody>
         <TableFooter>
