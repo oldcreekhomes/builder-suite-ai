@@ -23,7 +23,7 @@ import { Switch } from "@/components/ui/switch";
 import { Input } from "@/components/ui/input";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Calendar } from "@/components/ui/calendar";
-import { ArrowUpDown, ArrowUp, ArrowDown, GripVertical, Search } from "lucide-react";
+import { ArrowUpDown, ArrowUp, ArrowDown, GripVertical, Search, X } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 const statusPriority: Record<string, number> = {
