@@ -37,6 +37,7 @@ const statusPriority: Record<string, number> = {
 export function AccountantJobsTable() {
   const navigate = useNavigate();
   const { data: projects = [] } = useProjects();
+  const { isOwner } = useUserRole();
   const { updateDisplayOrder } = useProjectDisplayOrder();
   const updateReconciliationDate = useUpdateProjectQBReconciliationDate();
   const updateClosedBooksDate = useUpdateProjectQBClosedBooksDate();
