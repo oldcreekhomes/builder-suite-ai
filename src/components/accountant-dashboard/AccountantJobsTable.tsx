@@ -354,7 +354,15 @@ export function AccountantJobsTable() {
               </TableCell>
             </TableRow>
           ) : (
-            sortedProjects.map((project) => {
+            projectsByStatus.flatMap((group) => [
+              <TableRow key={`group-${group.status}`} className="bg-muted/30 hover:bg-muted/30">
+                <TableCell colSpan={isReorderEnabled ? 11 : 10} className="py-2">
+                  <span className={`text-xs font-semibold px-2 py-1 rounded ${group.color}`}>
+                    {group.status}
+                  </span>
+                </TableCell>
+              </TableRow>,
+              ...group.projects.map((project) => {
               const bills = billCounts[project.id];
               const isDragging = draggedProjectId === project.id;
               const isDropTarget = dropTargetId === project.id;
