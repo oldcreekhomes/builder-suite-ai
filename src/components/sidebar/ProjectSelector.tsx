@@ -37,7 +37,7 @@ export function ProjectSelector() {
   const currentProject = projects.find((p) => p.id === projectId);
 
   // Group projects by status
-  const projectsByStatus = statusGroups.map((group) => ({
+  const projectsByStatus = PROJECT_STATUS_GROUPS.map((group) => ({
     ...group,
     projects: projects.filter((p) => p.status === group.status),
   }));
