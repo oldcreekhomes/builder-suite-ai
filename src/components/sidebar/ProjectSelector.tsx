@@ -19,14 +19,8 @@ import {
 } from "@/components/ui/command";
 import { Button } from "@/components/ui/button";
 import { EditProjectDialog } from "@/components/EditProjectDialog";
+import { PROJECT_STATUS_GROUPS } from "@/constants/projectStatusGroups";
 
-const statusGroups = [
-  { status: "In Design", color: "bg-yellow-100 text-yellow-800" },
-  { status: "Permitting", color: "bg-blue-100 text-blue-800" },
-  { status: "Under Construction", color: "bg-orange-100 text-orange-800" },
-  { status: "Completed", color: "bg-green-100 text-green-800" },
-  { status: "Permanently Closed", color: "bg-gray-100 text-gray-600" },
-];
 
 export function ProjectSelector() {
   const [open, setOpen] = useState(false);
@@ -43,7 +37,7 @@ export function ProjectSelector() {
   const currentProject = projects.find((p) => p.id === projectId);
 
   // Group projects by status
-  const projectsByStatus = statusGroups.map((group) => ({
+  const projectsByStatus = PROJECT_STATUS_GROUPS.map((group) => ({
     ...group,
     projects: projects.filter((p) => p.status === group.status),
   }));

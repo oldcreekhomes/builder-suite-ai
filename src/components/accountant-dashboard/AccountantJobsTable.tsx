@@ -9,6 +9,8 @@ import { useLatestBankReconciliationsByProject } from "@/hooks/useLatestBankReco
 import { useUpdateProjectQBReconciliationDate } from "@/hooks/useUpdateProjectQBReconciliationDate";
 import { useUpdateProjectQBClosedBooksDate } from "@/hooks/useUpdateProjectQBClosedBooksDate";
 import { useUpdateProjectQBInvoiceDates } from "@/hooks/useUpdateProjectQBInvoiceDates";
+import { useUserRole } from "@/hooks/useUserRole";
+import { PROJECT_STATUS_GROUPS } from "@/constants/projectStatusGroups";
 import {
   Table,
   TableBody,
@@ -35,6 +37,7 @@ const statusPriority: Record<string, number> = {
 export function AccountantJobsTable() {
   const navigate = useNavigate();
   const { data: projects = [] } = useProjects();
+  const { isOwner } = useUserRole();
   const { updateDisplayOrder } = useProjectDisplayOrder();
   const updateReconciliationDate = useUpdateProjectQBReconciliationDate();
   const updateClosedBooksDate = useUpdateProjectQBClosedBooksDate();
@@ -57,7 +60,8 @@ export function AccountantJobsTable() {
   // First, get all non-template projects to fetch bill counts for ALL of them
   const softwareFilter = showQuickBooks ? 'quickbooks' : 'builder_suite';
   const potentialProjects = projects.filter(p => {
-    if (p.status === "Template" || p.status === "Permanently Closed") return false;
+    if (p.status === "Template") return false;
+    if (p.status === "Permanently Closed" && !isOwner) return false;
     if ((p as any).accounting_software !== softwareFilter) return false;
     return true;
   });
@@ -113,6 +117,12 @@ export function AccountantJobsTable() {
       ? addressA.localeCompare(addressB) 
       : addressB.localeCompare(addressA);
   });
+  // Group sorted projects by status using the shared status list
+  const projectsByStatus = PROJECT_STATUS_GROUPS.map((group) => ({
+    ...group,
+    projects: sortedProjects.filter((p) => (p.status || "In Design") === group.status),
+  })).filter((g) => g.projects.length > 0);
+
 
   const handleSort = (column: 'address' | 'manager') => {
     if (!isReorderEnabled) return;
@@ -344,7 +354,15 @@ export function AccountantJobsTable() {
               </TableCell>
             </TableRow>
           ) : (
-            sortedProjects.map((project) => {
+            projectsByStatus.flatMap((group) => [
+              <TableRow key={`group-${group.status}`} className="bg-muted/30 hover:bg-muted/30">
+                <TableCell colSpan={isReorderEnabled ? 11 : 10} className="py-2">
+                  <span className={`text-xs font-semibold px-2 py-1 rounded ${group.color}`}>
+                    {group.status}
+                  </span>
+                </TableCell>
+              </TableRow>,
+              ...group.projects.map((project) => {
               const bills = billCounts[project.id];
               const isDragging = draggedProjectId === project.id;
               const isDropTarget = dropTargetId === project.id;
@@ -584,7 +602,8 @@ export function AccountantJobsTable() {
 
                 </TableRow>
               );
-            })
+            }),
+            ])
           )}
         </TableBody>
         <TableFooter>
