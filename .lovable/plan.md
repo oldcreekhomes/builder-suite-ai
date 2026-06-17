@@ -1,14 +1,39 @@
-## Problem
+# Clear Invoices Approved / Invoices Paid dates
 
-The Edit Bill PO dropdown shows PO 2026-1E-0002 with label "2030 - Entitlement Engineering" for a bill line whose cost code is **2050: Civil Engineering**. The PO actually has three lines (2030, 2050, 2055) — so 2050 *does* match — but the dropdown labels the PO by its **header cost code** (2030), making it look wrong, and doesn't filter out POs that have zero lines matching the bill line's cost code.
+Goal: let the accountant reset either date back to a dash so the column needs to be re-verified. Manual only — no auto-reset.
 
-## Fix — `src/components/bills/POSelectionDropdown.tsx` only
+## UX
 
-1. **Filter the PO list by the bill line's cost code.** When `costCodeId` is provided, only render POs that have at least one `line_items[].cost_code_id === costCodeId`. Auto-match and "No purchase order" stay. If none match, show only those two options.
-2. **Label each PO by its matching line, not its header.** Replace `getPOLabel`/`getPOCostCodeLabel` cost-code display with the cost code of the matched line item (`po.line_items.find(l => l.cost_code_id === costCodeId)`). Amount shown becomes that line's `remaining / amount` so the user sees the right bucket. Fall back to current PO-header label when no `costCodeId` is supplied.
-3. **`findMatchingPOForCostCode`** — update to search `po.line_items` for a matching cost code (not just `po.cost_code_id`), so auto-match works for multi-line POs too.
-4. **Selected trigger display** — use the matched line's cost code label for the same reason.
+In `AccountantJobsTable.tsx`, for each `Invoices Approved?` and `Invoices Paid?` cell that currently shows a date:
 
-No backend / hook changes. No DB changes. Behavior with single-cost-code POs is unchanged.
+- Keep the existing click-the-date behavior (opens the calendar to pick a new date).
+- Add a small `×` icon that appears on row hover, immediately to the right of the date text. Muted gray, turns red on hover.
+- Clicking the `×` clears that single cell back to `-` (no confirm dialog — it's one click to restore, just re-pick a date).
+- When the cell is already `-`, the `×` is not rendered.
 
-Approve and I'll implement.
+This gives two ways to clear, both per-cell, no bulk action and no scheduled reset:
+1. Hover `×` on the date (fast).
+2. Open the calendar and... (we'll also wire the calendar's currently-selected day to act as a toggle so re-clicking the highlighted day clears it — cheap secondary path).
+
+## Implementation
+
+File: `src/components/accountant-dashboard/AccountantJobsTable.tsx`
+
+1. Wrap each date `<button>` in a `group relative` container so a sibling `×` button can show on `group-hover`.
+2. Add an `XIcon` button (lucide `X`) absolutely positioned at the right edge of the cell, rendered only when the date is set. `onClick` calls `e.stopPropagation()` then `updateInvoiceDates.mutate({ projectId, field, date: null })`.
+3. In the `Calendar` `onSelect`, if the picked date equals the currently selected date, pass `null` instead (toggle-off behavior).
+
+File: `src/hooks/useUpdateProjectQBInvoiceDates.ts`
+
+- Already accepts `date: string | null` and writes null to the column. No change needed beyond confirming the mutation handles null (it does — `formattedDate` is computed only when date is provided; verify and adjust to explicitly pass `null` through if needed).
+
+File: `src/components/accountant-dashboard/AccountantJobsTable.tsx` (handler)
+
+- `handleDateSelect` currently formats and sends a date. Extend to accept `null` and forward as `date: null` to the mutation.
+
+## Out of scope
+
+- No bulk "Clear All" header button.
+- No monthly auto-reset job.
+- No changes to Last Reconciliation or Closed Books columns.
+- No backend/DB schema changes (columns already nullable).

@@ -23,7 +23,7 @@ import { Switch } from "@/components/ui/switch";
 import { Input } from "@/components/ui/input";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Calendar } from "@/components/ui/calendar";
-import { ArrowUpDown, ArrowUp, ArrowDown, GripVertical, Search } from "lucide-react";
+import { ArrowUpDown, ArrowUp, ArrowDown, GripVertical, Search, X } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 const statusPriority: Record<string, number> = {
@@ -447,58 +447,88 @@ export function AccountantJobsTable() {
                     )}
                   </TableCell>
                   <TableCell className="whitespace-nowrap">
-                    <Popover 
-                      open={openDatePicker?.projectId === project.id && openDatePicker?.field === 'invoices_approved'} 
-                      onOpenChange={(open) => setOpenDatePicker(open ? { projectId: project.id, field: 'invoices_approved' } : null)}
-                    >
-                      <PopoverTrigger asChild>
-                        <button 
-                          className="w-full h-full text-left hover:underline cursor-pointer"
-                          onClick={(e) => e.stopPropagation()}
+                    <div className="group/cell relative flex items-center">
+                      <Popover 
+                        open={openDatePicker?.projectId === project.id && openDatePicker?.field === 'invoices_approved'} 
+                        onOpenChange={(open) => setOpenDatePicker(open ? { projectId: project.id, field: 'invoices_approved' } : null)}
+                      >
+                        <PopoverTrigger asChild>
+                          <button 
+                            className="flex-1 h-full text-left hover:underline cursor-pointer pr-6"
+                            onClick={(e) => e.stopPropagation()}
+                          >
+                            {(project as any).qb_invoices_approved_date
+                              ? format(parseISO((project as any).qb_invoices_approved_date), "MMM d, yyyy")
+                              : <span className="text-muted-foreground">-</span>
+                            }
+                          </button>
+                        </PopoverTrigger>
+                        <PopoverContent className="w-auto p-0" align="start" onClick={(e) => e.stopPropagation()}>
+                          <Calendar
+                            mode="single"
+                            selected={(project as any).qb_invoices_approved_date ? parseISO((project as any).qb_invoices_approved_date) : undefined}
+                            onSelect={(date) => handleDateSelect(project.id, 'invoices_approved', date)}
+                            initialFocus
+                            className="p-3 pointer-events-auto"
+                          />
+                        </PopoverContent>
+                      </Popover>
+                      {(project as any).qb_invoices_approved_date && (
+                        <button
+                          type="button"
+                          aria-label="Clear Invoices Approved date"
+                          className="absolute right-0 top-1/2 -translate-y-1/2 opacity-0 group-hover/cell:opacity-100 text-muted-foreground hover:text-destructive transition-opacity"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            updateInvoiceDates.mutate({ projectId: project.id, field: 'invoices_approved', date: null });
+                          }}
                         >
-                          {(project as any).qb_invoices_approved_date
-                            ? format(parseISO((project as any).qb_invoices_approved_date), "MMM d, yyyy")
-                            : <span className="text-muted-foreground">-</span>
-                          }
+                          <X className="h-3.5 w-3.5" />
                         </button>
-                      </PopoverTrigger>
-                      <PopoverContent className="w-auto p-0" align="start" onClick={(e) => e.stopPropagation()}>
-                        <Calendar
-                          mode="single"
-                          selected={(project as any).qb_invoices_approved_date ? parseISO((project as any).qb_invoices_approved_date) : undefined}
-                          onSelect={(date) => handleDateSelect(project.id, 'invoices_approved', date)}
-                          initialFocus
-                          className="p-3 pointer-events-auto"
-                        />
-                      </PopoverContent>
-                    </Popover>
+                      )}
+                    </div>
                   </TableCell>
                   <TableCell className="whitespace-nowrap">
-                    <Popover 
-                      open={openDatePicker?.projectId === project.id && openDatePicker?.field === 'invoices_paid'} 
-                      onOpenChange={(open) => setOpenDatePicker(open ? { projectId: project.id, field: 'invoices_paid' } : null)}
-                    >
-                      <PopoverTrigger asChild>
-                        <button 
-                          className="w-full h-full text-left hover:underline cursor-pointer"
-                          onClick={(e) => e.stopPropagation()}
+                    <div className="group/cell relative flex items-center">
+                      <Popover 
+                        open={openDatePicker?.projectId === project.id && openDatePicker?.field === 'invoices_paid'} 
+                        onOpenChange={(open) => setOpenDatePicker(open ? { projectId: project.id, field: 'invoices_paid' } : null)}
+                      >
+                        <PopoverTrigger asChild>
+                          <button 
+                            className="flex-1 h-full text-left hover:underline cursor-pointer pr-6"
+                            onClick={(e) => e.stopPropagation()}
+                          >
+                            {(project as any).qb_invoices_paid_date
+                              ? format(parseISO((project as any).qb_invoices_paid_date), "MMM d, yyyy")
+                              : <span className="text-muted-foreground">-</span>
+                            }
+                          </button>
+                        </PopoverTrigger>
+                        <PopoverContent className="w-auto p-0" align="start" onClick={(e) => e.stopPropagation()}>
+                          <Calendar
+                            mode="single"
+                            selected={(project as any).qb_invoices_paid_date ? parseISO((project as any).qb_invoices_paid_date) : undefined}
+                            onSelect={(date) => handleDateSelect(project.id, 'invoices_paid', date)}
+                            initialFocus
+                            className="p-3 pointer-events-auto"
+                          />
+                        </PopoverContent>
+                      </Popover>
+                      {(project as any).qb_invoices_paid_date && (
+                        <button
+                          type="button"
+                          aria-label="Clear Invoices Paid date"
+                          className="absolute right-0 top-1/2 -translate-y-1/2 opacity-0 group-hover/cell:opacity-100 text-muted-foreground hover:text-destructive transition-opacity"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            updateInvoiceDates.mutate({ projectId: project.id, field: 'invoices_paid', date: null });
+                          }}
                         >
-                          {(project as any).qb_invoices_paid_date
-                            ? format(parseISO((project as any).qb_invoices_paid_date), "MMM d, yyyy")
-                            : <span className="text-muted-foreground">-</span>
-                          }
+                          <X className="h-3.5 w-3.5" />
                         </button>
-                      </PopoverTrigger>
-                      <PopoverContent className="w-auto p-0" align="start" onClick={(e) => e.stopPropagation()}>
-                        <Calendar
-                          mode="single"
-                          selected={(project as any).qb_invoices_paid_date ? parseISO((project as any).qb_invoices_paid_date) : undefined}
-                          onSelect={(date) => handleDateSelect(project.id, 'invoices_paid', date)}
-                          initialFocus
-                          className="p-3 pointer-events-auto"
-                        />
-                      </PopoverContent>
-                    </Popover>
+                      )}
+                    </div>
                   </TableCell>
                   <TableCell className="text-center">
                     {bills?.currentCount ? (
