@@ -117,6 +117,12 @@ export function AccountantJobsTable() {
       ? addressA.localeCompare(addressB) 
       : addressB.localeCompare(addressA);
   });
+  // Group sorted projects by status using the shared status list
+  const projectsByStatus = PROJECT_STATUS_GROUPS.map((group) => ({
+    ...group,
+    projects: sortedProjects.filter((p) => (p.status || "In Design") === group.status),
+  })).filter((g) => g.projects.length > 0);
+
 
   const handleSort = (column: 'address' | 'manager') => {
     if (!isReorderEnabled) return;
