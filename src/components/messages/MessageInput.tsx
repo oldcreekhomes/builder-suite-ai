@@ -3,6 +3,7 @@ import { Paperclip, Smile, Send, X } from "lucide-react";
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { VoiceInputButton } from "@/components/messages/VoiceInputButton";
 
 interface MessageInputProps {
   onSendMessage: (message: string, files: File[], replyToMessageId?: string) => Promise<void>;
