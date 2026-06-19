@@ -1091,6 +1091,8 @@ export function BillsApprovalTabs({ projectId, projectIds, reviewOnly = false, o
           projectIds={projectIds}
           showProjectColumn={false}
           enableSorting={true}
+          defaultSortBy="due_date"
+          sortOrder="asc"
           searchQuery={searchQuery}
         />
       )}
@@ -1102,6 +1104,8 @@ export function BillsApprovalTabs({ projectId, projectIds, reviewOnly = false, o
           projectIds={projectIds}
           showProjectColumn={false}
           enableSorting={true}
+          defaultSortBy="due_date"
+          sortOrder="asc"
           searchQuery={searchQuery}
           showEditButton={true}
         />
@@ -1114,6 +1118,8 @@ export function BillsApprovalTabs({ projectId, projectIds, reviewOnly = false, o
           projectIds={projectIds}
           showProjectColumn={false}
           enableSorting={true}
+          defaultSortBy="due_date"
+          sortOrder="asc"
           searchQuery={searchQuery}
           showPayBillButton={true}
           enableBatchPayment={true}
@@ -1129,6 +1135,8 @@ export function BillsApprovalTabs({ projectId, projectIds, reviewOnly = false, o
           projectIds={projectIds}
           showProjectColumn={false}
           enableSorting={true}
+          defaultSortBy="due_date"
+          sortOrder="asc"
           searchQuery={searchQuery}
           showEditButton={true}
         />
