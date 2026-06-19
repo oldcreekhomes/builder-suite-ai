@@ -15,6 +15,7 @@ export function SimpleMessageInput({ onSendMessage }: SimpleMessageInputProps) {
   const [isDragOver, setIsDragOver] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const voiceBaseRef = useRef<string>("");
 
   // Common emojis for quick access
   const commonEmojis = ['😊', '😂', '❤️', '👍', '👎', '🔥', '💯', '🎉', '👀', '😍', '🤔', '😢', '😡', '🙏', '💪', '✅', '❌', '⭐', '🚀', '💡'];
@@ -149,9 +150,10 @@ export function SimpleMessageInput({ onSendMessage }: SimpleMessageInputProps) {
       
       <div className="flex items-end space-x-2">
         <VoiceInputButton
-          onTranscript={(text) =>
-            setMessageInput((prev) => (prev ? `${prev} ${text}` : text))
-          }
+          onStart={() => {
+            voiceBaseRef.current = messageInput ? `${messageInput} ` : "";
+          }}
+          onLiveText={(text) => setMessageInput(voiceBaseRef.current + text)}
         />
         <div className="flex-1">
           <Textarea
