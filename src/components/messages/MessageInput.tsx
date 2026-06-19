@@ -16,6 +16,7 @@ export function MessageInput({ onSendMessage, replyingTo, onCancelReply }: Messa
   const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
   const [isDragOver, setIsDragOver] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const voiceBaseRef = useRef<string>("");
 
   // Common emojis for quick access
   const commonEmojis = ['😊', '😂', '❤️', '👍', '👎', '🔥', '💯', '🎉', '👀', '😍', '🤔', '😢', '😡', '🙏', '💪', '✅', '❌', '⭐', '🚀', '💡'];
