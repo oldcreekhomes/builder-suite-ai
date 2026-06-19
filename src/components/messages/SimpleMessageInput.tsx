@@ -148,6 +148,11 @@ export function SimpleMessageInput({ onSendMessage }: SimpleMessageInputProps) {
       )}
       
       <div className="flex items-end space-x-2">
+        <VoiceInputButton
+          onTranscript={(text) =>
+            setMessageInput((prev) => (prev ? `${prev} ${text}` : text))
+          }
+        />
         <div className="flex-1">
           <Textarea
             ref={textareaRef}
@@ -159,6 +164,7 @@ export function SimpleMessageInput({ onSendMessage }: SimpleMessageInputProps) {
             rows={1}
           />
         </div>
+
         
         <div className="flex items-center space-x-1">
           {/* File Attachment Button */}
