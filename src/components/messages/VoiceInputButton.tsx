@@ -4,12 +4,13 @@ import { useVoiceToText } from "@/hooks/useVoiceToText";
 import { cn } from "@/lib/utils";
 
 interface VoiceInputButtonProps {
-  onTranscript: (text: string) => void;
+  onStart?: () => void;
+  onLiveText: (fullText: string) => void;
   size?: "sm" | "md";
 }
 
-export function VoiceInputButton({ onTranscript, size = "md" }: VoiceInputButtonProps) {
-  const { status, supported, toggle } = useVoiceToText(onTranscript);
+export function VoiceInputButton({ onStart, onLiveText, size = "md" }: VoiceInputButtonProps) {
+  const { status, supported, toggle } = useVoiceToText({ onStart, onLiveText });
 
   if (!supported) return null;
 

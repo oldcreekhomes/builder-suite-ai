@@ -4,96 +4,70 @@ import { toast } from "sonner";
 
 type Status = "idle" | "recording" | "transcribing";
 
-// Roll the MediaRecorder every CHUNK_MS so each segment is a complete,
-// independently decodable audio file we can transcribe and append live.
-const CHUNK_MS = 3000;
+// How often to re-transcribe the cumulative audio while recording.
+const TICK_MS = 2500;
 
-export function useVoiceToText(onTranscript: (text: string) => void) {
+interface Options {
+  onStart?: () => void;
+  onLiveText: (fullText: string) => void;
+}
+
+export function useVoiceToText({ onStart, onLiveText }: Options) {
   const [status, setStatus] = useState<Status>("idle");
   const recorderRef = useRef<MediaRecorder | null>(null);
   const streamRef = useRef<MediaStream | null>(null);
-  const rotateTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const pendingRef = useRef(0);
+  const chunksRef = useRef<Blob[]>([]);
+  const tickTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const busyRef = useRef(false);
+  const queuedRef = useRef(false);
   const stoppingRef = useRef(false);
-  const mimeTypeRef = useRef<string>("");
+  const mimeRef = useRef<string>("");
 
   const supported =
     typeof window !== "undefined" &&
     !!navigator.mediaDevices?.getUserMedia &&
     typeof window.MediaRecorder !== "undefined";
 
-  const transcribeBlob = useCallback(
-    async (blob: Blob) => {
-      if (blob.size < 1024) return;
-      pendingRef.current += 1;
-      setStatus((s) => (s === "idle" ? "transcribing" : s));
-      try {
-        const form = new FormData();
-        const ext = (blob.type.split(";")[0].split("/")[1] || "webm").replace("x-", "");
-        form.append("file", blob, `chunk.${ext}`);
-        const { data, error } = await supabase.functions.invoke("voice-to-text", {
-          body: form,
-        });
-        if (error) throw error;
-        const text = (data as { text?: string } | null)?.text?.trim();
-        if (text) onTranscript(text);
-      } catch (err) {
-        console.error("Transcription error:", err);
-        toast.error("Couldn't transcribe a segment.");
-      } finally {
-        pendingRef.current -= 1;
-        if (pendingRef.current <= 0 && !recorderRef.current) {
-          setStatus("idle");
-        }
+  const transcribeCumulative = useCallback(async () => {
+    if (busyRef.current) {
+      queuedRef.current = true;
+      return;
+    }
+    if (chunksRef.current.length === 0) return;
+    busyRef.current = true;
+    try {
+      const type = mimeRef.current || "audio/webm";
+      const blob = new Blob(chunksRef.current, { type });
+      if (blob.size < 2048) return;
+
+      const form = new FormData();
+      const ext = (type.split(";")[0].split("/")[1] || "webm").replace("x-", "");
+      form.append("file", blob, `recording.${ext}`);
+      const { data, error } = await supabase.functions.invoke("voice-to-text", {
+        body: form,
+      });
+      if (error) throw error;
+      const text = (data as { text?: string } | null)?.text?.trim();
+      if (text) onLiveText(text);
+    } catch (err) {
+      console.error("Transcription error:", err);
+    } finally {
+      busyRef.current = false;
+      if (queuedRef.current) {
+        queuedRef.current = false;
+        void transcribeCumulative();
+      } else if (stoppingRef.current) {
+        setStatus("idle");
       }
-    },
-    [onTranscript],
-  );
-
-  const startRecorder = useCallback(
-    (stream: MediaStream) => {
-      const recorder = mimeTypeRef.current
-        ? new MediaRecorder(stream, { mimeType: mimeTypeRef.current })
-        : new MediaRecorder(stream);
-      recorderRef.current = recorder;
-      const chunks: Blob[] = [];
-
-      recorder.ondataavailable = (e) => {
-        if (e.data.size > 0) chunks.push(e.data);
-      };
-      recorder.onstop = () => {
-        const blob = new Blob(chunks, { type: recorder.mimeType || "audio/webm" });
-        void transcribeBlob(blob);
-
-        // If we're just rotating (not fully stopping), kick off the next recorder.
-        if (!stoppingRef.current && streamRef.current) {
-          startRecorder(streamRef.current);
-        } else if (stoppingRef.current) {
-          recorderRef.current = null;
-          streamRef.current?.getTracks().forEach((t) => t.stop());
-          streamRef.current = null;
-          if (pendingRef.current <= 0) setStatus("idle");
-        }
-      };
-
-      recorder.start();
-
-      // Schedule rotation
-      rotateTimerRef.current = setTimeout(() => {
-        if (recorderRef.current === recorder && recorder.state !== "inactive") {
-          recorder.stop();
-        }
-      }, CHUNK_MS);
-    },
-    [transcribeBlob],
-  );
+    }
+  }, [onLiveText]);
 
   const stop = useCallback(() => {
     if (!recorderRef.current) return;
     stoppingRef.current = true;
-    if (rotateTimerRef.current) {
-      clearTimeout(rotateTimerRef.current);
-      rotateTimerRef.current = null;
+    if (tickTimerRef.current) {
+      clearInterval(tickTimerRef.current);
+      tickTimerRef.current = null;
     }
     if (recorderRef.current.state !== "inactive") {
       recorderRef.current.stop();
@@ -109,18 +83,47 @@ export function useVoiceToText(onTranscript: (text: string) => void) {
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
       streamRef.current = stream;
       stoppingRef.current = false;
-      pendingRef.current = 0;
-      mimeTypeRef.current =
-        ["audio/webm", "audio/mp4"].find((t) => MediaRecorder.isTypeSupported(t)) ?? "";
+      busyRef.current = false;
+      queuedRef.current = false;
+      chunksRef.current = [];
 
+      const mimeType =
+        ["audio/webm;codecs=opus", "audio/webm", "audio/mp4"].find((t) =>
+          MediaRecorder.isTypeSupported(t),
+        ) ?? "";
+      mimeRef.current = mimeType || "audio/webm";
+
+      const recorder = mimeType
+        ? new MediaRecorder(stream, { mimeType })
+        : new MediaRecorder(stream);
+      recorderRef.current = recorder;
+
+      recorder.ondataavailable = (e) => {
+        if (e.data.size > 0) chunksRef.current.push(e.data);
+      };
+      recorder.onstop = () => {
+        streamRef.current?.getTracks().forEach((t) => t.stop());
+        streamRef.current = null;
+        recorderRef.current = null;
+        setStatus("transcribing");
+        // Final flush
+        void transcribeCumulative();
+      };
+
+      // Emit a chunk every TICK_MS so cumulative blob grows incrementally.
+      recorder.start(TICK_MS);
+      onStart?.();
       setStatus("recording");
-      startRecorder(stream);
+
+      tickTimerRef.current = setInterval(() => {
+        if (!stoppingRef.current) void transcribeCumulative();
+      }, TICK_MS);
     } catch (err) {
       console.error("Mic error:", err);
       toast.error("Microphone access denied. Enable it in your browser settings.");
       setStatus("idle");
     }
-  }, [supported, startRecorder]);
+  }, [supported, transcribeCumulative, onStart]);
 
   const toggle = useCallback(() => {
     if (status === "recording") stop();
