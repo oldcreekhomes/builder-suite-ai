@@ -3,6 +3,7 @@ import { Paperclip, Smile, Send, X } from "lucide-react";
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { VoiceInputButton } from "@/components/messages/VoiceInputButton";
 
 interface MessageInputProps {
   onSendMessage: (message: string, files: File[], replyToMessageId?: string) => Promise<void>;
@@ -127,6 +128,12 @@ export function MessageInput({ onSendMessage, replyingTo, onCancelReply }: Messa
       )}
       
       <div className="flex items-center space-x-2">
+        <VoiceInputButton
+          size="sm"
+          onTranscript={(text) =>
+            setMessageInput((prev) => (prev ? `${prev} ${text}` : text))
+          }
+        />
         <div className="flex-1">
           <Textarea
             placeholder="Send a message..."
@@ -138,6 +145,7 @@ export function MessageInput({ onSendMessage, replyingTo, onCancelReply }: Messa
           />
         </div>
         <div className="flex items-center space-x-1">
+
           {/* File Attachment Button */}
           <Button 
             variant="ghost" 
