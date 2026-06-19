@@ -130,9 +130,10 @@ export function MessageInput({ onSendMessage, replyingTo, onCancelReply }: Messa
       <div className="flex items-center space-x-2">
         <VoiceInputButton
           size="sm"
-          onTranscript={(text) =>
-            setMessageInput((prev) => (prev ? `${prev} ${text}` : text))
-          }
+          onStart={() => {
+            voiceBaseRef.current = messageInput ? `${messageInput} ` : "";
+          }}
+          onLiveText={(text) => setMessageInput(voiceBaseRef.current + text)}
         />
         <div className="flex-1">
           <Textarea
