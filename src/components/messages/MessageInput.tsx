@@ -128,6 +128,12 @@ export function MessageInput({ onSendMessage, replyingTo, onCancelReply }: Messa
       )}
       
       <div className="flex items-center space-x-2">
+        <VoiceInputButton
+          size="sm"
+          onTranscript={(text) =>
+            setMessageInput((prev) => (prev ? `${prev} ${text}` : text))
+          }
+        />
         <div className="flex-1">
           <Textarea
             placeholder="Send a message..."
@@ -139,6 +145,7 @@ export function MessageInput({ onSendMessage, replyingTo, onCancelReply }: Messa
           />
         </div>
         <div className="flex items-center space-x-1">
+
           {/* File Attachment Button */}
           <Button 
             variant="ghost" 
