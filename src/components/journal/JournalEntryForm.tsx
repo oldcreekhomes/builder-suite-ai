@@ -727,11 +727,12 @@ export const JournalEntryForm = ({ projectId, activeTab: parentActiveTab }: Jour
                   <table className="w-full">
                     <thead className="bg-muted">
                       <tr>
-                        <th className="text-left p-3 font-medium" style={{ width: '400px' }}>Cost Code</th>
+                        <th className="text-left p-3 font-medium" style={{ width: showAddressColumn ? '340px' : '400px' }}>Cost Code</th>
                         <th className="text-left p-3 font-medium" style={{ width: '120px' }}>Debit</th>
                         <th className="text-left p-3 font-medium" style={{ width: '120px' }}>Credit</th>
                         <th className="text-left p-3 font-medium">Memo</th>
                         {showAddressColumn && <th className="text-left p-3 font-medium" style={{ width: '150px' }}>Address</th>}
+                        {showAddressColumn && <th className="text-center p-3 font-medium w-12"></th>}
                         <th className="text-center p-3 font-medium w-12">Action</th>
                       </tr>
                     </thead>
