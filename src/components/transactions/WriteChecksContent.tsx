@@ -518,7 +518,7 @@ export function WriteChecksContent({ projectId, recurringTemplate, onClearTempla
     
     // Set bank account display value and ID
     const bankAcct = accounts.find(a => a.id === check.bank_account_id);
-    setBankAccount(bankAcct ? `${bankAcct.code} - ${bankAcct.name}` : "");
+    setBankAccount(bankAcct ? labelForAccount(bankAcct) : "");
     setBankAccountId(check.bank_account_id || "");
     
     setCompanyName(check.company_name || "Your Company Name");
