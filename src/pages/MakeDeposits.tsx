@@ -71,6 +71,9 @@ export default function MakeDeposits() {
 
   const { data: project } = useProject(projectId || "");
   const { accounts } = useAccounts();
+  const { data: accountNameOverrides } = useProjectAccountNames(projectId);
+  const labelForAccount = (acct: { id: string; code: string; name: string }) =>
+    `${acct.code} - ${resolveAccountName(acct, accountNameOverrides ?? null)}`;
   const { createDeposit } = useDeposits();
   const { settings } = useProjectCheckSettings(projectId);
   const { costCodes } = useCostCodeSearch();
