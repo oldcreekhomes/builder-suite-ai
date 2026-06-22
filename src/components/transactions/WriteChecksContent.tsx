@@ -1208,13 +1208,13 @@ export function WriteChecksContent({ projectId, recurringTemplate, onClearTempla
                   onChange={(value) => {
                     if (!isTransactionLocked) {
                       setBankAccount(value);
-                      const account = accounts.find(a => `${a.code} - ${a.name}` === value);
+                      const account = accounts.find(a => labelForAccount(a) === value || `${a.code} - ${a.name}` === value);
                       if (account) setBankAccountId(account.id);
                     }
                   }}
                   onAccountSelect={(account) => {
                     if (!isTransactionLocked) {
-                      setBankAccount(`${account.code} - ${account.name}`);
+                      setBankAccount(labelForAccount(account));
                       setBankAccountId(account.id);
                     }
                   }}
