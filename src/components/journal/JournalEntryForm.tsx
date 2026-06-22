@@ -48,6 +48,7 @@ interface JournalEntryFormProps {
 
 export const JournalEntryForm = ({ projectId, activeTab: parentActiveTab }: JournalEntryFormProps) => {
   const navigate = useNavigate();
+  const { toast } = useToast();
   const { createManualJournalEntry, updateManualJournalEntry, deleteManualJournalEntry, journalEntries, isLoading } = useJournalEntries();
   const { isDateLocked, latestClosedDate } = useClosedPeriodCheck(projectId);
   const { lots } = useLots(projectId);
