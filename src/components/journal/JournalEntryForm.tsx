@@ -15,7 +15,8 @@ import { CostCodeSearchInput } from "@/components/CostCodeSearchInput";
 import { Badge } from "@/components/ui/badge";
 import { DeleteButton } from "@/components/ui/delete-button";
 import { useJournalEntries } from "@/hooks/useJournalEntries";
-import { CalendarIcon, Plus, Trash2, CheckCircle, AlertCircle, ChevronLeft, ChevronRight, Search, Lock } from "lucide-react";
+import { CalendarIcon, Plus, Trash2, CheckCircle, AlertCircle, ChevronLeft, ChevronRight, Search, Lock, Divide } from "lucide-react";
+import { useToast } from "@/hooks/use-toast";
 import { format } from "date-fns";
 import { cn } from "@/lib/utils";
 import { toDateLocal } from "@/utils/dateOnly";
@@ -47,6 +48,7 @@ interface JournalEntryFormProps {
 
 export const JournalEntryForm = ({ projectId, activeTab: parentActiveTab }: JournalEntryFormProps) => {
   const navigate = useNavigate();
+  const { toast } = useToast();
   const { createManualJournalEntry, updateManualJournalEntry, deleteManualJournalEntry, journalEntries, isLoading } = useJournalEntries();
   const { isDateLocked, latestClosedDate } = useClosedPeriodCheck(projectId);
   const { lots } = useLots(projectId);
@@ -259,6 +261,43 @@ export const JournalEntryForm = ({ projectId, activeTab: parentActiveTab }: Jour
       setJobCostLines([{ id: crypto.randomUUID(), line_type: 'job_cost', cost_code_id: "", cost_code_display: "", debit: "", credit: "", memo: "" }]);
     }
   };
+
+  const splitJobCostLineEvenly = (id: string) => {
+    if (lots.length < 2) return;
+    const source = jobCostLines.find(l => l.id === id);
+    if (!source) return;
+    const debitVal = parseFloat(source.debit) || 0;
+    const creditVal = parseFloat(source.credit) || 0;
+    if (debitVal <= 0 && creditVal <= 0) return;
+    const total = debitVal > 0 ? debitVal : creditVal;
+    const isDebit = debitVal > 0;
+    const perLot = Math.floor((total / lots.length) * 100) / 100;
+    const remainder = Math.round((total - perLot * (lots.length - 1)) * 100) / 100;
+    const newLines: JournalLine[] = lots.map((lot, idx) => {
+      const amt = (idx === lots.length - 1 ? remainder : perLot).toFixed(2);
+      return {
+        id: crypto.randomUUID(),
+        line_type: 'job_cost',
+        cost_code_id: source.cost_code_id,
+        cost_code_display: source.cost_code_display,
+        debit: isDebit ? amt : "",
+        credit: isDebit ? "" : amt,
+        memo: source.memo,
+        lot_id: lot.id,
+      };
+    });
+    const i = jobCostLines.findIndex(l => l.id === id);
+    setJobCostLines([
+      ...jobCostLines.slice(0, i),
+      ...newLines,
+      ...jobCostLines.slice(i + 1),
+    ]);
+    toast({
+      title: "Row Split",
+      description: `Split $${total.toFixed(2)} evenly across ${lots.length} addresses`,
+    });
+  };
+
 
   const updateExpenseLine = (id: string, field: keyof JournalLine, value: string) => {
     setExpenseLines(prev => prev.map(line => {
@@ -688,11 +727,12 @@ export const JournalEntryForm = ({ projectId, activeTab: parentActiveTab }: Jour
                   <table className="w-full">
                     <thead className="bg-muted">
                       <tr>
-                        <th className="text-left p-3 font-medium" style={{ width: '400px' }}>Cost Code</th>
+                        <th className="text-left p-3 font-medium" style={{ width: showAddressColumn ? '340px' : '400px' }}>Cost Code</th>
                         <th className="text-left p-3 font-medium" style={{ width: '120px' }}>Debit</th>
                         <th className="text-left p-3 font-medium" style={{ width: '120px' }}>Credit</th>
                         <th className="text-left p-3 font-medium">Memo</th>
                         {showAddressColumn && <th className="text-left p-3 font-medium" style={{ width: '150px' }}>Address</th>}
+                        {showAddressColumn && <th className="text-center p-3 font-medium w-12"></th>}
                         <th className="text-center p-3 font-medium w-12">Action</th>
                       </tr>
                     </thead>
@@ -776,6 +816,34 @@ export const JournalEntryForm = ({ projectId, activeTab: parentActiveTab }: Jour
                                   ))}
                                 </SelectContent>
                               </Select>
+                            </td>
+                          )}
+                          {showAddressColumn && (
+                            <td className="py-3 px-2 text-center">
+                              <TooltipProvider>
+                                <Tooltip>
+                                  <TooltipTrigger asChild>
+                                    <span>
+                                      <Button
+                                        type="button"
+                                        onClick={() => splitJobCostLineEvenly(line.id)}
+                                        size="sm"
+                                        variant="ghost"
+                                        className="h-10 w-10 p-0"
+                                        disabled={
+                                          !!line.lot_id ||
+                                          ((parseFloat(line.debit) || 0) <= 0 && (parseFloat(line.credit) || 0) <= 0)
+                                        }
+                                      >
+                                        <Divide className="h-4 w-4" />
+                                      </Button>
+                                    </span>
+                                  </TooltipTrigger>
+                                  <TooltipContent>
+                                    <p>Split evenly across all addresses</p>
+                                  </TooltipContent>
+                                </Tooltip>
+                              </TooltipProvider>
                             </td>
                           )}
                           <td className="py-3 pl-2 pr-3">
