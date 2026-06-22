@@ -448,9 +448,15 @@ export function ProjectAccountsTab({ projectId }: ProjectAccountsTabProps) {
 
   return (
     <div className="space-y-2 py-2 max-h-[60vh] overflow-y-auto">
-      <p className="text-sm text-muted-foreground mb-3">
-        Uncheck accounts that are not applicable to this project. Excluded accounts won't appear on the Balance Sheet or Income Statement.
-      </p>
+      <div className="flex items-start justify-between gap-3 mb-3">
+        <p className="text-sm text-muted-foreground">
+          Uncheck accounts that are not applicable to this project. Excluded accounts won't appear on the Balance Sheet or Income Statement.
+        </p>
+        <Button size="sm" variant="outline" onClick={() => setAddOpen(true)} className="shrink-0">
+          <Plus className="h-4 w-4 mr-1" />
+          Add Account
+        </Button>
+      </div>
 
       {TYPE_ORDER.map((type) => {
         const typeAccounts = grouped[type] || [];
@@ -483,6 +489,22 @@ export function ProjectAccountsTab({ projectId }: ProjectAccountsTabProps) {
           </Collapsible>
         );
       })}
+
+      <AddProjectAccountDialog
+        projectId={projectId}
+        open={addOpen}
+        onOpenChange={setAddOpen}
+        existingAccounts={accounts ?? []}
+      />
+
+      <DeleteConfirmationDialog
+        open={!!deleteTarget}
+        onOpenChange={(o) => !o && setDeleteTarget(null)}
+        title="Delete project-only account"
+        description={deleteTarget ? `Permanently delete ${deleteTarget.code} - ${deleteTarget.name} from this project? This cannot be undone.` : ''}
+        onConfirm={deleteProjectAccount}
+        isLoading={isDeleting}
+      />
     </div>
   );
 }
