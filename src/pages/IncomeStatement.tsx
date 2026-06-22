@@ -47,6 +47,7 @@ export default function IncomeStatement() {
         .from('accounts')
         .select('id, code, name, type, is_active')
         .eq('is_active', true)
+        .is('project_id', null)
         .in('type', ['revenue', 'expense']);
 
       if (accountsError) {
