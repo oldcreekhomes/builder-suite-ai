@@ -18,6 +18,7 @@ import { CalendarIcon, Plus, Trash2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useProject } from "@/hooks/useProject";
 import { useAccounts } from "@/hooks/useAccounts";
+import { useProjectAccountNames, resolveAccountName } from "@/hooks/useProjectAccountNames";
 import { useDeposits, DepositData, DepositLineData } from "@/hooks/useDeposits";
 import { useProjectCheckSettings } from "@/hooks/useProjectCheckSettings";
 import { toast } from "@/hooks/use-toast";
@@ -70,6 +71,9 @@ export default function MakeDeposits() {
 
   const { data: project } = useProject(projectId || "");
   const { accounts } = useAccounts();
+  const { data: accountNameOverrides } = useProjectAccountNames(projectId);
+  const labelForAccount = (acct: { id: string; code: string; name: string }) =>
+    `${acct.code} - ${resolveAccountName(acct, accountNameOverrides ?? null)}`;
   const { createDeposit } = useDeposits();
   const { settings } = useProjectCheckSettings(projectId);
   const { costCodes } = useCostCodeSearch();
@@ -447,7 +451,7 @@ export default function MakeDeposits() {
                       onChange={(v) => { setBankAccount(v); if (!v) setBankAccountId(""); }}
                       onAccountSelect={(account) => {
                         setBankAccountId(account.id);
-                        setBankAccount(`${account.code} - ${account.name}`);
+                        setBankAccount(labelForAccount(account));
                       }}
                       accountType="asset"
                       projectId={projectId}

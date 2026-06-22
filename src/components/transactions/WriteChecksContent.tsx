@@ -21,6 +21,7 @@ import { DeleteButton } from "@/components/ui/delete-button";
 import { useProject } from "@/hooks/useProject";
 import { useAccounts } from "@/hooks/useAccounts";
 import { useProjectDefaultBankAccountId } from "@/hooks/useProjectDefaultBankAccountId";
+import { useProjectAccountNames, resolveAccountName } from "@/hooks/useProjectAccountNames";
 import { useChecks, CheckData, CheckLineData } from "@/hooks/useChecks";
 import { useProjectCheckSettings } from "@/hooks/useProjectCheckSettings";
 import { toast } from "@/hooks/use-toast";
@@ -139,6 +140,9 @@ export function WriteChecksContent({ projectId, recurringTemplate, onClearTempla
   const { data: project } = useProject(projectId || "");
   const { accounts } = useAccounts();
   const defaultBankAccountId = useProjectDefaultBankAccountId(projectId);
+  const { data: accountNameOverrides } = useProjectAccountNames(projectId);
+  const labelForAccount = (acct: { id: string; code: string; name: string }) =>
+    `${acct.code} - ${resolveAccountName(acct, accountNameOverrides ?? null)}`;
 
   // Auto-fill the default bank account when starting a new check
   useEffect(() => {
@@ -146,10 +150,10 @@ export function WriteChecksContent({ projectId, recurringTemplate, onClearTempla
       const acct = accounts.find((a: any) => a.id === defaultBankAccountId);
       if (acct) {
         setBankAccountId(acct.id);
-        setBankAccount(`${acct.code} - ${acct.name}`);
+        setBankAccount(labelForAccount(acct));
       }
     }
-  }, [isViewingMode, bankAccountId, defaultBankAccountId, accounts]);
+  }, [isViewingMode, bankAccountId, defaultBankAccountId, accounts, accountNameOverrides]);
   const { checks = [], isLoading: checksLoading, createCheck, updateCheck, deleteCheck } = useChecks();
   const { costCodes } = useCostCodeSearch();
   const { lots } = useLots(projectId);
@@ -514,7 +518,7 @@ export function WriteChecksContent({ projectId, recurringTemplate, onClearTempla
     
     // Set bank account display value and ID
     const bankAcct = accounts.find(a => a.id === check.bank_account_id);
-    setBankAccount(bankAcct ? `${bankAcct.code} - ${bankAcct.name}` : "");
+    setBankAccount(bankAcct ? labelForAccount(bankAcct) : "");
     setBankAccountId(check.bank_account_id || "");
     
     setCompanyName(check.company_name || "Your Company Name");
@@ -1204,13 +1208,13 @@ export function WriteChecksContent({ projectId, recurringTemplate, onClearTempla
                   onChange={(value) => {
                     if (!isTransactionLocked) {
                       setBankAccount(value);
-                      const account = accounts.find(a => `${a.code} - ${a.name}` === value);
+                      const account = accounts.find(a => labelForAccount(a) === value || `${a.code} - ${a.name}` === value);
                       if (account) setBankAccountId(account.id);
                     }
                   }}
                   onAccountSelect={(account) => {
                     if (!isTransactionLocked) {
-                      setBankAccount(`${account.code} - ${account.name}`);
+                      setBankAccount(labelForAccount(account));
                       setBankAccountId(account.id);
                     }
                   }}

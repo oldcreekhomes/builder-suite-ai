@@ -22,6 +22,7 @@ import { cn } from "@/lib/utils";
 import { useProject } from "@/hooks/useProject";
 import { useAccounts } from "@/hooks/useAccounts";
 import { useProjectDefaultDepositAccountId } from "@/hooks/useProjectDefaultDepositAccountId";
+import { useProjectAccountNames, resolveAccountName } from "@/hooks/useProjectAccountNames";
 import { useDeposits, DepositData, DepositLineData } from "@/hooks/useDeposits";
 import { useProjectCheckSettings } from "@/hooks/useProjectCheckSettings";
 import { toast } from "@/hooks/use-toast";
@@ -94,6 +95,9 @@ export function MakeDepositsContent({ projectId, activeTab: parentActiveTab }: M
   const { data: project } = useProject(projectId || "");
   const { accounts } = useAccounts();
   const defaultBankAccountId = useProjectDefaultDepositAccountId(projectId);
+  const { data: accountNameOverrides } = useProjectAccountNames(projectId);
+  const labelForAccount = (acct: { id: string; code: string; name: string }) =>
+    `${acct.code} - ${resolveAccountName(acct, accountNameOverrides ?? null)}`;
 
   // Auto-fill the default bank account when starting a new deposit
   useEffect(() => {
@@ -101,10 +105,10 @@ export function MakeDepositsContent({ projectId, activeTab: parentActiveTab }: M
       const acct = accounts.find((a: any) => a.id === defaultBankAccountId);
       if (acct) {
         setBankAccountId(acct.id);
-        setBankAccount(`${acct.code} - ${acct.name}`);
+        setBankAccount(labelForAccount(acct));
       }
     }
-  }, [isViewingMode, bankAccountId, defaultBankAccountId, accounts]);
+  }, [isViewingMode, bankAccountId, defaultBankAccountId, accounts, accountNameOverrides]);
   const { createDeposit, deleteDeposit, updateDepositFull } = useDeposits();
   
   // Submit lock to prevent duplicate saves
@@ -257,7 +261,7 @@ export function MakeDepositsContent({ projectId, activeTab: parentActiveTab }: M
     const bankAcct = accounts.find(a => a.id === deposit.bank_account_id);
     if (bankAcct) {
       setBankAccountId(bankAcct.id);
-      setBankAccount(`${bankAcct.code} - ${bankAcct.name}`);
+      setBankAccount(labelForAccount(bankAcct));
     }
 
     // Fetch company name if exists (using company_id now)
@@ -420,7 +424,7 @@ export function MakeDepositsContent({ projectId, activeTab: parentActiveTab }: M
     const defaultBank = defaultBankAccountId
       ? accounts.find((a: any) => a.id === defaultBankAccountId)
       : null;
-    setBankAccount(defaultBank ? `${defaultBank.code} - ${defaultBank.name}` : "");
+    setBankAccount(defaultBank ? labelForAccount(defaultBank) : "");
     setBankAccountId(defaultBank?.id ?? "");
     setCheckNumber("");
     setActiveTab("other"); // Reset to default tab
@@ -962,7 +966,7 @@ export function MakeDepositsContent({ projectId, activeTab: parentActiveTab }: M
                 onChange={(value) => {
                   if (!isTransactionLocked) {
                     setBankAccount(value);
-                    const acct = accounts.find(a => `${a.code} - ${a.name}` === value);
+                    const acct = accounts.find(a => labelForAccount(a) === value || `${a.code} - ${a.name}` === value);
                     if (acct) setBankAccountId(acct.id);
                     else if (!value) setBankAccountId("");
                   }
@@ -970,7 +974,7 @@ export function MakeDepositsContent({ projectId, activeTab: parentActiveTab }: M
                 onAccountSelect={(account) => {
                   if (!isTransactionLocked) {
                     setBankAccountId(account.id);
-                    setBankAccount(`${account.code} - ${account.name}`);
+                    setBankAccount(labelForAccount(account));
                   }
                 }}
                 accountType="asset"
