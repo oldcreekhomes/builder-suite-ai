@@ -140,6 +140,9 @@ export function WriteChecksContent({ projectId, recurringTemplate, onClearTempla
   const { data: project } = useProject(projectId || "");
   const { accounts } = useAccounts();
   const defaultBankAccountId = useProjectDefaultBankAccountId(projectId);
+  const { data: accountNameOverrides } = useProjectAccountNames(projectId);
+  const labelForAccount = (acct: { id: string; code: string; name: string }) =>
+    `${acct.code} - ${resolveAccountName(acct, accountNameOverrides ?? null)}`;
 
   // Auto-fill the default bank account when starting a new check
   useEffect(() => {
@@ -147,10 +150,10 @@ export function WriteChecksContent({ projectId, recurringTemplate, onClearTempla
       const acct = accounts.find((a: any) => a.id === defaultBankAccountId);
       if (acct) {
         setBankAccountId(acct.id);
-        setBankAccount(`${acct.code} - ${acct.name}`);
+        setBankAccount(labelForAccount(acct));
       }
     }
-  }, [isViewingMode, bankAccountId, defaultBankAccountId, accounts]);
+  }, [isViewingMode, bankAccountId, defaultBankAccountId, accounts, accountNameOverrides]);
   const { checks = [], isLoading: checksLoading, createCheck, updateCheck, deleteCheck } = useChecks();
   const { costCodes } = useCostCodeSearch();
   const { lots } = useLots(projectId);
