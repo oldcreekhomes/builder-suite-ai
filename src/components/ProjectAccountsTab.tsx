@@ -45,12 +45,13 @@ export function ProjectAccountsTab({ projectId }: ProjectAccountsTabProps) {
   });
 
   const { data: accounts, isLoading: accountsLoading } = useQuery({
-    queryKey: ['accounts-for-project-selection'],
+    queryKey: ['accounts-for-project-selection', projectId],
     queryFn: async () => {
       const { data, error } = await supabase
         .from('accounts')
-        .select('id, code, name, type, parent_id, subtype')
+        .select('id, code, name, type, parent_id, subtype, project_id')
         .eq('is_active', true)
+        .or(`project_id.is.null,project_id.eq.${projectId}`)
         .order('code');
       if (error) throw error;
       return data as Account[];
