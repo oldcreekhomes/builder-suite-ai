@@ -25,6 +25,7 @@ interface Account {
   type: AccountType;
   parent_id: string | null;
   subtype?: string | null;
+  project_id?: string | null;
 }
 
 const TYPE_LABELS: Record<AccountType, string> = {
