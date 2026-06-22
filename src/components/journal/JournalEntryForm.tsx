@@ -727,10 +727,10 @@ export const JournalEntryForm = ({ projectId, activeTab: parentActiveTab }: Jour
                   <table className="w-full">
                     <thead className="bg-muted">
                       <tr>
-                        <th className="text-left p-3 font-medium" style={{ width: showAddressColumn ? '340px' : '400px' }}>Cost Code</th>
-                        <th className="text-left p-3 font-medium" style={{ width: '120px' }}>Debit</th>
-                        <th className="text-left p-3 font-medium" style={{ width: '120px' }}>Credit</th>
-                        <th className="text-left p-3 font-medium">Memo</th>
+                        <th className="text-left p-3 pr-0 font-medium" style={{ width: showAddressColumn ? '340px' : '400px' }}>Cost Code</th>
+                        <th className="text-left p-3 pr-0 font-medium" style={{ width: '120px' }}>Debit</th>
+                        <th className="text-left p-3 pr-0 font-medium" style={{ width: '120px' }}>Credit</th>
+                        <th className="text-left p-3 pr-0 font-medium">Memo</th>
                         {showAddressColumn && <th className="text-left p-3 font-medium" style={{ width: '150px' }}>Address</th>}
                         {showAddressColumn && <th className="text-center p-3 font-medium w-12"></th>}
                         <th className="text-center p-3 font-medium w-12">Action</th>
@@ -739,7 +739,7 @@ export const JournalEntryForm = ({ projectId, activeTab: parentActiveTab }: Jour
                     <tbody>
                       {jobCostLines.map((line, index) => (
                         <tr key={line.id} className={index % 2 === 0 ? "bg-background" : "bg-muted/30"}>
-                          <td className="p-3">
+                          <td className="p-3 pr-0">
                             <CostCodeSearchInput
                               value={line.cost_code_display || ""}
                               onChange={(value) => updateJobCostLine(line.id, "cost_code_display", value)}
@@ -754,7 +754,7 @@ export const JournalEntryForm = ({ projectId, activeTab: parentActiveTab }: Jour
                               className="w-full"
                             />
                           </td>
-                          <td className="p-3">
+                          <td className="p-3 pr-0">
                             <Input
                               type="text"
                               placeholder="0.00"
@@ -773,7 +773,7 @@ export const JournalEntryForm = ({ projectId, activeTab: parentActiveTab }: Jour
                               className="text-right"
                             />
                           </td>
-                          <td className="p-3">
+                          <td className="p-3 pr-0">
                             <Input
                               type="text"
                               placeholder="0.00"
