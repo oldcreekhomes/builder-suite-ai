@@ -142,7 +142,7 @@ export const AddProjectAccountDialog = ({ projectId, open, onOpenChange, existin
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent>
         <DialogHeader>
-          <DialogTitle>Add Account (this project only)</DialogTitle>
+          <DialogTitle>Add Account</DialogTitle>
         </DialogHeader>
         <form onSubmit={handleSubmit} className="space-y-4">
           <p className="text-xs text-muted-foreground">
