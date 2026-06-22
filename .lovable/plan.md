@@ -1,39 +1,41 @@
-## Problem
+Do I know what the issue is? Yes.
 
-`AccountSearchInput` (used in Journal Entry, Write Checks, Make Deposits, etc.) only shows global accounts because it relies on `useAccounts()`, which hard-filters `.is('project_id', null)`.
+The exact problem is in `AccountSearchInputInline.tsx`: the inline dropdown filters each account only by that row’s own `code` and display `name`. So when you type `equity`, it finds `2905 - Equity` and `2905.3 - Equity - EG`, but it drops `2905.1 - IM` and `2905.2 - OCH` because those child names do not contain the word `equity`. The component is not expanding children when the parent account matches.
 
-Account `2905.3` ("Equity - EG") is scoped to the current project (`project_id = 350e5951-1a6f-4809-9d4e-7652d58603b9`), so it never appears in the dropdown. The user expects all 3 children of 2905 (`2905.1`, `2905.2`, `2905.3`) to be selectable when working inside this project.
+Files involved:
+- `src/components/AccountSearchInputInline.tsx` — the Make Deposits line-item dropdown shown in your screenshot.
+- `src/components/transactions/MakeDepositsContent.tsx` — confirms that Make Deposits uses `AccountSearchInputInline` with the North Potomac `projectId`.
 
-## Solution
+Plan to fix:
 
-Update `AccountSearchInput` so that when a `projectId` prop is provided, it also fetches accounts scoped to that project and merges them with the global list before filtering, sorting, and rendering.
+1. Update `AccountSearchInputInline.tsx` filtering.
+   - First build the eligible account list after account type and project exclusion filters.
+   - Match the search text against account code/name as it does now.
+   - If a matched account is a parent, include all eligible child accounts where `child.parent_id === matchedParent.id`.
+   - This makes `equity`, `eq`, or `2905` show:
+     - `2905 - Equity`
+     - `2905.1 - IM`
+     - `2905.2 - OCH`
+     - `2905.3 - Equity - EG`
 
-### Files to change
+2. Keep project visibility rules intact.
+   - Continue respecting `project_account_exclusions` so accounts unchecked for North Potomac stay hidden.
+   - Continue merging global accounts plus North Potomac project-only accounts.
 
-1. **`src/components/AccountSearchInput.tsx`**
-   - Add a `useQuery` that fetches project-scoped accounts when `projectId` is present:
-     ```
-     .from('accounts')
-     .select('id, code, name, type, parent_id, subtype, project_id')
-     .eq('is_active', true)
-     .eq('project_id', projectId)
-     .order('code')
-     ```
-   - Merge the project-scoped results with `accounts` from `useAccounts()` before applying type filtering, exclusion filtering, and search filtering.
-   - Ensure merged list is sorted by code.
+3. Remove the inline dropdown’s `slice(0, 5)` cap.
+   - The dropdown is already scrollable, so it should show every matching/child account instead of silently hiding valid options.
 
-2. **`src/components/AccountSearchInputInline.tsx`** (same pattern)
-   - Apply the same fix: fetch project-scoped accounts when `projectId` is provided and merge them into the filtered list.
+4. Apply the same parent-child expansion to the full `AccountSearchInput.tsx` if needed for consistency.
+   - The same logic should apply anywhere a parent account search is expected to reveal its children.
 
-### No database changes required
+5. Verify in the live preview.
+   - On Make Deposits, type `equity` in the Chart of Accounts row.
+   - Confirm all children under `2905 - Equity` appear, including `2905.1` and `2905.2`.
 
-The `accounts` table already has the `project_id` column and the data exists. This is purely a client-side data fetch fix.
+<presentation-actions>
+  <presentation-open-history>View History</presentation-open-history>
+</presentation-actions>
 
-### Verification
-
-After the change, opening the Account dropdown on the Journal Entry form inside this project should show:
-- `2905.1 - Equity Partner #1`
-- `2905.2 - Equity Partner #2`
-- `2905.3 - Equity - EG`
-
-These should appear alongside all other global accounts, respecting existing type filters and project exclusions.
+<presentation-actions>
+<presentation-link url="https://docs.lovable.dev/tips-tricks/troubleshooting">Troubleshooting docs</presentation-link>
+</presentation-actions>

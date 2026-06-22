@@ -74,17 +74,33 @@ export function AccountSearchInputInline({
   const displayNameOf = (acc: { id: string; name: string }) =>
     resolveAccountName(acc, overrides ?? null);
 
-  // Filter accounts by type, exclusions, and search query (against override name)
-  const filteredAccounts = searchQuery.trim().length >= 1 
-    ? (accounts || [])
-        .filter(acc => !accountType || acc.type === accountType)
-        .filter(acc => !excludedIds || !excludedIds.has(acc.id))
-        .filter(acc => {
-          const n = displayNameOf(acc).toLowerCase();
-          const q = searchQuery.toLowerCase();
-          return acc.code.toLowerCase().includes(q) || n.includes(q);
-        })
-    : [];
+  // Eligible accounts after type + project exclusion filters
+  const eligibleAccounts = (accounts || [])
+    .filter(acc => !accountType || acc.type === accountType)
+    .filter(acc => !excludedIds || !excludedIds.has(acc.id));
+
+  // Filter by search query (against code + override name).
+  // If a matched account is a parent, also include all eligible children.
+  const filteredAccounts = (() => {
+    const q = searchQuery.trim().toLowerCase();
+    if (q.length < 1) return [];
+    const directMatches = eligibleAccounts.filter(acc => {
+      const n = displayNameOf(acc).toLowerCase();
+      return acc.code.toLowerCase().includes(q) || n.includes(q);
+    });
+    const matchedIds = new Set(directMatches.map((a: any) => a.id));
+    const withChildren = [...directMatches];
+    for (const acc of eligibleAccounts) {
+      const parentId = (acc as any).parent_id;
+      if (parentId && matchedIds.has(parentId) && !matchedIds.has(acc.id)) {
+        withChildren.push(acc);
+        matchedIds.add(acc.id);
+      }
+    }
+    return withChildren.sort((a: any, b: any) =>
+      String(a.code).localeCompare(String(b.code), undefined, { numeric: true })
+    );
+  })();
 
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -155,8 +171,8 @@ export function AccountSearchInputInline({
       />
       
       {showResults && filteredAccounts.length > 0 && (
-        <div className="absolute z-50 mt-1 max-h-32 w-full overflow-auto rounded border bg-background shadow-sm">
-          {filteredAccounts.slice(0, 5).map((account) => (
+        <div className="absolute z-50 mt-1 max-h-64 w-full overflow-auto rounded border bg-background shadow-sm">
+          {filteredAccounts.map((account) => (
             <button
               key={account.id}
               type="button"
