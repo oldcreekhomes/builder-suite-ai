@@ -22,6 +22,7 @@ import { cn } from "@/lib/utils";
 import { useProject } from "@/hooks/useProject";
 import { useAccounts } from "@/hooks/useAccounts";
 import { useProjectDefaultDepositAccountId } from "@/hooks/useProjectDefaultDepositAccountId";
+import { useProjectAccountNames, resolveAccountName } from "@/hooks/useProjectAccountNames";
 import { useDeposits, DepositData, DepositLineData } from "@/hooks/useDeposits";
 import { useProjectCheckSettings } from "@/hooks/useProjectCheckSettings";
 import { toast } from "@/hooks/use-toast";
