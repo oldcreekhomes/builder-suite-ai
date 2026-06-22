@@ -171,8 +171,8 @@ export function AccountSearchInputInline({
       />
       
       {showResults && filteredAccounts.length > 0 && (
-        <div className="absolute z-50 mt-1 max-h-32 w-full overflow-auto rounded border bg-background shadow-sm">
-          {filteredAccounts.slice(0, 5).map((account) => (
+        <div className="absolute z-50 mt-1 max-h-64 w-full overflow-auto rounded border bg-background shadow-sm">
+          {filteredAccounts.map((account) => (
             <button
               key={account.id}
               type="button"
