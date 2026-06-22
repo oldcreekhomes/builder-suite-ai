@@ -154,12 +154,25 @@ export function AccountSearchInput({
     ? typeFilteredAccounts
     : (() => {
         const tokens = normalizedSearchQuery.split(/[-\s]+/).filter(Boolean);
-        return typeFilteredAccounts.filter(account => {
+        const directMatches = typeFilteredAccounts.filter(account => {
           const name = displayNameOf(account).toLowerCase();
           return tokens.every(t =>
             account.code.toLowerCase().includes(t) || name.includes(t)
           );
         });
+        // If a matched account is a parent, also include its eligible children.
+        const matchedIds = new Set(directMatches.map((a: any) => a.id));
+        const withChildren = [...directMatches];
+        for (const acc of typeFilteredAccounts) {
+          const parentId = (acc as any).parent_id;
+          if (parentId && matchedIds.has(parentId) && !matchedIds.has(acc.id)) {
+            withChildren.push(acc);
+            matchedIds.add(acc.id);
+          }
+        }
+        return withChildren.sort((a: any, b: any) =>
+          String(a.code).localeCompare(String(b.code), undefined, { numeric: true })
+        );
       })();
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
