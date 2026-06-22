@@ -818,6 +818,34 @@ export const JournalEntryForm = ({ projectId, activeTab: parentActiveTab }: Jour
                               </Select>
                             </td>
                           )}
+                          {showAddressColumn && (
+                            <td className="py-3 px-2 text-center">
+                              <TooltipProvider>
+                                <Tooltip>
+                                  <TooltipTrigger asChild>
+                                    <span>
+                                      <Button
+                                        type="button"
+                                        onClick={() => splitJobCostLineEvenly(line.id)}
+                                        size="sm"
+                                        variant="ghost"
+                                        className="h-10 w-10 p-0"
+                                        disabled={
+                                          !!line.lot_id ||
+                                          ((parseFloat(line.debit) || 0) <= 0 && (parseFloat(line.credit) || 0) <= 0)
+                                        }
+                                      >
+                                        <Divide className="h-4 w-4" />
+                                      </Button>
+                                    </span>
+                                  </TooltipTrigger>
+                                  <TooltipContent>
+                                    <p>Split evenly across all addresses</p>
+                                  </TooltipContent>
+                                </Tooltip>
+                              </TooltipProvider>
+                            </td>
+                          )}
                           <td className="py-3 pl-2 pr-3">
                             <div className="flex justify-center items-center gap-1">
                               <Button
