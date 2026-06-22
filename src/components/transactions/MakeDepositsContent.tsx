@@ -966,7 +966,7 @@ export function MakeDepositsContent({ projectId, activeTab: parentActiveTab }: M
                 onChange={(value) => {
                   if (!isTransactionLocked) {
                     setBankAccount(value);
-                    const acct = accounts.find(a => `${a.code} - ${a.name}` === value);
+                    const acct = accounts.find(a => labelForAccount(a) === value || `${a.code} - ${a.name}` === value);
                     if (acct) setBankAccountId(acct.id);
                     else if (!value) setBankAccountId("");
                   }
@@ -974,7 +974,7 @@ export function MakeDepositsContent({ projectId, activeTab: parentActiveTab }: M
                 onAccountSelect={(account) => {
                   if (!isTransactionLocked) {
                     setBankAccountId(account.id);
-                    setBankAccount(`${account.code} - ${account.name}`);
+                    setBankAccount(labelForAccount(account));
                   }
                 }}
                 accountType="asset"
