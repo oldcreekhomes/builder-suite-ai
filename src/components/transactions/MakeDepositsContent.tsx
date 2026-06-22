@@ -261,7 +261,7 @@ export function MakeDepositsContent({ projectId, activeTab: parentActiveTab }: M
     const bankAcct = accounts.find(a => a.id === deposit.bank_account_id);
     if (bankAcct) {
       setBankAccountId(bankAcct.id);
-      setBankAccount(`${bankAcct.code} - ${bankAcct.name}`);
+      setBankAccount(labelForAccount(bankAcct));
     }
 
     // Fetch company name if exists (using company_id now)
