@@ -154,6 +154,7 @@ export type Database = {
           name: string
           owner_id: string
           parent_id: string | null
+          project_id: string | null
           subtype: string | null
           type: Database["public"]["Enums"]["account_type"]
           updated_at: string
@@ -170,6 +171,7 @@ export type Database = {
           name: string
           owner_id: string
           parent_id?: string | null
+          project_id?: string | null
           subtype?: string | null
           type: Database["public"]["Enums"]["account_type"]
           updated_at?: string
@@ -186,6 +188,7 @@ export type Database = {
           name?: string
           owner_id?: string
           parent_id?: string | null
+          project_id?: string | null
           subtype?: string | null
           type?: Database["public"]["Enums"]["account_type"]
           updated_at?: string
@@ -204,6 +207,13 @@ export type Database = {
             columns: ["parent_id"]
             isOneToOne: false
             referencedRelation: "accounts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "accounts_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
             referencedColumns: ["id"]
           },
           {
