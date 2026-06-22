@@ -381,7 +381,24 @@ export function ProjectAccountsTab({ projectId }: ProjectAccountsTabProps) {
               })
             }
           />
+          {isProjectScoped && (
+            <Badge variant="secondary" className="ml-2 shrink-0 text-[10px] font-normal">
+              Project only
+            </Badge>
+          )}
         </div>
+
+        {isProjectScoped && (
+          <button
+            type="button"
+            onClick={() => setDeleteTarget(account)}
+            className="inline-flex items-center justify-center shrink-0 text-muted-foreground hover:text-destructive"
+            aria-label="Delete project-only account"
+            title="Delete this project-only account"
+          >
+            <Trash2 className="h-4 w-4" />
+          </button>
+        )}
 
         {isBank && !isExcluded && (
           <button
