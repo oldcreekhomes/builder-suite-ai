@@ -739,7 +739,7 @@ export const JournalEntryForm = ({ projectId, activeTab: parentActiveTab }: Jour
                     <tbody>
                       {jobCostLines.map((line, index) => (
                         <tr key={line.id} className={index % 2 === 0 ? "bg-background" : "bg-muted/30"}>
-                          <td className="p-3">
+                          <td className="p-3 pr-0">
                             <CostCodeSearchInput
                               value={line.cost_code_display || ""}
                               onChange={(value) => updateJobCostLine(line.id, "cost_code_display", value)}
@@ -754,7 +754,7 @@ export const JournalEntryForm = ({ projectId, activeTab: parentActiveTab }: Jour
                               className="w-full"
                             />
                           </td>
-                          <td className="p-3">
+                          <td className="p-3 pr-0">
                             <Input
                               type="text"
                               placeholder="0.00"
@@ -773,7 +773,7 @@ export const JournalEntryForm = ({ projectId, activeTab: parentActiveTab }: Jour
                               className="text-right"
                             />
                           </td>
-                          <td className="p-3">
+                          <td className="p-3 pr-0">
                             <Input
                               type="text"
                               placeholder="0.00"
