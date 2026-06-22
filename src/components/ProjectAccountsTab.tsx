@@ -300,7 +300,8 @@ export function ProjectAccountsTab({ projectId }: ProjectAccountsTabProps) {
   };
 
   const renderAccountRow = (account: Account, depth: number) => {
-    const isExcluded = exclusions?.has(account.id) ?? false;
+    const isProjectScoped = !!account.project_id;
+    const isExcluded = !isProjectScoped && (exclusions?.has(account.id) ?? false);
     const isBank = account.subtype === 'bank';
     const isDefaultBank = isBank && projectDefaultBankId === account.id;
     const isDepositControlRow = account.type === 'asset' && account.code === '1020' && account.name.toLowerCase() === 'deposits';
