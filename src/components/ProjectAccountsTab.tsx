@@ -48,6 +48,51 @@ export function ProjectAccountsTab({ projectId }: ProjectAccountsTabProps) {
   const [openSections, setOpenSections] = useState<Record<string, boolean>>({
     asset: true, liability: true, equity: true, revenue: true, expense: true,
   });
+  const [addOpen, setAddOpen] = useState(false);
+  const [deleteTarget, setDeleteTarget] = useState<Account | null>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
+
+  const deleteProjectAccount = async () => {
+    if (!deleteTarget) return;
+    setIsDeleting(true);
+    // Block delete if the account has any activity in this project
+    const { data: activity, error: actErr } = await supabase
+      .from('journal_entry_lines')
+      .select('id')
+      .eq('account_id', deleteTarget.id)
+      .eq('project_id', projectId)
+      .limit(1);
+    if (actErr) {
+      setIsDeleting(false);
+      toast({ title: "Error", description: actErr.message, variant: "destructive" });
+      return;
+    }
+    if ((activity ?? []).length > 0) {
+      setIsDeleting(false);
+      setDeleteTarget(null);
+      toast({
+        title: "Cannot delete account",
+        description: `${deleteTarget.code} ${deleteTarget.name} has activity in this project. Reassign or remove the activity first.`,
+        variant: "destructive",
+      });
+      return;
+    }
+    const { error } = await supabase
+      .from('accounts')
+      .delete()
+      .eq('id', deleteTarget.id)
+      .eq('project_id', projectId);
+    setIsDeleting(false);
+    setDeleteTarget(null);
+    if (error) {
+      toast({ title: "Error", description: error.message, variant: "destructive" });
+      return;
+    }
+    toast({ title: "Account deleted" });
+    queryClient.invalidateQueries({ queryKey: ['accounts-for-project-selection', projectId] });
+    queryClient.invalidateQueries({ queryKey: ['balance-sheet'] });
+    queryClient.invalidateQueries({ queryKey: ['income-statement'] });
+  };
 
   const { data: accounts, isLoading: accountsLoading } = useQuery({
     queryKey: ['accounts-for-project-selection', projectId],
