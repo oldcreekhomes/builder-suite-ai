@@ -55,7 +55,8 @@ export function IncomeStatementContent({ projectId, onHeaderActionChange, asOfDa
           .from('accounts')
           .select('id, code, name, type, is_active, parent_id')
           .eq('is_active', true)
-          .in('type', ['revenue', 'expense']),
+          .in('type', ['revenue', 'expense'])
+          .or(projectId ? `project_id.is.null,project_id.eq.${projectId}` : 'project_id.is.null'),
         projectId
           ? supabase
               .from('project_account_exclusions')
