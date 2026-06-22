@@ -436,7 +436,7 @@ export function ProjectAccountsTab({ projectId }: ProjectAccountsTabProps) {
             <SelectContent>
               {availableBankAccounts.map((a) => (
                 <SelectItem key={a.id} value={a.id}>
-                  {a.name}
+                  {overrides?.get(a.id) ?? a.name}
                 </SelectItem>
               ))}
             </SelectContent>
