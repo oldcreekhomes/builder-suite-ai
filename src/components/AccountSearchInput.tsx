@@ -34,10 +34,34 @@ export function AccountSearchInput({
   const [showResults, setShowResults] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
   const justSelectedRef = useRef(false);
-  const { accounts, isLoading } = useAccounts();
+  const { accounts: globalAccounts, isLoading } = useAccounts();
   const { data: overrides } = useProjectAccountNames(projectId);
   const displayNameOf = (acc: { id: string; name: string }) =>
     resolveAccountName(acc, overrides ?? null);
+
+  const { data: projectAccounts } = useQuery({
+    queryKey: ['project-scoped-accounts', projectId],
+    enabled: !!projectId,
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('accounts')
+        .select('id, code, name, type, parent_id, subtype, project_id, is_active')
+        .eq('is_active', true)
+        .eq('project_id', projectId!)
+        .order('code');
+      if (error) throw error;
+      return data ?? [];
+    },
+  });
+
+  const accounts = (() => {
+    const base = globalAccounts ?? [];
+    const extra = projectAccounts ?? [];
+    if (extra.length === 0) return base;
+    const seen = new Set(base.map((a: any) => a.id));
+    const merged = [...base, ...extra.filter((a: any) => !seen.has(a.id))];
+    return merged.sort((a: any, b: any) => String(a.code).localeCompare(String(b.code), undefined, { numeric: true }));
+  })();
 
   const { data: excludedIds } = useQuery({
     queryKey: ['project-account-exclusions', projectId],
