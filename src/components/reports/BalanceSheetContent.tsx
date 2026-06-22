@@ -62,7 +62,8 @@ export function BalanceSheetContent({ projectId, onHeaderActionChange, asOfDate,
         supabase
           .from('accounts')
           .select('id, code, name, type, is_active, parent_id')
-          .eq('is_active', true),
+          .eq('is_active', true)
+          .or(projectId ? `project_id.is.null,project_id.eq.${projectId}` : 'project_id.is.null'),
         projectId
           ? supabase
               .from('project_account_exclusions')
