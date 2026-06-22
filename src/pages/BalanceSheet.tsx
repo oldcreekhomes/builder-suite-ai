@@ -52,7 +52,8 @@ export default function BalanceSheet() {
       const { data: accounts, error: accountsError } = await supabase
         .from('accounts')
         .select('id, code, name, type, is_active')
-        .eq('is_active', true);
+        .eq('is_active', true)
+        .is('project_id', null);
 
       if (accountsError) {
         console.error("🔍 Balance Sheet: Accounts query failed:", accountsError);
