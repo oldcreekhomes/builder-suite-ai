@@ -357,10 +357,21 @@ export function MakeDepositsContent({ projectId, activeTab: parentActiveTab }: M
         }
         newRevenueRows.push(row);
       } else {
-        // This is a Chart of Accounts line - find the account
-        const account = accounts.find(a => a.id === line.account_id);
+        // This is a Chart of Accounts line - find the account (may be project-scoped)
+        let account: any = accounts.find(a => a.id === line.account_id);
+        if (!account && (line as any).accounts) {
+          account = (line as any).accounts;
+        }
+        if (!account && line.account_id) {
+          const { data: fetched } = await supabase
+            .from('accounts')
+            .select('id, code, name')
+            .eq('id', line.account_id)
+            .maybeSingle();
+          if (fetched) account = fetched;
+        }
         if (account) {
-          row.account = `${account.code} - ${account.name}`;
+          row.account = labelForAccount(account);
         }
         newOtherRows.push(row);
       }
@@ -648,14 +659,31 @@ export function MakeDepositsContent({ projectId, activeTab: parentActiveTab }: M
 
   const findAccountIdFromText = (text: string | undefined): string | undefined => {
     if (!text) return undefined;
+    const displayNameOf = (acc: any) =>
+      (accountNameOverrides?.get(acc.id) ?? acc.name ?? "") as string;
     const leading = extractLeadingCode(text);
     if (leading) {
       const exact = (accounts as any[]).find(acc => String(acc.code || "").toLowerCase() === leading.toLowerCase());
       if (exact) return String(exact.id);
     }
     const q = normalize(text);
+    // Try exact match against "code - displayName", "code - baseName", or display/base name
+    const exactFull = (accounts as any[]).find(acc => {
+      const code = String(acc.code || "");
+      const disp = displayNameOf(acc);
+      const base = String(acc.name || "");
+      return (
+        normalize(`${code} - ${disp}`) === q ||
+        normalize(`${code} - ${base}`) === q ||
+        normalize(disp) === q ||
+        normalize(base) === q
+      );
+    });
+    if (exactFull) return String(exactFull.id);
     const matches = (accounts as any[]).filter(acc =>
-      String(acc.code || "").toLowerCase().includes(q) || String(acc.name || "").toLowerCase().includes(q)
+      String(acc.code || "").toLowerCase().includes(q) ||
+      String(acc.name || "").toLowerCase().includes(q) ||
+      displayNameOf(acc).toLowerCase().includes(q)
     );
     return matches.length === 1 ? String(matches[0].id) : undefined;
   };
