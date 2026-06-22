@@ -262,6 +262,43 @@ export const JournalEntryForm = ({ projectId, activeTab: parentActiveTab }: Jour
     }
   };
 
+  const splitJobCostLineEvenly = (id: string) => {
+    if (lots.length < 2) return;
+    const source = jobCostLines.find(l => l.id === id);
+    if (!source) return;
+    const debitVal = parseFloat(source.debit) || 0;
+    const creditVal = parseFloat(source.credit) || 0;
+    if (debitVal <= 0 && creditVal <= 0) return;
+    const total = debitVal > 0 ? debitVal : creditVal;
+    const isDebit = debitVal > 0;
+    const perLot = Math.floor((total / lots.length) * 100) / 100;
+    const remainder = Math.round((total - perLot * (lots.length - 1)) * 100) / 100;
+    const newLines: JournalLine[] = lots.map((lot, idx) => {
+      const amt = (idx === lots.length - 1 ? remainder : perLot).toFixed(2);
+      return {
+        id: crypto.randomUUID(),
+        line_type: 'job_cost',
+        cost_code_id: source.cost_code_id,
+        cost_code_display: source.cost_code_display,
+        debit: isDebit ? amt : "",
+        credit: isDebit ? "" : amt,
+        memo: source.memo,
+        lot_id: lot.id,
+      };
+    });
+    const i = jobCostLines.findIndex(l => l.id === id);
+    setJobCostLines([
+      ...jobCostLines.slice(0, i),
+      ...newLines,
+      ...jobCostLines.slice(i + 1),
+    ]);
+    toast({
+      title: "Row Split",
+      description: `Split $${total.toFixed(2)} evenly across ${lots.length} addresses`,
+    });
+  };
+
+
   const updateExpenseLine = (id: string, field: keyof JournalLine, value: string) => {
     setExpenseLines(prev => prev.map(line => {
       if (line.id === id) {
