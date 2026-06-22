@@ -451,7 +451,7 @@ export default function MakeDeposits() {
                       onChange={(v) => { setBankAccount(v); if (!v) setBankAccountId(""); }}
                       onAccountSelect={(account) => {
                         setBankAccountId(account.id);
-                        setBankAccount(`${account.code} - ${account.name}`);
+                        setBankAccount(labelForAccount(account));
                       }}
                       accountType="asset"
                       projectId={projectId}
