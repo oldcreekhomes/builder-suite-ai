@@ -314,54 +314,58 @@ export function ProjectAccountsTab({ projectId }: ProjectAccountsTabProps) {
         className="flex items-center gap-3 py-1.5 px-2 hover:bg-muted/50 rounded text-sm"
         style={{ paddingLeft: `${(depth + 1) * 16}px` }}
       >
-        <Checkbox
-          checked={!isExcluded}
-          onCheckedChange={async (checked) => {
-            const wantExclude = !checked;
-            if (wantExclude) {
-              // Guard: block disabling an account that has non-zero project activity
-              const { data, error } = await supabase
-                .from('journal_entry_lines')
-                .select('debit, credit')
-                .eq('account_id', account.id)
-                .eq('project_id', projectId);
-              if (error) {
-                toast({
-                  title: "Error",
-                  description: `Failed to verify account balance: ${error.message}`,
-                  variant: "destructive",
-                });
-                return;
+        {isProjectScoped ? (
+          <span className="inline-block w-4 shrink-0" aria-hidden />
+        ) : (
+          <Checkbox
+            checked={!isExcluded}
+            onCheckedChange={async (checked) => {
+              const wantExclude = !checked;
+              if (wantExclude) {
+                // Guard: block disabling an account that has non-zero project activity
+                const { data, error } = await supabase
+                  .from('journal_entry_lines')
+                  .select('debit, credit')
+                  .eq('account_id', account.id)
+                  .eq('project_id', projectId);
+                if (error) {
+                  toast({
+                    title: "Error",
+                    description: `Failed to verify account balance: ${error.message}`,
+                    variant: "destructive",
+                  });
+                  return;
+                }
+                const totalDebit = Math.round(
+                  (data ?? []).reduce((s, l: any) => s + Number(l.debit || 0), 0) * 100
+                ) / 100;
+                const totalCredit = Math.round(
+                  (data ?? []).reduce((s, l: any) => s + Number(l.credit || 0), 0) * 100
+                ) / 100;
+                const balance = Math.round((totalDebit - totalCredit) * 100) / 100;
+                if (Math.abs(balance) > 0.005) {
+                  const formatted = new Intl.NumberFormat('en-US', {
+                    style: 'currency',
+                    currency: 'USD',
+                    minimumFractionDigits: 2,
+                    maximumFractionDigits: 2,
+                  }).format(balance);
+                  toast({
+                    title: "Cannot disable account",
+                    description: `${account.code} ${account.name} has a project balance of ${formatted}. Clear or reassign the activity before disabling.`,
+                    variant: "destructive",
+                  });
+                  return;
+                }
               }
-              const totalDebit = Math.round(
-                (data ?? []).reduce((s, l: any) => s + Number(l.debit || 0), 0) * 100
-              ) / 100;
-              const totalCredit = Math.round(
-                (data ?? []).reduce((s, l: any) => s + Number(l.credit || 0), 0) * 100
-              ) / 100;
-              const balance = Math.round((totalDebit - totalCredit) * 100) / 100;
-              if (Math.abs(balance) > 0.005) {
-                const formatted = new Intl.NumberFormat('en-US', {
-                  style: 'currency',
-                  currency: 'USD',
-                  minimumFractionDigits: 2,
-                  maximumFractionDigits: 2,
-                }).format(balance);
-                toast({
-                  title: "Cannot disable account",
-                  description: `${account.code} ${account.name} has a project balance of ${formatted}. Clear or reassign the activity before disabling.`,
-                  variant: "destructive",
-                });
-                return;
-              }
-            }
-            toggleMutation.mutate({
-              accountId: account.id,
-              exclude: wantExclude,
-            });
-          }}
-          disabled={toggleMutation.isPending}
-        />
+              toggleMutation.mutate({
+                accountId: account.id,
+                exclude: wantExclude,
+              });
+            }}
+            disabled={toggleMutation.isPending}
+          />
+        )}
         <div className="flex items-center gap-1 min-w-0 flex-1">
           {depth > 0 && <span className="text-muted-foreground mr-1">↳</span>}
           <span className="shrink-0">{account.code} -</span>
