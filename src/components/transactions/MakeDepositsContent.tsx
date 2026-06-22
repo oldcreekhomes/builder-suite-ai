@@ -424,7 +424,7 @@ export function MakeDepositsContent({ projectId, activeTab: parentActiveTab }: M
     const defaultBank = defaultBankAccountId
       ? accounts.find((a: any) => a.id === defaultBankAccountId)
       : null;
-    setBankAccount(defaultBank ? `${defaultBank.code} - ${defaultBank.name}` : "");
+    setBankAccount(defaultBank ? labelForAccount(defaultBank) : "");
     setBankAccountId(defaultBank?.id ?? "");
     setCheckNumber("");
     setActiveTab("other"); // Reset to default tab
