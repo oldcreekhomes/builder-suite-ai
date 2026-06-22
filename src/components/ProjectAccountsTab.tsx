@@ -4,13 +4,17 @@ import { supabase } from "@/integrations/supabase/client";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { ChevronDown, ChevronRight, Star } from "lucide-react";
+import { ChevronDown, ChevronRight, Star, Plus, Trash2 } from "lucide-react";
 import { useState, useMemo, useRef, useEffect } from "react";
 import { useToast } from "@/hooks/use-toast";
 import { groupAccountsByParent } from "@/lib/accountHierarchy";
 import { useProjectAccountNames, resolveAccountName } from "@/hooks/useProjectAccountNames";
+import { AddProjectAccountDialog } from "@/components/AddProjectAccountDialog";
+import { DeleteConfirmationDialog } from "@/components/ui/delete-confirmation-dialog";
 
 interface ProjectAccountsTabProps {
   projectId: string;
@@ -25,6 +29,7 @@ interface Account {
   type: AccountType;
   parent_id: string | null;
   subtype?: string | null;
+  project_id?: string | null;
 }
 
 const TYPE_LABELS: Record<AccountType, string> = {
@@ -43,14 +48,60 @@ export function ProjectAccountsTab({ projectId }: ProjectAccountsTabProps) {
   const [openSections, setOpenSections] = useState<Record<string, boolean>>({
     asset: true, liability: true, equity: true, revenue: true, expense: true,
   });
+  const [addOpen, setAddOpen] = useState(false);
+  const [deleteTarget, setDeleteTarget] = useState<Account | null>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
+
+  const deleteProjectAccount = async () => {
+    if (!deleteTarget) return;
+    setIsDeleting(true);
+    // Block delete if the account has any activity in this project
+    const { data: activity, error: actErr } = await supabase
+      .from('journal_entry_lines')
+      .select('id')
+      .eq('account_id', deleteTarget.id)
+      .eq('project_id', projectId)
+      .limit(1);
+    if (actErr) {
+      setIsDeleting(false);
+      toast({ title: "Error", description: actErr.message, variant: "destructive" });
+      return;
+    }
+    if ((activity ?? []).length > 0) {
+      setIsDeleting(false);
+      setDeleteTarget(null);
+      toast({
+        title: "Cannot delete account",
+        description: `${deleteTarget.code} ${deleteTarget.name} has activity in this project. Reassign or remove the activity first.`,
+        variant: "destructive",
+      });
+      return;
+    }
+    const { error } = await supabase
+      .from('accounts')
+      .delete()
+      .eq('id', deleteTarget.id)
+      .eq('project_id', projectId);
+    setIsDeleting(false);
+    setDeleteTarget(null);
+    if (error) {
+      toast({ title: "Error", description: error.message, variant: "destructive" });
+      return;
+    }
+    toast({ title: "Account deleted" });
+    queryClient.invalidateQueries({ queryKey: ['accounts-for-project-selection', projectId] });
+    queryClient.invalidateQueries({ queryKey: ['balance-sheet'] });
+    queryClient.invalidateQueries({ queryKey: ['income-statement'] });
+  };
 
   const { data: accounts, isLoading: accountsLoading } = useQuery({
-    queryKey: ['accounts-for-project-selection'],
+    queryKey: ['accounts-for-project-selection', projectId],
     queryFn: async () => {
       const { data, error } = await supabase
         .from('accounts')
-        .select('id, code, name, type, parent_id, subtype')
+        .select('id, code, name, type, parent_id, subtype, project_id')
         .eq('is_active', true)
+        .or(`project_id.is.null,project_id.eq.${projectId}`)
         .order('code');
       if (error) throw error;
       return data as Account[];
@@ -249,7 +300,8 @@ export function ProjectAccountsTab({ projectId }: ProjectAccountsTabProps) {
   };
 
   const renderAccountRow = (account: Account, depth: number) => {
-    const isExcluded = exclusions?.has(account.id) ?? false;
+    const isProjectScoped = !!account.project_id;
+    const isExcluded = !isProjectScoped && (exclusions?.has(account.id) ?? false);
     const isBank = account.subtype === 'bank';
     const isDefaultBank = isBank && projectDefaultBankId === account.id;
     const isDepositControlRow = account.type === 'asset' && account.code === '1020' && account.name.toLowerCase() === 'deposits';
@@ -262,54 +314,58 @@ export function ProjectAccountsTab({ projectId }: ProjectAccountsTabProps) {
         className="flex items-center gap-3 py-1.5 px-2 hover:bg-muted/50 rounded text-sm"
         style={{ paddingLeft: `${(depth + 1) * 16}px` }}
       >
-        <Checkbox
-          checked={!isExcluded}
-          onCheckedChange={async (checked) => {
-            const wantExclude = !checked;
-            if (wantExclude) {
-              // Guard: block disabling an account that has non-zero project activity
-              const { data, error } = await supabase
-                .from('journal_entry_lines')
-                .select('debit, credit')
-                .eq('account_id', account.id)
-                .eq('project_id', projectId);
-              if (error) {
-                toast({
-                  title: "Error",
-                  description: `Failed to verify account balance: ${error.message}`,
-                  variant: "destructive",
-                });
-                return;
+        {isProjectScoped ? (
+          <span className="inline-block w-4 shrink-0" aria-hidden />
+        ) : (
+          <Checkbox
+            checked={!isExcluded}
+            onCheckedChange={async (checked) => {
+              const wantExclude = !checked;
+              if (wantExclude) {
+                // Guard: block disabling an account that has non-zero project activity
+                const { data, error } = await supabase
+                  .from('journal_entry_lines')
+                  .select('debit, credit')
+                  .eq('account_id', account.id)
+                  .eq('project_id', projectId);
+                if (error) {
+                  toast({
+                    title: "Error",
+                    description: `Failed to verify account balance: ${error.message}`,
+                    variant: "destructive",
+                  });
+                  return;
+                }
+                const totalDebit = Math.round(
+                  (data ?? []).reduce((s, l: any) => s + Number(l.debit || 0), 0) * 100
+                ) / 100;
+                const totalCredit = Math.round(
+                  (data ?? []).reduce((s, l: any) => s + Number(l.credit || 0), 0) * 100
+                ) / 100;
+                const balance = Math.round((totalDebit - totalCredit) * 100) / 100;
+                if (Math.abs(balance) > 0.005) {
+                  const formatted = new Intl.NumberFormat('en-US', {
+                    style: 'currency',
+                    currency: 'USD',
+                    minimumFractionDigits: 2,
+                    maximumFractionDigits: 2,
+                  }).format(balance);
+                  toast({
+                    title: "Cannot disable account",
+                    description: `${account.code} ${account.name} has a project balance of ${formatted}. Clear or reassign the activity before disabling.`,
+                    variant: "destructive",
+                  });
+                  return;
+                }
               }
-              const totalDebit = Math.round(
-                (data ?? []).reduce((s, l: any) => s + Number(l.debit || 0), 0) * 100
-              ) / 100;
-              const totalCredit = Math.round(
-                (data ?? []).reduce((s, l: any) => s + Number(l.credit || 0), 0) * 100
-              ) / 100;
-              const balance = Math.round((totalDebit - totalCredit) * 100) / 100;
-              if (Math.abs(balance) > 0.005) {
-                const formatted = new Intl.NumberFormat('en-US', {
-                  style: 'currency',
-                  currency: 'USD',
-                  minimumFractionDigits: 2,
-                  maximumFractionDigits: 2,
-                }).format(balance);
-                toast({
-                  title: "Cannot disable account",
-                  description: `${account.code} ${account.name} has a project balance of ${formatted}. Clear or reassign the activity before disabling.`,
-                  variant: "destructive",
-                });
-                return;
-              }
-            }
-            toggleMutation.mutate({
-              accountId: account.id,
-              exclude: wantExclude,
-            });
-          }}
-          disabled={toggleMutation.isPending}
-        />
+              toggleMutation.mutate({
+                accountId: account.id,
+                exclude: wantExclude,
+              });
+            }}
+            disabled={toggleMutation.isPending}
+          />
+        )}
         <div className="flex items-center gap-1 min-w-0 flex-1">
           {depth > 0 && <span className="text-muted-foreground mr-1">↳</span>}
           <span className="shrink-0">{account.code} -</span>
@@ -325,7 +381,24 @@ export function ProjectAccountsTab({ projectId }: ProjectAccountsTabProps) {
               })
             }
           />
+          {isProjectScoped && (
+            <Badge variant="secondary" className="ml-2 shrink-0 text-[10px] font-normal">
+              Project only
+            </Badge>
+          )}
         </div>
+
+        {isProjectScoped && (
+          <button
+            type="button"
+            onClick={() => setDeleteTarget(account)}
+            className="inline-flex items-center justify-center shrink-0 text-muted-foreground hover:text-destructive"
+            aria-label="Delete project-only account"
+            title="Delete this project-only account"
+          >
+            <Trash2 className="h-4 w-4" />
+          </button>
+        )}
 
         {isBank && !isExcluded && (
           <button
@@ -375,9 +448,15 @@ export function ProjectAccountsTab({ projectId }: ProjectAccountsTabProps) {
 
   return (
     <div className="space-y-2 py-2 max-h-[60vh] overflow-y-auto">
-      <p className="text-sm text-muted-foreground mb-3">
-        Uncheck accounts that are not applicable to this project. Excluded accounts won't appear on the Balance Sheet or Income Statement.
-      </p>
+      <div className="flex items-start justify-between gap-3 mb-3">
+        <p className="text-sm text-muted-foreground">
+          Uncheck accounts that are not applicable to this project. Excluded accounts won't appear on the Balance Sheet or Income Statement.
+        </p>
+        <Button size="sm" variant="outline" onClick={() => setAddOpen(true)} className="shrink-0">
+          <Plus className="h-4 w-4 mr-1" />
+          Add Account
+        </Button>
+      </div>
 
       {TYPE_ORDER.map((type) => {
         const typeAccounts = grouped[type] || [];
@@ -410,6 +489,22 @@ export function ProjectAccountsTab({ projectId }: ProjectAccountsTabProps) {
           </Collapsible>
         );
       })}
+
+      <AddProjectAccountDialog
+        projectId={projectId}
+        open={addOpen}
+        onOpenChange={setAddOpen}
+        existingAccounts={accounts ?? []}
+      />
+
+      <DeleteConfirmationDialog
+        open={!!deleteTarget}
+        onOpenChange={(o) => !o && setDeleteTarget(null)}
+        title="Delete project-only account"
+        description={deleteTarget ? `Permanently delete ${deleteTarget.code} - ${deleteTarget.name} from this project? This cannot be undone.` : ''}
+        onConfirm={deleteProjectAccount}
+        isLoading={isDeleting}
+      />
     </div>
   );
 }

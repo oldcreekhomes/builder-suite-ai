@@ -23,6 +23,7 @@ export const useAccounts = () => {
         .from('accounts')
         .select('*')
         .eq('is_active', true)
+        .is('project_id', null)
         .order('code');
       
       if (error) throw error;
