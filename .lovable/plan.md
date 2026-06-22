@@ -1,41 +1,28 @@
-Do I know what the issue is? Yes.
+## Goal
+Make the "Deposit To (Bank Account)" field on Make Deposits show the project's renamed default bank account (e.g. "John Marshall Bank") instead of the underlying base name ("Atlantic Union Bank"), and ensure the dropdown options only ever list bank accounts that are enabled on this project — using the project's renamed labels.
 
-The exact problem is in `AccountSearchInputInline.tsx`: the inline dropdown filters each account only by that row’s own `code` and display `name`. So when you type `equity`, it finds `2905 - Equity` and `2905.3 - Equity - EG`, but it drops `2905.1 - IM` and `2905.2 - OCH` because those child names do not contain the word `equity`. The component is not expanding children when the parent account matches.
+## What's actually happening
+- 1010 is the project's default deposit account, and its project-level name override is "John Marshall Bank". The deposit page IS auto-selecting account 1010 — it's just rendering it as `1010 - Atlantic Union Bank` (the base `accounts.name`), so it looks like the wrong account.
+- The dropdown component (`AccountSearchInput` with `bankAccountsOnly`) already honors `project_account_exclusions` and project name overrides for the options it renders. The bug is only in the auto-fill / reset codepaths that build the displayed string from `acct.code - acct.name`.
 
-Files involved:
-- `src/components/AccountSearchInputInline.tsx` — the Make Deposits line-item dropdown shown in your screenshot.
-- `src/components/transactions/MakeDepositsContent.tsx` — confirms that Make Deposits uses `AccountSearchInputInline` with the North Potomac `projectId`.
+## Changes
 
-Plan to fix:
+1. **`src/components/transactions/MakeDepositsContent.tsx`**
+   - Load project name overrides via `useProjectAccountNames(projectId)` (same hook `AccountSearchInput` uses).
+   - Replace the three places that build `` `${acct.code} - ${acct.name}` `` for the bank field (lines ~104, ~260, ~423) with the override-aware label: `` `${acct.code} - ${overrides?.get(acct.id) ?? acct.name}` ``.
+   - Also apply this to the `onAccountSelect` handler at ~973 so picking an option from the dropdown writes the override name back into the input, not the base name.
 
-1. Update `AccountSearchInputInline.tsx` filtering.
-   - First build the eligible account list after account type and project exclusion filters.
-   - Match the search text against account code/name as it does now.
-   - If a matched account is a parent, include all eligible child accounts where `child.parent_id === matchedParent.id`.
-   - This makes `equity`, `eq`, or `2905` show:
-     - `2905 - Equity`
-     - `2905.1 - IM`
-     - `2905.2 - OCH`
-     - `2905.3 - Equity - EG`
+2. **`src/pages/MakeDeposits.tsx`** (the older standalone page that still ships the same field at lines 444–450)
+   - Same override-aware substitution for the `onAccountSelect` handler so behavior matches the embedded version.
 
-2. Keep project visibility rules intact.
-   - Continue respecting `project_account_exclusions` so accounts unchecked for North Potomac stay hidden.
-   - Continue merging global accounts plus North Potomac project-only accounts.
+3. **`src/components/transactions/WriteChecksContent.tsx`** (for parity, since it has the identical auto-fill bug at lines 149, 517, 1213)
+   - Apply the same override-aware label substitution so renamed bank accounts also display correctly on Write Checks.
 
-3. Remove the inline dropdown’s `slice(0, 5)` cap.
-   - The dropdown is already scrollable, so it should show every matching/child account instead of silently hiding valid options.
+4. **Verification on `/project/350e5951.../accounting/transactions`** (Make Deposits tab)
+   - Confirm the Deposit To field auto-fills as `1010 - John Marshall Bank` (the override) instead of `1010 - Atlantic Union Bank`.
+   - Confirm the dropdown only lists in-project bank accounts (John Marshall Bank, Capital One) and that selecting one preserves the renamed label.
+   - Spot-check Write Checks for the same behavior.
 
-4. Apply the same parent-child expansion to the full `AccountSearchInput.tsx` if needed for consistency.
-   - The same logic should apply anywhere a parent account search is expected to reveal its children.
-
-5. Verify in the live preview.
-   - On Make Deposits, type `equity` in the Chart of Accounts row.
-   - Confirm all children under `2905 - Equity` appear, including `2905.1` and `2905.2`.
-
-<presentation-actions>
-  <presentation-open-history>View History</presentation-open-history>
-</presentation-actions>
-
-<presentation-actions>
-<presentation-link url="https://docs.lovable.dev/tips-tricks/troubleshooting">Troubleshooting docs</presentation-link>
-</presentation-actions>
+## Non-goals
+- No changes to default-bank resolution logic, exclusions, or `subtype` filtering — those are already correct.
+- No schema/migration changes.
