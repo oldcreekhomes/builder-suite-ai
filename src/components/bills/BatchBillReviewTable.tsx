@@ -248,6 +248,35 @@ export function BatchBillReviewTable({
 
   const { data: poMatchingData } = useBillPOMatching(billsForMatching);
 
+  // Resolve canonical company names for any bills with a matched vendor_id so
+  // the Vendor column shows e.g. "City of Alexandria" instead of the raw OCR
+  // text "CITY OF ALEXANDRIA VA" stored in extracted_data.
+  const matchedVendorIds = useMemo(() => {
+    const ids = new Set<string>();
+    bills.forEach(b => {
+      const vid = (b.vendor_id || b.extracted_data?.vendor_id || b.extracted_data?.vendorId) as string | undefined;
+      if (vid) ids.add(vid);
+    });
+    return Array.from(ids);
+  }, [bills]);
+
+  const { data: vendorNameMap } = useQuery({
+    queryKey: ['batch-bill-vendor-names', matchedVendorIds.slice().sort().join(',')],
+    queryFn: async () => {
+      if (matchedVendorIds.length === 0) return new Map<string, string>();
+      const { data, error } = await supabase
+        .from('companies')
+        .select('id, company_name')
+        .in('id', matchedVendorIds);
+      if (error) throw error;
+      const map = new Map<string, string>();
+      (data || []).forEach((c: any) => map.set(c.id, c.company_name));
+      return map;
+    },
+    enabled: matchedVendorIds.length > 0,
+    staleTime: 60_000,
+  });
+
   // Helper to get extracted values (handles both snake_case and camelCase)
   const getExtractedValue = (bill: PendingBill, snakeCase: string, camelCase: string) => {
     // First check root level for backward compatibility
