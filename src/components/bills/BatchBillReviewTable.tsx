@@ -752,8 +752,10 @@ export function BatchBillReviewTable({
                 })),
               );
               
-              const vendorName = getExtractedValue(bill, 'vendor_name', 'vendor');
               const vendorId = bill.vendor_id || getExtractedValue(bill, 'vendor_id', 'vendorId');
+              const matchedVendorName = vendorId ? vendorNameMap?.get(vendorId as string) : undefined;
+              const rawVendorName = getExtractedValue(bill, 'vendor_name', 'vendor');
+              const vendorName = matchedVendorName || rawVendorName;
               const referenceNumber = getExtractedValue(bill, 'reference_number', 'referenceNumber');
               const billDate = getExtractedValue(bill, 'bill_date', 'billDate');
               const memoSummary = getMemoSummary(bill);
