@@ -1095,7 +1095,20 @@ export function BillsApprovalTable({ status, projectId, projectIds, showProjectC
         })()}
       </TableCell>
       <TableCell className="w-24 max-w-[96px]">
-        <span className="block truncate">{bill.reference_number || '-'}</span>
+        {bill.reference_number ? (
+          <TooltipProvider>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <span className="block truncate cursor-default">{bill.reference_number}</span>
+              </TooltipTrigger>
+              <TooltipContent>
+                <p className="text-xs">{bill.reference_number}</p>
+              </TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
+        ) : (
+          <span className="block truncate">-</span>
+        )}
       </TableCell>
       {/* Memo column */}
       <TableCell className="w-10 text-center">
