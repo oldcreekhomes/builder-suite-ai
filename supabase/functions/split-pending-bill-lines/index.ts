@@ -108,26 +108,21 @@ serve(async (req) => {
       const base = baseMaxMap[uploadId] || 0;
       const lotCount = lots.length;
 
-      // Pre-compute per-lot AMOUNT splits (cents-precise) AND per-lot QUANTITY splits.
-      // We preserve the original unit_cost (rate) and divide the QUANTITY across lots,
-      // so each row reads correctly: perLotQty * unit_cost ≈ perLotAmount.
-      // The persisted `amount` remains cent-precise (last lot absorbs rounder remainder).
-      const splitsByLineId: Record<string, { amount: number; quantity: number }[]> = {};
+      // Cent-precise per-lot AMOUNT split — the Nob Hill pattern.
+      // Each lot row stores its actual allocated amount on BOTH `amount` and
+      // `unit_cost`, with `quantity = 1`. The last lot absorbs the remainder
+      // so the lot rows ALWAYS sum exactly to the original line amount.
+      const splitsByLineId: Record<string, number[]> = {};
       for (const line of uploadLines) {
         const originalAmount = parseFloat(line.amount) || 0;
-        const originalQty = parseFloat(line.quantity) || 0;
-        const evenCents = Math.floor((originalAmount * 100) / lotCount);
-        const remainderCents = Math.round(originalAmount * 100) - (evenCents * lotCount);
-        // Use 6 decimal places of precision on the per-lot quantity so the
-        // displayed math (qty × rate) is visually accurate per row.
-        const evenQty = Math.floor((originalQty * 1e6) / lotCount) / 1e6;
-        const qtyRemainder = Math.round((originalQty - evenQty * lotCount) * 1e6) / 1e6;
-        const arr: { amount: number; quantity: number }[] = [];
+        const totalCents = Math.round(originalAmount * 100);
+        const baseCents = Math.floor(totalCents / lotCount);
+        const remainderCents = totalCents - baseCents * lotCount;
+        const arr: number[] = [];
         for (let i = 0; i < lotCount; i++) {
           const isLast = i === lotCount - 1;
-          const cents = isLast ? evenCents + remainderCents : evenCents;
-          const qty = isLast ? Math.round((evenQty + qtyRemainder) * 1e6) / 1e6 : evenQty;
-          arr.push({ amount: cents / 100, quantity: qty });
+          const cents = isLast ? baseCents + remainderCents : baseCents;
+          arr.push(cents / 100);
         }
         splitsByLineId[line.id] = arr;
       }
@@ -135,20 +130,18 @@ serve(async (req) => {
       // Build interleaved output: for each original line, emit one row per lot
       for (let originalIdx = 0; originalIdx < uploadLines.length; originalIdx++) {
         const line = uploadLines[originalIdx];
-        const originalUnitCost = parseFloat(line.unit_cost) || 0;
         for (let lotIdx = 0; lotIdx < lotCount; lotIdx++) {
           const lot = lots[lotIdx];
-          const { amount: lotAmount, quantity: lotQuantity } = splitsByLineId[line.id][lotIdx];
+          const lotAmount = splitsByLineId[line.id][lotIdx];
           const newLineNumber = base + originalIdx * lotCount + lotIdx + 1;
 
           if (lotIdx === 0) {
-            // Reuse original row for the first lot, but renumber it
             updates.push({
               id: line.id,
               lot_id: lot.id,
               amount: lotAmount,
-              unit_cost: originalUnitCost,
-              quantity: lotQuantity,
+              unit_cost: lotAmount,
+              quantity: 1,
               line_number: newLineNumber,
             });
           } else {
@@ -161,8 +154,8 @@ serve(async (req) => {
               account_id: line.account_id,
               project_id: line.project_id,
               lot_id: lot.id,
-              quantity: lotQuantity,
-              unit_cost: originalUnitCost,
+              quantity: 1,
+              unit_cost: lotAmount,
               amount: lotAmount,
               memo: line.memo,
               description: line.description,
@@ -197,6 +190,7 @@ serve(async (req) => {
         updatedCount++;
       }
     }
+
 
     // Step 6: Batch insert new lines (in chunks to avoid payload limits)
     let insertedCount = 0;

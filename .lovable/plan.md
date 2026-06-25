@@ -1,26 +1,38 @@
-## Goal
-On the "Enter with ML" tab, show the matched company's canonical name (e.g. `City of Alexandria`) in the Vendor column instead of the raw OCR text (`CITY OF ALEXANDRIA VA`).
+## Fix the $154.84 / wrong-allocation regression
 
-## Vendor confirmation
-DB check confirms there is exactly **one** vendor matching: `City of Alexandria` (id `6606a4e7-7bb5-4a85-b3f5-36a418865a49`). No duplicate `CITY OF ALEXANDRIA VA` company exists — that string is only the raw text the ML extractor pulled from the PDF, stored on `pending_bill_uploads.extracted_data.vendor_name`. The pending bill is already correctly linked to the one real vendor via `vendor_id`.
+Restore the existing Nob Hill last-lot-remainder pattern that was working from Feb 6 → Apr 24, 2026, repair this Home Depot bill, and fix the Edit Bill tooltip.
 
-## Fix
+### 1. Revert `supabase/functions/split-pending-bill-lines/index.ts`
 
-**File: `src/components/bills/BatchBillReviewTable.tsx`**
+Each split lot row will store:
 
-In the Vendor cell (around line 726 / 857), when the bill has a resolved `vendor_id`, display the matched company's name instead of `getExtractedValue(bill, 'vendor_name', 'vendor')`.
+- `amount` = per-lot allocated dollars
+- `unit_cost` = per-lot allocated dollars
+- `quantity` = 1
+- last lot absorbs the cent remainder
 
-Approach:
-1. Collect unique `vendor_id`s from `bills` and fetch `id, company_name` from `companies` via a small `useQuery` (cached). Build a `Map<vendorId, company_name>`.
-2. When computing `vendorName`:
-   - If `bill.vendor_id` is present and exists in the map → use the company name from the map.
-   - Else if `bill.vendor_name` looks like a canonical (set by re-match flow) → use it.
-   - Else fall back to the extracted text (so the unmatched/red-text + "Add vendor" flow still works).
-3. Tooltip text uses the same resolved name.
+So $154.83 across 2 lots becomes $77.41 + $77.42 = **$154.83** exactly.
 
-No change to the unmatched branch (`!vendorId && vendorName`) — that intentionally shows the raw extracted text in red with Re-match / Add vendor buttons.
+### 2. Repair this Home Depot bill (`WK28976544`)
 
-## Out of scope
-- No data migration. Existing rows keep their raw `extracted_data.vendor_name`; the UI just prefers the matched company name for display.
-- No change to the Edit dialog (already correct).
-- No change to other tabs.
+Bill is still `draft` (no journal entries posted), so no GL reversal needed.
+
+- `bills.total_amount`: 154.84 → **154.83**
+- Lot 1 line: `amount = 77.41`, `unit_cost = 77.41`, `quantity = 1`
+- Lot 2 line: `amount = 77.42`, `unit_cost = 77.42`, `quantity = 1`
+
+### 3. Fix the Edit Bill lot tooltip
+
+In `src/components/bills/EditBillDialog.tsx` and `src/components/bills/EditExtractedBillDialog.tsx`, the tooltip currently renders the unit-cost field as the per-lot value. Change it to display the actual allocated lot amount (`quantity × unit_cost`, via the existing `rowTotal` helper), so a 2-lot $154.83 bill reads:
+
+```text
+Lot 1:   $77.41
+Lot 2:   $77.42
+Total:  $154.83
+```
+
+### Not changing
+
+- `approve_pending_bill` RPC (already correct).
+- Approved / posted / paid bill accounting behavior.
+- Any other historical bills.
