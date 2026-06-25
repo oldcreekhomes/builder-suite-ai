@@ -1109,13 +1109,20 @@ export function EditBillDialog({ open, onOpenChange, billId }: EditBillDialogPro
                                           <div className="font-medium text-xs">{group.account}</div>
                                         )}
                                         <div className="pl-2 space-y-0.5">
-                                          {group.children.map((child) => (
-                                            <div key={child.id} className="flex justify-between gap-4 text-xs">
-                                              <span className="text-muted-foreground">{lotNameById(child.lotId || '')}:</span>
-                                              <span>${(Number(child.amount) || 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
-                                            </div>
-                                          ))}
+                                          {group.children.map((child) => {
+                                            const childAmount = rowTotal(
+                                              parseFloat(child.quantity) || 0,
+                                              parseFloat(child.amount) || 0,
+                                            );
+                                            return (
+                                              <div key={child.id} className="flex justify-between gap-4 text-xs">
+                                                <span className="text-muted-foreground">{lotNameById(child.lotId || '')}:</span>
+                                                <span>${childAmount.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+                                              </div>
+                                            );
+                                          })}
                                         </div>
+
                                         <div className="border-t pt-1 flex justify-between gap-4 font-medium text-xs">
                                           <span>Total:</span>
                                           <span>${(Number(group.amount) || 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
