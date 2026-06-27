@@ -272,8 +272,9 @@ export function EmployeeTable() {
                       { label: "View as User", onClick: () => handleViewAsUser(employee), hidden: !isOwner || employee.access_revoked, disabled: !employee.confirmed || employee.id === realUser?.id },
                       { label: "Edit", onClick: () => handleEditEmployee(employee) },
                       { label: "Delete", onClick: () => deleteEmployeeMutation.mutate(employee.id), variant: "destructive", requiresConfirmation: true, confirmTitle: "Delete Employee", confirmDescription: `Are you sure you want to delete ${employee.first_name} ${employee.last_name}? This action cannot be undone.`, isLoading: deleteEmployeeMutation.isPending, hidden: !isOwner || employee.id === user?.id },
-                      { label: "Revoke Access", onClick: () => revokeAccessMutation.mutate(employee.id), variant: "destructive", requiresConfirmation: true, confirmTitle: "Revoke Access", confirmLabel: "Revoke Access", confirmDescription: `${employee.first_name} ${employee.last_name} will be signed out of every device immediately and unable to log in again. All historical data is preserved. You can restore access later if needed.`, isLoading: revokeAccessMutation.isPending, hidden: !isOwner || employee.id === user?.id || employee.access_revoked },
-                      { label: "Make Active", onClick: () => restoreAccessMutation.mutate(employee.id), isLoading: restoreAccessMutation.isPending, hidden: !isOwner || !employee.access_revoked },
+                      { label: "Remove User", onClick: () => setRemovalTarget(employee), variant: "destructive", isLoading: revokeAccessMutation.isPending, hidden: !isOwner || employee.id === user?.id || employee.access_revoked || !!employee.pending_removal_at },
+                      { label: "Undo Removal", onClick: () => restoreAccessMutation.mutate(employee.id), isLoading: restoreAccessMutation.isPending, hidden: !isOwner || employee.access_revoked || !employee.pending_removal_at },
+                      { label: "Restore Access", onClick: () => restoreAccessMutation.mutate(employee.id), isLoading: restoreAccessMutation.isPending, hidden: !isOwner || !employee.access_revoked },
                     ]} />
 
                   </div>
@@ -291,6 +292,23 @@ export function EmployeeTable() {
           onOpenChange={handleCloseDialog}
         />
       )}
+
+      <SeatChangeConfirmDialog
+        open={!!removalTarget}
+        onOpenChange={(open) => { if (!open) setRemovalTarget(null); }}
+        delta={-1}
+        employeeName={
+          removalTarget
+            ? `${removalTarget.first_name ?? ""} ${removalTarget.last_name ?? ""}`.trim() || removalTarget.email
+            : undefined
+        }
+        isConfirming={revokeAccessMutation.isPending}
+        onConfirm={async () => {
+          if (!removalTarget) return;
+          await revokeAccessMutation.mutateAsync(removalTarget.id);
+          setRemovalTarget(null);
+        }}
+      />
     </>
   );
 }
