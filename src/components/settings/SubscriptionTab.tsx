@@ -624,6 +624,38 @@ export function SubscriptionTab() {
       )}
 
 
+      <Dialog open={sendDialogOpen} onOpenChange={setSendDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Email Invoice</DialogTitle>
+            <DialogDescription>
+              Send this invoice to an email address.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-2">
+            <div>
+              <label className="text-sm font-medium mb-1.5 block">Recipient Email</label>
+              <Input
+                type="email"
+                value={sendEmailDraft}
+                onChange={(e) => setSendEmailDraft(e.target.value)}
+                placeholder="accountant@company.com"
+                disabled={!!sendingInvoiceId}
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setSendDialogOpen(false)} disabled={!!sendingInvoiceId}>
+              Cancel
+            </Button>
+            <Button onClick={handleSendInvoice} disabled={!!sendingInvoiceId}>
+              {sendingInvoiceId && <Loader2 className="h-3.5 w-3.5 animate-spin mr-1.5" />}
+              Send Invoice
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
       <PaywallDialog open={showPaywall} onOpenChange={setShowPaywall} projectCount={projectCount} />
 
     </div>
