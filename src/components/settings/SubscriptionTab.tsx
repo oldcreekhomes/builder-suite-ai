@@ -278,49 +278,6 @@ export function SubscriptionTab() {
 
   const billingDate = details?.subscription ? getNextBillingDate(details.subscription) : null;
 
-  const handleCancel = async () => {
-    if (!details?.subscription?.id) return;
-    setCanceling(true);
-    try {
-      const { data: result, error } = await supabase.functions.invoke("cancel-subscription", {
-        body: { subscription_id: details.subscription.id },
-      });
-      if (error) throw error;
-      if (result?.error) throw new Error(result.error);
-      toast({
-        title: "Subscription canceled",
-        description: billingDate
-          ? `Your subscription will remain active until ${format(billingDate, "MMM d, yyyy")}.`
-          : "Your subscription will remain active until the end of the billing period.",
-      });
-      queryClient.invalidateQueries({ queryKey: ["subscription-details"] });
-      queryClient.invalidateQueries({ queryKey: ["subscription"] });
-      setCancelDialogOpen(false);
-    } catch (err: any) {
-      toast({ title: "Error", description: err.message || "Failed to cancel subscription", variant: "destructive" });
-    } finally {
-      setCanceling(false);
-    }
-  };
-
-  const handleReactivate = async () => {
-    if (!details?.subscription?.id) return;
-    setReactivating(true);
-    try {
-      const { data: result, error } = await supabase.functions.invoke("reactivate-subscription", {
-        body: { subscription_id: details.subscription.id },
-      });
-      if (error) throw error;
-      if (result?.error) throw new Error(result.error);
-      toast({ title: "Subscription reactivated", description: "Your subscription will continue to auto-renew." });
-      queryClient.invalidateQueries({ queryKey: ["subscription-details"] });
-      queryClient.invalidateQueries({ queryKey: ["subscription"] });
-    } catch (err: any) {
-      toast({ title: "Error", description: err.message || "Failed to reactivate subscription", variant: "destructive" });
-    } finally {
-      setReactivating(false);
-    }
-  };
 
   const handleSaveEmail = async () => {
     const trimmed = emailDraft.trim();
