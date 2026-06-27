@@ -526,45 +526,6 @@ export function SubscriptionTab() {
                   )}
                 </div>
 
-                {/* Auto-renew */}
-                {details.subscription && (() => {
-                  const isOn = !details.subscription.cancel_at_period_end;
-                  const disabled = canceling || reactivating;
-                  return (
-                    <div className="rounded-lg border p-3 flex items-center justify-between gap-3">
-                      <div className="min-w-0">
-                        <div id="auto-renew-label" className="text-sm font-medium">Auto-renew subscription</div>
-                        <p className="text-xs text-muted-foreground truncate">
-                          {details.subscription.cancel_at_period_end
-                            ? `Cancels ${billingDate ? format(billingDate, "MMM d, yyyy") : "at period end"}`
-                            : "Subscription will automatically renew"}
-                        </p>
-                      </div>
-                      <button
-                        type="button"
-                        role="switch"
-                        aria-checked={isOn}
-                        aria-labelledby="auto-renew-label"
-                        disabled={disabled}
-                        onClick={() => {
-                          if (disabled) return;
-                          if (isOn) setCancelDialogOpen(true);
-                          else handleReactivate();
-                        }}
-                        className={`relative inline-flex h-6 w-11 shrink-0 cursor-pointer items-center rounded-full p-[3px] overflow-hidden transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background disabled:cursor-not-allowed disabled:opacity-50 ${
-                          isOn ? "bg-black" : "bg-input"
-                        }`}
-                      >
-                        <span
-                          className={`pointer-events-none block h-[18px] w-[18px] rounded-full bg-white shadow-sm ring-0 transition-transform ${
-                            isOn ? "translate-x-[20px]" : "translate-x-0"
-                          }`}
-                        />
-                      </button>
-                    </div>
-                  );
-                })()}
-
                 {/* Billing Information */}
                 <div className="rounded-lg border p-3">
                   <SectionLabel>Billing Information</SectionLabel>
