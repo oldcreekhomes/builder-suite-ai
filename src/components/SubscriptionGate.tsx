@@ -10,7 +10,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { loadStripe } from "@stripe/stripe-js";
 import { Elements, CardNumberElement, CardExpiryElement, CardCvcElement, useStripe, useElements } from "@stripe/react-stripe-js";
 import { useQueryClient } from "@tanstack/react-query";
-import { ManageSubscriptionDialog } from "@/components/settings/ManageSubscriptionDialog";
+
 
 const stripePromise = loadStripe("pk_live_51TL5lp2M261MnJZCV9lA2C13cHAdkFVfuFZAWjQN7vLFmmikKEXhV5d8JNghePa3nNwUWfuuFiULGOhnM3cXyLY2002fDEt9S4");
 
@@ -248,10 +248,9 @@ export function SubscriptionGate({ children }: SubscriptionGateProps) {
               <p className="text-sm text-muted-foreground">
                 Update your payment method to restore access immediately for you and your team.
               </p>
-              <Button onClick={() => setManageOpen(true)} className="w-full">
+              <Button onClick={() => { window.location.href = "/settings?tab=subscription"; }} className="w-full">
                 Update Payment Method
               </Button>
-              <ManageSubscriptionDialog open={manageOpen} onOpenChange={setManageOpen} />
             </>
           ) : (
             <p className="text-sm text-muted-foreground">
