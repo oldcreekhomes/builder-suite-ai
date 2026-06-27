@@ -315,6 +315,47 @@ export function SubscriptionTab() {
     }
   };
 
+  const handleSendInvoice = async () => {
+    const trimmed = sendEmailDraft.trim();
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(trimmed)) {
+      toast({ title: "Invalid email", description: "Please enter a valid email address.", variant: "destructive" });
+      return;
+    }
+    if (!selectedInvoiceForSend) return;
+    setSendingInvoiceId(selectedInvoiceForSend.id);
+    try {
+      const blob = await pdf(
+        <SubscriptionInvoicePdfDocument invoice={selectedInvoiceForSend} billingEmail={details?.billingEmail || ""} />
+      ).toBlob();
+      const arrayBuffer = await blob.arrayBuffer();
+      const bytes = new Uint8Array(arrayBuffer);
+      let binary = "";
+      for (let i = 0; i < bytes.byteLength; i++) {
+        binary += String.fromCharCode(bytes[i]);
+      }
+      const pdfBase64 = btoa(binary);
+
+      const { data, error } = await supabase.functions.invoke("send-invoice-email", {
+        body: {
+          recipientEmail: trimmed,
+          invoice: selectedInvoiceForSend,
+          pdfBase64,
+          billingEmail: details?.billingEmail || "",
+        },
+      });
+      if (error) throw error;
+      if (data?.error) throw new Error(data.error);
+      toast({ title: "Invoice sent", description: `Invoice emailed to ${trimmed}.` });
+      setSendDialogOpen(false);
+      setSelectedInvoiceForSend(null);
+      setSendEmailDraft("");
+    } catch (err: any) {
+      toast({ title: "Error", description: err.message || "Failed to send invoice email", variant: "destructive" });
+    } finally {
+      setSendingInvoiceId(null);
+    }
+  };
+
   const statusBadge = () => {
     switch (status) {
       case "active":
