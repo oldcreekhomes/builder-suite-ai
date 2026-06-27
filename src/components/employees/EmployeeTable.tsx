@@ -42,6 +42,7 @@ export function EmployeeTable() {
   const { startImpersonation } = useImpersonation();
   const queryClient = useQueryClient();
   const [editingEmployee, setEditingEmployee] = useState<Employee | null>(null);
+  const [removalTarget, setRemovalTarget] = useState<Employee | null>(null);
 
   const { data: employees = [], isLoading } = useQuery({
     queryKey: ['employees', user?.id],
