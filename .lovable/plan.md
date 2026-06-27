@@ -1,18 +1,24 @@
-# Exclude access-revoked employees from seat count
+## Plan: Inline subscription management into Subscription page + editable billing email
 
-## Problem
-Seat count in `create-checkout-session` (and `create-subscription`) counts every `confirmed=true` employee under the owner. Danny Sheehan has `access_revoked=true` but is still being counted, producing 8 seats instead of 7.
+### Changes
 
-## Fix
-Add `.eq('access_revoked', false)` to the employee count query in both edge functions, so a billed seat = confirmed AND not revoked.
+1. **`src/components/settings/SubscriptionTab.tsx`** — Rewrite to inline all `ManageSubscriptionDialog` content directly into the page (no dialog popup). Sections, in order:
+   - Header (existing) + status badge
+   - **Current Plan / Subscription** card: plan name, quantity (×N), price/interval, next billing date (or "Access until" if canceling), Projects/Seats tiles, "Canceling" badge if applicable
+   - **Payment Method** card: shows card brand •••• last4, expiry; inline "Update" button reveals the Stripe Elements card form (with Cancel/Update Card buttons), same as today
+   - **Billing Information** card: shows the billing email with an **Edit** button → inline input + Save/Cancel. Calls a new `update-billing-email` edge function
+   - **Invoice History** card: same list with download receipt
+   - **Auto-renew toggle** card: same switch + cancel confirmation `AlertDialog`
+   - Free-tier path: keep existing "Upgrade to Pro" button + Pricing reference card
 
-### Files
-1. **`supabase/functions/create-checkout-session/index.ts`** (line 55-59) — add `.eq('access_revoked', false)` to the count query.
-2. **`supabase/functions/create-subscription/index.ts`** — same change to its equivalent count query.
+2. **Delete** `src/components/settings/ManageSubscriptionDialog.tsx` and remove its import. Move the small helpers (`getNextBillingDate`, `downloadInvoiceReceipt`, `UpdatePaymentForm`) into `SubscriptionTab.tsx` (or a colocated file).
 
-Seat formula stays `1 (owner) + active confirmed employees`. After the fix OCH will show **7 seats** (owner + 6 active employees; Danny excluded).
+3. **New edge function `supabase/functions/update-billing-email/index.ts`**: Authenticates the caller, looks up their Stripe customer by current email, and calls `stripe.customers.update(customerId, { email: newEmail })`. Returns success. Frontend invalidates `subscription-details` query so the new email appears.
+   - Register in `supabase/config.toml` with `verify_jwt = true`.
 
-`joelexc17.iworkacc@gmail.com` is still counted as active per the user's earlier note — leaving it alone unless they say otherwise.
+4. **No DB schema changes**, no changes to seat-count logic, no changes to other edge functions.
 
-## Verification
-Reload the Subscription Required page → checkout log should print `7 seats` and Stripe quantity should be 7.
+### Technical notes
+- Keep Stripe `Elements` provider wrapping only the card-update sub-form (unchanged behavior).
+- Billing email edit only updates the Stripe customer's email (where invoices are sent). It does not change the app-login email.
+- Cancel/reactivate flows, toast messages, and query invalidations stay identical to today's dialog.
