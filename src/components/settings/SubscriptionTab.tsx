@@ -605,32 +605,6 @@ export function SubscriptionTab() {
 
       <PaywallDialog open={showPaywall} onOpenChange={setShowPaywall} projectCount={projectCount} />
 
-      <AlertDialog open={cancelDialogOpen} onOpenChange={setCancelDialogOpen}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle className="flex items-center gap-2">
-              <AlertTriangle className="h-5 w-5 text-destructive" />
-              Cancel Subscription
-            </AlertDialogTitle>
-            <AlertDialogDescription>
-              Your subscription will remain active until{" "}
-              {billingDate ? format(billingDate, "MMMM d, yyyy") : "the end of the billing period"}.
-              After that, you'll be limited to 3 free projects.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>Keep Subscription</AlertDialogCancel>
-            <AlertDialogAction
-              onClick={handleCancel}
-              disabled={canceling}
-              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-            >
-              {canceling && <Loader2 className="h-4 w-4 animate-spin mr-2" />}
-              Yes, Cancel
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
     </div>
   );
 }
