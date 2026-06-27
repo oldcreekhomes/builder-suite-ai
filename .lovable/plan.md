@@ -1,13 +1,7 @@
-## Go Live with Stripe
+## Final Step: Swap Publishable Key to Live
 
-Swap the two Stripe secrets from test → live values.
+Update `src/components/PaywallDialog.tsx` line 17:
+- Replace `pk_test_51TL5mD2OJCoyD632I78ZLOABNArQ3j0vjFOIDJxojGuktR4wIGPZeq5HDRlyjtPqNruAa7HDRRQWTmA6N1aKFHck00850Qmh79`
+- With `pk_live_51TL5lp2M261MnJZCV9lA2C13cHAdkFVfuFZAWjQN7vLFmmikKEXhV5d8JNghePa3nNwUWfuuFiULGOhnM3cXyLY2002fDEt9S4`
 
-### Steps
-1. Open secure form to update **`STRIPE_SECRET_KEY`** → paste your `sk_live_...` key.
-2. Open secure form to update **`STRIPE_WEBHOOK_SECRET`** → paste the `whsec_...` from your **live-mode** webhook endpoint.
-3. Edge functions (`stripe-webhook`, `create-checkout`, `check-subscription`, `customer-portal`) pick up new values automatically — no redeploy needed.
-4. Verify: run a real checkout with a real card (small amount), confirm subscription row created and live webhook delivery shows `200` in Stripe Dashboard.
-
-### Notes
-- Confirm the signing secret is from the **live** endpoint, not test — they differ.
-- Real cards will be charged from this point on.
+After approval, you're fully live: secret key ✅, webhook secret ✅, publishable key ✅. Run a small real-card test to confirm checkout + webhook delivery (`200` in Stripe Dashboard → live webhook endpoint).
