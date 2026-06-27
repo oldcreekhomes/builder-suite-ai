@@ -10,8 +10,9 @@ import { supabase } from "@/integrations/supabase/client";
 import { loadStripe } from "@stripe/stripe-js";
 import { Elements, CardNumberElement, CardExpiryElement, CardCvcElement, useStripe, useElements } from "@stripe/react-stripe-js";
 import { useQueryClient } from "@tanstack/react-query";
+import { ManageSubscriptionDialog } from "@/components/settings/ManageSubscriptionDialog";
 
-const stripePromise = loadStripe("pk_test_51TL5mD2OJCoyD632I78ZLOABNArQ3j0vjFOIDJxojGuktR4wIGPZeq5HDRlyjtPqNruAa7HDRRQWTmA6N1aKFHck00850Qmh79");
+const stripePromise = loadStripe("pk_live_51TL5lp2M261MnJZCV9lA2C13cHAdkFVfuFZAWjQN7vLFmmikKEXhV5d8JNghePa3nNwUWfuuFiULGOhnM3cXyLY2002fDEt9S4");
 
 interface CheckoutViewProps {
   billingInterval: "monthly" | "annual";
@@ -152,7 +153,7 @@ export function SubscriptionGate({ children }: SubscriptionGateProps) {
   const { profile, isLoading: profileLoading } = useUserProfile();
   const [loadingPlan, setLoadingPlan] = useState<string | null>(null);
   const [checkout, setCheckout] = useState<{ billingInterval: "monthly" | "annual"; seatCount: number } | null>(null);
-  const [openingPortal, setOpeningPortal] = useState(false);
+  const [manageOpen, setManageOpen] = useState(false);
   const queryClient = useQueryClient();
   const { toast } = useToast();
 
@@ -189,19 +190,7 @@ export function SubscriptionGate({ children }: SubscriptionGateProps) {
     return () => clearInterval(id);
   }, [isCompanyLockedOut, isPersonallyLockedOut, queryClient]);
 
-  const openBillingPortal = async () => {
-    setOpeningPortal(true);
-    try {
-      const { data, error } = await supabase.functions.invoke("customer-portal");
-      if (error) throw error;
-      if (data?.error) throw new Error(data.error);
-      if (data?.url) window.location.href = data.url;
-    } catch (err: any) {
-      toast({ title: "Error", description: err.message || "Could not open billing portal", variant: "destructive" });
-    } finally {
-      setOpeningPortal(false);
-    }
-  };
+  // (Billing portal removed — subscription management is fully in-app via ManageSubscriptionDialog.)
 
   const handleSelectPlan = async (billing_interval: "monthly" | "annual") => {
     setLoadingPlan(billing_interval);
@@ -259,10 +248,10 @@ export function SubscriptionGate({ children }: SubscriptionGateProps) {
               <p className="text-sm text-muted-foreground">
                 Update your payment method to restore access immediately for you and your team.
               </p>
-              <Button onClick={openBillingPortal} disabled={openingPortal} className="w-full">
-                {openingPortal ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
+              <Button onClick={() => setManageOpen(true)} className="w-full">
                 Update Payment Method
               </Button>
+              <ManageSubscriptionDialog open={manageOpen} onOpenChange={setManageOpen} />
             </>
           ) : (
             <p className="text-sm text-muted-foreground">
