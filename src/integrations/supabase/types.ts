@@ -6711,6 +6711,7 @@ export type Database = {
         Args: { p_project_id: string }
         Returns: undefined
       }
+      is_admin_app_session: { Args: never; Returns: boolean }
       is_period_closed: {
         Args: {
           check_date: string
