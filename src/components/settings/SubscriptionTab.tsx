@@ -388,9 +388,6 @@ export function SubscriptionTab() {
           <Crown className="h-5 w-5 text-yellow-500" />
           <h2 className="text-lg font-bold">Subscription</h2>
           {statusBadge()}
-          {details?.subscription?.cancel_at_period_end && (
-            <Badge variant="destructive">Canceling</Badge>
-          )}
         </div>
         <p className="text-xs text-muted-foreground">Manage your BuilderSuite subscription and billing.</p>
       </div>
