@@ -276,27 +276,15 @@ export function SubscriptionGate({ children }: SubscriptionGateProps) {
           <p className="text-muted-foreground">
             You have {projectCount} projects, which exceeds the free tier limit of 3. Please subscribe to continue using BuilderSuite.
           </p>
-          <div className="grid grid-cols-2 gap-4 pt-2">
-            <div className="border rounded-lg p-5 flex flex-col items-center">
-              <div className="text-sm font-medium text-muted-foreground">Monthly</div>
+          <div className="flex justify-center pt-2">
+            <div className="border-2 border-primary rounded-lg p-5 flex flex-col items-center w-full max-w-xs">
+              <div className="text-sm font-medium text-muted-foreground">Subscribe</div>
               <div className="text-2xl font-bold mt-2">$39</div>
               <div className="text-xs text-muted-foreground mt-1">per user / month</div>
               <div className="w-full mt-4">
                 <Button onClick={() => handleSelectPlan("monthly")} disabled={!!loadingPlan} className="w-full gap-2 bg-green-600 hover:bg-green-700 text-white">
                   {loadingPlan === "monthly" ? <Loader2 className="h-4 w-4 animate-spin" /> : <Crown className="h-4 w-4" />}
-                  {loadingPlan === "monthly" ? "Loading..." : "Subscribe Monthly"}
-                </Button>
-              </div>
-            </div>
-            <div className="border-2 border-primary rounded-lg p-5 flex flex-col items-center relative">
-              <div className="absolute -top-2.5 left-1/2 -translate-x-1/2 bg-primary text-primary-foreground text-xs px-2 py-0.5 rounded-full">Save 15%</div>
-              <div className="text-sm font-medium text-muted-foreground">Annual</div>
-              <div className="text-2xl font-bold mt-2">$33</div>
-              <div className="text-xs text-muted-foreground mt-1">per user / month</div>
-              <div className="w-full mt-4">
-                <Button onClick={() => handleSelectPlan("annual")} disabled={!!loadingPlan} className="w-full gap-2 bg-green-600 hover:bg-green-700 text-white">
-                  {loadingPlan === "annual" ? <Loader2 className="h-4 w-4 animate-spin" /> : <Crown className="h-4 w-4" />}
-                  {loadingPlan === "annual" ? "Loading..." : "Subscribe Annual"}
+                  {loadingPlan === "monthly" ? "Loading..." : "Subscribe"}
                 </Button>
               </div>
             </div>
