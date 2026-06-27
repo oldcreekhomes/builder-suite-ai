@@ -31,7 +31,7 @@ serve(async (req) => {
     // If we have a webhook secret, verify signature; otherwise parse directly
     const webhookSecret = Deno.env.get("STRIPE_WEBHOOK_SECRET");
     if (webhookSecret && signature) {
-      event = stripe.webhooks.constructEvent(body, signature, webhookSecret);
+      event = await stripe.webhooks.constructEventAsync(body, signature, webhookSecret);
     } else {
       event = JSON.parse(body) as Stripe.Event;
     }
