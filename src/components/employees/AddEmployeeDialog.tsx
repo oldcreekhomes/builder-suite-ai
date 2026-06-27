@@ -228,6 +228,17 @@ export function AddEmployeeDialog({ open, onOpenChange }: AddEmployeeDialogProps
           </div>
         </form>
       </DialogContent>
+
+      <SeatChangeConfirmDialog
+        open={confirmOpen}
+        onOpenChange={setConfirmOpen}
+        delta={1}
+        employeeName={`${formData.firstName} ${formData.lastName}`.trim()}
+        isConfirming={sendInvitationMutation.isPending}
+        onConfirm={async () => {
+          await sendInvitationMutation.mutateAsync(formData);
+        }}
+      />
     </Dialog>
   );
 }
