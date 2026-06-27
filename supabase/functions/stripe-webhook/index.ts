@@ -126,6 +126,26 @@ serve(async (req) => {
         break;
       }
 
+      case "invoice.payment_succeeded": {
+        const invoice = event.data.object as any;
+        const customerId = invoice.customer;
+        const { data: sub } = await supabaseAdmin
+          .from("subscriptions")
+          .select("owner_id")
+          .eq("stripe_customer_id", customerId)
+          .single();
+        if (sub) {
+          await supabaseAdmin
+            .from("subscriptions")
+            .update({ status: "active" })
+            .eq("owner_id", sub.owner_id);
+          console.log(`✅ Payment succeeded for owner ${sub.owner_id}`);
+        } else {
+          console.log(`ℹ️ invoice.payment_succeeded: no subscription row for customer ${customerId}`);
+        }
+        break;
+      }
+
       default:
         console.log(`ℹ️ Unhandled event type: ${event.type}`);
     }
