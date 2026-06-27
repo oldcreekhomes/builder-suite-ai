@@ -593,6 +593,19 @@ export function SubscriptionTab() {
                           variant="ghost"
                           size="icon"
                           className="h-6 w-6 shrink-0"
+                          title="Email Invoice"
+                          onClick={() => {
+                            setSelectedInvoiceForSend(inv);
+                            setSendEmailDraft(details.billingEmail);
+                            setSendDialogOpen(true);
+                          }}
+                        >
+                          <Send className="h-3 w-3" />
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-6 w-6 shrink-0"
                           title="Download Receipt"
                           onClick={() => downloadInvoiceReceipt(inv, details.billingEmail)}
                         >
