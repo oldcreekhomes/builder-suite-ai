@@ -1,26 +1,32 @@
-The test signing secret is saved. Here's what I'll do next once you click "Implement plan":
+## Status
 
-## What I'll change
+Great news from the logs:
+- Stripe successfully reached the webhook (JWT issue is fixed).
+- The signing secret is being read.
+- There is one small Deno-specific bug to fix.
 
-1. **Allow Stripe to reach the webhook**
-   - Add `[functions.stripe-webhook]` with `verify_jwt = false` in `supabase/config.toml`.
-   - Reason: right now Supabase rejects Stripe's request before our code ever runs — that's why there are zero logs.
+## The bug
 
-2. **Handle `invoice.payment_succeeded`**
-   - Update `supabase/functions/stripe-webhook/index.ts` so this event is processed instead of falling through to "Unhandled event type."
+Stripe's Deno build requires the async verification call. Current code uses the synchronous one and errors out with:
+`SubtleCryptoProvider cannot be used in a synchronous context. Use await constructEventAsync(...)`.
 
-3. **Deploy the function** so the new secret + new code take effect.
+## Fix
 
-## What you'll do (one click each)
+In `supabase/functions/stripe-webhook/index.ts`, change:
+```
+stripe.webhooks.constructEvent(body, signature, webhookSecret)
+```
+to:
+```
+await stripe.webhooks.constructEventAsync(body, signature, webhookSecret)
+```
 
-After I deploy:
-1. In Stripe test mode → your webhook endpoint → **Send test event**.
-2. Pick **`invoice.payment_succeeded`** (I'll be watching for this one specifically).
-3. Click Send.
+Then redeploy `stripe-webhook`.
 
-## What I'll do after you send it
+## After fix
 
-- Pull the `stripe-webhook` logs and tell you plainly: did Stripe reach it, did the signature verify, did the handler run.
-- If anything failed, I fix it — you don't have to read logs or click around Stripe again.
-
-No more Stripe-dashboard scavenger hunts. Approve this and I'll do steps 1–3.
+Re-run the same Stripe Shell command:
+```
+stripe trigger invoice.payment_succeeded
+```
+I'll re-check the logs and confirm the event was processed successfully (no signature error, handler ran).
