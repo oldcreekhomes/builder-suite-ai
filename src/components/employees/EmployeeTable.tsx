@@ -164,6 +164,13 @@ export function EmployeeTable() {
     if (employee.access_revoked) {
       return <Badge variant="destructive">Revoked</Badge>;
     }
+    if (employee.pending_removal_at) {
+      return (
+        <Badge variant="destructive" className="bg-amber-600 hover:bg-amber-600">
+          Access ends {fmtDate(employee.pending_removal_at)}
+        </Badge>
+      );
+    }
     if (employee.confirmed) {
       return <Badge variant="secondary">Active</Badge>;
     }
