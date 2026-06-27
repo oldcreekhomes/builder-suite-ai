@@ -137,3 +137,6 @@ verify_jwt = false
 
 [functions.extract-project-profile]
 verify_jwt = true
+
+[functions.stripe-webhook]
+verify_jwt = false
