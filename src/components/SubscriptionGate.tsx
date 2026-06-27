@@ -1,6 +1,6 @@
 import { useSubscription } from "@/hooks/useSubscription";
 import { useUserProfile } from "@/hooks/useUserProfile";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Crown, Lock, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
