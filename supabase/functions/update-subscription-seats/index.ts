@@ -43,37 +43,35 @@ serve(async (req) => {
       .eq("owner_id", ownerId)
       .single();
 
-    if (!subscription || !subscription.stripe_subscription_id) {
-      // No active Stripe subscription — just update local count
+    // "Active seat" = any user (confirmed or invited) that currently holds
+    // a Stripe-billable slot. Excludes already-revoked users and users with
+    // a pending removal date (the quantity was already dropped when their
+    // removal was scheduled, even though they keep access until that date).
+    const countActiveSeats = async () => {
       const { count } = await supabaseAdmin
         .from("users")
         .select("id", { count: "exact", head: true })
         .eq("home_builder_id", ownerId)
-        .eq("confirmed", true);
+        .eq("access_revoked", false)
+        .is("pending_removal_at", null);
+      return 1 + (count || 0);
+    };
 
-      const seatCount = 1 + (count || 0);
-
+    if (!subscription || !subscription.stripe_subscription_id) {
+      const seatCount = await countActiveSeats();
       if (subscription) {
         await supabaseAdmin
           .from("subscriptions")
           .update({ user_count: seatCount })
           .eq("owner_id", ownerId);
       }
-
       return new Response(JSON.stringify({ seats: seatCount, synced: false }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
         status: 200,
       });
     }
 
-    // Count current users
-    const { count: employeeCount } = await supabaseAdmin
-      .from("users")
-      .select("id", { count: "exact", head: true })
-      .eq("home_builder_id", ownerId)
-      .eq("confirmed", true);
-
-    const seatCount = 1 + (employeeCount || 0);
+    const seatCount = await countActiveSeats();
 
     // Update Stripe subscription quantity
     const stripe = new Stripe(Deno.env.get("STRIPE_SECRET_KEY") || "", {
