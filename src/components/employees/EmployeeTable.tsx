@@ -129,7 +129,8 @@ export function EmployeeTable() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['employees'] });
-      toast({ title: "Access revoked", description: "The employee has been signed out everywhere and can no longer log in." });
+      queryClient.invalidateQueries({ queryKey: ['subscription'] });
+      toast({ title: "Removal scheduled", description: "The employee will retain access through the end of your current billing period, then be removed automatically." });
     },
     onError: (error: Error) => {
       toast({ title: "Error revoking access", description: error.message, variant: "destructive" });
