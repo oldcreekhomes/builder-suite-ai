@@ -34,15 +34,31 @@ serve(async (req) => {
     console.log(`[get-subscription-details] STRIPE KEY MODE: ${stripeKey.startsWith("sk_live") || stripeKey.startsWith("rk_live") ? "LIVE" : "TEST"} (prefix=${stripeKey.slice(0, 8)})`);
     const stripe = new Stripe(stripeKey, { apiVersion: "2025-08-27.basil" });
 
-    // Find customer
-    const customers = await stripe.customers.list({ email: user.email, limit: 1 });
-    if (customers.data.length === 0) {
-      return new Response(JSON.stringify({ error: "No Stripe customer found" }), {
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-        status: 404,
-      });
+    // Prefer stored stripe_customer_id (auth email may differ from billing email)
+    let customer: any = null;
+    const { data: subRow } = await supabaseClient
+      .from("subscriptions")
+      .select("stripe_customer_id")
+      .eq("owner_id", user.id)
+      .maybeSingle();
+    if (subRow?.stripe_customer_id) {
+      try {
+        const c = await stripe.customers.retrieve(subRow.stripe_customer_id as string);
+        if (c && !(c as any).deleted) customer = c;
+      } catch (_) {
+        customer = null;
+      }
     }
-    const customer = customers.data[0];
+    if (!customer) {
+      const customers = await stripe.customers.list({ email: user.email, limit: 1 });
+      if (customers.data.length === 0) {
+        return new Response(JSON.stringify({ error: "No Stripe customer found" }), {
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+          status: 404,
+        });
+      }
+      customer = customers.data[0];
+    }
 
     // Get active subscription
     const subscriptions = await stripe.subscriptions.list({

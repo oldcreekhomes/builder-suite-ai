@@ -1,25 +1,43 @@
-## Plan: Consolidate Subscription page to fit a 14" laptop without scrolling
+## Problem
 
-Rework `src/components/settings/SubscriptionTab.tsx` only — no logic, edge function, or data changes.
+1. **Billing email doesn't update**: After Save, the page shows "Failed to load billing details" because `get-subscription-details` looks up the Stripe customer by the user's **auth email** (`mgray@oldcreekhomes.com`). Once we updated the Stripe customer's email to `ap@oldcreekhomes.com`, that lookup returns 0 results → 404 → the UI can't reload and stays stale.
+2. **Misaligned columns**: Left column has 2 panels (Current Plan, Auto-renew), right column has 3 (Payment Method, Billing Information, Invoice History). Their row heights don't line up, so Auto-renew floats above Invoice History.
 
-### Layout changes
+## Fix
 
-- Page wrapper: tighten to `space-y-3` (from `space-y-6`); shrink header (smaller icon + single inline subtitle).
-- Use a **2-column grid** on `lg+` so the page fills width instead of stacking everything full-width:
-  - **Left column:** Current Plan (with plan line, price, next billing, plus inline Projects/Seats pills) + Auto-renew row.
-  - **Right column:** Payment Method, Billing Information, Invoice History — stacked.
-- Convert each section from `<Card>` with big `CardHeader`/`CardContent` padding to compact bordered panels (`rounded-lg border p-3`) with a small uppercase section label (`text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-2`), matching the dense style we already use elsewhere.
-- Inline rows everywhere (one line each):
-  - Plan: `BuilderSuite Pro – Monthly (×7) · $273.00/mo · Next: Jul 27, 2026` on one line; `Projects 33 · Seats 7` as small inline chips beside it.
-  - Payment Method: single row (icon · brand •••• 2470 · Expires 06/2029 · Default · Update).
-  - Billing Information: single row (icon · email · Edit), no separate description line — move the helper text to a `title`/tooltip on the label.
-  - Invoice History: compact single-line rows (already close), capped height with internal scroll if >3 invoices (`max-h-32 overflow-y-auto`).
-  - Auto-renew: compact single row.
-- Remove the standalone status badge block; show the status badge inline next to the "Subscription" title.
-- Drop `Separator`s and reduce vertical padding throughout (`py-2`, `gap-2`).
+### 1. `supabase/functions/get-subscription-details/index.ts`
+Resolve the Stripe customer using the stored `stripe_customer_id` first, fall back to email lookup only if no row exists (mirrors what `update-billing-email` already does):
 
-### Free-tier path
-Keep the existing upgrade + pricing cards but also tightened (`p-3`, smaller text). Not the primary case but should still look consistent.
+- Query `subscriptions` table by `owner_id = user.id` for `stripe_customer_id`.
+- If found → `stripe.customers.retrieve(customerId)`.
+- Else → existing `stripe.customers.list({ email: user.email })` path.
+- Rest of the function (subscriptions, invoices, payment method) unchanged — it already uses `customer.id`.
+
+This makes the billing email change durable: after Stripe customer email changes, we still find the same customer and the new email shows in the UI.
+
+### 2. `src/components/settings/SubscriptionTab.tsx` — column alignment
+
+Restructure paid-tier grid so both columns have matching row heights:
+
+```text
+┌─ Current Plan ────────────┐  ┌─ Payment Method ──────────┐
+│ plan / price / next / pills│  │ card + Update            │
+└────────────────────────────┘  └───────────────────────────┘
+┌─ Auto-renew ──────────────┐  ┌─ Billing Information ─────┐
+│ toggle row                │  │ email + Edit              │
+└────────────────────────────┘  └───────────────────────────┘
+┌─ Invoice History (full width, spans both columns) ──────┐
+│ compact rows                                             │
+└──────────────────────────────────────────────────────────┘
+```
+
+Implementation:
+- Replace the two-column wrapper (`grid lg:grid-cols-2`) holding two `space-y-3` columns with a single `grid lg:grid-cols-2 gap-3` containing 4 sibling panels in this order: Current Plan, Payment Method, Auto-renew, Billing Information. CSS Grid auto-places them so row 1 = Current Plan + Payment Method, row 2 = Auto-renew + Billing Information.
+- Each row uses `grid-auto-rows: minmax(0, 1fr)` (via Tailwind `auto-rows-fr`) so the two panels in a row share the same height and bottoms align.
+- Move Invoice History out as a full-width panel below the grid (`col-span-full` via a separate block under the grid).
+- Keep all existing panel internals (Current Plan content, Payment Method content, toggle, email edit, invoice rows) untouched — only the wrapper layout changes.
 
 ### Out of scope
-No changes to edge functions, queries, Stripe logic, or the cancel/reactivate AlertDialog content.
+- No changes to `update-billing-email`, `cancel-subscription`, `reactivate-subscription`, `create-subscription`, Stripe products/prices, or `subscriptions` table.
+- No changes to free-tier upgrade UI.
+- No changes to the cancel/reactivate AlertDialog.

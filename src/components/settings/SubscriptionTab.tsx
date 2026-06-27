@@ -449,9 +449,8 @@ export function SubscriptionTab() {
           )}
 
           {details && !detailsLoading && (
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
-              {/* LEFT COLUMN */}
-              <div className="space-y-3">
+            <>
+              <div className="grid grid-cols-1 lg:grid-cols-2 auto-rows-fr gap-3">
                 {/* Current Plan */}
                 <div className="rounded-lg border p-3">
                   <SectionLabel>Current Plan</SectionLabel>
@@ -487,6 +486,43 @@ export function SubscriptionTab() {
                         </div>
                       </div>
                     </>
+                  )}
+                </div>
+
+                {/* Payment Method */}
+                <div className="rounded-lg border p-3">
+                  <SectionLabel>Payment Method</SectionLabel>
+                  {showUpdateCard ? (
+                    <Elements stripe={stripePromise}>
+                      <UpdatePaymentForm
+                        onSuccess={() => {
+                          setShowUpdateCard(false);
+                          queryClient.invalidateQueries({ queryKey: ["subscription-details"] });
+                        }}
+                        onCancel={() => setShowUpdateCard(false)}
+                      />
+                    </Elements>
+                  ) : details.paymentMethod ? (
+                    <div className="flex items-center gap-2 text-sm">
+                      <CreditCard className="h-4 w-4 text-muted-foreground shrink-0" />
+                      <span className="font-medium capitalize">{details.paymentMethod.brand}</span>
+                      <span>•••• {details.paymentMethod.last4}</span>
+                      <span className="text-xs text-muted-foreground">
+                        Exp {String(details.paymentMethod.exp_month).padStart(2, "0")}/
+                        {details.paymentMethod.exp_year}
+                      </span>
+                      <Badge variant="outline" className="text-[10px] py-0 px-1.5">Default</Badge>
+                      <Button variant="outline" size="sm" className="ml-auto h-7" onClick={() => setShowUpdateCard(true)}>
+                        Update
+                      </Button>
+                    </div>
+                  ) : (
+                    <div className="flex items-center justify-between text-sm">
+                      <span className="text-muted-foreground">No payment method on file.</span>
+                      <Button variant="outline" size="sm" className="h-7" onClick={() => setShowUpdateCard(true)}>
+                        Add Card
+                      </Button>
+                    </div>
                   )}
                 </div>
 
@@ -528,46 +564,6 @@ export function SubscriptionTab() {
                     </div>
                   );
                 })()}
-              </div>
-
-              {/* RIGHT COLUMN */}
-              <div className="space-y-3">
-                {/* Payment Method */}
-                <div className="rounded-lg border p-3">
-                  <SectionLabel>Payment Method</SectionLabel>
-                  {showUpdateCard ? (
-                    <Elements stripe={stripePromise}>
-                      <UpdatePaymentForm
-                        onSuccess={() => {
-                          setShowUpdateCard(false);
-                          queryClient.invalidateQueries({ queryKey: ["subscription-details"] });
-                        }}
-                        onCancel={() => setShowUpdateCard(false)}
-                      />
-                    </Elements>
-                  ) : details.paymentMethod ? (
-                    <div className="flex items-center gap-2 text-sm">
-                      <CreditCard className="h-4 w-4 text-muted-foreground shrink-0" />
-                      <span className="font-medium capitalize">{details.paymentMethod.brand}</span>
-                      <span>•••• {details.paymentMethod.last4}</span>
-                      <span className="text-xs text-muted-foreground">
-                        Exp {String(details.paymentMethod.exp_month).padStart(2, "0")}/
-                        {details.paymentMethod.exp_year}
-                      </span>
-                      <Badge variant="outline" className="text-[10px] py-0 px-1.5">Default</Badge>
-                      <Button variant="outline" size="sm" className="ml-auto h-7" onClick={() => setShowUpdateCard(true)}>
-                        Update
-                      </Button>
-                    </div>
-                  ) : (
-                    <div className="flex items-center justify-between text-sm">
-                      <span className="text-muted-foreground">No payment method on file.</span>
-                      <Button variant="outline" size="sm" className="h-7" onClick={() => setShowUpdateCard(true)}>
-                        Add Card
-                      </Button>
-                    </div>
-                  )}
-                </div>
 
                 {/* Billing Information */}
                 <div className="rounded-lg border p-3">
@@ -609,41 +605,41 @@ export function SubscriptionTab() {
                     </div>
                   )}
                 </div>
-
-                {/* Invoice History */}
-                <div className="rounded-lg border p-3">
-                  <SectionLabel>Invoice History</SectionLabel>
-                  {details.invoices.length > 0 ? (
-                    <div className="max-h-40 overflow-y-auto divide-y">
-                      {details.invoices.map((inv) => (
-                        <div key={inv.id} className="flex items-center gap-2 py-1.5 text-xs">
-                          <FileText className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
-                          <span className="text-muted-foreground shrink-0">
-                            {inv.date ? format(new Date(inv.date), "MMM d, yyyy") : "—"}
-                          </span>
-                          <span className="font-medium shrink-0">${inv.amount.toFixed(2)}</span>
-                          <span className="shrink-0">{invoiceStatusBadge(inv.status || "unknown")}</span>
-                          <span className="min-w-0 flex-1 truncate text-muted-foreground">
-                            {inv.description}
-                          </span>
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            className="h-6 w-6 shrink-0"
-                            title="Download Receipt"
-                            onClick={() => downloadInvoiceReceipt(inv, details.billingEmail)}
-                          >
-                            <Download className="h-3 w-3" />
-                          </Button>
-                        </div>
-                      ))}
-                    </div>
-                  ) : (
-                    <p className="text-xs text-muted-foreground">No invoices yet.</p>
-                  )}
-                </div>
               </div>
-            </div>
+
+              {/* Invoice History (full width) */}
+              <div className="rounded-lg border p-3">
+                <SectionLabel>Invoice History</SectionLabel>
+                {details.invoices.length > 0 ? (
+                  <div className="max-h-40 overflow-y-auto divide-y">
+                    {details.invoices.map((inv) => (
+                      <div key={inv.id} className="flex items-center gap-2 py-1.5 text-xs">
+                        <FileText className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
+                        <span className="text-muted-foreground shrink-0">
+                          {inv.date ? format(new Date(inv.date), "MMM d, yyyy") : "—"}
+                        </span>
+                        <span className="font-medium shrink-0">${inv.amount.toFixed(2)}</span>
+                        <span className="shrink-0">{invoiceStatusBadge(inv.status || "unknown")}</span>
+                        <span className="min-w-0 flex-1 truncate text-muted-foreground">
+                          {inv.description}
+                        </span>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-6 w-6 shrink-0"
+                          title="Download Receipt"
+                          onClick={() => downloadInvoiceReceipt(inv, details.billingEmail)}
+                        >
+                          <Download className="h-3 w-3" />
+                        </Button>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <p className="text-xs text-muted-foreground">No invoices yet.</p>
+                )}
+              </div>
+            </>
           )}
         </>
       )}
