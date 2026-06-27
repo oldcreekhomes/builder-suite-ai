@@ -153,7 +153,7 @@ export function SubscriptionGate({ children }: SubscriptionGateProps) {
   const { profile, isLoading: profileLoading } = useUserProfile();
   const [loadingPlan, setLoadingPlan] = useState<string | null>(null);
   const [checkout, setCheckout] = useState<{ billingInterval: "monthly" | "annual"; seatCount: number } | null>(null);
-  const [openingPortal, setOpeningPortal] = useState(false);
+  const [manageOpen, setManageOpen] = useState(false);
   const queryClient = useQueryClient();
   const { toast } = useToast();
 
