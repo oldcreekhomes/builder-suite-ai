@@ -12,6 +12,11 @@ const json = (body: unknown, status = 200) =>
     headers: { "Content-Type": "application/json", ...corsHeaders },
   });
 
+// Restores an employee. Handles two cases:
+//  1. Pending removal (pending_removal_at set, not yet revoked) → clear the
+//     date and bump Stripe quantity back up.
+//  2. Already revoked → lift the auth ban, clear access_revoked, bump
+//     Stripe quantity.
 const handler = async (req: Request): Promise<Response> => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
@@ -37,45 +42,52 @@ const handler = async (req: Request): Promise<Response> => {
     }
 
     const { data: targetUser, error: targetErr } = await supabaseAdmin
-      .from("users").select("home_builder_id, id").eq("id", employeeId).single();
+      .from("users").select("home_builder_id, id, access_revoked, pending_removal_at")
+      .eq("id", employeeId).single();
     if (targetErr || !targetUser) return json({ error: "Employee not found" }, 404);
     if (targetUser.home_builder_id !== caller.id) {
       return json({ error: "Employee is not in your company" }, 403);
     }
 
-    // 1. Lift the ban.
-    const { error: unbanErr } = await supabaseAdmin.auth.admin.updateUserById(employeeId, {
-      ban_duration: "none",
-    });
-    if (unbanErr) return json({ error: `Failed to lift ban: ${unbanErr.message}` }, 500);
+    const wasRevoked = !!targetUser.access_revoked;
+    const wasPending = !!targetUser.pending_removal_at && !targetUser.access_revoked;
 
-    // 2. Clear the revoked flag.
+    if (wasRevoked) {
+      const { error: unbanErr } = await supabaseAdmin.auth.admin.updateUserById(employeeId, {
+        ban_duration: "none",
+      });
+      if (unbanErr) return json({ error: `Failed to lift ban: ${unbanErr.message}` }, 500);
+    }
+
     const { error: updErr } = await supabaseAdmin
-      .from("users").update({ access_revoked: false }).eq("id", employeeId);
+      .from("users")
+      .update({ access_revoked: false, pending_removal_at: null })
+      .eq("id", employeeId);
     if (updErr) return json({ error: `Failed to restore: ${updErr.message}` }, 500);
 
-    // 3. Recalculate seat count + push to Stripe.
+    // Re-bump Stripe quantity in either case (since revoke decremented it).
     try {
-      const { count } = await supabaseAdmin
-        .from("users").select("id", { count: "exact", head: true })
-        .eq("home_builder_id", caller.id).eq("confirmed", true).eq("access_revoked", false);
-      const seatCount = 1 + (count || 0);
-      await supabaseAdmin.from("subscriptions")
-        .update({ user_count: seatCount }).eq("owner_id", caller.id);
       const { data: sub } = await supabaseAdmin.from("subscriptions")
-        .select("stripe_subscription_id").eq("owner_id", caller.id).single();
+        .select("stripe_subscription_id").eq("owner_id", caller.id).maybeSingle();
       if (sub?.stripe_subscription_id) {
         const { default: Stripe } = await import("https://esm.sh/stripe@18.5.0");
         const stripe = new Stripe(Deno.env.get("STRIPE_SECRET_KEY") || "", {
           apiVersion: "2025-08-27.basil",
         });
         const stripeSub = await stripe.subscriptions.retrieve(sub.stripe_subscription_id);
-        const itemId = stripeSub.items.data[0]?.id;
-        if (itemId) {
+        const item = stripeSub.items.data[0];
+        if (item) {
+          const currentQty = item.quantity ?? 1;
+          const newQty = currentQty + 1;
+          // For a pending-removal undo, the period was already paid for,
+          // so use proration_behavior:'none'. For a true restore-after-ban,
+          // bill the prorated amount immediately.
           await stripe.subscriptions.update(sub.stripe_subscription_id, {
-            items: [{ id: itemId, quantity: seatCount }],
-            proration_behavior: "always_invoice",
+            items: [{ id: item.id, quantity: newQty }],
+            proration_behavior: wasPending ? "none" : "always_invoice",
           });
+          await supabaseAdmin.from("subscriptions")
+            .update({ user_count: newQty }).eq("owner_id", caller.id);
         }
       }
     } catch (e) {
@@ -83,9 +95,9 @@ const handler = async (req: Request): Promise<Response> => {
     }
 
     return json({ success: true });
-  } catch (e: any) {
+  } catch (e) {
     console.error("restore-employee-access error", e);
-    return json({ error: e?.message || "Unexpected error" }, 500);
+    return json({ error: (e as Error)?.message || "Unexpected error" }, 500);
   }
 };
 

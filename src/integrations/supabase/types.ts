@@ -6269,6 +6269,7 @@ export type Database = {
           hq_zip: string | null
           id: string
           last_name: string | null
+          pending_removal_at: string | null
           phone_number: string | null
           role: string
           updated_at: string
@@ -6291,6 +6292,7 @@ export type Database = {
           hq_zip?: string | null
           id?: string
           last_name?: string | null
+          pending_removal_at?: string | null
           phone_number?: string | null
           role?: string
           updated_at?: string
@@ -6313,6 +6315,7 @@ export type Database = {
           hq_zip?: string | null
           id?: string
           last_name?: string | null
+          pending_removal_at?: string | null
           phone_number?: string | null
           role?: string
           updated_at?: string
