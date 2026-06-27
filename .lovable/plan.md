@@ -1,40 +1,36 @@
-## Why "just delete the invoices" won't work
+## What's actually wrong
 
-I queried live Stripe — **no customer exists** for mgray@oldcreekhomes.com in live mode. Everything in the screenshot is being read from the **test** Stripe account because `STRIPE_SECRET_KEY` is still `sk_test_...`. The publishable keys in the browser are live, but the backend (`get-subscription-details`, `create-subscription`, etc.) still talks to test.
+The Manage Subscription dialog reads everything live from Stripe via `STRIPE_SECRET_KEY`. You confirmed live Stripe has **no customer** for mgray@oldcreekhomes.com, yet the dialog shows 3 paid invoices and an active subscription. The only explanation: `STRIPE_SECRET_KEY` in Supabase Edge Function secrets is still a **test** key, despite the publishable keys being live.
 
-So:
-- Voiding the 3 test invoices wouldn't change "Next billing date: May 12, 2026" — that comes from the test subscription's `current_period_end`.
-- Even after voiding, the dialog would still show OCH as subscribed via the test subscription.
-- Until the secret is flipped, **no live subscription can ever be created** — every signup goes into test.
+I cannot read the secret value to confirm directly (Supabase encrypts it). So step 1 is a diagnostic that tells us for sure, in 30 seconds.
 
-## The actual fix (2 steps)
+## Plan
 
-### Step 1 — Flip `STRIPE_SECRET_KEY` to live
-I'll open the secret update modal. You paste your `sk_live_...` key from Stripe Dashboard → Developers → API keys (with the **Live** toggle on in the top-right of the dashboard).
+### Step 1 — Add a one-line diagnostic to `get-subscription-details`
+Add a `console.log` that prints `stripeKey.startsWith("sk_live") ? "LIVE" : "TEST"` plus `stripeKey.slice(0, 8)` (just the prefix, never the full value). Deploy. You then open Manage Subscription once, and we check Edge Function logs.
 
-After this, the app immediately stops seeing the test customer. The Manage Subscription dialog for OCH will show "No active subscription" because no live customer exists yet — which is correct.
+**If logs say TEST** → the saved secret is wrong. I open the update modal, you paste the real `sk_live_...` key (Stripe Dashboard → toggle "Test mode" OFF in the top-right → Developers → API keys → reveal Secret key). Same for `STRIPE_WEBHOOK_SECRET` (new live webhook endpoint → copy `whsec_...`).
 
-### Step 2 — OCH subscribes once, for real
-mgray@oldcreekhomes.com goes to the paywall and submits the card. This creates:
-- A real live Stripe customer
-- One real `$273.00` invoice today (7 × $39)
-- A subscription with `current_period_end` exactly **one month from today** (~July 27, 2026)
+**If logs say LIVE** → the secret is fine and something else is wrong (cached row, wrong account, etc.). I'll dig from there.
 
-The dialog will then show:
-- Current subscription: BuilderSuite Pro – Monthly (×7), $273/mo
-- Next billing date: ~July 27, 2026
-- Invoice history: one entry — today's real $273
+### Step 2 — Clean up the orphan local `subscriptions` row
+Even after the key is flipped, the local `public.subscriptions` table may still have a row for OCH's owner_id pointing at the old test customer/subscription. That would let the app think they're still subscribed without ever charging the live card. Delete that row so OCH hits the paywall cleanly and creates a fresh live subscription. I'll write a migration to delete the row for OCH's `owner_id`.
 
-### Optional cleanup
-The 3 test invoices stay parked in your **test** Stripe account forever unless you clean them. With the dashboard **Test mode** toggle on:
-- Cancel the test subscription for mgray@oldcreekhomes.com
-- Void the 3 test invoices
+### Step 3 — Fix the "Next billing date" source
+Stripe API `2025-08-27.basil` moved `current_period_end` off the Subscription object onto subscription items. `get-subscription-details` reads `sub.current_period_end` which is now often null on live subs, so the fallback (`period_start + 30 days`) is what produces "May 12, 2026". Change it to prefer `sub.items.data[0].current_period_end` first, then `sub.current_period_end`, then the fallback. After OCH subscribes for real, the dialog will correctly show **one month from today**.
 
-This is cosmetic — they have zero financial effect and never appear in live reports.
+### Step 4 — Remove the diagnostic log
+Once we've confirmed the key, strip the `console.log` from step 1.
 
-### Webhook secret (heads up, not blocking)
-`STRIPE_WEBHOOK_SECRET` is almost certainly still the test signing secret. Live webhooks (invoice.paid, payment_failed, subscription.updated, etc.) won't verify until you create a live webhook endpoint in Stripe and update that secret too. I'll flag the exact path when we get there.
+### Step 5 — OCH subscribes for real
+mgray@oldcreekhomes.com hits the paywall, submits the card. One real $273 charge today, next bill ~July 27, 2026, invoice history shows exactly one entry.
 
-## What I need from you
+### Optional cleanup in Stripe Dashboard
+Switch the dashboard to **Test mode**, cancel the test subscription for mgray@oldcreekhomes.com, void the 3 test invoices. Cosmetic only — they never touched real money.
 
-Approve this plan and I'll open the `STRIPE_SECRET_KEY` update modal.
+## Files touched
+
+- `supabase/functions/get-subscription-details/index.ts` — add diagnostic log (step 1), fix `current_period_end` source (step 3), remove diagnostic (step 4)
+- New migration — delete `public.subscriptions` row for OCH's owner_id (step 2)
+
+No frontend changes.
