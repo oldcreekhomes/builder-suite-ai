@@ -247,9 +247,6 @@ export function SubscriptionTab() {
   const [editingEmail, setEditingEmail] = useState(false);
   const [emailDraft, setEmailDraft] = useState("");
   const [savingEmail, setSavingEmail] = useState(false);
-  const [cancelDialogOpen, setCancelDialogOpen] = useState(false);
-  const [canceling, setCanceling] = useState(false);
-  const [reactivating, setReactivating] = useState(false);
 
   const { data: seatCount = 1 } = useQuery({
     queryKey: ["seat-count", ownerId],
