@@ -12,6 +12,7 @@ import { EditEmployeeDialog } from "./EditEmployeeDialog";
 import { useImpersonation } from "@/contexts/ImpersonationContext";
 import { TableRowActions } from "@/components/ui/table-row-actions";
 import { SettingsTableWrapper } from "@/components/ui/settings-table-wrapper";
+import { SeatChangeConfirmDialog } from "./SeatChangeConfirmDialog";
 
 interface Employee {
   id: string;
@@ -23,10 +24,16 @@ interface Employee {
   role: string;
   confirmed: boolean;
   access_revoked: boolean;
+  pending_removal_at: string | null;
   created_at: string;
   home_builder_id: string | null;
   updated_at: string;
 }
+
+const fmtDate = (iso?: string | null) =>
+  iso
+    ? new Date(iso).toLocaleDateString(undefined, { year: "numeric", month: "short", day: "numeric" })
+    : "";
 
 export function EmployeeTable() {
   const { toast } = useToast();
