@@ -42,15 +42,25 @@ serve(async (req) => {
     if (!stripeKey) throw new Error("STRIPE_SECRET_KEY not set");
     const stripe = new Stripe(stripeKey, { apiVersion: "2025-08-27.basil" });
 
-    // Find Stripe customer by current auth email
-    const customers = await stripe.customers.list({ email: user.email, limit: 1 });
-    if (customers.data.length === 0) {
+    // Prefer stored stripe_customer_id from subscriptions table (auth email may not match billing email)
+    let customerId: string | null = null;
+    const { data: subRow } = await supabaseClient
+      .from("subscriptions")
+      .select("stripe_customer_id")
+      .eq("owner_id", user.id)
+      .maybeSingle();
+    if (subRow?.stripe_customer_id) {
+      customerId = subRow.stripe_customer_id as string;
+    } else {
+      const customers = await stripe.customers.list({ email: user.email, limit: 1 });
+      if (customers.data.length > 0) customerId = customers.data[0].id;
+    }
+    if (!customerId) {
       return new Response(JSON.stringify({ error: "No Stripe customer found" }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
         status: 404,
       });
     }
-    const customerId = customers.data[0].id;
 
     await stripe.customers.update(customerId, { email: newEmail });
 
