@@ -143,6 +143,63 @@ serve(async (req) => {
         } else {
           console.log(`ℹ️ invoice.payment_succeeded: no subscription row for customer ${customerId}`);
         }
+
+        // Email the invoice PDF to the company's billing email
+        try {
+          let recipientEmail: string | null =
+            invoice.customer_email || null;
+
+          if (!recipientEmail && sub?.owner_id) {
+            const { data: ownerUser } = await supabaseAdmin
+              .from("users")
+              .select("email")
+              .eq("id", sub.owner_id)
+              .maybeSingle();
+            recipientEmail = ownerUser?.email || null;
+          }
+
+          if (!recipientEmail && customerId) {
+            const customer = await stripe.customers.retrieve(customerId as string);
+            if (customer && !(customer as any).deleted) {
+              recipientEmail = (customer as any).email || null;
+            }
+          }
+
+          if (recipientEmail) {
+            const payload = {
+              recipientEmail,
+              invoice: {
+                id: invoice.id,
+                number: invoice.number,
+                amountPaid: invoice.amount_paid,
+                currency: invoice.currency,
+                periodStart: invoice.period_start,
+                periodEnd: invoice.period_end,
+                hostedUrl: invoice.hosted_invoice_url,
+                pdfUrl: invoice.invoice_pdf,
+              },
+            };
+
+            const fnUrl = `${Deno.env.get("SUPABASE_URL")}/functions/v1/send-subscription-invoice-email`;
+            const resp = await fetch(fnUrl, {
+              method: "POST",
+              headers: {
+                "Content-Type": "application/json",
+                Authorization: `Bearer ${Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")}`,
+              },
+              body: JSON.stringify(payload),
+            });
+            if (!resp.ok) {
+              console.error(`⚠️ Invoice email send failed: ${resp.status} ${await resp.text()}`);
+            } else {
+              console.log(`📧 Invoice ${invoice.number} emailed to ${recipientEmail}`);
+            }
+          } else {
+            console.log("⚠️ No recipient email found for invoice; skipping send");
+          }
+        } catch (mailErr) {
+          console.error("⚠️ Error sending invoice email (non-fatal):", mailErr);
+        }
         break;
       }
 
