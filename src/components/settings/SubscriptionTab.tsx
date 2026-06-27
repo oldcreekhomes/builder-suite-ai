@@ -247,9 +247,6 @@ export function SubscriptionTab() {
   const [editingEmail, setEditingEmail] = useState(false);
   const [emailDraft, setEmailDraft] = useState("");
   const [savingEmail, setSavingEmail] = useState(false);
-  const [cancelDialogOpen, setCancelDialogOpen] = useState(false);
-  const [canceling, setCanceling] = useState(false);
-  const [reactivating, setReactivating] = useState(false);
 
   const { data: seatCount = 1 } = useQuery({
     queryKey: ["seat-count", ownerId],
@@ -281,49 +278,6 @@ export function SubscriptionTab() {
 
   const billingDate = details?.subscription ? getNextBillingDate(details.subscription) : null;
 
-  const handleCancel = async () => {
-    if (!details?.subscription?.id) return;
-    setCanceling(true);
-    try {
-      const { data: result, error } = await supabase.functions.invoke("cancel-subscription", {
-        body: { subscription_id: details.subscription.id },
-      });
-      if (error) throw error;
-      if (result?.error) throw new Error(result.error);
-      toast({
-        title: "Subscription canceled",
-        description: billingDate
-          ? `Your subscription will remain active until ${format(billingDate, "MMM d, yyyy")}.`
-          : "Your subscription will remain active until the end of the billing period.",
-      });
-      queryClient.invalidateQueries({ queryKey: ["subscription-details"] });
-      queryClient.invalidateQueries({ queryKey: ["subscription"] });
-      setCancelDialogOpen(false);
-    } catch (err: any) {
-      toast({ title: "Error", description: err.message || "Failed to cancel subscription", variant: "destructive" });
-    } finally {
-      setCanceling(false);
-    }
-  };
-
-  const handleReactivate = async () => {
-    if (!details?.subscription?.id) return;
-    setReactivating(true);
-    try {
-      const { data: result, error } = await supabase.functions.invoke("reactivate-subscription", {
-        body: { subscription_id: details.subscription.id },
-      });
-      if (error) throw error;
-      if (result?.error) throw new Error(result.error);
-      toast({ title: "Subscription reactivated", description: "Your subscription will continue to auto-renew." });
-      queryClient.invalidateQueries({ queryKey: ["subscription-details"] });
-      queryClient.invalidateQueries({ queryKey: ["subscription"] });
-    } catch (err: any) {
-      toast({ title: "Error", description: err.message || "Failed to reactivate subscription", variant: "destructive" });
-    } finally {
-      setReactivating(false);
-    }
-  };
 
   const handleSaveEmail = async () => {
     const trimmed = emailDraft.trim();
@@ -388,9 +342,6 @@ export function SubscriptionTab() {
           <Crown className="h-5 w-5 text-yellow-500" />
           <h2 className="text-lg font-bold">Subscription</h2>
           {statusBadge()}
-          {details?.subscription?.cancel_at_period_end && (
-            <Badge variant="destructive">Canceling</Badge>
-          )}
         </div>
         <p className="text-xs text-muted-foreground">Manage your BuilderSuite subscription and billing.</p>
       </div>
@@ -526,45 +477,6 @@ export function SubscriptionTab() {
                   )}
                 </div>
 
-                {/* Auto-renew */}
-                {details.subscription && (() => {
-                  const isOn = !details.subscription.cancel_at_period_end;
-                  const disabled = canceling || reactivating;
-                  return (
-                    <div className="rounded-lg border p-3 flex items-center justify-between gap-3">
-                      <div className="min-w-0">
-                        <div id="auto-renew-label" className="text-sm font-medium">Auto-renew subscription</div>
-                        <p className="text-xs text-muted-foreground truncate">
-                          {details.subscription.cancel_at_period_end
-                            ? `Cancels ${billingDate ? format(billingDate, "MMM d, yyyy") : "at period end"}`
-                            : "Subscription will automatically renew"}
-                        </p>
-                      </div>
-                      <button
-                        type="button"
-                        role="switch"
-                        aria-checked={isOn}
-                        aria-labelledby="auto-renew-label"
-                        disabled={disabled}
-                        onClick={() => {
-                          if (disabled) return;
-                          if (isOn) setCancelDialogOpen(true);
-                          else handleReactivate();
-                        }}
-                        className={`relative inline-flex h-6 w-11 shrink-0 cursor-pointer items-center rounded-full p-[3px] overflow-hidden transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background disabled:cursor-not-allowed disabled:opacity-50 ${
-                          isOn ? "bg-black" : "bg-input"
-                        }`}
-                      >
-                        <span
-                          className={`pointer-events-none block h-[18px] w-[18px] rounded-full bg-white shadow-sm ring-0 transition-transform ${
-                            isOn ? "translate-x-[20px]" : "translate-x-0"
-                          }`}
-                        />
-                      </button>
-                    </div>
-                  );
-                })()}
-
                 {/* Billing Information */}
                 <div className="rounded-lg border p-3">
                   <SectionLabel>Billing Information</SectionLabel>
@@ -647,32 +559,6 @@ export function SubscriptionTab() {
 
       <PaywallDialog open={showPaywall} onOpenChange={setShowPaywall} projectCount={projectCount} />
 
-      <AlertDialog open={cancelDialogOpen} onOpenChange={setCancelDialogOpen}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle className="flex items-center gap-2">
-              <AlertTriangle className="h-5 w-5 text-destructive" />
-              Cancel Subscription
-            </AlertDialogTitle>
-            <AlertDialogDescription>
-              Your subscription will remain active until{" "}
-              {billingDate ? format(billingDate, "MMMM d, yyyy") : "the end of the billing period"}.
-              After that, you'll be limited to 3 free projects.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>Keep Subscription</AlertDialogCancel>
-            <AlertDialogAction
-              onClick={handleCancel}
-              disabled={canceling}
-              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-            >
-              {canceling && <Loader2 className="h-4 w-4 animate-spin mr-2" />}
-              Yes, Cancel
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
     </div>
   );
 }
