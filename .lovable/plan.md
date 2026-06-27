@@ -1,19 +1,23 @@
-## Changes
+# Fix "No such price" error in live mode
 
-Remove the annual option entirely from the paywall — show only a single monthly plan.
+## Problem
+The Stripe secret key is now in **live** mode, but the hardcoded price IDs in the edge functions (`price_1TL7DM2OJCoyD632UplhQm6q` monthly, `price_1TL7Df2OJCoyD632Ap6Jx4ZE` annual) were created in **sandbox/test** mode. Live Stripe has no record of them, so checkout fails with `No such price`.
 
-### `src/components/PaywallDialog.tsx` (and/or `src/components/SubscriptionGate.tsx`, wherever the two-card layout lives)
-- Remove the Annual card and the "Save 15%" badge.
-- Remove the Monthly/Annual toggle/state — there's only one plan now.
-- Render a single centered pricing card:
-  - Title: **Subscribe**
-  - Price: **$39 per user / month**
-  - Button: crown icon + **"Subscribe"** (no "Monthly" suffix)
-- Keep "Cancel anytime from your account settings." below.
-- When the button is clicked, always call `create-subscription` with `billing_interval: "monthly"`.
+## Fix
 
-### Backend (`supabase/functions/create-subscription/index.ts`)
-- No code change required — it still accepts `monthly` and ignores `annual` from now on.
-- Leave the `annual` price ID in the `PRICES` map but unused, so we can re-enable it later without a redeploy.
+1. **Create a new live Stripe product + price** via the Stripe tool:
+   - Product: `BuilderSuite ML Subscription`
+   - Price: `$39.00 USD`, recurring monthly
+   - This will run against the live Stripe account and return a new live `price_...` ID.
 
-No other files affected. No DB changes.
+2. **Update `supabase/functions/create-checkout-session/index.ts`**
+   - Replace `monthly` price ID in the `PRICES` map with the new live price ID.
+   - Leave `annual` as-is (unused since the annual plan was removed).
+
+3. **Update `supabase/functions/create-subscription/index.ts`**
+   - Same replacement: `monthly` → new live price ID.
+
+No frontend changes. No DB changes. No other files touched.
+
+## Verification
+After deploy, click **Subscribe** on the lockout page as OCH — checkout should redirect to Stripe instead of throwing.
