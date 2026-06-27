@@ -12,6 +12,7 @@ import { EditEmployeeDialog } from "./EditEmployeeDialog";
 import { useImpersonation } from "@/contexts/ImpersonationContext";
 import { TableRowActions } from "@/components/ui/table-row-actions";
 import { SettingsTableWrapper } from "@/components/ui/settings-table-wrapper";
+import { SeatChangeConfirmDialog } from "./SeatChangeConfirmDialog";
 
 interface Employee {
   id: string;
@@ -23,10 +24,16 @@ interface Employee {
   role: string;
   confirmed: boolean;
   access_revoked: boolean;
+  pending_removal_at: string | null;
   created_at: string;
   home_builder_id: string | null;
   updated_at: string;
 }
+
+const fmtDate = (iso?: string | null) =>
+  iso
+    ? new Date(iso).toLocaleDateString(undefined, { year: "numeric", month: "short", day: "numeric" })
+    : "";
 
 export function EmployeeTable() {
   const { toast } = useToast();
@@ -35,6 +42,7 @@ export function EmployeeTable() {
   const { startImpersonation } = useImpersonation();
   const queryClient = useQueryClient();
   const [editingEmployee, setEditingEmployee] = useState<Employee | null>(null);
+  const [removalTarget, setRemovalTarget] = useState<Employee | null>(null);
 
   const { data: employees = [], isLoading } = useQuery({
     queryKey: ['employees', user?.id],
@@ -121,7 +129,8 @@ export function EmployeeTable() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['employees'] });
-      toast({ title: "Access revoked", description: "The employee has been signed out everywhere and can no longer log in." });
+      queryClient.invalidateQueries({ queryKey: ['subscription'] });
+      toast({ title: "Removal scheduled", description: "The employee will retain access through the end of your current billing period, then be removed automatically." });
     },
     onError: (error: Error) => {
       toast({ title: "Error revoking access", description: error.message, variant: "destructive" });
@@ -155,6 +164,13 @@ export function EmployeeTable() {
   const getStatusBadge = (employee: Employee) => {
     if (employee.access_revoked) {
       return <Badge variant="destructive">Revoked</Badge>;
+    }
+    if (employee.pending_removal_at) {
+      return (
+        <Badge variant="destructive" className="bg-amber-600 hover:bg-amber-600">
+          Access ends {fmtDate(employee.pending_removal_at)}
+        </Badge>
+      );
     }
     if (employee.confirmed) {
       return <Badge variant="secondary">Active</Badge>;
@@ -257,8 +273,9 @@ export function EmployeeTable() {
                       { label: "View as User", onClick: () => handleViewAsUser(employee), hidden: !isOwner || employee.access_revoked, disabled: !employee.confirmed || employee.id === realUser?.id },
                       { label: "Edit", onClick: () => handleEditEmployee(employee) },
                       { label: "Delete", onClick: () => deleteEmployeeMutation.mutate(employee.id), variant: "destructive", requiresConfirmation: true, confirmTitle: "Delete Employee", confirmDescription: `Are you sure you want to delete ${employee.first_name} ${employee.last_name}? This action cannot be undone.`, isLoading: deleteEmployeeMutation.isPending, hidden: !isOwner || employee.id === user?.id },
-                      { label: "Revoke Access", onClick: () => revokeAccessMutation.mutate(employee.id), variant: "destructive", requiresConfirmation: true, confirmTitle: "Revoke Access", confirmLabel: "Revoke Access", confirmDescription: `${employee.first_name} ${employee.last_name} will be signed out of every device immediately and unable to log in again. All historical data is preserved. You can restore access later if needed.`, isLoading: revokeAccessMutation.isPending, hidden: !isOwner || employee.id === user?.id || employee.access_revoked },
-                      { label: "Make Active", onClick: () => restoreAccessMutation.mutate(employee.id), isLoading: restoreAccessMutation.isPending, hidden: !isOwner || !employee.access_revoked },
+                      { label: "Remove User", onClick: () => setRemovalTarget(employee), variant: "destructive", isLoading: revokeAccessMutation.isPending, hidden: !isOwner || employee.id === user?.id || employee.access_revoked || !!employee.pending_removal_at },
+                      { label: "Undo Removal", onClick: () => restoreAccessMutation.mutate(employee.id), isLoading: restoreAccessMutation.isPending, hidden: !isOwner || employee.access_revoked || !employee.pending_removal_at },
+                      { label: "Restore Access", onClick: () => restoreAccessMutation.mutate(employee.id), isLoading: restoreAccessMutation.isPending, hidden: !isOwner || !employee.access_revoked },
                     ]} />
 
                   </div>
@@ -276,6 +293,23 @@ export function EmployeeTable() {
           onOpenChange={handleCloseDialog}
         />
       )}
+
+      <SeatChangeConfirmDialog
+        open={!!removalTarget}
+        onOpenChange={(open) => { if (!open) setRemovalTarget(null); }}
+        delta={-1}
+        employeeName={
+          removalTarget
+            ? `${removalTarget.first_name ?? ""} ${removalTarget.last_name ?? ""}`.trim() || removalTarget.email
+            : undefined
+        }
+        isConfirming={revokeAccessMutation.isPending}
+        onConfirm={async () => {
+          if (!removalTarget) return;
+          await revokeAccessMutation.mutateAsync(removalTarget.id);
+          setRemovalTarget(null);
+        }}
+      />
     </>
   );
 }

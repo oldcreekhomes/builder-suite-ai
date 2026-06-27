@@ -1,6 +1,6 @@
 import { useSubscription } from "@/hooks/useSubscription";
 import { useUserProfile } from "@/hooks/useUserProfile";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Crown, Lock, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
@@ -148,14 +148,60 @@ interface SubscriptionGateProps {
 }
 
 export function SubscriptionGate({ children }: SubscriptionGateProps) {
-  const { needsSubscription, projectCount, isLoading } = useSubscription();
+  const { subscription, needsSubscription, projectCount, isLoading } = useSubscription();
   const { profile, isLoading: profileLoading } = useUserProfile();
   const [loadingPlan, setLoadingPlan] = useState<string | null>(null);
   const [checkout, setCheckout] = useState<{ billingInterval: "monthly" | "annual"; seatCount: number } | null>(null);
+  const [openingPortal, setOpeningPortal] = useState(false);
+  const queryClient = useQueryClient();
   const { toast } = useToast();
 
-  // Any user with a home_builder_id is a member of another company — they inherit that company's access
   const isCompanyMember = !!profile?.home_builder_id;
+  const isOwner = !!profile && !profile.home_builder_id;
+
+  // Individual lockout: user's scheduled removal date has arrived.
+  const pendingRemovalAt = (profile as any)?.pending_removal_at
+    ? new Date((profile as any).pending_removal_at as string)
+    : null;
+  const isPersonallyLockedOut =
+    !(profile as any)?.access_revoked &&
+    pendingRemovalAt !== null &&
+    pendingRemovalAt.getTime() <= Date.now();
+
+  // Company-wide lockout: payment failed, unpaid, or fully canceled past period end.
+  const status = subscription?.status;
+  const periodEnd = subscription?.current_period_end
+    ? new Date(subscription.current_period_end)
+    : null;
+  const isCompanyLockedOut =
+    !!subscription &&
+    (status === "past_due" ||
+      status === "unpaid" ||
+      (status === "canceled" && (!periodEnd || periodEnd.getTime() < Date.now())));
+
+  // Poll while locked out so the gate releases instantly after payment is fixed.
+  useEffect(() => {
+    if (!isCompanyLockedOut && !isPersonallyLockedOut) return;
+    const id = setInterval(() => {
+      queryClient.invalidateQueries({ queryKey: ["subscription"] });
+      queryClient.invalidateQueries({ queryKey: ["profile"] });
+    }, 30_000);
+    return () => clearInterval(id);
+  }, [isCompanyLockedOut, isPersonallyLockedOut, queryClient]);
+
+  const openBillingPortal = async () => {
+    setOpeningPortal(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("customer-portal");
+      if (error) throw error;
+      if (data?.error) throw new Error(data.error);
+      if (data?.url) window.location.href = data.url;
+    } catch (err: any) {
+      toast({ title: "Error", description: err.message || "Could not open billing portal", variant: "destructive" });
+    } finally {
+      setOpeningPortal(false);
+    }
+  };
 
   const handleSelectPlan = async (billing_interval: "monthly" | "annual") => {
     setLoadingPlan(billing_interval);
@@ -178,6 +224,56 @@ export function SubscriptionGate({ children }: SubscriptionGateProps) {
   };
 
   if (isLoading || profileLoading) return <>{children}</>;
+
+  if (isPersonallyLockedOut) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-muted/30 p-6">
+        <div className="max-w-md w-full text-center space-y-5">
+          <div className="mx-auto w-16 h-16 rounded-full bg-red-100 flex items-center justify-center">
+            <Lock className="h-8 w-8 text-red-600" />
+          </div>
+          <h1 className="text-2xl font-bold">Your access has ended</h1>
+          <p className="text-muted-foreground">
+            Your account owner removed you from this company. Please contact them if you believe this is a mistake.
+          </p>
+        </div>
+      </div>
+    );
+  }
+
+  if (isCompanyLockedOut) {
+    const reason =
+      status === "past_due" || status === "unpaid"
+        ? "Payment failed. Your company's access has been suspended."
+        : "Your company's subscription has ended.";
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-muted/30 p-6">
+        <div className="max-w-md w-full text-center space-y-5">
+          <div className="mx-auto w-16 h-16 rounded-full bg-red-100 flex items-center justify-center">
+            <Lock className="h-8 w-8 text-red-600" />
+          </div>
+          <h1 className="text-2xl font-bold">Access suspended</h1>
+          <p className="text-muted-foreground">{reason}</p>
+          {isOwner ? (
+            <>
+              <p className="text-sm text-muted-foreground">
+                Update your payment method to restore access immediately for you and your team.
+              </p>
+              <Button onClick={openBillingPortal} disabled={openingPortal} className="w-full">
+                {openingPortal ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
+                Update Payment Method
+              </Button>
+            </>
+          ) : (
+            <p className="text-sm text-muted-foreground">
+              Please contact your account owner to resolve the payment issue. Access will restore automatically once it's fixed.
+            </p>
+          )}
+        </div>
+      </div>
+    );
+  }
+
   if (isCompanyMember) return <>{children}</>;
 
   if (needsSubscription) {

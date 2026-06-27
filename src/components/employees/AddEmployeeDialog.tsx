@@ -9,6 +9,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/useAuth";
+import { SeatChangeConfirmDialog } from "./SeatChangeConfirmDialog";
 
 interface AddEmployeeDialogProps {
   open: boolean;
@@ -19,7 +20,8 @@ export function AddEmployeeDialog({ open, onOpenChange }: AddEmployeeDialogProps
   const { toast } = useToast();
   const { user } = useAuth();
   const queryClient = useQueryClient();
-  
+  const [confirmOpen, setConfirmOpen] = useState(false);
+
   const [formData, setFormData] = useState({
     firstName: "",
     lastName: "",
@@ -98,11 +100,12 @@ export function AddEmployeeDialog({ open, onOpenChange }: AddEmployeeDialogProps
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['employees'] });
       queryClient.invalidateQueries({ queryKey: ['subscription'] });
-      // Sync subscription seats with Stripe
+      // Sync subscription seats with Stripe — this charges the prorated amount
+      // because the seat-count function uses proration_behavior:'always_invoice'.
       supabase.functions.invoke('update-subscription-seats').catch(console.error);
       toast({
         title: "Invitation sent!",
-        description: "The employee will receive an email to complete their account setup.",
+        description: "The employee will receive an email to complete their account setup. Your card on file has been charged the prorated amount.",
       });
       setFormData({
         firstName: "",
@@ -111,6 +114,7 @@ export function AddEmployeeDialog({ open, onOpenChange }: AddEmployeeDialogProps
         phoneNumber: "",
         role: "employee",
       });
+      setConfirmOpen(false);
       onOpenChange(false);
     },
     onError: (error: Error) => {
@@ -133,7 +137,7 @@ export function AddEmployeeDialog({ open, onOpenChange }: AddEmployeeDialogProps
       });
       return;
     }
-    sendInvitationMutation.mutate(formData);
+    setConfirmOpen(true);
   };
 
   return (
@@ -224,6 +228,17 @@ export function AddEmployeeDialog({ open, onOpenChange }: AddEmployeeDialogProps
           </div>
         </form>
       </DialogContent>
+
+      <SeatChangeConfirmDialog
+        open={confirmOpen}
+        onOpenChange={setConfirmOpen}
+        delta={1}
+        employeeName={`${formData.firstName} ${formData.lastName}`.trim()}
+        isConfirming={sendInvitationMutation.isPending}
+        onConfirm={async () => {
+          await sendInvitationMutation.mutateAsync(formData);
+        }}
+      />
     </Dialog>
   );
 }
