@@ -256,6 +256,10 @@ export function SubscriptionTab() {
   const [editingEmail, setEditingEmail] = useState(false);
   const [emailDraft, setEmailDraft] = useState("");
   const [savingEmail, setSavingEmail] = useState(false);
+  const [sendDialogOpen, setSendDialogOpen] = useState(false);
+  const [sendEmailDraft, setSendEmailDraft] = useState("");
+  const [sendingInvoiceId, setSendingInvoiceId] = useState<string | null>(null);
+  const [selectedInvoiceForSend, setSelectedInvoiceForSend] = useState<SubscriptionDetails["invoices"][0] | null>(null);
 
   const { data: seatCount = 1 } = useQuery({
     queryKey: ["seat-count", ownerId],
