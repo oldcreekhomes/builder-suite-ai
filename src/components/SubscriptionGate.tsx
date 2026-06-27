@@ -248,10 +248,9 @@ export function SubscriptionGate({ children }: SubscriptionGateProps) {
               <p className="text-sm text-muted-foreground">
                 Update your payment method to restore access immediately for you and your team.
               </p>
-              <Button onClick={() => setManageOpen(true)} className="w-full">
+              <Button onClick={() => { window.location.href = "/settings?tab=subscription"; }} className="w-full">
                 Update Payment Method
               </Button>
-              <ManageSubscriptionDialog open={manageOpen} onOpenChange={setManageOpen} />
             </>
           ) : (
             <p className="text-sm text-muted-foreground">
