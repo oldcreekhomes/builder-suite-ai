@@ -23,6 +23,14 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogFooter,
+} from "@/components/ui/dialog";
 import { PaywallDialog } from "@/components/PaywallDialog";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
@@ -38,6 +46,7 @@ import {
   Download,
   AlertTriangle,
   Pencil,
+  Send,
 } from "lucide-react";
 import { format, addDays } from "date-fns";
 import { loadStripe } from "@stripe/stripe-js";
@@ -247,6 +256,10 @@ export function SubscriptionTab() {
   const [editingEmail, setEditingEmail] = useState(false);
   const [emailDraft, setEmailDraft] = useState("");
   const [savingEmail, setSavingEmail] = useState(false);
+  const [sendDialogOpen, setSendDialogOpen] = useState(false);
+  const [sendEmailDraft, setSendEmailDraft] = useState("");
+  const [sendingInvoiceId, setSendingInvoiceId] = useState<string | null>(null);
+  const [selectedInvoiceForSend, setSelectedInvoiceForSend] = useState<SubscriptionDetails["invoices"][0] | null>(null);
 
   const { data: seatCount = 1 } = useQuery({
     queryKey: ["seat-count", ownerId],
@@ -299,6 +312,47 @@ export function SubscriptionTab() {
       toast({ title: "Error", description: err.message || "Failed to update billing email", variant: "destructive" });
     } finally {
       setSavingEmail(false);
+    }
+  };
+
+  const handleSendInvoice = async () => {
+    const trimmed = sendEmailDraft.trim();
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(trimmed)) {
+      toast({ title: "Invalid email", description: "Please enter a valid email address.", variant: "destructive" });
+      return;
+    }
+    if (!selectedInvoiceForSend) return;
+    setSendingInvoiceId(selectedInvoiceForSend.id);
+    try {
+      const blob = await pdf(
+        <SubscriptionInvoicePdfDocument invoice={selectedInvoiceForSend} billingEmail={details?.billingEmail || ""} />
+      ).toBlob();
+      const arrayBuffer = await blob.arrayBuffer();
+      const bytes = new Uint8Array(arrayBuffer);
+      let binary = "";
+      for (let i = 0; i < bytes.byteLength; i++) {
+        binary += String.fromCharCode(bytes[i]);
+      }
+      const pdfBase64 = btoa(binary);
+
+      const { data, error } = await supabase.functions.invoke("send-invoice-email", {
+        body: {
+          recipientEmail: trimmed,
+          invoice: selectedInvoiceForSend,
+          pdfBase64,
+          billingEmail: details?.billingEmail || "",
+        },
+      });
+      if (error) throw error;
+      if (data?.error) throw new Error(data.error);
+      toast({ title: "Invoice sent", description: `Invoice emailed to ${trimmed}.` });
+      setSendDialogOpen(false);
+      setSelectedInvoiceForSend(null);
+      setSendEmailDraft("");
+    } catch (err: any) {
+      toast({ title: "Error", description: err.message || "Failed to send invoice email", variant: "destructive" });
+    } finally {
+      setSendingInvoiceId(null);
     }
   };
 
@@ -539,6 +593,19 @@ export function SubscriptionTab() {
                           variant="ghost"
                           size="icon"
                           className="h-6 w-6 shrink-0"
+                          title="Email Invoice"
+                          onClick={() => {
+                            setSelectedInvoiceForSend(inv);
+                            setSendEmailDraft(details.billingEmail);
+                            setSendDialogOpen(true);
+                          }}
+                        >
+                          <Send className="h-3 w-3" />
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-6 w-6 shrink-0"
                           title="Download Receipt"
                           onClick={() => downloadInvoiceReceipt(inv, details.billingEmail)}
                         >
@@ -556,6 +623,38 @@ export function SubscriptionTab() {
         </>
       )}
 
+
+      <Dialog open={sendDialogOpen} onOpenChange={setSendDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Email Invoice</DialogTitle>
+            <DialogDescription>
+              Send this invoice to an email address.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-2">
+            <div>
+              <label className="text-sm font-medium mb-1.5 block">Recipient Email</label>
+              <Input
+                type="email"
+                value={sendEmailDraft}
+                onChange={(e) => setSendEmailDraft(e.target.value)}
+                placeholder="accountant@company.com"
+                disabled={!!sendingInvoiceId}
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setSendDialogOpen(false)} disabled={!!sendingInvoiceId}>
+              Cancel
+            </Button>
+            <Button onClick={handleSendInvoice} disabled={!!sendingInvoiceId}>
+              {sendingInvoiceId && <Loader2 className="h-3.5 w-3.5 animate-spin mr-1.5" />}
+              Send Invoice
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       <PaywallDialog open={showPaywall} onOpenChange={setShowPaywall} projectCount={projectCount} />
 
