@@ -1,32 +1,13 @@
-## Status
+## Go Live with Stripe
 
-Great news from the logs:
-- Stripe successfully reached the webhook (JWT issue is fixed).
-- The signing secret is being read.
-- There is one small Deno-specific bug to fix.
+Swap the two Stripe secrets from test → live values.
 
-## The bug
+### Steps
+1. Open secure form to update **`STRIPE_SECRET_KEY`** → paste your `sk_live_...` key.
+2. Open secure form to update **`STRIPE_WEBHOOK_SECRET`** → paste the `whsec_...` from your **live-mode** webhook endpoint.
+3. Edge functions (`stripe-webhook`, `create-checkout`, `check-subscription`, `customer-portal`) pick up new values automatically — no redeploy needed.
+4. Verify: run a real checkout with a real card (small amount), confirm subscription row created and live webhook delivery shows `200` in Stripe Dashboard.
 
-Stripe's Deno build requires the async verification call. Current code uses the synchronous one and errors out with:
-`SubtleCryptoProvider cannot be used in a synchronous context. Use await constructEventAsync(...)`.
-
-## Fix
-
-In `supabase/functions/stripe-webhook/index.ts`, change:
-```
-stripe.webhooks.constructEvent(body, signature, webhookSecret)
-```
-to:
-```
-await stripe.webhooks.constructEventAsync(body, signature, webhookSecret)
-```
-
-Then redeploy `stripe-webhook`.
-
-## After fix
-
-Re-run the same Stripe Shell command:
-```
-stripe trigger invoice.payment_succeeded
-```
-I'll re-check the logs and confirm the event was processed successfully (no signature error, handler ran).
+### Notes
+- Confirm the signing secret is from the **live** endpoint, not test — they differ.
+- Real cards will be charged from this point on.
