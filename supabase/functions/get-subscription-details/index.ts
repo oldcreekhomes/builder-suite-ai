@@ -31,6 +31,7 @@ serve(async (req) => {
     const user = userData.user;
     if (!user?.email) throw new Error("User not authenticated");
 
+    console.log(`[get-subscription-details] STRIPE KEY MODE: ${stripeKey.startsWith("sk_live") || stripeKey.startsWith("rk_live") ? "LIVE" : "TEST"} (prefix=${stripeKey.slice(0, 8)})`);
     const stripe = new Stripe(stripeKey, { apiVersion: "2025-08-27.basil" });
 
     // Find customer
@@ -58,26 +59,28 @@ serve(async (req) => {
       const sub = subscriptions.data[0];
       const item = sub.items.data[0];
 
-      // Debug logging for billing date
-      console.log("[get-subscription-details] Raw sub.current_period_end:", sub.current_period_end);
-      console.log("[get-subscription-details] Raw sub.current_period_start:", sub.current_period_start);
-      console.log("[get-subscription-details] Sub created:", sub.created);
+      // Stripe API 2025-08-27.basil moved current_period_end/start onto the subscription ITEM.
+      // Prefer item-level fields, then fall back to subscription-level, then derive from period_start + interval.
+      const itemPeriodEnd = (item as any).current_period_end;
+      const itemPeriodStart = (item as any).current_period_start;
+      const subPeriodEnd = (sub as any).current_period_end;
+      const subPeriodStart = (sub as any).current_period_start;
 
-      // Compute current_period_end with fallback
+      console.log("[get-subscription-details] item.current_period_end:", itemPeriodEnd, "item.current_period_start:", itemPeriodStart);
+      console.log("[get-subscription-details] sub.current_period_end:", subPeriodEnd, "sub.current_period_start:", subPeriodStart);
+
+      const pickEnd = [itemPeriodEnd, subPeriodEnd].find((v) => typeof v === "number" && v > 0) as number | undefined;
+      const pickStart = [itemPeriodStart, subPeriodStart].find((v) => typeof v === "number" && v > 0) as number | undefined;
+
       let periodEndISO: string | null = null;
-      if (sub.current_period_end && typeof sub.current_period_end === "number" && sub.current_period_end > 0) {
-        periodEndISO = new Date(sub.current_period_end * 1000).toISOString();
-      } else if (sub.current_period_start && typeof sub.current_period_start === "number" && sub.current_period_start > 0) {
-        // Fallback: add interval duration to period start
+      if (pickEnd) {
+        periodEndISO = new Date(pickEnd * 1000).toISOString();
+      } else if (pickStart) {
         const intervalMs = item.price.recurring?.interval === "year" ? 365.25 * 24 * 60 * 60 * 1000 : 30 * 24 * 60 * 60 * 1000;
-        periodEndISO = new Date(sub.current_period_start * 1000 + intervalMs).toISOString();
+        periodEndISO = new Date(pickStart * 1000 + intervalMs).toISOString();
       }
 
-      // Compute current_period_start
-      let periodStartISO: string | null = null;
-      if (sub.current_period_start && typeof sub.current_period_start === "number" && sub.current_period_start > 0) {
-        periodStartISO = new Date(sub.current_period_start * 1000).toISOString();
-      }
+      const periodStartISO: string | null = pickStart ? new Date(pickStart * 1000).toISOString() : null;
 
       subscription = {
         id: sub.id,
