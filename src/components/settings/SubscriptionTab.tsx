@@ -401,7 +401,7 @@ export function SubscriptionTab() {
 
           {details && !detailsLoading && (
             <>
-              <div className="grid grid-cols-1 lg:grid-cols-2 auto-rows-fr gap-3">
+              <div className="grid grid-cols-1 lg:grid-cols-3 gap-3">
                 {/* Current Plan */}
                 <div className="rounded-lg border p-3">
                   <SectionLabel>Current Plan</SectionLabel>
