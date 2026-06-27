@@ -248,10 +248,10 @@ export function SubscriptionGate({ children }: SubscriptionGateProps) {
               <p className="text-sm text-muted-foreground">
                 Update your payment method to restore access immediately for you and your team.
               </p>
-              <Button onClick={openBillingPortal} disabled={openingPortal} className="w-full">
-                {openingPortal ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
+              <Button onClick={() => setManageOpen(true)} className="w-full">
                 Update Payment Method
               </Button>
+              <ManageSubscriptionDialog open={manageOpen} onOpenChange={setManageOpen} />
             </>
           ) : (
             <p className="text-sm text-muted-foreground">
