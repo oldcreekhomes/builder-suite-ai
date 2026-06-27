@@ -8,7 +8,7 @@ const corsHeaders = {
 };
 
 const PRICES = {
-  monthly: "price_1TL7DM2OJCoyD632UplhQm6q",
+  monthly: "price_1Tn3IP2M261MnJZCzYYWawMx",
   annual: "price_1TL7Df2OJCoyD632Ap6Jx4ZE",
 };
 
