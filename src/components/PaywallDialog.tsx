@@ -239,24 +239,14 @@ export function PaywallDialog({ open, onOpenChange, projectCount }: PaywallDialo
               </li>
             ))}
           </ul>
-          <div className="grid grid-cols-2 gap-3 pt-4">
-            <div className="border rounded-lg p-4 text-center space-y-2">
-              <div className="text-sm font-medium text-muted-foreground">Monthly</div>
+          <div className="flex justify-center pt-4">
+            <div className="border-2 border-primary rounded-lg p-4 text-center space-y-2 w-full max-w-xs">
+              <div className="text-sm font-medium text-muted-foreground">Subscribe</div>
               <div className="text-2xl font-bold">$39</div>
               <div className="text-xs text-muted-foreground">per user / month</div>
-              <Button className="w-full" onClick={() => handleSelectPlan("monthly")} disabled={!!isLoading}>
-                {isLoading === "monthly" ? <Loader2 className="h-4 w-4 animate-spin mr-1" /> : null}
-                {isLoading === "monthly" ? "Loading..." : "Select"}
-              </Button>
-            </div>
-            <div className="border-2 border-primary rounded-lg p-4 text-center space-y-2 relative">
-              <div className="absolute -top-2.5 left-1/2 -translate-x-1/2 bg-primary text-primary-foreground text-xs px-2 py-0.5 rounded-full">Save 15%</div>
-              <div className="text-sm font-medium text-muted-foreground">Annual</div>
-              <div className="text-2xl font-bold">$33</div>
-              <div className="text-xs text-muted-foreground">per user / month</div>
-              <Button className="w-full" variant="default" onClick={() => handleSelectPlan("annual")} disabled={!!isLoading}>
-                {isLoading === "annual" ? <Loader2 className="h-4 w-4 animate-spin mr-1" /> : null}
-                {isLoading === "annual" ? "Loading..." : "Select"}
+              <Button className="w-full gap-2" variant="default" onClick={() => handleSelectPlan("monthly")} disabled={!!isLoading}>
+                {isLoading === "monthly" ? <Loader2 className="h-4 w-4 animate-spin" /> : <Crown className="h-4 w-4" />}
+                {isLoading === "monthly" ? "Loading..." : "Subscribe"}
               </Button>
             </div>
           </div>
