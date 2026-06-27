@@ -374,156 +374,167 @@ export function SubscriptionTab() {
     );
   }
 
+  const SectionLabel = ({ children, right }: { children: React.ReactNode; right?: React.ReactNode }) => (
+    <div className="flex items-center justify-between mb-2">
+      <div className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">{children}</div>
+      {right}
+    </div>
+  );
+
   return (
-    <div className="space-y-6">
-      <div>
-        <h2 className="text-2xl font-bold flex items-center gap-2">
-          <Crown className="h-6 w-6 text-yellow-500" />
-          Subscription
-        </h2>
-        <p className="text-muted-foreground mt-1">Manage your BuilderSuite subscription and billing.</p>
-      </div>
-
-      {/* Current Plan */}
-      <Card>
-        <CardHeader>
-          <div className="flex items-center justify-between">
-            <div>
-              <CardTitle className="flex items-center gap-2">
-                Current Plan
-                {details?.subscription?.cancel_at_period_end && (
-                  <Badge variant="destructive">Canceling</Badge>
-                )}
-              </CardTitle>
-              <CardDescription>
-                {isOnFreeTier
-                  ? "You're on the free plan (up to 2 projects)"
-                  : isTrialing
-                    ? `Trial — ${trialDaysRemaining} day${trialDaysRemaining !== 1 ? "s" : ""} remaining`
-                    : isActive
-                      ? `Pro ${subscription?.billing_interval === "annual" ? "Annual" : "Monthly"}`
-                      : isPastDue
-                        ? "Your payment is past due — please update billing"
-                        : isCanceled
-                          ? "Your subscription has been canceled"
-                          : "Free plan"}
-              </CardDescription>
-            </div>
-            {statusBadge()}
-          </div>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          {details?.subscription && (
-            <div className="rounded-lg border p-4 space-y-1.5">
-              <div className="font-medium">
-                BuilderSuite Pro – {details.subscription.interval === "year" ? "Annual" : "Monthly"} (×
-                {details.subscription.quantity})
-              </div>
-              <div className="text-lg font-bold">
-                ${details.subscription.total_amount.toFixed(2)}{" "}
-                <span className="text-sm font-normal text-muted-foreground">
-                  per {details.subscription.interval === "year" ? "year" : "month"}
-                </span>
-              </div>
-              <div className="flex items-center gap-1.5 text-sm text-muted-foreground">
-                <Calendar className="h-3.5 w-3.5" />
-                {details.subscription.cancel_at_period_end ? "Access until: " : "Next billing date: "}
-                {billingDate ? format(billingDate, "MMMM d, yyyy") : "—"}
-              </div>
-            </div>
+    <div className="space-y-3">
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-2">
+          <Crown className="h-5 w-5 text-yellow-500" />
+          <h2 className="text-lg font-bold">Subscription</h2>
+          {statusBadge()}
+          {details?.subscription?.cancel_at_period_end && (
+            <Badge variant="destructive">Canceling</Badge>
           )}
-
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <div className="flex items-center gap-3 p-3 rounded-lg bg-muted/50">
-              <FolderOpen className="h-5 w-5 text-muted-foreground" />
-              <div>
-                <div className="text-sm font-medium">{projectCount}</div>
-                <div className="text-xs text-muted-foreground">Projects</div>
-              </div>
-            </div>
-            <div className="flex items-center gap-3 p-3 rounded-lg bg-muted/50">
-              <Users className="h-5 w-5 text-muted-foreground" />
-              <div>
-                <div className="text-sm font-medium">{seatCount}</div>
-                <div className="text-xs text-muted-foreground">Seats</div>
-              </div>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
+        </div>
+        <p className="text-xs text-muted-foreground">Manage your BuilderSuite subscription and billing.</p>
+      </div>
 
       {/* Free-tier upgrade path */}
       {isOnFreeTier && (
-        <>
-          <Card>
-            <CardHeader>
-              <CardTitle>Billing</CardTitle>
-              <CardDescription>Upgrade to Pro to unlock unlimited projects and all features.</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <Button onClick={() => setShowPaywall(true)} className="gap-2">
-                <Crown className="h-4 w-4" />
-                Upgrade to Pro
-              </Button>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader>
-              <CardTitle>Pricing</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div className="border rounded-lg p-4 text-center space-y-1">
-                  <div className="text-sm font-medium text-muted-foreground">Monthly</div>
-                  <div className="text-2xl font-bold">$39</div>
-                  <div className="text-xs text-muted-foreground">per user / month</div>
-                </div>
-                <div className="border-2 border-primary rounded-lg p-4 text-center space-y-1 relative">
-                  <div className="absolute -top-2.5 left-1/2 -translate-x-1/2 bg-primary text-primary-foreground text-xs px-2 py-0.5 rounded-full">
-                    Save 15%
-                  </div>
-                  <div className="text-sm font-medium text-muted-foreground">Annual</div>
-                  <div className="text-2xl font-bold">$33</div>
-                  <div className="text-xs text-muted-foreground">per user / month</div>
-                </div>
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
+          <div className="rounded-lg border p-3">
+            <SectionLabel>Billing</SectionLabel>
+            <p className="text-xs text-muted-foreground mb-2">
+              Upgrade to Pro to unlock unlimited projects and all features.
+            </p>
+            <Button onClick={() => setShowPaywall(true)} size="sm" className="gap-2">
+              <Crown className="h-4 w-4" />
+              Upgrade to Pro
+            </Button>
+          </div>
+          <div className="rounded-lg border p-3">
+            <SectionLabel>Pricing</SectionLabel>
+            <div className="grid grid-cols-2 gap-2">
+              <div className="border rounded-md p-2 text-center">
+                <div className="text-xs text-muted-foreground">Monthly</div>
+                <div className="text-lg font-bold">$39</div>
+                <div className="text-[10px] text-muted-foreground">per user / month</div>
               </div>
-              <p className="text-xs text-center text-muted-foreground mt-3">
-                14-day free trial. Cancel anytime.
-              </p>
-            </CardContent>
-          </Card>
-        </>
+              <div className="border-2 border-primary rounded-md p-2 text-center relative">
+                <div className="absolute -top-2 left-1/2 -translate-x-1/2 bg-primary text-primary-foreground text-[10px] px-1.5 py-0.5 rounded-full">
+                  Save 15%
+                </div>
+                <div className="text-xs text-muted-foreground">Annual</div>
+                <div className="text-lg font-bold">$33</div>
+                <div className="text-[10px] text-muted-foreground">per user / month</div>
+              </div>
+            </div>
+            <p className="text-[10px] text-center text-muted-foreground mt-2">
+              14-day free trial. Cancel anytime.
+            </p>
+          </div>
+        </div>
       )}
 
       {/* Paid-tier billing sections */}
       {hasPaidAccess && (
         <>
           {detailsLoading && (
-            <Card>
-              <CardContent className="flex items-center justify-center py-12">
-                <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
-              </CardContent>
-            </Card>
+            <div className="rounded-lg border flex items-center justify-center py-8">
+              <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
+            </div>
           )}
 
           {detailsError && (
-            <Card>
-              <CardContent className="py-8 text-center text-destructive">
-                <p>Failed to load billing details.</p>
-                <p className="text-sm text-muted-foreground mt-1">{(detailsError as Error).message}</p>
-              </CardContent>
-            </Card>
+            <div className="rounded-lg border py-4 text-center text-destructive">
+              <p className="text-sm">Failed to load billing details.</p>
+              <p className="text-xs text-muted-foreground mt-1">{(detailsError as Error).message}</p>
+            </div>
           )}
 
           {details && !detailsLoading && (
-            <>
-              {/* Payment Method */}
-              <Card>
-                <CardHeader>
-                  <CardTitle>Payment Method</CardTitle>
-                </CardHeader>
-                <CardContent>
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
+              {/* LEFT COLUMN */}
+              <div className="space-y-3">
+                {/* Current Plan */}
+                <div className="rounded-lg border p-3">
+                  <SectionLabel>Current Plan</SectionLabel>
+                  {details.subscription && (
+                    <>
+                      <div className="flex items-baseline flex-wrap gap-x-2 gap-y-1">
+                        <span className="font-medium text-sm">
+                          BuilderSuite Pro – {details.subscription.interval === "year" ? "Annual" : "Monthly"} (×
+                          {details.subscription.quantity})
+                        </span>
+                        <span className="text-base font-bold">
+                          ${details.subscription.total_amount.toFixed(2)}
+                        </span>
+                        <span className="text-xs text-muted-foreground">
+                          /{details.subscription.interval === "year" ? "yr" : "mo"}
+                        </span>
+                      </div>
+                      <div className="flex items-center gap-1.5 text-xs text-muted-foreground mt-1">
+                        <Calendar className="h-3 w-3" />
+                        {details.subscription.cancel_at_period_end ? "Access until " : "Next billing "}
+                        {billingDate ? format(billingDate, "MMM d, yyyy") : "—"}
+                      </div>
+                      <div className="flex items-center gap-3 mt-2 text-xs">
+                        <div className="flex items-center gap-1.5">
+                          <FolderOpen className="h-3.5 w-3.5 text-muted-foreground" />
+                          <span className="font-medium">{projectCount}</span>
+                          <span className="text-muted-foreground">Projects</span>
+                        </div>
+                        <div className="flex items-center gap-1.5">
+                          <Users className="h-3.5 w-3.5 text-muted-foreground" />
+                          <span className="font-medium">{seatCount}</span>
+                          <span className="text-muted-foreground">Seats</span>
+                        </div>
+                      </div>
+                    </>
+                  )}
+                </div>
+
+                {/* Auto-renew */}
+                {details.subscription && (() => {
+                  const isOn = !details.subscription.cancel_at_period_end;
+                  const disabled = canceling || reactivating;
+                  return (
+                    <div className="rounded-lg border p-3 flex items-center justify-between gap-3">
+                      <div className="min-w-0">
+                        <div id="auto-renew-label" className="text-sm font-medium">Auto-renew subscription</div>
+                        <p className="text-xs text-muted-foreground truncate">
+                          {details.subscription.cancel_at_period_end
+                            ? `Cancels ${billingDate ? format(billingDate, "MMM d, yyyy") : "at period end"}`
+                            : "Subscription will automatically renew"}
+                        </p>
+                      </div>
+                      <button
+                        type="button"
+                        role="switch"
+                        aria-checked={isOn}
+                        aria-labelledby="auto-renew-label"
+                        disabled={disabled}
+                        onClick={() => {
+                          if (disabled) return;
+                          if (isOn) setCancelDialogOpen(true);
+                          else handleReactivate();
+                        }}
+                        className={`relative inline-flex h-6 w-11 shrink-0 cursor-pointer items-center rounded-full p-[3px] overflow-hidden transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background disabled:cursor-not-allowed disabled:opacity-50 ${
+                          isOn ? "bg-black" : "bg-input"
+                        }`}
+                      >
+                        <span
+                          className={`pointer-events-none block h-[18px] w-[18px] rounded-full bg-white shadow-sm ring-0 transition-transform ${
+                            isOn ? "translate-x-[20px]" : "translate-x-0"
+                          }`}
+                        />
+                      </button>
+                    </div>
+                  );
+                })()}
+              </div>
+
+              {/* RIGHT COLUMN */}
+              <div className="space-y-3">
+                {/* Payment Method */}
+                <div className="rounded-lg border p-3">
+                  <SectionLabel>Payment Method</SectionLabel>
                   {showUpdateCard ? (
                     <Elements stripe={stripePromise}>
                       <UpdatePaymentForm
@@ -535,71 +546,58 @@ export function SubscriptionTab() {
                       />
                     </Elements>
                   ) : details.paymentMethod ? (
-                    <div className="rounded-lg border p-4 flex items-center gap-3">
-                      <CreditCard className="h-5 w-5 text-muted-foreground" />
-                      <div className="flex-1">
-                        <span className="font-medium capitalize">{details.paymentMethod.brand}</span>{" "}
-                        •••• {details.paymentMethod.last4}
-                      </div>
-                      <span className="text-sm text-muted-foreground">
-                        Expires {String(details.paymentMethod.exp_month).padStart(2, "0")}/
+                    <div className="flex items-center gap-2 text-sm">
+                      <CreditCard className="h-4 w-4 text-muted-foreground shrink-0" />
+                      <span className="font-medium capitalize">{details.paymentMethod.brand}</span>
+                      <span>•••• {details.paymentMethod.last4}</span>
+                      <span className="text-xs text-muted-foreground">
+                        Exp {String(details.paymentMethod.exp_month).padStart(2, "0")}/
                         {details.paymentMethod.exp_year}
                       </span>
-                      <Badge variant="outline">Default</Badge>
-                      <Button variant="outline" size="sm" onClick={() => setShowUpdateCard(true)}>
+                      <Badge variant="outline" className="text-[10px] py-0 px-1.5">Default</Badge>
+                      <Button variant="outline" size="sm" className="ml-auto h-7" onClick={() => setShowUpdateCard(true)}>
                         Update
                       </Button>
                     </div>
                   ) : (
-                    <div className="flex items-center justify-between">
-                      <p className="text-sm text-muted-foreground">No payment method on file.</p>
-                      <Button variant="outline" size="sm" onClick={() => setShowUpdateCard(true)}>
+                    <div className="flex items-center justify-between text-sm">
+                      <span className="text-muted-foreground">No payment method on file.</span>
+                      <Button variant="outline" size="sm" className="h-7" onClick={() => setShowUpdateCard(true)}>
                         Add Card
                       </Button>
                     </div>
                   )}
-                </CardContent>
-              </Card>
+                </div>
 
-              {/* Billing Information */}
-              <Card>
-                <CardHeader>
-                  <CardTitle>Billing Information</CardTitle>
-                  <CardDescription>The email address where invoices are sent each month.</CardDescription>
-                </CardHeader>
-                <CardContent>
+                {/* Billing Information */}
+                <div className="rounded-lg border p-3">
+                  <SectionLabel>Billing Information</SectionLabel>
                   {editingEmail ? (
-                    <div className="flex flex-col sm:flex-row gap-2">
+                    <div className="flex gap-2">
                       <Input
                         type="email"
                         value={emailDraft}
                         onChange={(e) => setEmailDraft(e.target.value)}
                         placeholder="billing@yourcompany.com"
                         disabled={savingEmail}
-                        className="flex-1"
+                        className="flex-1 h-8"
                       />
-                      <div className="flex gap-2 justify-end">
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => setEditingEmail(false)}
-                          disabled={savingEmail}
-                        >
-                          Cancel
-                        </Button>
-                        <Button size="sm" onClick={handleSaveEmail} disabled={savingEmail}>
-                          {savingEmail && <Loader2 className="h-3.5 w-3.5 animate-spin mr-1.5" />}
-                          Save
-                        </Button>
-                      </div>
+                      <Button variant="outline" size="sm" className="h-8" onClick={() => setEditingEmail(false)} disabled={savingEmail}>
+                        Cancel
+                      </Button>
+                      <Button size="sm" className="h-8" onClick={handleSaveEmail} disabled={savingEmail}>
+                        {savingEmail && <Loader2 className="h-3.5 w-3.5 animate-spin mr-1.5" />}
+                        Save
+                      </Button>
                     </div>
                   ) : (
-                    <div className="rounded-lg border p-4 flex items-center gap-3">
-                      <Mail className="h-5 w-5 text-muted-foreground" />
-                      <span className="text-sm flex-1">{details.billingEmail}</span>
+                    <div className="flex items-center gap-2 text-sm" title="Invoices are sent to this email each month">
+                      <Mail className="h-4 w-4 text-muted-foreground shrink-0" />
+                      <span className="flex-1 truncate">{details.billingEmail}</span>
                       <Button
                         variant="outline"
                         size="sm"
+                        className="h-7"
                         onClick={() => {
                           setEmailDraft(details.billingEmail);
                           setEditingEmail(true);
@@ -610,94 +608,46 @@ export function SubscriptionTab() {
                       </Button>
                     </div>
                   )}
-                </CardContent>
-              </Card>
+                </div>
 
-              {/* Invoice History */}
-              <Card>
-                <CardHeader>
-                  <CardTitle>Invoice History</CardTitle>
-                </CardHeader>
-                <CardContent>
+                {/* Invoice History */}
+                <div className="rounded-lg border p-3">
+                  <SectionLabel>Invoice History</SectionLabel>
                   {details.invoices.length > 0 ? (
-                    <div className="rounded-lg border divide-y">
+                    <div className="max-h-40 overflow-y-auto divide-y">
                       {details.invoices.map((inv) => (
-                        <div key={inv.id} className="flex items-center gap-2 p-3 text-sm">
-                          <FileText className="h-4 w-4 text-muted-foreground shrink-0" />
-                          <span className="text-muted-foreground text-xs shrink-0">
+                        <div key={inv.id} className="flex items-center gap-2 py-1.5 text-xs">
+                          <FileText className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
+                          <span className="text-muted-foreground shrink-0">
                             {inv.date ? format(new Date(inv.date), "MMM d, yyyy") : "—"}
                           </span>
                           <span className="font-medium shrink-0">${inv.amount.toFixed(2)}</span>
                           <span className="shrink-0">{invoiceStatusBadge(inv.status || "unknown")}</span>
-                          <span className="min-w-0 flex-1 truncate text-muted-foreground text-xs">
+                          <span className="min-w-0 flex-1 truncate text-muted-foreground">
                             {inv.description}
                           </span>
                           <Button
                             variant="ghost"
                             size="icon"
-                            className="h-7 w-7 shrink-0"
+                            className="h-6 w-6 shrink-0"
                             title="Download Receipt"
                             onClick={() => downloadInvoiceReceipt(inv, details.billingEmail)}
                           >
-                            <Download className="h-3.5 w-3.5" />
+                            <Download className="h-3 w-3" />
                           </Button>
                         </div>
                       ))}
                     </div>
                   ) : (
-                    <p className="text-sm text-muted-foreground">No invoices yet.</p>
+                    <p className="text-xs text-muted-foreground">No invoices yet.</p>
                   )}
-                </CardContent>
-              </Card>
-
-              {/* Auto-renew */}
-              {details.subscription && (() => {
-                const isOn = !details.subscription.cancel_at_period_end;
-                const disabled = canceling || reactivating;
-                return (
-                  <Card>
-                    <CardContent className="pt-6">
-                      <div className="flex items-center justify-between">
-                        <div className="space-y-0.5">
-                          <span id="auto-renew-label" className="text-sm font-medium">
-                            Auto-renew subscription
-                          </span>
-                          <p className="text-xs text-muted-foreground">
-                            {details.subscription.cancel_at_period_end
-                              ? `Your subscription will cancel on ${billingDate ? format(billingDate, "MMMM d, yyyy") : "the end of the billing period"}`
-                              : "Your subscription will automatically renew"}
-                          </p>
-                        </div>
-                        <button
-                          type="button"
-                          role="switch"
-                          aria-checked={isOn}
-                          aria-labelledby="auto-renew-label"
-                          disabled={disabled}
-                          onClick={() => {
-                            if (disabled) return;
-                            if (isOn) setCancelDialogOpen(true);
-                            else handleReactivate();
-                          }}
-                          className={`relative inline-flex h-6 w-11 shrink-0 cursor-pointer items-center rounded-full p-[3px] overflow-hidden transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background disabled:cursor-not-allowed disabled:opacity-50 ${
-                            isOn ? "bg-black" : "bg-input"
-                          }`}
-                        >
-                          <span
-                            className={`pointer-events-none block h-[18px] w-[18px] rounded-full bg-white shadow-sm ring-0 transition-transform ${
-                              isOn ? "translate-x-[20px]" : "translate-x-0"
-                            }`}
-                          />
-                        </button>
-                      </div>
-                    </CardContent>
-                  </Card>
-                );
-              })()}
-            </>
+                </div>
+              </div>
+            </div>
           )}
         </>
       )}
+
 
       <PaywallDialog open={showPaywall} onOpenChange={setShowPaywall} projectCount={projectCount} />
 
