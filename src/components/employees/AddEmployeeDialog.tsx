@@ -20,7 +20,8 @@ export function AddEmployeeDialog({ open, onOpenChange }: AddEmployeeDialogProps
   const { toast } = useToast();
   const { user } = useAuth();
   const queryClient = useQueryClient();
-  
+  const [confirmOpen, setConfirmOpen] = useState(false);
+
   const [formData, setFormData] = useState({
     firstName: "",
     lastName: "",
