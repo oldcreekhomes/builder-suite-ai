@@ -1,72 +1,87 @@
-## Why this happened
+## BuilderSuite ML Seat-Based Subscription — Final Plan
 
-A single row in `public.user_roles` granted `platform_admin` to `mgray@oldcreekhomes.com` (user id `2653aba8-d154-4301-99bf-77d559492e19`). The `projects` table — and 10+ other tables — carry an RLS policy of the form `USING (has_role(auth.uid(), 'platform_admin'))` that intentionally bypasses tenant scoping for the admin app. The customer app and the admin app share the same Supabase database, so granting the role inside the customer app immediately exposed every other home builder's data to that account.
+### Pricing model
+- Product `prod_UJkigiBSQD1O7e` / Price `price_1Tn0bo2M261MnJZCJRYDpnHF` ($39/user/month, licensed/quantity-based).
+- Stripe `quantity` = number of active users on the home builder's account (owner counts as 1).
 
-Concretely, for `projects`:
+### Behavior rules
+- **Add user mid-cycle** → quantity bumps immediately, Stripe charges card on file the prorated amount for remaining days. No Checkout redirect.
+- **Remove user mid-cycle** → user keeps access through end of current billing period (already paid for). Quantity drops at next renewal. No refund. Owner can undo before that date.
+- **Owner cancels (auto-renew off)** → everyone retains access until period end, then full lockout.
+- **Payment failure → IMMEDIATE FULL LOCKOUT.** No grace period. The first `invoice.payment_failed` event locks the entire company (owner + all employees) until the invoice is paid.
 
-```sql
--- Tenant policy (correct)
-USING ( owner_id = auth.uid()
-        OR owner_id IN (SELECT home_builder_id FROM users
-                        WHERE id = auth.uid() AND confirmed) )
+---
 
--- Escape policy (this is what leaked timber ridge)
-USING ( has_role(auth.uid(), 'platform_admin') )
-```
+### Database changes (migration)
 
-`timber ridge` is `owner_id = cff5f161…` (info@1907homes.com). The tenant branch evaluates false for you; the platform_admin branch evaluates true → row returned.
+New table `home_builder_subscriptions` (one row per owner):
+- `id uuid pk`
+- `home_builder_id uuid unique not null`
+- `stripe_customer_id text`
+- `stripe_subscription_id text`
+- `stripe_price_id text`
+- `status text` (active, trialing, past_due, canceled, unpaid, incomplete)
+- `quantity int`
+- `current_period_start timestamptz`
+- `current_period_end timestamptz`
+- `cancel_at_period_end boolean default false`
+- `created_at`, `updated_at`
 
-## Fix — three layers
+Add to `users`:
+- `pending_removal_at timestamptz null` — when set and in the past, user is locked out.
 
-### 1. Immediate: revoke the role (data fix)
+RLS: owner reads own row; service_role full access. Standard GRANTs.
 
-Delete the offending row so RLS reverts to tenant scoping for your account:
+### Edge functions
 
-```sql
-DELETE FROM public.user_roles
-WHERE user_id = '2653aba8-d154-4301-99bf-77d559492e19'
-  AND role = 'platform_admin';
-```
+1. **`create-checkout`** — first-time signup only. Stripe Checkout Session, qty 1, returns URL.
+2. **`check-subscription`** — pulls latest sub, upserts cache. Called on login and after seat mutations.
+3. **`preview-seat-change`** — input `delta` (+1/-1). Returns prorated charge (add) or end-of-access date + new monthly total (remove), plus current card last4.
+4. **`add-seat`** — owner-only. Stripe `subscriptions.update` with `proration_behavior:'create_prorations'`, `payment_behavior:'error_if_incomplete'`. Caller creates the user only on success.
+5. **`remove-seat`** — owner-only. Sets `users.pending_removal_at = current_period_end`. Stripe `subscriptions.update` with `proration_behavior:'none'` (decrement applied at next renewal).
+6. **`undo-remove-seat`** — owner-only. Clears flag and re-bumps Stripe quantity if needed.
+7. **`customer-portal`** — Stripe Billing Portal for card updates.
+8. **`stripe-webhook`** — **v1 required** (because payment failure must lock instantly). Verifies signature with `STRIPE_WEBHOOK_SECRET`. Handles:
+   - `invoice.payment_failed` → set `status = 'past_due'` → frontend gates everyone in the company.
+   - `invoice.payment_succeeded` → set `status = 'active'` → access restored instantly.
+   - `customer.subscription.updated` / `.deleted` → sync quantity, period, cancel_at_period_end.
+9. **Cron (`pg_cron` + `pg_net`, daily 00:05 UTC)** — `process-pending-removals`: hard-revokes users whose `pending_removal_at <= now()`.
 
-After this, refreshing the sidebar will drop `timber ridge` (and any other 1907 Homes / other-builder rows) from every list.
+### Frontend changes
 
-### 2. Prevent recurrence: lock down who can grant `platform_admin`
+**Add Employee flow:**
+- Call `preview-seat-change(+1)` → confirm dialog:
+  > *"Adding [Name] will charge **$16.77** to your Visa •••• 4242 today (prorated for 13 days remaining). Your monthly bill will increase to **$312/month** starting May 12, 2026."*
+  > **Cancel** / **Confirm & Add User**
+- On confirm → `add-seat` → on success create user; on decline show "Payment declined — update your card in Manage Subscription".
 
-Audit the existing RLS / triggers on `public.user_roles` and add a hard guard so the customer app cannot create `platform_admin` rows, regardless of who is logged in:
+**Remove Employee flow:**
+- Call `preview-seat-change(-1)` → confirm dialog:
+  > *"[Name] will keep access through **May 12, 2026** (the end of your current billing period, which is already paid for). On that date their access will end and your bill will drop to **$234/month**. No refund will be issued. You can undo this anytime before May 12."*
+  > **Cancel** / **Confirm Removal**
+- User row shows badge **"Access ends May 12, 2026"** with **Undo** button until then.
 
-- Add a `BEFORE INSERT OR UPDATE` trigger on `public.user_roles` that raises an exception when `NEW.role = 'platform_admin'` unless the caller is `service_role`. This blocks the role from ever being granted via the anon/authenticated API (i.e. from any Lovable customer app), and only lets it be granted from the dedicated admin project's edge functions (which run as service_role).
-- Remove any UI surface in the customer app that writes to `user_roles` with `platform_admin` (if one exists — I'll grep during implementation).
+**Payment-failure lockout (everyone in company):**
+- Route guard checks cached `home_builder_subscriptions.status`. If `past_due` / `unpaid` / `canceled` with expired period → full-screen lockout:
+  > **"Payment failed. Your company's access has been suspended. Please update your payment method to restore access."**
+- Owner sees **"Update Payment Method"** button → opens Manage Subscription modal / Billing Portal.
+- Employees see the same lockout screen with text directing them to contact their account owner.
+- Webhook flips status back to `active` on successful payment → guard releases instantly on next page interaction (we'll also poll `check-subscription` every 30s on the lockout screen so it auto-redirects).
 
-### 3. Defense in depth: re-scope the cross-tenant escape policies
+**Pending-removal user lockout:**
+- If `auth.uid()` user has `pending_removal_at <= now()` → "Your access has ended" screen.
 
-The current `Platform admins can view all <table>` policies exist on: `projects, bills, bill_lines, project_budgets, project_lots, pending_bill_uploads, companies, users, user_roles, user_notification_preferences, company_feature_access`.
+**Owner cancellation lockout:**
+- If subscription `canceled` AND `current_period_end < now()` → "Subscription inactive — reactivate" screen.
 
-Per the project memory *Platform Admin Application Strategy*, admin access is supposed to come from a separate Lovable project. Two safe options — I recommend (a):
+**Manage Subscription modal (existing):** wire live data from `check-subscription`; no UI overhaul needed.
 
-(a) **Keep the policies, gate by a session claim.** Change each `Platform admins can view all …` policy from `has_role(auth.uid(),'platform_admin')` to something like `has_role(auth.uid(),'platform_admin') AND current_setting('request.jwt.claims', true)::jsonb->>'app' = 'admin'`. The admin Lovable project sets that JWT custom claim during sign-in; the customer app never sets it. Result: even if a `platform_admin` row exists for a user, that role only unlocks cross-tenant reads when they're authenticated through the admin app's session.
+---
 
-(b) **Drop the policies from this database entirely** and move the admin app to a different Supabase project. Heavier change; only worth it if the admin app is rarely used or hasn't been built yet.
+### Setup the user needs to do
+- Set `STRIPE_WEBHOOK_SECRET` secret (I'll request it after creating the webhook endpoint so they can paste it from the Stripe dashboard).
+- Confirm the price is licensed/quantity-based (I'll verify via Stripe API at build start; if it's flat-fee, create a new licensed price).
 
-### 4. Verify
-
-After the data fix + trigger + policy change:
-
-```sql
--- Should return 0 rows
-SELECT * FROM public.user_roles WHERE role = 'platform_admin';
-
--- Should be impossible from the customer app
-INSERT INTO public.user_roles(user_id, role) VALUES (auth.uid(), 'platform_admin');
--- → raises "platform_admin can only be granted from the admin app"
-```
-
-And from the UI: reload the project dropdown as Matt Gray — `timber ridge` and any other 1907 Homes entries must be gone, and only Old Creek's projects remain.
-
-## Order of operations
-
-1. Run the `DELETE` from step 1 (immediate stop-the-bleed).
-2. Migration adding the `user_roles` insert/update guard trigger (step 2).
-3. Migration rewriting the `Platform admins can view all …` policies on the 11 tables to also require the `app=admin` JWT claim (step 3a).
-4. Smoke-check the dropdown and re-run the verification queries.
-
-Steps 2 and 3 are migrations; step 1 is a data update I'll run via the insert tool. No frontend code changes are required for the security fix itself — but I'll grep for any customer-app code that touches `user_roles.role = 'platform_admin'` and remove/redirect it if found.
+### Out of scope for v1
+- Free trial on first checkout.
+- Dunning emails (Stripe's default Smart Retries are disabled by the instant-lockout rule; recommend turning off Smart Retries in Stripe dashboard so the first failure truly is the lockout trigger).
