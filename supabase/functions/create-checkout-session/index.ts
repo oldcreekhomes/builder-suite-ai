@@ -56,7 +56,8 @@ serve(async (req) => {
       .from("users")
       .select("id", { count: "exact", head: true })
       .eq("home_builder_id", ownerId)
-      .eq("confirmed", true);
+      .eq("confirmed", true)
+      .eq("access_revoked", false);
 
     const seatCount = 1 + (employeeCount || 0);
 
