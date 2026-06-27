@@ -307,7 +307,9 @@ export function SubscriptionTab() {
       if (data?.error) throw new Error(data.error);
       toast({ title: "Billing email updated", description: "Future invoices will be sent here." });
       setEditingEmail(false);
-      queryClient.invalidateQueries({ queryKey: ["subscription-details"] });
+      queryClient.setQueryData(["subscription-details"], (old: any) =>
+        old ? { ...old, billingEmail: trimmed } : old
+      );
     } catch (err: any) {
       toast({ title: "Error", description: err.message || "Failed to update billing email", variant: "destructive" });
     } finally {
