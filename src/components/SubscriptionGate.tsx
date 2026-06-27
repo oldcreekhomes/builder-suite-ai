@@ -190,19 +190,7 @@ export function SubscriptionGate({ children }: SubscriptionGateProps) {
     return () => clearInterval(id);
   }, [isCompanyLockedOut, isPersonallyLockedOut, queryClient]);
 
-  const openBillingPortal = async () => {
-    setOpeningPortal(true);
-    try {
-      const { data, error } = await supabase.functions.invoke("customer-portal");
-      if (error) throw error;
-      if (data?.error) throw new Error(data.error);
-      if (data?.url) window.location.href = data.url;
-    } catch (err: any) {
-      toast({ title: "Error", description: err.message || "Could not open billing portal", variant: "destructive" });
-    } finally {
-      setOpeningPortal(false);
-    }
-  };
+  // (Billing portal removed — subscription management is fully in-app via ManageSubscriptionDialog.)
 
   const handleSelectPlan = async (billing_interval: "monthly" | "annual") => {
     setLoadingPlan(billing_interval);
