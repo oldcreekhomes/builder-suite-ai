@@ -100,11 +100,12 @@ export function AddEmployeeDialog({ open, onOpenChange }: AddEmployeeDialogProps
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['employees'] });
       queryClient.invalidateQueries({ queryKey: ['subscription'] });
-      // Sync subscription seats with Stripe
+      // Sync subscription seats with Stripe — this charges the prorated amount
+      // because the seat-count function uses proration_behavior:'always_invoice'.
       supabase.functions.invoke('update-subscription-seats').catch(console.error);
       toast({
         title: "Invitation sent!",
-        description: "The employee will receive an email to complete their account setup.",
+        description: "The employee will receive an email to complete their account setup. Your card on file has been charged the prorated amount.",
       });
       setFormData({
         firstName: "",
@@ -113,6 +114,7 @@ export function AddEmployeeDialog({ open, onOpenChange }: AddEmployeeDialogProps
         phoneNumber: "",
         role: "employee",
       });
+      setConfirmOpen(false);
       onOpenChange(false);
     },
     onError: (error: Error) => {
@@ -135,7 +137,7 @@ export function AddEmployeeDialog({ open, onOpenChange }: AddEmployeeDialogProps
       });
       return;
     }
-    sendInvitationMutation.mutate(formData);
+    setConfirmOpen(true);
   };
 
   return (
