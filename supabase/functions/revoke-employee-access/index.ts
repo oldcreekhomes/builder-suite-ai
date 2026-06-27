@@ -12,6 +12,11 @@ const json = (body: unknown, status = 200) =>
     headers: { "Content-Type": "application/json", ...corsHeaders },
   });
 
+// Schedules deferred removal: user keeps access through the end of the
+// current billing period (which is already paid for). Stripe quantity is
+// decremented now with proration_behavior:'none' so the NEXT invoice is
+// lower; no refund is issued. The cron job process-pending-removals
+// performs the actual ban when pending_removal_at <= now().
 const handler = async (req: Request): Promise<Response> => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
@@ -39,7 +44,8 @@ const handler = async (req: Request): Promise<Response> => {
     if (employeeId === caller.id) return json({ error: "You cannot revoke your own access" }, 400);
 
     const { data: targetUser, error: targetErr } = await supabaseAdmin
-      .from("users").select("home_builder_id, id").eq("id", employeeId).single();
+      .from("users").select("home_builder_id, id, pending_removal_at, access_revoked")
+      .eq("id", employeeId).single();
     if (targetErr || !targetUser) return json({ error: "Employee not found" }, 404);
     if (targetUser.home_builder_id !== caller.id) {
       return json({ error: "Employee is not in your company" }, 403);
@@ -51,56 +57,56 @@ const handler = async (req: Request): Promise<Response> => {
       return json({ error: "Cannot revoke access for an owner" }, 403);
     }
 
-    // 1. Ban the auth user permanently — blocks future logins.
-    const { error: banErr } = await supabaseAdmin.auth.admin.updateUserById(employeeId, {
-      ban_duration: "876000h",
-    });
-    if (banErr) {
-      console.error("ban error", banErr);
-      return json({ error: `Failed to ban user: ${banErr.message}` }, 500);
-    }
+    // Determine when access ends. Default to subscription's current_period_end;
+    // if there is no Stripe subscription, fall back to immediate (end-of-day).
+    const { data: subRow } = await supabaseAdmin
+      .from("subscriptions")
+      .select("stripe_subscription_id, current_period_end")
+      .eq("owner_id", caller.id)
+      .maybeSingle();
 
-    // 2. Kill every active session immediately on all devices.
-    const { error: signOutErr } = await supabaseAdmin.auth.admin.signOut(employeeId, "global");
-    if (signOutErr) console.error("signOut error", signOutErr);
+    let endsAt: string | null = subRow?.current_period_end ?? null;
 
-    // 3. Mark the row as revoked (keep all historical data).
-    const { error: updErr } = await supabaseAdmin
-      .from("users").update({ access_revoked: true }).eq("id", employeeId);
-    if (updErr) return json({ error: `Failed to mark revoked: ${updErr.message}` }, 500);
-
-    // 4. Recalculate seat count + push to Stripe.
-    try {
-      const { count } = await supabaseAdmin
-        .from("users").select("id", { count: "exact", head: true })
-        .eq("home_builder_id", caller.id).eq("confirmed", true).eq("access_revoked", false);
-      const seatCount = 1 + (count || 0);
-      await supabaseAdmin.from("subscriptions")
-        .update({ user_count: seatCount }).eq("owner_id", caller.id);
-      const { data: sub } = await supabaseAdmin.from("subscriptions")
-        .select("stripe_subscription_id").eq("owner_id", caller.id).single();
-      if (sub?.stripe_subscription_id) {
+    // Fetch authoritative period_end from Stripe and update Stripe quantity.
+    if (subRow?.stripe_subscription_id) {
+      try {
         const { default: Stripe } = await import("https://esm.sh/stripe@18.5.0");
         const stripe = new Stripe(Deno.env.get("STRIPE_SECRET_KEY") || "", {
           apiVersion: "2025-08-27.basil",
         });
-        const stripeSub = await stripe.subscriptions.retrieve(sub.stripe_subscription_id);
-        const itemId = stripeSub.items.data[0]?.id;
-        if (itemId) {
-          await stripe.subscriptions.update(sub.stripe_subscription_id, {
-            items: [{ id: itemId, quantity: seatCount }],
-            proration_behavior: "always_invoice",
+        const stripeSub = await stripe.subscriptions.retrieve(subRow.stripe_subscription_id);
+        if (stripeSub.current_period_end) {
+          endsAt = new Date(stripeSub.current_period_end * 1000).toISOString();
+        }
+        const item = stripeSub.items.data[0];
+        const currentQty = item?.quantity ?? 1;
+        const newQty = Math.max(1, currentQty - 1);
+        if (item && newQty !== currentQty) {
+          await stripe.subscriptions.update(subRow.stripe_subscription_id, {
+            items: [{ id: item.id, quantity: newQty }],
+            proration_behavior: "none",
           });
         }
+        await supabaseAdmin.from("subscriptions")
+          .update({ user_count: newQty }).eq("owner_id", caller.id);
+      } catch (e) {
+        console.error("Stripe quantity decrement failed:", e);
       }
-    } catch (e) {
-      console.error("seat sync failed", e);
     }
 
-    return json({ success: true });
-  } catch (e: any) {
+    // No subscription → revoke immediately so we don't leave free access dangling.
+    if (!endsAt) endsAt = new Date().toISOString();
+
+    const { error: updErr } = await supabaseAdmin
+      .from("users")
+      .update({ pending_removal_at: endsAt })
+      .eq("id", employeeId);
+    if (updErr) return json({ error: `Failed to schedule removal: ${updErr.message}` }, 500);
+
+    return json({ success: true, pendingRemovalAt: endsAt });
+  } catch (e) {
     console.error("revoke-employee-access error", e);
-    return json({ error: e?.message || "Unexpected error" }, 500);
+    return json({ error: (e as Error)?.message || "Unexpected error" }, 500);
   }
 };
 
