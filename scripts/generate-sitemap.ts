@@ -11,10 +11,15 @@ interface SitemapEntry {
   priority?: string;
 }
 
-// Public, indexable marketing routes only. App routes are auth-gated.
+// Public, indexable marketing + entry routes. Excluded: /landing (redirects
+// to /), /out (outbound redirect), /reset-password (utility, requires token),
+// /submit-bid (requires bid_package_id query param), and all auth-gated app
+// routes.
 const entries: SitemapEntry[] = [
   { path: "/", changefreq: "weekly", priority: "1.0" },
   { path: "/about", changefreq: "monthly", priority: "0.8" },
+  { path: "/auth", changefreq: "monthly", priority: "0.6" },
+  { path: "/auth/marketplace", changefreq: "monthly", priority: "0.6" },
   { path: "/features/accounting", changefreq: "monthly", priority: "0.7" },
   { path: "/features/gantt-scheduling", changefreq: "monthly", priority: "0.7" },
   { path: "/features/ai-bill-management", changefreq: "monthly", priority: "0.7" },
