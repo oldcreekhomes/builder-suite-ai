@@ -1,59 +1,46 @@
-## Pricing page — two tiers on top, real modules grid below, fully crawlable
+## Goal
 
-### 1. Rewrite `src/pages/Pricing.tsx`
+Replace every fake/AI-generated OG share image in `public/og/` with real screenshots of the actual running BuilderSuiteML app, each branded with a small `BuilderSuiteML` wordmark overlay. The Facebook preview (and every other social share) will then show the real product, not a stock-looking mockup.
 
-Layout top → bottom:
+In scope: the 9 OG images only (`public/og/*.jpg`) — `home`, `accounting`, `ai-bill-management`, `bid-management`, `document-management`, `gantt-scheduling`, `join-marketplace`, `team-communication`, `about`. Marketing page in-body images and blog covers are NOT touched in this pass.
 
-1. **Hero**
-   - H1: "Simple, Honest Pricing"
-   - Subhead: "Start free with up to 3 projects. Scale to unlimited at $39 per user / month."
+## How
 
-2. **Two pricing cards (side-by-side)** — short, no long feature lists inside the cards
-   - **Free** — $0 / month — "Up to 3 projects. Full access to every module. No credit card required." → CTA: "Start Free"
-   - **Pro** — $39 / user / month — "Unlimited projects. Everything in Free. Priority support." → CTA: "Start Pro Trial". Marked as recommended.
-   - Removes the old 3-tier cards, "Most Popular" badge, the path-selection modal, and all the fake bullets ("Email support", "API access", "SSO", etc.).
+1. **Confirm live app session.** Check `LOVABLE_BROWSER_AUTH_STATUS`. If not `injected`, stop and ask you to sign in to the preview so I can capture authenticated screens.
 
-3. **"Everything included on both plans" section — module grid BELOW the pricing cards**
-   Replaces the fake feature bullets that used to live inside the tier cards. Each module is its own card with an icon, name, and one-line description, using only real BuilderSuite ML modules:
-   - Projects, Budgets & Job Costing
-   - Construction Accounting (A/P, A/R, Banking, Reconciliation, Reports)
-   - AI Bill Management (bulk PDF upload, extraction, PO matching)
-   - Smart Gantt Scheduling (predecessors, sub confirmations, templates)
-   - Bid Management (packages, side-by-side comparison, auto-PO)
-   - Purchase Orders & Vendor Management
-   - Document & Photo Management (folder access control)
-   - Team & Subcontractor Communication
-   - Subcontractor Marketplace (built-in)
-   - Reports & Dashboards
-   - Multi-user with role-based permissions
-   - Apartments / Rentals module
+2. **Capture real screens via Playwright** against `localhost:8080` with `viewport=1280x800` (matches 1.91:1 OG ratio closely; I'll then crop/pad to exactly 1200×630). One script under `/tmp/browser/og-shots/` drives the browser through:
+   - `home` → Project Dashboard (`/`) showing real projects list / dashboard cards
+   - `accounting` → `/accounting` (Reports or Bank Register page)
+   - `ai-bill-management` → `/accounting` Bills tab or `/review-bills`
+   - `bid-management` → a project's Bidding page
+   - `gantt-scheduling` → a project's Schedule (Gantt) page
+   - `document-management` → a project's Files page
+   - `team-communication` → `/messages`
+   - `join-marketplace` → public `/marketplace-signup` (no auth needed)
+   - `about` → public `/about` hero
+   
+   Each capture waits for content to render (`networkidle` + a key selector), then `page.screenshot({ path })`.
 
-4. **Trust strip**: cancel anytime, no setup fees, free onboarding help.
+3. **Compose the final OG image** with Python + Pillow for each capture:
+   - Canvas: exactly 1200×630, brand background color (matches site bg).
+   - Place the screenshot centered, scaled to fit with ~40px padding, subtle rounded corners + soft shadow (clean, not the heavy mac-frame product-shot look you didn't pick).
+   - Overlay a small `BuilderSuiteML` wordmark bottom-left (text, using the site's font weight 700, ~28px), and a tiny page label bottom-right (e.g. "Smart Gantt Scheduling"). No fake browser chrome, no stock photos.
+   - Export as JPEG quality 85 → write directly to `public/og/<name>.jpg`, overwriting the existing fake file. Same filenames means no code/meta changes needed — every `<SeoHead>` and prerender script keeps working.
 
-Wrapped in `<PublicHeader />` / `<PublicFooter />` and `<SeoHead>` with pricing-specific title/description; canonical and og:url self-reference `https://buildersuiteml.com/pricing`.
+4. **QA each output.** View every generated JPG, check: real UI is legible, no PII leaking (I'll prefer pages without client names where possible, or use a demo project), wordmark not overlapping content, dimensions exactly 1200×630.
 
-### 2. Add `/pricing` to `scripts/prerender-marketing.mjs`
+5. **Tell you to refresh the FB/LinkedIn debugger** — social platforms cache the old image; the new one won't show on already-shared links until you re-scrape via Facebook's Sharing Debugger / LinkedIn Post Inspector.
 
-Append a `/pricing` entry to `ROUTES` so postbuild emits `dist/pricing/index.html` with static, crawler-readable HTML mirroring the page order above:
-- title: "Pricing — Free for 3 Projects, then $39 / User / Month | BuilderSuite ML"
-- description: "Start free with up to 3 projects. Scale to unlimited at $39 per user / month. Full access to every BuilderSuite ML module on both plans."
-- h1: "Simple, Honest Pricing"
-- intro: Free (3 projects) + Pro ($39/user/mo)
-- sections (in order): "Free Plan", "Pro Plan", then one h2 per major module group mirroring the on-page module grid
-- cta → `/auth?tab=signup`
-- ogImage: reuse `/og/home.jpg`
+## Out of scope (call out for a follow-up pass if you want)
 
-Add `/pricing` to the prerenderer's `FOOTER_LINKS` so every prerendered footer links to it.
+- Hero/feature images embedded inside `/`, `/about`, `/features/*`, `/vs/buildertrend`, `/pricing` page bodies.
+- Blog post cover images in `content/blog/*`.
+- `buildersuiteml-logo.png` / `founder-photo.png` in `src/assets/`.
+- Any prerendered HTML `<img>` references — none need updating since filenames are reused.
 
-### 3. Add `/pricing` to `scripts/generate-sitemap.ts`
+## Technical notes
 
-Insert `{ path: "/pricing", changefreq: "monthly", priority: "0.9" }` in the `entries` array.
-
-### Out of scope
-- No backend, no Stripe wiring, no plan-gating logic.
-- No changes to `App.tsx` routes, `PublicHeader`, or `PublicFooter` (already wired).
-- No new OG image — reuse existing `/og/home.jpg`.
-
-### Technical notes
-- Prerenderer runs in `postbuild`, writes `dist/{route}/index.html` with a static body that mirrors the React page. Crawlers (incl. non-JS social previewers) get full HTML; React hydrates on top with no mismatch because `createRoot` discards `#root` children on mount.
-- The in-page `<SeoHead>` is still used at runtime for JS-executing crawlers and SPA navigation.
+- No new dependencies; Pillow + Playwright are already in the sandbox.
+- No app code changes, no SEO tag changes, no sitemap changes.
+- Screenshots will use whichever tenant your injected Supabase session belongs to; I'll prefer demo-looking projects and avoid screens with sensitive financial detail. If a screen looks too sensitive, I'll swap in a different module's view and tell you.
+- If `LOVABLE_BROWSER_AUTH_STATUS` is `external_unmanaged` or `signed_out`, I'll only be able to redo the 2 public-page OGs (`about`, `join-marketplace`) and will ask you for screenshots of the rest.
