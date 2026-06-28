@@ -1,45 +1,27 @@
-## Add tracking + remarketing pixels to buildersuiteml.com
+## Plan: Pricing Page
 
-Install four scripts site-wide so you can see visitors and remarket to them on Google/YouTube, Facebook/Instagram, and LinkedIn.
+### Overview
+Build a standalone `/pricing` page using the pricing data already defined in `Landing.tsx`, wire it into the marketing site navigation (`PublicHeader`), and register the route in `App.tsx`.
 
-### What gets installed
+### Deliverables
+1. **New page: `src/pages/Pricing.tsx`**
+   - Reuses the three pricing tiers (Starter $99/mo, Professional $249/mo, Enterprise Custom) from `Landing.tsx`.
+   - Wrapped with `<SeoHead>` (title/meta) and the standard `<PublicHeader>` / `<PublicFooter>` layout.
+   - Clean, focused layout with plan cards, feature lists, and CTAs.
+   - Uses existing site styling (shadcn/ui Card, Button, etc.). No hardcoded colors.
 
-1. **Google Analytics 4 (GA4)** — traffic analytics (sessions, sources, pages, conversions).
-2. **Google Ads remarketing tag** — builds audiences for Google Search/Display/YouTube retargeting.
-3. **Meta Pixel** — builds audiences for Facebook/Instagram retargeting.
-4. **LinkedIn Insight Tag** — builds audiences for LinkedIn retargeting (strong for B2B builders).
+2. **Route registration in `src/App.tsx`**
+   - Add `const Pricing = safeLazy(() => import("./pages/Pricing"));`
+   - Add `<Route path="/pricing" element={<Pricing />} />` in the public routes block (outside `SidebarLayout`).
 
-All four fire immediately on every page (no consent banner, per your choice).
+3. **Navigation update in `src/components/PublicHeader.tsx`**
+   - Add a plain text link "Pricing" immediately to the right of the "For Subcontractors" dropdown in the `hidden md:flex` nav bar.
+   - Link routes to `/pricing`.
 
-### Where the code goes
+4. **Footer update in `src/components/PublicFooter.tsx`**
+   - Add a "Pricing" link to the footer link row.
 
-Single edit to `index.html` — add the four `<script>` snippets near the end of `<head>`, plus the LinkedIn `<noscript><img></noscript>` fallback at the top of `<body>` (per HTML5 rules, noscript img can't sit in head).
-
-Because the site is a React SPA, I'll also add a tiny route-change listener in `src/App.tsx` that fires a virtual pageview on each client-side navigation for GA4, Meta (`PageView`), and LinkedIn — otherwise only the initial load gets tracked.
-
-### Placeholder IDs to swap later
-
-I'll drop in obvious placeholders so the wiring is correct and you can find/replace once you have the real IDs:
-
-- `G-XXXXXXXXXX` — GA4 Measurement ID
-- `AW-XXXXXXXXXX` — Google Ads Conversion ID
-- `XXXXXXXXXXXXXXX` — Meta Pixel ID (15-digit)
-- `XXXXXXX` — LinkedIn Partner ID
-
-### Where to get each ID
-
-- **GA4**: analytics.google.com → Admin → Data Streams → Web → Measurement ID
-- **Google Ads**: ads.google.com → Tools → Audience Manager → Your data sources → Google Ads tag
-- **Meta Pixel**: business.facebook.com → Events Manager → Data Sources → Pixel ID
-- **LinkedIn**: linkedin.com/campaignmanager → Analyze → Insight Tag → Partner ID
-
-### Things to know
-
-- Pixels fire on every page including `/blog/*`, so retargeting pools will include blog readers.
-- No cookie banner — fine for US traffic; not GDPR-compliant for EU visitors. Add one later if you start running EU ads.
-- Privacy policy should mention these trackers; happy to draft one as a follow-up.
-
-### Files touched
-
-- `index.html` — add 4 script blocks + LinkedIn noscript pixel
-- `src/App.tsx` — add SPA route-change listener that pings GA4, Meta, LinkedIn on navigation
+### Out of scope
+- Changing any existing pricing amounts or plan details (reuses Landing.tsx data).
+- Adding backend logic or checkout integration (presentation only).
+- Mobile hamburger menu (PublicHeader currently has no mobile menu; no change needed).
