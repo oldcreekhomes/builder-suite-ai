@@ -1,46 +1,52 @@
 ## Goal
 
-Replace every fake/AI-generated OG share image in `public/og/` with real screenshots of the actual running BuilderSuiteML app, each branded with a small `BuilderSuiteML` wordmark overlay. The Facebook preview (and every other social share) will then show the real product, not a stock-looking mockup.
+Replace all 9 fake AI-generated OG/social-share images in `public/og/*.jpg` with clean, on-brand images built from your real brand assets (`src/assets/buildersuiteml-logo.png` + project's near-black/white color tokens). No fake screenshots, no fake "BuilderSuite ML" graphics with stock dashboards, no AI mockups. Same filenames, so no SeoHead, prerender script, or sitemap changes are needed — the new files just overwrite the old.
 
-In scope: the 9 OG images only (`public/og/*.jpg`) — `home`, `accounting`, `ai-bill-management`, `bid-management`, `document-management`, `gantt-scheduling`, `join-marketplace`, `team-communication`, `about`. Marketing page in-body images and blog covers are NOT touched in this pass.
+The body of the marketing pages (Landing, AboutUs, /features/*, /pricing, /vs/buildertrend) already only references the real founder photo (Matt Gray's avatar) and shadcn UI — there are no fake in-page images to replace. Scope is the OG images only.
+
+## What each OG image will look like
+
+1200×630 JPG, monochrome on-brand:
+- Background: near-black (`hsl(240 10% 3.9%)`, the dark-mode `--background`).
+- Real `BuilderSuiteML` logo (from `src/assets/buildersuiteml-logo.png`) top-left at ~64px height.
+- Large page-specific headline centered-left, e.g. "Construction Accounting", "Smart Gantt Scheduling", "AI Bill Management", set in Montserrat Bold ~76px in white.
+- One-line subhead below in muted gray ~28px, page-specific (e.g. "Double-entry accounting built for home builders").
+- `buildersuiteml.com` wordmark bottom-left in small caps.
+- Subtle accent: a thin top border bar in the brand foreground white. No gradients-with-stars, no fake UI screenshots, no rendered phones.
+
+This matches the actual app's visual language (mono palette, Montserrat-family type, restrained) rather than the stock AI aesthetic.
 
 ## How
 
-1. **Confirm live app session.** Check `LOVABLE_BROWSER_AUTH_STATUS`. If not `injected`, stop and ask you to sign in to the preview so I can capture authenticated screens.
+1. **Generate via Pillow script** at `/tmp/og/build_og.py`:
+   - Load `src/assets/buildersuiteml-logo.png`, resize proportionally to 64px tall.
+   - Download Montserrat Bold + Regular `.ttf` from the `@fontsource/montserrat` paths under `node_modules` if present, otherwise pull from Google Fonts static URL (one-time, into `/tmp/og/fonts/`).
+   - Render each of 9 canvases with the per-page copy table below, write JPG quality 88 to `public/og/<name>.jpg`.
 
-2. **Capture real screens via Playwright** against `localhost:8080` with `viewport=1280x800` (matches 1.91:1 OG ratio closely; I'll then crop/pad to exactly 1200×630). One script under `/tmp/browser/og-shots/` drives the browser through:
-   - `home` → Project Dashboard (`/`) showing real projects list / dashboard cards
-   - `accounting` → `/accounting` (Reports or Bank Register page)
-   - `ai-bill-management` → `/accounting` Bills tab or `/review-bills`
-   - `bid-management` → a project's Bidding page
-   - `gantt-scheduling` → a project's Schedule (Gantt) page
-   - `document-management` → a project's Files page
-   - `team-communication` → `/messages`
-   - `join-marketplace` → public `/marketplace-signup` (no auth needed)
-   - `about` → public `/about` hero
-   
-   Each capture waits for content to render (`networkidle` + a key selector), then `page.screenshot({ path })`.
+2. **Per-page copy table** (headline / subhead):
+   - `home.jpg` → "Construction Management, Built for Builders" / "Projects, budgets, accounting, AI bills, Gantt — one platform."
+   - `about.jpg` → "Built by Builders" / "Why Old Creek Homes built BuilderSuiteML."
+   - `accounting.jpg` → "Construction Accounting" / "Double-entry, banking, reconciliation, reports."
+   - `ai-bill-management.jpg` → "AI Bill Management" / "Auto-extract vendor, cost code, and amount."
+   - `bid-management.jpg` → "Bid Management" / "Send packages, collect responses, convert to POs."
+   - `document-management.jpg` → "Document Management" / "Project files, photos, folders, shareable links."
+   - `gantt-scheduling.jpg` → "Smart Gantt Scheduling" / "Crews, vendors, predecessors — visual schedules."
+   - `join-marketplace.jpg` → "Join the Marketplace" / "Get found by local home builders."
+   - `team-communication.jpg` → "Team Communication" / "Chat for owners, employees, and trade partners."
 
-3. **Compose the final OG image** with Python + Pillow for each capture:
-   - Canvas: exactly 1200×630, brand background color (matches site bg).
-   - Place the screenshot centered, scaled to fit with ~40px padding, subtle rounded corners + soft shadow (clean, not the heavy mac-frame product-shot look you didn't pick).
-   - Overlay a small `BuilderSuiteML` wordmark bottom-left (text, using the site's font weight 700, ~28px), and a tiny page label bottom-right (e.g. "Smart Gantt Scheduling"). No fake browser chrome, no stock photos.
-   - Export as JPEG quality 85 → write directly to `public/og/<name>.jpg`, overwriting the existing fake file. Same filenames means no code/meta changes needed — every `<SeoHead>` and prerender script keeps working.
+3. **QA**: open every generated JPG with `code--view`, confirm logo is crisp (no blur from upscaling), text fits within margins, colors match the site, dimensions exactly 1200×630. Fix and re-run if any look off.
 
-4. **QA each output.** View every generated JPG, check: real UI is legible, no PII leaking (I'll prefer pages without client names where possible, or use a demo project), wordmark not overlapping content, dimensions exactly 1200×630.
+4. **Tell you to refresh the FB Sharing Debugger / LinkedIn Post Inspector** — Facebook caches the old image; new shares pick up the new file automatically but already-shared URLs need a re-scrape.
 
-5. **Tell you to refresh the FB/LinkedIn debugger** — social platforms cache the old image; the new one won't show on already-shared links until you re-scrape via Facebook's Sharing Debugger / LinkedIn Post Inspector.
+## Out of scope
 
-## Out of scope (call out for a follow-up pass if you want)
-
-- Hero/feature images embedded inside `/`, `/about`, `/features/*`, `/vs/buildertrend`, `/pricing` page bodies.
-- Blog post cover images in `content/blog/*`.
-- `buildersuiteml-logo.png` / `founder-photo.png` in `src/assets/`.
-- Any prerendered HTML `<img>` references — none need updating since filenames are reused.
+- Marketing page body images (none are fake — already use the real Matt Gray photo).
+- Blog cover images in `content/blog/*` (you didn't ask, and they're a separate authored set).
+- `founder-photo.png` (real photo of Matt Gray, untouched).
+- `buildersuiteml-logo.png` (your real logo, used as input).
+- No code changes, no SEO tag changes, no new dependencies in the app — Pillow script runs in the sandbox only.
 
 ## Technical notes
 
-- No new dependencies; Pillow + Playwright are already in the sandbox.
-- No app code changes, no SEO tag changes, no sitemap changes.
-- Screenshots will use whichever tenant your injected Supabase session belongs to; I'll prefer demo-looking projects and avoid screens with sensitive financial detail. If a screen looks too sensitive, I'll swap in a different module's view and tell you.
-- If `LOVABLE_BROWSER_AUTH_STATUS` is `external_unmanaged` or `signed_out`, I'll only be able to redo the 2 public-page OGs (`about`, `join-marketplace`) and will ask you for screenshots of the rest.
+- If `buildersuiteml-logo.png` is dark-on-transparent, I'll auto-invert it for the dark background so it reads as white-on-black. I'll inspect it first and decide.
+- If the logo file is actually a wordmark with bundled name, I won't add the wordmark text again — only the bottom-left `buildersuiteml.com` URL line.
