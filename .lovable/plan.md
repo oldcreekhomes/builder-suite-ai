@@ -8,19 +8,18 @@ I wasn't actually making progress — I was stuck retrying the same verification
 
 ## Plan to actually get this done
 
-1. **Get a fresh META verification token** from Google (one curl call to the Site Verification API for `https://buildersuiteml.com/`).
-2. **Add the meta tag to `index.html`** inside `<head>`, alongside the existing SEO tags:
+1. **Connect Google Search Console** via Lovable's connector using your Google account (free, OAuth-based).
+2. **Get a fresh META verification token** from Google (one curl call to the Site Verification API for `https://buildersuiteml.com/`).
+3. **Add the meta tag to `index.html`** inside `<head>`, alongside the existing SEO tags:
    ```html
    <meta name="google-site-verification" content="<TOKEN>" />
    ```
-3. **Stop and wait for you to publish.** This is the step that was missing. The tag has to be live on `buildersuiteml.com` before step 4 will work. I'll give you the Publish button and pause.
-4. **After you confirm it's published**, call Google's `verify` endpoint. On success, add the site to your Search Console property list with one more API call.
-5. **Leave the meta tag in `index.html` permanently** — Google rechecks periodically and will un-verify if it disappears.
+4. **Stop and wait for you to publish.** The tag has to be live on `buildersuiteml.com` before step 5 will work. I'll give you the Publish button and pause.
+5. **After you confirm it's published**, call Google's `verify` endpoint. On success, add the site to your Search Console property list with one more API call.
+6. **Leave the meta tag in `index.html` permanently** — Google rechecks periodically and will un-verify if it disappears.
 
 ## What I will NOT do
 
 - No loops of `verify` calls hoping it works.
 - No changes to the signed-in app — only `index.html` gets one new line.
 - No DNS or file-upload verification methods (those don't work for this setup).
-
-Approve this and I'll execute step 1–2, then hand off to you for publish.
