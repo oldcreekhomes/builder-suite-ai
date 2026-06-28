@@ -14,7 +14,7 @@ But "biggest" isn't always "best fit for the job." A lot of builders we talk to 
 
 That's why we built **BuilderSuite ML** — by working home builders, for working home builders. This post is an honest side-by-side: where each tool wins, where Buildertrend slows you down, and who should think about switching.
 
-## TL;DR
+## Quick Summary
 
 - **BuilderSuite ML** includes full double-entry construction accounting (A/P, A/R, banking, reconciliation, job costing, balance sheet, P&L) natively. No QuickBooks required.
 - **Buildertrend** is a strong, broad platform — but it expects you to keep QuickBooks running on the side, and a lot of the accounting story lives in that sync.
