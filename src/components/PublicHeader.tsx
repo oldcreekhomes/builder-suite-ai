@@ -45,12 +45,6 @@ export function PublicHeader({ onGetStartedClick }: PublicHeaderProps) {
             >
               Our Philosophy
             </Link>
-            <Link
-              to="/blog"
-              className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors"
-            >
-              Blog
-            </Link>
             
             {/* For Builders Dropdown */}
             <div className="relative group">
