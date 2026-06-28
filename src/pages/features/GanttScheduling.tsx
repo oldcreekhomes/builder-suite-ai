@@ -27,6 +27,7 @@ export default function GanttScheduling() {
         title={"Gantt Scheduling for Construction Projects | BuilderSuite ML"}
         description={"Visual Gantt schedules with crew, vendor, and predecessor tracking. Send schedule updates straight to your trades."}
         path="/features/gantt-scheduling"
+        ogImage="/og/gantt-scheduling.jpg"
       />
       {/* Header */}
       <PublicHeader onGetStartedClick={handleGetStartedClick} />

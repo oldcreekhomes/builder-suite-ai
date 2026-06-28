@@ -31,6 +31,7 @@ const AboutUs = () => {
         title={"About BuilderSuite ML — Built by Builders, for Builders"}
         description={"Learn why BuilderSuite ML was built by working home builders to solve the real problems construction teams face every day."}
         path="/about"
+        ogImage="/og/about.jpg"
       />
       {/* Header */}
       <PublicHeader onGetStartedClick={() => setIsPathModalOpen(true)} />

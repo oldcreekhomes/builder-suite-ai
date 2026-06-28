@@ -173,6 +173,7 @@ const Landing = () => {
         title={"BuilderSuite ML — Construction Management for Home Builders"}
         description={"All-in-one construction management for home builders: projects, budgets, schedules, accounting, bidding and AI-powered bill capture."}
         path="/"
+        ogImage="/og/home.jpg"
       />
       {/* Header */}
       <PublicHeader onGetStartedClick={() => setIsPathModalOpen(true)} />

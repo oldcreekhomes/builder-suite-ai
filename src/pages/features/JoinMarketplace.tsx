@@ -23,6 +23,7 @@ const JoinMarketplace = () => {
         title={"Join the BuilderSuite Marketplace | BuilderSuite ML"}
         description={"Subcontractors, suppliers, and service providers — list your business so local home builders can find and hire you."}
         path="/features/join-marketplace"
+        ogImage="/og/join-marketplace.jpg"
       />
       {/* Header */}
       <PublicHeader onGetStartedClick={() => setIsPathModalOpen(true)} />

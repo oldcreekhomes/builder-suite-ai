@@ -23,6 +23,7 @@ const Accounting = () => {
         title={"Construction Accounting Software | BuilderSuite ML"}
         description={"Double-entry accounting built for builders: A/P, A/R, banking, reconciliation, job costing, and reports — all tied to your projects."}
         path="/features/accounting"
+        ogImage="/og/accounting.jpg"
       />
       {/* Header */}
       <PublicHeader onGetStartedClick={() => setIsPathModalOpen(true)} />
