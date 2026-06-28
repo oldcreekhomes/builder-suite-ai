@@ -262,7 +262,7 @@ function buildHeadTags(route) {
     `<meta property="og:title" content="${escapeAttr(route.title)}" />`,
     `<meta property="og:description" content="${escapeAttr(route.description)}" />`,
     `<meta property="og:url" content="${escapeAttr(url)}" />`,
-    `<meta property="og:type" content="website" />`,
+    `<meta property="og:type" content="${escapeAttr(route.ogType || "website")}" />`,
     `<meta property="og:image" content="${escapeAttr(img)}" />`,
     `<meta property="og:image:width" content="1216" />`,
     `<meta property="og:image:height" content="640" />`,
@@ -277,12 +277,22 @@ function buildHeadTags(route) {
 }
 
 function buildSeoBody(route) {
-  const sections = route.sections
-    .map(
-      (s) =>
-        `      <section><h2>${escapeHtml(s.h2)}</h2><p>${escapeHtml(s.body)}</p></section>`,
-    )
-    .join("\n");
+  // If the route provides pre-rendered article HTML (blog posts), inline it
+  // directly instead of synthesizing sections from h2/body pairs.
+  const mainHtml = route.articleHtml
+    ? route.articleHtml
+    : [
+        `      <h1>${escapeHtml(route.h1)}</h1>`,
+        `      <p>${escapeHtml(route.intro)}</p>`,
+        route.sections
+          .map(
+            (s) =>
+              `      <section><h2>${escapeHtml(s.h2)}</h2><p>${escapeHtml(s.body)}</p></section>`,
+          )
+          .join("\n"),
+        `      <p><a href="${escapeAttr(route.cta.href)}">${escapeHtml(route.cta.label)}</a></p>`,
+      ].join("\n");
+
 
   const navLinks = FOOTER_LINKS.map(
     (l) => `<a href="${escapeAttr(l.href)}">${escapeHtml(l.label)}</a>`,
