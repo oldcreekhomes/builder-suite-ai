@@ -207,7 +207,9 @@ const AppContent = () => {
   return (
     <BrowserRouter>
       <ScrollToTop />
+      <AnalyticsTracker />
       <ErrorBoundary>
+
         <ChatProvider>
           <ImpersonationBanner />
           <Suspense fallback={<PageLoader />}>
