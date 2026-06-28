@@ -12,6 +12,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Link } from "react-router-dom";
 import { CompanyTypeCombobox } from "@/components/marketplace/CompanyTypeCombobox";
 import Logo from "@/components/Logo";
+import { SeoHead } from "@/components/SeoHead";
 const MarketplaceSignup = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
@@ -194,6 +195,12 @@ const MarketplaceSignup = () => {
   }
 
   return (
+    <>
+      <SeoHead
+        title="Join the BuilderSuite Marketplace — Subcontractor Signup"
+        description="Create a free subcontractor or supplier account on the BuilderSuite Marketplace and get found by home builders in your area."
+        path="/auth/marketplace"
+      />
     <div className="min-h-screen relative w-full flex items-center justify-center bg-muted/30 py-12 px-4 sm:px-6 lg:px-8">
       <div className="absolute top-6 left-6">
         <Logo />
@@ -363,6 +370,7 @@ const MarketplaceSignup = () => {
         </div>
       </div>
     </div>
+    </>
   );
 };
 
