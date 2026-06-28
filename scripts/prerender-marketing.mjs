@@ -126,9 +126,9 @@ const ROUTES = [
   {
     path: "/features/gantt-scheduling",
     file: "features/gantt-scheduling/index.html",
-    title: "Smart Gantt Scheduling for Home Builders | BuilderSuite ML",
+    title: "Gantt Scheduling for Construction Projects | BuilderSuite ML",
     description:
-      "Drag-and-drop Gantt charts with predecessors, auto-rescheduling, and subcontractor confirmations — built for construction.",
+      "Visual Gantt schedules with crew, vendor, and predecessor tracking. Send schedule updates straight to your trades.",
     ogImage: "/og/gantt-scheduling.jpg",
     h1: "Smart Gantt Scheduling Built for Home Builders",
     intro:
@@ -143,9 +143,9 @@ const ROUTES = [
   {
     path: "/features/bid-management",
     file: "features/bid-management/index.html",
-    title: "Bid Management for Home Builders | BuilderSuite ML",
+    title: "Bid Management Software for Home Builders | BuilderSuite ML",
     description:
-      "Send bid packages to subs, compare bids side-by-side, and convert winning bids into purchase orders.",
+      "Send bid packages, collect responses, compare quotes side-by-side, and convert winning bids into purchase orders.",
     ogImage: "/og/bid-management.jpg",
     h1: "Subcontractor Bid Management Made Simple",
     intro:
@@ -160,9 +160,9 @@ const ROUTES = [
   {
     path: "/features/document-management",
     file: "features/document-management/index.html",
-    title: "Document Management for Home Builders | BuilderSuite ML",
+    title: "Construction Document & Photo Management | BuilderSuite ML",
     description:
-      "Plans, files, and photos for every project in one place. Folder-level access control, sharing, and instant search.",
+      "Project files, photos, folders, and shareable links — organized per project and accessible to your team and trades.",
     ogImage: "/og/document-management.jpg",
     h1: "Plans, Files, and Photos in One Place",
     intro:
@@ -177,9 +177,9 @@ const ROUTES = [
   {
     path: "/features/team-communication",
     file: "features/team-communication/index.html",
-    title: "Team Communication for Home Builders | BuilderSuite ML",
+    title: "Team Communication for Construction Teams | BuilderSuite ML",
     description:
-      "Project-scoped chat, schedule updates, and bid notifications keep your office, field crews, and subs in sync.",
+      "In-app chat for owners, employees, and trade partners. Keep every conversation tied to the project.",
     ogImage: "/og/team-communication.jpg",
     h1: "Keep Your Crew in Sync",
     intro:
