@@ -9,6 +9,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { toast } from '@/components/ui/use-toast';
 import { Upload, DollarSign, AlertTriangle, XCircle } from 'lucide-react';
 import { useDropzone } from 'react-dropzone';
+import { SeoHead } from '@/components/SeoHead';
 
 export default function SubmitBid() {
   const [searchParams] = useSearchParams();
@@ -220,6 +221,12 @@ export default function SubmitBid() {
   }
 
   return (
+    <>
+      <SeoHead
+        title="Submit Your Bid — BuilderSuite ML"
+        description="Submit your subcontractor bid for this BuilderSuite ML bid package. Enter your price, upload supporting documents, and send your proposal in one step."
+        path="/submit-bid"
+      />
     <div className="fixed inset-0 bg-white overflow-auto">
       <div className="min-h-screen w-full flex items-center justify-center p-4">
         <div className="w-full max-w-2xl">
@@ -368,5 +375,6 @@ export default function SubmitBid() {
         </div>
       </div>
     </div>
+    </>
   );
 }
