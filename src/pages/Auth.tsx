@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { CheckCircle } from "lucide-react";
 import LoginForm from "@/components/auth/LoginForm";
 import SignupForm from "@/components/auth/SignupForm";
+import { SeoHead } from "@/components/SeoHead";
 
 const Auth = () => {
   const navigate = useNavigate();
