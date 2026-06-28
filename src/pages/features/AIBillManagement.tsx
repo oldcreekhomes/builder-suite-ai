@@ -23,6 +23,7 @@ const AIBillManagement = () => {
         title={"AI Bill Management for Builders | BuilderSuite ML"}
         description={"Auto-extract vendors, cost codes, and amounts from PDF bills. Match to purchase orders and approve from anywhere."}
         path="/features/ai-bill-management"
+        ogImage="/og/ai-bill-management.jpg"
       />
       {/* Header */}
       <PublicHeader onGetStartedClick={() => setIsPathModalOpen(true)} />
