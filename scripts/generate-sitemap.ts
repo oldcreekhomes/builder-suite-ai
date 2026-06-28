@@ -27,6 +27,7 @@ const entries: SitemapEntry[] = [
   { path: "/features/document-management", changefreq: "monthly", priority: "0.7" },
   { path: "/features/team-communication", changefreq: "monthly", priority: "0.7" },
   { path: "/features/join-marketplace", changefreq: "monthly", priority: "0.7" },
+  { path: "/vs/buildertrend", changefreq: "monthly", priority: "0.8" },
 ];
 
 function generateSitemap(items: SitemapEntry[]) {
