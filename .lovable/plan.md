@@ -1,52 +1,34 @@
-## Goal
+## Install Google Tag Manager `GTM-WXBXKC6Z`
 
-Replace all 9 fake AI-generated OG/social-share images in `public/og/*.jpg` with clean, on-brand images built from your real brand assets (`src/assets/buildersuiteml-logo.png` + project's near-black/white color tokens). No fake screenshots, no fake "BuilderSuite ML" graphics with stock dashboards, no AI mockups. Same filenames, so no SeoHead, prerender script, or sitemap changes are needed — the new files just overwrite the old.
+### Changes to `index.html`
 
-The body of the marketing pages (Landing, AboutUs, /features/*, /pricing, /vs/buildertrend) already only references the real founder photo (Matt Gray's avatar) and shadcn UI — there are no fake in-page images to replace. Scope is the OG images only.
+**1. Remove** lines 42–86 (all placeholder pixel scripts in `<head>`): GA4/gtag, Google Ads, Meta Pixel, LinkedIn Insight. None of them have real IDs anyway — they're all `XXXX` placeholders, so removing them changes zero current tracking.
 
-## What each OG image will look like
+**2. Remove** lines 90–98 (LinkedIn + Meta `<noscript>` fallbacks in `<body>`).
 
-1200×630 JPG, monochrome on-brand:
-- Background: near-black (`hsl(240 10% 3.9%)`, the dark-mode `--background`).
-- Real `BuilderSuiteML` logo (from `src/assets/buildersuiteml-logo.png`) top-left at ~64px height.
-- Large page-specific headline centered-left, e.g. "Construction Accounting", "Smart Gantt Scheduling", "AI Bill Management", set in Montserrat Bold ~76px in white.
-- One-line subhead below in muted gray ~28px, page-specific (e.g. "Double-entry accounting built for home builders").
-- `buildersuiteml.com` wordmark bottom-left in small caps.
-- Subtle accent: a thin top border bar in the brand foreground white. No gradients-with-stars, no fake UI screenshots, no rendered phones.
+**3. Add** the GTM head snippet in `<head>` (placed high, right after viewport):
+```html
+<!-- Google Tag Manager -->
+<script>(function(w,d,s,l,i){w[l]=w[l]||[];w[l].push({'gtm.start':
+new Date().getTime(),event:'gtm.js'});var f=d.getElementsByTagName(s)[0],
+j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
+'https://www.googletagmanager.com/gtm.js?id='+i+dl;f.parentNode.insertBefore(j,f);
+})(window,document,'script','dataLayer','GTM-WXBXKC6Z');</script>
+<!-- End Google Tag Manager -->
+```
 
-This matches the actual app's visual language (mono palette, Montserrat-family type, restrained) rather than the stock AI aesthetic.
+**4. Add** the GTM noscript fallback immediately after `<body>` (Lovable rule: noscript pixels in body, never head):
+```html
+<!-- Google Tag Manager (noscript) -->
+<noscript><iframe src="https://www.googletagmanager.com/ns.html?id=GTM-WXBXKC6Z"
+height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
+<!-- End Google Tag Manager (noscript) -->
+```
 
-## How
+### Out of scope
+- No consent banner / Consent Mode (per your call).
+- No GA4/Ads/Meta/LinkedIn tags re-added — you'll configure those inside the GTM container UI.
+- No other file changes.
 
-1. **Generate via Pillow script** at `/tmp/og/build_og.py`:
-   - Load `src/assets/buildersuiteml-logo.png`, resize proportionally to 64px tall.
-   - Download Montserrat Bold + Regular `.ttf` from the `@fontsource/montserrat` paths under `node_modules` if present, otherwise pull from Google Fonts static URL (one-time, into `/tmp/og/fonts/`).
-   - Render each of 9 canvases with the per-page copy table below, write JPG quality 88 to `public/og/<name>.jpg`.
-
-2. **Per-page copy table** (headline / subhead):
-   - `home.jpg` → "Construction Management, Built for Builders" / "Projects, budgets, accounting, AI bills, Gantt — one platform."
-   - `about.jpg` → "Built by Builders" / "Why Old Creek Homes built BuilderSuiteML."
-   - `accounting.jpg` → "Construction Accounting" / "Double-entry, banking, reconciliation, reports."
-   - `ai-bill-management.jpg` → "AI Bill Management" / "Auto-extract vendor, cost code, and amount."
-   - `bid-management.jpg` → "Bid Management" / "Send packages, collect responses, convert to POs."
-   - `document-management.jpg` → "Document Management" / "Project files, photos, folders, shareable links."
-   - `gantt-scheduling.jpg` → "Smart Gantt Scheduling" / "Crews, vendors, predecessors — visual schedules."
-   - `join-marketplace.jpg` → "Join the Marketplace" / "Get found by local home builders."
-   - `team-communication.jpg` → "Team Communication" / "Chat for owners, employees, and trade partners."
-
-3. **QA**: open every generated JPG with `code--view`, confirm logo is crisp (no blur from upscaling), text fits within margins, colors match the site, dimensions exactly 1200×630. Fix and re-run if any look off.
-
-4. **Tell you to refresh the FB Sharing Debugger / LinkedIn Post Inspector** — Facebook caches the old image; new shares pick up the new file automatically but already-shared URLs need a re-scrape.
-
-## Out of scope
-
-- Marketing page body images (none are fake — already use the real Matt Gray photo).
-- Blog cover images in `content/blog/*` (you didn't ask, and they're a separate authored set).
-- `founder-photo.png` (real photo of Matt Gray, untouched).
-- `buildersuiteml-logo.png` (your real logo, used as input).
-- No code changes, no SEO tag changes, no new dependencies in the app — Pillow script runs in the sandbox only.
-
-## Technical notes
-
-- If `buildersuiteml-logo.png` is dark-on-transparent, I'll auto-invert it for the dark background so it reads as white-on-black. I'll inspect it first and decide.
-- If the logo file is actually a wordmark with bundled name, I won't add the wordmark text again — only the bottom-left `buildersuiteml.com` URL line.
+### After deploy
+Verify with GTM Preview mode or the Tag Assistant Chrome extension on `buildersuiteml.com`.
