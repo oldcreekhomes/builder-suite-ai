@@ -10,6 +10,8 @@ import { navItems } from "./nav-items";
 import ProtectedRoute from "./components/ProtectedRoute";
 import SidebarLayout from "./components/SidebarLayout";
 import ScrollToTop from "./components/ScrollToTop";
+import AnalyticsTracker from "./components/AnalyticsTracker";
+
 
 // Lightweight loading fallback
 const PageLoader = () => (
