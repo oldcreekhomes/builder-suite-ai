@@ -1,34 +1,24 @@
-## Install Google Tag Manager `GTM-WXBXKC6Z`
+## Improve GTM installation quality
 
-### Changes to `index.html`
+Google's "Improve your Tag Manager installation" guidance (the page you linked) flags two things:
 
-**1. Remove** lines 42–86 (all placeholder pixel scripts in `<head>`): GA4/gtag, Google Ads, Meta Pixel, LinkedIn Insight. None of them have real IDs anyway — they're all `XXXX` placeholders, so removing them changes zero current tracking.
+1. The GTM `<script>` should be placed **as high as possible in `<head>`** — ideally right after the opening `<head>` / charset / viewport, before any other scripts or large metadata blocks.
+2. The GTM `<noscript>` should be placed **immediately after the opening `<body>` tag**, before any other markup.
 
-**2. Remove** lines 90–98 (LinkedIn + Meta `<noscript>` fallbacks in `<body>`).
+Right now in `index.html`:
+- The GTM script sits at lines ~42–48, *after* all OG/Twitter meta tags and two `application/ld+json` blocks. Those JSON-LD blocks delay GTM discovery.
+- The GTM `<noscript>` is already directly after `<body>` — good, no change.
 
-**3. Add** the GTM head snippet in `<head>` (placed high, right after viewport):
-```html
-<!-- Google Tag Manager -->
-<script>(function(w,d,s,l,i){w[l]=w[l]||[];w[l].push({'gtm.start':
-new Date().getTime(),event:'gtm.js'});var f=d.getElementsByTagName(s)[0],
-j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
-'https://www.googletagmanager.com/gtm.js?id='+i+dl;f.parentNode.insertBefore(j,f);
-})(window,document,'script','dataLayer','GTM-WXBXKC6Z');</script>
-<!-- End Google Tag Manager -->
-```
+### Change
 
-**4. Add** the GTM noscript fallback immediately after `<body>` (Lovable rule: noscript pixels in body, never head):
-```html
-<!-- Google Tag Manager (noscript) -->
-<noscript><iframe src="https://www.googletagmanager.com/ns.html?id=GTM-WXBXKC6Z"
-height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
-<!-- End Google Tag Manager (noscript) -->
-```
+**`index.html` `<head>`** — move the GTM `<script>` block up so it sits immediately after `<meta name="viewport">` (and the favicon `<link>`), **before** the `<title>`, description, author, verification, OG, Twitter, and JSON-LD blocks. Everything else in `<head>` stays in the same relative order, just shifted down.
+
+**`index.html` `<body>`** — no change. The noscript iframe stays as the first child of `<body>`.
 
 ### Out of scope
-- No consent banner / Consent Mode (per your call).
-- No GA4/Ads/Meta/LinkedIn tags re-added — you'll configure those inside the GTM container UI.
-- No other file changes.
+- No change to the GTM container ID (`GTM-WXBXKC6Z`).
+- No consent mode / banner.
+- No other files touched.
 
 ### After deploy
-Verify with GTM Preview mode or the Tag Assistant Chrome extension on `buildersuiteml.com`.
+Re-run the Tag Assistant / GTM install quality check on `buildersuiteml.com` — the "placement" warning should clear.
