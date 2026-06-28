@@ -1,14 +1,37 @@
 // Runs before `vite dev` and `vite build` (predev/prebuild hooks); writes public/sitemap.xml.
 
-import { writeFileSync } from "fs";
+import { writeFileSync, existsSync, readFileSync } from "fs";
 import { resolve } from "path";
 
 const BASE_URL = "https://buildersuiteml.com";
 
 interface SitemapEntry {
   path: string;
+  lastmod?: string;
   changefreq?: "always" | "hourly" | "daily" | "weekly" | "monthly" | "yearly" | "never";
   priority?: string;
+}
+
+// Pull blog slugs from the generated manifest. The blog-manifest script runs
+// immediately before this one (see predev/prebuild in package.json).
+function blogEntries(): SitemapEntry[] {
+  const manifestPath = resolve("src/generated/blog-manifest.ts");
+  if (!existsSync(manifestPath)) return [];
+  const src = readFileSync(manifestPath, "utf8");
+  // Extract every "slug": "value" pair from the JSON-formatted constant.
+  const slugRegex = /"slug":\s*"([^"]+)"/g;
+  const dateRegex = /"date":\s*"([^"]+)"/g;
+  const slugs: string[] = [];
+  const dates: string[] = [];
+  let m: RegExpExecArray | null;
+  while ((m = slugRegex.exec(src))) slugs.push(m[1]);
+  while ((m = dateRegex.exec(src))) dates.push(m[1]);
+  return slugs.map((slug, i) => ({
+    path: `/blog/${slug}`,
+    lastmod: dates[i] ? dates[i].slice(0, 10) : undefined,
+    changefreq: "monthly",
+    priority: "0.6",
+  }));
 }
 
 // Public, indexable marketing + entry routes. Excluded: /landing (redirects
@@ -35,6 +58,7 @@ function generateSitemap(items: SitemapEntry[]) {
     [
       `  <url>`,
       `    <loc>${BASE_URL}${e.path}</loc>`,
+      e.lastmod ? `    <lastmod>${e.lastmod}</lastmod>` : null,
       e.changefreq ? `    <changefreq>${e.changefreq}</changefreq>` : null,
       e.priority ? `    <priority>${e.priority}</priority>` : null,
       `  </url>`,
@@ -51,5 +75,11 @@ function generateSitemap(items: SitemapEntry[]) {
   ].join("\n");
 }
 
-writeFileSync(resolve("public/sitemap.xml"), generateSitemap(entries));
-console.log(`sitemap.xml written (${entries.length} entries)`);
+const allEntries: SitemapEntry[] = [
+  ...entries,
+  { path: "/blog", changefreq: "weekly", priority: "0.7" },
+  ...blogEntries(),
+];
+
+writeFileSync(resolve("public/sitemap.xml"), generateSitemap(allEntries));
+console.log(`sitemap.xml written (${allEntries.length} entries)`);
