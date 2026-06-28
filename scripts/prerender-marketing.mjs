@@ -230,6 +230,7 @@ const ROUTES = [
 ];
 
 function buildJsonLd(route) {
+  if (route.jsonLd) return route.jsonLd;
   return [
     {
       "@context": "https://schema.org",
