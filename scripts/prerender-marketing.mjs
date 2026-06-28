@@ -308,10 +308,7 @@ function buildSeoBody(route) {
       <nav>${navLinks}</nav>
     </header>
     <main>
-      <h1>${escapeHtml(route.h1)}</h1>
-      <p>${escapeHtml(route.intro)}</p>
-${sections}
-      <p><a href="${escapeAttr(route.cta.href)}">${escapeHtml(route.cta.label)}</a></p>
+${mainHtml}
     </main>
     <footer>
       <p>BuilderSuite ML — Construction management for home builders.</p>
