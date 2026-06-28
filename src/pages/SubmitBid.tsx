@@ -375,5 +375,6 @@ export default function SubmitBid() {
         </div>
       </div>
     </div>
+    </>
   );
 }
