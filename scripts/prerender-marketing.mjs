@@ -39,6 +39,7 @@ const escapeAttr = escapeHtml;
 const FOOTER_LINKS = [
   { href: "/", label: "Home" },
   { href: "/about", label: "Our Philosophy" },
+  { href: "/blog", label: "Blog" },
   { href: "/features/accounting", label: "Accounting" },
   { href: "/features/ai-bill-management", label: "AI Bill Management" },
   { href: "/features/gantt-scheduling", label: "Smart Gantt Scheduling" },
@@ -348,6 +349,115 @@ function rewriteHtml(template, route) {
   return html;
 }
 
+function loadBlogRoutes() {
+  const manifestPath = resolve(__dirname, "..", "src/generated/blog-manifest.ts");
+  if (!existsSync(manifestPath)) return [];
+  const src = readFileSync(manifestPath, "utf8");
+  // The generated file holds `export const blogPosts: BlogPost[] = [...]`. Pull
+  // the JSON array out by slicing from the first `[` after the marker to the
+  // matching closing `]`.
+  const marker = "export const blogPosts: BlogPost[] =";
+  const start = src.indexOf(marker);
+  if (start === -1) return [];
+  const arrStart = src.indexOf("[", start);
+  // Walk the bracket stack to find the matching close.
+  let depth = 0;
+  let arrEnd = -1;
+  for (let i = arrStart; i < src.length; i++) {
+    const ch = src[i];
+    if (ch === "[") depth++;
+    else if (ch === "]") {
+      depth--;
+      if (depth === 0) { arrEnd = i; break; }
+    }
+  }
+  if (arrEnd === -1) return [];
+  let posts;
+  try {
+    posts = JSON.parse(src.slice(arrStart, arrEnd + 1));
+  } catch (e) {
+    console.warn(`[prerender] could not parse blog manifest: ${e.message}`);
+    return [];
+  }
+
+  const indexRoute = {
+    path: "/blog",
+    file: "blog/index.html",
+    title: "Blog — Construction Management Insights | BuilderSuite ML",
+    description:
+      "Construction management insights, product news, and home-builder how-tos from the BuilderSuite ML team.",
+    ogImage: "/og/home.jpg",
+    articleHtml: [
+      `      <h1>BuilderSuite ML Blog</h1>`,
+      `      <p>Construction management how-tos, product updates, and lessons learned from working home builders.</p>`,
+      `      <ul>`,
+      ...posts.map(
+        (p) =>
+          `        <li><a href="/blog/${escapeAttr(p.slug)}"><strong>${escapeHtml(p.title)}</strong></a> — <time datetime="${escapeAttr(p.date)}">${escapeHtml(p.dateFormatted)}</time><br><span>${escapeHtml(p.excerpt)}</span></li>`,
+      ),
+      `      </ul>`,
+    ].join("\n"),
+    jsonLd: [
+      {
+        "@context": "https://schema.org",
+        "@type": "Blog",
+        name: "BuilderSuite ML Blog",
+        url: `${SITE}/blog`,
+        description:
+          "Construction management insights, product news, and home-builder how-tos from the BuilderSuite ML team.",
+      },
+    ],
+  };
+
+  const postRoutes = posts.map((p) => ({
+    path: `/blog/${p.slug}`,
+    file: `blog/${p.slug}/index.html`,
+    title: `${p.title} | BuilderSuite ML`,
+    description: p.description,
+    ogImage: p.ogImage,
+    ogType: "article",
+    articleHtml: [
+      `      <article>`,
+      `        <header>`,
+      `          <h1>${escapeHtml(p.title)}</h1>`,
+      `          <p><time datetime="${escapeAttr(p.date)}">${escapeHtml(p.dateFormatted)}</time> · By ${escapeHtml(p.author)}</p>`,
+      `          <p>${escapeHtml(p.description)}</p>`,
+      `        </header>`,
+      `        ${p.html}`,
+      `      </article>`,
+    ].join("\n"),
+    jsonLd: [
+      {
+        "@context": "https://schema.org",
+        "@type": "Article",
+        headline: p.title,
+        description: p.description,
+        datePublished: p.date,
+        dateModified: p.date,
+        author: { "@type": "Organization", name: p.author },
+        publisher: {
+          "@type": "Organization",
+          name: "BuilderSuite ML",
+          logo: { "@type": "ImageObject", url: `${SITE}/og/home.jpg` },
+        },
+        image: `${SITE}${p.ogImage}`,
+        mainEntityOfPage: { "@type": "WebPage", "@id": `${SITE}/blog/${p.slug}` },
+      },
+      {
+        "@context": "https://schema.org",
+        "@type": "BreadcrumbList",
+        itemListElement: [
+          { "@type": "ListItem", position: 1, name: "Home", item: `${SITE}/` },
+          { "@type": "ListItem", position: 2, name: "Blog", item: `${SITE}/blog` },
+          { "@type": "ListItem", position: 3, name: p.title, item: `${SITE}/blog/${p.slug}` },
+        ],
+      },
+    ],
+  }));
+
+  return [indexRoute, ...postRoutes];
+}
+
 function main() {
   const templatePath = resolve(DIST_DIR, "index.html");
   if (!existsSync(templatePath)) {
@@ -356,8 +466,9 @@ function main() {
   }
   const template = readFileSync(templatePath, "utf8");
 
+  const allRoutes = [...ROUTES, ...loadBlogRoutes()];
   let count = 0;
-  for (const route of ROUTES) {
+  for (const route of allRoutes) {
     const outPath = resolve(DIST_DIR, route.file);
     mkdirSync(dirname(outPath), { recursive: true });
     const html = rewriteHtml(template, route);
