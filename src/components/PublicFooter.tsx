@@ -24,6 +24,9 @@ export function PublicFooter({ className }: PublicFooterProps) {
             <Link to="/blog" className="text-muted-foreground hover:text-foreground transition-colors">
               Blog
             </Link>
+            <Link to="/pricing" className="text-muted-foreground hover:text-foreground transition-colors">
+              Pricing
+            </Link>
             <Link to="/auth" className="text-muted-foreground hover:text-foreground transition-colors">
               Sign In
             </Link>
