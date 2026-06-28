@@ -31,7 +31,7 @@ export function FeatureRow({
   title,
   subtitle,
   description,
-  buttonText = "Learn more",
+  buttonText = "Explore feature details",
   buttonLink,
   imageSrc,
   imageAlt,
