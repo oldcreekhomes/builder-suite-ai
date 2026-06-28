@@ -27,6 +27,7 @@ export default function TeamCommunication() {
         title={"Team Communication for Construction Teams | BuilderSuite ML"}
         description={"In-app chat for owners, employees, and trade partners. Keep every conversation tied to the project."}
         path="/features/team-communication"
+        ogImage="/og/team-communication.jpg"
       />
       {/* Header */}
       <PublicHeader onGetStartedClick={handleGetStartedClick} />

@@ -27,6 +27,7 @@ export default function DocumentManagement() {
         title={"Construction Document & Photo Management | BuilderSuite ML"}
         description={"Project files, photos, folders, and shareable links — organized per project and accessible to your team and trades."}
         path="/features/document-management"
+        ogImage="/og/document-management.jpg"
       />
       {/* Header */}
       <PublicHeader onGetStartedClick={handleGetStartedClick} />
