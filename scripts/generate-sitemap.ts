@@ -58,6 +58,7 @@ function generateSitemap(items: SitemapEntry[]) {
     [
       `  <url>`,
       `    <loc>${BASE_URL}${e.path}</loc>`,
+      e.lastmod ? `    <lastmod>${e.lastmod}</lastmod>` : null,
       e.changefreq ? `    <changefreq>${e.changefreq}</changefreq>` : null,
       e.priority ? `    <priority>${e.priority}</priority>` : null,
       `  </url>`,
@@ -74,5 +75,11 @@ function generateSitemap(items: SitemapEntry[]) {
   ].join("\n");
 }
 
-writeFileSync(resolve("public/sitemap.xml"), generateSitemap(entries));
-console.log(`sitemap.xml written (${entries.length} entries)`);
+const allEntries: SitemapEntry[] = [
+  ...entries,
+  { path: "/blog", changefreq: "weekly", priority: "0.7" },
+  ...blogEntries(),
+];
+
+writeFileSync(resolve("public/sitemap.xml"), generateSitemap(allEntries));
+console.log(`sitemap.xml written (${allEntries.length} entries)`);
