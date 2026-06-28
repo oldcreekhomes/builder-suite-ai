@@ -97,6 +97,13 @@ export function PublicHeader({ onGetStartedClick }: PublicHeaderProps) {
                 </div>
               </div>
             </div>
+
+            <Link
+              to="/pricing"
+              className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors"
+            >
+              Pricing
+            </Link>
           </nav>
 
           {/* Right: Actions */}
