@@ -47,6 +47,7 @@ const FOOTER_LINKS = [
   { href: "/features/document-management", label: "Document Management" },
   { href: "/features/team-communication", label: "Team Communication" },
   { href: "/features/join-marketplace", label: "Join the Marketplace" },
+  { href: "/pricing", label: "Pricing" },
 ];
 
 /**
@@ -227,6 +228,34 @@ const ROUTES = [
       { h2: "Subcontractor Marketplace Included", body: "The built-in marketplace puts vetted subs in front of you — no separate vendor portal, no extra fee." },
     ],
     cta: { href: "/auth?tab=signup", label: "Get Started Free" },
+  },
+  {
+    path: "/pricing",
+    file: "pricing/index.html",
+    title: "Pricing — Free for 3 Projects, then $39 / User / Month | BuilderSuite ML",
+    description:
+      "Start free with up to 3 projects. Scale to unlimited at $39 per user / month. Full access to every BuilderSuite ML module on both plans.",
+    ogImage: "/og/home.jpg",
+    h1: "Simple, Honest Pricing",
+    intro:
+      "Start free with up to 3 projects — full access to every module, no credit card required. When you're ready for more, scale to unlimited projects at $39 per user / month.",
+    sections: [
+      { h2: "Free Plan — $0 / month", body: "Up to 3 projects. Full access to every BuilderSuite ML module. No credit card required. Perfect for trying the system on a real job before you commit." },
+      { h2: "Pro Plan — $39 per user / month", body: "Unlimited projects. Everything in Free, plus priority support. Pay only for the seats you need — no setup fees, cancel anytime." },
+      { h2: "Projects, Budgets & Job Costing", body: "Track every project from foundation to closeout with cent-precise budgets and job costing tied to every transaction." },
+      { h2: "Construction Accounting", body: "Full double-entry accounting: A/P, A/R, banking, reconciliation, and audit-ready reports — all tied to your projects." },
+      { h2: "AI Bill Management", body: "Bulk-upload vendor invoices, let AI extract amounts, dates, and line items, and match them to purchase orders automatically." },
+      { h2: "Smart Gantt Scheduling", body: "Drag-and-drop Gantt charts with predecessor logic, auto-rescheduling, subcontractor confirmations, and reusable templates." },
+      { h2: "Bid Management", body: "Send bid packages to multiple subs, compare quotes side-by-side, and auto-convert the winning bid into a purchase order." },
+      { h2: "Purchase Orders & Vendor Management", body: "Issue, track, and reconcile POs against incoming bills with smart line-item matching." },
+      { h2: "Document & Photo Management", body: "Plans, contracts, warranties, and field photos organized per project with folder-level access control." },
+      { h2: "Team & Subcontractor Communication", body: "Project-scoped chat and email notifications keep your office, crews, and subs aligned without endless texting." },
+      { h2: "Subcontractor Marketplace", body: "Built-in marketplace connects you with local subcontractors and suppliers — no extra fee." },
+      { h2: "Reports & Dashboards", body: "Balance Sheet, P&L, A/P Aging, and project-scoped reports — one click, audit-ready." },
+      { h2: "Multi-user with Role-based Permissions", body: "Owners, employees, and trade partners each get the right level of access — managed centrally." },
+      { h2: "Apartments / Rentals Module", body: "Manage rental properties and operating expenses alongside your construction projects." },
+    ],
+    cta: { href: "/auth?tab=signup", label: "Start Free" },
   },
 ];
 
