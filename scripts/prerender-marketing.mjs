@@ -209,6 +209,24 @@ const ROUTES = [
     ],
     cta: { href: "/auth/marketplace", label: "Join the Marketplace" },
   },
+  {
+    path: "/vs/buildertrend",
+    file: "vs/buildertrend/index.html",
+    title: "BuilderSuite ML vs. Buildertrend — Best Buildertrend Alternative for Home Builders",
+    description:
+      "Compare BuilderSuite ML vs. Buildertrend: native double-entry accounting, AI bill capture, and a subcontractor marketplace — built by working home builders.",
+    ogImage: "/og/home.jpg",
+    h1: "BuilderSuite ML vs. Buildertrend",
+    intro:
+      "Looking for a Buildertrend alternative? BuilderSuite ML is the all-in-one construction management platform built by working home builders — with native double-entry accounting, AI bill capture, and a subcontractor marketplace included.",
+    sections: [
+      { h2: "Built by Builders, Not Sold to Them", body: "BuilderSuite ML was built by working home builders solving problems we hit on our own jobs. Every workflow matches how home builders actually work — no software-vendor guesswork." },
+      { h2: "Native Accounting vs. QuickBooks Sync", body: "BuilderSuite ML includes full double-entry construction accounting: A/P, A/R, banking, reconciliation, and job costing. Buildertrend relies on syncing to QuickBooks, which means a second subscription and a sync that can drift at month-end." },
+      { h2: "AI Bill Capture with Cost-Code Learning", body: "Drag hundreds of vendor invoices into BuilderSuite at once. AI extracts amounts, dates, line items, and learns which cost codes you use for each vendor." },
+      { h2: "Subcontractor Marketplace Included", body: "The built-in marketplace puts vetted subs in front of you — no separate vendor portal, no extra fee." },
+    ],
+    cta: { href: "/auth?tab=signup", label: "Get Started Free" },
+  },
 ];
 
 function buildJsonLd(route) {
