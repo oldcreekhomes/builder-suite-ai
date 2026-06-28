@@ -144,6 +144,7 @@ const FeatureBidManagement = safeLazy(() => import("./pages/features/BidManageme
 const FeatureDocumentManagement = safeLazy(() => import("./pages/features/DocumentManagement"));
 const FeatureTeamCommunication = safeLazy(() => import("./pages/features/TeamCommunication"));
 const FeatureJoinMarketplace = safeLazy(() => import("./pages/features/JoinMarketplace"));
+const VsBuildertrend = safeLazy(() => import("./pages/vs/Buildertrend"));
 
 // Sidebar / protected pages
 const RootRoute = safeLazy(() => import("./components/RootRoute"));
@@ -219,6 +220,7 @@ const AppContent = () => {
               <Route path="/features/document-management" element={<FeatureDocumentManagement />} />
               <Route path="/features/team-communication" element={<FeatureTeamCommunication />} />
               <Route path="/features/join-marketplace" element={<FeatureJoinMarketplace />} />
+              <Route path="/vs/buildertrend" element={<VsBuildertrend />} />
               <Route path="/reset-password" element={<PasswordReset />} />
               <Route path="/out" element={<OutboundRedirect />} />
               <Route path="/s/p/:shareId" element={<SharedPhoto />} />
