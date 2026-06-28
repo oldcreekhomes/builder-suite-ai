@@ -53,6 +53,12 @@ const Auth = () => {
   }
 
   return (
+    <>
+      <SeoHead
+        title="Sign In or Create Account — BuilderSuite ML"
+        description="Sign in to BuilderSuite ML or create a new home builder account to manage projects, budgets, schedules, and accounting in one place."
+        path="/auth"
+      />
     <div className="min-h-screen relative w-full flex items-center justify-center bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
       <div className="absolute top-6 left-6">
         <Logo />
