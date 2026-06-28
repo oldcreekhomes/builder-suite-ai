@@ -4,7 +4,9 @@
   "version": "0.0.0",
   "type": "module",
   "scripts": {
+    "predev": "node scripts/generate-blog-manifest.mjs && bunx tsx scripts/generate-sitemap.ts",
     "dev": "vite",
+    "prebuild": "node scripts/generate-blog-manifest.mjs && bunx tsx scripts/generate-sitemap.ts",
     "build": "vite build && node scripts/prerender-marketing.mjs",
     "build:dev": "vite build --mode development && node scripts/prerender-marketing.mjs",
     "lint": "eslint .",
