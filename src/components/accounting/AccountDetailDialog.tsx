@@ -23,7 +23,10 @@ import { useDeposits } from "@/hooks/useDeposits";
 import { useCreditCards } from "@/hooks/useCreditCards";
 import { useJournalEntries } from "@/hooks/useJournalEntries";
 import { useUserRole } from "@/hooks/useUserRole";
-import { Check, Lock, Search } from "lucide-react";
+import { Check, Lock, Search, Printer } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { pdf } from "@react-pdf/renderer";
+import { AccountDetailPdfDocument } from "./pdf/AccountDetailPdfDocument";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { useClosedPeriodCheck } from "@/hooks/useClosedPeriodCheck";
 import { Switch } from "@/components/ui/switch";
@@ -1435,6 +1438,30 @@ export function AccountDetailDialog({
                   className="h-9 w-52 pl-8"
                 />
               </div>
+              <Button
+                variant="outline"
+                size="sm"
+                className="h-9"
+                onClick={async () => {
+                  const blob = await pdf(
+                    <AccountDetailPdfDocument
+                      accountLabel={`${accountCode} - ${accountName}`}
+                      dateFrom={dateFrom}
+                      dateTo={dateTo}
+                      rows={displayedTransactions}
+                      balances={balances}
+                      accountType={accountType}
+                      openingBalance={openingBalance}
+                    />
+                  ).toBlob();
+                  const url = URL.createObjectURL(blob);
+                  const w = window.open(url, '_blank');
+                  if (w) w.addEventListener('load', () => w.print());
+                }}
+              >
+                <Printer className="h-4 w-4 mr-1" />
+                Print
+              </Button>
               {isAccountsPayable && (
                 <>
                   <Label htmlFor="hide-paid-toggle" className="text-sm text-muted-foreground cursor-pointer">
