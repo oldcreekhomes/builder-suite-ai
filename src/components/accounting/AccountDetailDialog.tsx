@@ -1438,6 +1438,30 @@ export function AccountDetailDialog({
                   className="h-9 w-52 pl-8"
                 />
               </div>
+              <Button
+                variant="outline"
+                size="sm"
+                className="h-9"
+                onClick={async () => {
+                  const blob = await pdf(
+                    <AccountDetailPdfDocument
+                      accountLabel={`${accountCode} - ${accountName}`}
+                      dateFrom={dateFrom}
+                      dateTo={dateTo}
+                      rows={displayedTransactions}
+                      balances={balances}
+                      accountType={accountType}
+                      openingBalance={openingBalance}
+                    />
+                  ).toBlob();
+                  const url = URL.createObjectURL(blob);
+                  const w = window.open(url, '_blank');
+                  if (w) w.addEventListener('load', () => w.print());
+                }}
+              >
+                <Printer className="h-4 w-4 mr-1" />
+                Print
+              </Button>
               {isAccountsPayable && (
                 <>
                   <Label htmlFor="hide-paid-toggle" className="text-sm text-muted-foreground cursor-pointer">
