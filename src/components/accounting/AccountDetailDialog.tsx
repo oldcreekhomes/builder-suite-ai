@@ -1455,8 +1455,14 @@ export function AccountDetailDialog({
                     />
                   ).toBlob();
                   const url = URL.createObjectURL(blob);
-                  const w = window.open(url, '_blank');
-                  if (w) w.addEventListener('load', () => w.print());
+                  const link = document.createElement('a');
+                  link.href = url;
+                  const stamp = new Date().toISOString().slice(0, 10);
+                  link.download = `AccountDetail-${accountCode}-${stamp}.pdf`;
+                  document.body.appendChild(link);
+                  link.click();
+                  document.body.removeChild(link);
+                  URL.revokeObjectURL(url);
                 }}
               >
                 <Printer className="h-4 w-4 mr-1" />
