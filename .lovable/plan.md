@@ -1,18 +1,12 @@
 ## Goal
 
-Delete the incorrect PO for Old Creek Homes at Nob Hill without changing application code.
+Delete the incorrect PO `2026-100N-0025`. The bills on Manage Bills are NOT connected — the blocker is 19 rows in a staging table (`pending_bill_lines`, un-approved upload draft) that still point at the PO.
 
-## One-off data fix
+## Steps
 
-1. Verify the target PO is exactly:
-   - Project: `691271e6-e46f-4745-8efb-200500e819f0`
-   - PO Number: `2026-100N-0025`
-   - Company: Old Creek Homes, LLC
-   - Amount: `$46,954.33`
-2. Delete that single `project_purchase_orders` row directly from the database.
-3. Do not modify code, email behavior, storage files, or any other purchase orders.
-4. Refresh the Purchase Orders page and confirm it no longer appears.
+1. Clear the PO pointers on those 19 staging rows only (`purchase_order_id`, `purchase_order_line_id`, `po_assignment` set to null). No bill data changes.
+2. Delete the one `purchase_order_lines` row for this PO.
+3. Delete PO `2726b35b-4858-4dfe-b23f-e1018616f55c` from `project_purchase_orders`.
+4. Confirm it's gone.
 
-## Technical details
-
-This should be a data-only operation using the Supabase data tool, not a schema migration and not a frontend/backend code edit.
+No code changes. No touching approved bills.
