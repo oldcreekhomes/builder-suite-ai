@@ -1,28 +1,18 @@
-# The PDF Bytes Are Gone — Here's What's Actually Possible
+## Goal
 
-## The hard truth
-I searched storage every way I can:
-- By the exact filename `1779214785855-ohp9i81l9g.pdf` → not found
-- By display name `126 Long View Dr - Construction Services Proposal.pdf` → not found in any bucket
-- By exact file size (346,505 bytes) across the entire `project-files` bucket → no match
-- By vendor bid proposals attached to project `691271e6...` (in case it was uploaded as a bid proposal) → no match
+Delete the incorrect PO for Old Creek Homes at Nob Hill without changing application code.
 
-**The file was deleted from Supabase Storage.** Only the JSON reference on PO `2026-100N-0025` still points to where it used to live. There is no other copy on our side. No code change, no viewer tweak, no permission fix, and no re-render can produce a file whose bytes no longer exist. The app can only display what storage still holds.
+## One-off data fix
 
-## Real recovery paths (in order of likelihood)
+1. Verify the target PO is exactly:
+   - Project: `691271e6-e46f-4745-8efb-200500e819f0`
+   - PO Number: `2026-100N-0025`
+   - Company: Old Creek Homes, LLC
+   - Amount: `$46,954.33`
+2. Delete that single `project_purchase_orders` row directly from the database.
+3. Do not modify code, email behavior, storage files, or any other purchase orders.
+4. Refresh the Purchase Orders page and confirm it no longer appears.
 
-1. **Check the sender's email / their own records.** The vendor who sent "126 Long View Dr - Construction Services Proposal.pdf" still has it. That's the fastest way to get the actual document back.
-2. **Supabase Point-in-Time Recovery.** Storage objects can be restored from PITR if the project is on a Supabase plan that includes it AND the deletion is inside the retention window. This is done from the Supabase dashboard by you — I cannot trigger it. If you want, I can point you at the exact dashboard page.
-3. **Your own backups**, if you keep any (Google Drive, Dropbox, email archive, etc.).
+## Technical details
 
-## What I can do in the app right now
-Only one thing, and it's cosmetic:
-
-- **Strip the dead reference** off PO `2026-100N-0025` so the phantom PDF icon stops appearing and no one else wastes time clicking it. The PO itself is untouched — number, vendor, lines, amounts all stay. Only the broken attachment JSON entry is removed.
-
-Say the word and I'll do that. Otherwise I'll leave the PO exactly as it is so you can recognize which one is missing its file while you hunt down a copy.
-
-## What I will NOT pretend to do
-- "Rebuild" or "regenerate" the PDF — I have no source content for it.
-- "Refresh the cache" — there is no cache issue; the origin object 404s.
-- Change RLS / permissions / viewer code — none of that is the problem.
+This should be a data-only operation using the Supabase data tool, not a schema migration and not a frontend/backend code edit.
