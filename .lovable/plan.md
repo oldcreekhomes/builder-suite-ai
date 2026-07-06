@@ -1,23 +1,20 @@
-## What's happening
+## Problem
 
-Trimble $99.99 on 413 E Nelson **is** paid AND **is** reconciled — the payment is in the May 2026 Atlantic Union reconciliation. But the Reconciliation Review dialog isn't showing it.
+The Reconciliation Review dialog is showing every bill payment **twice** (Anchor Loans, City of Alexandria, Joel Cortes). After the backfill, both code paths in the dialog now match the same payment:
 
-## Root cause
+1. **New path** — reads `journal_entry_lines.reconciliation_id` (populated by backfill + fix).
+2. **Legacy path** — reads `bills.reconciliation_id` (populated by an older code path).
 
-When a reconciliation is completed, the app stamps `bill_payments.reconciliation_id`, but it does **not** stamp the underlying `journal_entry_lines.reconciliation_id` on the bank side of that payment's journal entry. The Reconciliation Review dialog reads from `journal_entry_lines.reconciliation_id`, so the payment is invisible there even though it's fully reconciled.
-
-This is systemic: **244 reconciled bill payments** across the tenant are in this state.
+The dedupe check compares `JE-line.id` against `bill.id` — different id namespaces, so it never matches and every payment shows up twice.
 
 ## Plan
 
-1. **Backfill (data)** — For every `bill_payments` row where `reconciled = true` and `reconciliation_id` is set, stamp the matching `journal_entry_lines.reconciliation_id` (bank-account credit line on the payment's JE) with the same reconciliation id. This immediately fixes all 244 existing payments, including the Trimble one.
-
-2. **Fix the completion path (code)** — Update the reconciliation-completion logic so that whenever it stamps `bill_payments.reconciliation_id`, it also stamps the corresponding JE bank-side lines. This prevents new payments from falling into the same hole.
-
-3. **Verify** — Reopen the May 2026 reconciliation on 413 E Nelson and confirm Trimble $99.99 now appears in "Checks & Bill Payments Cleared" and the total updates to $1,363.03.
+1. In `ReconciliationReviewDialog.tsx`, expose the underlying `bill_id` on the JE-line path (already available as `journal_entries.source_id`).
+2. Dedupe legacy entries by `bill_id` against the set of `bill_id`s already produced by the JE-line path.
+3. Verify Feb 2026 reconciliation for 413 E Nelson now shows Anchor Loans, City of Alexandria, and Cortes exactly once, and the total matches.
 
 ## Technical details
 
-- Backfill query joins `bill_payments -> bill_payment_allocations -> journal_entries (source_type='bill_payment', source_id=bill_id) -> journal_entry_lines` on `account_id = bill_payments.payment_account_id` where `credit > 0`, then sets `reconciliation_id`.
-- Completion code lives in the reconciliation "complete" mutation — I'll locate the exact file after approval and make the JE-line stamp part of the same transaction.
-- No schema changes.
+- File: `src/components/transactions/ReconciliationReviewDialog.tsx`.
+- Track a `Set<string>` of bill ids from the JE-line pass, then filter legacy bills with `!seenBillIds.has(bill.id)`.
+- No database changes.
