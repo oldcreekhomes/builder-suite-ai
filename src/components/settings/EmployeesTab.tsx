@@ -9,11 +9,11 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 
 export function EmployeesTab() {
   const [addEmployeeOpen, setAddEmployeeOpen] = useState(false);
-  const { isOwner, isAccountant, isLoading: roleLoading } = useUserRole();
+  const { isOwner, isLoading: roleLoading } = useUserRole();
   const { canAccessEmployees, isLoading: permissionsLoading } = useEmployeePermissions();
 
   const isLoading = roleLoading || permissionsLoading;
-  const hasAccess = isOwner || isAccountant || canAccessEmployees;
+  const hasAccess = isOwner || canAccessEmployees;
 
   if (isLoading) {
     return (

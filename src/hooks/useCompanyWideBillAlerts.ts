@@ -24,7 +24,7 @@ export function useCompanyWideBillAlerts() {
         .eq('id', user.id)
         .single();
 
-      const ownerId = userData?.role === 'employee' || userData?.role === 'accountant'
+      const ownerId = userData?.role === 'employee'
         ? userData.home_builder_id
         : user.id;
 

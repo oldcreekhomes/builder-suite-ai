@@ -340,10 +340,8 @@ export function EditEmployeeDialog({ employee, open, onOpenChange }: EditEmploye
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
+                    <SelectItem value="owner">Owner</SelectItem>
                     <SelectItem value="employee">Employee</SelectItem>
-                    <SelectItem value="accountant">Accountant</SelectItem>
-                    <SelectItem value="construction_manager">Construction Manager</SelectItem>
-                    <SelectItem value="project_manager">Project Manager</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
