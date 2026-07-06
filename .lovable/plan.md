@@ -1,26 +1,28 @@
-# Broken PO Attachment: 2026-100N-0025
+# The PDF Bytes Are Gone — Here's What's Actually Possible
 
-## What's happening
-The purchase order `2026-100N-0025` (project `691271e6-e46f-4745-8efb-200500e819f0`) has a `files` entry pointing to:
+## The hard truth
+I searched storage every way I can:
+- By the exact filename `1779214785855-ohp9i81l9g.pdf` → not found
+- By display name `126 Long View Dr - Construction Services Proposal.pdf` → not found in any bucket
+- By exact file size (346,505 bytes) across the entire `project-files` bucket → no match
+- By vendor bid proposals attached to project `691271e6...` (in case it was uploaded as a bid proposal) → no match
 
-`project-files/purchase-orders/691271e6.../1779214785855-ohp9i81l9g.pdf` — "126 Long View Dr - Construction Services Proposal.pdf"
+**The file was deleted from Supabase Storage.** Only the JSON reference on PO `2026-100N-0025` still points to where it used to live. There is no other copy on our side. No code change, no viewer tweak, no permission fix, and no re-render can produce a file whose bytes no longer exist. The app can only display what storage still holds.
 
-That storage object **does not exist** in the bucket (confirmed via `storage.objects`). The database still holds the reference, so the UI keeps trying to open a file that isn't there — which is why it never opens no matter how many times you resend it.
+## Real recovery paths (in order of likelihood)
 
-Nothing is wrong with the viewer, permissions, or RLS. The file is simply missing from storage.
+1. **Check the sender's email / their own records.** The vendor who sent "126 Long View Dr - Construction Services Proposal.pdf" still has it. That's the fastest way to get the actual document back.
+2. **Supabase Point-in-Time Recovery.** Storage objects can be restored from PITR if the project is on a Supabase plan that includes it AND the deletion is inside the retention window. This is done from the Supabase dashboard by you — I cannot trigger it. If you want, I can point you at the exact dashboard page.
+3. **Your own backups**, if you keep any (Google Drive, Dropbox, email archive, etc.).
 
-## Options — pick one
+## What I can do in the app right now
+Only one thing, and it's cosmetic:
 
-**Option A — Re-upload the PDF (recommended if you still have it)**
-- You open the PO, delete the broken attachment, and re-upload "126 Long View Dr - Construction Services Proposal.pdf".
-- No code or DB changes needed from me.
+- **Strip the dead reference** off PO `2026-100N-0025` so the phantom PDF icon stops appearing and no one else wastes time clicking it. The PO itself is untouched — number, vendor, lines, amounts all stay. Only the broken attachment JSON entry is removed.
 
-**Option B — Remove the dead reference**
-- I run a one-line DB update to strip the broken file entry off PO `2726b35b-4858-4dfe-b23f-e1018616f55c` so the UI stops showing a phantom attachment.
-- Use this if you don't have the original PDF anymore.
+Say the word and I'll do that. Otherwise I'll leave the PO exactly as it is so you can recognize which one is missing its file while you hunt down a copy.
 
-**Option C — Both**
-- I remove the dead reference now, then you upload the PDF fresh when convenient.
-
-## Which do you want?
-Tell me A, B, or C and I'll proceed in build mode.
+## What I will NOT pretend to do
+- "Rebuild" or "regenerate" the PDF — I have no source content for it.
+- "Refresh the cache" — there is no cache issue; the origin object 404s.
+- Change RLS / permissions / viewer code — none of that is the problem.
