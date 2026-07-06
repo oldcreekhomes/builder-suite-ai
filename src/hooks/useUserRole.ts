@@ -33,8 +33,8 @@ export const useUserRole = () => {
     roles,
     isLoading,
     isOwner: roles.includes('owner'),
-    isAccountant: roles.includes('accountant'),
+    isAccountant: false,
     isEmployee: roles.includes('employee'),
-    canDeleteBills: roles.includes('owner') || roles.includes('accountant'),
+    canDeleteBills: roles.includes('owner') || roles.includes('employee'),
   };
 };
