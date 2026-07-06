@@ -172,10 +172,13 @@ export function ReconciliationReviewDialog({
             type: 'bill_payment' as const,
           })).filter(bp => bp.amount > 0);
 
-          // Only add legacy ones not already covered by JE line approach
-          const existingIds = new Set(billPayments.map(bp => bp.id));
+          // Dedupe legacy entries by bill_id against bills already surfaced by
+          // the JE-line pass above (bpLines[].journal_entries.source_id == bill_id).
+          const seenBillIds = new Set(
+            bpLines.map((l: any) => l.journal_entries?.source_id).filter(Boolean),
+          );
           legacyPayments.forEach(lp => {
-            if (!existingIds.has(lp.id)) billPayments.push(lp);
+            if (!seenBillIds.has(lp.id)) billPayments.push(lp);
           });
         }
       }
