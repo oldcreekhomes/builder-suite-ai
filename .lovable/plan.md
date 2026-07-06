@@ -1,48 +1,26 @@
-# Collapse "accountant" role into "employee"
+# Broken PO Attachment: 2026-100N-0025
 
-Two roles only going forward: **owner** and **employee**. Jole and any code path that treats `accountant` as a distinct role gets converted to `employee`. Marketing copy and the "Accountant/CPA" *company type* (that's a vendor category in the marketplace, not a user role) are left alone.
+## What's happening
+The purchase order `2026-100N-0025` (project `691271e6-e46f-4745-8efb-200500e819f0`) has a `files` entry pointing to:
 
-## 1. Database migration
+`project-files/purchase-orders/691271e6.../1779214785855-ohp9i81l9g.pdf` — "126 Long View Dr - Construction Services Proposal.pdf"
 
-- Update `public.users`: `UPDATE users SET role = 'employee' WHERE role = 'accountant'` (affects Jole — 1 row).
-- Update `public.user_roles`: same conversion for any rows with `role = 'accountant'`.
-- Leave the `app_role` enum value `'accountant'` in place for now (dropping enum values requires rewriting every policy/function that references it — safer to just stop using it). New writes will only ever use `owner`/`employee`.
+That storage object **does not exist** in the bucket (confirmed via `storage.objects`). The database still holds the reference, so the UI keeps trying to open a file that isn't there — which is why it never opens no matter how many times you resend it.
 
-## 2. Edit Employee & Add Employee dialogs
+Nothing is wrong with the viewer, permissions, or RLS. The file is simply missing from storage.
 
-`src/components/employees/EditEmployeeDialog.tsx` and `src/components/employees/AddEmployeeDialog.tsx` — role dropdown becomes exactly two items:
+## Options — pick one
 
-- Owner
-- Employee
+**Option A — Re-upload the PDF (recommended if you still have it)**
+- You open the PO, delete the broken attachment, and re-upload "126 Long View Dr - Construction Services Proposal.pdf".
+- No code or DB changes needed from me.
 
-Remove `Accountant`, `Construction Manager`, `Project Manager` options.
+**Option B — Remove the dead reference**
+- I run a one-line DB update to strip the broken file entry off PO `2726b35b-4858-4dfe-b23f-e1018616f55c` so the UI stops showing a phantom attachment.
+- Use this if you don't have the original PDF anymore.
 
-## 3. Code paths that branch on `role = 'accountant'`
+**Option C — Both**
+- I remove the dead reference now, then you upload the PDF fresh when convenient.
 
-Replace the role check with `employee` (or drop the extra clause where it's redundant with an existing `employee` check):
-
-- `src/hooks/useUserRole.ts` — drop `isAccountant`, drop accountant from `canDeleteBills` (owners + employees keep delete; if you want deletes owner-only, say so and I'll change).
-- `src/hooks/useCompanyWideBillAlerts.ts` line 27 — remove the `|| 'accountant'` clause.
-- `src/hooks/useAccountingPeriods.ts` line 73 — same.
-- `src/components/settings/EmployeesTab.tsx` — drop `isAccountant` gate (owner + `canAccessEmployees` preference).
-- `src/lib/getEffectiveOwnerId.ts` — comment cleanup only.
-- `src/components/bills/SimplifiedAIBillExtraction.tsx` — comment cleanup only.
-- `supabase/functions/extract-bill-data/index.ts` — comment cleanup only (logic already covers all non-owner roles).
-
-## 4. Dashboard "Accountant" view
-
-The Accountant Dashboard is a **view preference** (`can_access_accountant_dashboard`), not a role. I'll leave the dashboard itself and its toggle in place — it's still useful for a bookkeeping-focused employee. Nothing on that surface is role-gated by `accountant`; it's all preference-gated.
-
-If you want me to rename it "Accounting Dashboard" or remove it entirely, say so.
-
-## 5. Left untouched (on purpose)
-
-- `Accountant/CPA` in `companyTypeGoogleMapping.ts` and `populate-marketplace/index.ts` — that's a **marketplace vendor category** (external CPA firms), not an internal user role.
-- Marketing copy in `Landing.tsx`, blog manifest, bill-approval helper text ("notes visible to the accountant") — user-facing English about the bookkeeping persona, not role checks.
-- `src/components/representatives/RepresentativesTable.tsx` — that's the **owner-company representative** picker for marketplace vendor profiles, unrelated to app auth roles.
-
-## Technical notes
-
-- No app_role enum drop → no cascading policy rewrites, no risk of breaking RLS.
-- Jole's session picks up the new role on her next page load (React Query refetch on `user_roles`).
-- Storage/bucket policies that check `role = 'employee'` will now correctly admit Jole — this incidentally fixes the Bills PDF issue for her without touching any RLS.
+## Which do you want?
+Tell me A, B, or C and I'll proceed in build mode.
