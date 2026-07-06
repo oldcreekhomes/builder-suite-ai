@@ -70,7 +70,7 @@ export const useAccountingPeriods = (projectId?: string) => {
         .eq('id', user.id)
         .single();
 
-      const ownerId = userData?.role === 'employee' || userData?.role === 'accountant'
+      const ownerId = userData?.role === 'employee'
         ? userData.home_builder_id
         : user.id;
 
