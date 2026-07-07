@@ -1,34 +1,27 @@
-## What's broken
+The delete failure is not because the attachment rows are fake anymore. The live error is:
 
-The Journal Entry attachment list is showing "phantom" rows created by a buggy optimistic update in `src/hooks/useJournalEntryAttachments.ts` (lines 96–112). After every upload, that block injects fabricated rows into the React Query cache with:
+```text
+StorageApiError: invalid input syntax for type uuid: "journal-entry-attachments"
+```
 
-- a **random UUID** that does not exist in the `journal_entry_attachments` table, and
-- a **fabricated `file_path`** (a fresh `Date.now()` different from the real upload path).
+That happens while trying to remove the file from Supabase Storage. The hook currently treats that storage cleanup error as fatal, so it stops before deleting the `journal_entry_attachments` database row. Result: the red X always shows “Delete failed” and the icons stay visible.
 
-So when you click the red X on one of those rows:
+Plan:
 
-1. `deleteFile` runs `select file_path ... where id = <fake uuid> .single()` → returns no row → throws "Attachment not found".
-2. The catch block shows the red **"Failed to delete file"** toast you're seeing.
+1. Update `useJournalEntryAttachments.deleteFile` so deleting the attachment row from `journal_entry_attachments` is the primary operation.
+   - Delete the DB row by attachment id.
+   - Immediately invalidate the attachments query so the icon disappears.
+   - Show success if the row is gone.
 
-Real, freshly-refetched attachments delete just fine — but the fake ones from the optimistic block never can, and they're the ones sitting at the top of your list right now.
+2. Make Supabase Storage cleanup non-blocking.
+   - Look up the file path first if available.
+   - Attempt `storage.remove(...)` only as cleanup.
+   - If storage returns any error, including the current UUID/path policy error, log a warning but do not fail the user-facing delete.
 
-Nothing on the server changed. This bug has been latent since the optimistic block was added; it only bites once you actually try to delete an attachment from a JE you just uploaded to (or after a refresh that still shows a leftover phantom).
+3. Apply the same non-blocking cleanup behavior to pending draft attachments.
+   - If storage deletion fails, still remove the pending icon from local state.
 
-## Fix
-
-In `src/hooks/useJournalEntryAttachments.ts`:
-
-1. **Remove the fake optimistic `setQueryData` block** (lines 96–112). Replace it with a single `queryClient.invalidateQueries({ queryKey: ['journal-entry-attachments', journalEntryId] })` after the upload loop so the list refetches real rows with real IDs and real paths.
-2. **Harden `deleteFile`** so storage-side "object not found" doesn't block DB deletion:
-   - If the DB row lookup returns nothing, just remove it from the cache and show success (nothing to delete).
-   - If `storage.remove` errors with a not-found style message, log it and still proceed to delete the DB row. That way any existing phantom rows and any orphaned rows can be cleared out.
-3. After the fix, reload the JE dialog; the phantom row should disappear on refetch, and the remaining real attachment will delete normally.
-
-No DB, RLS, storage-bucket, or UI-component changes required — this is a single-file hook fix.
-
-## Verification
-
-- Open the same JE (Closing Acquisition, 03/20/2026).
-- Confirm the attachment list now shows only real rows.
-- Click the red X on the attachment that wouldn't delete — it should remove without the red toast.
-- Upload a new file, then delete it in the same session — should also work now that we invalidate instead of injecting fake rows.
+4. Keep this scoped to journal entry attachments only.
+   - No reconciliation changes.
+   - No database migration.
+   - No broad storage policy changes in this pass.
