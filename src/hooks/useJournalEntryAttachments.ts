@@ -93,22 +93,11 @@ export function useJournalEntryAttachments(journalEntryId: string | null, draftI
         }
       }
 
-      // Optimistic update for instant UI feedback
+      // Refetch to load real rows (with real DB ids + paths)
       if (journalEntryId) {
-        queryClient.setQueryData(
-          ['journal-entry-attachments', journalEntryId],
-          (old: Attachment[] = []) => {
-            const newAttachments = files.map(file => ({
-              id: crypto.randomUUID(),
-              file_name: file.name,
-              file_path: `journal-entry-attachments/${journalEntryId}/${Date.now()}-${file.name}`,
-              file_size: file.size,
-              content_type: file.type,
-              uploaded_at: new Date().toISOString(),
-            }));
-            return [...old, ...newAttachments];
-          }
-        );
+        await queryClient.invalidateQueries({
+          queryKey: ['journal-entry-attachments', journalEntryId],
+        });
       }
 
       toast({
@@ -154,18 +143,24 @@ export function useJournalEntryAttachments(journalEntryId: string | null, draftI
           .from('journal_entry_attachments')
           .select('file_path')
           .eq('id', attachmentId)
-          .single();
+          .maybeSingle();
 
-        if (!attachment) throw new Error('Attachment not found');
+        // If the row still exists, try to remove the storage object.
+        // Don't block DB deletion on "object not found" style errors.
+        if (attachment?.file_path) {
+          const { error: storageError } = await supabase.storage
+            .from('project-files')
+            .remove([attachment.file_path]);
 
-        // Delete from storage
-        const { error: storageError } = await supabase.storage
-          .from('project-files')
-          .remove([attachment.file_path]);
+          if (storageError) {
+            const msg = (storageError.message || '').toLowerCase();
+            const isNotFound = msg.includes('not found') || msg.includes('does not exist');
+            if (!isNotFound) throw storageError;
+            console.warn('Storage object missing, continuing with DB delete:', storageError);
+          }
+        }
 
-        if (storageError) throw storageError;
-
-        // Delete from database
+        // Delete from database (no-op if row already gone)
         const { error: dbError } = await supabase
           .from('journal_entry_attachments')
           .delete()
