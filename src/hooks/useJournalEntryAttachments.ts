@@ -123,12 +123,14 @@ export function useJournalEntryAttachments(journalEntryId: string | null, draftI
         const attachment = pendingAttachments.find(a => a.id === attachmentId);
         if (!attachment) throw new Error('Pending attachment not found');
 
-        // Delete from storage
+        // Best-effort storage cleanup. Do not block removing the pending icon.
         const { error: storageError } = await supabase.storage
           .from('project-files')
           .remove([attachment.file_path]);
 
-        if (storageError) throw storageError;
+        if (storageError) {
+          console.warn('Pending attachment storage cleanup failed, removing from UI anyway:', storageError);
+        }
 
         // Remove from pending list
         setPendingAttachments(prev => prev.filter(a => a.id !== attachmentId));
@@ -138,29 +140,18 @@ export function useJournalEntryAttachments(journalEntryId: string | null, draftI
           description: "File deleted successfully",
         });
       } else {
-        // Delete persisted attachment
-        const { data: attachment } = await supabase
+        // Delete persisted attachment row first; storage cleanup must never block the UI delete.
+        const { data: attachment, error: lookupError } = await supabase
           .from('journal_entry_attachments')
           .select('file_path')
           .eq('id', attachmentId)
           .maybeSingle();
 
-        // If the row still exists, try to remove the storage object.
-        // Don't block DB deletion on "object not found" style errors.
-        if (attachment?.file_path) {
-          const { error: storageError } = await supabase.storage
-            .from('project-files')
-            .remove([attachment.file_path]);
-
-          if (storageError) {
-            const msg = (storageError.message || '').toLowerCase();
-            const isNotFound = msg.includes('not found') || msg.includes('does not exist');
-            if (!isNotFound) throw storageError;
-            console.warn('Storage object missing, continuing with DB delete:', storageError);
-          }
+        if (lookupError) {
+          console.warn('Attachment lookup failed, continuing with DB delete:', lookupError);
         }
 
-        // Delete from database (no-op if row already gone)
+        // Delete from database (no-op if row already gone). This is the user-facing delete.
         const { error: dbError } = await supabase
           .from('journal_entry_attachments')
           .delete()
@@ -168,12 +159,28 @@ export function useJournalEntryAttachments(journalEntryId: string | null, draftI
 
         if (dbError) throw dbError;
 
+        queryClient.setQueryData<Attachment[]>(
+          ['journal-entry-attachments', journalEntryId],
+          (current = []) => current.filter(a => a.id !== attachmentId)
+        );
+
+        await queryClient.invalidateQueries({ queryKey: ['journal-entry-attachments', journalEntryId] });
+
+        // Best-effort storage cleanup after the row is removed.
+        if (attachment?.file_path) {
+          const { error: storageError } = await supabase.storage
+            .from('project-files')
+            .remove([attachment.file_path]);
+
+          if (storageError) {
+            console.warn('Attachment storage cleanup failed after DB delete:', storageError);
+          }
+        }
+
         toast({
           title: "Success",
           description: "File deleted successfully",
         });
-
-        queryClient.invalidateQueries({ queryKey: ['journal-entry-attachments', journalEntryId] });
       }
     } catch (error) {
       console.error('Error deleting file:', error);
