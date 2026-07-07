@@ -93,22 +93,11 @@ export function useJournalEntryAttachments(journalEntryId: string | null, draftI
         }
       }
 
-      // Optimistic update for instant UI feedback
+      // Refetch to load real rows (with real DB ids + paths)
       if (journalEntryId) {
-        queryClient.setQueryData(
-          ['journal-entry-attachments', journalEntryId],
-          (old: Attachment[] = []) => {
-            const newAttachments = files.map(file => ({
-              id: crypto.randomUUID(),
-              file_name: file.name,
-              file_path: `journal-entry-attachments/${journalEntryId}/${Date.now()}-${file.name}`,
-              file_size: file.size,
-              content_type: file.type,
-              uploaded_at: new Date().toISOString(),
-            }));
-            return [...old, ...newAttachments];
-          }
-        );
+        await queryClient.invalidateQueries({
+          queryKey: ['journal-entry-attachments', journalEntryId],
+        });
       }
 
       toast({
