@@ -168,13 +168,20 @@ export function ProjectNotificationsMatrix({ projectId }: Props) {
     );
   }
 
+  const sortedUsers = [...users].sort((a, b) => {
+    const aKey = (a.first_name || a.email || "").toLowerCase();
+    const bKey = (b.first_name || b.email || "").toLowerCase();
+    return aKey.localeCompare(bKey);
+  });
+
   return (
     <div className="space-y-3">
       <div>
         <h3 className="text-base font-semibold">Project Notifications</h3>
         <p className="text-xs text-muted-foreground">
           Check the users who should receive each type of notification, then click the star to
-          mark the primary contact (shown as the sender). Others are CC'd.
+          mark the primary contact (shown as the sender on outgoing emails). Other checked users
+          are CC'd. If no primary is set, the project owner is used.
         </p>
       </div>
 
@@ -184,14 +191,19 @@ export function ProjectNotificationsMatrix({ projectId }: Props) {
             <tr>
               <th className="text-left font-medium px-3 py-2 sticky left-0 bg-muted/50">User</th>
               {CHANNELS.map((c) => (
-                <th key={c.key} className="text-center font-medium px-3 py-2 whitespace-nowrap">
-                  {c.label}
+                <th key={c.key} className="font-medium px-3 py-2 whitespace-nowrap">
+                  <div className="flex justify-center">
+                    <span className="inline-flex items-center gap-2">
+                      <span>{c.label}</span>
+                      <span className="w-4" aria-hidden="true" />
+                    </span>
+                  </div>
                 </th>
               ))}
             </tr>
           </thead>
           <tbody>
-            {users.map((u) => {
+            {sortedUsers.map((u) => {
               const row = rowByUser.get(u.id);
               const displayName =
                 `${u.first_name || ""} ${u.last_name || ""}`.trim() || u.email;
@@ -199,9 +211,6 @@ export function ProjectNotificationsMatrix({ projectId }: Props) {
                 <tr key={u.id} className="border-t">
                   <td className="px-3 py-2 sticky left-0 bg-background">
                     <div className="font-medium">{displayName}</div>
-                    {u.role && (
-                      <div className="text-xs text-muted-foreground capitalize">{u.role}</div>
-                    )}
                   </td>
                   {CHANNELS.map((c) => {
                     const isReceiving = !!row?.[`receive_${c.key}` as keyof RecipientRow];
@@ -241,12 +250,6 @@ export function ProjectNotificationsMatrix({ projectId }: Props) {
           </tbody>
         </table>
       </div>
-
-      <p className="text-xs text-muted-foreground">
-        <Star className="inline h-3 w-3 text-yellow-500 fill-current mr-1" />
-        Primary contact appears as the sender on outgoing emails. Other checked users are CC'd.
-        If no primary is set, the project owner is used.
-      </p>
     </div>
   );
 }

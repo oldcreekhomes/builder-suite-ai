@@ -1,21 +1,15 @@
-# Reset Accounting Reports Recipient to Matt Gray
+## UI updates to Project Notifications matrix
 
-One-time data update, no code changes. Applies to all 33 Old Creek Homes projects (owned by mgray@oldcreekhomes.com).
+File: `src/components/projects/ProjectNotificationsMatrix.tsx`
 
-## What will change
+1. **Center column headers and cells** — add `text-center` to the "User" header alignment stays left, but Bid / PO / Schedule / Bid Submitted / Accounting Reports header cells get centered (already `text-center`); ensure the checkbox+star cell content is centered (already uses `flex justify-center`). Center the header labels above the checkbox column by aligning them over the checkbox (not the checkbox+star pair) — wrap header label in a container matching the cell's checkbox position.
 
-For **every project owned by Matt Gray**:
+2. **Remove role subtitle** — delete the `{u.role && <div>…capitalize…</div>}` line under each user name so only the name shows.
 
-1. **Clear all existing Accounting Reports recipients** — un-check every user's `receive_accounting` and `is_primary_accounting` flags.
-2. **Set Matt Gray as the sole Accounting Reports recipient** — checked and starred as Primary.
-3. Any rows that no longer have any notification flags set (all 5 receive_* fields false) will be cleaned up so the matrix stays tidy.
+3. **Sort users alphabetically by first name** — sort the `users` array by `first_name` (case-insensitive, fallback to email) before rendering.
 
-## What is NOT touched
+4. **Consolidate helper text** — remove the bottom paragraph ("Primary contact appears as the sender…"). Merge its content into the top description under the "Project Notifications" heading so there is a single explanation:
 
-- Bid, PO, Schedule, and Bid Submitted columns — untouched on every project.
-- Any project not owned by Matt Gray.
-- No code changes; edge functions, UI, and the matrix component all keep working as-is.
+   > Check the users who should receive each type of notification, then click the star to mark the primary contact (shown as the sender on outgoing emails). Other checked users are CC'd. If no primary is set, the project owner is used.
 
-## Answering your question
-
-Yes — the earlier backfill assumed `accounting_manager` should receive Accounting Reports (that's why Erica Gray showed up checked, since she's the accounting manager on North Potomac). That assumption is being reversed for Old Creek Homes with this one-time cleanup, and going forward you control it manually via the Notifications tab.
+No database or logic changes.
