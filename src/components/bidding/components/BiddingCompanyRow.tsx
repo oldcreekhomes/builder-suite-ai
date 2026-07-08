@@ -75,25 +75,27 @@ export function BiddingCompanyRow({
   awardedPOs = []
 }: BiddingCompanyRowProps) {
   const [showConfirmPODialog, setShowConfirmPODialog] = useState(false);
-  const [extractedLines, setExtractedLines] = useState<LineItemInput[] | null>(null);
-  const { extract, isExtracting } = usePreExtractPOLines();
   const awardedPO = awardedPOs.find(po => po.company_id === biddingCompany.company_id);
   const { getPOStatusForCompany } = usePOStatus(projectId, costCodeId);
+
+  const bidPrice = biddingCompany.price ?? 0;
+  const seededLine: LineItemInput = {
+    cost_code_id: costCodeId,
+    cost_code_display: '',
+    description: '',
+    quantity: 1,
+    unit_cost: bidPrice,
+    amount: bidPrice,
+    extra: false,
+  };
 
   const handleSendPO = () => {
     console.log('Send PO confirmed for company:', biddingCompany.company_id);
     // TODO: Implement PO sending logic
   };
 
-  const handleOpenConfirmPO = async () => {
+  const handleOpenConfirmPO = () => {
     setShowConfirmPODialog(true);
-    if (!isReadOnly) {
-      const [lines] = await Promise.all([
-        extract(biddingCompany.proposals, costCodeId),
-        new Promise((r) => setTimeout(r, 5000)),
-      ]);
-      setExtractedLines(lines);
-    }
   };
 
   const actions = [
