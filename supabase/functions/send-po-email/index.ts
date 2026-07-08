@@ -502,7 +502,6 @@ const handler = async (req: Request): Promise<Response> => {
         }
 
         // Resolve PO notification contacts (primary + CC) for this project
-        let ccEmailsForPo: string[] = [];
         if (projectDetails?.id) {
           try {
             const contacts = await resolveNotificationContacts(supabase, projectDetails.id, "po");
@@ -513,15 +512,14 @@ const handler = async (req: Request): Promise<Response> => {
                 phone: contacts.primary.phone_number,
               };
               if (contacts.primary.company_name) {
-                (requestData as any).senderCompanyName = contacts.primary.company_name;
+                senderCompanyName = contacts.primary.company_name;
               }
               console.log('✅ PO primary contact resolved:', projectManager);
             }
-            ccEmailsForPo = contacts.ccEmails;
-            (requestData as any).__ccEmails = ccEmailsForPo;
-            console.log('📧 PO CC list:', ccEmailsForPo);
+            ccEmails = contacts.ccEmails;
+            console.log('📧 PO CC list:', ccEmails);
           } catch (err) {
-            console.error('⚠️ Failed to resolve PO notification contacts, falling back to construction_manager:', err);
+            console.error('⚠️ Failed to resolve PO notification contacts:', err);
           }
         }
       }
