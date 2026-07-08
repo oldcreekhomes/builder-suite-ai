@@ -238,6 +238,7 @@ export function SendTestEmailModal({
           files: bidPackage.files || []
         },
         project: projectData ? {
+          id: projectData.id,
           address: projectData.address,
           manager: managerFullName,
           managerEmail: managerEmail,
