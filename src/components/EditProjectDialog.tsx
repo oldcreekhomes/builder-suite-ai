@@ -19,6 +19,7 @@ import { Project } from "@/hooks/useProjects";
 import { LotManagementSection } from "@/components/LotManagementSection";
 import { useUserRole } from "@/hooks/useUserRole";
 import { ProjectAccountsTab } from "@/components/ProjectAccountsTab";
+import { ProjectNotificationsMatrix } from "@/components/projects/ProjectNotificationsMatrix";
 import { SERVICE_AREA_OPTIONS, normalizeServiceArea } from "@/lib/serviceArea";
 
 interface EditProjectDialogProps {
