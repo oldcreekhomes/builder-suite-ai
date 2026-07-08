@@ -79,22 +79,30 @@ export const usePOMutations = (projectId: string) => {
         files: []
       };
 
-      // Include proposal files from bidding company
-      console.log('Bidding company proposals:', biddingCompany?.proposals);
-      if (biddingCompany?.proposals && biddingCompany.proposals.length > 0) {
-        const proposalFiles = biddingCompany.proposals.map((fileName: string) => ({
+      // Files logic:
+      // - If caller provided `files` (dialog already seeds from biddingCompany.proposals),
+      //   treat it as authoritative to avoid duplicating proposals.
+      // - Only auto-attach biddingCompany.proposals when no `files` were passed (legacy callers).
+      if (files !== undefined) {
+        purchaseOrderData.files = [...files];
+      } else if (biddingCompany?.proposals && biddingCompany.proposals.length > 0) {
+        purchaseOrderData.files = biddingCompany.proposals.map((fileName: string) => ({
           id: fileName,
           name: fileName.split('_').pop() || fileName,
           url: `https://nlmnwlvmmkngrgatnzkj.supabase.co/storage/v1/object/public/project-files/proposals/${fileName}`,
-          size: 0 // Size not available but not critical for display
+          size: 0,
         }));
-        purchaseOrderData.files = proposalFiles;
-        console.log('Adding proposal files to PO:', proposalFiles);
       }
 
-      // Merge user-uploaded attachments from the dialog
-      if (files && files.length > 0) {
-        purchaseOrderData.files = [...(purchaseOrderData.files || []), ...files];
+      // Final dedupe pass by id -> url -> name so any legacy double-passes can't duplicate PDFs
+      {
+        const seen = new Set<string>();
+        purchaseOrderData.files = (purchaseOrderData.files || []).filter((f: any) => {
+          const key = String(f?.id ?? f?.url ?? f?.name ?? '');
+          if (!key || seen.has(key)) return false;
+          seen.add(key);
+          return true;
+        });
       }
 
       // Add bid package and bid IDs if provided (from bidding page)
