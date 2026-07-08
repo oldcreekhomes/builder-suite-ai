@@ -1,31 +1,21 @@
-# One-Time Notification Backfill
+# Reset Accounting Reports Recipient to Matt Gray
 
-Run a single SQL migration that populates `project_notification_recipients` for **every existing project** so its notification settings mirror the project's current `construction_manager` and `accounting_manager` assignments. After this runs, you won't need to touch any project manually — new/updated matrix entries only happen when you change them going forward.
+One-time data update, no code changes. Applies to all 33 Old Creek Homes projects (owned by mgray@oldcreekhomes.com).
 
-## What the migration does
+## What will change
 
-For every project in the database:
+For **every project owned by Matt Gray**:
 
-1. **Construction Manager → Primary for 4 channels**
-   Where `projects.construction_manager IS NOT NULL`, upsert a row for that user with:
-   - `receive_bid = true`, `is_primary_bid = true`
-   - `receive_po = true`, `is_primary_po = true`
-   - `receive_schedule = true`, `is_primary_schedule = true`
-   - `receive_bid_submitted = true`, `is_primary_bid_submitted = true`
+1. **Clear all existing Accounting Reports recipients** — un-check every user's `receive_accounting` and `is_primary_accounting` flags.
+2. **Set Matt Gray as the sole Accounting Reports recipient** — checked and starred as Primary.
+3. Any rows that no longer have any notification flags set (all 5 receive_* fields false) will be cleaned up so the matrix stays tidy.
 
-2. **Accounting Manager → Primary for Accounting Reports**
-   Where `projects.accounting_manager IS NOT NULL`, upsert a row for that user with:
-   - `receive_accounting = true`, `is_primary_accounting = true`
-   If the accounting_manager is the same user as the construction_manager, the existing row is updated to flip the accounting flags on (rather than creating a duplicate).
+## What is NOT touched
 
-3. **Idempotent** — uses `ON CONFLICT (project_id, user_id) DO UPDATE` so re-running is safe, and only turns flags **on**; it never clears anything a user has already customized.
+- Bid, PO, Schedule, and Bid Submitted columns — untouched on every project.
+- Any project not owned by Matt Gray.
+- No code changes; edge functions, UI, and the matrix component all keep working as-is.
 
-## What it does NOT touch
+## Answering your question
 
-- Any project where you've already set custom recipients (existing `true` flags stay `true`).
-- The `construction_manager` / `accounting_manager` dropdowns themselves (still used for insurance, bill queues, dashboard roles).
-- New projects going forward — those already get backfilled on create via the existing logic.
-
-## After it runs
-
-Every project will have its Notifications tab pre-populated to match today's construction/accounting manager setup, so vendor emails, PO emails, schedule notifications, bid-submission notices, and accounting reports will keep going to the same people as before with zero manual work from you.
+Yes — the earlier backfill assumed `accounting_manager` should receive Accounting Reports (that's why Erica Gray showed up checked, since she's the accounting manager on North Potomac). That assumption is being reversed for Old Creek Homes with this one-time cleanup, and going forward you control it manually via the Notifications tab.
