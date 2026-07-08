@@ -34,6 +34,7 @@ interface ScheduleNotificationRequest {
   customMessage?: string;
   companyId: string;
   representativeId: string;
+  projectId?: string;
 }
 
 // Format date for display (without year to save space)
