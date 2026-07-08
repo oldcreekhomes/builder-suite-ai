@@ -227,26 +227,35 @@ export function BiddingTableRow({
         onSelectCompany={handleSelectCompanyForPO}
       />
 
-      {selectedBiddingCompany && (
-        <CreatePurchaseOrderDialog
-          open={showConfirmPODialog}
-          onOpenChange={(open) => {
-            setShowConfirmPODialog(open);
-            if (!open) setExtractedLines(null);
-          }}
-          projectId={item.project_id}
-          onSuccess={handlePOConfirmed}
-          bidContext={{
-            biddingCompany: selectedBiddingCompany,
-            bidPackageId: item.id,
-            costCodeId: item.cost_code_id,
-            initialLineItems: extractedLines || undefined,
-            isExtracting: isExtractingPO,
-            mode: 'send',
-            onConfirm: handlePOConfirmed,
-          }}
-        />
-      )}
+      {selectedBiddingCompany && (() => {
+        const bidPrice = selectedBiddingCompany.price ?? 0;
+        const seededLine: LineItemInput = {
+          cost_code_id: item.cost_code_id,
+          cost_code_display: '',
+          description: '',
+          quantity: 1,
+          unit_cost: bidPrice,
+          amount: bidPrice,
+          extra: false,
+        };
+        return (
+          <CreatePurchaseOrderDialog
+            open={showConfirmPODialog}
+            onOpenChange={setShowConfirmPODialog}
+            projectId={item.project_id}
+            onSuccess={handlePOConfirmed}
+            bidContext={{
+              biddingCompany: selectedBiddingCompany,
+              bidPackageId: item.id,
+              costCodeId: item.cost_code_id,
+              initialLineItems: [seededLine],
+              isExtracting: false,
+              mode: 'send',
+              onConfirm: handlePOConfirmed,
+            }}
+          />
+        );
+      })()}
     </>
   );
 }
