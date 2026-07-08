@@ -411,11 +411,12 @@ const handler = async (req: Request): Promise<Response> => {
       projectAddress, 
       companyName, 
       proposals, 
-      senderCompanyName, 
       customMessage, 
       costCode,
       testEmail 
     } = requestData;
+    let senderCompanyName = requestData.senderCompanyName;
+    let ccEmails: string[] = [];
     
     // Make totalAmount mutable so we can update it from PO data
     let totalAmount = requestData.totalAmount;
