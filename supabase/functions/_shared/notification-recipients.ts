@@ -29,7 +29,7 @@ export interface NotificationContacts {
  *
  * - Primary = row where is_primary_<channel> = true.
  * - If no primary set, fall back to the alphabetically-first user with receive_<channel> = true.
- * - If nobody is checked, fall back to the project owner.
+ * - If nobody is checked, fall back to the project's Construction Manager (then project owner as a last resort).
  * - CC list = every OTHER user (not the primary) with receive_<channel> = true.
  *
  * The caller must pass a Supabase client with service-role privileges.
@@ -96,19 +96,20 @@ export async function resolveNotificationContacts(
   }
 
   if (!primary) {
-    // Final fallback: project owner
+    // Final fallback: project's Construction Manager, then project owner as last resort
     const { data: proj } = await supabase
       .from("projects")
-      .select("owner_id")
+      .select("construction_manager, owner_id")
       .eq("id", projectId)
       .maybeSingle();
-    if (proj?.owner_id) {
-      const { data: ownerRow } = await supabase
+    const fallbackUserId = proj?.construction_manager || proj?.owner_id;
+    if (fallbackUserId) {
+      const { data: fallbackRow } = await supabase
         .from("users")
         .select("id, first_name, last_name, email, phone_number, company_name")
-        .eq("id", proj.owner_id)
+        .eq("id", fallbackUserId)
         .maybeSingle();
-      if (ownerRow) primary = ownerRow as NotificationUser;
+      if (fallbackRow) primary = fallbackRow as NotificationUser;
     }
   }
 

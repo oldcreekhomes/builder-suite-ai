@@ -181,7 +181,7 @@ export function ProjectNotificationsMatrix({ projectId }: Props) {
         <p className="text-xs text-muted-foreground">
           Check the users who should receive each type of notification, then click the star to
           mark the primary contact (shown as the sender on outgoing emails). Other checked users
-          are CC'd. If no primary is set, the project owner is used.
+          are CC'd. If no primary is set, the project's Construction Manager is used.
         </p>
       </div>
 
