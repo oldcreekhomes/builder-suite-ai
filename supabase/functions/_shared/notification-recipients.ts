@@ -29,7 +29,7 @@ export interface NotificationContacts {
  *
  * - Primary = row where is_primary_<channel> = true.
  * - If no primary set, fall back to the alphabetically-first user with receive_<channel> = true.
- * - If nobody is checked, fall back to the project owner.
+ * - If nobody is checked, fall back to the project's Construction Manager (then project owner as a last resort).
  * - CC list = every OTHER user (not the primary) with receive_<channel> = true.
  *
  * The caller must pass a Supabase client with service-role privileges.
