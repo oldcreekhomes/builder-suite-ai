@@ -272,6 +272,10 @@ export function EditProjectDialog({ project, open, onOpenChange }: EditProjectDi
           <TabsContent value="accounts">
             {project && <ProjectAccountsTab projectId={project.id} />}
           </TabsContent>
+
+          <TabsContent value="notifications">
+            {project && <ProjectNotificationsMatrix projectId={project.id} />}
+          </TabsContent>
         </Tabs>
       </DialogContent>
     </Dialog>
