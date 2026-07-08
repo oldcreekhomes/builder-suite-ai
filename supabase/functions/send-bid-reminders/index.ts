@@ -238,6 +238,7 @@ const handler = async (req: Request): Promise<Response> => {
               files: reminder.files
             },
             project: {
+              id: reminder.project_id,
               address: reminder.project_address,
               manager: reminder.project_manager,
               managerEmail: reminder.project_manager_email,
