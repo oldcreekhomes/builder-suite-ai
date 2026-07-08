@@ -7,7 +7,6 @@ import { AddCompaniesToBidPackageModal } from './AddCompaniesToBidPackageModal';
 import { BiddingTableRowContent } from './components/BiddingTableRowContent';
 import { SelectCompanyForPODialog } from './components/SelectCompanyForPODialog';
 import { CreatePurchaseOrderDialog } from '@/components/CreatePurchaseOrderDialog';
-import { usePreExtractPOLines } from '@/hooks/usePreExtractPOLines';
 import type { LineItemInput } from '@/hooks/usePurchaseOrderLines';
 import type { Tables } from '@/integrations/supabase/types';
 
@@ -103,9 +102,6 @@ export function BiddingTableRow({
   const [showSelectCompanyForPO, setShowSelectCompanyForPO] = useState(false);
   const [showConfirmPODialog, setShowConfirmPODialog] = useState(false);
   const [selectedBiddingCompany, setSelectedBiddingCompany] = useState<BiddingCompany | null>(null);
-  const [extractedLines, setExtractedLines] = useState<LineItemInput[] | null>(null);
-  const [isExtractingPO, setIsExtractingPO] = useState(false);
-  const { extract } = usePreExtractPOLines();
   const costCode = item.cost_codes as CostCode;
 
   const handleSendEmailToCompany = (biddingItemId: string, companyId: string) => {
@@ -117,20 +113,10 @@ export function BiddingTableRow({
     setShowSelectCompanyForPO(true);
   };
 
-  const handleSelectCompanyForPO = async (company: BiddingCompany) => {
+  const handleSelectCompanyForPO = (company: BiddingCompany) => {
     setSelectedBiddingCompany(company);
     setShowSelectCompanyForPO(false);
     setShowConfirmPODialog(true);
-    setIsExtractingPO(true);
-    try {
-      const [lines] = await Promise.all([
-        extract(company.proposals, item.cost_code_id),
-        new Promise((r) => setTimeout(r, 5000)),
-      ]);
-      setExtractedLines(lines);
-    } finally {
-      setIsExtractingPO(false);
-    }
   };
 
   const handlePOConfirmed = () => {
@@ -241,26 +227,35 @@ export function BiddingTableRow({
         onSelectCompany={handleSelectCompanyForPO}
       />
 
-      {selectedBiddingCompany && (
-        <CreatePurchaseOrderDialog
-          open={showConfirmPODialog}
-          onOpenChange={(open) => {
-            setShowConfirmPODialog(open);
-            if (!open) setExtractedLines(null);
-          }}
-          projectId={item.project_id}
-          onSuccess={handlePOConfirmed}
-          bidContext={{
-            biddingCompany: selectedBiddingCompany,
-            bidPackageId: item.id,
-            costCodeId: item.cost_code_id,
-            initialLineItems: extractedLines || undefined,
-            isExtracting: isExtractingPO,
-            mode: 'send',
-            onConfirm: handlePOConfirmed,
-          }}
-        />
-      )}
+      {selectedBiddingCompany && (() => {
+        const bidPrice = selectedBiddingCompany.price ?? 0;
+        const seededLine: LineItemInput = {
+          cost_code_id: item.cost_code_id,
+          cost_code_display: '',
+          description: '',
+          quantity: 1,
+          unit_cost: bidPrice,
+          amount: bidPrice,
+          extra: false,
+        };
+        return (
+          <CreatePurchaseOrderDialog
+            open={showConfirmPODialog}
+            onOpenChange={setShowConfirmPODialog}
+            projectId={item.project_id}
+            onSuccess={handlePOConfirmed}
+            bidContext={{
+              biddingCompany: selectedBiddingCompany,
+              bidPackageId: item.id,
+              costCodeId: item.cost_code_id,
+              initialLineItems: [seededLine],
+              isExtracting: false,
+              mode: 'send',
+              onConfirm: handlePOConfirmed,
+            }}
+          />
+        );
+      })()}
     </>
   );
 }
