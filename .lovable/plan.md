@@ -1,27 +1,31 @@
-## Add Notifications tab to Create New Project dialog
+## Mirror Edit Project fields in Create New Project
 
-### UI restructure — `src/components/NewProjectDialog.tsx`
-- Wrap the dialog body in `Tabs` with two tabs:
-  1. **Project Information** — the current form fields (Address, Status, Total Lots, Construction Manager, Accounting Manager).
-  2. **Notifications** — the same 5-channel recipient matrix used on the Edit dialog.
-- Widen the dialog (`sm:max-w-[900px]`) so the matrix fits.
-- Keep a single Cancel / Create Project footer shared across both tabs.
+Rebuild the Project Information tab of `src/components/NewProjectDialog.tsx` so the layout, fields, and order match `EditProjectDialog.tsx` exactly.
 
-### Notifications matrix (pre-create version)
-- Extract a presentational variant of the matrix into `src/components/projects/NewProjectNotificationsMatrix.tsx` — same layout, styling, and alphabetical sort as `ProjectNotificationsMatrix.tsx`, but state is held in-memory (no `projectId`, no Supabase queries/mutations).
-- Local state: `Map<userId, { receive: Record<channel, boolean>, primary: Record<channel, boolean> }>` plus helpers that mirror the existing toggle behavior (checking primary auto-checks receive; only one primary per channel).
-- Uses `useCompanyUsers()` for the row list.
+### Fields (replacing current set)
+Row 1 (8-col grid): **Address** (5 cols) · **Region** (3 cols, dropdown: No Region + SERVICE_AREA_OPTIONS)
+Row 2 (3-col grid): **Construction Manager** · **Accounting Manager** · **Apartments** (No/Yes)
+Row 3 (2-col grid): **Status** (In Design / Permitting / Under Construction / Completed) · **Accounting Software** (QuickBooks / Builder Suite / Other)
+Row 4: **Lots / Addresses** section (see below)
+
+Remove the standalone "Total Lots" number input — lot count is derived from the Lots section, matching Edit.
+
+### Lots / Addresses at create time
+Since the project doesn't exist yet, add a new `src/components/projects/LocalLotManagementSection.tsx` that mirrors `LotManagementSection`'s UI (Add Lot button, inline table with edit/delete, auto-incrementing lot numbers, inline name editing) but holds lots in local React state — no Supabase reads, no delete-warning query.
+- Props: `lots: LocalLot[]`, `onChange(lots)`.
+- `LocalLot = { tempId: string; lot_number: number; lot_name?: string }`.
+- Simpler delete confirmation (just "Are you sure?" since nothing else references the lot yet).
+
+On successful `projects.insert()`, insert all local lots into `project_lots` in one call (`project_id`, `lot_number`, `lot_name`) before saving notification recipients.
 
 ### Validation
-- On Create Project, in addition to the existing required fields, verify **each of the 5 channels has exactly one user starred as primary**.
-- If any channel is missing a primary, show the Notifications tab, toast "Please select a primary contact for all 5 notification types", and highlight the missing column headers in red.
+- Required: address, status, construction_manager, accounting_manager.
+- `total_lots` on `projects.insert()` is set to `lots.length` (defaults to 0 if none added), preserving the existing column.
+- Notifications tab requirement (primary star on all 5 channels) stays.
 
-### Persistence
-- After the `projects.insert()` succeeds, build the recipient rows from the in-memory state and upsert them into `project_notification_recipients` in a single call:
-  - one row per user that has any `receive_*` or `is_primary_*` true, with `project_id` = new project id.
-- On upsert error: toast the error but keep the project (navigate to project page as today).
-
-### Reset
-- Clear the notifications state along with the other fields when the dialog closes or after successful create.
+### Dialog chrome
+- Keep the two-tab structure: **Project Information** | **Notifications**.
+- Dialog stays `sm:max-w-[900px]`.
+- Cancel / Create Project footer unchanged.
 
 No database or edge-function changes.
