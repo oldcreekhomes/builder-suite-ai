@@ -11,7 +11,6 @@ import { Badge } from '@/components/ui/badge';
 import { format } from 'date-fns';
 import { CheckCircle } from 'lucide-react';
 import type { AwardedPO } from '@/hooks/useBidPackagePO';
-import { usePreExtractPOLines } from '@/hooks/usePreExtractPOLines';
 import type { LineItemInput } from '@/hooks/usePurchaseOrderLines';
 
 interface Company {
