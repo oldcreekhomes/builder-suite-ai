@@ -447,6 +447,7 @@ export function BidPackageDetailsModal({
                   projectAddress={projectAddress}
                   projectId={item.project_id}
                   costCodeId={item.cost_code_id}
+                  costCodeDisplay={costCode ? `${costCode.code} - ${costCode.name}` : undefined}
                   selectedCompanies={selectedCompanies}
                   onCompanyCheckboxChange={onCompanyCheckboxChange}
                   onSelectAllCompanies={onSelectAllCompanies}

@@ -36,6 +36,7 @@ interface BiddingCompanyListProps {
   projectAddress?: string;
   projectId: string;
   costCodeId: string;
+  costCodeDisplay?: string;
   selectedCompanies?: Set<string>;
   onCompanyCheckboxChange?: (companyId: string, checked: boolean) => void;
   onSelectAllCompanies?: (biddingItemId: string, checked: boolean) => void;
@@ -56,6 +57,7 @@ export function BiddingCompanyList({
   projectAddress,
   projectId,
   costCodeId,
+  costCodeDisplay,
   selectedCompanies = new Set(),
   onCompanyCheckboxChange,
   onSelectAllCompanies,
@@ -175,6 +177,7 @@ export function BiddingCompanyList({
           projectAddress={projectAddress || ''}
           projectId={projectId}
           costCodeId={costCodeId}
+          costCodeDisplay={costCodeDisplay}
           isSelected={selectedCompanies.has(biddingCompany.id)}
           onCheckboxChange={onCompanyCheckboxChange}
           awardedPOs={awardedPOs}
