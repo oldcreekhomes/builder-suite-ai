@@ -25,6 +25,7 @@ interface BidReminderData {
   company_name: string;
   company_address: string | null;
   company_phone: string | null;
+  project_id: string;
   project_address: string;
   project_manager: string | null;
   project_manager_email: string | null;
