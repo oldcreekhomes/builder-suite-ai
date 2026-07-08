@@ -1,91 +1,89 @@
-# Per-project notification matrix — final plan
+# Per-project notification matrix — final plan (v3)
 
-## Answers back
+Change from v2: **Primary is per-notification-type**, not project-wide. Each column has its own Primary contact who appears as the vendor-facing "From" name and PM contact block; every other checked user in that column is **CC'd** on the outgoing email (was BCC).
 
-**#1 (Primary contact):** Confirmed. The matrix gets a "Primary" radio column. Only the Primary user is shown as the "From" sender name and the PM contact block inside the vendor email; the other checked users are BCC'd for internal visibility.
+## UI (new "Notifications" tab in EditProjectDialog)
 
-**#2 (Keep CM / Accounting Mgr dropdowns?):** Keep them. They're used in many non-email places, so removing them would break real features. Verified references:
+Tabs: **Project Details | Chart of Accounts | Notifications**
 
-- `construction_manager` powers:
-  - Insurance alerts (`useInsuranceAlerts`)
-  - "My Projects" card (`MyProjectsCard`)
-  - Owner Dashboard → Active Jobs "PM" column (`ActiveJobsTable`)
-  - PM bid notifications badge (`usePMBidNotifications`)
-  - Project header display (`ProjectPage`)
-  - Filtering in `useProjects` for PM-scoped views
+Each notification type gets a two-state checkbox per user:
+- **Empty** — user does not receive this notification
+- **Checked** — user is CC'd
+- **Star / filled** — user is the Primary contact for this notification (max one per column)
 
-- `accounting_manager` powers:
-  - Accounting Manager bill queue (`useAccountingManagerBills`)
-  - Accountant Dashboard → Jobs table sorting/display (`AccountantJobsTable`)
-  - Project Managers directory (`useProjectManagers`)
-  - "My Projects" card
-
-→ Both dropdowns stay in Edit Project row #2, unchanged. The new notification matrix goes **below** them as its own section — it's purely additive and only drives who gets emails.
-
-## UI (EditProjectDialog)
-
-Row #2 stays as-is (CM, Accounting Mgr, Apartments). Add a new section beneath the Lots table titled **"Notifications"**:
+Concrete UI: two controls per cell — a checkbox and a small star toggle to its right. Clicking the star auto-checks the box and clears any other star in the same column.
 
 ```
-User               | Primary | Bid | PO | Schedule | Bid Submitted | Accounting Reports
--------------------|---------|-----|----|----------|---------------|--------------------
-Steven Chen (Owner)|   (o)   | [x] | [x]|   [x]    |     [x]       |       [ ]
-Erica Gray         |   ( )   | [ ] | [ ]|   [ ]    |     [ ]       |       [x]
-Sam Patel          |   ( )   | [x] | [ ]|   [x]    |     [ ]       |       [ ]
+User                    | Bid          | PO           | Schedule     | Bid Submitted | Accounting Reports
+------------------------|--------------|--------------|--------------|---------------|--------------------
+Steven Chen (Owner)     | [x] ★        | [x] ★        | [x] ★        | [x] ★         | [ ]  ☆
+Erica Gray              | [ ]  ☆       | [ ]  ☆       | [ ]  ☆       | [ ]  ☆        | [x] ★
+Sam Patel               | [x]  ☆       | [ ]  ☆       | [x]  ☆       | [ ]  ☆        | [ ]  ☆
 ```
 
-- Rows = every internal user from `useCompanyUsers`.
-- **Primary** radio: exactly one user across the whole table. This user is the vendor-facing "From" name + PM contact block for every channel they're checked into.
-- Column checkboxes: multi-select. Checked users receive that channel's emails.
-- Save-on-toggle (same pattern as `RepresentativesTable`).
-- Backfill: on first open for a project without a matrix row, pre-check the current `construction_manager` for Bid/PO/Schedule/Bid-Submitted and the `accounting_manager` for Accounting Reports, and mark `construction_manager` as Primary.
+Rows = every internal user from `useCompanyUsers`. Save-on-toggle (optimistic). Legend under the table: "★ Primary contact (appears as sender) · ☑ CC'd on notification".
+
+Rules:
+- A column may have zero or one Primary. Zero-Primary falls back at send time to the project owner.
+- Setting Primary also sets Checked (can't be Primary without being on the list).
+- Unchecking a Primary clears the Primary flag for that column.
 
 ## Data model
-
-New table:
 
 ```
 project_notification_recipients
   project_id            uuid  → projects (cascade)
-  user_id               uuid  → users
-  is_primary            boolean default false
+  user_id               uuid
   receive_bid           boolean default false
   receive_po            boolean default false
   receive_schedule      boolean default false
   receive_bid_submitted boolean default false
   receive_accounting    boolean default false
+  is_primary_bid            boolean default false
+  is_primary_po             boolean default false
+  is_primary_schedule       boolean default false
+  is_primary_bid_submitted  boolean default false
+  is_primary_accounting     boolean default false
   created_at / updated_at
   PRIMARY KEY (project_id, user_id)
 ```
 
-Plus a partial unique index so only one Primary per project:
+Five partial unique indexes so each column has at most one Primary per project:
 ```
-CREATE UNIQUE INDEX ON project_notification_recipients(project_id) WHERE is_primary;
+CREATE UNIQUE INDEX ON project_notification_recipients(project_id) WHERE is_primary_bid;
+CREATE UNIQUE INDEX ON project_notification_recipients(project_id) WHERE is_primary_po;
+CREATE UNIQUE INDEX ON project_notification_recipients(project_id) WHERE is_primary_schedule;
+CREATE UNIQUE INDEX ON project_notification_recipients(project_id) WHERE is_primary_bid_submitted;
+CREATE UNIQUE INDEX ON project_notification_recipients(project_id) WHERE is_primary_accounting;
 ```
 
-RLS: readable/writable by users in the project's `home_builder_id` (mirrors `projects` policies). GRANTs for `authenticated` + `service_role`.
+Check constraint per column: `is_primary_X` implies `receive_X`.
 
-**One-time backfill migration:** for every existing project, insert
-- `(project_id, construction_manager)` with `is_primary = true, receive_bid = receive_po = receive_schedule = receive_bid_submitted = true`
-- `(project_id, accounting_manager)` with `receive_accounting = true`
+RLS mirrors `projects` (tenant-scoped by `home_builder_id`). GRANTs for `authenticated` + `service_role`.
 
-So Day 1 behavior === today.
+**One-time backfill:** for every project,
+- CM row: `receive_bid=po=schedule=bid_submitted=true`, `is_primary_bid=po=schedule=bid_submitted=true`.
+- Accounting Mgr row (or CM row if same user): `receive_accounting=true`, `is_primary_accounting=true`.
 
-## Backend wiring
+So Day-1 behavior === today, with CM primary on 4 channels and Accounting Mgr primary on 1.
 
-For each email channel, replace the `projects.construction_manager` lookup with a query on `project_notification_recipients`:
+## Backend wiring (edge functions)
 
-- `send-bid-package-email`, `send-bid-reminders`: `to:` = external reps (unchanged). Sender name + PM contact block = the Primary user IF `receive_bid = true`, else the first alphabetical user with `receive_bid = true`, else project owner. BCC all other `receive_bid = true` users.
-- `send-po-email`: same, using `receive_po`.
-- `send-schedule-notification` + `usePublishSchedule` payload: same, using `receive_schedule`.
-- `send-bid-submission-email`: `to:` = **all** users with `receive_bid_submitted = true` (fall back to project owner if none).
-- `SendReportsDialog`: pre-fill recipient list with all users where `receive_accounting = true`.
+For each channel, replace `projects.construction_manager` lookups with:
+- **Primary user** = row where `is_primary_<channel>=true` (fall back to any `receive_<channel>=true` alphabetical, else project owner).
+- **CC list** = other users where `receive_<channel>=true`.
+
+Then:
+- `send-bid-package-email`, `send-bid-reminders`: sender name + PM contact block = Primary. `cc:` = CC list.
+- `send-po-email`: same via `_po`.
+- `send-schedule-notification` (+ `usePublishSchedule` payload): same via `_schedule`.
+- `send-bid-submission-email`: `to:` = Primary, `cc:` = CC list.
+- `SendReportsDialog`: pre-fill the "To" field with Primary email and "CC" field with the CC list.
 
 ## Files touched
 
-- Migration: create `project_notification_recipients` + backfill.
-- New: `src/components/projects/ProjectNotificationsMatrix.tsx`.
-- Edit: `EditProjectDialog.tsx` (mount the matrix), `usePublishSchedule.ts`, `usePOMutations.ts`, `SendReportsDialog.tsx`.
-- Edge functions: `send-bid-package-email`, `send-bid-reminders`, `send-po-email`, `send-schedule-notification`, `send-bid-submission-email`.
+- Migration: new table + backfill.
+- New: `src/components/projects/ProjectNotificationsMatrix.tsx`, `src/hooks/useProjectNotificationRecipients.ts`.
+- Edit: `EditProjectDialog.tsx` (new tab), `usePublishSchedule.ts`, `usePOMutations.ts`, `SendReportsDialog.tsx`, and the 5 edge functions.
 
 Ready to build on approval.
