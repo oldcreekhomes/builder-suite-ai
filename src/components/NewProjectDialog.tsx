@@ -147,7 +147,7 @@ export function NewProjectDialog({ open, onOpenChange }: NewProjectDialogProps) 
       if (rows.length > 0) {
         const { error: notifError } = await supabase
           .from("project_notification_recipients")
-          .upsert(rows, { onConflict: "project_id,user_id" });
+          .upsert(rows as any, { onConflict: "project_id,user_id" });
         if (notifError) {
           console.error("Error saving notification recipients:", notifError);
           toast({
