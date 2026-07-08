@@ -9,6 +9,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   Select,
   SelectContent,
@@ -27,6 +28,14 @@ import { supabase } from "@/integrations/supabase/client";
 import { AddressAutocomplete } from "./AddressAutocomplete";
 import { useSubscription } from "@/hooks/useSubscription";
 import { PaywallDialog } from "./PaywallDialog";
+import {
+  NewProjectNotificationsMatrix,
+  emptyNotificationSelection,
+  getMissingPrimaryChannels,
+  buildRecipientRows,
+  type ChannelKey,
+  type NotificationSelection,
+} from "./projects/NewProjectNotificationsMatrix";
 
 interface NewProjectDialogProps {
   open: boolean;
@@ -37,28 +46,57 @@ const statuses = ["In Design", "Permitting", "Under Construction", "Completed"];
 
 export function NewProjectDialog({ open, onOpenChange }: NewProjectDialogProps) {
   const [status, setStatus] = useState("");
-  const [constructionManager, setConstructionManager] = useState(""); // This will store the user ID
-  const [accountingManager, setAccountingManager] = useState(""); // This will store the user ID
+  const [constructionManager, setConstructionManager] = useState("");
+  const [accountingManager, setAccountingManager] = useState("");
   const [totalLots, setTotalLots] = useState("");
   const [address, setAddress] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [hasAttemptedSave, setHasAttemptedSave] = useState(false);
+  const [activeTab, setActiveTab] = useState<"info" | "notifications">("info");
+  const [notifications, setNotifications] = useState<NotificationSelection>(
+    emptyNotificationSelection()
+  );
+  const [missingChannels, setMissingChannels] = useState<Set<ChannelKey>>(new Set());
   const navigate = useNavigate();
   const { toast } = useToast();
   const { user } = useAuth();
   const { profile } = useUserProfile();
   const { users, isLoading: usersLoading } = useCompanyUsers();
   const { canCreateProject, needsSubscription, projectCount } = useSubscription();
-  const [showPaywall, setShowPaywall] = useState(false);
+
+  const resetForm = () => {
+    setStatus("");
+    setConstructionManager("");
+    setAccountingManager("");
+    setTotalLots("");
+    setAddress("");
+    setHasAttemptedSave(false);
+    setNotifications(emptyNotificationSelection());
+    setMissingChannels(new Set());
+    setActiveTab("info");
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     if (!status || !constructionManager || !address || !totalLots || !accountingManager) {
       setHasAttemptedSave(true);
+      setActiveTab("info");
       toast({
         title: "Error",
         description: "Please fill in all required fields",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    const missing = getMissingPrimaryChannels(notifications);
+    if (missing.size > 0) {
+      setMissingChannels(missing);
+      setActiveTab("notifications");
+      toast({
+        title: "Missing primary contacts",
+        description: "Please select a primary contact (star) for all 5 notification types.",
         variant: "destructive",
       });
       return;
@@ -76,21 +114,18 @@ export function NewProjectDialog({ open, onOpenChange }: NewProjectDialogProps) 
     setIsLoading(true);
 
     try {
-      // Determine the correct owner_id based on user role
       let owner_id = user.id;
       if (profile && profile.home_builder_id) {
-        // User is internal (has home_builder_id), use that as the project owner
         owner_id = profile.home_builder_id;
       }
 
-
       const { data: project, error } = await supabase
-        .from('projects')
+        .from("projects")
         .insert({
           address,
           status,
-          construction_manager: constructionManager, // Store the user ID
-          accounting_manager: accountingManager, // Store the user ID
+          construction_manager: constructionManager,
+          accounting_manager: accountingManager,
           total_lots: parseInt(totalLots, 10),
           owner_id,
         })
@@ -107,21 +142,29 @@ export function NewProjectDialog({ open, onOpenChange }: NewProjectDialogProps) 
         return;
       }
 
+      // Persist notification recipients
+      const rows = buildRecipientRows(project.id, notifications);
+      if (rows.length > 0) {
+        const { error: notifError } = await supabase
+          .from("project_notification_recipients")
+          .upsert(rows as any, { onConflict: "project_id,user_id" });
+        if (notifError) {
+          console.error("Error saving notification recipients:", notifError);
+          toast({
+            title: "Project created, but notifications failed to save",
+            description: notifError.message,
+            variant: "destructive",
+          });
+        }
+      }
+
       toast({
         title: "Success",
         description: "Project created successfully!",
       });
 
-      // Reset form
-      setStatus("");
-      setConstructionManager("");
-      setAccountingManager("");
-      setTotalLots("");
-      setAddress("");
-      setHasAttemptedSave(false);
+      resetForm();
       onOpenChange(false);
-
-      // Navigate to project dashboard
       navigate(`/project/${project.id}`);
     } catch (error) {
       console.error("Unexpected error:", error);
@@ -137,12 +180,11 @@ export function NewProjectDialog({ open, onOpenChange }: NewProjectDialogProps) 
 
   const handleOpenChange = (open: boolean) => {
     if (!open) {
-      setHasAttemptedSave(false);
+      resetForm();
     }
     onOpenChange(open);
   };
 
-  // If user needs a subscription, show paywall instead
   if (needsSubscription && open) {
     return (
       <PaywallDialog
@@ -155,101 +197,128 @@ export function NewProjectDialog({ open, onOpenChange }: NewProjectDialogProps) 
 
   return (
     <Dialog open={open} onOpenChange={handleOpenChange}>
-      <DialogContent className="sm:max-w-[425px]">
+      <DialogContent className="sm:max-w-[900px] max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>Create New Project</DialogTitle>
           <DialogDescription>
-            Fill in the details to create a new construction project.
+            Fill in the project details and select notification recipients.
           </DialogDescription>
         </DialogHeader>
         <form onSubmit={handleSubmit} className="space-y-4">
-          <div className="space-y-2">
-            <Label htmlFor="address">Address</Label>
-            <AddressAutocomplete
-              id="address"
-              value={address}
-              onChange={setAddress}
-              placeholder="Enter project address"
-              disabled={isLoading}
-              className={hasAttemptedSave && !address ? "text-red-500 placeholder:text-red-400" : ""}
-            />
-          </div>
+          <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as "info" | "notifications")}>
+            <TabsList className="grid w-full grid-cols-2">
+              <TabsTrigger value="info">Project Information</TabsTrigger>
+              <TabsTrigger value="notifications">
+                Notifications
+                {missingChannels.size > 0 && (
+                  <span className="ml-2 text-red-500">•</span>
+                )}
+              </TabsTrigger>
+            </TabsList>
 
-          <div className="space-y-2">
-            <Label htmlFor="status">Status</Label>
-            <Select value={status} onValueChange={setStatus} disabled={isLoading}>
-              <SelectTrigger className={hasAttemptedSave && !status ? "text-red-500" : ""}>
-                <SelectValue placeholder="Select status" />
-              </SelectTrigger>
-              <SelectContent>
-                {statuses.map((statusOption) => (
-                  <SelectItem key={statusOption} value={statusOption}>
-                    {statusOption}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
+            <TabsContent value="info" className="space-y-4 mt-4">
+              <div className="space-y-2">
+                <Label htmlFor="address">Address</Label>
+                <AddressAutocomplete
+                  id="address"
+                  value={address}
+                  onChange={setAddress}
+                  placeholder="Enter project address"
+                  disabled={isLoading}
+                  className={hasAttemptedSave && !address ? "text-red-500 placeholder:text-red-400" : ""}
+                />
+              </div>
 
-          <div className="space-y-2">
-            <Label htmlFor="totalLots">Total Lots</Label>
-            <Input
-              id="totalLots"
-              type="number"
-              value={totalLots}
-              onChange={(e) => setTotalLots(e.target.value)}
-              placeholder="Enter total lots"
-              disabled={isLoading}
-              min="0"
-              className={`[&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none [-moz-appearance:textfield] ${hasAttemptedSave && !totalLots ? "text-red-500 placeholder:text-red-400" : ""}`}
-            />
-          </div>
+              <div className="space-y-2">
+                <Label htmlFor="status">Status</Label>
+                <Select value={status} onValueChange={setStatus} disabled={isLoading}>
+                  <SelectTrigger className={hasAttemptedSave && !status ? "text-red-500" : ""}>
+                    <SelectValue placeholder="Select status" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {statuses.map((statusOption) => (
+                      <SelectItem key={statusOption} value={statusOption}>
+                        {statusOption}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
 
-          <div className="grid grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <Label htmlFor="constructionManager">Construction Manager</Label>
-              <Select value={constructionManager} onValueChange={setConstructionManager} disabled={isLoading || usersLoading}>
-                <SelectTrigger className={hasAttemptedSave && !constructionManager ? "text-red-500" : ""}>
-                  <SelectValue placeholder={usersLoading ? "Loading users..." : "Select construction manager"} />
-                </SelectTrigger>
-                <SelectContent>
-                  {users.map((user) => (
-                    <SelectItem key={user.id} value={user.id}>
-                      {`${user.first_name || ''} ${user.last_name || ''}`.trim() || user.email}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
+              <div className="space-y-2">
+                <Label htmlFor="totalLots">Total Lots</Label>
+                <Input
+                  id="totalLots"
+                  type="number"
+                  value={totalLots}
+                  onChange={(e) => setTotalLots(e.target.value)}
+                  placeholder="Enter total lots"
+                  disabled={isLoading}
+                  min="0"
+                  className={`[&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none [-moz-appearance:textfield] ${hasAttemptedSave && !totalLots ? "text-red-500 placeholder:text-red-400" : ""}`}
+                />
+              </div>
 
-            <div className="space-y-2">
-              <Label htmlFor="accountingManager">Accounting Manager</Label>
-              <Select value={accountingManager} onValueChange={setAccountingManager} disabled={isLoading || usersLoading}>
-                <SelectTrigger className={hasAttemptedSave && !accountingManager ? "text-red-500" : ""}>
-                  <SelectValue placeholder={usersLoading ? "Loading users..." : "Select accounting manager"} />
-                </SelectTrigger>
-                <SelectContent>
-                  {users.map((user) => (
-                    <SelectItem key={user.id} value={user.id}>
-                      {`${user.first_name || ''} ${user.last_name || ''}`.trim() || user.email}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-          </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="constructionManager">Construction Manager</Label>
+                  <Select value={constructionManager} onValueChange={setConstructionManager} disabled={isLoading || usersLoading}>
+                    <SelectTrigger className={hasAttemptedSave && !constructionManager ? "text-red-500" : ""}>
+                      <SelectValue placeholder={usersLoading ? "Loading users..." : "Select construction manager"} />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {users.map((u) => (
+                        <SelectItem key={u.id} value={u.id}>
+                          {`${u.first_name || ""} ${u.last_name || ""}`.trim() || u.email}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="accountingManager">Accounting Manager</Label>
+                  <Select value={accountingManager} onValueChange={setAccountingManager} disabled={isLoading || usersLoading}>
+                    <SelectTrigger className={hasAttemptedSave && !accountingManager ? "text-red-500" : ""}>
+                      <SelectValue placeholder={usersLoading ? "Loading users..." : "Select accounting manager"} />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {users.map((u) => (
+                        <SelectItem key={u.id} value={u.id}>
+                          {`${u.first_name || ""} ${u.last_name || ""}`.trim() || u.email}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+            </TabsContent>
+
+            <TabsContent value="notifications" className="mt-4">
+              <NewProjectNotificationsMatrix
+                value={notifications}
+                onChange={(next) => {
+                  setNotifications(next);
+                  if (missingChannels.size > 0) {
+                    setMissingChannels(getMissingPrimaryChannels(next));
+                  }
+                }}
+                missingChannels={missingChannels}
+              />
+            </TabsContent>
+          </Tabs>
 
           <DialogFooter>
-            <Button 
-              type="button" 
-              variant="outline" 
+            <Button
+              type="button"
+              variant="outline"
               onClick={() => handleOpenChange(false)}
               disabled={isLoading}
             >
               Cancel
             </Button>
-            <Button 
-              type="submit" 
+            <Button
+              type="submit"
               className="bg-black hover:bg-gray-800"
               disabled={isLoading}
             >
