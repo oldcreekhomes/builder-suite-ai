@@ -828,6 +828,7 @@ const handler = async (req: Request): Promise<Response> => {
       return await resend.emails.send({
         from: `${senderCompanyName || 'BuilderSuite ML'} <noreply@transactional.buildersuiteml.com>`,
         to: [rep.email],
+        cc: ccEmails.length > 0 ? ccEmails : undefined,
         subject: emailSubject,
         html: emailHTML,
       });
