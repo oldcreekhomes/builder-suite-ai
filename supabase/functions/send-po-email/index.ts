@@ -500,24 +500,27 @@ const handler = async (req: Request): Promise<Response> => {
           }
         }
 
-        // Fetch project manager details if manager ID is available
-        if (projectDetails?.construction_manager) {
-          console.log('🔍 Fetching project manager details for ID:', projectDetails.construction_manager);
-          const { data: managerData, error: managerError } = await supabase
-            .from('users')
-            .select('id, first_name, last_name, email, phone_number')
-            .eq('id', projectDetails.construction_manager)
-            .single();
-
-          if (managerError) {
-            console.error('❌ Error fetching project manager:', managerError);
-          } else {
-            projectManager = {
-              name: `${managerData.first_name || ''} ${managerData.last_name || ''}`.trim(),
-              email: managerData.email,
-              phone: managerData.phone_number
-            };
-            console.log('✅ Found project manager:', projectManager);
+        // Resolve PO notification contacts (primary + CC) for this project
+        let ccEmailsForPo: string[] = [];
+        if (projectDetails?.id) {
+          try {
+            const contacts = await resolveNotificationContacts(supabase, projectDetails.id, "po");
+            if (contacts.primary) {
+              projectManager = {
+                name: `${contacts.primary.first_name || ''} ${contacts.primary.last_name || ''}`.trim(),
+                email: contacts.primary.email,
+                phone: contacts.primary.phone_number,
+              };
+              if (contacts.primary.company_name) {
+                (requestData as any).senderCompanyName = contacts.primary.company_name;
+              }
+              console.log('✅ PO primary contact resolved:', projectManager);
+            }
+            ccEmailsForPo = contacts.ccEmails;
+            (requestData as any).__ccEmails = ccEmailsForPo;
+            console.log('📧 PO CC list:', ccEmailsForPo);
+          } catch (err) {
+            console.error('⚠️ Failed to resolve PO notification contacts, falling back to construction_manager:', err);
           }
         }
       }
