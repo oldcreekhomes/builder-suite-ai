@@ -1,22 +1,21 @@
-## Goal
-When opening the Create Purchase Order dialog from a bid package, the Cost Code field should be pre-filled with the bid package's cost code (currently the id is set but the display text is empty, so the field appears blank).
+## Fix PO PDF duplication when creating PO from bid
 
-## Changes
+**Root cause:** In `src/hooks/usePOMutations.ts` `createPOAndSendEmail`, the proposal files from `biddingCompany.proposals` are added to `purchaseOrderData.files`, then the caller's `files` (which already include those same proposals — seeded by `CreatePurchaseOrderDialog` from `biddingCompany.proposals`) are appended on top. Result: each proposal PDF is stored twice on the PO.
 
-1. **`src/components/bidding/BiddingTableRow.tsx`**
-   - Populate `cost_code_display` on the seeded line using the already-available `costCode` (`item.cost_codes`):
-     ```
-     cost_code_display: costCode ? `${costCode.code} - ${costCode.name}` : ''
-     ```
+### Changes
 
-2. **`src/components/bidding/BiddingCompanyList.tsx`**
-   - Add optional prop `costCodeDisplay?: string` and forward it to `BiddingCompanyRow`.
+**`src/hooks/usePOMutations.ts` — `createPOAndSendEmail` only**
 
-3. **`src/components/bidding/components/BiddingCompanyRow.tsx`**
-   - Accept `costCodeDisplay?: string` prop.
-   - Set `cost_code_display: costCodeDisplay ?? ''` on the seeded line.
+1. Treat caller-provided `files` as authoritative:
+   - If `files` is provided (even empty array), use it as the source of truth — do NOT also auto-append `biddingCompany.proposals`.
+   - Only auto-attach `biddingCompany.proposals` when `files` is `undefined` (legacy callers that don't pass files at all).
+2. Add a final dedupe pass on `purchaseOrderData.files` keyed by `id`, falling back to `url`, then `name`. This protects against any legacy double-passes.
 
-4. **`src/components/bidding/BidPackageDetailsModal.tsx`** (and any other caller of `BiddingCompanyList`)
-   - Pass `costCodeDisplay={`${costCode.code} - ${costCode.name}`}` through so the modal path also autofills.
+No changes to:
+- `CreatePurchaseOrderDialog.tsx` (its seeding behavior is correct)
+- `resendPOEmail` (doesn't touch files)
+- `createPOSendEmailAndUpdateStatus` (just calls into `createPOAndSendEmail`)
+- DB schema, RLS, edge functions, or existing PO records
 
-No changes to backend, PO dialog, or line saving logic — `CreatePurchaseOrderDialog` already renders `cost_code_display` when provided.
+### Scope
+One file, ~15 lines changed. No UI changes.
