@@ -25,6 +25,7 @@ interface BidReminderData {
   company_name: string;
   company_address: string | null;
   company_phone: string | null;
+  project_id: string;
   project_address: string;
   project_manager: string | null;
   project_manager_email: string | null;
@@ -189,6 +190,7 @@ const handler = async (req: Request): Promise<Response> => {
               company_name: bid.companies.company_name,
               company_address: bid.companies.address,
               company_phone: bid.companies.phone_number,
+              project_id: pkg.project_id,
               project_address: pkg.projects?.address,
               project_manager: managerName,
               project_manager_email: managerEmail,
@@ -236,6 +238,7 @@ const handler = async (req: Request): Promise<Response> => {
               files: reminder.files
             },
             project: {
+              id: reminder.project_id,
               address: reminder.project_address,
               manager: reminder.project_manager,
               managerEmail: reminder.project_manager_email,

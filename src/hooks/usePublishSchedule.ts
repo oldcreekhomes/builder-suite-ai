@@ -282,7 +282,8 @@ export const usePublishSchedule = (projectId: string) => {
               timeframe: `${data.daysFromToday} weeks`,
               customMessage: data.message,
               companyId: userToNotify.type === 'representative' ? userToNotify.companyId || '' : '',
-              representativeId: userToNotify.type === 'representative' ? userToNotify.representativeId || '' : ''
+              representativeId: userToNotify.type === 'representative' ? userToNotify.representativeId || '' : '',
+              projectId: projectId
             };
 
             const { data: emailResponse, error: emailError } = await supabase.functions.invoke(

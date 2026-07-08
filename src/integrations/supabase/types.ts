@@ -4799,6 +4799,65 @@ export type Database = {
           },
         ]
       }
+      project_notification_recipients: {
+        Row: {
+          created_at: string
+          is_primary_accounting: boolean
+          is_primary_bid: boolean
+          is_primary_bid_submitted: boolean
+          is_primary_po: boolean
+          is_primary_schedule: boolean
+          project_id: string
+          receive_accounting: boolean
+          receive_bid: boolean
+          receive_bid_submitted: boolean
+          receive_po: boolean
+          receive_schedule: boolean
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          is_primary_accounting?: boolean
+          is_primary_bid?: boolean
+          is_primary_bid_submitted?: boolean
+          is_primary_po?: boolean
+          is_primary_schedule?: boolean
+          project_id: string
+          receive_accounting?: boolean
+          receive_bid?: boolean
+          receive_bid_submitted?: boolean
+          receive_po?: boolean
+          receive_schedule?: boolean
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          is_primary_accounting?: boolean
+          is_primary_bid?: boolean
+          is_primary_bid_submitted?: boolean
+          is_primary_po?: boolean
+          is_primary_schedule?: boolean
+          project_id?: string
+          receive_accounting?: boolean
+          receive_bid?: boolean
+          receive_bid_submitted?: boolean
+          receive_po?: boolean
+          receive_schedule?: boolean
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "project_notification_recipients_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       project_photos: {
         Row: {
           created_by: string | null

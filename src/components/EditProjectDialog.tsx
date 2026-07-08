@@ -19,6 +19,7 @@ import { Project } from "@/hooks/useProjects";
 import { LotManagementSection } from "@/components/LotManagementSection";
 import { useUserRole } from "@/hooks/useUserRole";
 import { ProjectAccountsTab } from "@/components/ProjectAccountsTab";
+import { ProjectNotificationsMatrix } from "@/components/projects/ProjectNotificationsMatrix";
 import { SERVICE_AREA_OPTIONS, normalizeServiceArea } from "@/lib/serviceArea";
 
 interface EditProjectDialogProps {
@@ -106,15 +107,16 @@ export function EditProjectDialog({ project, open, onOpenChange }: EditProjectDi
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[650px] max-h-[80vh] overflow-y-auto">
+      <DialogContent className="sm:max-w-[900px] max-h-[80vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>Edit Project</DialogTitle>
         </DialogHeader>
         
         <Tabs defaultValue="details">
-          <TabsList className="grid w-full grid-cols-2">
+          <TabsList className="grid w-full grid-cols-3">
             <TabsTrigger value="details">Project Details</TabsTrigger>
             <TabsTrigger value="accounts">Chart of Accounts</TabsTrigger>
+            <TabsTrigger value="notifications">Notifications</TabsTrigger>
           </TabsList>
 
           <TabsContent value="details">
@@ -269,6 +271,10 @@ export function EditProjectDialog({ project, open, onOpenChange }: EditProjectDi
 
           <TabsContent value="accounts">
             {project && <ProjectAccountsTab projectId={project.id} />}
+          </TabsContent>
+
+          <TabsContent value="notifications">
+            {project && <ProjectNotificationsMatrix projectId={project.id} />}
           </TabsContent>
         </Tabs>
       </DialogContent>

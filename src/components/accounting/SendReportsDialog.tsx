@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -34,6 +34,27 @@ export function SendReportsDialog({ projectId, open, onOpenChange }: SendReports
   const { toast } = useToast();
   const { user } = useAuth();
   const [email, setEmail] = useState(user?.email || "");
+
+  // Pre-fill To: with the project's accounting primary contact (falls back to current user)
+  useEffect(() => {
+    if (!open || !projectId) return;
+    (async () => {
+      const { data: rows } = await supabase
+        .from('project_notification_recipients')
+        .select('user_id, is_primary_accounting, receive_accounting')
+        .eq('project_id', projectId)
+        .eq('receive_accounting', true);
+      if (!rows || rows.length === 0) return;
+      const primary = rows.find(r => r.is_primary_accounting) || rows[0];
+      const { data: u } = await supabase
+        .from('users')
+        .select('email')
+        .eq('id', primary.user_id)
+        .maybeSingle();
+      if (u?.email) setEmail(u.email);
+    })();
+  }, [open, projectId]);
+  
   
   const [sending, setSending] = useState(false);
   const [asOfDate, setAsOfDate] = useState<Date>(new Date());
