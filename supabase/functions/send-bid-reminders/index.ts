@@ -190,6 +190,7 @@ const handler = async (req: Request): Promise<Response> => {
               company_name: bid.companies.company_name,
               company_address: bid.companies.address,
               company_phone: bid.companies.phone_number,
+              project_id: pkg.project_id,
               project_address: pkg.projects?.address,
               project_manager: managerName,
               project_manager_email: managerEmail,
