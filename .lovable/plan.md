@@ -1,15 +1,13 @@
-## UI updates to Project Notifications matrix
+## Change primary-contact fallback from Project Owner → Construction Manager
 
-File: `src/components/projects/ProjectNotificationsMatrix.tsx`
+### UI
+- `src/components/projects/ProjectNotificationsMatrix.tsx` — update the helper paragraph: replace "If no primary is set, the project owner is used." with "If no primary is set, the project's Construction Manager is used."
 
-1. **Center column headers and cells** — add `text-center` to the "User" header alignment stays left, but Bid / PO / Schedule / Bid Submitted / Accounting Reports header cells get centered (already `text-center`); ensure the checkbox+star cell content is centered (already uses `flex justify-center`). Center the header labels above the checkbox column by aligning them over the checkbox (not the checkbox+star pair) — wrap header label in a container matching the cell's checkbox position.
+### Backend (edge function shared helper)
+- `supabase/functions/_shared/notification-recipients.ts` — change the final fallback lookup:
+  - Select `construction_manager, owner_id` from `projects`.
+  - If `construction_manager` is set, fetch that user and use as primary.
+  - If not, fall back to `owner_id` (safety net so emails never send with no sender).
+  - Update the doc comment on lines 30–33 to say "project's Construction Manager" instead of "project owner".
 
-2. **Remove role subtitle** — delete the `{u.role && <div>…capitalize…</div>}` line under each user name so only the name shows.
-
-3. **Sort users alphabetically by first name** — sort the `users` array by `first_name` (case-insensitive, fallback to email) before rendering.
-
-4. **Consolidate helper text** — remove the bottom paragraph ("Primary contact appears as the sender…"). Merge its content into the top description under the "Project Notifications" heading so there is a single explanation:
-
-   > Check the users who should receive each type of notification, then click the star to mark the primary contact (shown as the sender on outgoing emails). Other checked users are CC'd. If no primary is set, the project owner is used.
-
-No database or logic changes.
+No database changes. No other call sites reference this fallback text.
