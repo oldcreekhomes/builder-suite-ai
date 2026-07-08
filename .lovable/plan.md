@@ -1,27 +1,40 @@
-The delete failure is not because the attachment rows are fake anymore. The live error is:
+# Fix: PO from bid should just use the bid price
 
-```text
-StorageApiError: invalid input syntax for type uuid: "journal-entry-attachments"
-```
+## What's happening
 
-That happens while trying to remove the file from Supabase Storage. The hook currently treats that storage cleanup error as fatal, so it stops before deleting the `journal_entry_attachments` database row. Result: the red X always shows “Delete failed” and the icons stay visible.
+When you click **Send PO** on a bidding company row, the app calls an AI edge function (`extract-po-lines`) against the vendor's uploaded proposal PDF. That's what the "Creating PO from machine learning" dialog is — it's running OCR/ML on the file the vendor attached.
 
-Plan:
+In your case the proposal file on "Fake Company" looks like a bank statement / ACH register, so the model extracted 100+ unrelated lines ($7,327, $8,100, $2,208.33, etc.) instead of the $900 bid. That's why the PO is being pre-populated with garbage.
 
-1. Update `useJournalEntryAttachments.deleteFile` so deleting the attachment row from `journal_entry_attachments` is the primary operation.
-   - Delete the DB row by attachment id.
-   - Immediately invalidate the attachments query so the icon disappears.
-   - Show success if the row is gone.
+This ML pre-extraction was added on top of the original flow (bid closed → PO created with the bid price). It's not something you set up intentionally in this session — it's baked into `handleOpenConfirmPO` in the bidding row.
 
-2. Make Supabase Storage cleanup non-blocking.
-   - Look up the file path first if available.
-   - Attempt `storage.remove(...)` only as cleanup.
-   - If storage returns any error, including the current UUID/path policy error, log a warning but do not fail the user-facing delete.
+## Plan
 
-3. Apply the same non-blocking cleanup behavior to pending draft attachments.
-   - If storage deletion fails, still remove the pending icon from local state.
+Revert the bid → PO flow to the simple behavior: **one PO line, cost code from the bid package, amount = the bid price.** No ML.
 
-4. Keep this scoped to journal entry attachments only.
-   - No reconciliation changes.
-   - No database migration.
-   - No broad storage policy changes in this pass.
+### Changes
+
+1. **`src/components/bidding/components/BiddingCompanyRow.tsx`**
+   - Remove the `usePreExtractPOLines` import + `extract`/`isExtracting` usage.
+   - `handleOpenConfirmPO` just opens the dialog. No extraction, no artificial 5s wait.
+   - Pass `initialLineItems` = a single line: `{ cost_code_id: costCodeId, description: "", quantity: 1, unit_cost: biddingCompany.price ?? 0, amount: biddingCompany.price ?? 0, extra: false }`.
+   - `isExtracting` passed to the dialog stays `false`.
+
+2. **`src/components/bidding/BiddingTableRow.tsx`** (same treatment)
+   - Same removal: drop the `extract(...)` + `setTimeout(5000)` call, drop `isExtractingPO` state, pass a single-line seed built from the bid price.
+
+3. **`src/components/CreatePurchaseOrderDialog.tsx`**
+   - No structural changes needed — the existing seed path (`bidContext.initialLineItems`) already handles a pre-populated line list.
+   - Optional cleanup: since nothing will set `bidContext.isExtracting = true` anymore, the "Creating PO from machine learning" loading screen (lines ~622-660) becomes dead code. Leave the code in place for now (safe, unused) or delete in a follow-up — your call.
+
+4. **`src/hooks/usePreExtractPOLines.ts`** — leave the file alone; it becomes unused but removing it is not required for the fix.
+
+### Out of scope
+
+- No changes to the `extract-po-lines` edge function.
+- No changes to bill extraction ("Extracting X bills from machine learning") — that's a separate flow.
+- No changes to delete logic, RLS, or PDF preview.
+
+### Result
+
+Opening **Send PO** from a bid instantly shows the Create PO dialog with one line item for the correct cost code at the bid amount ($900 in your example). You can still add lines manually if needed.
