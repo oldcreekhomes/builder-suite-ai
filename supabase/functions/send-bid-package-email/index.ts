@@ -477,7 +477,26 @@ const handler = async (req: Request): Promise<Response> => {
     }
 
     // Use sender company name for the from field
-    const senderName = requestData.senderCompany?.company_name || 'Bid Packages';
+    let senderName = requestData.senderCompany?.company_name || 'Bid Packages';
+    let ccEmails: string[] = [];
+
+    // Override with per-project Bid notification recipients when available
+    if (requestData.project?.id) {
+      try {
+        const contacts = await resolveNotificationContacts(supabase, requestData.project.id, "bid");
+        if (contacts.primary) {
+          if (contacts.primary.company_name) senderName = contacts.primary.company_name;
+          const fullName = `${contacts.primary.first_name || ''} ${contacts.primary.last_name || ''}`.trim();
+          if (fullName) requestData.project.manager = fullName;
+          if (contacts.primary.email) requestData.project.managerEmail = contacts.primary.email;
+          if (contacts.primary.phone_number) requestData.project.managerPhone = contacts.primary.phone_number;
+        }
+        ccEmails = contacts.ccEmails;
+        console.log('📧 Bid CC list:', ccEmails);
+      } catch (err) {
+        console.error('⚠️ Failed to resolve Bid notification contacts:', err);
+      }
+    }
     
     console.log('🏢 Sender company data:', JSON.stringify(requestData.senderCompany, null, 2));
     console.log('📧 Using sender name:', senderName);
@@ -507,6 +526,7 @@ const handler = async (req: Request): Promise<Response> => {
       return await resend.emails.send({
         from: `${senderName} <noreply@transactional.buildersuiteml.com>`,
         to: companyRecipients,
+        cc: ccEmails.length > 0 ? ccEmails : undefined,
         subject: subject,
         html: emailHTML
       });
