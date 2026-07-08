@@ -231,7 +231,7 @@ export function BiddingTableRow({
         const bidPrice = selectedBiddingCompany.price ?? 0;
         const seededLine: LineItemInput = {
           cost_code_id: item.cost_code_id,
-          cost_code_display: '',
+          cost_code_display: costCode ? `${costCode.code} - ${costCode.name}` : '',
           description: '',
           quantity: 1,
           unit_cost: bidPrice,

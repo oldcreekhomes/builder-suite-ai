@@ -48,6 +48,7 @@ interface BiddingCompanyRowProps {
   projectAddress: string;
   projectId: string;
   costCodeId: string;
+  costCodeDisplay?: string;
   isSelected?: boolean;
   onCheckboxChange?: (companyId: string, checked: boolean) => void;
   awardedPOs?: AwardedPO[];
@@ -70,6 +71,7 @@ export function BiddingCompanyRow({
   projectAddress,
   projectId,
   costCodeId,
+  costCodeDisplay,
   isSelected = false,
   onCheckboxChange,
   awardedPOs = []
@@ -81,7 +83,7 @@ export function BiddingCompanyRow({
   const bidPrice = biddingCompany.price ?? 0;
   const seededLine: LineItemInput = {
     cost_code_id: costCodeId,
-    cost_code_display: '',
+    cost_code_display: costCodeDisplay ?? '',
     description: '',
     quantity: 1,
     unit_cost: bidPrice,
