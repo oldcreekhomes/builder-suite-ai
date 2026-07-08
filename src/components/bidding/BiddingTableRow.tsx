@@ -7,7 +7,6 @@ import { AddCompaniesToBidPackageModal } from './AddCompaniesToBidPackageModal';
 import { BiddingTableRowContent } from './components/BiddingTableRowContent';
 import { SelectCompanyForPODialog } from './components/SelectCompanyForPODialog';
 import { CreatePurchaseOrderDialog } from '@/components/CreatePurchaseOrderDialog';
-import { usePreExtractPOLines } from '@/hooks/usePreExtractPOLines';
 import type { LineItemInput } from '@/hooks/usePurchaseOrderLines';
 import type { Tables } from '@/integrations/supabase/types';
 
