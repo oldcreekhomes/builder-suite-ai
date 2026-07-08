@@ -243,11 +243,33 @@ const handler = async (req: Request): Promise<Response> => {
     console.log("Sending notification to:", requestData.recipientEmail);
     console.log("Tasks count:", requestData.tasks.length);
 
+    // Resolve primary + CC from project_notification_recipients when projectId provided
+    let ccEmails: string[] = [];
+    let senderCompanyName = requestData.senderCompanyName;
+    if (requestData.projectId) {
+      try {
+        const contacts = await resolveNotificationContacts(supabase, requestData.projectId, "schedule");
+        if (contacts.primary) {
+          requestData.projectManagerName =
+            `${contacts.primary.first_name || ''} ${contacts.primary.last_name || ''}`.trim() ||
+            requestData.projectManagerName;
+          requestData.projectManagerPhone = contacts.primary.phone_number || requestData.projectManagerPhone;
+          requestData.projectManagerEmail = contacts.primary.email || requestData.projectManagerEmail;
+          if (contacts.primary.company_name) senderCompanyName = contacts.primary.company_name;
+        }
+        ccEmails = contacts.ccEmails;
+        console.log("📧 Schedule CC list:", ccEmails);
+      } catch (err) {
+        console.error("⚠️ Failed to resolve schedule notification contacts:", err);
+      }
+    }
+
     const emailHTML = generateEmailHTML(requestData);
 
     const emailResponse = await resend.emails.send({
-      from: `${requestData.senderCompanyName} <noreply@transactional.buildersuiteml.com>`,
+      from: `${senderCompanyName} <noreply@transactional.buildersuiteml.com>`,
       to: [requestData.recipientEmail],
+      cc: ccEmails.length > 0 ? ccEmails : undefined,
       subject: `Schedule Updates - ${requestData.projectAddress}`,
       html: emailHTML,
     });
