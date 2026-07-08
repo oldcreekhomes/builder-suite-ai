@@ -1,5 +1,13 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { Resend } from "https://esm.sh/resend@4.0.0";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2.50.0";
+import { resolveNotificationContacts } from "../_shared/notification-recipients.ts";
+
+const supabase = createClient(
+  Deno.env.get('SUPABASE_URL')!,
+  Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!,
+);
+
 
 console.log('🔧 Edge function starting...');
 const resendApiKey = Deno.env.get("RESEND_API_KEY");
