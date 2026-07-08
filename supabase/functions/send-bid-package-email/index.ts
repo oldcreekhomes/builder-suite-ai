@@ -39,6 +39,7 @@ interface BidPackageEmailRequest {
     files: string[];
   };
   project?: {
+    id?: string;
     address: string;
     manager?: string;
     managerEmail?: string;
