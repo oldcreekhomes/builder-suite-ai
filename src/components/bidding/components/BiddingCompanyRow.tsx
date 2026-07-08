@@ -201,10 +201,7 @@ export function BiddingCompanyRow({
 
       <CreatePurchaseOrderDialog
         open={showConfirmPODialog}
-        onOpenChange={(open) => {
-          setShowConfirmPODialog(open);
-          if (!open) setExtractedLines(null);
-        }}
+        onOpenChange={setShowConfirmPODialog}
         projectId={projectId}
         onSuccess={handleSendPO}
         bidContext={{
@@ -212,8 +209,8 @@ export function BiddingCompanyRow({
           bidPackageId,
           costCodeId,
           mode: isReadOnly ? 'resend' : 'send',
-          initialLineItems: extractedLines || undefined,
-          isExtracting,
+          initialLineItems: [seededLine],
+          isExtracting: false,
           onConfirm: handleSendPO,
         }}
       />
