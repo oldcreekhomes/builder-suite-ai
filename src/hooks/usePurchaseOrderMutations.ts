@@ -64,7 +64,7 @@ export const usePurchaseOrderMutations = (projectId: string) => {
     },
   });
 
-  // Cancel and delete purchase order (sends cancellation email first)
+  // Cancel and delete purchase order (delete first; email is best-effort)
   const cancelAndDeletePurchaseOrder = useMutation({
     mutationFn: async (purchaseOrder: PurchaseOrder) => {
       // Step 1: Fetch all necessary data for the cancellation email
@@ -84,44 +84,59 @@ export const usePurchaseOrderMutations = (projectId: string) => {
       const projectAddress = projectResult.data?.address || 'Project Address';
       const senderCompanyName = senderResult.data?.company_name || 'BuilderSuite ML';
 
-      // Step 2: Send cancellation email
-      const { error: emailError } = await supabase.functions.invoke('send-po-email', {
-        body: {
-          purchaseOrderId: purchaseOrder.id,
-          companyId: purchaseOrder.company_id,
-          poNumber: purchaseOrder.po_number,
-          projectAddress,
-          companyName: purchaseOrder.companies?.company_name || 'Company',
-          senderCompanyName,
-          totalAmount: purchaseOrder.total_amount,
-          costCode: purchaseOrder.cost_codes ? {
-            code: purchaseOrder.cost_codes.code,
-            name: purchaseOrder.cost_codes.name
-          } : undefined,
-          files: purchaseOrder.files || [],
-          isCancellation: true, // This triggers the cancellation email template
-        }
-      });
-
-      if (emailError) {
-        console.error('Error sending cancellation email:', emailError);
-        throw new Error('Failed to send cancellation email');
-      }
-
-      // Step 3: Delete the PO from the database
+      // Step 2: Delete the PO from the database. This is the primary user action;
+      // email failures must not block authorized cancellation/deletion.
       const { error: deleteError } = await supabase
         .from('project_purchase_orders')
         .delete()
         .eq('id', purchaseOrder.id);
 
       if (deleteError) throw deleteError;
+
+      // Step 3: Send cancellation email as a best-effort side effect.
+      let emailWarning: string | null = null;
+      try {
+        const { error: emailError } = await supabase.functions.invoke('send-po-email', {
+          body: {
+            purchaseOrderId: purchaseOrder.id,
+            projectId: purchaseOrder.project_id,
+            companyId: purchaseOrder.company_id,
+            poNumber: purchaseOrder.po_number,
+            projectAddress,
+            companyName: purchaseOrder.companies?.company_name || 'Company',
+            senderCompanyName,
+            totalAmount: purchaseOrder.total_amount,
+            costCode: purchaseOrder.cost_codes ? {
+              code: purchaseOrder.cost_codes.code,
+              name: purchaseOrder.cost_codes.name
+            } : undefined,
+            files: purchaseOrder.files || [],
+            isCancellation: true, // This triggers the cancellation email template
+          }
+        });
+
+        if (emailError) throw emailError;
+      } catch (emailError: any) {
+        console.warn('PO was canceled, but cancellation email failed:', emailError);
+        emailWarning = emailError?.message || 'Cancellation email failed';
+      }
+
+      return { emailWarning };
     },
-    onSuccess: () => {
+    onSuccess: (result) => {
       queryClient.invalidateQueries({ queryKey: ['purchase-orders', projectId] });
-      toast({
-        title: "Success",
-        description: "Purchase order canceled and notification sent",
-      });
+      if (result.emailWarning) {
+        toast({
+          title: "PO canceled",
+          description: "Purchase order was deleted, but the cancellation email failed.",
+          variant: "destructive",
+        });
+      } else {
+        toast({
+          title: "Success",
+          description: "Purchase order canceled and notification sent",
+        });
+      }
     },
     onError: (error) => {
       console.error('Error canceling purchase order:', error);

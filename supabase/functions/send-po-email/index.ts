@@ -1,5 +1,4 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
-import { Resend } from "https://esm.sh/resend@4.0.0";
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.50.0';
 import { PDFDocument, rgb, StandardFonts, degrees } from 'https://esm.sh/pdf-lib@1.17.1';
 import { resolveNotificationContacts } from "../_shared/notification-recipients.ts";
@@ -12,7 +11,47 @@ if (!resendApiKey) {
   console.error('❌ RESEND_API_KEY is not set');
 }
 
-const resend = new Resend(resendApiKey);
+const sendResendEmail = async ({
+  from,
+  to,
+  cc,
+  subject,
+  html,
+}: {
+  from: string;
+  to: string[];
+  cc?: string[];
+  subject: string;
+  html: string;
+}) => {
+  if (!resendApiKey) {
+    throw new Error('RESEND_API_KEY is not configured');
+  }
+
+  const response = await fetch('https://api.resend.com/emails', {
+    method: 'POST',
+    headers: {
+      Authorization: `Bearer ${resendApiKey}`,
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({ from, to, cc, subject, html }),
+  });
+
+  const responseText = await response.text();
+  let responseBody: any = responseText;
+  try {
+    responseBody = responseText ? JSON.parse(responseText) : {};
+  } catch (_err) {
+    // Keep raw provider text for logging/debugging.
+  }
+
+  if (!response.ok) {
+    console.error(`❌ Resend API failed [${response.status}]:`, responseBody);
+    throw new Error(`Resend API failed with status ${response.status}`);
+  }
+
+  return responseBody;
+};
 
 // Initialize Supabase client
 const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
@@ -102,6 +141,7 @@ const corsHeaders = {
 
 interface POEmailRequest {
   purchaseOrderId?: string;
+  projectId?: string;
   companyId?: string;
   biddingCompanyId?: string; // Keep for backward compatibility
   poNumber?: string;
@@ -406,6 +446,7 @@ const handler = async (req: Request): Promise<Response> => {
     const requestData: POEmailRequest = await req.json();
     const { 
       purchaseOrderId, 
+      projectId,
       companyId, 
       biddingCompanyId, 
       projectAddress, 
@@ -423,6 +464,7 @@ const handler = async (req: Request): Promise<Response> => {
 
     console.log('📝 Request data:', { 
       purchaseOrderId, 
+      projectId,
       companyId, 
       biddingCompanyId, 
       projectAddress, 
@@ -439,20 +481,29 @@ const handler = async (req: Request): Promise<Response> => {
     let projectManager: any = null;
     let poNumber: string | null = null; // Store PO number from database
 
-    // Always fetch project details and cost code if purchaseOrderId is provided
-    if (purchaseOrderId) {
+    // Always fetch project details and cost code if purchaseOrderId/projectId is provided
+    if (purchaseOrderId || projectId) {
       console.log('🔍 Fetching purchase order details...');
-      
-      // First, get the purchase order data
-      const { data: poData, error: poError } = await supabase
-        .from('project_purchase_orders')
-        .select('*')
-        .eq('id', purchaseOrderId)
-        .single();
 
-      if (poError) {
-        console.error('❌ Error fetching purchase order details:', poError);
-      } else {
+      let poData: any = null;
+
+      // First, get the purchase order data when it still exists. For cancellation,
+      // the caller may delete first and pass projectId so the email can still send.
+      if (purchaseOrderId) {
+        const { data, error: poError } = await supabase
+          .from('project_purchase_orders')
+          .select('*')
+          .eq('id', purchaseOrderId)
+          .maybeSingle();
+
+        if (poError) {
+          console.error('❌ Error fetching purchase order details:', poError);
+        } else {
+          poData = data;
+        }
+      }
+
+      if (poData) {
         console.log('✅ Found purchase order data:', poData);
         
         // Extract PO number from database (primary source of truth)
@@ -465,23 +516,6 @@ const handler = async (req: Request): Promise<Response> => {
         if (!totalAmount && poData.total_amount) {
           totalAmount = poData.total_amount;
           console.log('✅ Using PO total amount:', totalAmount);
-        }
-        
-        // Explicitly fetch project details
-        if (poData.project_id) {
-          console.log('🔍 Fetching project details for ID:', poData.project_id);
-          const { data: projectData, error: projectError } = await supabase
-            .from('projects')
-            .select('id, address, construction_manager')
-            .eq('id', poData.project_id)
-            .single();
-
-          if (projectError) {
-            console.error('❌ Error fetching project details:', projectError);
-          } else {
-            projectDetails = projectData;
-            console.log('✅ Found project details:', projectDetails);
-          }
         }
         
         // Explicitly fetch cost code details
@@ -500,27 +534,46 @@ const handler = async (req: Request): Promise<Response> => {
             console.log('✅ Found cost code details:', costCodeInfo);
           }
         }
+      }
 
-        // Resolve PO notification contacts (primary + CC) for this project
-        if (projectDetails?.id) {
-          try {
-            const contacts = await resolveNotificationContacts(supabase, projectDetails.id, "po");
-            if (contacts.primary) {
-              projectManager = {
-                name: `${contacts.primary.first_name || ''} ${contacts.primary.last_name || ''}`.trim(),
-                email: contacts.primary.email,
-                phone: contacts.primary.phone_number,
-              };
-              if (contacts.primary.company_name) {
-                senderCompanyName = contacts.primary.company_name;
-              }
-              console.log('✅ PO primary contact resolved:', projectManager);
+      // Explicitly fetch project details. If cancellation deleted the PO first,
+      // use the projectId supplied by the caller.
+      const effectiveProjectId = poData?.project_id || projectId;
+      if (effectiveProjectId) {
+        console.log('🔍 Fetching project details for ID:', effectiveProjectId);
+        const { data: projectData, error: projectError } = await supabase
+          .from('projects')
+          .select('id, address, construction_manager')
+          .eq('id', effectiveProjectId)
+          .single();
+
+        if (projectError) {
+          console.error('❌ Error fetching project details:', projectError);
+        } else {
+          projectDetails = projectData;
+          console.log('✅ Found project details:', projectDetails);
+        }
+      }
+
+      // Resolve PO notification contacts (primary + CC) for this project
+      if (projectDetails?.id) {
+        try {
+          const contacts = await resolveNotificationContacts(supabase, projectDetails.id, "po");
+          if (contacts.primary) {
+            projectManager = {
+              name: `${contacts.primary.first_name || ''} ${contacts.primary.last_name || ''}`.trim(),
+              email: contacts.primary.email,
+              phone: contacts.primary.phone_number,
+            };
+            if (contacts.primary.company_name) {
+              senderCompanyName = contacts.primary.company_name;
             }
-            ccEmails = contacts.ccEmails;
-            console.log('📧 PO CC list:', ccEmails);
-          } catch (err) {
-            console.error('⚠️ Failed to resolve PO notification contacts:', err);
+            console.log('✅ PO primary contact resolved:', projectManager);
           }
+          ccEmails = contacts.ccEmails;
+          console.log('📧 PO CC list:', ccEmails);
+        } catch (err) {
+          console.error('⚠️ Failed to resolve PO notification contacts:', err);
         }
       }
     }
@@ -646,8 +699,10 @@ const handler = async (req: Request): Promise<Response> => {
         purchaseOrderFiles = poData.files;
       }
 
-      // Fetch proposal files from the company's bid
-      if (poData?.project_id && poData?.cost_code_id && companyId) {
+      // Fetch proposal files from the company's bid. Cancellation emails do not need
+      // proposal lookup/stamping, and missing historical bid packages must not fail them.
+      const isCancellationCheck = requestData.isCancellation || false;
+      if (!isCancellationCheck && poData?.project_id && poData?.cost_code_id && companyId) {
         console.log('🔍 Fetching proposal files for project:', poData.project_id, 'cost code:', poData.cost_code_id, 'company:', companyId);
         
         // First try to get from bid_package_id if available
@@ -695,7 +750,6 @@ const handler = async (req: Request): Promise<Response> => {
             console.log('📋 Proposal files prepared:', proposalFiles);
 
             // Stamp proposal PDFs with APPROVED stamp (skip for cancellations)
-            const isCancellationCheck = requestData.isCancellation || false;
             if (!isCancellationCheck && projectManager?.name && proposalFiles.length > 0) {
               const approvalDate = new Date().toLocaleDateString('en-US', { month: '2-digit', day: '2-digit', year: 'numeric' });
               console.log('🔖 Stamping proposal PDFs with APPROVED stamp...');
@@ -825,7 +879,7 @@ const handler = async (req: Request): Promise<Response> => {
     const emailPromises = notificationRecipients.map(async (rep: any) => {
       console.log(`📤 Sending PO email to: ${rep.email}`);
       
-      return await resend.emails.send({
+      return await sendResendEmail({
         from: `${senderCompanyName || 'BuilderSuite ML'} <noreply@transactional.buildersuiteml.com>`,
         to: [rep.email],
         cc: ccEmails.length > 0 ? ccEmails : undefined,

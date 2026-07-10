@@ -1,31 +1,16 @@
-## Mirror Edit Project fields in Create New Project
+Fix the PO cancellation path in two places:
 
-Rebuild the Project Information tab of `src/components/NewProjectDialog.tsx` so the layout, fields, and order match `EditProjectDialog.tsx` exactly.
+1. **Fix the email function runtime/import failure**
+   - Update `send-po-email` so Resend is imported in a Deno-compatible way instead of the current `esm.sh/resend@4.0.0` path that is producing `node:zlib` / module resolution errors in edge logs.
 
-### Fields (replacing current set)
-Row 1 (8-col grid): **Address** (5 cols) · **Region** (3 cols, dropdown: No Region + SERVICE_AREA_OPTIONS)
-Row 2 (3-col grid): **Construction Manager** · **Accounting Manager** · **Apartments** (No/Yes)
-Row 3 (2-col grid): **Status** (In Design / Permitting / Under Construction / Completed) · **Accounting Software** (QuickBooks / Builder Suite / Other)
-Row 4: **Lots / Addresses** section (see below)
+2. **Stop cancellation emails from doing bid/proposal lookup work**
+   - For `isCancellation: true`, skip the bid package/proposal PDF lookup and PDF stamping logic entirely. A cancellation email does not need to refetch the original bid PDFs, and that lookup is where the `PGRST116` 0-rows bid package error is appearing.
 
-Remove the standalone "Total Lots" number input — lot count is derived from the Lots section, matching Edit.
+3. **Make delete/cancel unblockable by email side effects**
+   - In `usePurchaseOrderMutations.ts`, delete the PO first.
+   - After the delete succeeds, try sending the cancellation email best-effort.
+   - If the email fails, show a warning that the PO was deleted but the email failed, instead of failing the delete.
 
-### Lots / Addresses at create time
-Since the project doesn't exist yet, add a new `src/components/projects/LocalLotManagementSection.tsx` that mirrors `LotManagementSection`'s UI (Add Lot button, inline table with edit/delete, auto-incrementing lot numbers, inline name editing) but holds lots in local React state — no Supabase reads, no delete-warning query.
-- Props: `lots: LocalLot[]`, `onChange(lots)`.
-- `LocalLot = { tempId: string; lot_number: number; lot_name?: string }`.
-- Simpler delete confirmation (just "Are you sure?" since nothing else references the lot yet).
-
-On successful `projects.insert()`, insert all local lots into `project_lots` in one call (`project_id`, `lot_number`, `lot_name`) before saving notification recipients.
-
-### Validation
-- Required: address, status, construction_manager, accounting_manager.
-- `total_lots` on `projects.insert()` is set to `lots.length` (defaults to 0 if none added), preserving the existing column.
-- Notifications tab requirement (primary star on all 5 channels) stays.
-
-### Dialog chrome
-- Keep the two-tab structure: **Project Information** | **Notifications**.
-- Dialog stays `sm:max-w-[900px]`.
-- Cancel / Create Project footer unchanged.
-
-No database or edge-function changes.
+4. **Verify**
+   - Confirm the code compiles.
+   - Check recent `send-po-email` logs after deploy/call if available to ensure the module error and cancellation lookup error are gone.
