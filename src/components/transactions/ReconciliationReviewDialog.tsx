@@ -231,7 +231,9 @@ export function ReconciliationReviewDialog({
       const vendorMap = new Map((vendors || []).map((v: any) => [v.id, v.company_name]));
       const billMap = new Map((allBills || []).map((b: any) => [b.id, b]));
 
-      // ----- Manual JE lines -----
+      // ----- All bank-account JE lines for this reconciliation -----
+      // Used for manual JE transactions AND to enrich checks/deposits with
+      // journal_entry_id, line_id, debit/credit, created_at for the detail dialog.
       const { data: jeLines } = await supabase
         .from('journal_entry_lines')
         .select(`
@@ -241,15 +243,36 @@ export function ReconciliationReviewDialog({
           memo,
           cost_code_id,
           journal_entry_id,
+          created_at,
           journal_entries!inner (
             id,
             entry_date,
             description,
-            source_type
+            source_type,
+            source_id
           )
         `)
         .eq('reconciliation_id', reconciliationId)
         .eq('account_id', bankAccountId);
+
+      // Map source_type:source_id -> ClickTxn for check/deposit lookup
+      const sourceTxnMap = new Map<string, ClickTxn>();
+      (jeLines || []).forEach((line: any) => {
+        const je = line.journal_entries;
+        if (!je?.source_type || !je?.source_id) return;
+        const key = `${je.source_type}:${je.source_id}`;
+        if (sourceTxnMap.has(key)) return;
+        sourceTxnMap.set(key, {
+          source_type: je.source_type,
+          source_id: je.source_id,
+          line_id: line.id,
+          journal_entry_id: line.journal_entry_id,
+          debit: Number(line.debit) || 0,
+          credit: Number(line.credit) || 0,
+          created_at: line.created_at,
+        });
+      });
+
 
       const manualJeLines = (jeLines || []).filter(
         (line: any) => line.journal_entries?.source_type === 'manual'
