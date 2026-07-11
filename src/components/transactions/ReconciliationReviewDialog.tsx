@@ -25,7 +25,7 @@ interface ReconciliationReviewDialogProps {
   bankAccountId: string | null;
 }
 
-interface CostCodeBreakdownEntry {
+interface BreakdownEntry {
   code: string;
   amount: number;
 }
@@ -37,19 +37,20 @@ interface ClearedTransaction {
   reference?: string;
   description?: string;
   costCode?: string;
-  costCodeBreakdown?: CostCodeBreakdownEntry[];
+  costCodeBreakdown?: BreakdownEntry[];
+  sourceBreakdown?: BreakdownEntry[];
   amount: number;
   type: 'check' | 'deposit' | 'bill_payment' | 'journal_entry';
 }
 
-// Group lines by cost code and sum amounts (cent-precise)
-function buildCostCodeBreakdown(
-  lines: { cost_code_id?: string | null; amount?: number | string | null }[],
-  ccMap: Map<string, string>
-): CostCodeBreakdownEntry[] {
+// Group items by a key and sum amounts (cent-precise), resolving labels via a map
+function buildBreakdown(
+  items: { key?: string | null; amount?: number | string | null }[],
+  labelMap: Map<string, string>
+): BreakdownEntry[] {
   const totals = new Map<string, number>();
-  lines.forEach((l) => {
-    const label = l.cost_code_id ? ccMap.get(l.cost_code_id) : undefined;
+  items.forEach((l) => {
+    const label = l.key ? labelMap.get(l.key) : undefined;
     if (!label) return;
     const amt = Math.round(Number(l.amount || 0) * 100);
     totals.set(label, (totals.get(label) || 0) + amt);
@@ -58,6 +59,17 @@ function buildCostCodeBreakdown(
     .map(([code, cents]) => ({ code, amount: cents / 100 }))
     .sort((a, b) => Math.abs(b.amount) - Math.abs(a.amount));
 }
+
+function buildCostCodeBreakdown(
+  lines: { cost_code_id?: string | null; amount?: number | string | null }[],
+  ccMap: Map<string, string>
+): BreakdownEntry[] {
+  return buildBreakdown(
+    lines.map((l) => ({ key: l.cost_code_id, amount: l.amount })),
+    ccMap
+  );
+}
+
 
 
 // Combine distinct line memos into a compact description
@@ -114,10 +126,24 @@ export function ReconciliationReviewDialog({
       const { data: depositLines } = depositIds.length
         ? await supabase
             .from('deposit_lines')
-            .select('deposit_id, memo, line_number')
+            .select('deposit_id, memo, line_number, account_id, amount')
             .in('deposit_id', depositIds)
             .order('line_number', { ascending: true })
         : { data: [] as any[] };
+
+      // Look up account labels for deposit source
+      const depositAccountIds = Array.from(
+        new Set((depositLines || []).map((l: any) => l.account_id).filter(Boolean))
+      );
+      const { data: depositAccounts } = depositAccountIds.length
+        ? await supabase
+            .from('accounts')
+            .select('id, code, name')
+            .in('id', depositAccountIds)
+        : { data: [] as any[] };
+      const acctMap = new Map(
+        (depositAccounts || []).map((a: any) => [a.id, `${a.code} - ${a.name}`])
+      );
 
       // ----- Bill payments via JE lines -----
       let billPayments: ClearedTransaction[] = [];
@@ -380,10 +406,19 @@ export function ReconciliationReviewDialog({
             summarizeMemos(lines.map((l: any) => l.memo)) ||
             (d.memo && String(d.memo).trim()) ||
             undefined;
+          const sourceBreakdown = buildBreakdown(
+            lines.map((l: any) => ({ key: l.account_id, amount: l.amount })),
+            acctMap
+          );
+          const payee =
+            sourceBreakdown.length > 0
+              ? sourceBreakdown[0].code
+              : (d.memo && String(d.memo).trim()) || 'Deposit';
           return {
             id: d.id,
             date: d.deposit_date,
-            payee: d.company_name || d.memo || 'Deposit',
+            payee,
+            sourceBreakdown,
             description,
             amount: d.amount,
             type: 'deposit' as const,
@@ -489,17 +524,18 @@ export function ReconciliationReviewDialog({
                                 {t.date ? formatDateSafe(t.date, "MM/dd/yyyy") : '-'}
                               </td>
                               <td className="p-2">
-                                {t.type === 'bill_payment' ? 'Bill Pmt - Check' :
+                                {t.type === 'bill_payment' ? 'Bill Payment' :
                                  t.type === 'journal_entry' ? 'JE' : 'Check'}
                               </td>
                               <td className="p-2">{t.payee}</td>
-                              <td className="p-2 max-w-[220px] truncate" title={t.description || ''}>
-                                {t.description || '-'}
+                              <td className="p-2 max-w-[220px]">
+                                <DescriptionCell text={t.description} />
                               </td>
                               <td className="p-2">{t.reference || '-'}</td>
                               <td className="p-2 max-w-[200px]">
-                                <CostCodeCell
+                                <BreakdownCell
                                   breakdown={t.costCodeBreakdown}
+                                  title="Cost Code Breakdown"
                                   formatCurrency={formatCurrency}
                                 />
                               </td>
@@ -547,9 +583,16 @@ export function ReconciliationReviewDialog({
                               <td className="p-2">
                                 {t.type === 'journal_entry' ? 'JE' : 'Deposit'}
                               </td>
-                              <td className="p-2">{t.payee}</td>
-                              <td className="p-2 max-w-[260px] truncate" title={t.description || ''}>
-                                {t.description || '-'}
+                              <td className="p-2 max-w-[240px]">
+                                <BreakdownCell
+                                  breakdown={t.sourceBreakdown}
+                                  fallback={t.payee}
+                                  title="Source Breakdown"
+                                  formatCurrency={formatCurrency}
+                                />
+                              </td>
+                              <td className="p-2 max-w-[260px]">
+                                <DescriptionCell text={t.description} />
                               </td>
                               <td className="p-2 text-right text-green-600 font-medium whitespace-nowrap">
                                 {formatCurrency(t.amount)}
@@ -600,21 +643,32 @@ export function ReconciliationReviewDialog({
   );
 }
 
-function CostCodeCell({
+function BreakdownCell({
   breakdown,
+  fallback,
+  title,
   formatCurrency,
 }: {
-  breakdown?: CostCodeBreakdownEntry[];
+  breakdown?: BreakdownEntry[];
+  fallback?: string;
+  title: string;
   formatCurrency: (n: number) => string;
 }) {
   if (!breakdown || breakdown.length === 0) {
-    return <span>-</span>;
+    return <span className="truncate block">{fallback || '-'}</span>;
   }
   if (breakdown.length === 1) {
     return (
-      <span className="truncate block" title={breakdown[0].code}>
-        {breakdown[0].code}
-      </span>
+      <TooltipProvider delayDuration={200}>
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <span className="truncate block cursor-default">{breakdown[0].code}</span>
+          </TooltipTrigger>
+          <TooltipContent side="top" align="start">
+            {breakdown[0].code}
+          </TooltipContent>
+        </Tooltip>
+      </TooltipProvider>
     );
   }
   const total = breakdown.reduce((sum, e) => sum + e.amount, 0);
@@ -624,7 +678,7 @@ function CostCodeCell({
         <TooltipTrigger asChild>
           <button
             type="button"
-            className="inline-flex items-center gap-1.5 text-left hover:underline focus:outline-none"
+            className="inline-flex items-center gap-1.5 text-left focus:outline-none"
           >
             <span className="truncate max-w-[130px]">{breakdown[0].code}</span>
             <span className="inline-flex items-center justify-center rounded-full bg-primary/10 text-primary text-xs font-medium px-1.5 py-0.5 whitespace-nowrap">
@@ -635,7 +689,7 @@ function CostCodeCell({
         <TooltipContent side="top" align="start" className="p-0 max-w-sm">
           <div className="p-2">
             <div className="text-xs font-semibold mb-1.5 text-muted-foreground uppercase">
-              Cost Code Breakdown
+              {title}
             </div>
             <table className="text-xs w-full">
               <tbody>
@@ -661,4 +715,21 @@ function CostCodeCell({
     </TooltipProvider>
   );
 }
+
+function DescriptionCell({ text }: { text?: string }) {
+  if (!text) return <span>-</span>;
+  return (
+    <TooltipProvider delayDuration={200}>
+      <Tooltip>
+        <TooltipTrigger asChild>
+          <span className="truncate block cursor-default">{text}</span>
+        </TooltipTrigger>
+        <TooltipContent side="top" align="start" className="max-w-md">
+          {text}
+        </TooltipContent>
+      </Tooltip>
+    </TooltipProvider>
+  );
+}
+
 
