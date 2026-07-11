@@ -308,8 +308,8 @@ export function ReconciliationReviewDialog({
             .map((bill) => {
               const lines = billLinesByBill.get(bill.id) || [];
               const description =
+                summarizeMemos(lines.map((l: any) => l.memo)) ||
                 (bill.notes && String(bill.notes).trim()) ||
-                (lines[0]?.memo && String(lines[0].memo).trim()) ||
                 undefined;
               return {
                 id: bill.id,
