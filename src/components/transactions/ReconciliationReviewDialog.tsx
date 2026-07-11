@@ -643,21 +643,32 @@ export function ReconciliationReviewDialog({
   );
 }
 
-function CostCodeCell({
+function BreakdownCell({
   breakdown,
+  fallback,
+  title,
   formatCurrency,
 }: {
-  breakdown?: CostCodeBreakdownEntry[];
+  breakdown?: BreakdownEntry[];
+  fallback?: string;
+  title: string;
   formatCurrency: (n: number) => string;
 }) {
   if (!breakdown || breakdown.length === 0) {
-    return <span>-</span>;
+    return <span className="truncate block">{fallback || '-'}</span>;
   }
   if (breakdown.length === 1) {
     return (
-      <span className="truncate block" title={breakdown[0].code}>
-        {breakdown[0].code}
-      </span>
+      <TooltipProvider delayDuration={200}>
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <span className="truncate block cursor-default">{breakdown[0].code}</span>
+          </TooltipTrigger>
+          <TooltipContent side="top" align="start">
+            {breakdown[0].code}
+          </TooltipContent>
+        </Tooltip>
+      </TooltipProvider>
     );
   }
   const total = breakdown.reduce((sum, e) => sum + e.amount, 0);
@@ -667,7 +678,7 @@ function CostCodeCell({
         <TooltipTrigger asChild>
           <button
             type="button"
-            className="inline-flex items-center gap-1.5 text-left hover:underline focus:outline-none"
+            className="inline-flex items-center gap-1.5 text-left focus:outline-none"
           >
             <span className="truncate max-w-[130px]">{breakdown[0].code}</span>
             <span className="inline-flex items-center justify-center rounded-full bg-primary/10 text-primary text-xs font-medium px-1.5 py-0.5 whitespace-nowrap">
@@ -678,7 +689,7 @@ function CostCodeCell({
         <TooltipContent side="top" align="start" className="p-0 max-w-sm">
           <div className="p-2">
             <div className="text-xs font-semibold mb-1.5 text-muted-foreground uppercase">
-              Cost Code Breakdown
+              {title}
             </div>
             <table className="text-xs w-full">
               <tbody>
@@ -704,4 +715,21 @@ function CostCodeCell({
     </TooltipProvider>
   );
 }
+
+function DescriptionCell({ text }: { text?: string }) {
+  if (!text) return <span>-</span>;
+  return (
+    <TooltipProvider delayDuration={200}>
+      <Tooltip>
+        <TooltipTrigger asChild>
+          <span className="truncate block cursor-default">{text}</span>
+        </TooltipTrigger>
+        <TooltipContent side="top" align="start" className="max-w-md">
+          {text}
+        </TooltipContent>
+      </Tooltip>
+    </TooltipProvider>
+  );
+}
+
 
