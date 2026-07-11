@@ -341,15 +341,20 @@ export function ReconciliationReviewDialog({
       }
 
       // ----- Manual JE transactions -----
-      const journalEntryTransactions: ClearedTransaction[] = manualJeLines.map((line: any) => ({
-        id: line.id,
-        date: line.journal_entries?.entry_date || '',
-        payee: line.journal_entries?.description || 'Manual Journal Entry',
-        description: line.memo || undefined,
-        costCode: line.cost_code_id ? ccMap.get(line.cost_code_id) : undefined,
-        amount: Number(line.debit) > 0 ? Number(line.debit) : -Number(line.credit),
-        type: 'journal_entry' as const,
-      }));
+      const journalEntryTransactions: ClearedTransaction[] = manualJeLines.map((line: any) => {
+        const label = line.cost_code_id ? ccMap.get(line.cost_code_id) : undefined;
+        const amt = Number(line.debit) > 0 ? Number(line.debit) : Number(line.credit);
+        return {
+          id: line.id,
+          date: line.journal_entries?.entry_date || '',
+          payee: line.journal_entries?.description || 'Manual Journal Entry',
+          description: line.memo || undefined,
+          costCode: label,
+          costCodeBreakdown: label ? [{ code: label, amount: amt }] : [],
+          amount: Number(line.debit) > 0 ? Number(line.debit) : -Number(line.credit),
+          type: 'journal_entry' as const,
+        };
+      });
 
       return {
         checks: (checks || []).map((c) => {
