@@ -637,7 +637,7 @@ export function ReconciliationReviewDialog({
                               <td className="p-2 max-w-[200px]" onClick={(e) => e.stopPropagation()}>
                                 <BreakdownCell
                                   breakdown={t.costCodeBreakdown}
-                                  title="Cost Code Breakdown"
+                                  title="Included Cost Codes"
                                   formatCurrency={formatCurrency}
                                 />
                               </td>
@@ -785,45 +785,30 @@ function BreakdownCell({
     <TooltipProvider delayDuration={100}>
       <Tooltip>
         <TooltipTrigger asChild>
-          <button
-            type="button"
-            className="inline-flex items-center gap-1.5 text-left focus:outline-none"
-          >
-            <span className="truncate max-w-[130px]">{breakdown[0].code}</span>
-            <span className="inline-flex items-center justify-center rounded-full bg-primary/10 text-primary text-xs font-medium px-1.5 py-0.5 whitespace-nowrap">
-              +{breakdown.length - 1}
-            </span>
-          </button>
+          <span className="text-xs cursor-help truncate block">
+            {breakdown[0].code} <span className="text-muted-foreground">+{breakdown.length - 1}</span>
+          </span>
         </TooltipTrigger>
-        <TooltipContent side="top" align="start" className="p-0 max-w-sm">
-          <div className="p-2">
-            <div className="text-xs font-semibold mb-1.5 text-muted-foreground uppercase">
-              {title}
+        <TooltipContent side="bottom" align="start" className="max-w-xs">
+          <div className="space-y-1">
+            <p className="font-medium text-xs mb-2">{title}:</p>
+            {breakdown.map((e, i) => (
+              <div key={`${e.code}-${i}`} className="flex justify-between gap-4 text-xs">
+                <span className="truncate max-w-[150px]">{e.code}</span>
+                <span>{formatCurrency(e.amount)}</span>
+              </div>
+            ))}
+            <div className="border-t pt-1 mt-1 flex justify-between gap-4 text-xs font-medium">
+              <span>Total</span>
+              <span>{formatCurrency(total)}</span>
             </div>
-            <table className="text-xs w-full">
-              <tbody>
-                {breakdown.map((e) => (
-                  <tr key={e.code} className="border-t first:border-t-0">
-                    <td className="py-1 pr-3">{e.code}</td>
-                    <td className="py-1 text-right whitespace-nowrap font-medium">
-                      {formatCurrency(e.amount)}
-                    </td>
-                  </tr>
-                ))}
-                <tr className="border-t font-semibold">
-                  <td className="py-1 pr-3">Total</td>
-                  <td className="py-1 text-right whitespace-nowrap">
-                    {formatCurrency(total)}
-                  </td>
-                </tr>
-              </tbody>
-            </table>
           </div>
         </TooltipContent>
       </Tooltip>
     </TooltipProvider>
   );
 }
+
 
 function DescriptionCell({ text }: { text?: string }) {
   if (!text) return <span>-</span>;
