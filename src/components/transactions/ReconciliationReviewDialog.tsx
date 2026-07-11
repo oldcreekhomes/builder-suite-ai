@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { TransactionDetailDialog } from "@/components/accounting/TransactionDetailDialog";
+import { UniversalFilePreviewProvider } from "@/components/files/UniversalFilePreviewProvider";
 import { supabase } from "@/integrations/supabase/client";
 import { formatDateSafe } from "@/utils/dateOnly";
 import {
