@@ -9,7 +9,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useToast } from "@/hooks/use-toast";
 import { format } from "date-fns";
-import { DeleteButton } from "@/components/ui/delete-button";
+import { TableRowActions } from "@/components/ui/table-row-actions";
 import { UniversalFilePreviewProvider } from "@/components/files/UniversalFilePreviewProvider";
 import { useUniversalFilePreview } from "@/hooks/useUniversalFilePreview";
 
