@@ -307,41 +307,27 @@ onClick={() => {
                   <td className="p-3 text-sm text-muted-foreground">
                     {format(new Date(reconciliation.uploaded_at), 'MMM d, yyyy')}
                   </td>
-                  <td className="p-3">
+                  <td className="p-3 text-center" onClick={(e) => e.stopPropagation()}>
                     {editingId === reconciliation.id ? null : (
-                      <div className="flex justify-end gap-2">
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            handleDownload(reconciliation.storage_path, reconciliation.filename);
-                          }}
-                        >
-                          <Download className="h-4 w-4" />
-                        </Button>
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            handleEdit(reconciliation.id, reconciliation.original_filename || reconciliation.filename);
-                          }}
-                        >
-                          <Pencil className="h-4 w-4" />
-                        </Button>
-                        <div onClick={(e) => e.stopPropagation()}>
-                          <DeleteButton
-                            onDelete={() => deleteMutation.mutate(reconciliation.id)}
-                            title="Delete Bank Reconciliation"
-                            description="Are you sure you want to delete this bank reconciliation? This action cannot be undone."
-                            size="sm"
-                            variant="ghost"
-                            isLoading={deleteMutation.isPending}
-                            showIcon={true}
-                          />
-                        </div>
-                      </div>
+                      <TableRowActions actions={[
+                        {
+                          label: "Download",
+                          onClick: () => handleDownload(reconciliation.storage_path, reconciliation.filename),
+                        },
+                        {
+                          label: "Edit",
+                          onClick: () => handleEdit(reconciliation.id, reconciliation.original_filename || reconciliation.filename),
+                        },
+                        {
+                          label: "Delete",
+                          onClick: () => deleteMutation.mutate(reconciliation.id),
+                          variant: "destructive",
+                          requiresConfirmation: true,
+                          confirmTitle: "Delete Bank Reconciliation",
+                          confirmDescription: "Are you sure you want to delete this bank reconciliation? This action cannot be undone.",
+                          isLoading: deleteMutation.isPending,
+                        },
+                      ]} />
                     )}
                   </td>
                 </tr>
