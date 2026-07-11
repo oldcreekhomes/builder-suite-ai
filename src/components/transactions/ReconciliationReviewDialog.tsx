@@ -617,7 +617,11 @@ export function ReconciliationReviewDialog({
                         </thead>
                         <tbody>
                           {allDebits.map((t) => (
-                            <tr key={t.id} className="border-t">
+                            <tr
+                              key={t.id}
+                              className={`border-t ${t._txn ? 'cursor-pointer hover:bg-muted/50' : ''}`}
+                              onClick={() => openDetail(t)}
+                            >
                               <td className="p-2">
                                 {t.date ? formatDateSafe(t.date, "MM/dd/yyyy") : '-'}
                               </td>
@@ -626,11 +630,11 @@ export function ReconciliationReviewDialog({
                                  t.type === 'journal_entry' ? 'JE' : 'Check'}
                               </td>
                               <td className="p-2">{t.payee}</td>
-                              <td className="p-2 max-w-[220px]">
+                              <td className="p-2 max-w-[220px]" onClick={(e) => e.stopPropagation()}>
                                 <DescriptionCell text={t.description} />
                               </td>
                               <td className="p-2">{t.reference || '-'}</td>
-                              <td className="p-2 max-w-[200px]">
+                              <td className="p-2 max-w-[200px]" onClick={(e) => e.stopPropagation()}>
                                 <BreakdownCell
                                   breakdown={t.costCodeBreakdown}
                                   title="Cost Code Breakdown"
@@ -642,6 +646,7 @@ export function ReconciliationReviewDialog({
                               </td>
                             </tr>
                           ))}
+
                         </tbody>
                       </table>
                     </div>
