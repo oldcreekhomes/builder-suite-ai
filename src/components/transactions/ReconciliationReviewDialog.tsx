@@ -324,7 +324,7 @@ export function ReconciliationReviewDialog({
                 payee: vendorMap.get(bill.vendor_id) || 'Unknown Vendor',
                 reference: bill.reference_number || undefined,
                 description,
-                costCode: summarizeCostCodes(lines.map((l: any) => l.cost_code_id), ccMap),
+                costCodeBreakdown: buildCostCodeBreakdown(lines, ccMap),
                 amount: billToAmount.get(bill.id) || 0,
                 type: 'bill_payment' as const,
               };
