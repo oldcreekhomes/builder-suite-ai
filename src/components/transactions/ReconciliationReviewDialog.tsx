@@ -32,6 +32,16 @@ interface BreakdownEntry {
   amount: number;
 }
 
+interface ClickTxn {
+  source_type: string;
+  source_id: string;
+  line_id: string;
+  journal_entry_id: string;
+  debit: number;
+  credit: number;
+  created_at: string;
+}
+
 interface ClearedTransaction {
   id: string;
   date: string;
@@ -43,6 +53,7 @@ interface ClearedTransaction {
   sourceBreakdown?: BreakdownEntry[];
   amount: number;
   type: 'check' | 'deposit' | 'bill_payment' | 'journal_entry';
+  _txn?: ClickTxn;
 }
 
 // Group items by a key and sum amounts (cent-precise), resolving labels via a map
