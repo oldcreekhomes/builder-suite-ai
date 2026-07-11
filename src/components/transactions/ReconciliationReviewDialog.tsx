@@ -365,8 +365,8 @@ export function ReconciliationReviewDialog({
         deposits: (deposits || []).map((d) => {
           const lines = depositLinesByDeposit.get(d.id) || [];
           const description =
+            summarizeMemos(lines.map((l: any) => l.memo)) ||
             (d.memo && String(d.memo).trim()) ||
-            (lines[0]?.memo && String(lines[0].memo).trim()) ||
             undefined;
           return {
             id: d.id,
