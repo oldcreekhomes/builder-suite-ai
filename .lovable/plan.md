@@ -1,29 +1,26 @@
-## Plan: put Bank Reconciliations back the way it should work
+## Add Description column + Cost Code to Reconciliation Review dialog
 
-I found the issue: the Accounting page's **Bank Reconciliations** card/dialog is reading uploaded PDFs from `project_files` under `Bank Reconciliations/`. But the actual reconciliations created from the bank ledger live in the `bank_reconciliations` table. That is why the ledger can show cleared through 6/1/2026 while the card says no reconciliations.
+**File:** `src/components/transactions/ReconciliationReviewDialog.tsx` (only file changed)
 
-### What I will restore
-1. **Change the Accounting overview card metrics**
-   - Make the Bank Reconciliations card count actual reconciliation sessions from `bank_reconciliations` for the current project.
-   - Use the latest `statement_date` / completed date instead of uploaded PDF date.
+### 1. Extend `ClearedTransaction` type
+Add two optional fields: `description?: string` and `costCode?: string`.
 
-2. **Change the Bank Reconciliations dialog list**
-   - Show rows from `bank_reconciliations`, not uploaded PDF files.
-   - Include the useful reconciliation fields: statement date, ending balance, status, and last updated/completed date.
+### 2. Pull description + cost code data per transaction type
 
-3. **Keep existing reconciliation behavior intact**
-   - Do not change bank ledger clearing logic.
-   - Do not delete or move any data.
-   - Do not change how reconciliations are created/completed.
+- **Checks**: fetch `check_lines` (memo, cost_code_id) for the reconciliation's check IDs, plus join `cost_codes` (code + name). Description = check's `memo`, or fallback to the first line's `memo`. Cost code = distinct `cost_codes.code - name` values across the check's lines, joined with `, ` (or `Multiple` if >2).
+- **Bill payments** (both JE-line path and legacy path): fetch `bill_lines` (memo, cost_code_id) for the involved bill IDs, plus `cost_codes`. Description = bill's `notes`, or fallback to the first bill line's `memo`. Cost code = same aggregation rule as checks.
+- **Deposits**: fetch `deposit_lines` memo for description (skip cost code — deposits are income).
+- **Manual JE lines**: description already comes from `line.memo`; add cost code by including `cost_code_id` in the select and joining to `cost_codes`.
 
-4. **Do not add new functionality beyond restoring the correct source**
-   - No database migration.
-   - No bulk data edits.
-   - No changes to the reconciliation engine.
-   - Only make the Accounting card/dialog reflect the actual reconciliations again.
+### 3. Table changes
 
-### Technical details
-- Update `src/pages/Accounting.tsx` so `bank-reconciliations-metrics` queries `bank_reconciliations` scoped by `project_id`.
-- Update `src/components/accounting/BankReconciliationsDialog.tsx` so the table queries `bank_reconciliations` scoped by `project_id`.
-- Remove the PDF-upload-style assumptions from this dialog for the reconciliation list.
-- Keep row actions minimal and consistent with the app; if there is no actual PDF attached to a reconciliation record, it will not pretend there is one.
+**Checks & Bill Payments Cleared table** — new column order:
+`Date | Type | Payee | Description | Reference | Cost Code | Amount`
+
+**Deposits Cleared table** — add a `Description` column between `Source` and `Amount` (no cost code column, deposits don't carry one).
+
+Truncate long descriptions with `max-w-[220px] truncate` and a `title` attribute for hover full text so the row height stays fixed.
+
+### 4. No schema/DB/edge-function changes
+
+Purely a UI + query fields expansion inside this one dialog. Everything else (dashboard, list dialog, reconciliation logic) stays exactly as it is now.
