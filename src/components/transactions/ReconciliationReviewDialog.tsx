@@ -599,3 +599,66 @@ export function ReconciliationReviewDialog({
     </Dialog>
   );
 }
+
+function CostCodeCell({
+  breakdown,
+  formatCurrency,
+}: {
+  breakdown?: CostCodeBreakdownEntry[];
+  formatCurrency: (n: number) => string;
+}) {
+  if (!breakdown || breakdown.length === 0) {
+    return <span>-</span>;
+  }
+  if (breakdown.length === 1) {
+    return (
+      <span className="truncate block" title={breakdown[0].code}>
+        {breakdown[0].code}
+      </span>
+    );
+  }
+  const total = breakdown.reduce((sum, e) => sum + e.amount, 0);
+  return (
+    <TooltipProvider delayDuration={100}>
+      <Tooltip>
+        <TooltipTrigger asChild>
+          <button
+            type="button"
+            className="inline-flex items-center gap-1.5 text-left hover:underline focus:outline-none"
+          >
+            <span className="truncate max-w-[130px]">{breakdown[0].code}</span>
+            <span className="inline-flex items-center justify-center rounded-full bg-primary/10 text-primary text-xs font-medium px-1.5 py-0.5 whitespace-nowrap">
+              +{breakdown.length - 1}
+            </span>
+          </button>
+        </TooltipTrigger>
+        <TooltipContent side="top" align="start" className="p-0 max-w-sm">
+          <div className="p-2">
+            <div className="text-xs font-semibold mb-1.5 text-muted-foreground uppercase">
+              Cost Code Breakdown
+            </div>
+            <table className="text-xs w-full">
+              <tbody>
+                {breakdown.map((e) => (
+                  <tr key={e.code} className="border-t first:border-t-0">
+                    <td className="py-1 pr-3">{e.code}</td>
+                    <td className="py-1 text-right whitespace-nowrap font-medium">
+                      {formatCurrency(e.amount)}
+                    </td>
+                  </tr>
+                ))}
+                <tr className="border-t font-semibold">
+                  <td className="py-1 pr-3">Total</td>
+                  <td className="py-1 text-right whitespace-nowrap">
+                    {formatCurrency(total)}
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </TooltipContent>
+      </Tooltip>
+    </TooltipProvider>
+  );
+}
+
