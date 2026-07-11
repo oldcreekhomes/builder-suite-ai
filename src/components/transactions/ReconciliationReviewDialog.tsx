@@ -500,7 +500,6 @@ export function ReconciliationReviewDialog({
                               <td className="p-2 max-w-[200px]">
                                 <CostCodeCell
                                   breakdown={t.costCodeBreakdown}
-                                  fallback={t.costCode}
                                   formatCurrency={formatCurrency}
                                 />
                               </td>
