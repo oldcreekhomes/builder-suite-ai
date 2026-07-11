@@ -1,17 +1,12 @@
 import { useState } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Upload } from "lucide-react";
-
 import { supabase } from "@/integrations/supabase/client";
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { useToast } from "@/hooks/use-toast";
+import { useQuery } from "@tanstack/react-query";
 import { format } from "date-fns";
+import { Badge } from "@/components/ui/badge";
 import { TableRowActions } from "@/components/ui/table-row-actions";
-import { UniversalFilePreviewProvider } from "@/components/files/UniversalFilePreviewProvider";
-import { useUniversalFilePreview } from "@/hooks/useUniversalFilePreview";
+import { formatDateSafe } from "@/utils/dateOnly";
+import { ReconciliationReviewDialog } from "@/components/transactions/ReconciliationReviewDialog";
 
 
 interface BankReconciliationsDialogProps {
@@ -20,259 +15,65 @@ interface BankReconciliationsDialogProps {
   onOpenChange: (open: boolean) => void;
 }
 
+interface BankReconciliationRow {
+  id: string;
+  bank_account_id: string;
+  statement_date: string;
+  statement_beginning_balance: number;
+  statement_ending_balance: number;
+  reconciled_balance: number;
+  difference: number;
+  status: 'in_progress' | 'completed';
+  completed_at: string | null;
+  updated_at: string;
+  notes: string | null;
+}
+
 export function BankReconciliationsDialog({ projectId, open, onOpenChange }: BankReconciliationsDialogProps) {
   return (
-    <UniversalFilePreviewProvider>
-      <Dialog open={open} onOpenChange={onOpenChange}>
-        <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto">
-          <DialogHeader>
-            <DialogTitle>Bank Reconciliations</DialogTitle>
-          </DialogHeader>
-          <BankReconciliationsDialogContent projectId={projectId} />
-        </DialogContent>
-      </Dialog>
-    </UniversalFilePreviewProvider>
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="max-w-5xl max-h-[80vh] overflow-y-auto">
+        <DialogHeader>
+          <DialogTitle>Bank Reconciliations</DialogTitle>
+        </DialogHeader>
+        <BankReconciliationsDialogContent projectId={projectId} />
+      </DialogContent>
+    </Dialog>
   );
 }
 
 function BankReconciliationsDialogContent({ projectId }: { projectId: string }) {
-  const { toast } = useToast();
-  const queryClient = useQueryClient();
-  const [editingId, setEditingId] = useState<string | null>(null);
-  const [editingName, setEditingName] = useState("");
-const { openProjectFile } = useUniversalFilePreview();
+  const [selectedReconciliation, setSelectedReconciliation] = useState<BankReconciliationRow | null>(null);
 
-const cleanName = (raw?: string) => (raw ? raw.replace(/^\d{13}_/, "") : "");
-
-  // Fetch bank reconciliations
+  // Fetch actual bank reconciliations created from the ledger.
   const { data: reconciliations, isLoading } = useQuery({
     queryKey: ['bank-reconciliations', projectId],
     queryFn: async () => {
       const { data, error } = await supabase
-        .from('project_files')
-        .select('*')
+        .from('bank_reconciliations')
+        .select('id, bank_account_id, statement_date, statement_beginning_balance, statement_ending_balance, reconciled_balance, difference, status, completed_at, updated_at, notes')
         .eq('project_id', projectId)
-        .eq('is_deleted', false)
-        .like('original_filename', 'Bank Reconciliations/%')
-        .order('uploaded_at', { ascending: false });
+        .order('statement_date', { ascending: false });
 
       if (error) throw error;
-      return data;
+      return (data || []) as BankReconciliationRow[];
     },
   });
 
-  // Delete mutation
-  const deleteMutation = useMutation({
-    mutationFn: async (fileId: string) => {
-      const { error } = await supabase
-        .from('project_files')
-        .update({ is_deleted: true })
-        .eq('id', fileId);
-
-      if (error) throw error;
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['bank-reconciliations', projectId] });
-      queryClient.invalidateQueries({ queryKey: ['bank-reconciliations-metrics', projectId] });
-      toast({
-        title: "Success",
-        description: "Bank reconciliation deleted successfully",
-      });
-    },
-    onError: (error: Error) => {
-      toast({
-        title: "Error",
-        description: error.message,
-        variant: "destructive",
-      });
-    },
-  });
-
-  const updateFilenameMutation = useMutation({
-    mutationFn: async ({ fileId, newName }: { fileId: string; newName: string }) => {
-      const { error } = await supabase
-        .from('project_files')
-        .update({ original_filename: `Bank Reconciliations/${newName}` })
-        .eq('id', fileId);
-      
-      if (error) throw error;
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['bank-reconciliations', projectId] });
-      setEditingId(null);
-      setEditingName("");
-      toast({
-        title: "Success",
-        description: "Filename updated successfully",
-      });
-    },
-    onError: (error) => {
-      toast({
-        title: "Error",
-        description: `Failed to update filename: ${error.message}`,
-        variant: "destructive",
-      });
-    },
-  });
-
-const handleEdit = (fileId: string, currentName: string) => {
-    setEditingId(fileId);
-    setEditingName(cleanName(currentName.replace('Bank Reconciliations/', '')));
-  };
-
-  const handleSaveEdit = () => {
-    if (!editingName.trim()) {
-      toast({
-        title: "Error",
-        description: "Filename cannot be empty",
-        variant: "destructive",
-      });
-      return;
-    }
-    if (editingId) {
-      updateFilenameMutation.mutate({ fileId: editingId, newName: editingName.trim() });
-    }
-  };
-
-  const handleCancelEdit = () => {
-    setEditingId(null);
-    setEditingName("");
-  };
-
-  const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
-    const files = event.target.files;
-    if (!files || files.length === 0) return;
-
-    try {
-      const { data: userData } = await supabase.auth.getUser();
-      let successCount = 0;
-
-      for (const file of Array.from(files)) {
-        if (file.type !== 'application/pdf') {
-          toast({
-            title: "Skipped",
-            description: `${file.name} is not a PDF file`,
-            variant: "destructive",
-          });
-          continue;
-        }
-
-        const fileName = `${Date.now()}_${file.name}`;
-        const filePath = `${projectId}/Bank Reconciliations/${fileName}`;
-
-        const { error: uploadError } = await supabase.storage
-          .from('project-files')
-          .upload(filePath, file);
-
-        if (uploadError) {
-          toast({
-            title: "Error",
-            description: `Failed to upload ${file.name}: ${uploadError.message}`,
-            variant: "destructive",
-          });
-          continue;
-        }
-
-        const { error: dbError } = await supabase
-          .from('project_files')
-          .insert({
-            project_id: projectId,
-            filename: fileName,
-            original_filename: `Bank Reconciliations/${file.name}`,
-            storage_path: filePath,
-            mime_type: 'application/pdf',
-            file_type: 'application/pdf',
-            file_size: file.size,
-            uploaded_by: userData?.user?.id || '',
-            is_deleted: false,
-          });
-
-        if (dbError) {
-          toast({
-            title: "Error",
-            description: `Failed to save ${file.name}: ${dbError.message}`,
-            variant: "destructive",
-          });
-          continue;
-        }
-
-        successCount++;
-      }
-
-      if (successCount > 0) {
-        queryClient.invalidateQueries({ queryKey: ['bank-reconciliations', projectId] });
-        queryClient.invalidateQueries({ queryKey: ['bank-reconciliations-metrics', projectId] });
-
-        toast({
-          title: "Success",
-          description: `${successCount} reconciliation(s) uploaded successfully`,
-        });
-      }
-
-      event.target.value = '';
-    } catch (error: any) {
-      toast({
-        title: "Error",
-        description: error.message,
-        variant: "destructive",
-      });
-    }
-  };
-
-  const handleDownload = async (filePath: string, fileName: string) => {
-    try {
-      const { data, error } = await supabase.storage
-        .from('project-files')
-        .download(filePath);
-
-      if (error) throw error;
-
-      const url = URL.createObjectURL(data);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = fileName;
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
-      URL.revokeObjectURL(url);
-    } catch (error: any) {
-      toast({
-        title: "Error",
-        description: error.message,
-        variant: "destructive",
-      });
-    }
-  };
-
-  const formatFileSize = (bytes: number) => {
-    if (bytes < 1024) return bytes + ' B';
-    if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + ' KB';
-    return (bytes / (1024 * 1024)).toFixed(1) + ' MB';
+  const formatCurrency = (amount: number) => {
+    return new Intl.NumberFormat('en-US', {
+      style: 'currency',
+      currency: 'USD',
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2,
+    }).format(amount || 0);
   };
 
   return (
     <div className="space-y-4">
-      <div className="flex justify-between items-center">
-        <p className="text-sm text-muted-foreground">
-          {reconciliations?.length || 0} reconciliation(s)
-        </p>
-        <div>
-          <input
-            type="file"
-            id="reconciliation-upload"
-            className="hidden"
-            accept=".pdf"
-            multiple
-            onChange={handleFileUpload}
-          />
-          <Button asChild size="sm">
-            <label htmlFor="reconciliation-upload" className="cursor-pointer">
-              <Upload className="h-4 w-4 mr-2" />
-              Upload PDF
-            </label>
-          </Button>
-        </div>
-      </div>
+      <p className="text-sm text-muted-foreground">
+        {reconciliations?.length || 0} reconciliation(s)
+      </p>
 
       {isLoading ? (
         <div className="text-center py-8 text-muted-foreground">Loading...</div>
@@ -281,55 +82,49 @@ const handleEdit = (fileId: string, currentName: string) => {
           <table className="w-full">
             <thead className="bg-muted/50">
               <tr>
-                <th className="text-left p-3 font-medium">Name</th>
-                <th className="text-left p-3 font-medium">Size</th>
-                <th className="text-left p-3 font-medium">Uploaded</th>
+                <th className="text-left p-3 font-medium">Statement Date</th>
+                <th className="text-right p-3 font-medium">Beginning Balance</th>
+                <th className="text-right p-3 font-medium">Ending Balance</th>
+                <th className="text-right p-3 font-medium">Difference</th>
+                <th className="text-center p-3 font-medium">Status</th>
+                <th className="text-left p-3 font-medium">Completed / Updated</th>
                 <th className="text-center p-3 font-medium">Actions</th>
               </tr>
             </thead>
             <tbody>
               {reconciliations.map((reconciliation) => (
-                <tr 
-                  key={reconciliation.id} 
-onClick={() => {
-                    openProjectFile(
-                      reconciliation.storage_path,
-                      cleanName(reconciliation.original_filename?.replace('Bank Reconciliations/', '') || reconciliation.filename)
-                    );
-                  }}
-                  className="border-t cursor-pointer hover:bg-muted/50"
-                >
+                <tr key={reconciliation.id} className="border-t hover:bg-muted/50">
                   <td className="p-3">
-                    {cleanName(reconciliation.original_filename?.replace('Bank Reconciliations/', '') || reconciliation.filename)}
+                    {formatDateSafe(reconciliation.statement_date, 'MM/dd/yyyy')}
+                  </td>
+                  <td className="p-3 text-right">
+                    {formatCurrency(reconciliation.statement_beginning_balance)}
+                  </td>
+                  <td className="p-3 text-right">
+                    {formatCurrency(reconciliation.statement_ending_balance)}
+                  </td>
+                  <td className="p-3 text-right">
+                    <span className={Math.abs(reconciliation.difference || 0) < 0.01 ? 'text-green-600' : 'text-red-600'}>
+                      {formatCurrency(reconciliation.difference)}
+                    </span>
+                  </td>
+                  <td className="p-3 text-center">
+                    <Badge variant={reconciliation.status === 'completed' ? 'default' : 'secondary'}>
+                      {reconciliation.status === 'completed' ? 'Completed' : 'In Progress'}
+                    </Badge>
                   </td>
                   <td className="p-3 text-sm text-muted-foreground">
-                    {formatFileSize(reconciliation.file_size || 0)}
+                    {reconciliation.completed_at
+                      ? format(new Date(reconciliation.completed_at), 'MM/dd/yyyy')
+                      : format(new Date(reconciliation.updated_at), 'MM/dd/yyyy')}
                   </td>
-                  <td className="p-3 text-sm text-muted-foreground">
-                    {format(new Date(reconciliation.uploaded_at), 'MMM d, yyyy')}
-                  </td>
-                  <td className="p-3 text-center" onClick={(e) => e.stopPropagation()}>
-                    {editingId === reconciliation.id ? null : (
-                      <TableRowActions actions={[
-                        {
-                          label: "Download",
-                          onClick: () => handleDownload(reconciliation.storage_path, reconciliation.filename),
-                        },
-                        {
-                          label: "Edit",
-                          onClick: () => handleEdit(reconciliation.id, reconciliation.original_filename || reconciliation.filename),
-                        },
-                        {
-                          label: "Delete",
-                          onClick: () => deleteMutation.mutate(reconciliation.id),
-                          variant: "destructive",
-                          requiresConfirmation: true,
-                          confirmTitle: "Delete Bank Reconciliation",
-                          confirmDescription: "Are you sure you want to delete this bank reconciliation? This action cannot be undone.",
-                          isLoading: deleteMutation.isPending,
-                        },
-                      ]} />
-                    )}
+                  <td className="p-3 text-center">
+                    <TableRowActions actions={[
+                      {
+                        label: "Review",
+                        onClick: () => setSelectedReconciliation(reconciliation),
+                      },
+                    ]} />
                   </td>
                 </tr>
               ))}
@@ -338,36 +133,16 @@ onClick={() => {
         </div>
       ) : (
         <div className="text-center py-8 text-muted-foreground">
-          No bank reconciliations uploaded yet
+          No bank reconciliations yet
         </div>
       )}
 
-      <Dialog open={!!editingId} onOpenChange={(open) => !open && handleCancelEdit()}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Rename File</DialogTitle>
-          </DialogHeader>
-          <div className="space-y-3">
-            <Label htmlFor="rename-file-input">File Name</Label>
-            <Input
-              id="rename-file-input"
-              value={editingName}
-              onChange={(e) => setEditingName(e.target.value)}
-              onKeyDown={(e) => {
-                if (e.key === 'Enter') handleSaveEdit();
-                if (e.key === 'Escape') handleCancelEdit();
-              }}
-              autoFocus
-            />
-          </div>
-          <div className="flex justify-end gap-2">
-            <Button variant="outline" onClick={handleCancelEdit}>Cancel</Button>
-            <Button onClick={handleSaveEdit} disabled={!editingName.trim() || updateFilenameMutation.isPending}>
-              Rename
-            </Button>
-          </div>
-        </DialogContent>
-      </Dialog>
+      <ReconciliationReviewDialog
+        open={!!selectedReconciliation}
+        onOpenChange={(open) => !open && setSelectedReconciliation(null)}
+        reconciliation={selectedReconciliation}
+        bankAccountId={selectedReconciliation?.bank_account_id || null}
+      />
     </div>
   );
 }

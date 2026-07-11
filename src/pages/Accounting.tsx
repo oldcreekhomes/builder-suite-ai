@@ -156,21 +156,20 @@ export default function Accounting() {
     queryKey: ['bank-reconciliations-metrics', projectId],
     enabled: !!projectId,
     queryFn: async () => {
-      if (!projectId) return { count: 0, lastUploadedAt: null };
+      if (!projectId) return { count: 0, lastStatementDate: null };
       
       const { data, error } = await supabase
-        .from('project_files')
-        .select('id, uploaded_at')
+        .from('bank_reconciliations')
+        .select('id, statement_date, status')
         .eq('project_id', projectId)
-        .eq('is_deleted', false)
-        .like('original_filename', 'Bank Reconciliations/%')
-        .order('uploaded_at', { ascending: false });
+        .order('statement_date', { ascending: false });
       
       if (error) throw error;
+      const completed = data?.filter((rec) => rec.status === 'completed') || [];
       
       return {
         count: data?.length || 0,
-        lastUploadedAt: data?.[0]?.uploaded_at || null
+        lastStatementDate: completed[0]?.statement_date || data?.[0]?.statement_date || null
       };
     }
   });
@@ -370,8 +369,8 @@ export default function Accounting() {
                         <p className="text-xs text-muted-foreground">
                           {isLoadingBankReconciliations ? (
                             <Skeleton className="h-4 w-32" />
-                          ) : bankReconciliationsMetrics?.lastUploadedAt ? (
-                            `Last: ${format(new Date(bankReconciliationsMetrics.lastUploadedAt), 'PP')}`
+                          ) : bankReconciliationsMetrics?.lastStatementDate ? (
+                            `Last: ${format(new Date(bankReconciliationsMetrics.lastStatementDate + 'T00:00:00'), 'PP')}`
                           ) : (
                             'No reconciliations yet'
                           )}
