@@ -114,10 +114,24 @@ export function ReconciliationReviewDialog({
       const { data: depositLines } = depositIds.length
         ? await supabase
             .from('deposit_lines')
-            .select('deposit_id, memo, line_number')
+            .select('deposit_id, memo, line_number, account_id, amount')
             .in('deposit_id', depositIds)
             .order('line_number', { ascending: true })
         : { data: [] as any[] };
+
+      // Look up account labels for deposit source
+      const depositAccountIds = Array.from(
+        new Set((depositLines || []).map((l: any) => l.account_id).filter(Boolean))
+      );
+      const { data: depositAccounts } = depositAccountIds.length
+        ? await supabase
+            .from('accounts')
+            .select('id, code, name')
+            .in('id', depositAccountIds)
+        : { data: [] as any[] };
+      const acctMap = new Map(
+        (depositAccounts || []).map((a: any) => [a.id, `${a.code} - ${a.name}`])
+      );
 
       // ----- Bill payments via JE lines -----
       let billPayments: ClearedTransaction[] = [];
