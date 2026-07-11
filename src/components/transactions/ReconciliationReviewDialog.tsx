@@ -507,6 +507,28 @@ export function ReconciliationReviewDialog({
     enabled: open && !!reconciliationId && !!bankAccountId,
   });
 
+  const [selectedTxn, setSelectedTxn] = useState<any>(null);
+
+  const openDetail = (t: ClearedTransaction) => {
+    if (!t._txn) return;
+    setSelectedTxn({
+      source_id: t._txn.source_id,
+      line_id: t._txn.line_id,
+      journal_entry_id: t._txn.journal_entry_id,
+      date: t.date,
+      memo: t.description || null,
+      description: t.description || null,
+      reference: t.reference || null,
+      accountDisplay: null,
+      source_type: t._txn.source_type,
+      debit: t._txn.debit,
+      credit: t._txn.credit,
+      created_at: t._txn.created_at,
+      reconciled: true,
+      reconciliation_date: reconciliation?.statement_date || null,
+    });
+  };
+
   const formatCurrency = (amount: number) =>
     new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(amount);
 
