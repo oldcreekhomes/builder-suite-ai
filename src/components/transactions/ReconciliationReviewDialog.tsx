@@ -10,6 +10,7 @@ import {
 import { Skeleton } from "@/components/ui/skeleton";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Separator } from "@/components/ui/separator";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 
 interface ReconciliationReviewDialogProps {
   open: boolean;
@@ -24,6 +25,11 @@ interface ReconciliationReviewDialogProps {
   bankAccountId: string | null;
 }
 
+interface CostCodeBreakdownEntry {
+  code: string;
+  amount: number;
+}
+
 interface ClearedTransaction {
   id: string;
   date: string;
@@ -31,27 +37,28 @@ interface ClearedTransaction {
   reference?: string;
   description?: string;
   costCode?: string;
+  costCodeBreakdown?: CostCodeBreakdownEntry[];
   amount: number;
   type: 'check' | 'deposit' | 'bill_payment' | 'journal_entry';
 }
 
-// Aggregate distinct "code - name" strings for a set of cost_code_ids
-function summarizeCostCodes(
-  ids: (string | null | undefined)[],
+// Group lines by cost code and sum amounts (cent-precise)
+function buildCostCodeBreakdown(
+  lines: { cost_code_id?: string | null; amount?: number | string | null }[],
   ccMap: Map<string, string>
-): string | undefined {
-  const labels = Array.from(
-    new Set(
-      ids
-        .filter((x): x is string => !!x)
-        .map((id) => ccMap.get(id))
-        .filter((v): v is string => !!v)
-    )
-  );
-  if (labels.length === 0) return undefined;
-  if (labels.length > 2) return 'Multiple';
-  return labels.join(', ');
+): CostCodeBreakdownEntry[] {
+  const totals = new Map<string, number>();
+  lines.forEach((l) => {
+    const label = l.cost_code_id ? ccMap.get(l.cost_code_id) : undefined;
+    if (!label) return;
+    const amt = Math.round(Number(l.amount || 0) * 100);
+    totals.set(label, (totals.get(label) || 0) + amt);
+  });
+  return Array.from(totals.entries())
+    .map(([code, cents]) => ({ code, amount: cents / 100 }))
+    .sort((a, b) => Math.abs(b.amount) - Math.abs(a.amount));
 }
+
 
 // Combine distinct line memos into a compact description
 function summarizeMemos(memos: (string | null | undefined)[]): string | undefined {
@@ -92,7 +99,7 @@ export function ReconciliationReviewDialog({
       const { data: checkLines } = checkIds.length
         ? await supabase
             .from('check_lines')
-            .select('check_id, memo, cost_code_id, line_number')
+            .select('check_id, memo, cost_code_id, line_number, amount')
             .in('check_id', checkIds)
             .order('line_number', { ascending: true })
         : { data: [] as any[] };
@@ -162,7 +169,7 @@ export function ReconciliationReviewDialog({
       const { data: billLines } = allBillIds.length
         ? await supabase
             .from('bill_lines')
-            .select('bill_id, memo, cost_code_id, line_number')
+            .select('bill_id, memo, cost_code_id, line_number, amount')
             .in('bill_id', allBillIds)
             .order('line_number', { ascending: true })
         : { data: [] as any[] };
@@ -265,7 +272,7 @@ export function ReconciliationReviewDialog({
               payee: bill ? (vendorMap.get(bill.vendor_id) || 'Unknown Vendor') : 'Unknown Vendor',
               reference: bill?.reference_number || undefined,
               description,
-              costCode: summarizeCostCodes(lines.map((l: any) => l.cost_code_id), ccMap),
+              costCodeBreakdown: buildCostCodeBreakdown(lines, ccMap),
               amount: Number(line.credit),
               type: 'bill_payment' as const,
             };
@@ -317,7 +324,7 @@ export function ReconciliationReviewDialog({
                 payee: vendorMap.get(bill.vendor_id) || 'Unknown Vendor',
                 reference: bill.reference_number || undefined,
                 description,
-                costCode: summarizeCostCodes(lines.map((l: any) => l.cost_code_id), ccMap),
+                costCodeBreakdown: buildCostCodeBreakdown(lines, ccMap),
                 amount: billToAmount.get(bill.id) || 0,
                 type: 'bill_payment' as const,
               };
@@ -334,15 +341,20 @@ export function ReconciliationReviewDialog({
       }
 
       // ----- Manual JE transactions -----
-      const journalEntryTransactions: ClearedTransaction[] = manualJeLines.map((line: any) => ({
-        id: line.id,
-        date: line.journal_entries?.entry_date || '',
-        payee: line.journal_entries?.description || 'Manual Journal Entry',
-        description: line.memo || undefined,
-        costCode: line.cost_code_id ? ccMap.get(line.cost_code_id) : undefined,
-        amount: Number(line.debit) > 0 ? Number(line.debit) : -Number(line.credit),
-        type: 'journal_entry' as const,
-      }));
+      const journalEntryTransactions: ClearedTransaction[] = manualJeLines.map((line: any) => {
+        const label = line.cost_code_id ? ccMap.get(line.cost_code_id) : undefined;
+        const amt = Number(line.debit) > 0 ? Number(line.debit) : Number(line.credit);
+        return {
+          id: line.id,
+          date: line.journal_entries?.entry_date || '',
+          payee: line.journal_entries?.description || 'Manual Journal Entry',
+          description: line.memo || undefined,
+          costCode: label,
+          costCodeBreakdown: label ? [{ code: label, amount: amt }] : [],
+          amount: Number(line.debit) > 0 ? Number(line.debit) : -Number(line.credit),
+          type: 'journal_entry' as const,
+        };
+      });
 
       return {
         checks: (checks || []).map((c) => {
@@ -357,7 +369,7 @@ export function ReconciliationReviewDialog({
             payee: c.pay_to,
             reference: c.check_number || undefined,
             description,
-            costCode: summarizeCostCodes(lines.map((l: any) => l.cost_code_id), ccMap),
+            costCodeBreakdown: buildCostCodeBreakdown(lines, ccMap),
             amount: c.amount,
             type: 'check' as const,
           };
@@ -485,8 +497,11 @@ export function ReconciliationReviewDialog({
                                 {t.description || '-'}
                               </td>
                               <td className="p-2">{t.reference || '-'}</td>
-                              <td className="p-2 max-w-[180px] truncate" title={t.costCode || ''}>
-                                {t.costCode || '-'}
+                              <td className="p-2 max-w-[200px]">
+                                <CostCodeCell
+                                  breakdown={t.costCodeBreakdown}
+                                  formatCurrency={formatCurrency}
+                                />
                               </td>
                               <td className="p-2 text-right text-destructive font-medium whitespace-nowrap">
                                 ({formatCurrency(t.amount)})
@@ -584,3 +599,66 @@ export function ReconciliationReviewDialog({
     </Dialog>
   );
 }
+
+function CostCodeCell({
+  breakdown,
+  formatCurrency,
+}: {
+  breakdown?: CostCodeBreakdownEntry[];
+  formatCurrency: (n: number) => string;
+}) {
+  if (!breakdown || breakdown.length === 0) {
+    return <span>-</span>;
+  }
+  if (breakdown.length === 1) {
+    return (
+      <span className="truncate block" title={breakdown[0].code}>
+        {breakdown[0].code}
+      </span>
+    );
+  }
+  const total = breakdown.reduce((sum, e) => sum + e.amount, 0);
+  return (
+    <TooltipProvider delayDuration={100}>
+      <Tooltip>
+        <TooltipTrigger asChild>
+          <button
+            type="button"
+            className="inline-flex items-center gap-1.5 text-left hover:underline focus:outline-none"
+          >
+            <span className="truncate max-w-[130px]">{breakdown[0].code}</span>
+            <span className="inline-flex items-center justify-center rounded-full bg-primary/10 text-primary text-xs font-medium px-1.5 py-0.5 whitespace-nowrap">
+              +{breakdown.length - 1}
+            </span>
+          </button>
+        </TooltipTrigger>
+        <TooltipContent side="top" align="start" className="p-0 max-w-sm">
+          <div className="p-2">
+            <div className="text-xs font-semibold mb-1.5 text-muted-foreground uppercase">
+              Cost Code Breakdown
+            </div>
+            <table className="text-xs w-full">
+              <tbody>
+                {breakdown.map((e) => (
+                  <tr key={e.code} className="border-t first:border-t-0">
+                    <td className="py-1 pr-3">{e.code}</td>
+                    <td className="py-1 text-right whitespace-nowrap font-medium">
+                      {formatCurrency(e.amount)}
+                    </td>
+                  </tr>
+                ))}
+                <tr className="border-t font-semibold">
+                  <td className="py-1 pr-3">Total</td>
+                  <td className="py-1 text-right whitespace-nowrap">
+                    {formatCurrency(total)}
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </TooltipContent>
+      </Tooltip>
+    </TooltipProvider>
+  );
+}
+
