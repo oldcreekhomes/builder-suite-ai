@@ -512,6 +512,11 @@ export function ReconciliationReviewDialog({
 
   const openDetail = (t: ClearedTransaction) => {
     if (!t._txn) return;
+    const bd = t.costCodeBreakdown || [];
+    const costCodeDisplay =
+      bd.length > 1
+        ? `${bd[0].code} +${bd.length - 1}`
+        : (t.costCode || (bd[0]?.code ?? null));
     setSelectedTxn({
       source_id: t._txn.source_id,
       line_id: t._txn.line_id,
@@ -519,8 +524,9 @@ export function ReconciliationReviewDialog({
       date: t.date,
       memo: t.description || null,
       description: t.description || null,
-      reference: t.reference || null,
+      reference: t.payee || t.reference || null,
       accountDisplay: null,
+      costCodeDisplay,
       source_type: t._txn.source_type,
       debit: t._txn.debit,
       credit: t._txn.credit,
