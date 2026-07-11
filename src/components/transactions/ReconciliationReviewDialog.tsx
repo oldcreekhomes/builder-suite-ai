@@ -1,6 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { format } from "date-fns";
 import { formatDateSafe } from "@/utils/dateOnly";
 import {
   Dialog,
@@ -30,8 +29,28 @@ interface ClearedTransaction {
   date: string;
   payee: string;
   reference?: string;
+  description?: string;
+  costCode?: string;
   amount: number;
   type: 'check' | 'deposit' | 'bill_payment' | 'journal_entry';
+}
+
+// Aggregate distinct "code - name" strings for a set of cost_code_ids
+function summarizeCostCodes(
+  ids: (string | null | undefined)[],
+  ccMap: Map<string, string>
+): string | undefined {
+  const labels = Array.from(
+    new Set(
+      ids
+        .filter((x): x is string => !!x)
+        .map((id) => ccMap.get(id))
+        .filter((v): v is string => !!v)
+    )
+  );
+  if (labels.length === 0) return undefined;
+  if (labels.length > 2) return 'Multiple';
+  return labels.join(', ');
 }
 
 export function ReconciliationReviewDialog({
@@ -42,7 +61,6 @@ export function ReconciliationReviewDialog({
 }: ReconciliationReviewDialogProps) {
   const reconciliationId = reconciliation?.id;
 
-  // Fetch all transactions linked to this reconciliation
   const { data, isLoading } = useQuery({
     queryKey: ['reconciliation-transactions-by-id', reconciliationId],
     queryFn: async () => {
@@ -50,22 +68,39 @@ export function ReconciliationReviewDialog({
         return { checks: [], deposits: [], billPayments: [], journalEntries: [] };
       }
 
-      // Fetch checks
+      // ----- Checks -----
       const { data: checks } = await supabase
         .from('checks')
-        .select('id, check_date, pay_to, amount, check_number')
+        .select('id, check_date, pay_to, amount, check_number, memo')
         .eq('reconciliation_id', reconciliationId);
 
-      // Fetch deposits
+      const checkIds = (checks || []).map((c) => c.id);
+      const { data: checkLines } = checkIds.length
+        ? await supabase
+            .from('check_lines')
+            .select('check_id, memo, cost_code_id, line_number')
+            .in('check_id', checkIds)
+            .order('line_number', { ascending: true })
+        : { data: [] as any[] };
+
+      // ----- Deposits -----
       const { data: deposits } = await supabase
         .from('deposits')
         .select('id, deposit_date, memo, amount, company_name')
         .eq('reconciliation_id', reconciliationId);
 
-      // Fetch bill payments via journal_entry_lines reconciled to this reconciliation
-      // (Each partial payment is tracked at the JE line level)
+      const depositIds = (deposits || []).map((d) => d.id);
+      const { data: depositLines } = depositIds.length
+        ? await supabase
+            .from('deposit_lines')
+            .select('deposit_id, memo, line_number')
+            .in('deposit_id', depositIds)
+            .order('line_number', { ascending: true })
+        : { data: [] as any[] };
+
+      // ----- Bill payments via JE lines -----
       let billPayments: ClearedTransaction[] = [];
-      
+
       const { data: reconciledBillPaymentLines } = await supabase
         .from('journal_entry_lines')
         .select(`
@@ -83,107 +118,55 @@ export function ReconciliationReviewDialog({
         .eq('account_id', bankAccountId)
         .gt('credit', 0);
 
-      // Filter to only bill_payment source types
       const bpLines = (reconciledBillPaymentLines || []).filter(
         (line: any) => line.journal_entries?.source_type === 'bill_payment'
       );
 
-      if (bpLines.length > 0) {
-        // Get bill IDs from journal entries
-        const billIds = [...new Set(bpLines.map((l: any) => l.journal_entries.source_id))];
-        
-        // Fetch bills for reference numbers and vendor IDs
-        const { data: bills } = await supabase
-          .from('bills')
-          .select('id, reference_number, vendor_id')
-          .in('id', billIds);
+      // Collect all bill IDs we need details for (JE path + legacy path)
+      const jeBillIds = bpLines
+        .map((l: any) => l.journal_entries?.source_id)
+        .filter(Boolean);
 
-        const billMap = new Map((bills || []).map(b => [b.id, b]));
-        
-        // Get vendor names
-        const vendorIds = [...new Set((bills || []).map(b => b.vendor_id))];
-        const { data: vendors } = await supabase
-          .from('companies')
-          .select('id, company_name')
-          .in('id', vendorIds.length > 0 ? vendorIds : ['__none__']);
-        const vendorMap = new Map((vendors || []).map(v => [v.id, v.company_name]));
-
-        billPayments = bpLines.map((line: any) => {
-          const bill = billMap.get(line.journal_entries.source_id);
-          return {
-            id: line.id,
-            date: line.journal_entries.entry_date || '',
-            payee: bill ? (vendorMap.get(bill.vendor_id) || 'Unknown Vendor') : 'Unknown Vendor',
-            reference: bill?.reference_number || undefined,
-            amount: Number(line.credit),
-            type: 'bill_payment' as const,
-          };
-        }).filter((bp: ClearedTransaction) => bp.amount > 0);
-      }
-
-      // Also check legacy: bills directly reconciled (for older reconciliations)
+      // ----- Legacy bills directly reconciled -----
       const { data: legacyBills } = await supabase
         .from('bills')
-        .select('id, reference_number, vendor_id, reconciliation_date')
+        .select('id, reference_number, vendor_id, notes, reconciliation_date')
         .eq('reconciliation_id', reconciliationId);
 
-      if (legacyBills && legacyBills.length > 0) {
-        const legacyBillIds = legacyBills.map(b => b.id);
-        const vendorIds = [...new Set(legacyBills.map(b => b.vendor_id))];
-        const { data: vendors } = await supabase
-          .from('companies')
-          .select('id, company_name')
-          .in('id', vendorIds);
-        const vendorMap = new Map((vendors || []).map(v => [v.id, v.company_name]));
+      const allBillIds = Array.from(
+        new Set([...jeBillIds, ...((legacyBills || []).map((b) => b.id))])
+      );
 
-        const { data: journalEntries } = await supabase
-          .from('journal_entries')
-          .select('id, entry_date, source_id')
-          .eq('source_type', 'bill_payment')
-          .in('source_id', legacyBillIds);
+      // Fetch bill details + lines
+      const { data: allBills } = allBillIds.length
+        ? await supabase
+            .from('bills')
+            .select('id, reference_number, vendor_id, notes')
+            .in('id', allBillIds)
+        : { data: [] as any[] };
 
-        if (journalEntries && journalEntries.length > 0) {
-          const jeIds = journalEntries.map(je => je.id);
-          const { data: journalLines } = await supabase
-            .from('journal_entry_lines')
-            .select('journal_entry_id, credit')
-            .in('journal_entry_id', jeIds)
-            .eq('account_id', bankAccountId)
-            .gt('credit', 0);
+      const { data: billLines } = allBillIds.length
+        ? await supabase
+            .from('bill_lines')
+            .select('bill_id, memo, cost_code_id, line_number')
+            .in('bill_id', allBillIds)
+            .order('line_number', { ascending: true })
+        : { data: [] as any[] };
 
-          const billToAmount = new Map<string, number>();
-          const billToDate = new Map<string, string>();
-          journalEntries.forEach(je => {
-            const lines = (journalLines || []).filter(l => l.journal_entry_id === je.id);
-            const total = lines.reduce((sum, l) => sum + Number(l.credit), 0);
-            billToAmount.set(je.source_id, (billToAmount.get(je.source_id) || 0) + total);
-            const existingDate = billToDate.get(je.source_id);
-            if (!existingDate || je.entry_date > existingDate) {
-              billToDate.set(je.source_id, je.entry_date);
-            }
-          });
+      // Vendors
+      const vendorIds = Array.from(
+        new Set((allBills || []).map((b: any) => b.vendor_id).filter(Boolean))
+      );
+      const { data: vendors } = vendorIds.length
+        ? await supabase
+            .from('companies')
+            .select('id, company_name')
+            .in('id', vendorIds)
+        : { data: [] as any[] };
+      const vendorMap = new Map((vendors || []).map((v: any) => [v.id, v.company_name]));
+      const billMap = new Map((allBills || []).map((b: any) => [b.id, b]));
 
-          const legacyPayments = legacyBills.map(bill => ({
-            id: bill.id,
-            date: billToDate.get(bill.id) || '',
-            payee: vendorMap.get(bill.vendor_id) || 'Unknown Vendor',
-            reference: bill.reference_number || undefined,
-            amount: billToAmount.get(bill.id) || 0,
-            type: 'bill_payment' as const,
-          })).filter(bp => bp.amount > 0);
-
-          // Dedupe legacy entries by bill_id against bills already surfaced by
-          // the JE-line pass above (bpLines[].journal_entries.source_id == bill_id).
-          const seenBillIds = new Set(
-            bpLines.map((l: any) => l.journal_entries?.source_id).filter(Boolean),
-          );
-          legacyPayments.forEach(lp => {
-            if (!seenBillIds.has(lp.id)) billPayments.push(lp);
-          });
-        }
-      }
-
-      // Fetch manual journal entry lines reconciled to this reconciliation
+      // ----- Manual JE lines -----
       const { data: jeLines } = await supabase
         .from('journal_entry_lines')
         .select(`
@@ -191,6 +174,7 @@ export function ReconciliationReviewDialog({
           debit,
           credit,
           memo,
+          cost_code_id,
           journal_entry_id,
           journal_entries!inner (
             id,
@@ -202,32 +186,183 @@ export function ReconciliationReviewDialog({
         .eq('reconciliation_id', reconciliationId)
         .eq('account_id', bankAccountId);
 
-      const journalEntryTransactions: ClearedTransaction[] = (jeLines || [])
-        .filter((line: any) => line.journal_entries?.source_type === 'manual')
-        .map((line: any) => ({
-          id: line.id,
-          date: line.journal_entries?.entry_date || '',
-          payee: line.memo || line.journal_entries?.description || 'Manual Journal Entry',
-          amount: Number(line.debit) > 0 ? Number(line.debit) : -Number(line.credit),
-          type: 'journal_entry' as const,
-        }));
+      const manualJeLines = (jeLines || []).filter(
+        (line: any) => line.journal_entries?.source_type === 'manual'
+      );
+
+      // ----- Cost codes lookup for everything -----
+      const allCostCodeIds = Array.from(
+        new Set(
+          [
+            ...(checkLines || []).map((l: any) => l.cost_code_id),
+            ...(billLines || []).map((l: any) => l.cost_code_id),
+            ...manualJeLines.map((l: any) => l.cost_code_id),
+          ].filter(Boolean)
+        )
+      );
+      const { data: costCodes } = allCostCodeIds.length
+        ? await supabase
+            .from('cost_codes')
+            .select('id, code, name')
+            .in('id', allCostCodeIds)
+        : { data: [] as any[] };
+      const ccMap = new Map(
+        (costCodes || []).map((c: any) => [c.id, `${c.code} - ${c.name}`])
+      );
+
+      // Group check lines by check_id
+      const checkLinesByCheck = new Map<string, any[]>();
+      (checkLines || []).forEach((l: any) => {
+        const arr = checkLinesByCheck.get(l.check_id) || [];
+        arr.push(l);
+        checkLinesByCheck.set(l.check_id, arr);
+      });
+
+      // Group bill lines by bill_id
+      const billLinesByBill = new Map<string, any[]>();
+      (billLines || []).forEach((l: any) => {
+        const arr = billLinesByBill.get(l.bill_id) || [];
+        arr.push(l);
+        billLinesByBill.set(l.bill_id, arr);
+      });
+
+      // Group deposit lines by deposit_id
+      const depositLinesByDeposit = new Map<string, any[]>();
+      (depositLines || []).forEach((l: any) => {
+        const arr = depositLinesByDeposit.get(l.deposit_id) || [];
+        arr.push(l);
+        depositLinesByDeposit.set(l.deposit_id, arr);
+      });
+
+      // ----- Build bill payments from JE lines -----
+      if (bpLines.length > 0) {
+        billPayments = bpLines
+          .map((line: any) => {
+            const billId = line.journal_entries.source_id;
+            const bill: any = billMap.get(billId);
+            const lines = billLinesByBill.get(billId) || [];
+            const description =
+              (bill?.notes && String(bill.notes).trim()) ||
+              (lines[0]?.memo && String(lines[0].memo).trim()) ||
+              undefined;
+            return {
+              id: line.id,
+              date: line.journal_entries.entry_date || '',
+              payee: bill ? (vendorMap.get(bill.vendor_id) || 'Unknown Vendor') : 'Unknown Vendor',
+              reference: bill?.reference_number || undefined,
+              description,
+              costCode: summarizeCostCodes(lines.map((l: any) => l.cost_code_id), ccMap),
+              amount: Number(line.credit),
+              type: 'bill_payment' as const,
+            };
+          })
+          .filter((bp: ClearedTransaction) => bp.amount > 0);
+      }
+
+      // ----- Legacy bills path -----
+      if (legacyBills && legacyBills.length > 0) {
+        const legacyBillIds = legacyBills.map((b) => b.id);
+
+        const { data: journalEntries } = await supabase
+          .from('journal_entries')
+          .select('id, entry_date, source_id')
+          .eq('source_type', 'bill_payment')
+          .in('source_id', legacyBillIds);
+
+        if (journalEntries && journalEntries.length > 0) {
+          const jeIds = journalEntries.map((je) => je.id);
+          const { data: journalLines } = await supabase
+            .from('journal_entry_lines')
+            .select('journal_entry_id, credit')
+            .in('journal_entry_id', jeIds)
+            .eq('account_id', bankAccountId)
+            .gt('credit', 0);
+
+          const billToAmount = new Map<string, number>();
+          const billToDate = new Map<string, string>();
+          journalEntries.forEach((je) => {
+            const lines = (journalLines || []).filter((l) => l.journal_entry_id === je.id);
+            const total = lines.reduce((sum, l) => sum + Number(l.credit), 0);
+            billToAmount.set(je.source_id, (billToAmount.get(je.source_id) || 0) + total);
+            const existingDate = billToDate.get(je.source_id);
+            if (!existingDate || je.entry_date > existingDate) {
+              billToDate.set(je.source_id, je.entry_date);
+            }
+          });
+
+          const legacyPayments = legacyBills
+            .map((bill) => {
+              const lines = billLinesByBill.get(bill.id) || [];
+              const description =
+                (bill.notes && String(bill.notes).trim()) ||
+                (lines[0]?.memo && String(lines[0].memo).trim()) ||
+                undefined;
+              return {
+                id: bill.id,
+                date: billToDate.get(bill.id) || '',
+                payee: vendorMap.get(bill.vendor_id) || 'Unknown Vendor',
+                reference: bill.reference_number || undefined,
+                description,
+                costCode: summarizeCostCodes(lines.map((l: any) => l.cost_code_id), ccMap),
+                amount: billToAmount.get(bill.id) || 0,
+                type: 'bill_payment' as const,
+              };
+            })
+            .filter((bp) => bp.amount > 0);
+
+          const seenBillIds = new Set(
+            bpLines.map((l: any) => l.journal_entries?.source_id).filter(Boolean)
+          );
+          legacyPayments.forEach((lp) => {
+            if (!seenBillIds.has(lp.id)) billPayments.push(lp);
+          });
+        }
+      }
+
+      // ----- Manual JE transactions -----
+      const journalEntryTransactions: ClearedTransaction[] = manualJeLines.map((line: any) => ({
+        id: line.id,
+        date: line.journal_entries?.entry_date || '',
+        payee: line.journal_entries?.description || 'Manual Journal Entry',
+        description: line.memo || undefined,
+        costCode: line.cost_code_id ? ccMap.get(line.cost_code_id) : undefined,
+        amount: Number(line.debit) > 0 ? Number(line.debit) : -Number(line.credit),
+        type: 'journal_entry' as const,
+      }));
 
       return {
-        checks: (checks || []).map(c => ({
-          id: c.id,
-          date: c.check_date,
-          payee: c.pay_to,
-          reference: c.check_number || undefined,
-          amount: c.amount,
-          type: 'check' as const,
-        })),
-        deposits: (deposits || []).map(d => ({
-          id: d.id,
-          date: d.deposit_date,
-          payee: d.company_name || d.memo || 'Deposit',
-          amount: d.amount,
-          type: 'deposit' as const,
-        })),
+        checks: (checks || []).map((c) => {
+          const lines = checkLinesByCheck.get(c.id) || [];
+          const description =
+            (c.memo && String(c.memo).trim()) ||
+            (lines[0]?.memo && String(lines[0].memo).trim()) ||
+            undefined;
+          return {
+            id: c.id,
+            date: c.check_date,
+            payee: c.pay_to,
+            reference: c.check_number || undefined,
+            description,
+            costCode: summarizeCostCodes(lines.map((l: any) => l.cost_code_id), ccMap),
+            amount: c.amount,
+            type: 'check' as const,
+          };
+        }),
+        deposits: (deposits || []).map((d) => {
+          const lines = depositLinesByDeposit.get(d.id) || [];
+          const description =
+            (d.memo && String(d.memo).trim()) ||
+            (lines[0]?.memo && String(lines[0].memo).trim()) ||
+            undefined;
+          return {
+            id: d.id,
+            date: d.deposit_date,
+            payee: d.company_name || d.memo || 'Deposit',
+            description,
+            amount: d.amount,
+            type: 'deposit' as const,
+          };
+        }),
         billPayments,
         journalEntries: journalEntryTransactions,
       };
@@ -238,20 +373,17 @@ export function ReconciliationReviewDialog({
   const formatCurrency = (amount: number) =>
     new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(amount);
 
-  // Combine checks, bill payments, and journal entry debits
   const allDebits = [
     ...(data?.checks || []),
     ...(data?.billPayments || []),
-    ...(data?.journalEntries || []).filter(je => je.amount > 0),
+    ...(data?.journalEntries || []).filter((je) => je.amount > 0),
   ].sort((a, b) => a.date.localeCompare(b.date));
 
-  // Combine deposits and journal entry credits
   const allCredits = [
     ...(data?.deposits || []),
-    ...(data?.journalEntries || []).filter(je => je.amount < 0).map(je => ({
-      ...je,
-      amount: Math.abs(je.amount),
-    })),
+    ...(data?.journalEntries || [])
+      .filter((je) => je.amount < 0)
+      .map((je) => ({ ...je, amount: Math.abs(je.amount) })),
   ].sort((a, b) => a.date.localeCompare(b.date));
 
   const totalDebits = allDebits.reduce((sum, t) => sum + t.amount, 0);
@@ -262,7 +394,7 @@ export function ReconciliationReviewDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-4xl h-[85vh] max-h-[85vh] flex flex-col overflow-hidden">
+      <DialogContent className="max-w-6xl h-[85vh] max-h-[85vh] flex flex-col overflow-hidden">
         <DialogHeader>
           <DialogTitle className="text-xl">
             Reconciliation Review
@@ -318,7 +450,9 @@ export function ReconciliationReviewDialog({
                             <th className="p-2 text-left">Date</th>
                             <th className="p-2 text-left">Type</th>
                             <th className="p-2 text-left">Payee</th>
+                            <th className="p-2 text-left">Description</th>
                             <th className="p-2 text-left">Reference</th>
+                            <th className="p-2 text-left">Cost Code</th>
                             <th className="p-2 text-right">Amount</th>
                           </tr>
                         </thead>
@@ -326,15 +460,21 @@ export function ReconciliationReviewDialog({
                           {allDebits.map((t) => (
                             <tr key={t.id} className="border-t">
                               <td className="p-2">
-                               {t.date ? formatDateSafe(t.date, "MM/dd/yyyy") : '-'}
+                                {t.date ? formatDateSafe(t.date, "MM/dd/yyyy") : '-'}
                               </td>
                               <td className="p-2">
                                 {t.type === 'bill_payment' ? 'Bill Pmt - Check' :
                                  t.type === 'journal_entry' ? 'JE' : 'Check'}
                               </td>
                               <td className="p-2">{t.payee}</td>
+                              <td className="p-2 max-w-[220px] truncate" title={t.description || ''}>
+                                {t.description || '-'}
+                              </td>
                               <td className="p-2">{t.reference || '-'}</td>
-                              <td className="p-2 text-right text-destructive font-medium">
+                              <td className="p-2 max-w-[180px] truncate" title={t.costCode || ''}>
+                                {t.costCode || '-'}
+                              </td>
+                              <td className="p-2 text-right text-destructive font-medium whitespace-nowrap">
                                 ({formatCurrency(t.amount)})
                               </td>
                             </tr>
@@ -365,6 +505,7 @@ export function ReconciliationReviewDialog({
                             <th className="p-2 text-left">Date</th>
                             <th className="p-2 text-left">Type</th>
                             <th className="p-2 text-left">Source</th>
+                            <th className="p-2 text-left">Description</th>
                             <th className="p-2 text-right">Amount</th>
                           </tr>
                         </thead>
@@ -378,7 +519,10 @@ export function ReconciliationReviewDialog({
                                 {t.type === 'journal_entry' ? 'JE' : 'Deposit'}
                               </td>
                               <td className="p-2">{t.payee}</td>
-                              <td className="p-2 text-right text-green-600 font-medium">
+                              <td className="p-2 max-w-[260px] truncate" title={t.description || ''}>
+                                {t.description || '-'}
+                              </td>
+                              <td className="p-2 text-right text-green-600 font-medium whitespace-nowrap">
                                 {formatCurrency(t.amount)}
                               </td>
                             </tr>
