@@ -82,12 +82,12 @@ function BankReconciliationsDialogContent({ projectId }: { projectId: string }) 
           <table className="w-full">
             <thead className="bg-muted/50">
               <tr>
-                <th className="text-left p-3 font-medium">Statement Date</th>
+                <th className="text-right p-3 font-medium">Statement Date</th>
                 <th className="text-right p-3 font-medium">Beginning Balance</th>
                 <th className="text-right p-3 font-medium">Ending Balance</th>
                 <th className="text-right p-3 font-medium">Difference</th>
-                <th className="text-center p-3 font-medium">Status</th>
-                <th className="text-left p-3 font-medium">Completed / Updated</th>
+                <th className="text-right p-3 font-medium">Status</th>
+                <th className="text-right p-3 font-medium">Completed / Updated</th>
                 <th className="text-center p-3 font-medium">Actions</th>
               </tr>
             </thead>
