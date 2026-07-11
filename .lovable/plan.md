@@ -1,16 +1,15 @@
-Fix the PO cancellation path in two places:
+## Change
 
-1. **Fix the email function runtime/import failure**
-   - Update `send-po-email` so Resend is imported in a Deno-compatible way instead of the current `esm.sh/resend@4.0.0` path that is producing `node:zlib` / module resolution errors in edge logs.
+In `src/components/accounting/BankReconciliationsDialog.tsx`, replace the three icon buttons (Download, Pencil edit, Delete trash) in the Actions column with the standard `TableRowActions` three-dot menu used across the app (same component as `PurchaseOrdersTableRowActions`).
 
-2. **Stop cancellation emails from doing bid/proposal lookup work**
-   - For `isCancellation: true`, skip the bid package/proposal PDF lookup and PDF stamping logic entirely. A cancellation email does not need to refetch the original bid PDFs, and that lookup is where the `PGRST116` 0-rows bid package error is appearing.
+## Details
 
-3. **Make delete/cancel unblockable by email side effects**
-   - In `usePurchaseOrderMutations.ts`, delete the PO first.
-   - After the delete succeeds, try sending the cancellation email best-effort.
-   - If the email fails, show a warning that the PO was deleted but the email failed, instead of failing the delete.
+- Import `TableRowActions` from `@/components/ui/table-row-actions`.
+- Remove the `Download`, `Pencil` (and unused `DeleteButton`) imports if no longer used.
+- Render a single `TableRowActions` per row with three options:
+  1. **Download** → calls existing `handleDownload(storage_path, filename)`.
+  2. **Edit** → calls existing `handleEdit(id, original_filename || filename)`.
+  3. **Delete** → destructive, `requiresConfirmation: true`, confirm title "Delete Bank Reconciliation", triggers `deleteMutation.mutate(id)`.
+- Keep the "Actions" header centered; the cell will now contain the standard ⋯ menu button matching the rest of the app.
 
-4. **Verify**
-   - Confirm the code compiles.
-   - Check recent `send-po-email` logs after deploy/call if available to ensure the module error and cancellation lookup error are gone.
+No other files change.
