@@ -35,6 +35,7 @@ interface Transaction {
   description: string | null;
   reference: string | null;
   accountDisplay: string | null;
+  costCodeDisplay?: string | null;
   source_type: string;
   debit: number;
   credit: number;
