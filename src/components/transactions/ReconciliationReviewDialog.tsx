@@ -1,4 +1,6 @@
+import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
+import { TransactionDetailDialog } from "@/components/accounting/TransactionDetailDialog";
 import { supabase } from "@/integrations/supabase/client";
 import { formatDateSafe } from "@/utils/dateOnly";
 import {
@@ -30,6 +32,16 @@ interface BreakdownEntry {
   amount: number;
 }
 
+interface ClickTxn {
+  source_type: string;
+  source_id: string;
+  line_id: string;
+  journal_entry_id: string;
+  debit: number;
+  credit: number;
+  created_at: string;
+}
+
 interface ClearedTransaction {
   id: string;
   date: string;
@@ -41,6 +53,7 @@ interface ClearedTransaction {
   sourceBreakdown?: BreakdownEntry[];
   amount: number;
   type: 'check' | 'deposit' | 'bill_payment' | 'journal_entry';
+  _txn?: ClickTxn;
 }
 
 // Group items by a key and sum amounts (cent-precise), resolving labels via a map
@@ -119,7 +132,7 @@ export function ReconciliationReviewDialog({
       // ----- Deposits -----
       const { data: deposits } = await supabase
         .from('deposits')
-        .select('id, deposit_date, memo, amount, company_name')
+        .select('id, deposit_date, memo, amount, company_name, company_id')
         .eq('reconciliation_id', reconciliationId);
 
       const depositIds = (deposits || []).map((d) => d.id);
@@ -131,19 +144,24 @@ export function ReconciliationReviewDialog({
             .order('line_number', { ascending: true })
         : { data: [] as any[] };
 
-      // Look up account labels for deposit source
-      const depositAccountIds = Array.from(
-        new Set((depositLines || []).map((l: any) => l.account_id).filter(Boolean))
+      // Lookup companies for deposit source name (matches Bank Register logic)
+      const depositCompanyIds = Array.from(
+        new Set(
+          (deposits || [])
+            .map((d: any) => d.company_id)
+            .filter(Boolean)
+        )
       );
-      const { data: depositAccounts } = depositAccountIds.length
+      const { data: depositCompanies } = depositCompanyIds.length
         ? await supabase
-            .from('accounts')
-            .select('id, code, name')
-            .in('id', depositAccountIds)
+            .from('companies')
+            .select('id, company_name')
+            .in('id', depositCompanyIds)
         : { data: [] as any[] };
-      const acctMap = new Map(
-        (depositAccounts || []).map((a: any) => [a.id, `${a.code} - ${a.name}`])
+      const depositCompanyMap = new Map(
+        (depositCompanies || []).map((c: any) => [c.id, c.company_name])
       );
+
 
       // ----- Bill payments via JE lines -----
       let billPayments: ClearedTransaction[] = [];
@@ -213,7 +231,9 @@ export function ReconciliationReviewDialog({
       const vendorMap = new Map((vendors || []).map((v: any) => [v.id, v.company_name]));
       const billMap = new Map((allBills || []).map((b: any) => [b.id, b]));
 
-      // ----- Manual JE lines -----
+      // ----- All bank-account JE lines for this reconciliation -----
+      // Used for manual JE transactions AND to enrich checks/deposits with
+      // journal_entry_id, line_id, debit/credit, created_at for the detail dialog.
       const { data: jeLines } = await supabase
         .from('journal_entry_lines')
         .select(`
@@ -223,15 +243,36 @@ export function ReconciliationReviewDialog({
           memo,
           cost_code_id,
           journal_entry_id,
+          created_at,
           journal_entries!inner (
             id,
             entry_date,
             description,
-            source_type
+            source_type,
+            source_id
           )
         `)
         .eq('reconciliation_id', reconciliationId)
         .eq('account_id', bankAccountId);
+
+      // Map source_type:source_id -> ClickTxn for check/deposit lookup
+      const sourceTxnMap = new Map<string, ClickTxn>();
+      (jeLines || []).forEach((line: any) => {
+        const je = line.journal_entries;
+        if (!je?.source_type || !je?.source_id) return;
+        const key = `${je.source_type}:${je.source_id}`;
+        if (sourceTxnMap.has(key)) return;
+        sourceTxnMap.set(key, {
+          source_type: je.source_type,
+          source_id: je.source_id,
+          line_id: line.id,
+          journal_entry_id: line.journal_entry_id,
+          debit: Number(line.debit) || 0,
+          credit: Number(line.credit) || 0,
+          created_at: line.created_at,
+        });
+      });
+
 
       const manualJeLines = (jeLines || []).filter(
         (line: any) => line.journal_entries?.source_type === 'manual'
@@ -379,7 +420,41 @@ export function ReconciliationReviewDialog({
           costCodeBreakdown: label ? [{ code: label, amount: amt }] : [],
           amount: Number(line.debit) > 0 ? Number(line.debit) : -Number(line.credit),
           type: 'journal_entry' as const,
+          _txn: {
+            source_type: 'manual',
+            source_id: line.journal_entry_id,
+            line_id: line.id,
+            journal_entry_id: line.journal_entry_id,
+            debit: Number(line.debit) || 0,
+            credit: Number(line.credit) || 0,
+            created_at: line.created_at,
+          },
         };
+      });
+
+      // Attach _txn to bill payment rows from the JE map
+      billPayments = billPayments.map((bp: any) => {
+        // bp.id for JE-path is the JE line id; for legacy path it's the bill id.
+        // Look up by bill id via bpLines list.
+        const bpLine = (bpLines as any[]).find((l) => l.id === bp.id);
+        if (bpLine) {
+          return {
+            ...bp,
+            _txn: {
+              source_type: 'bill_payment',
+              source_id: bpLine.journal_entries?.source_id,
+              line_id: bpLine.id,
+              journal_entry_id: bpLine.journal_entry_id,
+              debit: 0,
+              credit: Number(bpLine.credit) || 0,
+              created_at: (bpLine as any).created_at || new Date().toISOString(),
+            },
+          };
+        }
+        // Legacy: look up by bill source_id
+        const key = `bill_payment:${bp.id}`;
+        const t = sourceTxnMap.get(key);
+        return t ? { ...bp, _txn: t } : bp;
       });
 
       return {
@@ -398,38 +473,61 @@ export function ReconciliationReviewDialog({
             costCodeBreakdown: buildCostCodeBreakdown(lines, ccMap),
             amount: c.amount,
             type: 'check' as const,
+            _txn: sourceTxnMap.get(`check:${c.id}`),
           };
         }),
-        deposits: (deposits || []).map((d) => {
+        deposits: (deposits || []).map((d: any) => {
           const lines = depositLinesByDeposit.get(d.id) || [];
           const description =
             summarizeMemos(lines.map((l: any) => l.memo)) ||
             (d.memo && String(d.memo).trim()) ||
             undefined;
-          const sourceBreakdown = buildBreakdown(
-            lines.map((l: any) => ({ key: l.account_id, amount: l.amount })),
-            acctMap
-          );
-          const payee =
-            sourceBreakdown.length > 0
-              ? sourceBreakdown[0].code
-              : (d.memo && String(d.memo).trim()) || 'Deposit';
+          // Source mirrors the Bank Register "Name" column:
+          // deposit.memo || company_name || 'Cash'
+          const source =
+            (d.memo && String(d.memo).trim()) ||
+            (d.company_id && depositCompanyMap.get(d.company_id)) ||
+            (d.company_name && String(d.company_name).trim()) ||
+            'Cash';
           return {
             id: d.id,
             date: d.deposit_date,
-            payee,
-            sourceBreakdown,
+            payee: source,
             description,
             amount: d.amount,
             type: 'deposit' as const,
+            _txn: sourceTxnMap.get(`deposit:${d.id}`),
           };
         }),
         billPayments,
         journalEntries: journalEntryTransactions,
       };
+
     },
     enabled: open && !!reconciliationId && !!bankAccountId,
   });
+
+  const [selectedTxn, setSelectedTxn] = useState<any>(null);
+
+  const openDetail = (t: ClearedTransaction) => {
+    if (!t._txn) return;
+    setSelectedTxn({
+      source_id: t._txn.source_id,
+      line_id: t._txn.line_id,
+      journal_entry_id: t._txn.journal_entry_id,
+      date: t.date,
+      memo: t.description || null,
+      description: t.description || null,
+      reference: t.reference || null,
+      accountDisplay: null,
+      source_type: t._txn.source_type,
+      debit: t._txn.debit,
+      credit: t._txn.credit,
+      created_at: t._txn.created_at,
+      reconciled: true,
+      reconciliation_date: reconciliation?.statement_date || null,
+    });
+  };
 
   const formatCurrency = (amount: number) =>
     new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(amount);
@@ -519,7 +617,11 @@ export function ReconciliationReviewDialog({
                         </thead>
                         <tbody>
                           {allDebits.map((t) => (
-                            <tr key={t.id} className="border-t">
+                            <tr
+                              key={t.id}
+                              className={`border-t ${t._txn ? 'cursor-pointer hover:bg-muted/50' : ''}`}
+                              onClick={() => openDetail(t)}
+                            >
                               <td className="p-2">
                                 {t.date ? formatDateSafe(t.date, "MM/dd/yyyy") : '-'}
                               </td>
@@ -528,11 +630,11 @@ export function ReconciliationReviewDialog({
                                  t.type === 'journal_entry' ? 'JE' : 'Check'}
                               </td>
                               <td className="p-2">{t.payee}</td>
-                              <td className="p-2 max-w-[220px]">
+                              <td className="p-2 max-w-[220px]" onClick={(e) => e.stopPropagation()}>
                                 <DescriptionCell text={t.description} />
                               </td>
                               <td className="p-2">{t.reference || '-'}</td>
-                              <td className="p-2 max-w-[200px]">
+                              <td className="p-2 max-w-[200px]" onClick={(e) => e.stopPropagation()}>
                                 <BreakdownCell
                                   breakdown={t.costCodeBreakdown}
                                   title="Cost Code Breakdown"
@@ -544,6 +646,7 @@ export function ReconciliationReviewDialog({
                               </td>
                             </tr>
                           ))}
+
                         </tbody>
                       </table>
                     </div>
@@ -576,22 +679,19 @@ export function ReconciliationReviewDialog({
                         </thead>
                         <tbody>
                           {allCredits.map((t) => (
-                            <tr key={t.id} className="border-t">
+                            <tr
+                              key={t.id}
+                              className={`border-t ${t._txn ? 'cursor-pointer hover:bg-muted/50' : ''}`}
+                              onClick={() => openDetail(t)}
+                            >
                               <td className="p-2">
                                 {t.date ? formatDateSafe(t.date, "MM/dd/yyyy") : '-'}
                               </td>
                               <td className="p-2">
                                 {t.type === 'journal_entry' ? 'JE' : 'Deposit'}
                               </td>
-                              <td className="p-2 max-w-[240px]">
-                                <BreakdownCell
-                                  breakdown={t.sourceBreakdown}
-                                  fallback={t.payee}
-                                  title="Source Breakdown"
-                                  formatCurrency={formatCurrency}
-                                />
-                              </td>
-                              <td className="p-2 max-w-[260px]">
+                              <td className="p-2 max-w-[240px] truncate">{t.payee}</td>
+                              <td className="p-2 max-w-[260px]" onClick={(e) => e.stopPropagation()}>
                                 <DescriptionCell text={t.description} />
                               </td>
                               <td className="p-2 text-right text-green-600 font-medium whitespace-nowrap">
@@ -599,6 +699,7 @@ export function ReconciliationReviewDialog({
                               </td>
                             </tr>
                           ))}
+
                         </tbody>
                       </table>
                     </div>
@@ -639,9 +740,17 @@ export function ReconciliationReviewDialog({
           </div>
         )}
       </DialogContent>
+      <TransactionDetailDialog
+        transaction={selectedTxn}
+        balance={0}
+        accountType="asset"
+        open={!!selectedTxn}
+        onOpenChange={(o) => { if (!o) setSelectedTxn(null); }}
+      />
     </Dialog>
   );
 }
+
 
 function BreakdownCell({
   breakdown,
