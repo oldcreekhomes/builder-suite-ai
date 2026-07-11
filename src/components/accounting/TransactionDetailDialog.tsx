@@ -170,6 +170,19 @@ export function TransactionDetailDialog({
             }
           }
 
+          // FAST PATH: fetch attachments immediately using known bill ids
+          // so the user sees the bill without waiting for enrichment queries.
+          if (billIds.size > 0) {
+            const { data: fastRows } = await supabase
+              .from('bill_attachments')
+              .select('id, file_name, file_path, content_type, file_size')
+              .in('bill_id', Array.from(billIds));
+            if (fastRows && fastRows.length > 0) {
+              setAttachments(fastRows);
+              setLoadingAttachments(false);
+            }
+          }
+
           if (paymentIds.size > 0) {
             const { data: allocs } = await supabase
               .from('bill_payment_allocations')
