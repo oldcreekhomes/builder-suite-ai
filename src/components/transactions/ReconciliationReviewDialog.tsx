@@ -53,6 +53,20 @@ function summarizeCostCodes(
   return labels.join(', ');
 }
 
+// Combine distinct line memos into a compact description
+function summarizeMemos(memos: (string | null | undefined)[]): string | undefined {
+  const cleaned = Array.from(
+    new Set(
+      memos
+        .map((m) => (m ?? '').trim())
+        .filter((m) => m.length > 0)
+    )
+  );
+  if (cleaned.length === 0) return undefined;
+  if (cleaned.length <= 2) return cleaned.join('; ');
+  return `${cleaned.slice(0, 2).join('; ')}…`;
+}
+
 export function ReconciliationReviewDialog({
   open,
   onOpenChange,
