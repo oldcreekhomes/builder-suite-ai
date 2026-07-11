@@ -524,12 +524,12 @@ export function ReconciliationReviewDialog({
                                 {t.date ? formatDateSafe(t.date, "MM/dd/yyyy") : '-'}
                               </td>
                               <td className="p-2">
-                                {t.type === 'bill_payment' ? 'Bill Pmt - Check' :
+                                {t.type === 'bill_payment' ? 'Bill Payment' :
                                  t.type === 'journal_entry' ? 'JE' : 'Check'}
                               </td>
                               <td className="p-2">{t.payee}</td>
-                              <td className="p-2 max-w-[220px] truncate" title={t.description || ''}>
-                                {t.description || '-'}
+                              <td className="p-2 max-w-[220px]">
+                                <DescriptionCell text={t.description} />
                               </td>
                               <td className="p-2">{t.reference || '-'}</td>
                               <td className="p-2 max-w-[200px]">
