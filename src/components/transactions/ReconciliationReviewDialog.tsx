@@ -630,7 +630,7 @@ export function ReconciliationReviewDialog({
                                 {t.type === 'bill_payment' ? 'Pmt' :
                                  t.type === 'journal_entry' ? 'JE' : 'Check'}
                               </td>
-                              <td className="p-2">{t.payee}</td>
+                              <td className="p-2 max-w-[220px] truncate">{t.payee}</td>
                               <td className="p-2 max-w-[220px]" onClick={(e) => e.stopPropagation()}>
                                 <DescriptionCell text={t.description} />
                               </td>
