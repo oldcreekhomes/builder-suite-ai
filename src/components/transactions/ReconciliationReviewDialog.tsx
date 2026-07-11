@@ -492,8 +492,12 @@ export function ReconciliationReviewDialog({
                                 {t.description || '-'}
                               </td>
                               <td className="p-2">{t.reference || '-'}</td>
-                              <td className="p-2 max-w-[180px] truncate" title={t.costCode || ''}>
-                                {t.costCode || '-'}
+                              <td className="p-2 max-w-[200px]">
+                                <CostCodeCell
+                                  breakdown={t.costCodeBreakdown}
+                                  fallback={t.costCode}
+                                  formatCurrency={formatCurrency}
+                                />
                               </td>
                               <td className="p-2 text-right text-destructive font-medium whitespace-nowrap">
                                 ({formatCurrency(t.amount)})
