@@ -53,6 +53,20 @@ function summarizeCostCodes(
   return labels.join(', ');
 }
 
+// Combine distinct line memos into a compact description
+function summarizeMemos(memos: (string | null | undefined)[]): string | undefined {
+  const cleaned = Array.from(
+    new Set(
+      memos
+        .map((m) => (m ?? '').trim())
+        .filter((m) => m.length > 0)
+    )
+  );
+  if (cleaned.length === 0) return undefined;
+  if (cleaned.length <= 2) return cleaned.join('; ');
+  return `${cleaned.slice(0, 2).join('; ')}…`;
+}
+
 export function ReconciliationReviewDialog({
   open,
   onOpenChange,
@@ -62,7 +76,7 @@ export function ReconciliationReviewDialog({
   const reconciliationId = reconciliation?.id;
 
   const { data, isLoading } = useQuery({
-    queryKey: ['reconciliation-transactions-by-id', reconciliationId],
+    queryKey: ['reconciliation-transactions-by-id', 'v2', reconciliationId],
     queryFn: async () => {
       if (!reconciliationId || !bankAccountId) {
         return { checks: [], deposits: [], billPayments: [], journalEntries: [] };
@@ -242,8 +256,8 @@ export function ReconciliationReviewDialog({
             const bill: any = billMap.get(billId);
             const lines = billLinesByBill.get(billId) || [];
             const description =
+              summarizeMemos(lines.map((l: any) => l.memo)) ||
               (bill?.notes && String(bill.notes).trim()) ||
-              (lines[0]?.memo && String(lines[0].memo).trim()) ||
               undefined;
             return {
               id: line.id,
@@ -294,8 +308,8 @@ export function ReconciliationReviewDialog({
             .map((bill) => {
               const lines = billLinesByBill.get(bill.id) || [];
               const description =
+                summarizeMemos(lines.map((l: any) => l.memo)) ||
                 (bill.notes && String(bill.notes).trim()) ||
-                (lines[0]?.memo && String(lines[0].memo).trim()) ||
                 undefined;
               return {
                 id: bill.id,
@@ -334,8 +348,8 @@ export function ReconciliationReviewDialog({
         checks: (checks || []).map((c) => {
           const lines = checkLinesByCheck.get(c.id) || [];
           const description =
+            summarizeMemos(lines.map((l: any) => l.memo)) ||
             (c.memo && String(c.memo).trim()) ||
-            (lines[0]?.memo && String(lines[0].memo).trim()) ||
             undefined;
           return {
             id: c.id,
@@ -351,8 +365,8 @@ export function ReconciliationReviewDialog({
         deposits: (deposits || []).map((d) => {
           const lines = depositLinesByDeposit.get(d.id) || [];
           const description =
+            summarizeMemos(lines.map((l: any) => l.memo)) ||
             (d.memo && String(d.memo).trim()) ||
-            (lines[0]?.memo && String(lines[0].memo).trim()) ||
             undefined;
           return {
             id: d.id,

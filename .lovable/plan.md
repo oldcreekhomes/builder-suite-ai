@@ -1,26 +1,24 @@
-## Add Description column + Cost Code to Reconciliation Review dialog
+## Fix empty Description / Cost Code columns in Reconciliation Review
 
-**File:** `src/components/transactions/ReconciliationReviewDialog.tsx` (only file changed)
+Confirmed by querying the DB for the March 2026 reconciliation on 923 17th:
 
-### 1. Extend `ClearedTransaction` type
-Add two optional fields: `description?: string` and `costCode?: string`.
+- `bill_lines.memo` holds the real work description (e.g., "January and February gas", "2/13 - 30 Yard Delivery", "Rough-in").
+- `bill_lines.cost_code_id` is populated, joining cleanly to `cost_codes` (e.g., `4045 - Gas`).
+- `bill.notes` is a **comment/audit log** ("Jole Ann Sorensen | 03/12/2026: Paid"), not a description — it should not be shown as Description.
+- `check.memo` is `NULL` on the sampled checks; the real description is on `check_lines.memo`.
 
-### 2. Pull description + cost code data per transaction type
+The current dialog shows "-" for every row because the previous change prefers `bill.notes` / `check.memo` (mostly empty or garbage) and, on this browser session, the React Query cache is still returning the pre-change response for this reconciliation.
 
-- **Checks**: fetch `check_lines` (memo, cost_code_id) for the reconciliation's check IDs, plus join `cost_codes` (code + name). Description = check's `memo`, or fallback to the first line's `memo`. Cost code = distinct `cost_codes.code - name` values across the check's lines, joined with `, ` (or `Multiple` if >2).
-- **Bill payments** (both JE-line path and legacy path): fetch `bill_lines` (memo, cost_code_id) for the involved bill IDs, plus `cost_codes`. Description = bill's `notes`, or fallback to the first bill line's `memo`. Cost code = same aggregation rule as checks.
-- **Deposits**: fetch `deposit_lines` memo for description (skip cost code — deposits are income).
-- **Manual JE lines**: description already comes from `line.memo`; add cost code by including `cost_code_id` in the select and joining to `cost_codes`.
+### Change (single file: `src/components/transactions/ReconciliationReviewDialog.tsx`)
 
-### 3. Table changes
+1. **Description precedence flip:**
+   - Checks: `check_lines[0].memo` → then `check.memo` → else `-`.
+   - Bill payments (both JE-line and legacy paths): `bill_lines[0].memo` → then `bill.notes` → else `-`. If the bill has multiple lines with different memos, join first two with `; ` and add `…` when more exist.
+   - Deposits: `deposit_lines[0].memo` → then `deposit.memo` → else `-`.
+   - Manual JE lines: unchanged (`line.memo`).
 
-**Checks & Bill Payments Cleared table** — new column order:
-`Date | Type | Payee | Description | Reference | Cost Code | Amount`
+2. **Cost Code:** already fetched — keep the aggregation (`"code - name"`, `Multiple` when >2 distinct). No source change.
 
-**Deposits Cleared table** — add a `Description` column between `Source` and `Amount` (no cost code column, deposits don't carry one).
+3. **Bust the cached query** so users don't need a hard refresh: bump the queryKey to `['reconciliation-transactions-by-id', 'v2', reconciliationId]`.
 
-Truncate long descriptions with `max-w-[220px] truncate` and a `title` attribute for hover full text so the row height stays fixed.
-
-### 4. No schema/DB/edge-function changes
-
-Purely a UI + query fields expansion inside this one dialog. Everything else (dashboard, list dialog, reconciliation logic) stays exactly as it is now.
+No schema, no DB, no other files.
