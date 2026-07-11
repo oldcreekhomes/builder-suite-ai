@@ -788,8 +788,8 @@ function BreakdownCell({
     <TooltipProvider delayDuration={100}>
       <Tooltip>
         <TooltipTrigger asChild>
-          <span className="text-xs cursor-help truncate block">
-            {breakdown[0].code} <span className="text-muted-foreground">+{breakdown.length - 1}</span>
+          <span className="truncate block">
+            {breakdown[0].code} <span>+{breakdown.length - 1}</span>
           </span>
         </TooltipTrigger>
         <TooltipContent side="bottom" align="start" className="max-w-xs">
