@@ -741,13 +741,15 @@ export function ReconciliationReviewDialog({
           </div>
         )}
       </DialogContent>
-      <TransactionDetailDialog
-        transaction={selectedTxn}
-        balance={0}
-        accountType="asset"
-        open={!!selectedTxn}
-        onOpenChange={(o) => { if (!o) setSelectedTxn(null); }}
-      />
+      <UniversalFilePreviewProvider>
+        <TransactionDetailDialog
+          transaction={selectedTxn}
+          balance={0}
+          accountType="asset"
+          open={!!selectedTxn}
+          onOpenChange={(o) => { if (!o) setSelectedTxn(null); }}
+        />
+      </UniversalFilePreviewProvider>
     </Dialog>
   );
 }
