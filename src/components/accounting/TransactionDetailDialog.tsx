@@ -35,6 +35,7 @@ interface Transaction {
   description: string | null;
   reference: string | null;
   accountDisplay: string | null;
+  costCodeDisplay?: string | null;
   source_type: string;
   debit: number;
   credit: number;
@@ -446,7 +447,9 @@ export function TransactionDetailDialog({
         { label: 'Type', value: getTypeLabel(transaction.source_type) },
         { label: 'Date', value: formatDateSafe(transaction.date, 'MM/dd/yyyy') },
         { label: 'Name', value: transaction.reference || '-' },
-        { label: 'Account', value: transaction.accountDisplay || '-' },
+        transaction.costCodeDisplay !== undefined
+          ? { label: 'Cost Code', value: transaction.costCodeDisplay || '-' }
+          : { label: 'Account', value: transaction.accountDisplay || '-' },
         {
           label: 'Description',
           value:
@@ -484,7 +487,9 @@ export function TransactionDetailDialog({
         { label: 'Type', value: getTypeLabel(transaction.source_type) },
         { label: 'Date', value: formatDateSafe(transaction.date, 'MM/dd/yyyy') },
         { label: 'Name', value: transaction.reference || '-' },
-        { label: 'Account', value: transaction.accountDisplay || '-' },
+        transaction.costCodeDisplay !== undefined
+          ? { label: 'Cost Code', value: transaction.costCodeDisplay || '-' }
+          : { label: 'Account', value: transaction.accountDisplay || '-' },
         { label: 'Description', value: getLatestDescription(transaction.description) || '-', isDescription: true },
         { label: 'Debit', value: transaction.debit > 0 ? formatCurrency(transaction.debit) : '-' },
         { label: 'Credit', value: transaction.credit > 0 ? formatCurrency(transaction.credit) : '-' },
