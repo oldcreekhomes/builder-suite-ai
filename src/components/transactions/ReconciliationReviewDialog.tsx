@@ -582,9 +582,16 @@ export function ReconciliationReviewDialog({
                               <td className="p-2">
                                 {t.type === 'journal_entry' ? 'JE' : 'Deposit'}
                               </td>
-                              <td className="p-2">{t.payee}</td>
-                              <td className="p-2 max-w-[260px] truncate" title={t.description || ''}>
-                                {t.description || '-'}
+                              <td className="p-2 max-w-[240px]">
+                                <BreakdownCell
+                                  breakdown={t.sourceBreakdown}
+                                  fallback={t.payee}
+                                  title="Source Breakdown"
+                                  formatCurrency={formatCurrency}
+                                />
+                              </td>
+                              <td className="p-2 max-w-[260px]">
+                                <DescriptionCell text={t.description} />
                               </td>
                               <td className="p-2 text-right text-green-600 font-medium whitespace-nowrap">
                                 {formatCurrency(t.amount)}
