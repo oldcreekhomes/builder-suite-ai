@@ -348,8 +348,8 @@ export function ReconciliationReviewDialog({
         checks: (checks || []).map((c) => {
           const lines = checkLinesByCheck.get(c.id) || [];
           const description =
+            summarizeMemos(lines.map((l: any) => l.memo)) ||
             (c.memo && String(c.memo).trim()) ||
-            (lines[0]?.memo && String(lines[0].memo).trim()) ||
             undefined;
           return {
             id: c.id,
