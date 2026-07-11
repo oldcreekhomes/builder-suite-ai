@@ -637,7 +637,7 @@ export function ReconciliationReviewDialog({
                               <td className="p-2 max-w-[200px]" onClick={(e) => e.stopPropagation()}>
                                 <BreakdownCell
                                   breakdown={t.costCodeBreakdown}
-                                  title="Cost Code Breakdown"
+                                  title="Included Cost Codes"
                                   formatCurrency={formatCurrency}
                                 />
                               </td>
