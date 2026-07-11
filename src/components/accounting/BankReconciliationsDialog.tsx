@@ -82,19 +82,19 @@ function BankReconciliationsDialogContent({ projectId }: { projectId: string }) 
           <table className="w-full">
             <thead className="bg-muted/50">
               <tr>
-                <th className="text-left p-3 font-medium">Statement Date</th>
+                <th className="text-right p-3 font-medium">Statement Date</th>
                 <th className="text-right p-3 font-medium">Beginning Balance</th>
                 <th className="text-right p-3 font-medium">Ending Balance</th>
                 <th className="text-right p-3 font-medium">Difference</th>
-                <th className="text-center p-3 font-medium">Status</th>
-                <th className="text-left p-3 font-medium">Completed / Updated</th>
+                <th className="text-right p-3 font-medium">Status</th>
+                <th className="text-right p-3 font-medium">Completed / Updated</th>
                 <th className="text-center p-3 font-medium">Actions</th>
               </tr>
             </thead>
             <tbody>
               {reconciliations.map((reconciliation) => (
                 <tr key={reconciliation.id} className="border-t hover:bg-muted/50">
-                  <td className="p-3">
+                  <td className="p-3 text-right">
                     {formatDateSafe(reconciliation.statement_date, 'MM/dd/yyyy')}
                   </td>
                   <td className="p-3 text-right">
@@ -108,12 +108,12 @@ function BankReconciliationsDialogContent({ projectId }: { projectId: string }) 
                       {formatCurrency(reconciliation.difference)}
                     </span>
                   </td>
-                  <td className="p-3 text-center">
+                  <td className="p-3 text-right">
                     <Badge variant={reconciliation.status === 'completed' ? 'default' : 'secondary'}>
                       {reconciliation.status === 'completed' ? 'Completed' : 'In Progress'}
                     </Badge>
                   </td>
-                  <td className="p-3 text-sm text-muted-foreground">
+                  <td className="p-3 text-right text-sm text-muted-foreground">
                     {reconciliation.completed_at
                       ? format(new Date(reconciliation.completed_at), 'MM/dd/yyyy')
                       : format(new Date(reconciliation.updated_at), 'MM/dd/yyyy')}
