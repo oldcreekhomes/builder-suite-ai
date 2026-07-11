@@ -132,7 +132,7 @@ export function ReconciliationReviewDialog({
       // ----- Deposits -----
       const { data: deposits } = await supabase
         .from('deposits')
-        .select('id, deposit_date, memo, amount, company_name')
+        .select('id, deposit_date, memo, amount, company_name, company_id')
         .eq('reconciliation_id', reconciliationId);
 
       const depositIds = (deposits || []).map((d) => d.id);
@@ -144,19 +144,24 @@ export function ReconciliationReviewDialog({
             .order('line_number', { ascending: true })
         : { data: [] as any[] };
 
-      // Look up account labels for deposit source
-      const depositAccountIds = Array.from(
-        new Set((depositLines || []).map((l: any) => l.account_id).filter(Boolean))
+      // Lookup companies for deposit source name (matches Bank Register logic)
+      const depositCompanyIds = Array.from(
+        new Set(
+          (deposits || [])
+            .map((d: any) => d.company_id)
+            .filter(Boolean)
+        )
       );
-      const { data: depositAccounts } = depositAccountIds.length
+      const { data: depositCompanies } = depositCompanyIds.length
         ? await supabase
-            .from('accounts')
-            .select('id, code, name')
-            .in('id', depositAccountIds)
+            .from('companies')
+            .select('id, company_name')
+            .in('id', depositCompanyIds)
         : { data: [] as any[] };
-      const acctMap = new Map(
-        (depositAccounts || []).map((a: any) => [a.id, `${a.code} - ${a.name}`])
+      const depositCompanyMap = new Map(
+        (depositCompanies || []).map((c: any) => [c.id, c.company_name])
       );
+
 
       // ----- Bill payments via JE lines -----
       let billPayments: ClearedTransaction[] = [];
