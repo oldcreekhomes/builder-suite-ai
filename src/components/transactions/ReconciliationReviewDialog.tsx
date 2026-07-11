@@ -420,7 +420,41 @@ export function ReconciliationReviewDialog({
           costCodeBreakdown: label ? [{ code: label, amount: amt }] : [],
           amount: Number(line.debit) > 0 ? Number(line.debit) : -Number(line.credit),
           type: 'journal_entry' as const,
+          _txn: {
+            source_type: 'manual',
+            source_id: line.journal_entry_id,
+            line_id: line.id,
+            journal_entry_id: line.journal_entry_id,
+            debit: Number(line.debit) || 0,
+            credit: Number(line.credit) || 0,
+            created_at: line.created_at,
+          },
         };
+      });
+
+      // Attach _txn to bill payment rows from the JE map
+      billPayments = billPayments.map((bp: any) => {
+        // bp.id for JE-path is the JE line id; for legacy path it's the bill id.
+        // Look up by bill id via bpLines list.
+        const bpLine = (bpLines as any[]).find((l) => l.id === bp.id);
+        if (bpLine) {
+          return {
+            ...bp,
+            _txn: {
+              source_type: 'bill_payment',
+              source_id: bpLine.journal_entries?.source_id,
+              line_id: bpLine.id,
+              journal_entry_id: bpLine.journal_entry_id,
+              debit: 0,
+              credit: Number(bpLine.credit) || 0,
+              created_at: (bpLine as any).created_at || new Date().toISOString(),
+            },
+          };
+        }
+        // Legacy: look up by bill source_id
+        const key = `bill_payment:${bp.id}`;
+        const t = sourceTxnMap.get(key);
+        return t ? { ...bp, _txn: t } : bp;
       });
 
       return {
@@ -439,35 +473,36 @@ export function ReconciliationReviewDialog({
             costCodeBreakdown: buildCostCodeBreakdown(lines, ccMap),
             amount: c.amount,
             type: 'check' as const,
+            _txn: sourceTxnMap.get(`check:${c.id}`),
           };
         }),
-        deposits: (deposits || []).map((d) => {
+        deposits: (deposits || []).map((d: any) => {
           const lines = depositLinesByDeposit.get(d.id) || [];
           const description =
             summarizeMemos(lines.map((l: any) => l.memo)) ||
             (d.memo && String(d.memo).trim()) ||
             undefined;
-          const sourceBreakdown = buildBreakdown(
-            lines.map((l: any) => ({ key: l.account_id, amount: l.amount })),
-            acctMap
-          );
-          const payee =
-            sourceBreakdown.length > 0
-              ? sourceBreakdown[0].code
-              : (d.memo && String(d.memo).trim()) || 'Deposit';
+          // Source mirrors the Bank Register "Name" column:
+          // deposit.memo || company_name || 'Cash'
+          const source =
+            (d.memo && String(d.memo).trim()) ||
+            (d.company_id && depositCompanyMap.get(d.company_id)) ||
+            (d.company_name && String(d.company_name).trim()) ||
+            'Cash';
           return {
             id: d.id,
             date: d.deposit_date,
-            payee,
-            sourceBreakdown,
+            payee: source,
             description,
             amount: d.amount,
             type: 'deposit' as const,
+            _txn: sourceTxnMap.get(`deposit:${d.id}`),
           };
         }),
         billPayments,
         journalEntries: journalEntryTransactions,
       };
+
     },
     enabled: open && !!reconciliationId && !!bankAccountId,
   });
