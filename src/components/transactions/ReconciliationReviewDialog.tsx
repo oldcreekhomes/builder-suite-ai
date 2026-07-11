@@ -62,7 +62,7 @@ export function ReconciliationReviewDialog({
   const reconciliationId = reconciliation?.id;
 
   const { data, isLoading } = useQuery({
-    queryKey: ['reconciliation-transactions-by-id', reconciliationId],
+    queryKey: ['reconciliation-transactions-by-id', 'v2', reconciliationId],
     queryFn: async () => {
       if (!reconciliationId || !bankAccountId) {
         return { checks: [], deposits: [], billPayments: [], journalEntries: [] };
