@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { TransactionDetailDialog } from "@/components/accounting/TransactionDetailDialog";
+import { UniversalFilePreviewProvider } from "@/components/files/UniversalFilePreviewProvider";
 import { supabase } from "@/integrations/supabase/client";
 import { formatDateSafe } from "@/utils/dateOnly";
 import {
@@ -740,13 +741,15 @@ export function ReconciliationReviewDialog({
           </div>
         )}
       </DialogContent>
-      <TransactionDetailDialog
-        transaction={selectedTxn}
-        balance={0}
-        accountType="asset"
-        open={!!selectedTxn}
-        onOpenChange={(o) => { if (!o) setSelectedTxn(null); }}
-      />
+      <UniversalFilePreviewProvider>
+        <TransactionDetailDialog
+          transaction={selectedTxn}
+          balance={0}
+          accountType="asset"
+          open={!!selectedTxn}
+          onOpenChange={(o) => { if (!o) setSelectedTxn(null); }}
+        />
+      </UniversalFilePreviewProvider>
     </Dialog>
   );
 }
