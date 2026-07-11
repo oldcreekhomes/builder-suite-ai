@@ -25,6 +25,11 @@ interface ReconciliationReviewDialogProps {
   bankAccountId: string | null;
 }
 
+interface CostCodeBreakdownEntry {
+  code: string;
+  amount: number;
+}
+
 interface ClearedTransaction {
   id: string;
   date: string;
@@ -32,27 +37,28 @@ interface ClearedTransaction {
   reference?: string;
   description?: string;
   costCode?: string;
+  costCodeBreakdown?: CostCodeBreakdownEntry[];
   amount: number;
   type: 'check' | 'deposit' | 'bill_payment' | 'journal_entry';
 }
 
-// Aggregate distinct "code - name" strings for a set of cost_code_ids
-function summarizeCostCodes(
-  ids: (string | null | undefined)[],
+// Group lines by cost code and sum amounts (cent-precise)
+function buildCostCodeBreakdown(
+  lines: { cost_code_id?: string | null; amount?: number | string | null }[],
   ccMap: Map<string, string>
-): string | undefined {
-  const labels = Array.from(
-    new Set(
-      ids
-        .filter((x): x is string => !!x)
-        .map((id) => ccMap.get(id))
-        .filter((v): v is string => !!v)
-    )
-  );
-  if (labels.length === 0) return undefined;
-  if (labels.length > 2) return 'Multiple';
-  return labels.join(', ');
+): CostCodeBreakdownEntry[] {
+  const totals = new Map<string, number>();
+  lines.forEach((l) => {
+    const label = l.cost_code_id ? ccMap.get(l.cost_code_id) : undefined;
+    if (!label) return;
+    const amt = Math.round(Number(l.amount || 0) * 100);
+    totals.set(label, (totals.get(label) || 0) + amt);
+  });
+  return Array.from(totals.entries())
+    .map(([code, cents]) => ({ code, amount: cents / 100 }))
+    .sort((a, b) => Math.abs(b.amount) - Math.abs(a.amount));
 }
+
 
 // Combine distinct line memos into a compact description
 function summarizeMemos(memos: (string | null | undefined)[]): string | undefined {
