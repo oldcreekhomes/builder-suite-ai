@@ -394,10 +394,19 @@ export function ReconciliationReviewDialog({
             summarizeMemos(lines.map((l: any) => l.memo)) ||
             (d.memo && String(d.memo).trim()) ||
             undefined;
+          const sourceBreakdown = buildBreakdown(
+            lines.map((l: any) => ({ key: l.account_id, amount: l.amount })),
+            acctMap
+          );
+          const payee =
+            sourceBreakdown.length > 0
+              ? sourceBreakdown[0].code
+              : (d.memo && String(d.memo).trim()) || 'Deposit';
           return {
             id: d.id,
             date: d.deposit_date,
-            payee: d.company_name || d.memo || 'Deposit',
+            payee,
+            sourceBreakdown,
             description,
             amount: d.amount,
             type: 'deposit' as const,
