@@ -364,7 +364,7 @@ export function ReconciliationReviewDialog({
             payee: c.pay_to,
             reference: c.check_number || undefined,
             description,
-            costCode: summarizeCostCodes(lines.map((l: any) => l.cost_code_id), ccMap),
+            costCodeBreakdown: buildCostCodeBreakdown(lines, ccMap),
             amount: c.amount,
             type: 'check' as const,
           };
