@@ -169,7 +169,7 @@ export function ReconciliationReviewDialog({
       const { data: billLines } = allBillIds.length
         ? await supabase
             .from('bill_lines')
-            .select('bill_id, memo, cost_code_id, line_number')
+            .select('bill_id, memo, cost_code_id, line_number, amount')
             .in('bill_id', allBillIds)
             .order('line_number', { ascending: true })
         : { data: [] as any[] };
