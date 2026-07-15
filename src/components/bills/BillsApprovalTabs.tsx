@@ -713,28 +713,78 @@ export function BillsApprovalTabs({ projectId, projectIds, reviewOnly = false, o
       }
       
       
-      // Validate cost codes/accounts on all selected bills
+      // Validate cost codes/accounts on all selected bills.
+      // Re-fetch lines directly from the DB to avoid false "missing" errors
+      // caused by stale in-memory state (e.g. Submit clicked before the
+      // background enrichment/rematch pass finished syncing state).
       const billsWithMissingCostCodes: { fileName: string; missingCount: number }[] = [];
+      const freshLinesByBill = new Map<string, any[]>();
 
-      for (const bill of validatedBills) {
-        let missingCount = 0;
-        
-        bill.lines?.forEach((line) => {
-          // For job_cost lines, cost_code_id is required
-          // For expense lines, account_id is required
-          if (line.line_type === 'job_cost' && !line.cost_code_id) {
-            missingCount++;
-          } else if (line.line_type === 'expense' && !line.account_id) {
-            missingCount++;
+      await Promise.all(
+        validatedBills.map(async (bill) => {
+          const { data: freshLines, error: freshErr } = await supabase
+            .from('pending_bill_lines')
+            .select('id, line_type, cost_code_id, account_id, amount')
+            .eq('pending_upload_id', bill.id);
+          if (freshErr) {
+            console.error('Cost-code validation refetch failed for bill', bill.id, freshErr);
+            return;
           }
-        });
-        
-        if (missingCount > 0) {
-          billsWithMissingCostCodes.push({
-            fileName: bill.file_name,
-            missingCount
+          const rows = freshLines || [];
+          freshLinesByBill.set(bill.id, rows);
+
+          let missingCount = 0;
+          rows.forEach((line: any) => {
+            if (line.line_type === 'job_cost' && !line.cost_code_id) {
+              missingCount++;
+            } else if (line.line_type === 'expense' && !line.account_id) {
+              missingCount++;
+            }
           });
-        }
+
+          if (missingCount > 0) {
+            console.warn('[Submit] Missing cost codes for', bill.file_name, {
+              missingCount,
+              rows,
+            });
+            billsWithMissingCostCodes.push({
+              fileName: bill.file_name,
+              missingCount,
+            });
+          }
+        })
+      );
+
+      // Sync state + local validatedBills with the fresh DB rows so the rest
+      // of the submit flow uses authoritative cost_code_id / account_id values.
+      if (freshLinesByBill.size > 0) {
+        setBatchBills((prev) =>
+          prev.map((b) => {
+            const fresh = freshLinesByBill.get(b.id);
+            if (!fresh || !b.lines) return b;
+            const freshMap = new Map(fresh.map((f: any) => [f.id, f]));
+            return {
+              ...b,
+              lines: b.lines.map((l: any) => {
+                const f = freshMap.get(l.id);
+                return f
+                  ? { ...l, cost_code_id: f.cost_code_id, account_id: f.account_id, line_type: f.line_type }
+                  : l;
+              }),
+            };
+          })
+        );
+        validatedBills.forEach((bill) => {
+          const fresh = freshLinesByBill.get(bill.id);
+          if (!fresh || !bill.lines) return;
+          const freshMap = new Map(fresh.map((f: any) => [f.id, f]));
+          bill.lines = bill.lines.map((l: any) => {
+            const f = freshMap.get(l.id);
+            return f
+              ? { ...l, cost_code_id: f.cost_code_id, account_id: f.account_id, line_type: f.line_type }
+              : l;
+          });
+        });
       }
 
       if (billsWithMissingCostCodes.length > 0) {

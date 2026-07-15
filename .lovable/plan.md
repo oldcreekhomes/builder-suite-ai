@@ -1,16 +1,24 @@
-Rewrite the `BreakdownCell` hover popover in `src/components/transactions/ReconciliationReviewDialog.tsx` so it visually matches the Bank Register's "Included Bills" tooltip exactly.
+## What's happening
 
-**Match target (from Bank Register)**
-- Trigger text: `first label` + muted `+N` (no pill/badge, no underline).
-- Tooltip content: `side="bottom"`, `align="start"`, `max-w-xs`.
-- Header: bold `Included Cost Codes:` (for cost-code column) at `text-xs`, `mb-2`.
-- Rows: `flex justify-between gap-4 text-xs`; label truncated at `max-w-[150px]`; amount right side.
-- Total: `border-t pt-1 mt-1 flex justify-between gap-4 text-xs font-medium`.
-- No inner `<table>`, no uppercase muted title, no rounded pill for the `+N`.
+For your Ascent Developer Solutions bill (Invoice_1182.pdf), all 19 pending bill lines in the database DO have the cost code (2600 — Loan Closing Costs) properly set. I confirmed this directly against the database:
 
-**Changes**
-- Replace the current pill/table markup in `BreakdownCell` with the div/flex layout above.
-- Header text becomes configurable via the existing `title` prop (caller in cost-code column passes `"Included Cost Codes"` → rendered as `Included Cost Codes:`).
-- Keep the single-item and empty-fallback behavior unchanged.
+- 19 lines, all `line_type = 'job_cost'`
+- All 19 have `cost_code_id` = the 2600 cost code
+- All 19 have `account_id` set too
 
-No other files change.
+So the DB is fine. The problem is that the **Submit Selected Bills** button validates against React state (`batchBills`), not the database. The state is populated by an initial fetch plus a background enrichment / PO-rematch pass. If Submit is clicked before that background pass finishes syncing state — or if any line in state happened to be replaced by a partial in-memory object without a `cost_code_id` — the check at `BillsApprovalTabs.tsx` line 725 (`line.line_type === 'job_cost' && !line.cost_code_id`) trips and blocks the submit, even though the row visibly shows the cost code (because display uses `cost_code_name`, not `cost_code_id`).
+
+## Fix
+
+In `src/components/bills/BillsApprovalTabs.tsx`, inside `handleSubmitAllBills`, right before the cost-code validation:
+
+1. Refetch `pending_bill_lines` (id, line_type, cost_code_id, account_id, amount) from the DB in parallel for every selected bill.
+2. Run the missing-cost-code check against those **fresh DB rows** — the authoritative source.
+3. Merge the fresh `cost_code_id` / `account_id` / `line_type` back into both `batchBills` state and the local `validatedBills` array so the rest of the submit flow uses correct data.
+4. Add a `console.warn` with the offending rows when a bill legitimately is missing a cost code, so if it ever happens again we can see exactly which line is bad.
+
+No schema changes. No changes to the extraction or rematch logic. Just makes Submit trust the database instead of possibly-stale state.
+
+## Files touched
+
+- `src/components/bills/BillsApprovalTabs.tsx` — replace the ~20-line validation block in `handleSubmitAllBills` with the DB-refetch version described above.
