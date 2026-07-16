@@ -40,6 +40,7 @@ interface Row {
   projectId: string;
   depositDate: Date;
   bankAccountId: string;
+  bankAccountLabel: string;
   receivedFromCompanyId: string;
   receivedFromName: string;
   checkNumber: string;
