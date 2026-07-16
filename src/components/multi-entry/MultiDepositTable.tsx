@@ -247,7 +247,11 @@ export function MultiDepositTable() {
             <label className="text-sm text-muted-foreground">Default Date</label>
             <DateInputPicker
               date={defaultDate}
-              onDateChange={(d) => d && setDefaultDate(d)}
+              onDateChange={(d) => {
+                if (!d) return;
+                setDefaultDate(d);
+                setRows((rs) => rs.map((r) => ({ ...r, depositDate: d })));
+              }}
             />
           </div>
           <div className="text-sm">
