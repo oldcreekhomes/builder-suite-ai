@@ -33,6 +33,7 @@ export function useMultiDepositBatchSave() {
 
       for (const row of rows) {
         const result = await createDeposit.mutateAsync({
+          silent: true,
           depositData: {
             deposit_date: row.depositDate,
             bank_account_id: row.bankAccountId,
