@@ -143,22 +143,19 @@ export function MultiDepositTable() {
     },
   });
 
-  const bankAccounts = useMemo(
-    () =>
-      (accounts || []).filter((a: any) => {
-        const type = String(a.type || "").toLowerCase();
-        const subtype = String(a.subtype || "").toLowerCase();
-        return type === "asset" && (subtype === "bank" || subtype === "" || subtype === "cash");
-      }),
-    [accounts],
-  );
+  const labelForAccount = (a: any) => (a ? `${a.code} - ${a.name}` : "");
 
   const updateRow = (id: string, patch: Partial<Row>) =>
     setRows((rs) => rs.map((r) => (r.id === id ? { ...r, ...patch } : r)));
 
   const handleProjectPick = (id: string, projectId: string) => {
     const defaultBankId = projectDepositDefaults[projectId] || "";
-    updateRow(id, { projectId, bankAccountId: defaultBankId });
+    const acct = (accounts || []).find((a: any) => a.id === defaultBankId);
+    updateRow(id, {
+      projectId,
+      bankAccountId: defaultBankId,
+      bankAccountLabel: acct ? labelForAccount(acct) : "",
+    });
   };
 
   const addRow = () => setRows((rs) => [...rs, blankRow(defaultDate)]);
