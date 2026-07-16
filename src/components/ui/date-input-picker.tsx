@@ -82,33 +82,39 @@ export function DateInputPicker({
     }
   };
 
+  const inputEl = (
+    <Input
+      type="text"
+      value={inputValue}
+      onChange={handleInputChange}
+      onBlur={handleInputBlur}
+      onClick={() => hideCalendarButton && !disabled && setIsOpen(true)}
+      onFocus={() => hideCalendarButton && !disabled && setIsOpen(true)}
+      placeholder="MM/DD/YYYY"
+      disabled={disabled}
+      className="h-9 w-32"
+    />
+  );
+
   return (
     <div className={cn("flex items-center gap-1", className)}>
       <Popover open={isOpen} onOpenChange={setIsOpen}>
-        <PopoverTrigger asChild>
-          <Input
-            type="text"
-            value={inputValue}
-            onChange={handleInputChange}
-            onBlur={handleInputBlur}
-            onClick={() => hideCalendarButton && !disabled && setIsOpen(true)}
-            onFocus={() => hideCalendarButton && !disabled && setIsOpen(true)}
-            placeholder="MM/DD/YYYY"
-            disabled={disabled}
-            className="h-9 w-32"
-          />
-        </PopoverTrigger>
-        {!hideCalendarButton && (
-          <PopoverTrigger asChild>
-            <Button
-              variant="outline"
-              size="sm"
-              className="h-9 w-9 p-0"
-              disabled={disabled}
-            >
-              <CalendarIcon className="h-4 w-4" />
-            </Button>
-          </PopoverTrigger>
+        {hideCalendarButton ? (
+          <PopoverTrigger asChild>{inputEl}</PopoverTrigger>
+        ) : (
+          <>
+            {inputEl}
+            <PopoverTrigger asChild>
+              <Button
+                variant="outline"
+                size="sm"
+                className="h-9 w-9 p-0"
+                disabled={disabled}
+              >
+                <CalendarIcon className="h-4 w-4" />
+              </Button>
+            </PopoverTrigger>
+          </>
         )}
         <PopoverContent className="w-auto p-0" align="end">
           <Calendar
