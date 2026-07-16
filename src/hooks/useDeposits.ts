@@ -201,11 +201,12 @@ export const useDeposits = () => {
 
       return deposit;
     },
-    onSuccess: () => {
+    onSuccess: (_data, variables) => {
       queryClient.invalidateQueries({ queryKey: ['deposits'] });
       queryClient.invalidateQueries({ queryKey: ['journal-entries'] });
       queryClient.invalidateQueries({ queryKey: ['balance-sheet'] });
       queryClient.invalidateQueries({ queryKey: ['income-statement'] });
+      if (variables?.silent) return;
       toast({
         title: "Success",
         description: "Deposit recorded successfully",
