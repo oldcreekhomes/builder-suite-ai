@@ -1,0 +1,2 @@
+ALTER TABLE public.deposits ADD COLUMN IF NOT EXISTS multi_entry_batch_id uuid;
+CREATE INDEX IF NOT EXISTS idx_deposits_multi_entry_batch_id ON public.deposits(multi_entry_batch_id) WHERE multi_entry_batch_id IS NOT NULL;
