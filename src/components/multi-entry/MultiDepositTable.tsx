@@ -275,26 +275,11 @@ export function MultiDepositTable() {
             {rows.map((r) => (
               <TableRow key={r.id} className="align-top">
                 <TableCell>
-                  <Select
+                  <ProjectPickerPopover
                     value={r.projectId}
-                    onValueChange={(v) => handleProjectPick(r.id, v)}
-                  >
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select project…" />
-                    </SelectTrigger>
-                    <SelectContent className="max-h-[400px]">
-                      {orderedStatuses.map((status) => (
-                        <SelectGroup key={status}>
-                          <SelectLabel>{status}</SelectLabel>
-                          {groupedProjects[status].map((p) => (
-                            <SelectItem key={p.id} value={p.id}>
-                              {p.address}
-                            </SelectItem>
-                          ))}
-                        </SelectGroup>
-                      ))}
-                    </SelectContent>
-                  </Select>
+                    onSelect={(p) => handleProjectPick(r.id, p.id)}
+                    placeholder="Select project…"
+                  />
                 </TableCell>
                 <TableCell>
                   <DateInputPicker
