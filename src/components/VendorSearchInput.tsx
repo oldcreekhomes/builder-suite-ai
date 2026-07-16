@@ -166,7 +166,7 @@ export function VendorSearchInput({
       />
       
       {showResults && (
-        <div className="absolute z-50 mt-1 max-h-60 w-full overflow-auto rounded-md border bg-popover shadow-lg">
+        <div className="absolute z-50 mt-1 max-h-60 w-full min-w-[280px] overflow-auto rounded-md border bg-popover shadow-lg">
           {loading ? (
             <div className="p-2 text-sm text-muted-foreground">Loading...</div>
           ) : filteredCompanies.length > 0 ? (
@@ -189,7 +189,7 @@ export function VendorSearchInput({
                 type="button"
                 variant="outline"
                 size="sm"
-                className="w-full"
+                className="w-full h-auto py-2 whitespace-normal"
                 onMouseDown={(e) => {
                   e.preventDefault();
                   e.stopPropagation();
@@ -197,8 +197,8 @@ export function VendorSearchInput({
                   setShowResults(false);
                 }}
               >
-                <Plus className="h-4 w-4 mr-2" />
-                Add New Company "{searchQuery}"
+                <Plus className="h-4 w-4 mr-2 shrink-0" />
+                <span className="break-words text-left leading-tight">Add New Company "{searchQuery}"</span>
               </Button>
             </div>
           )}
