@@ -266,14 +266,14 @@ export function MultiDepositTable() {
           <TableHeader>
             <TableRow>
               <TableHead className="w-[220px]">Project</TableHead>
-              <TableHead className="w-[140px]">Date</TableHead>
+              <TableHead className="w-[120px]">Date</TableHead>
               <TableHead className="w-[200px]">Deposit To (Bank)</TableHead>
               <TableHead className="w-[200px]">Received From</TableHead>
-              <TableHead className="w-[110px]">Check #</TableHead>
+              <TableHead className="w-[90px]">Check #</TableHead>
               <TableHead className="w-[220px]">Account</TableHead>
               <TableHead>Description</TableHead>
-              <TableHead className="w-[140px] text-right">Amount</TableHead>
-              <TableHead className="w-12" />
+              <TableHead className="w-[90px] text-right">Amount</TableHead>
+              <TableHead className="w-10" />
             </TableRow>
           </TableHeader>
           <TableBody>
