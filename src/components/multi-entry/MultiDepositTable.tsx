@@ -335,7 +335,10 @@ export function MultiDepositTable() {
                 <TableCell>
                   <AccountSearchInputInline
                     value={r.accountLabel}
-                    onChange={(v) => updateRow(r.id, { accountLabel: v })}
+                    onChange={(v) => {
+                      updateRow(r.id, { accountLabel: v });
+                      if (!v) updateRow(r.id, { accountId: "" });
+                    }}
                     onAccountSelect={(a) =>
                       updateRow(r.id, {
                         accountId: a.id,
@@ -343,7 +346,7 @@ export function MultiDepositTable() {
                       })
                     }
                     projectId={r.projectId || undefined}
-                    placeholder="Account…"
+                    placeholder="Select account..."
                   />
                 </TableCell>
                 <TableCell>
