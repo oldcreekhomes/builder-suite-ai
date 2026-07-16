@@ -290,6 +290,7 @@ export function MultiDepositTable() {
                   <DateInputPicker
                     date={r.depositDate}
                     onDateChange={(d) => d && updateRow(r.id, { depositDate: d })}
+                    hideCalendarButton
                   />
                 </TableCell>
                 <TableCell>
@@ -315,14 +316,13 @@ export function MultiDepositTable() {
                   <VendorSearchInput
                     value={r.receivedFromCompanyId}
                     displayValue={r.receivedFromName}
-                    onChange={(v) => updateRow(r.id, { receivedFromCompanyId: v })}
-                    onCompanySelect={(c: any) =>
-                      updateRow(r.id, {
-                        receivedFromCompanyId: c.id || "",
-                        receivedFromName: c.company_name || "",
-                      })
+                    onChange={(companyId) =>
+                      updateRow(r.id, { receivedFromCompanyId: companyId })
                     }
-                    placeholder="Optional"
+                    onCompanySelect={(company: any) =>
+                      updateRow(r.id, { receivedFromName: company.company_name })
+                    }
+                    placeholder="Search subcontractors or vendors"
                   />
                 </TableCell>
                 <TableCell>
