@@ -22,6 +22,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { AccountSearchInputInline } from "@/components/AccountSearchInputInline";
+import { AccountSearchInput } from "@/components/AccountSearchInput";
 import { VendorSearchInput } from "@/components/VendorSearchInput";
 import { useProjects, Project } from "@/hooks/useProjects";
 import { ProjectPickerPopover } from "@/components/projects/ProjectPickerPopover";
@@ -39,6 +40,7 @@ interface Row {
   projectId: string;
   depositDate: Date;
   bankAccountId: string;
+  bankAccountLabel: string;
   receivedFromCompanyId: string;
   receivedFromName: string;
   checkNumber: string;
@@ -55,6 +57,7 @@ const blankRow = (defaultDate: Date): Row => ({
   projectId: "",
   depositDate: defaultDate,
   bankAccountId: "",
+  bankAccountLabel: "",
   receivedFromCompanyId: "",
   receivedFromName: "",
   checkNumber: "",
@@ -140,22 +143,19 @@ export function MultiDepositTable() {
     },
   });
 
-  const bankAccounts = useMemo(
-    () =>
-      (accounts || []).filter((a: any) => {
-        const type = String(a.type || "").toLowerCase();
-        const subtype = String(a.subtype || "").toLowerCase();
-        return type === "asset" && (subtype === "bank" || subtype === "" || subtype === "cash");
-      }),
-    [accounts],
-  );
+  const labelForAccount = (a: any) => (a ? `${a.code} - ${a.name}` : "");
 
   const updateRow = (id: string, patch: Partial<Row>) =>
     setRows((rs) => rs.map((r) => (r.id === id ? { ...r, ...patch } : r)));
 
   const handleProjectPick = (id: string, projectId: string) => {
     const defaultBankId = projectDepositDefaults[projectId] || "";
-    updateRow(id, { projectId, bankAccountId: defaultBankId });
+    const acct = (accounts || []).find((a: any) => a.id === defaultBankId);
+    updateRow(id, {
+      projectId,
+      bankAccountId: defaultBankId,
+      bankAccountLabel: acct ? labelForAccount(acct) : "",
+    });
   };
 
   const addRow = () => setRows((rs) => [...rs, blankRow(defaultDate)]);
@@ -293,21 +293,23 @@ export function MultiDepositTable() {
                   />
                 </TableCell>
                 <TableCell>
-                  <Select
-                    value={r.bankAccountId}
-                    onValueChange={(v) => updateRow(r.id, { bankAccountId: v })}
-                  >
-                    <SelectTrigger>
-                      <SelectValue placeholder="Bank…" />
-                    </SelectTrigger>
-                    <SelectContent className="max-h-[400px]">
-                      {bankAccounts.map((a: any) => (
-                        <SelectItem key={a.id} value={a.id}>
-                          {a.code} - {a.name}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+                  <AccountSearchInput
+                    value={r.bankAccountLabel}
+                    onChange={(v) => {
+                      updateRow(r.id, { bankAccountLabel: v });
+                      if (!v) updateRow(r.id, { bankAccountId: "" });
+                    }}
+                    onAccountSelect={(a: any) =>
+                      updateRow(r.id, {
+                        bankAccountId: a.id,
+                        bankAccountLabel: `${a.code} - ${a.name}`,
+                      })
+                    }
+                    accountType="asset"
+                    bankAccountsOnly
+                    projectId={r.projectId || undefined}
+                    placeholder="Bank…"
+                  />
                 </TableCell>
                 <TableCell>
                   <VendorSearchInput
