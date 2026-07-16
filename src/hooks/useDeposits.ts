@@ -42,10 +42,11 @@ export const useDeposits = () => {
   const createDeposit = useMutation({
     mutationFn: async ({ 
       depositData, 
-      depositLines 
+      depositLines,
     }: { 
       depositData: DepositData; 
       depositLines: DepositLineData[];
+      silent?: boolean;
     }) => {
       console.log('Creating deposit:', depositData);
       console.log('Deposit lines:', depositLines);
