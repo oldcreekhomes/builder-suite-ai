@@ -245,8 +245,8 @@ export function MultiDepositTable() {
           <div className="flex items-center gap-2">
             <label className="text-sm text-muted-foreground">Default Date</label>
             <DateInputPicker
-              value={defaultDate}
-              onChange={(d) => d && setDefaultDate(d)}
+              date={defaultDate}
+              onDateChange={(d) => d && setDefaultDate(d)}
             />
           </div>
           <div className="text-sm">
@@ -298,8 +298,8 @@ export function MultiDepositTable() {
                 </TableCell>
                 <TableCell>
                   <DateInputPicker
-                    value={r.depositDate}
-                    onChange={(d) => d && updateRow(r.id, { depositDate: d })}
+                    date={r.depositDate}
+                    onDateChange={(d) => d && updateRow(r.id, { depositDate: d })}
                   />
                 </TableCell>
                 <TableCell>
