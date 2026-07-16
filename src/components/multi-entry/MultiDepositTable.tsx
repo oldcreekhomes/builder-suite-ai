@@ -24,6 +24,7 @@ import {
 import { AccountSearchInputInline } from "@/components/AccountSearchInputInline";
 import { VendorSearchInput } from "@/components/VendorSearchInput";
 import { useProjects, Project } from "@/hooks/useProjects";
+import { ProjectPickerPopover } from "@/components/projects/ProjectPickerPopover";
 import { useAccounts } from "@/hooks/useAccounts";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
