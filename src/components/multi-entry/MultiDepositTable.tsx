@@ -22,6 +22,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { AccountSearchInputInline } from "@/components/AccountSearchInputInline";
+import { AccountSearchInput } from "@/components/AccountSearchInput";
 import { VendorSearchInput } from "@/components/VendorSearchInput";
 import { useProjects, Project } from "@/hooks/useProjects";
 import { ProjectPickerPopover } from "@/components/projects/ProjectPickerPopover";
