@@ -13,13 +13,15 @@ interface DateInputPickerProps {
   onDateChange: (date: Date) => void;
   disabled?: boolean;
   className?: string;
+  hideCalendarButton?: boolean;
 }
 
 export function DateInputPicker({ 
   date, 
   onDateChange, 
   disabled = false,
-  className 
+  className,
+  hideCalendarButton = false,
 }: DateInputPickerProps) {
   const [inputValue, setInputValue] = React.useState("");
   const [isOpen, setIsOpen] = React.useState(false);
