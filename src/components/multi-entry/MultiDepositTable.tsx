@@ -293,21 +293,23 @@ export function MultiDepositTable() {
                   />
                 </TableCell>
                 <TableCell>
-                  <Select
-                    value={r.bankAccountId}
-                    onValueChange={(v) => updateRow(r.id, { bankAccountId: v })}
-                  >
-                    <SelectTrigger>
-                      <SelectValue placeholder="Bank…" />
-                    </SelectTrigger>
-                    <SelectContent className="max-h-[400px]">
-                      {bankAccounts.map((a: any) => (
-                        <SelectItem key={a.id} value={a.id}>
-                          {a.code} - {a.name}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+                  <AccountSearchInput
+                    value={r.bankAccountLabel}
+                    onChange={(v) => {
+                      updateRow(r.id, { bankAccountLabel: v });
+                      if (!v) updateRow(r.id, { bankAccountId: "" });
+                    }}
+                    onAccountSelect={(a: any) =>
+                      updateRow(r.id, {
+                        bankAccountId: a.id,
+                        bankAccountLabel: `${a.code} - ${a.name}`,
+                      })
+                    }
+                    accountType="asset"
+                    bankAccountsOnly
+                    projectId={r.projectId || undefined}
+                    placeholder="Bank…"
+                  />
                 </TableCell>
                 <TableCell>
                   <VendorSearchInput
