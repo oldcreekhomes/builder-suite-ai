@@ -13,6 +13,7 @@ import { OnboardingChecklist } from "@/components/OnboardingChecklist";
 import { ActiveJobsTable } from "@/components/owner-dashboard/ActiveJobsTable";
 import { AccountantJobsTable } from "@/components/accountant-dashboard/AccountantJobsTable";
 import { EmployeeActivitySection } from "@/components/owner-dashboard/EmployeeActivitySection";
+import { MultipleProjectEntriesCard } from "@/components/owner-dashboard/MultipleProjectEntriesCard";
 import { UniversalFilePreviewProvider } from "@/components/files/UniversalFilePreviewProvider";
 
 import { useProjects } from "@/hooks/useProjects";
@@ -87,7 +88,10 @@ export default function Index() {
                 </>
               ) : dashboardView === "owner" ? (
                 <>
-                  <ActiveJobsTable />
+                  <div className="grid gap-6 lg:grid-cols-[1fr_340px]">
+                    <ActiveJobsTable />
+                    <MultipleProjectEntriesCard />
+                  </div>
                   <EmployeeActivitySection />
                 </>
               ) : (

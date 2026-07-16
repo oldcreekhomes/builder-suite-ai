@@ -2834,6 +2834,7 @@ export type Database = {
           id: string
           is_reversal: boolean
           memo: string | null
+          multi_entry_batch_id: string | null
           owner_id: string
           project_id: string | null
           reconciled: boolean
@@ -2864,6 +2865,7 @@ export type Database = {
           id?: string
           is_reversal?: boolean
           memo?: string | null
+          multi_entry_batch_id?: string | null
           owner_id: string
           project_id?: string | null
           reconciled?: boolean
@@ -2894,6 +2896,7 @@ export type Database = {
           id?: string
           is_reversal?: boolean
           memo?: string | null
+          multi_entry_batch_id?: string | null
           owner_id?: string
           project_id?: string | null
           reconciled?: boolean
