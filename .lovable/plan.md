@@ -1,24 +1,85 @@
-## What's happening
+## Multiple Project Entries — Deposits
 
-For your Ascent Developer Solutions bill (Invoice_1182.pdf), all 19 pending bill lines in the database DO have the cost code (2600 — Loan Closing Costs) properly set. I confirmed this directly against the database:
+Add a fast, batch deposit-entry workflow so you can record deposits across many projects from one screen instead of opening each project.
 
-- 19 lines, all `line_type = 'job_cost'`
-- All 19 have `cost_code_id` = the 2600 cost code
-- All 19 have `account_id` set too
+### 1. Owner Dashboard: new card
 
-So the DB is fine. The problem is that the **Submit Selected Bills** button validates against React state (`batchBills`), not the database. The state is populated by an initial fetch plus a background enrichment / PO-rematch pass. If Submit is clicked before that background pass finishes syncing state — or if any line in state happened to be replaced by a partial in-memory object without a `cost_code_id` — the check at `BillsApprovalTabs.tsx` line 725 (`line.line_type === 'job_cost' && !line.cost_code_id`) trips and blocks the submit, even though the row visibly shows the cost code (because display uses `cost_code_name`, not `cost_code_id`).
+Add a **"Multiple Project Entries"** card to the Owner Dashboard, placed to the right of the Active Jobs table (same row).
 
-## Fix
+Content:
+- Header: **Multiple Project Entries**
+- Row: **Enter Multiple Deposits** → button/link → `/multi-entry/deposits`
+- (Card is structured so we can add "Enter Multiple Checks", etc. later.)
 
-In `src/components/bills/BillsApprovalTabs.tsx`, inside `handleSubmitAllBills`, right before the cost-code validation:
+### 2. New page: `/multi-entry/deposits`
 
-1. Refetch `pending_bill_lines` (id, line_type, cost_code_id, account_id, amount) from the DB in parallel for every selected bill.
-2. Run the missing-cost-code check against those **fresh DB rows** — the authoritative source.
-3. Merge the fresh `cost_code_id` / `account_id` / `line_type` back into both `batchBills` state and the local `validatedBills` array so the rest of the submit flow uses correct data.
-4. Add a `console.warn` with the offending rows when a bill legitimately is missing a cost code, so if it ever happens again we can see exactly which line is bad.
+Uses the standard app shell (sidebar + `CompanyDashboardHeader`), title **"Enter Multiple Deposits"**.
 
-No schema changes. No changes to the extraction or rematch logic. Just makes Submit trust the database instead of possibly-stale state.
+**Top bar**
+- Default **Date** picker (defaults to today). Applies to all new rows; each row inherits this on add.
+- **+ Add Row** button.
+- Running **Total** on the right.
 
-## Files touched
+**Table** (each row = one deposit, one line):
 
-- `src/components/bills/BillsApprovalTabs.tsx` — replace the ~20-line validation block in `handleSubmitAllBills` with the DB-refetch version described above.
+| Project | Date | Deposit To (Bank) | Received From | Check # | Account | Description | Amount | Action |
+
+Column behavior:
+- **Project**: searchable dropdown listing all active projects, exact same set/order as the Active Jobs dashboard list (grouped by status: Under Construction, Permitting, In Design, etc.). Required.
+- **Date**: per-row, prefilled from top date but editable.
+- **Deposit To**: bank-account picker; auto-prefills with the project's default deposit account when a project is picked (falls back to company default). Required.
+- **Received From**: same vendor/subcontractor search used on Make Deposits. Optional.
+- **Check #**: optional text.
+- **Account**: chart-of-accounts picker (income/deposit accounts), same list Make Deposits uses. Required.
+- **Description**: free text.
+- **Amount**: currency input, cent-precise. Required > 0.
+- **Action**: delete row.
+
+Start with 5 blank rows; "+ Add Row" appends more. Rows with no project + no amount are ignored on save.
+
+**Footer buttons**: Clear · Save Batch.
+
+### 3. Save behavior
+
+On **Save Batch**:
+1. Validate every non-empty row (project, bank, account, amount > 0). Show inline errors; do not save partial batches.
+2. Generate one `batch_id` (uuid) client-side.
+3. For each row, insert one `deposits` row + one `deposit_lines` row using the same code path/hook as the single-project Make Deposits page (so accounting, GL posting, RLS, closed-period checks, audit stamping all behave identically). Tag each deposit with `multi_entry_batch_id = batch_id`.
+4. Each deposit is scoped to its selected `project_id`, so it appears in that project's Deposits list on the chosen date exactly as if entered manually.
+5. On success: toast "Saved N deposits across M projects", clear the table, refresh the batch history below.
+
+### 4. Batch review table (below entry table)
+
+Grouped by batch save. Columns:
+
+| Saved At | Saved By | # Deposits | # Projects | Total | Actions |
+
+- Row expands to show the individual deposits in that batch (project, bank, received from, account, amount, date), each linking to that project's Deposits page for that deposit.
+- Actions: **View** (expand) and **Delete Batch** (with confirm; deletes all deposits in the batch, respecting closed-period and reconciliation locks — any locked rows block the delete with a clear message).
+
+### 5. Data model change
+
+Add one nullable column to `deposits`:
+- `multi_entry_batch_id uuid null` (indexed).
+
+No new table needed — the batch is just a `group by multi_entry_batch_id` over `deposits`. Existing RLS, grants, and Make Deposits code paths are reused unchanged.
+
+### 6. Permissions
+
+- Card + page visible to users who can create deposits (same permission gate as the Make Deposits page today).
+- Nothing to change for tenants: uses existing multi-tenant deposit RLS.
+
+### Files touched (technical)
+
+- New: `src/components/owner-dashboard/MultipleProjectEntriesCard.tsx`
+- New page: `src/pages/MultipleDeposits.tsx` + route in `src/App.tsx` / `src/nav-items.tsx`
+- New: `src/components/multi-entry/MultiDepositTable.tsx`, `MultiDepositRow.tsx`, `MultiDepositBatchHistory.tsx`
+- New hook: `src/hooks/useMultiDepositBatchSave.ts` (wraps existing deposit create logic in a loop with one batch id)
+- New hook: `src/hooks/useMultiDepositBatches.ts` (groups deposits by `multi_entry_batch_id`)
+- Update: `src/components/owner-dashboard/ActiveJobsTable.tsx` parent grid in `src/pages/Index.tsx` to place the new card to the right
+- Migration: add `deposits.multi_entry_batch_id uuid` + index
+
+### Out of scope (per your answers)
+
+- Checks, credit cards, journal entries — deposits only for now. Card is built so those links can be added later without rework.
+- Multi-line deposits per row — one line per row.
