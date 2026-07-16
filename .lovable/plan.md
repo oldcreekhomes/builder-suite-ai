@@ -1,15 +1,24 @@
-The code is already in place: `src/pages/Index.tsx` renders `<MultipleProjectEntriesCard />` right next to `<ActiveJobsTable />` in a two-column grid on the Owner Dashboard, and the card component itself is implemented and imported correctly.
+Reuse the sidebar's project dropdown for the Multi-Deposit table's Project column so both stay in sync.
 
-Your screenshot shows the previously published site (Active Jobs spans full width, no card on the right). That means the new card exists in preview but hasn't been pushed to your live URL yet.
+## Problem
+`src/components/multi-entry/MultiDepositTable.tsx` builds its own `<Select>` with status groups. `src/components/sidebar/ProjectSelector.tsx` uses a Popover + Command (search box, status-group headings with color chips). Two implementations = drift.
 
-## Fix
-1. Publish the project so the "Multiple Project Entries" card ships to your live site.
-2. Hard refresh the browser tab you're viewing.
+## Approach
+Extract the sidebar's inner picker into one shared component and have both call sites use it.
 
-## If it still doesn't appear after publish
-Then it's a runtime issue, not a missing feature. I'll then:
-- Check the browser console for a render error from `MultipleProjectEntriesCard`.
-- Verify the grid isn't collapsing (viewport under `lg` = 1024px would stack the card below Active Jobs).
-- Confirm `dashboardView === "owner"` is the active branch for your account.
+### 1. New shared component
+`src/components/projects/ProjectPickerPopover.tsx`
+- Controlled props: `value?: string`, `onSelect(project)`, `placeholder?`, `triggerClassName?`, `showEditButton?: boolean` (default false).
+- Internally uses the same `useProjects`, `PROJECT_STATUS_GROUPS`, Popover + Command + status-grouped CommandItems with the exact colored heading chips and "Search projects…" input.
+- Emits `onSelect(project)` — does not navigate. Only mounts `EditProjectDialog` when `showEditButton` is true.
 
-No code changes are needed right now — this is a publish step.
+### 2. Refactor `ProjectSelector.tsx` (sidebar)
+Wrap `ProjectPickerPopover` with `showEditButton`, its own trigger label ("Select Project" + MapPin), and pass an `onSelect` that navigates to `/project/:id`. All routing/edit logic stays here; visual list moves into the shared component.
+
+### 3. Update `MultiDepositTable.tsx`
+Replace the `<Select>` in the Project cell with `<ProjectPickerPopover value={r.projectId} onSelect={(p) => handleProjectPick(r.id, p.id)} placeholder="Select project…" triggerClassName="h-9 w-full" />`. Remove the now-unused `orderedStatuses`/`groupedProjects` in this file (still available inside the shared component).
+
+## Result
+One source of truth for the project dropdown — search, status groups, colored badges, ordering. Any future change (new status, new sort, new field) updates every dropdown at once.
+
+No behavior change to the sidebar; multi-entry rows get the same searchable, grouped picker.
