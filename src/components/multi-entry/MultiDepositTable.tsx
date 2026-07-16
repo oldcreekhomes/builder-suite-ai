@@ -57,6 +57,7 @@ const blankRow = (defaultDate: Date): Row => ({
   projectId: "",
   depositDate: defaultDate,
   bankAccountId: "",
+  bankAccountLabel: "",
   receivedFromCompanyId: "",
   receivedFromName: "",
   checkNumber: "",
