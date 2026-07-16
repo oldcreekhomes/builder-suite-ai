@@ -266,14 +266,14 @@ export function MultiDepositTable() {
           <TableHeader>
             <TableRow>
               <TableHead className="w-[220px]">Project</TableHead>
-              <TableHead className="w-[140px]">Date</TableHead>
+              <TableHead className="w-[120px]">Date</TableHead>
               <TableHead className="w-[200px]">Deposit To (Bank)</TableHead>
               <TableHead className="w-[200px]">Received From</TableHead>
-              <TableHead className="w-[110px]">Check #</TableHead>
+              <TableHead className="w-[90px]">Check #</TableHead>
               <TableHead className="w-[220px]">Account</TableHead>
               <TableHead>Description</TableHead>
-              <TableHead className="w-[140px] text-right">Amount</TableHead>
-              <TableHead className="w-12" />
+              <TableHead className="w-[90px] text-right">Amount</TableHead>
+              <TableHead className="w-10" />
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -290,6 +290,7 @@ export function MultiDepositTable() {
                   <DateInputPicker
                     date={r.depositDate}
                     onDateChange={(d) => d && updateRow(r.id, { depositDate: d })}
+                    hideCalendarButton
                   />
                 </TableCell>
                 <TableCell>
@@ -315,14 +316,13 @@ export function MultiDepositTable() {
                   <VendorSearchInput
                     value={r.receivedFromCompanyId}
                     displayValue={r.receivedFromName}
-                    onChange={(v) => updateRow(r.id, { receivedFromCompanyId: v })}
-                    onCompanySelect={(c: any) =>
-                      updateRow(r.id, {
-                        receivedFromCompanyId: c.id || "",
-                        receivedFromName: c.company_name || "",
-                      })
+                    onChange={(companyId) =>
+                      updateRow(r.id, { receivedFromCompanyId: companyId })
                     }
-                    placeholder="Optional"
+                    onCompanySelect={(company: any) =>
+                      updateRow(r.id, { receivedFromName: company.company_name })
+                    }
+                    placeholder="Search subcontractors or vendors"
                   />
                 </TableCell>
                 <TableCell>
@@ -335,7 +335,10 @@ export function MultiDepositTable() {
                 <TableCell>
                   <AccountSearchInputInline
                     value={r.accountLabel}
-                    onChange={(v) => updateRow(r.id, { accountLabel: v })}
+                    onChange={(v) => {
+                      updateRow(r.id, { accountLabel: v });
+                      if (!v) updateRow(r.id, { accountId: "" });
+                    }}
                     onAccountSelect={(a) =>
                       updateRow(r.id, {
                         accountId: a.id,
@@ -343,7 +346,7 @@ export function MultiDepositTable() {
                       })
                     }
                     projectId={r.projectId || undefined}
-                    placeholder="Account…"
+                    placeholder="Select account..."
                   />
                 </TableCell>
                 <TableCell>
