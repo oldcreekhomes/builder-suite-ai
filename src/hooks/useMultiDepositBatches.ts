@@ -1,5 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import { batchedIn } from "@/lib/supabasePaginate";
 
 export interface MultiDepositBatchDeposit {
   id: string;
@@ -31,6 +32,9 @@ export function useMultiDepositBatches() {
   return useQuery({
     queryKey: ["multi-deposit-batches"],
     queryFn: async (): Promise<MultiDepositBatch[]> => {
+      // deposits table has no PostgREST foreign key relationships to
+      // projects/accounts/companies, so we can't use nested embeds.
+      // Fetch plain columns, then batch-lookup related labels.
       const { data, error } = await supabase
         .from("deposits")
         .select(
@@ -40,16 +44,14 @@ export function useMultiDepositBatches() {
           amount,
           project_id,
           bank_account_id,
+          company_id,
           check_number,
           memo,
           reconciled,
           reconciliation_id,
           multi_entry_batch_id,
           created_at,
-          created_by,
-          projects:project_id (address),
-          accounts:bank_account_id (code, name),
-          companies:company_id (company_name)
+          created_by
         `,
         )
         .not("multi_entry_batch_id", "is", null)
@@ -60,26 +62,64 @@ export function useMultiDepositBatches() {
 
       if (error) throw error;
 
+      const rows = (data || []) as any[];
+
+      const projectIds = Array.from(
+        new Set(rows.map((r) => r.project_id).filter(Boolean)),
+      ) as string[];
+      const accountIds = Array.from(
+        new Set(rows.map((r) => r.bank_account_id).filter(Boolean)),
+      ) as string[];
+      const companyIds = Array.from(
+        new Set(rows.map((r) => r.company_id).filter(Boolean)),
+      ) as string[];
       const userIds = Array.from(
-        new Set((data || []).map((d: any) => d.created_by).filter(Boolean)),
-      );
-      let usersMap: Record<string, string> = {};
-      if (userIds.length > 0) {
-        const { data: users } = await supabase
-          .from("users")
-          .select("id, first_name, last_name")
-          .in("id", userIds);
-        if (users) {
-          usersMap = users.reduce((acc, u: any) => {
-            acc[u.id] = [u.first_name, u.last_name].filter(Boolean).join(" ") || "";
-            return acc;
-          }, {} as Record<string, string>);
-        }
+        new Set(rows.map((r) => r.created_by).filter(Boolean)),
+      ) as string[];
+
+      const [projectsList, accountsList, companiesList, usersList] =
+        await Promise.all([
+          batchedIn<any>(
+            (ids) => supabase.from("projects").select("id, address").in("id", ids),
+            projectIds,
+          ),
+          batchedIn<any>(
+            (ids) =>
+              supabase.from("accounts").select("id, code, name").in("id", ids),
+            accountIds,
+          ),
+          batchedIn<any>(
+            (ids) =>
+              supabase
+                .from("companies")
+                .select("id, company_name")
+                .in("id", ids),
+            companyIds,
+          ),
+          batchedIn<any>(
+            (ids) =>
+              supabase
+                .from("users")
+                .select("id, first_name, last_name")
+                .in("id", ids),
+            userIds,
+          ),
+        ]);
+
+      const projectsMap: Record<string, string> = {};
+      for (const p of projectsList) projectsMap[p.id] = p.address;
+      const accountsMap: Record<string, string> = {};
+      for (const a of accountsList) accountsMap[a.id] = `${a.code} - ${a.name}`;
+      const companiesMap: Record<string, string> = {};
+      for (const c of companiesList) companiesMap[c.id] = c.company_name;
+      const usersMap: Record<string, string> = {};
+      for (const u of usersList) {
+        usersMap[u.id] =
+          [u.first_name, u.last_name].filter(Boolean).join(" ") || "";
       }
 
       const groups = new Map<string, MultiDepositBatch>();
-      for (const row of data || []) {
-        const r: any = row;
+      for (const r of rows) {
         const batchId = r.multi_entry_batch_id as string;
         if (!batchId) continue;
 
@@ -88,12 +128,14 @@ export function useMultiDepositBatches() {
           deposit_date: r.deposit_date,
           amount: Number(r.amount || 0),
           project_id: r.project_id,
-          project_address: r.projects?.address ?? null,
-          bank_account_id: r.bank_account_id,
-          bank_account_label: r.accounts
-            ? `${r.accounts.code} - ${r.accounts.name}`
+          project_address: r.project_id
+            ? projectsMap[r.project_id] ?? null
             : null,
-          company_name: r.companies?.company_name ?? null,
+          bank_account_id: r.bank_account_id,
+          bank_account_label: r.bank_account_id
+            ? accountsMap[r.bank_account_id] ?? null
+            : null,
+          company_name: r.company_id ? companiesMap[r.company_id] ?? null : null,
           check_number: r.check_number ?? null,
           memo: r.memo ?? null,
           reconciled: !!r.reconciled,
@@ -105,8 +147,6 @@ export function useMultiDepositBatches() {
           existing.deposits.push(deposit);
           existing.count += 1;
           existing.total += deposit.amount;
-          // Earliest created_at in group wins as "savedAt" — they're all
-          // written together so this is effectively the same moment anyway.
           if (r.created_at && r.created_at < existing.savedAt) {
             existing.savedAt = r.created_at;
           }

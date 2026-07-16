@@ -42,10 +42,11 @@ export const useDeposits = () => {
   const createDeposit = useMutation({
     mutationFn: async ({ 
       depositData, 
-      depositLines 
+      depositLines,
     }: { 
       depositData: DepositData; 
       depositLines: DepositLineData[];
+      silent?: boolean;
     }) => {
       console.log('Creating deposit:', depositData);
       console.log('Deposit lines:', depositLines);
@@ -200,11 +201,12 @@ export const useDeposits = () => {
 
       return deposit;
     },
-    onSuccess: () => {
+    onSuccess: (_data, variables) => {
       queryClient.invalidateQueries({ queryKey: ['deposits'] });
       queryClient.invalidateQueries({ queryKey: ['journal-entries'] });
       queryClient.invalidateQueries({ queryKey: ['balance-sheet'] });
       queryClient.invalidateQueries({ queryKey: ['income-statement'] });
+      if (variables?.silent) return;
       toast({
         title: "Success",
         description: "Deposit recorded successfully",
