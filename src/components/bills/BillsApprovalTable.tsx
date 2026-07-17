@@ -435,10 +435,21 @@ export function BillsApprovalTable({ status, projectId, projectIds, showProjectC
       // Get bill_payments details
       const { data: payments, error: payError } = await supabase
         .from('bill_payments')
-        .select('id, total_amount, payment_date, memo')
+        .select('id, total_amount, payment_date, memo, created_by')
         .in('id', paymentIds);
 
       if (payError) throw payError;
+
+      // Fetch payer user names for initials
+      const payerIds = [...new Set((payments || []).map(p => (p as any).created_by).filter(Boolean))] as string[];
+      const userMap = new Map<string, { first_name: string | null; last_name: string | null }>();
+      if (payerIds.length > 0) {
+        const { data: users } = await supabase
+          .from('users')
+          .select('id, first_name, last_name')
+          .in('id', payerIds);
+        (users || []).forEach(u => userMap.set(u.id, { first_name: u.first_name, last_name: u.last_name }));
+      }
 
       // Get ALL sibling allocations for these payments (including credits)
       const { data: siblingAllocations, error: sibError } = await supabase
