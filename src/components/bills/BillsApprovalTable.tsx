@@ -1550,6 +1550,9 @@ export function BillsApprovalTable({ status, projectId, projectIds, showProjectC
                   paymentDate: string;
                   totalAmount: number;
                   memo: string | null;
+                  createdBy: string | null;
+                  createdByInitials: string | null;
+                  createdByName: string | null;
                   billIds: string[];
                   allocations: { billId: string; amount: number; ref: string | null; billTotal: number; isCredit: boolean }[];
                 };
@@ -1584,6 +1587,9 @@ export function BillsApprovalTable({ status, projectId, projectIds, showProjectC
                     paymentDate: group.paymentDate,
                     totalAmount: group.totalAmount,
                     memo: group.memo,
+                    createdBy: group.createdBy,
+                    createdByInitials: group.createdByInitials,
+                    createdByName: group.createdByName,
                     billIds: [...group.billIds],
                     allocations: group.allocations.map(a => ({ ...a })),
                   });
