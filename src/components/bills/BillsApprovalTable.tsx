@@ -509,7 +509,7 @@ export function BillsApprovalTable({ status, projectId, projectIds, showProjectC
       }
 
       // Build payment groups (for consolidated row rendering)
-      const groups = new Map<string, { paymentId: string; paymentDate: string; totalAmount: number; memo: string | null; billIds: string[]; allocations: { billId: string; amount: number; ref: string | null; billTotal: number; isCredit: boolean }[] }>();
+      const groups = new Map<string, { paymentId: string; paymentDate: string; totalAmount: number; memo: string | null; createdBy: string | null; createdByInitials: string | null; createdByName: string | null; billIds: string[]; allocations: { billId: string; amount: number; ref: string | null; billTotal: number; isCredit: boolean }[] }>();
 
       for (const payment of (payments || [])) {
         const paymentAllocations = (siblingAllocations || []).filter(a => a.bill_payment_id === payment.id);
@@ -528,11 +528,21 @@ export function BillsApprovalTable({ status, projectId, projectIds, showProjectC
         const relevantBillIds = allocs.filter(a => paidBillIds.includes(a.billId)).map(a => a.billId);
         if (relevantBillIds.length === 0) continue;
 
+        const createdBy = (payment as any).created_by || null;
+        const payer = createdBy ? userMap.get(createdBy) : null;
+        const fn = payer?.first_name || '';
+        const ln = payer?.last_name || '';
+        const initials = `${fn.charAt(0)}${ln.charAt(0)}`.toUpperCase() || null;
+        const fullName = `${fn} ${ln}`.trim() || null;
+
         groups.set(payment.id, {
           paymentId: payment.id,
           paymentDate: payment.payment_date,
           totalAmount: payment.total_amount,
           memo: payment.memo,
+          createdBy,
+          createdByInitials: initials,
+          createdByName: fullName,
           billIds: relevantBillIds,
           allocations: allocs,
         });
