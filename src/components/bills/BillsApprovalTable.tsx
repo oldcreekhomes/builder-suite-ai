@@ -418,7 +418,7 @@ export function BillsApprovalTable({ status, projectId, projectIds, showProjectC
   const { data: paymentGroups } = useQuery({
     queryKey: ['paid-bill-payment-groups', paidBillIds],
     queryFn: async () => {
-      if (paidBillIds.length === 0) return { breakdowns: new Map<string, { cashPaid: number; credits: { ref: string; amount: number }[] }>(), groups: new Map<string, { paymentId: string; paymentDate: string; totalAmount: number; memo: string | null; billIds: string[]; allocations: { billId: string; amount: number; ref: string | null; billTotal: number; isCredit: boolean }[] }>() };
+      if (paidBillIds.length === 0) return { breakdowns: new Map<string, { cashPaid: number; credits: { ref: string; amount: number }[] }>(), groups: new Map<string, { paymentId: string; paymentDate: string; totalAmount: number; memo: string | null; createdBy: string | null; createdByInitials: string | null; createdByName: string | null; billIds: string[]; allocations: { billId: string; amount: number; ref: string | null; billTotal: number; isCredit: boolean }[] }>() };
 
       // Get allocations for these bills
       const { data: allocations, error: allocError } = await supabase
@@ -435,10 +435,21 @@ export function BillsApprovalTable({ status, projectId, projectIds, showProjectC
       // Get bill_payments details
       const { data: payments, error: payError } = await supabase
         .from('bill_payments')
-        .select('id, total_amount, payment_date, memo')
+        .select('id, total_amount, payment_date, memo, created_by')
         .in('id', paymentIds);
 
       if (payError) throw payError;
+
+      // Fetch payer user names for initials
+      const payerIds = [...new Set((payments || []).map(p => (p as any).created_by).filter(Boolean))] as string[];
+      const userMap = new Map<string, { first_name: string | null; last_name: string | null }>();
+      if (payerIds.length > 0) {
+        const { data: users } = await supabase
+          .from('users')
+          .select('id, first_name, last_name')
+          .in('id', payerIds);
+        (users || []).forEach(u => userMap.set(u.id, { first_name: u.first_name, last_name: u.last_name }));
+      }
 
       // Get ALL sibling allocations for these payments (including credits)
       const { data: siblingAllocations, error: sibError } = await supabase
@@ -498,7 +509,7 @@ export function BillsApprovalTable({ status, projectId, projectIds, showProjectC
       }
 
       // Build payment groups (for consolidated row rendering)
-      const groups = new Map<string, { paymentId: string; paymentDate: string; totalAmount: number; memo: string | null; billIds: string[]; allocations: { billId: string; amount: number; ref: string | null; billTotal: number; isCredit: boolean }[] }>();
+      const groups = new Map<string, { paymentId: string; paymentDate: string; totalAmount: number; memo: string | null; createdBy: string | null; createdByInitials: string | null; createdByName: string | null; billIds: string[]; allocations: { billId: string; amount: number; ref: string | null; billTotal: number; isCredit: boolean }[] }>();
 
       for (const payment of (payments || [])) {
         const paymentAllocations = (siblingAllocations || []).filter(a => a.bill_payment_id === payment.id);
@@ -517,11 +528,21 @@ export function BillsApprovalTable({ status, projectId, projectIds, showProjectC
         const relevantBillIds = allocs.filter(a => paidBillIds.includes(a.billId)).map(a => a.billId);
         if (relevantBillIds.length === 0) continue;
 
+        const createdBy = (payment as any).created_by || null;
+        const payer = createdBy ? userMap.get(createdBy) : null;
+        const fn = payer?.first_name || '';
+        const ln = payer?.last_name || '';
+        const initials = `${fn.charAt(0)}${ln.charAt(0)}`.toUpperCase() || null;
+        const fullName = `${fn} ${ln}`.trim() || null;
+
         groups.set(payment.id, {
           paymentId: payment.id,
           paymentDate: payment.payment_date,
           totalAmount: payment.total_amount,
           memo: payment.memo,
+          createdBy,
+          createdByInitials: initials,
+          createdByName: fullName,
           billIds: relevantBillIds,
           allocations: allocs,
         });
@@ -888,7 +909,7 @@ export function BillsApprovalTable({ status, projectId, projectIds, showProjectC
   // + Delete(1) if shown
   // + PO Status(1) - always shown on all tabs
   const showPOStatusColumn = true;
-  const baseColCount = 10 + (isDraftStatus ? 1 : 0) + (showAddressColumn ? 1 : 0) + (showProjectColumn ? 1 : 0) + (showPayBillButton ? 1 : 0) + (canShowDeleteButton ? 1 : 0) + (showPOStatusColumn ? 1 : 0) + (enableBatchPayment ? 1 : 0);
+  const baseColCount = 10 + (isDraftStatus ? 1 : 0) + (showAddressColumn ? 1 : 0) + (showProjectColumn ? 1 : 0) + (showPayBillButton ? 1 : 0) + (canShowDeleteButton ? 1 : 0) + (showPOStatusColumn ? 1 : 0) + (enableBatchPayment ? 1 : 0) + (isPaidStatus ? 2 : 0);
   const selectedVendorName = selectedBillsForBatch.length > 0
     ? (selectedBillsForBatch[0].companies?.company_name || 'Unknown Vendor')
     : '';
@@ -1488,6 +1509,8 @@ export function BillsApprovalTable({ status, projectId, projectIds, showProjectC
                   </TableHead>
                   <TableHead className="w-20">Amount</TableHead>
                   <TableHead className="w-24">Reference</TableHead>
+                  {isPaidStatus && <TableHead className="w-20">Paid On</TableHead>}
+                  {isPaidStatus && <TableHead className="w-16 text-center">Paid By</TableHead>}
                   <TableHead className="w-10 text-center">Description</TableHead>
                   {showAddressColumn && <TableHead className="w-16">Address</TableHead>}
                   <TableHead className="w-10 text-center">Files</TableHead>
@@ -1527,6 +1550,9 @@ export function BillsApprovalTable({ status, projectId, projectIds, showProjectC
                   paymentDate: string;
                   totalAmount: number;
                   memo: string | null;
+                  createdBy: string | null;
+                  createdByInitials: string | null;
+                  createdByName: string | null;
                   billIds: string[];
                   allocations: { billId: string; amount: number; ref: string | null; billTotal: number; isCredit: boolean }[];
                 };
@@ -1561,6 +1587,9 @@ export function BillsApprovalTable({ status, projectId, projectIds, showProjectC
                     paymentDate: group.paymentDate,
                     totalAmount: group.totalAmount,
                     memo: group.memo,
+                    createdBy: group.createdBy,
+                    createdByInitials: group.createdByInitials,
+                    createdByName: group.createdByName,
                     billIds: [...group.billIds],
                     allocations: group.allocations.map(a => ({ ...a })),
                   });
@@ -1711,6 +1740,25 @@ export function BillsApprovalTable({ status, projectId, projectIds, showProjectC
                                   <TooltipContent><p>Payment</p></TooltipContent>
                                 </Tooltip>
                               </TooltipProvider>
+                            </TableCell>
+                            <TableCell className="w-20">
+                              <span className="block truncate">{formatDisplayFromAny(group.paymentDate)}</span>
+                            </TableCell>
+                            <TableCell className="w-16 text-center">
+                              {group.createdByInitials ? (
+                                <TooltipProvider>
+                                  <Tooltip>
+                                    <TooltipTrigger asChild>
+                                      <div className="inline-flex h-7 w-7 items-center justify-center rounded-full bg-muted text-xs font-medium">
+                                        {group.createdByInitials}
+                                      </div>
+                                    </TooltipTrigger>
+                                    <TooltipContent>{group.createdByName || 'Unknown'}</TooltipContent>
+                                  </Tooltip>
+                                </TooltipProvider>
+                              ) : (
+                                <span className="text-muted-foreground">—</span>
+                              )}
                             </TableCell>
                             <TableCell className="w-10 text-center">
                               <div className="flex justify-center">
@@ -1869,6 +1917,8 @@ export function BillsApprovalTable({ status, projectId, projectIds, showProjectC
                                     </Tooltip>
                                   </TooltipProvider>
                                 </TableCell>
+                                <TableCell className="w-20" />
+                                <TableCell className="w-16 text-center" />
                                 <TableCell className="w-10 text-center">
                                   {childBill ? (() => {
                                     const childMemo = getBillMemoSummary(childBill);
