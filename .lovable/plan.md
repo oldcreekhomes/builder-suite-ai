@@ -1,27 +1,27 @@
-## Fix 1 — One toast per batch save
+## Goal
+On the Manage Bills → Paid tab only, add two new columns to the right of Reference:
+1. **Paid On** — payment date
+2. **Paid By** — first + last initial avatar chip (same style as the PO table's Created By)
 
-`useDeposits.createDeposit` fires a "Deposit recorded successfully" toast on every insert, so a 6‑row batch = 6 toasts (they queue because `TOAST_LIMIT = 1`).
+Other tabs (Draft, Review, Rejected, Approved) remain unchanged.
 
-- Add an optional `silent?: boolean` on `createDeposit.mutateAsync` variables.
-- In its `onSuccess`, skip the toast when `variables.silent === true` (keep cache invalidation + error toast as-is).
-- In `useMultiDepositBatchSave`, pass `silent: true` on every row call.
-- In `MultiDepositTable.handleSave`, keep exactly one toast on completion: `"Saved N deposits"` (and one error toast on failure).
+## Changes (single file: `src/components/bills/BillsApprovalTable.tsx`)
 
-## Fix 2 — "Multiple Deposits Batches" shows nothing
+1. **Payment fetch** (around line 437): extend the `bill_payments` select to include `created_by`. After loading, batch-fetch matching `users` rows (`id, first_name, last_name`) and build a `Map<userId, {initials, fullName}>`.
 
-Network shows the list query is 400ing:
+2. **Payment group shape**: add `createdBy: string | null` and `createdByInitials: string | null` / `createdByName` to the `paymentGroupsMap` group type (line 421, 501, 522) and to the `MergedGroup` type (line 1525). Populate from the payment row; when merging non-primary groups, keep the primary's values.
 
-```
-Could not find a relationship between 'deposits' and 'project_id'
-```
+3. **Header row** (after line 1490, Reference `<TableHead>`): when `isPaidStatus`, render two additional `<TableHead className="w-20">Paid On</TableHead>` and `<TableHead className="w-16 text-center">Paid By</TableHead>`.
 
-`deposits` has no FKs to `projects`, `accounts`, or `companies`, so PostgREST refuses the nested `projects:project_id(address)`, `accounts:bank_account_id(...)`, `companies:company_id(...)` embeds. The whole request fails → empty batch list.
+4. **Paid parent row** (after the Reference `<TableCell>` around line 1705): when `isPaidStatus`, render:
+   - Paid On cell with `formatDisplayFromAny(group.paymentDate)`
+   - Paid By cell containing a small avatar circle showing the initials (reuse the same avatar component/pattern used in `PurchaseOrdersTable` "Created By" column — I'll match that visual: `h-7 w-7 rounded-full bg-muted text-[11px] font-medium` with tooltip showing full name).
 
-- Rewrite `useMultiDepositBatches` to fetch `deposits` with plain columns only (no nested embeds).
-- After the deposit fetch, do three batched lookups via `batchedIn`:
-  - `projects` by id → `address`
-  - `accounts` by id → `code`, `name` (for bank label)
-  - `companies` by id → `company_name`
-- Merge those maps into each `MultiDepositBatchDeposit` exactly like before, so `MultiDepositBatchHistory` renders unchanged.
+5. **Paid child rows** (allocation rows, ~line 1763+) and the empty-state colspan (`baseColCount`, line 885 comment): add two empty `<TableCell>`s and bump colspan by 2 when `isPaidStatus`, keeping column alignment.
 
-Everything else in the batch history UI stays the same.
+6. **Non-paid tabs**: no changes — the two headers/cells are gated behind `isPaidStatus`.
+
+## Technical notes
+- Reuse the exact avatar pattern from `src/components/purchaseOrders/` (the "RZ" chip visible in the screenshot) so the two tables look identical.
+- No schema changes: `bill_payments.created_by` and `bill_payments.payment_date` already exist.
+- No changes to any other tab, mutation, or business logic.
