@@ -1917,6 +1917,8 @@ export function BillsApprovalTable({ status, projectId, projectIds, showProjectC
                                     </Tooltip>
                                   </TooltipProvider>
                                 </TableCell>
+                                <TableCell className="w-20" />
+                                <TableCell className="w-16 text-center" />
                                 <TableCell className="w-10 text-center">
                                   {childBill ? (() => {
                                     const childMemo = getBillMemoSummary(childBill);
