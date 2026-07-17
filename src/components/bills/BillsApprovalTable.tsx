@@ -1741,6 +1741,25 @@ export function BillsApprovalTable({ status, projectId, projectIds, showProjectC
                                 </Tooltip>
                               </TooltipProvider>
                             </TableCell>
+                            <TableCell className="w-20">
+                              <span className="block truncate">{formatDisplayFromAny(group.paymentDate)}</span>
+                            </TableCell>
+                            <TableCell className="w-16 text-center">
+                              {group.createdByInitials ? (
+                                <TooltipProvider>
+                                  <Tooltip>
+                                    <TooltipTrigger asChild>
+                                      <div className="inline-flex h-7 w-7 items-center justify-center rounded-full bg-muted text-xs font-medium">
+                                        {group.createdByInitials}
+                                      </div>
+                                    </TooltipTrigger>
+                                    <TooltipContent>{group.createdByName || 'Unknown'}</TooltipContent>
+                                  </Tooltip>
+                                </TooltipProvider>
+                              ) : (
+                                <span className="text-muted-foreground">—</span>
+                              )}
+                            </TableCell>
                             <TableCell className="w-10 text-center">
                               <div className="flex justify-center">
                                 <div className="h-8 w-8 opacity-0 pointer-events-none" />
