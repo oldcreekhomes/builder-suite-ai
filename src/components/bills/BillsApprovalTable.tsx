@@ -418,7 +418,7 @@ export function BillsApprovalTable({ status, projectId, projectIds, showProjectC
   const { data: paymentGroups } = useQuery({
     queryKey: ['paid-bill-payment-groups', paidBillIds],
     queryFn: async () => {
-      if (paidBillIds.length === 0) return { breakdowns: new Map<string, { cashPaid: number; credits: { ref: string; amount: number }[] }>(), groups: new Map<string, { paymentId: string; paymentDate: string; totalAmount: number; memo: string | null; billIds: string[]; allocations: { billId: string; amount: number; ref: string | null; billTotal: number; isCredit: boolean }[] }>() };
+      if (paidBillIds.length === 0) return { breakdowns: new Map<string, { cashPaid: number; credits: { ref: string; amount: number }[] }>(), groups: new Map<string, { paymentId: string; paymentDate: string; totalAmount: number; memo: string | null; createdBy: string | null; createdByInitials: string | null; createdByName: string | null; billIds: string[]; allocations: { billId: string; amount: number; ref: string | null; billTotal: number; isCredit: boolean }[] }>() };
 
       // Get allocations for these bills
       const { data: allocations, error: allocError } = await supabase
