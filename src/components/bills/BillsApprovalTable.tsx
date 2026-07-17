@@ -1509,6 +1509,8 @@ export function BillsApprovalTable({ status, projectId, projectIds, showProjectC
                   </TableHead>
                   <TableHead className="w-20">Amount</TableHead>
                   <TableHead className="w-24">Reference</TableHead>
+                  {isPaidStatus && <TableHead className="w-20">Paid On</TableHead>}
+                  {isPaidStatus && <TableHead className="w-16 text-center">Paid By</TableHead>}
                   <TableHead className="w-10 text-center">Description</TableHead>
                   {showAddressColumn && <TableHead className="w-16">Address</TableHead>}
                   <TableHead className="w-10 text-center">Files</TableHead>
