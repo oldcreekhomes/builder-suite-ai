@@ -1131,6 +1131,37 @@ export function BillsApprovalTable({ status, projectId, projectIds, showProjectC
           <span className="block truncate">-</span>
         )}
       </TableCell>
+      {isPaidStatus && (() => {
+        let paidGroup: { paymentDate: string; createdByInitials: string | null; createdByName: string | null } | null = null;
+        if (paymentGroupsMap) {
+          for (const g of paymentGroupsMap.values()) {
+            if (g.billIds.includes(bill.id)) { paidGroup = g; break; }
+          }
+        }
+        return (
+          <>
+            <TableCell className="w-20">
+              <span className="block truncate">{paidGroup ? formatDisplayFromAny(paidGroup.paymentDate) : '—'}</span>
+            </TableCell>
+            <TableCell className="w-16 text-center">
+              {paidGroup?.createdByInitials ? (
+                <TooltipProvider>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <div className="inline-flex h-7 w-7 items-center justify-center rounded-full bg-muted text-xs font-medium">
+                        {paidGroup.createdByInitials}
+                      </div>
+                    </TooltipTrigger>
+                    <TooltipContent>{paidGroup.createdByName || 'Unknown'}</TooltipContent>
+                  </Tooltip>
+                </TooltipProvider>
+              ) : (
+                <span className="text-muted-foreground">—</span>
+              )}
+            </TableCell>
+          </>
+        );
+      })()}
       {/* Memo column */}
       <TableCell className="w-10 text-center">
         {memoSummary && memoSummary.length > 0 ? (
