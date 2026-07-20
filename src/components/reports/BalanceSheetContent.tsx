@@ -122,85 +122,20 @@ export function BalanceSheetContent({ projectId, onHeaderActionChange, asOfDate,
         return q;
       };
 
-      // Fetch consolidated bill payments — these are stored in bill_payments and
-      // their individual per-bill journal lines must be SUPPRESSED in favor of the
-      // single consolidated total, exactly like the Account Detail dialog does.
-      const buildConsolidatedPaymentsQuery = () => {
-        let q = supabase
-          .from('bill_payments')
-          .select('id, payment_account_id, total_amount')
-          .lte('payment_date', formattedAsOfDate);
-        if (projectId) {
-          q = q.eq('project_id', projectId);
-        } else {
-          q = q.is('project_id', null);
-        }
-        return q;
-      };
-
-      const [journalLines, consolidatedPayments] = await Promise.all([
-        fetchAllRows(buildJournalQuery),
-        fetchAllRows(buildConsolidatedPaymentsQuery),
-      ]);
+      const journalLines = await fetchAllRows(buildJournalQuery);
       console.timeEnd('⏱️ Balance Sheet: Journal lines query');
-
-      // Build the set of bill_ids that participate in consolidated payments.
-      const consolidatedPaymentIds = (consolidatedPayments || []).map((p: any) => p.id);
-      const consolidatedBillIds = new Set<string>();
-      if (consolidatedPaymentIds.length > 0) {
-        const allocations = await fetchAllRows(() =>
-          supabase
-            .from('bill_payment_allocations')
-            .select('bill_id, bill_payment_id')
-            .in('bill_payment_id', consolidatedPaymentIds)
-        );
-        (allocations || []).forEach((a: any) => consolidatedBillIds.add(a.bill_id));
-      }
 
       console.log(`📊 Balance Sheet: Processing ${journalLines?.length || 0} journal lines`);
 
       const accountBalances: Record<string, number> = {};
-      const accountsPayableAccountId = accounts?.find((account) =>
-        account.type === 'liability' &&
-        (account.code === '2010' || account.name.toLowerCase().includes('accounts payable'))
-      )?.id;
-      const roundCurrency = (amount: number) => Math.round(amount * 100) / 100;
 
       journalLines?.forEach((line: any) => {
-        // Suppress per-bill bill_payment lines whose bill is part of a consolidated payment.
-        // The consolidated payment is added back below as a single credit on the
-        // payment_account_id and a matching debit to Accounts Payable.
-        const je = line.journal_entries;
-        if (
-          je?.source_type === 'bill_payment' &&
-          je?.source_id &&
-          consolidatedBillIds.has(je.source_id)
-        ) {
-          return;
-        }
         if (!accountBalances[line.account_id]) {
           accountBalances[line.account_id] = 0;
         }
         accountBalances[line.account_id] += (line.debit || 0) - (line.credit || 0);
       });
 
-      // Apply each consolidated bill payment as a balanced replacement entry:
-      // credit the bank/payment account and debit Accounts Payable.
-      (consolidatedPayments || []).forEach((p: any) => {
-        if (!p.payment_account_id) return;
-        const amount = Number(p.total_amount || 0);
-        if (!accountBalances[p.payment_account_id]) {
-          accountBalances[p.payment_account_id] = 0;
-        }
-        accountBalances[p.payment_account_id] = roundCurrency(accountBalances[p.payment_account_id] - amount);
-
-        if (accountsPayableAccountId) {
-          if (!accountBalances[accountsPayableAccountId]) {
-            accountBalances[accountsPayableAccountId] = 0;
-          }
-          accountBalances[accountsPayableAccountId] = roundCurrency(accountBalances[accountsPayableAccountId] + amount);
-        }
-      });
 
       const assets: { current: AccountBalance[], fixed: AccountBalance[] } = { current: [], fixed: [] };
       const liabilities: { current: AccountBalance[], longTerm: AccountBalance[] } = { current: [], longTerm: [] };
