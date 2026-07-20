@@ -24,10 +24,11 @@ interface FolderShareModalProps {
   onClose: () => void;
   folderPath: string;
   files: ProjectFile[];
+  folders: string[];
   projectId: string;
 }
 
-export function FolderShareModal({ isOpen, onClose, folderPath, files, projectId }: FolderShareModalProps) {
+export function FolderShareModal({ isOpen, onClose, folderPath, files, folders, projectId }: FolderShareModalProps) {
   const { toast } = useToast();
   const [shareLink, setShareLink] = useState("");
   const [shareId, setShareId] = useState<string | null>(null);
@@ -80,7 +81,7 @@ export function FolderShareModal({ isOpen, onClose, folderPath, files, projectId
   }, [isOpen, hasCheckedExisting, lookupExistingLink]);
 
   const generateShareLink = useCallback(async () => {
-    if (!files || files.length === 0 || isLoading) return;
+    if ((!files || files.length === 0) && (!folders || folders.length === 0) || isLoading) return;
 
     setIsLoading(true);
     try {
@@ -96,6 +97,7 @@ export function FolderShareModal({ isOpen, onClose, folderPath, files, projectId
       // Store the share data in Supabase database
       const shareData = {
         folder_path: folderPath,
+        folders,
         files: files.map(file => ({
           id: file.id,
           original_filename: file.original_filename,
@@ -142,7 +144,7 @@ export function FolderShareModal({ isOpen, onClose, folderPath, files, projectId
     } finally {
       setIsLoading(false);
     }
-  }, [files, folderPath, projectId, isLoading, toast]);
+  }, [files, folders, folderPath, projectId, isLoading, toast]);
 
   const handleUnshare = useCallback(async () => {
     if (!shareId || isLoading) return;
@@ -196,6 +198,7 @@ export function FolderShareModal({ isOpen, onClose, folderPath, files, projectId
   };
 
   const fileCount = files.length;
+  const folderCount = folders.length;
 
   return (
     <Dialog open={isOpen} onOpenChange={handleClose}>
@@ -219,7 +222,7 @@ export function FolderShareModal({ isOpen, onClose, folderPath, files, projectId
               {folderPath === 'Root' ? 'Root Files' : folderPath}
             </p>
             <p className="text-xs text-gray-500">
-              {fileCount} file{fileCount !== 1 ? 's' : ''}
+              {folderCount} folder{folderCount !== 1 ? 's' : ''} · {fileCount} file{fileCount !== 1 ? 's' : ''}
             </p>
           </div>
 
@@ -273,7 +276,7 @@ export function FolderShareModal({ isOpen, onClose, folderPath, files, projectId
                 Link expires in 7 days
               </div>
             </div>
-          ) : fileCount === 0 ? (
+          ) : fileCount === 0 && folderCount === 0 ? (
             <div className="text-center py-4">
               <p className="text-sm text-gray-500">No files to share in this folder</p>
             </div>
