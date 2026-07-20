@@ -323,6 +323,11 @@ export function ReconcileAccountsContent({ projectId }: ReconcileAccountsContent
 
 
 
+  const clearedChecks = transactions?.checks.filter(c => checkedTransactions.has(c.id)) || [];
+  const clearedDeposits = transactions?.deposits.filter(d => checkedTransactions.has(d.id)) || [];
+  const totalClearedChecks = clearedChecks.reduce((sum, transaction) => sum + Number(transaction.amount), 0);
+  const totalClearedDeposits = clearedDeposits.reduce((sum, transaction) => sum + Number(transaction.amount), 0);
+
   const calculatedEndingBalance = calculateReconciledBalance(
     Number(beginningBalance) || 0,
     checkedTransactions,
