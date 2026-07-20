@@ -1,26 +1,22 @@
-## Goal
+## Problem
 
-Populate the two empty parent groups in the 923 17th Street schedule by duplicating existing task lists — leaving the source groups untouched.
+When sharing a folder that contains subfolders, the current share collects all descendant files correctly (via `startsWith("${folder.path}/")` in `SimpleFileList.tsx`), but the public share page (`src/pages/SharedFolder.tsx`) flattens them — it renders every file at the top level and strips the path with `split('/').pop()`. That's why the "Submission Documents - Formal" link shows 23 individual files instead of the 18 subfolders.
 
-## Confirmed current state
+The stored share data already includes the full `original_filename` path for each file, so no re-share or database change is needed. Only the public viewer needs to be updated to reconstruct and navigate the tree.
 
-Project `350e5951-1a6f-4809-9d4e-7652d58603b9` currently has:
-- **9** — 2401 INTERIOR CONSTRUCTION (84 children: 9.1 → 9.84)
-- **10** — 2401 EXTERIOR CONSTRUCTION (no children)
-- **11** — 2405 INTERIOR CONSTRUCTION (no children)
-- **12** — 2405 EXTERIOR CONSTRUCTION (18 children: 12.1 → 12.18)
+## Fix (frontend only: `src/pages/SharedFolder.tsx`)
 
-## Changes
+1. Add a root `folderPath` state (already loaded from `data.folder_path`) and a new `currentPath` state initialized to `folderPath`.
+2. Build a tree from the flat `files[]` by stripping the shared root prefix from each `original_filename` and splitting the remainder on `/`. Any file with more than one remaining segment becomes a descendant of a subfolder.
+3. Derive `currentFolders` and `currentFiles` for the `currentPath`:
+   - `currentFolders`: unique immediate-child folder names at the current path.
+   - `currentFiles`: files whose parent path equals `currentPath` exactly.
+4. Render breadcrumbs from the root folder name down to `currentPath`; each crumb sets `currentPath` on click.
+5. Render subfolders first (folder icon, name, file count including descendants) — clicking descends into that folder. Then render files with the existing Download button; display just the leaf filename.
+6. Update the header count to say "X folders · Y files" when at the root, or the file/folder counts for the current view.
+7. Keep "Download All" behavior as-is (still zips every file in the share) but hide it inside subfolders is not required — leave it visible at every level and continue to zip the entire share; label unchanged.
 
-Run a single data insert against `project_schedule_tasks`:
+## Out of scope
 
-1. Copy every row where `hierarchy_number` starts with `12.` into new rows with the same `project_id`, renumbered `10.1` … `10.18`. Copy all fields verbatim: `task_name`, `start_date`, `end_date`, `duration`, `progress`, `predecessor`, `resources`, `confirmed`, `notes`.
-2. Copy every row where `hierarchy_number` starts with `9.` into new rows renumbered `11.1` … `11.84`, same field-for-field copy.
-
-New rows get fresh `id`s and standard `created_at` / `updated_at`. Existing groups 9 and 12 (and their children) are not modified. Groups 10 and 11 parent rows remain in place.
-
-## Verification
-
-After the insert, re-query the four groups and confirm:
-- Group 10 has 18 children (10.1 → 10.18) matching group 12's task names.
-- Group 11 has 84 children (11.1 → 11.84) matching group 9's task names, dates, and notes.
+- No changes to `FolderShareModal`, `share-redirect`, `public-file-download`, or DB schema — the existing share payload already carries the paths needed to rebuild the tree.
+- Photo-share flow is unchanged.
