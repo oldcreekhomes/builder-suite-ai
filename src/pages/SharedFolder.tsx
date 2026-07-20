@@ -24,6 +24,7 @@ interface SharedFile {
   project_id: string;
   uploaded_by: string;
   uploaded_at: string;
+  relative_path?: string;
 }
 
 const relativeParts = (path: string, rootPath: string) => {
@@ -117,11 +118,13 @@ export default function SharedFolder() {
   // Compute relative path parts for each file (stripped of the shared root)
   const filesWithRel = useMemo(() => {
     return files.map((f) => {
-      let name = f.original_filename || '';
-      if (rootPath && name.startsWith(`${rootPath}/`)) {
+      let name = f.relative_path || f.original_filename || '';
+      if (!f.relative_path && rootPath && name.startsWith(`${rootPath}/`)) {
         name = name.slice(rootPath.length + 1);
       }
-      const parts = relativeParts(name, rootPath);
+      const parts = f.relative_path
+        ? name.replace(/^\/+|\/+$/g, '').split('/').filter(Boolean)
+        : relativeParts(name, rootPath);
       const leaf = parts[parts.length - 1] || name;
       const parentParts = parts.slice(0, -1);
       return { file: f, parentParts, leaf };

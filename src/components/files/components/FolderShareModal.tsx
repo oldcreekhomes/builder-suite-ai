@@ -16,6 +16,7 @@ interface ProjectFile {
   storage_path: string;
   uploaded_by: string;
   uploaded_at: string;
+  relative_path?: string;
   uploaded_by_profile?: { email: string };
 }
 
@@ -36,7 +37,27 @@ export function FolderShareModal({ isOpen, onClose, folderPath, files, folders, 
   const [hasCheckedExisting, setHasCheckedExisting] = useState(false);
   const lastErrorRef = useRef<string | null>(null);
 
-  const baseUrl = 'https://nlmnwlvmmkngrgatnzkj.supabase.co/functions/v1/share-redirect';
+  const getShareUrl = useCallback((id: string) => `${window.location.origin}/s/f/${id}`, []);
+
+  const buildShareData = useCallback(() => ({
+    folder_path: folderPath,
+    folders,
+    files: files.map(file => ({
+      id: file.id,
+      original_filename: file.original_filename,
+      relative_path: file.relative_path || (
+        file.original_filename.startsWith(`${folderPath}/`)
+          ? file.original_filename.slice(folderPath.length + 1)
+          : file.original_filename
+      ),
+      file_size: file.file_size,
+      file_type: file.file_type,
+      storage_path: file.storage_path,
+      project_id: projectId,
+      uploaded_by: file.uploaded_by,
+      uploaded_at: file.uploaded_at
+    }))
+  }), [files, folderPath, folders, projectId]);
 
   const resetState = useCallback(() => {
     setShareLink("");
@@ -53,7 +74,7 @@ export function FolderShareModal({ isOpen, onClose, folderPath, files, folders, 
     try {
       const { data: existingShare, error: existingError } = await supabase
         .from('shared_links')
-        .select('share_id, expires_at')
+        .select('share_id, expires_at, data')
         .eq('share_type', 'folder')
         .gt('expires_at', new Date().toISOString())
         .contains('data', { folder_path: folderPath })
@@ -62,8 +83,21 @@ export function FolderShareModal({ isOpen, onClose, folderPath, files, folders, 
         .maybeSingle();
 
       if (!existingError && existingShare) {
+        const existingData = existingShare.data as any;
+        const needsHierarchyRepair = !Array.isArray(existingData?.folders)
+          || existingData.folders.length === 0
+          || !Array.isArray(existingData?.files)
+          || existingData.files.some((file: any) => !file.relative_path);
+
+        if (needsHierarchyRepair && (files.length > 0 || folders.length > 0)) {
+          const { error: repairError } = await supabase
+            .from('shared_links')
+            .update({ data: buildShareData() })
+            .eq('share_id', existingShare.share_id);
+          if (repairError) throw repairError;
+        }
         setShareId(existingShare.share_id);
-        setShareLink(`${baseUrl}?id=${existingShare.share_id}&type=f`);
+        setShareLink(getShareUrl(existingShare.share_id));
       }
       setHasCheckedExisting(true);
     } catch (error: any) {
@@ -71,7 +105,7 @@ export function FolderShareModal({ isOpen, onClose, folderPath, files, folders, 
     } finally {
       setIsLoading(false);
     }
-  }, [folderPath, hasCheckedExisting, isLoading]);
+  }, [buildShareData, files.length, folderPath, folders.length, getShareUrl, hasCheckedExisting, isLoading]);
 
   // Look up existing link when modal opens
   useEffect(() => {
@@ -95,20 +129,7 @@ export function FolderShareModal({ isOpen, onClose, folderPath, files, folders, 
       const newShareId = Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15);
 
       // Store the share data in Supabase database
-      const shareData = {
-        folder_path: folderPath,
-        folders,
-        files: files.map(file => ({
-          id: file.id,
-          original_filename: file.original_filename,
-          file_size: file.file_size,
-          file_type: file.file_type,
-          storage_path: file.storage_path,
-          project_id: projectId,
-          uploaded_by: file.uploaded_by,
-          uploaded_at: file.uploaded_at
-        }))
-      };
+      const shareData = buildShareData();
 
       // Insert share link into database
       const { error } = await supabase
@@ -124,7 +145,7 @@ export function FolderShareModal({ isOpen, onClose, folderPath, files, folders, 
       if (error) throw error;
 
       setShareId(newShareId);
-      setShareLink(`${baseUrl}?id=${newShareId}&type=f`);
+      setShareLink(getShareUrl(newShareId));
 
       toast({
         title: "Link Generated",
@@ -144,7 +165,7 @@ export function FolderShareModal({ isOpen, onClose, folderPath, files, folders, 
     } finally {
       setIsLoading(false);
     }
-  }, [files, folders, folderPath, projectId, isLoading, toast]);
+  }, [buildShareData, files, folders, getShareUrl, isLoading, toast]);
 
   const handleUnshare = useCallback(async () => {
     if (!shareId || isLoading) return;

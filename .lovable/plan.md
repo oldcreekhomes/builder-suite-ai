@@ -1,23 +1,27 @@
-## Fix shared folders correctly
+## Fix the folder share correctly
 
-The database confirms the files still contain their full paths, but the share payload currently excludes the folder records (`folderkeeper`). That means the shared page only receives files, so it cannot preserve empty folders or the exact 18-folder structure. The live custom-domain page is also still rendering the older flat-list version.
+The database confirms the newest link saved **30 files and 0 folders**. This project’s folders are represented by `folderkeeper` rows in `project_files`; `project_folders` has no records for this hierarchy, so the current share query cannot capture it. The public URL is also serving the older flat-list page.
 
-1. **Include the folder structure in the share payload**
-   - Update the folder-share query to collect descendant folder records as well as descendant files.
-   - Save explicit relative folder paths in `shared_links.data`, including folders that contain no files.
-   - Keep all file paths relative to the shared root so nested levels remain intact.
+1. **Capture the actual folder structure**
+   - Build the descendant folder list from the existing `folderkeeper` rows under the selected folder.
+   - Save normalized paths relative to the shared root in `shared_links.data.folders`.
+   - Save a normalized `relative_path` for every shared file so the viewer never has to guess its folder from a full pathname.
 
-2. **Render the saved hierarchy on the public share page**
-   - Build each view from both the saved folders and files.
-   - At the root, show the 18 immediate folders rather than all descendant files.
-   - Clicking a folder will show its immediate subfolders and files, with breadcrumbs for navigation.
-   - Keep individual downloads and Download All with the same directory structure inside the ZIP.
+2. **Prevent reuse of malformed links**
+   - When an existing active share has no saved folder hierarchy, refresh its payload from the current files and folderkeepers before returning the link.
+   - Keep the Unshare action so a link can still be revoked and replaced intentionally.
 
-3. **Handle existing links safely**
-   - Support older share records by reconstructing folders from file paths where possible.
-   - Newly generated links will preserve the complete structure, including empty folders.
-   - Use the new Unshare action on the current link, then create a fresh link so its payload includes the explicit folders.
+3. **Render folders before files**
+   - Update the public shared-folder page to use the saved relative folder and file paths.
+   - At the root, show the immediate folders; opening one shows only its immediate children and files.
+   - Preserve breadcrumbs, individual downloads, empty folders, and the same hierarchy inside Download All ZIPs.
+   - Keep fallback reconstruction for older links that only contain full file paths.
 
-4. **Verify the exact example**
-   - Test `Submission Documents - Formal` in the preview.
-   - Confirm the root shows the expected folders, files do not appear until their containing folder is opened, and nested downloads still work.
+4. **Make testing use the code being tested**
+   - Generate the public share URL from the app’s current origin instead of always redirecting preview-created links to the published custom domain.
+   - Production-created links will still use the production domain; preview-created links will open the preview implementation.
+
+5. **Verify this exact folder**
+   - Regenerate/refresh the `Submission Documents - Formal` share payload.
+   - Confirm its payload contains the folder list, the root displays the numbered folders instead of 30 loose files, navigation preserves nesting, and ZIP paths match the source structure.
+   - The production domain will require publishing after verification before old redirect links show the new viewer.
