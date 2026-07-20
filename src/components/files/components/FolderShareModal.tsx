@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
-import { Copy, Folder } from "lucide-react";
+import { Copy, Folder, Share2, Trash2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 
 interface ProjectFile {
@@ -30,25 +30,26 @@ interface FolderShareModalProps {
 export function FolderShareModal({ isOpen, onClose, folderPath, files, projectId }: FolderShareModalProps) {
   const { toast } = useToast();
   const [shareLink, setShareLink] = useState("");
-  const [isGeneratingLink, setIsGeneratingLink] = useState(false);
-  const attemptedRef = useRef(false);
+  const [shareId, setShareId] = useState<string | null>(null);
+  const [isLoading, setIsLoading] = useState(false);
+  const [hasCheckedExisting, setHasCheckedExisting] = useState(false);
   const lastErrorRef = useRef<string | null>(null);
 
-  const generateShareLink = useCallback(async () => {
-    if (!files || files.length === 0 || attemptedRef.current || isGeneratingLink) return;
+  const baseUrl = 'https://nlmnwlvmmkngrgatnzkj.supabase.co/functions/v1/share-redirect';
 
-    attemptedRef.current = true;
-    setIsGeneratingLink(true);
+  const resetState = useCallback(() => {
+    setShareLink("");
+    setShareId(null);
+    setHasCheckedExisting(false);
+    setIsLoading(false);
+    lastErrorRef.current = null;
+  }, []);
+
+  const lookupExistingLink = useCallback(async () => {
+    if (!folderPath || isLoading || hasCheckedExisting) return;
+
+    setIsLoading(true);
     try {
-      console.log('Generating share link for folder:', folderPath, 'with files:', files);
-      
-      // Ensure user is authenticated for RLS policy (created_by = auth.uid())
-      const { data: userData, error: userErr } = await supabase.auth.getUser();
-      if (userErr) throw userErr;
-      const userId = userData.user?.id;
-      if (!userId) throw new Error('You must be logged in to generate a share link.');
-      
-      // Check for existing valid share link for this folder
       const { data: existingShare, error: existingError } = await supabase
         .from('shared_links')
         .select('share_id, expires_at')
@@ -60,21 +61,38 @@ export function FolderShareModal({ isOpen, onClose, folderPath, files, projectId
         .maybeSingle();
 
       if (!existingError && existingShare) {
-        // Reuse existing valid link
-        const baseUrl = 'https://nlmnwlvmmkngrgatnzkj.supabase.co/functions/v1/share-redirect';
-        const shareUrl = `${baseUrl}?id=${existingShare.share_id}&type=f`;
-        setShareLink(shareUrl);
-        setIsGeneratingLink(false);
-        toast({
-          title: "Link Retrieved",
-          description: "Using existing shareable link",
-        });
-        return;
+        setShareId(existingShare.share_id);
+        setShareLink(`${baseUrl}?id=${existingShare.share_id}&type=f`);
       }
-      
+      setHasCheckedExisting(true);
+    } catch (error: any) {
+      console.error('Error looking up share link:', error);
+    } finally {
+      setIsLoading(false);
+    }
+  }, [folderPath, hasCheckedExisting, isLoading]);
+
+  // Look up existing link when modal opens
+  useEffect(() => {
+    if (isOpen && !hasCheckedExisting) {
+      lookupExistingLink();
+    }
+  }, [isOpen, hasCheckedExisting, lookupExistingLink]);
+
+  const generateShareLink = useCallback(async () => {
+    if (!files || files.length === 0 || isLoading) return;
+
+    setIsLoading(true);
+    try {
+      // Ensure user is authenticated for RLS policy (created_by = auth.uid())
+      const { data: userData, error: userErr } = await supabase.auth.getUser();
+      if (userErr) throw userErr;
+      const userId = userData.user?.id;
+      if (!userId) throw new Error('You must be logged in to generate a share link.');
+
       // Create a unique share ID
-      const shareId = Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15);
-      
+      const newShareId = Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15);
+
       // Store the share data in Supabase database
       const shareData = {
         folder_path: folderPath,
@@ -94,21 +112,18 @@ export function FolderShareModal({ isOpen, onClose, folderPath, files, projectId
       const { error } = await supabase
         .from('shared_links')
         .insert({
-          share_id: shareId,
+          share_id: newShareId,
           share_type: 'folder',
           data: shareData,
           created_by: userId,
           expires_at: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString() // 7 days
         });
 
-      if (error) {
-        throw error;
-      }
-      
-      // Use Supabase Edge Function for stable public links with redirect
-      const link = `https://nlmnwlvmmkngrgatnzkj.supabase.co/functions/v1/share-redirect?id=${shareId}&type=f`;
-      setShareLink(link);
-      
+      if (error) throw error;
+
+      setShareId(newShareId);
+      setShareLink(`${baseUrl}?id=${newShareId}&type=f`);
+
       toast({
         title: "Link Generated",
         description: "Shareable folder link has been created",
@@ -125,22 +140,39 @@ export function FolderShareModal({ isOpen, onClose, folderPath, files, projectId
         });
       }
     } finally {
-      setIsGeneratingLink(false);
+      setIsLoading(false);
     }
-  }, [files, folderPath, projectId, isGeneratingLink, toast]);
+  }, [files, folderPath, projectId, isLoading, toast]);
 
-  // Auto-generate link when modal opens
-  useEffect(() => {
-    if (isOpen && !shareLink && files.length > 0) {
-      generateShareLink();
-    } else if (isOpen && files.length === 0) {
+  const handleUnshare = useCallback(async () => {
+    if (!shareId || isLoading) return;
+
+    setIsLoading(true);
+    try {
+      const { error } = await supabase
+        .from('shared_links')
+        .delete()
+        .eq('share_id', shareId);
+
+      if (error) throw error;
+
+      setShareLink("");
+      setShareId(null);
       toast({
-        title: "No Files",
-        description: "There are no files in this folder to share",
+        title: "Link Removed",
+        description: "The share link has been revoked. The old URL no longer works.",
+      });
+    } catch (error: any) {
+      console.error('Error removing share link:', error);
+      toast({
+        title: "Error",
+        description: error?.message || 'Failed to remove share link',
         variant: "destructive",
       });
+    } finally {
+      setIsLoading(false);
     }
-  }, [isOpen, files.length, shareLink, generateShareLink, toast]);
+  }, [shareId, isLoading, toast]);
 
   const copyToClipboard = async () => {
     try {
@@ -159,11 +191,11 @@ export function FolderShareModal({ isOpen, onClose, folderPath, files, projectId
   };
 
   const handleClose = () => {
-    setShareLink("");
-    attemptedRef.current = false;
-    lastErrorRef.current = null;
+    resetState();
     onClose();
   };
+
+  const fileCount = files.length;
 
   return (
     <Dialog open={isOpen} onOpenChange={handleClose}>
@@ -187,14 +219,16 @@ export function FolderShareModal({ isOpen, onClose, folderPath, files, projectId
               {folderPath === 'Root' ? 'Root Files' : folderPath}
             </p>
             <p className="text-xs text-gray-500">
-              {files.length} file{files.length !== 1 ? 's' : ''}
+              {fileCount} file{fileCount !== 1 ? 's' : ''}
             </p>
           </div>
 
-          {isGeneratingLink ? (
+          {isLoading ? (
             <div className="text-center py-4">
               <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-black mx-auto mb-2"></div>
-              <p className="text-sm text-gray-500">Generating share link...</p>
+              <p className="text-sm text-gray-500">
+                {shareLink ? 'Removing share link...' : 'Checking for existing link...'}
+              </p>
             </div>
           ) : shareLink ? (
             <div className="space-y-3">
@@ -217,15 +251,47 @@ export function FolderShareModal({ isOpen, onClose, folderPath, files, projectId
                   </Button>
                 </div>
               </div>
+              <div className="flex gap-2">
+                <Button
+                  variant="outline"
+                  className="flex-1"
+                  onClick={copyToClipboard}
+                >
+                  <Copy className="h-4 w-4 mr-2" />
+                  Copy Link
+                </Button>
+                <Button
+                  variant="destructive"
+                  className="flex-1"
+                  onClick={handleUnshare}
+                >
+                  <Trash2 className="h-4 w-4 mr-2" />
+                  Unshare
+                </Button>
+              </div>
               <div className="text-xs text-gray-500 text-center">
                 Link expires in 7 days
               </div>
             </div>
-          ) : files.length === 0 ? (
+          ) : fileCount === 0 ? (
             <div className="text-center py-4">
               <p className="text-sm text-gray-500">No files to share in this folder</p>
             </div>
-          ) : null}
+          ) : (
+            <div className="space-y-3">
+              <Button
+                className="w-full"
+                onClick={generateShareLink}
+                disabled={isLoading}
+              >
+                <Share2 className="h-4 w-4 mr-2" />
+                Share Folder
+              </Button>
+              <p className="text-xs text-gray-500 text-center">
+                No active share link for this folder.
+              </p>
+            </div>
+          )}
         </div>
       </DialogContent>
     </Dialog>
