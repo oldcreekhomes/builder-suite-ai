@@ -1,18 +1,23 @@
-## Goal
-Add the ability to revoke and regenerate a folder share link.
+## Fix shared folders correctly
 
-## Current behavior
-`FolderShareModal` automatically reuses any non-expired `shared_links` row for the same `folder_path`. That is why the user keeps getting the same `id=vdar6hnzuqow6srzy8up5` URL. The rebuilt `SharedFolder.tsx` renders the folder tree from the paths already stored in that row, so the old link will now display correctly after a hard refresh.
+The database confirms the files still contain their full paths, but the share payload currently excludes the folder records (`folderkeeper`). That means the shared page only receives files, so it cannot preserve empty folders or the exact 18-folder structure. The live custom-domain page is also still rendering the older flat-list version.
 
-## Proposed change
-Update `src/components/files/components/FolderShareModal.tsx` so the modal has two states instead of always auto-generating:
+1. **Include the folder structure in the share payload**
+   - Update the folder-share query to collect descendant folder records as well as descendant files.
+   - Save explicit relative folder paths in `shared_links.data`, including folders that contain no files.
+   - Keep all file paths relative to the shared root so nested levels remain intact.
 
-1. **No active link** — show a primary **Share** button. Clicking it inserts a new `shared_links` row with a fresh `share_id` and shows the link.
-2. **Active link exists** — show the link, a Copy button, and a red **Unshare** button. Clicking Unshare deletes the `shared_links` row (RLS already restricts deletes to `created_by = auth.uid()`), clears the local link state, and flips back to the Share state. The old URL then returns 404.
+2. **Render the saved hierarchy on the public share page**
+   - Build each view from both the saved folders and files.
+   - At the root, show the 18 immediate folders rather than all descendant files.
+   - Clicking a folder will show its immediate subfolders and files, with breadcrumbs for navigation.
+   - Keep individual downloads and Download All with the same directory structure inside the ZIP.
 
-## Files touched
-- `src/components/files/components/FolderShareModal.tsx` — split lookup vs. generation, add Unshare handler, update modal body to show Share/Unshare states.
+3. **Handle existing links safely**
+   - Support older share records by reconstructing folders from file paths where possible.
+   - Newly generated links will preserve the complete structure, including empty folders.
+   - Use the new Unshare action on the current link, then create a fresh link so its payload includes the explicit folders.
 
-## Out of scope
-- File-level share modal and photo share modals — same pattern exists but user only asked about folders. Can be mirrored later if requested.
-- Changing the 7-day expiry.
+4. **Verify the exact example**
+   - Test `Submission Documents - Formal` in the preview.
+   - Confirm the root shows the expected folders, files do not appear until their containing folder is opened, and nested downloads still work.
