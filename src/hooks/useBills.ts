@@ -1327,7 +1327,7 @@ export const useBills = () => {
       if (!originalBill) throw new Error("Bill not found");
 
       // Step 2: Get original journal entries
-      const { data: originalJournalEntries } = await supabase
+      const { data: originalJournalEntries, error: journalEntriesError } = await supabase
         .from('journal_entries')
         .select(`
           *,
@@ -1336,6 +1336,8 @@ export const useBills = () => {
         .eq('source_type', 'bill')
         .eq('source_id', billId)
         .order('created_at', { ascending: true });
+
+      if (journalEntriesError) throw journalEntriesError;
 
       // Step 3: Mark original bill as reversed
       const { error: markError } = await supabase
@@ -1435,13 +1437,15 @@ export const useBills = () => {
           if (reversingJELinesError) throw reversingJELinesError;
 
           // Link original JE to reversing JE and mark as reversed
-          await supabase
+          const { error: linkJournalEntryError } = await supabase
             .from('journal_entries')
             .update({ 
               reversed_by_id: reversingJE.id,
               reversed_at: new Date().toISOString()
             })
             .eq('id', originalJE.id);
+
+          if (linkJournalEntryError) throw linkJournalEntryError;
         }
       }
 
