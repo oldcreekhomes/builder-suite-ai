@@ -462,14 +462,10 @@ export const useJournalEntries = () => {
 
       if (!originalJE) throw new Error("Journal entry not found");
 
-      // Step 2: Mark original as reversed
-      await supabase
-        .from('journal_entries')
-        .update({ reversed_at: new Date().toISOString() })
-        .eq('id', journalEntryId);
-
-      // Step 3: Create reversing journal entry
-      const { data: reversingJE } = await supabase
+      // Step 2: Create the reversing journal entry before marking the original.
+      // This prevents an interrupted correction from leaving reversed_at set
+      // without a linked reversing entry.
+      const { data: reversingJE, error: reversingJEError } = await supabase
         .from('journal_entries')
         .insert({
           owner_id: originalJE.owner_id,
@@ -483,9 +479,13 @@ export const useJournalEntries = () => {
         .select()
         .single();
 
-      // Step 4: Create reversing journal entry lines (flip debits/credits)
+      if (reversingJEError || !reversingJE) {
+        throw reversingJEError || new Error("Failed to create reversing journal entry");
+      }
+
+      // Step 3: Create reversing journal entry lines (flip debits/credits)
       const reversingJELines = originalJE.journal_entry_lines.map((line: any, index: number) => ({
-        journal_entry_id: reversingJE!.id,
+        journal_entry_id: reversingJE.id,
         owner_id: originalJE.owner_id,
         line_number: index + 1,
         account_id: line.account_id,
@@ -498,12 +498,25 @@ export const useJournalEntries = () => {
         reverses_line_id: line.id
       }));
 
-      await supabase.from('journal_entry_lines').insert(reversingJELines);
+      const { error: reversingLinesError } = await supabase
+        .from('journal_entry_lines')
+        .insert(reversingJELines);
 
-      // Step 5: Link original to reversing
-      await supabase.from('journal_entries').update({ reversed_by_id: reversingJE.id }).eq('id', journalEntryId);
+      if (reversingLinesError) throw reversingLinesError;
 
-      // Step 6: Create corrected journal entry
+      // Step 4: Atomically stamp both reversal fields only after the complete
+      // reversing entry exists.
+      const { error: linkError } = await supabase
+        .from('journal_entries')
+        .update({
+          reversed_by_id: reversingJE.id,
+          reversed_at: new Date().toISOString(),
+        })
+        .eq('id', journalEntryId);
+
+      if (linkError) throw linkError;
+
+      // Step 5: Create corrected journal entry
       const result = await createManualJournalEntry.mutateAsync({
         ...correctedEntryData,
         description: correctionReason ? `${correctedEntryData.description || ''} (Corrected: ${correctionReason})` : correctedEntryData.description
