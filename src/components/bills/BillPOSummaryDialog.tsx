@@ -257,12 +257,12 @@ export function BillPOSummaryDialog({
 
   const LotsCell = ({ lots, costCode }: { lots: { name: string; amount: number }[]; costCode: string }) => {
     if (lots.length === 0) return <span className="text-muted-foreground">—</span>;
-    if (lots.length === 1) return <span>{lots[0].name}</span>;
     const total = lots.reduce((s, l) => s + l.amount, 0);
     const fmt = (n: number) => `$${n.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+    const trigger = lots.length === 1 ? lots[0].name : `+${lots.length}`;
     return (
       <Tooltip>
-        <TooltipTrigger>+{lots.length}</TooltipTrigger>
+        <TooltipTrigger>{trigger}</TooltipTrigger>
         <TooltipContent className="max-w-xs">
           <div className="space-y-2">
             <div>
