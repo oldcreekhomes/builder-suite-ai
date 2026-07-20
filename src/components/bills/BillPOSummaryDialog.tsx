@@ -231,8 +231,14 @@ export function BillPOSummaryDialog({
     const lotName = lotNameOf(line);
     if (lotName) g.lots.push({ name: lotName, amount: line.amount || 0 });
   });
-  // Sort lots within each group naturally
+  // Collapse duplicate lot entries (e.g., remainder-cent row also tagged Lot 1)
+  // by summing amounts for the same lot name, then sort naturally.
   groupMap.forEach(g => {
+    const merged = new Map<string, number>();
+    for (const lot of g.lots) {
+      merged.set(lot.name, Math.round(((merged.get(lot.name) || 0) + (lot.amount || 0)) * 100) / 100);
+    }
+    g.lots = Array.from(merged.entries()).map(([name, amount]) => ({ name, amount }));
     g.lots.sort((a, b) => naturalLotKey(a.name) - naturalLotKey(b.name) || a.name.localeCompare(b.name));
   });
 
@@ -251,12 +257,12 @@ export function BillPOSummaryDialog({
 
   const LotsCell = ({ lots, costCode }: { lots: { name: string; amount: number }[]; costCode: string }) => {
     if (lots.length === 0) return <span className="text-muted-foreground">—</span>;
-    if (lots.length === 1) return <span>{lots[0].name}</span>;
     const total = lots.reduce((s, l) => s + l.amount, 0);
     const fmt = (n: number) => `$${n.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+    const trigger = lots.length === 1 ? lots[0].name : `+${lots.length}`;
     return (
       <Tooltip>
-        <TooltipTrigger>+{lots.length}</TooltipTrigger>
+        <TooltipTrigger>{trigger}</TooltipTrigger>
         <TooltipContent className="max-w-xs">
           <div className="space-y-2">
             <div>
