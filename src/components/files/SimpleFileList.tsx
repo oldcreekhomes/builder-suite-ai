@@ -95,7 +95,7 @@ export const SimpleFileList: React.FC<SimpleFileListProps> = ({
   const [isDeleting, setIsDeleting] = useState(false);
   const [showBulkDeleteConfirm, setShowBulkDeleteConfirm] = useState(false);
   const [shareFile, setShareFile] = useState<SimpleFile | null>(null);
-  const [shareFolder, setShareFolder] = useState<{ path: string; name: string; files: any[] } | null>(null);
+  const [shareFolder, setShareFolder] = useState<{ path: string; name: string; files: any[]; folders: string[] } | null>(null);
   const [manageAccessFolder, setManageAccessFolder] = useState<string | null>(null);
   const { openProjectFile } = useUniversalFilePreviewContext();
   const { toast } = useToast();
@@ -246,26 +246,37 @@ export const SimpleFileList: React.FC<SimpleFileListProps> = ({
 
   const handleFolderShare = async (folder: SimpleFolder) => {
     try {
-      const { data: allFiles = [], error: fetchError } = await supabase
-        .from('project_files')
-        .select('*')
-        .eq('project_id', projectId)
-        .neq('file_type', 'folderkeeper')
-        .eq('is_deleted', false);
-      if (fetchError) throw fetchError;
+      const [filesResult, foldersResult] = await Promise.all([
+        supabase
+          .from('project_files')
+          .select('*')
+          .eq('project_id', projectId)
+          .neq('file_type', 'folderkeeper')
+          .eq('is_deleted', false),
+        supabase
+          .from('project_folders')
+          .select('folder_path')
+          .eq('project_id', projectId),
+      ]);
+      if (filesResult.error) throw filesResult.error;
+      if (foldersResult.error) throw foldersResult.error;
 
-      const folderFiles = (allFiles || []).filter((file: any) =>
+      const folderFiles = (filesResult.data || []).filter((file: any) =>
         file.original_filename?.startsWith(`${folder.path}/`)
       );
+      const descendantFolders = (foldersResult.data || [])
+        .map((item) => item.folder_path)
+        .filter((path) => path.startsWith(`${folder.path}/`));
 
-      if (folderFiles.length === 0) {
-        toast({ title: "No files", description: "This folder has no files to share", variant: "destructive" });
+      if (folderFiles.length === 0 && descendantFolders.length === 0) {
+        toast({ title: "Empty folder", description: "This folder has nothing to share", variant: "destructive" });
         return;
       }
 
       setShareFolder({
         path: folder.path,
         name: folder.name,
+        folders: descendantFolders,
         files: folderFiles.map((f: any) => ({
           id: f.id,
           original_filename: f.original_filename,
@@ -682,6 +693,7 @@ export const SimpleFileList: React.FC<SimpleFileListProps> = ({
         onClose={() => setShareFolder(null)}
         folderPath={shareFolder?.path ?? ''}
         files={shareFolder?.files ?? []}
+        folders={shareFolder?.folders ?? []}
         projectId={projectId}
       />
 

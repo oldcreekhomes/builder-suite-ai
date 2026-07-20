@@ -26,11 +26,21 @@ interface SharedFile {
   uploaded_at: string;
 }
 
+const relativeParts = (path: string, rootPath: string) => {
+  const normalized = path.replace(/^\/+|\/+$/g, '');
+  const root = rootPath.replace(/^\/+|\/+$/g, '');
+  const relative = root && normalized.startsWith(`${root}/`)
+    ? normalized.slice(root.length + 1)
+    : normalized;
+  return relative.split('/').filter(Boolean);
+};
+
 export default function SharedFolder() {
   const { shareId } = useParams();
   const { toast } = useToast();
   const [photos, setPhotos] = useState<SharedPhoto[]>([]);
   const [files, setFiles] = useState<SharedFile[]>([]);
+  const [folders, setFolders] = useState<string[]>([]);
   const [rootPath, setRootPath] = useState("");
   const [currentPath, setCurrentPath] = useState("");
   const [shareType, setShareType] = useState<'photos' | 'files'>('photos');
@@ -82,6 +92,10 @@ export default function SharedFolder() {
         if (data.files && data.files.length > 0) {
           setShareType('files');
           setFiles(data.files);
+          setFolders(Array.isArray(data.folders) ? data.folders : []);
+        } else if (data.folders && data.folders.length > 0) {
+          setShareType('files');
+          setFolders(data.folders);
         } else if (data.photos && data.photos.length > 0) {
           setShareType('photos');
           setPhotos(data.photos);
@@ -107,7 +121,7 @@ export default function SharedFolder() {
       if (rootPath && name.startsWith(`${rootPath}/`)) {
         name = name.slice(rootPath.length + 1);
       }
-      const parts = name.split('/').filter(Boolean);
+      const parts = relativeParts(name, rootPath);
       const leaf = parts[parts.length - 1] || name;
       const parentParts = parts.slice(0, -1);
       return { file: f, parentParts, leaf };
@@ -123,25 +137,30 @@ export default function SharedFolder() {
     return rel.split('/').filter(Boolean);
   }, [currentPath, rootPath]);
 
-  // Subfolders (immediate children at current view) with descendant file counts
+  const folderParts = useMemo(
+    () => folders.map((path) => relativeParts(path, rootPath)).filter((parts) => parts.length > 0),
+    [folders, rootPath]
+  );
+
+  // Immediate child folders from explicit folder records, with a fallback to file paths for old links.
   const currentFolders = useMemo(() => {
     const counts = new Map<string, number>();
     const depth = currentRelParts.length;
+    for (const parts of folderParts) {
+      if (parts.length <= depth) continue;
+      if (!currentRelParts.every((part, index) => parts[index] === part)) continue;
+      counts.set(parts[depth], 0);
+    }
     for (const { parentParts } of filesWithRel) {
-      // must be inside current path
       if (parentParts.length <= depth) continue;
-      let inside = true;
-      for (let i = 0; i < depth; i++) {
-        if (parentParts[i] !== currentRelParts[i]) { inside = false; break; }
-      }
-      if (!inside) continue;
+      if (!currentRelParts.every((part, index) => parentParts[index] === part)) continue;
       const childName = parentParts[depth];
       counts.set(childName, (counts.get(childName) ?? 0) + 1);
     }
     return Array.from(counts.entries())
       .map(([name, count]) => ({ name, count }))
       .sort((a, b) => a.name.localeCompare(b.name, undefined, { numeric: true }));
-  }, [filesWithRel, currentRelParts]);
+  }, [filesWithRel, folderParts, currentRelParts]);
 
   // Files at the current view (exact parent match)
   const currentFiles = useMemo(() => {
@@ -214,6 +233,9 @@ export default function SharedFolder() {
         } catch (err) {
           console.error('zip file failed', err);
         }
+      }
+      for (const parts of folderParts) {
+        zip.folder(parts.join('/'));
       }
       const zipBlob = await zip.generateAsync({ type: "blob" });
       const url = window.URL.createObjectURL(zipBlob);
@@ -381,7 +403,7 @@ export default function SharedFolder() {
                 <div className="min-w-0">
                   <h3 className="font-medium truncate">{f.name}</h3>
                   <p className="text-xs text-muted-foreground">
-                    {f.count} file{f.count !== 1 ? 's' : ''}
+                    {f.count > 0 ? `${f.count} file${f.count !== 1 ? 's' : ''}` : 'Folder'}
                   </p>
                 </div>
               </div>
