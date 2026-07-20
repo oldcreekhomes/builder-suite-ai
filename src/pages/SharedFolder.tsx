@@ -1,9 +1,8 @@
-
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { useParams } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
-import { Download, Folder } from "lucide-react";
+import { Download, Folder, ChevronRight, FileText } from "lucide-react";
 import JSZip from 'jszip';
 import { supabase } from "@/integrations/supabase/client";
 
@@ -27,41 +26,28 @@ interface SharedFile {
   uploaded_at: string;
 }
 
-interface ShareData {
-  shareId: string;
-  folderPath: string;
-  photos?: SharedPhoto[];
-  files?: SharedFile[];
-  projectId: string;
-  createdAt: string;
-  expiresAt: string;
-}
-
 export default function SharedFolder() {
   const { shareId } = useParams();
   const { toast } = useToast();
   const [photos, setPhotos] = useState<SharedPhoto[]>([]);
   const [files, setFiles] = useState<SharedFile[]>([]);
-  const [folderName, setFolderName] = useState("");
+  const [rootPath, setRootPath] = useState("");
+  const [currentPath, setCurrentPath] = useState("");
   const [shareType, setShareType] = useState<'photos' | 'files'>('photos');
-    const [loading, setLoading] = useState(true);
-    const [isDownloading, setIsDownloading] = useState(false);
-    const [expired, setExpired] = useState(false);
-    const [error, setError] = useState("");
+  const [loading, setLoading] = useState(true);
+  const [isDownloading, setIsDownloading] = useState(false);
+  const [expired, setExpired] = useState(false);
+  const [error, setError] = useState("");
 
   useEffect(() => {
     const loadFolder = async () => {
       try {
-        console.log('Loading shared folder with shareId:', shareId);
-        
         if (!shareId) {
-          console.error('No shareId provided');
           setError('Invalid share link');
           setLoading(false);
           return;
         }
 
-        // Query share data from Supabase database
         const { data: shareData, error } = await supabase
           .from('shared_links')
           .select('*')
@@ -70,223 +56,198 @@ export default function SharedFolder() {
           .maybeSingle();
 
         if (error) {
-          console.error('Error fetching share data:', error);
           setError('Failed to load shared folder');
           setLoading(false);
           return;
         }
 
         if (!shareData) {
-          console.error('Share data not found for shareId:', shareId);
           setError('Share not found - the link may be invalid or expired');
           setExpired(true);
           setLoading(false);
           return;
         }
 
-        console.log('Retrieved share data:', shareData);
-
-        // Check if the share has expired (additional client-side check)
-        const now = new Date();
-        const expiryDate = new Date(shareData.expires_at);
-        
-        if (now > expiryDate) {
-          console.log('Share has expired. Now:', now, 'Expires:', expiryDate);
+        if (new Date() > new Date(shareData.expires_at)) {
           setExpired(true);
           setLoading(false);
           return;
         }
 
-        // Extract data from the database record (handle both old 'data' and new 'share_data' columns)
         const data = shareData.data as any;
+        const path = data.folder_path || data.folderPath || '';
+        setRootPath(path);
+        setCurrentPath(path);
 
-        // Determine share type and set data accordingly
         if (data.files && data.files.length > 0) {
           setShareType('files');
-          setFolderName(data.folder_path || data.folderPath || 'Shared Files');
           setFiles(data.files);
-          console.log('Successfully loaded shared folder with', data.files.length, 'files');
         } else if (data.photos && data.photos.length > 0) {
           setShareType('photos');
-          setFolderName(data.folder_path || data.folderPath || 'Shared Photos');
           setPhotos(data.photos);
-          console.log('Successfully loaded shared folder with', data.photos.length, 'photos');
         } else {
           setError('This shared folder is empty');
         }
-        
+
         setLoading(false);
-      } catch (error) {
-        console.error('Error loading shared folder:', error);
-          setError('Failed to load shared folder');
-          setLoading(false);
+      } catch (e) {
+        console.error('Error loading shared folder:', e);
+        setError('Failed to load shared folder');
+        setLoading(false);
       }
     };
 
-    if (shareId) {
-      loadFolder();
-    }
+    if (shareId) loadFolder();
   }, [shareId]);
 
-  const handleDownloadAll = async () => {
-    const items = shareType === 'files' ? files : photos;
-    if (items.length === 0) return;
-    
-    setIsDownloading(true);
-    const zip = new JSZip();
-    
-    toast({
-      title: "Preparing Download",
-      description: `Creating zip file for ${folderName}...`,
-    });
-
-    try {
-      if (shareType === 'files') {
-        // Add all files to the zip
-        for (const file of files) {
-          try {
-            console.log('Downloading file:', file.original_filename);
-            // For files, we would need to get the actual file content from Supabase storage
-            // Since this is a share link, we'll need to create a temporary signed URL
-            // For now, we'll skip the actual file download since we don't have access
-            console.warn('File download from shared links not yet implemented');
-          } catch (error) {
-            console.error(`Failed to add ${file.original_filename} to zip:`, error);
-          }
-        }
-      } else {
-        // Add all photos to the zip
-        for (const photo of photos) {
-          try {
-            console.log('Downloading photo:', photo.url);
-            const response = await fetch(photo.url);
-            const blob = await response.blob();
-            
-            // Extract file extension from URL or use a default
-            const urlParts = photo.url.split('.');
-            const extension = urlParts.length > 1 ? urlParts[urlParts.length - 1].split('?')[0] : 'jpg';
-            
-            // Create a filename, using description if available
-            let fileName = photo.description || `photo-${photo.id}`;
-            
-            // If description contains folder path, extract just the filename
-            if (fileName.includes('/')) {
-              fileName = fileName.split('/').pop() || fileName;
-            }
-            
-            // Ensure the filename has an extension
-            if (!fileName.includes('.')) {
-              fileName += `.${extension}`;
-            }
-            
-            zip.file(fileName, blob);
-            console.log('Added to zip:', fileName);
-          } catch (error) {
-            console.error(`Failed to add ${photo.description || photo.id} to zip:`, error);
-          }
-        }
-
-        // Generate the zip file
-        const zipBlob = await zip.generateAsync({ type: "blob" });
-        
-        // Create download link
-        const url = window.URL.createObjectURL(zipBlob);
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = `${folderName}.zip`;
-        document.body.appendChild(a);
-        a.click();
-        window.URL.revokeObjectURL(url);
-        document.body.removeChild(a);
-        
-        toast({
-          title: "Download Complete",
-          description: `${folderName}.zip has been downloaded with ${photos.length} photos`,
-        });
+  // Compute relative path parts for each file (stripped of the shared root)
+  const filesWithRel = useMemo(() => {
+    return files.map((f) => {
+      let name = f.original_filename || '';
+      if (rootPath && name.startsWith(`${rootPath}/`)) {
+        name = name.slice(rootPath.length + 1);
       }
-    } catch (error) {
-      console.error('Zip creation error:', error);
-      toast({
-        title: "Download Error",
-        description: "Failed to create zip file",
-        variant: "destructive",
-      });
+      const parts = name.split('/').filter(Boolean);
+      const leaf = parts[parts.length - 1] || name;
+      const parentParts = parts.slice(0, -1);
+      return { file: f, parentParts, leaf };
+    });
+  }, [files, rootPath]);
+
+  // Derive relative segments from currentPath (relative to rootPath)
+  const currentRelParts = useMemo(() => {
+    if (!currentPath || currentPath === rootPath) return [] as string[];
+    const rel = rootPath && currentPath.startsWith(`${rootPath}/`)
+      ? currentPath.slice(rootPath.length + 1)
+      : currentPath;
+    return rel.split('/').filter(Boolean);
+  }, [currentPath, rootPath]);
+
+  // Subfolders (immediate children at current view) with descendant file counts
+  const currentFolders = useMemo(() => {
+    const counts = new Map<string, number>();
+    const depth = currentRelParts.length;
+    for (const { parentParts } of filesWithRel) {
+      // must be inside current path
+      if (parentParts.length <= depth) continue;
+      let inside = true;
+      for (let i = 0; i < depth; i++) {
+        if (parentParts[i] !== currentRelParts[i]) { inside = false; break; }
+      }
+      if (!inside) continue;
+      const childName = parentParts[depth];
+      counts.set(childName, (counts.get(childName) ?? 0) + 1);
+    }
+    return Array.from(counts.entries())
+      .map(([name, count]) => ({ name, count }))
+      .sort((a, b) => a.name.localeCompare(b.name, undefined, { numeric: true }));
+  }, [filesWithRel, currentRelParts]);
+
+  // Files at the current view (exact parent match)
+  const currentFiles = useMemo(() => {
+    const depth = currentRelParts.length;
+    return filesWithRel
+      .filter(({ parentParts }) => {
+        if (parentParts.length !== depth) return false;
+        for (let i = 0; i < depth; i++) {
+          if (parentParts[i] !== currentRelParts[i]) return false;
+        }
+        return true;
+      })
+      .sort((a, b) => a.leaf.localeCompare(b.leaf, undefined, { numeric: true }));
+  }, [filesWithRel, currentRelParts]);
+
+  const rootName = rootPath ? rootPath.split('/').pop() || rootPath : 'Shared Files';
+
+  const goToCrumb = (index: number) => {
+    // index = -1 => root; else index into currentRelParts
+    if (index < 0) {
+      setCurrentPath(rootPath);
+    } else {
+      const rel = currentRelParts.slice(0, index + 1).join('/');
+      setCurrentPath(rootPath ? `${rootPath}/${rel}` : rel);
+    }
+  };
+
+  const enterFolder = (name: string) => {
+    setCurrentPath(currentPath ? `${currentPath}/${name}` : name);
+  };
+
+  const handleFileDownload = async (file: SharedFile) => {
+    try {
+      const response = await fetch(
+        `https://nlmnwlvmmkngrgatnzkj.supabase.co/functions/v1/public-file-download?share_id=${shareId}&file_id=${file.id}`
+      );
+      if (!response.ok) throw new Error('Failed to get download URL');
+      const data = await response.json();
+      const link = document.createElement('a');
+      link.href = data.download_url;
+      const leaf = file.original_filename.includes('/')
+        ? file.original_filename.split('/').pop() as string
+        : file.original_filename;
+      link.download = leaf;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+    } catch (e) {
+      console.error('Error downloading file:', e);
+      toast({ title: "Download Error", description: "Failed to download file", variant: "destructive" });
+    }
+  };
+
+  const handleDownloadAll = async () => {
+    if (shareType !== 'files' || files.length === 0) return;
+    setIsDownloading(true);
+    toast({ title: "Preparing Download", description: `Zipping ${rootName}...` });
+    const zip = new JSZip();
+    try {
+      for (const { file, parentParts, leaf } of filesWithRel) {
+        try {
+          const resp = await fetch(
+            `https://nlmnwlvmmkngrgatnzkj.supabase.co/functions/v1/public-file-download?share_id=${shareId}&file_id=${file.id}`
+          );
+          if (!resp.ok) continue;
+          const { download_url } = await resp.json();
+          const blob = await (await fetch(download_url)).blob();
+          const path = [...parentParts, leaf].join('/');
+          zip.file(path, blob);
+        } catch (err) {
+          console.error('zip file failed', err);
+        }
+      }
+      const zipBlob = await zip.generateAsync({ type: "blob" });
+      const url = window.URL.createObjectURL(zipBlob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `${rootName}.zip`;
+      document.body.appendChild(a);
+      a.click();
+      window.URL.revokeObjectURL(url);
+      document.body.removeChild(a);
+      toast({ title: "Download Complete", description: `${rootName}.zip downloaded` });
+    } catch (e) {
+      console.error(e);
+      toast({ title: "Download Error", description: "Failed to create zip file", variant: "destructive" });
     } finally {
       setIsDownloading(false);
     }
   };
 
-  const handleFileDownload = async (file: SharedFile) => {
-    try {
-      // Use the public download edge function
-      const response = await fetch(
-        `https://nlmnwlvmmkngrgatnzkj.supabase.co/functions/v1/public-file-download?share_id=${shareId}&file_id=${file.id}`
-      );
-
-      if (!response.ok) {
-        throw new Error('Failed to get download URL');
-      }
-
-      const data = await response.json();
-      
-      // Create a temporary link and trigger download
-      const link = document.createElement('a');
-      link.href = data.download_url;
-      link.download = file.original_filename.includes('/') ? file.original_filename.split('/').pop() : file.original_filename;
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
-      
-      toast({
-        title: "Download Complete",
-        description: `${link.download} has been downloaded`,
-      });
-    } catch (error) {
-      console.error('Error downloading file:', error);
-      toast({
-        title: "Download Error", 
-        description: "Failed to download file",
-        variant: "destructive",
-      });
-    }
-  };
-
   const handlePhotoDownload = async (photo: SharedPhoto) => {
     try {
-      // Use the public download edge function
       const response = await fetch(
         `https://nlmnwlvmmkngrgatnzkj.supabase.co/functions/v1/public-file-download?share_id=${shareId}&photo_id=${photo.id}`
       );
-
-      if (!response.ok) {
-        throw new Error('Failed to get download URL');
-      }
-
+      if (!response.ok) throw new Error('Failed to get download URL');
       const data = await response.json();
-      
-      // Create a temporary link and trigger download
       const link = document.createElement('a');
       link.href = data.download_url;
-      
-      // Extract filename from URL or use a default name
-      const filename = photo.url.split('/').pop() || 'photo.jpg';
-      link.download = filename;
-      
+      link.download = photo.url.split('/').pop() || 'photo.jpg';
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
-      
-      toast({
-        title: "Download Complete",
-        description: `${filename} has been downloaded`,
-      });
-    } catch (error) {
-      console.error('Error downloading photo:', error);
-      toast({
-        title: "Download Error",
-        description: "Failed to download photo",
-        variant: "destructive",
-      });
+    } catch (e) {
+      toast({ title: "Download Error", description: "Failed to download photo", variant: "destructive" });
     }
   };
 
@@ -326,66 +287,121 @@ export default function SharedFolder() {
     );
   }
 
-  if (shareType === 'files' && files.length === 0) {
+  if (shareType === 'photos') {
+    if (photos.length === 0) {
+      return (
+        <div className="flex-1 w-full min-h-screen bg-background flex items-center justify-center">
+          <div className="text-center">
+            <h1 className="text-2xl font-bold mb-2">No Photos Found</h1>
+            <p className="text-muted-foreground">The shared folder is empty.</p>
+          </div>
+        </div>
+      );
+    }
     return (
       <div className="flex-1 w-full min-h-screen bg-background flex items-center justify-center">
-        <div className="text-center">
-          <h1 className="text-2xl font-bold mb-2">No Files Found</h1>
-          <p className="text-muted-foreground">The shared folder is empty.</p>
+        <div className="w-full max-w-2xl px-4 py-8">
+          <div className="bg-card rounded-lg shadow-lg p-6 mb-6">
+            <h1 className="text-2xl font-bold mb-2">{rootName}</h1>
+            <p className="text-muted-foreground mb-3">{photos.length} photo{photos.length !== 1 ? 's' : ''} shared with you</p>
+          </div>
+          <div className="grid grid-cols-1 gap-4">
+            {photos.map((p) => (
+              <div key={p.id} className="bg-card rounded-lg shadow-sm p-4 flex items-center justify-between">
+                <div className="flex-1 truncate">{p.description || `photo-${p.id}`}</div>
+                <Button variant="outline" size="sm" onClick={() => handlePhotoDownload(p)}>
+                  <Download className="h-4 w-4 mr-2" /> Download
+                </Button>
+              </div>
+            ))}
+          </div>
         </div>
       </div>
     );
   }
 
-  if (shareType === 'photos' && photos.length === 0) {
-    return (
-      <div className="flex-1 w-full min-h-screen bg-background flex items-center justify-center">
-        <div className="text-center">
-          <h1 className="text-2xl font-bold mb-2">No Photos Found</h1>
-          <p className="text-muted-foreground">The shared folder is empty.</p>
-        </div>
-      </div>
-    );
-  }
-
-  const itemCount = shareType === 'files' ? files.length : photos.length;
-  const itemType = shareType === 'files' ? 'file' : 'photo';
+  const atRoot = currentRelParts.length === 0;
 
   return (
     <div className="flex-1 w-full min-h-screen bg-background flex items-center justify-center">
       <div className="w-full max-w-2xl px-4 py-8">
         <div className="bg-card rounded-lg shadow-lg p-6 mb-6">
+          {/* Breadcrumbs */}
+          <div className="flex items-center flex-wrap gap-1 text-sm text-muted-foreground mb-2">
+            <button
+              className="hover:text-foreground font-medium"
+              onClick={() => goToCrumb(-1)}
+            >
+              {rootName}
+            </button>
+            {currentRelParts.map((seg, i) => (
+              <span key={i} className="flex items-center gap-1">
+                <ChevronRight className="h-3 w-3" />
+                <button
+                  className="hover:text-foreground"
+                  onClick={() => goToCrumb(i)}
+                >
+                  {seg}
+                </button>
+              </span>
+            ))}
+          </div>
+
           <h1 className="text-2xl font-bold mb-2">
-            {folderName}
+            {atRoot ? rootName : currentRelParts[currentRelParts.length - 1]}
           </h1>
           <p className="text-muted-foreground mb-3">
-            {files.length} file{files.length !== 1 ? 's' : ''} shared with you
+            {currentFolders.length > 0 && `${currentFolders.length} folder${currentFolders.length !== 1 ? 's' : ''}`}
+            {currentFolders.length > 0 && currentFiles.length > 0 && ' · '}
+            {currentFiles.length > 0 && `${currentFiles.length} file${currentFiles.length !== 1 ? 's' : ''}`}
+            {currentFolders.length === 0 && currentFiles.length === 0 && 'Empty folder'}
           </p>
-          <div className="p-3 bg-yellow-50 border border-yellow-200 rounded-lg">
+          <div className="p-3 bg-yellow-50 border border-yellow-200 rounded-lg flex items-center justify-between gap-3">
             <p className="text-yellow-800 text-sm font-medium">
               ⚠️ This share link expires in 7 days. Please download the files you need.
             </p>
+            {atRoot && files.length > 0 && (
+              <Button size="sm" variant="outline" onClick={handleDownloadAll} disabled={isDownloading}>
+                <Download className="h-4 w-4 mr-2" />
+                {isDownloading ? 'Zipping...' : 'Download All'}
+              </Button>
+            )}
           </div>
         </div>
 
-        <div className="grid grid-cols-1 gap-4">
-          {files.map((file) => (
-            <div key={file.id} className="bg-card rounded-lg shadow-sm p-4 flex items-center justify-between">
-              <div className="flex-1">
-                <h3 className="font-medium">
-                  {file.original_filename.includes('/') ? file.original_filename.split('/').pop() : file.original_filename}
-                </h3>
-                <p className="text-xs text-muted-foreground">
-                  Uploaded: {new Date(file.uploaded_at).toLocaleDateString()}
-                </p>
+        <div className="grid grid-cols-1 gap-3">
+          {currentFolders.map((f) => (
+            <button
+              key={`folder-${f.name}`}
+              onClick={() => enterFolder(f.name)}
+              className="bg-card rounded-lg shadow-sm p-4 flex items-center justify-between hover:bg-accent text-left"
+            >
+              <div className="flex items-center gap-3 min-w-0">
+                <Folder className="h-5 w-5 text-blue-500 shrink-0" />
+                <div className="min-w-0">
+                  <h3 className="font-medium truncate">{f.name}</h3>
+                  <p className="text-xs text-muted-foreground">
+                    {f.count} file{f.count !== 1 ? 's' : ''}
+                  </p>
+                </div>
               </div>
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => handleFileDownload(file)}
-              >
-                <Download className="h-4 w-4 mr-2" />
-                Download
+              <ChevronRight className="h-4 w-4 text-muted-foreground" />
+            </button>
+          ))}
+
+          {currentFiles.map(({ file, leaf }) => (
+            <div key={file.id} className="bg-card rounded-lg shadow-sm p-4 flex items-center justify-between">
+              <div className="flex items-center gap-3 min-w-0 flex-1">
+                <FileText className="h-5 w-5 text-muted-foreground shrink-0" />
+                <div className="min-w-0">
+                  <h3 className="font-medium truncate">{leaf}</h3>
+                  <p className="text-xs text-muted-foreground">
+                    Uploaded: {new Date(file.uploaded_at).toLocaleDateString()}
+                  </p>
+                </div>
+              </div>
+              <Button variant="outline" size="sm" onClick={() => handleFileDownload(file)}>
+                <Download className="h-4 w-4 mr-2" /> Download
               </Button>
             </div>
           ))}
