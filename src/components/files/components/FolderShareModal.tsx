@@ -37,7 +37,7 @@ export function FolderShareModal({ isOpen, onClose, folderPath, files, folders, 
   const [hasCheckedExisting, setHasCheckedExisting] = useState(false);
   const lastErrorRef = useRef<string | null>(null);
 
-  const getShareUrl = useCallback((id: string) => `${window.location.origin}/s/f/${id}`, []);
+  const getShareUrl = useCallback((id: string) => `https://nlmnwlvmmkngrgatnzkj.supabase.co/functions/v1/share-redirect?id=${id}&type=f`, []);
 
   const buildShareData = useCallback(() => ({
     folder_path: folderPath,
