@@ -1,39 +1,25 @@
-## Confirmed diagnosis
+## Confirmed cause
 
-The **January activity is correct**:
+The January 31 Balance Sheet shows **$108,795.41**, while the completed bank reconciliation and statement both show **$101,788.21**—an exact **$7,007.20** difference.
 
-- 12/31 reconciled ending balance: **$55,487.17**
-- January book activity: **+$46,301.04**
-- Correct January reconciled balance: **$101,788.21**
+That difference is Carter Lumber payment **Ref. 53500053280**:
+- The $7,007.20 bank-credit journal entry is dated **December 15, 2025**.
+- It was included in the reconciled bank activity.
+- On **January 21, 2026**, the journal entry was marked `reversed_at`, but no reversing journal entry was created and `reversed_by_id` is empty.
+- The Balance Sheet therefore removes the payment as of January 31, increasing cash by exactly $7,007.20, even though the bank reconciliation correctly retains the cleared payment.
 
-The Balance Sheet is **$7,007.20 higher** because the problem carried forward from December:
+## Implementation
 
-- **$6,532.45**: December was allowed to complete at `$0.00 difference` even though its selected journal activity did not mathematically reach the statement ending balance.
-- **$474.75**: an unreconciled 12/22 deposit remains in the books. This is a legitimate outstanding item unless it should have cleared the bank.
+1. **Repair this journal entry**
+   - Remove the orphaned `reversed_at` marker from the $7,007.20 payment journal entry.
+   - Do not alter the completed reconciliation, statement balance, or any unrelated transactions.
+   - Confirm the January 31 Atlantic Union Bank Balance Sheet becomes **$101,788.21**.
 
-Those two amounts total the exact gap: **$6,532.45 + $474.75 = $7,007.20**.
+2. **Prevent orphan reversals**
+   - Update the bill correction/reversal flow so a payment journal entry cannot be marked reversed unless a linked reversing journal entry is created.
+   - Keep the canonical historical report filter unchanged; it is exposing malformed ledger data rather than causing the discrepancy.
 
-## Fix plan
-
-1. **Correct reconciliation math**
-   - Replace the checks/deposits-only calculation in `ReconcileAccountsContent.tsx` with one canonical calculation that includes every checked transaction type using the correct bank-account debit/credit sign.
-   - Ensure checks, deposits, bill payments, consolidated bill payments, and manual journal entries all affect the reconciled balance consistently.
-
-2. **Prevent false completions**
-   - Recalculate from the selected transactions immediately before completion rather than trusting stale displayed state.
-   - Block completion unless that authoritative result equals the statement ending balance within one cent.
-   - Keep the existing warning for legitimate unchecked/outstanding transactions.
-
-3. **Preserve correct Balance Sheet accounting**
-   - Keep the Balance Sheet based on posted journal lines; do not force it to equal the bank statement by suppressing valid outstanding items.
-   - Verify the Balance Sheet remains balanced after the reconciliation fix.
-
-4. **Repair the historical December carry-forward safely**
-   - Recompute the 12/31 reconciliation from its actual selected transactions and identify the transactions responsible for the hidden **$6,532.45**.
-   - Correct only the affected reconciliation linkage/state after validating each transaction; do not delete or alter journal amounts.
-   - Leave the **$474.75 deposit** outstanding unless its bank-cleared status shows it belongs in the reconciliation.
-
-5. **Validate January end-to-end**
-   - Confirm December ending balance rolls into January correctly.
-   - Confirm January reconciles to **$101,788.21**.
-   - Confirm the Balance Sheet differs only by legitimate outstanding transactions, with the exact difference documented.
+3. **Validate accounting integrity**
+   - Recalculate the account through November, December, and January.
+   - Verify December remains **$55,487.17**, January becomes **$101,788.21**, and the Balance Sheet remains balanced.
+   - Verify the Account Detail and reconciliation review show the same payment exactly once.
