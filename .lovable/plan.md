@@ -1,53 +1,39 @@
+## Confirmed diagnosis
 
-# Balance Sheet bank balance doesn't match reconciliation — root cause & fix
+The **January activity is correct**:
 
-## What's wrong
+- 12/31 reconciled ending balance: **$55,487.17**
+- January book activity: **+$46,301.04**
+- Correct January reconciled balance: **$101,788.21**
 
-On 115 E. Oceanwatch, as of Jan 31, 2026:
+The Balance Sheet is **$7,007.20 higher** because the problem carried forward from December:
 
-- Bank reconciliation ending balance: **$101,788.21** ✓ (matches bank statement)
-- Balance Sheet shows Atlantic Union Bank: **$72,722.47** ✗
-- Off by **$29,065.74** (against the reconciliation) / **$36,072.94** (against the true book balance)
+- **$6,532.45**: December was allowed to complete at `$0.00 difference` even though its selected journal activity did not mathematically reach the statement ending balance.
+- **$474.75**: an unreconciled 12/22 deposit remains in the books. This is a legitimate outstanding item unless it should have cleared the bank.
 
-## Root cause (verified in DB)
+Those two amounts total the exact gap: **$6,532.45 + $474.75 = $7,007.20**.
 
-For this bank + project, as of 2026-01-31:
+## Fix plan
 
-| Source | Amount |
-|---|---|
-| Raw journal‑entry activity on the bank | **+$108,795.41** (this is the true book balance) |
-| bill_payment JE lines the BS *suppresses* | −$206,026.91 |
-| Consolidated `bill_payments.total_amount` the BS *re‑adds* | −$242,099.85 |
-| Result the BS shows | **$72,722.47** ← wrong |
+1. **Correct reconciliation math**
+   - Replace the checks/deposits-only calculation in `ReconcileAccountsContent.tsx` with one canonical calculation that includes every checked transaction type using the correct bank-account debit/credit sign.
+   - Ensure checks, deposits, bill payments, consolidated bill payments, and manual journal entries all affect the reconciled balance consistently.
 
-`src/components/reports/BalanceSheetContent.tsx` (lines ~125–203) does a "consolidated payments" swap: it removes every journal line whose `source_type='bill_payment'` and whose `source_id` is any bill in a consolidated payment, then re‑posts `bill_payments.total_amount` as a single credit on the bank and matching debit to A/P.
+2. **Prevent false completions**
+   - Recalculate from the selected transactions immediately before completion rather than trusting stale displayed state.
+   - Block completion unless that authoritative result equals the statement ending balance within one cent.
+   - Keep the existing warning for legitimate unchecked/outstanding transactions.
 
-That swap assumes the removed JE credits sum **exactly** to `bill_payments.total_amount`. On this project they don't — payments exist where the JE credits the bank less than `total_amount` (e.g. bill_payment `7c530693…` on 2025‑12‑15: `total_amount = $11,270.97`, actual JE bank credit = $4,263.77, gap = $7,007.20; plus several older 2025‑01‑09 payments with swapped/mismatched amounts). Those legacy data gaps are being amplified into a ~$36k over‑credit to the bank on the BS, which is why the reconciliation ties to the bank statement but the BS doesn't tie to the reconciliation.
+3. **Preserve correct Balance Sheet accounting**
+   - Keep the Balance Sheet based on posted journal lines; do not force it to equal the bank statement by suppressing valid outstanding items.
+   - Verify the Balance Sheet remains balanced after the reconciliation fix.
 
-Reconciliations look right because they read the actual JE‑derived register, not the swapped values.
+4. **Repair the historical December carry-forward safely**
+   - Recompute the 12/31 reconciliation from its actual selected transactions and identify the transactions responsible for the hidden **$6,532.45**.
+   - Correct only the affected reconciliation linkage/state after validating each transaction; do not delete or alter journal amounts.
+   - Leave the **$474.75 deposit** outstanding unless its bank-cleared status shows it belongs in the reconciliation.
 
-## Fix
-
-Remove the "consolidated payments" swap from the Balance Sheet and rely on the actual journal entries — the same approach used by reconciliations and the register (which already agree with the bank).
-
-In `src/components/reports/BalanceSheetContent.tsx`:
-
-1. Delete `buildConsolidatedPaymentsQuery`, the `consolidatedBillIds` fetch, the `journal_entry_lines` suppression branch inside the `forEach`, and the "apply each consolidated bill payment as a balanced replacement entry" block.
-2. Keep the plain aggregation: `accountBalances[account_id] += debit − credit` over every non‑reversed journal line ≤ asOf date.
-3. Leave the accounts / exclusions / hierarchy / render logic untouched.
-
-Expected result on this project after the fix:
-
-- Atlantic Union Bank (Balance Sheet, as of 1/31/2026): **$108,795.41** (matches JE register)
-- Reconciliation ending balance stays **$101,788.21** — the remaining ~$7k gap is the normal outstanding‑items difference (uncleared checks/deposits), exactly what a book‑vs‑bank reconciliation is supposed to show.
-- Totals across the BS still balance because A/P and every other account keep using the same raw JE aggregation.
-
-## Verify
-
-1. Reload `/project/<id>/accounting/reports` → Balance Sheet, As of 1/31/2026, and confirm Atlantic Union Bank shows the JE‑register value.
-2. Spot‑check a second month (e.g. 5/31/2026 → reconciled ending $18,936.79; BS should show book balance ≥ that, with the difference equal to outstanding items).
-3. Confirm Total Assets = Total Liabilities + Equity still holds (no swap means A/P is unchanged too).
-
-## Not in scope (call out separately)
-
-The legacy `bill_payments` rows where `total_amount` disagrees with the sum of their allocations / JE credits (5 rows identified, oldest from 2025‑01‑09, one from 2025‑12‑15) are a separate data‑integrity issue. Removing the swap stops the BS from being wrong today; cleaning those specific payment records can be done later without touching report code.
+5. **Validate January end-to-end**
+   - Confirm December ending balance rolls into January correctly.
+   - Confirm January reconciles to **$101,788.21**.
+   - Confirm the Balance Sheet differs only by legitimate outstanding transactions, with the exact difference documented.
