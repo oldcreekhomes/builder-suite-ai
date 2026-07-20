@@ -57,6 +57,32 @@ import {
 } from "@/components/ui/tooltip";
 import { useToast } from "@/hooks/use-toast";
 
+type ReconciliationSide = {
+  id: string;
+  amount: number;
+};
+
+// Reconciliation arithmetic is kept in cents so every transaction type that
+// the hook classifies as money-in or money-out follows one canonical formula.
+function calculateReconciledBalance(
+  beginningBalance: number,
+  checkedIds: Set<string>,
+  moneyOut: ReconciliationSide[],
+  moneyIn: ReconciliationSide[],
+) {
+  const beginningCents = Math.round(beginningBalance * 100);
+  const moneyOutCents = moneyOut.reduce(
+    (sum, transaction) => checkedIds.has(transaction.id) ? sum + Math.round(Number(transaction.amount) * 100) : sum,
+    0,
+  );
+  const moneyInCents = moneyIn.reduce(
+    (sum, transaction) => checkedIds.has(transaction.id) ? sum + Math.round(Number(transaction.amount) * 100) : sum,
+    0,
+  );
+
+  return (beginningCents + moneyInCents - moneyOutCents) / 100;
+}
+
 // Helper to get allocation display text and determine if tooltip is needed
 function getAllocationDisplay(allocations: AllocationBreakdown[] | undefined, labelType: 'code' | 'account' = 'code'): {
   display: string;
@@ -297,16 +323,14 @@ export function ReconcileAccountsContent({ projectId }: ReconcileAccountsContent
 
 
 
-  const clearedChecks = transactions?.checks.filter(c => checkedTransactions.has(c.id)) || [];
-  const clearedDeposits = transactions?.deposits.filter(d => checkedTransactions.has(d.id)) || [];
-  
-  const totalClearedChecks = clearedChecks.reduce((sum, c) => sum + c.amount, 0);
-  const totalClearedDeposits = clearedDeposits.reduce((sum, d) => sum + d.amount, 0);
-  
-  const calculatedEndingBalance = 
-    parseFloat(beginningBalance || "0") + totalClearedDeposits - totalClearedChecks;
-  
-  const difference = calculatedEndingBalance - parseFloat(endingBalance || "0");
+  const calculatedEndingBalance = calculateReconciledBalance(
+    Number(beginningBalance) || 0,
+    checkedTransactions,
+    transactions?.checks || [],
+    transactions?.deposits || [],
+  );
+
+  const difference = Math.round((calculatedEndingBalance - (Number(endingBalance) || 0)) * 100) / 100;
 
   // Compute visible transactions for "Select All" functionality
   const visibleChecks = transactions?.checks
@@ -716,8 +740,18 @@ export function ReconcileAccountsContent({ projectId }: ReconcileAccountsContent
       return;
     }
 
-    if (Math.abs(difference) > 0.01) {
-      alert(`The difference must be $0.00 to complete reconciliation. Current difference: $${difference.toFixed(2)}`);
+    const authoritativeBalance = calculateReconciledBalance(
+      Number(beginningBalanceRef.current) || 0,
+      checkedTransactionsRef.current,
+      transactions?.checks || [],
+      transactions?.deposits || [],
+    );
+    const authoritativeDifference = Math.round(
+      (authoritativeBalance - (Number(endingBalance) || 0)) * 100,
+    ) / 100;
+
+    if (authoritativeDifference !== 0) {
+      alert(`The difference must be $0.00 to complete reconciliation. Current difference: $${authoritativeDifference.toFixed(2)}`);
       return;
     }
 
@@ -752,6 +786,25 @@ export function ReconcileAccountsContent({ projectId }: ReconcileAccountsContent
 
     try {
       const targetDateStr = format(statementDate, 'yyyy-MM-dd');
+      const authoritativeCheckedIds = checkedTransactionsRef.current;
+      const authoritativeBalance = calculateReconciledBalance(
+        Number(beginningBalanceRef.current) || 0,
+        authoritativeCheckedIds,
+        transactions?.checks || [],
+        transactions?.deposits || [],
+      );
+      const authoritativeDifference = Math.round(
+        (authoritativeBalance - (Number(endingBalance) || 0)) * 100,
+      ) / 100;
+
+      if (authoritativeDifference !== 0) {
+        toast({
+          title: "Reconciliation is not balanced",
+          description: `The current difference is $${authoritativeDifference.toFixed(2)}. Review the selected transactions before completing.`,
+          variant: "destructive",
+        });
+        return;
+      }
       
       const reconciliationData = {
         owner_id: user!.id,
@@ -760,12 +813,13 @@ export function ReconcileAccountsContent({ projectId }: ReconcileAccountsContent
         statement_date: targetDateStr,
         statement_beginning_balance: parseFloat(beginningBalance || "0"),
         statement_ending_balance: parseFloat(endingBalance || "0"),
-        reconciled_balance: calculatedEndingBalance,
+        reconciled_balance: authoritativeBalance,
         difference: 0,
         status: 'completed' as const,
         completed_at: new Date().toISOString(),
         completed_by: user!.id,
         notes,
+        checked_transaction_ids: Array.from(authoritativeCheckedIds),
       };
 
       let reconciliationId = currentReconciliationId;
