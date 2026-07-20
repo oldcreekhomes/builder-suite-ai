@@ -246,27 +246,25 @@ export const SimpleFileList: React.FC<SimpleFileListProps> = ({
 
   const handleFolderShare = async (folder: SimpleFolder) => {
     try {
-      const [filesResult, foldersResult] = await Promise.all([
-        supabase
-          .from('project_files')
-          .select('*')
-          .eq('project_id', projectId)
-          .neq('file_type', 'folderkeeper')
-          .eq('is_deleted', false),
-        supabase
-          .from('project_folders')
-          .select('folder_path')
-          .eq('project_id', projectId),
-      ]);
+      const filesResult = await supabase
+        .from('project_files')
+        .select('*')
+        .eq('project_id', projectId)
+        .eq('is_deleted', false);
       if (filesResult.error) throw filesResult.error;
-      if (foldersResult.error) throw foldersResult.error;
 
-      const folderFiles = (filesResult.data || []).filter((file: any) =>
-        file.original_filename?.startsWith(`${folder.path}/`)
+      const rootPrefix = `${folder.path.replace(/\/+$/g, '')}/`;
+      const descendantRows = (filesResult.data || []).filter((file: any) =>
+        file.original_filename?.startsWith(rootPrefix)
       );
-      const descendantFolders = (foldersResult.data || [])
-        .map((item) => item.folder_path)
-        .filter((path) => path.startsWith(`${folder.path}/`));
+      const folderFiles = descendantRows.filter((file: any) => file.file_type !== 'folderkeeper');
+      const descendantFolders = Array.from(new Set(
+        descendantRows
+          .filter((file: any) => file.file_type === 'folderkeeper')
+          .map((file: any) => file.original_filename.replace(/\/\.folderkeeper$/i, ''))
+          .filter((path: string) => path !== folder.path && path.startsWith(rootPrefix))
+          .map((path: string) => path.slice(rootPrefix.length))
+      )).sort((a, b) => a.localeCompare(b, undefined, { numeric: true }));
 
       if (folderFiles.length === 0 && descendantFolders.length === 0) {
         toast({ title: "Empty folder", description: "This folder has nothing to share", variant: "destructive" });
@@ -280,6 +278,7 @@ export const SimpleFileList: React.FC<SimpleFileListProps> = ({
         files: folderFiles.map((f: any) => ({
           id: f.id,
           original_filename: f.original_filename,
+          relative_path: f.original_filename.slice(rootPrefix.length),
           file_size: f.file_size,
           file_type: f.file_type,
           storage_path: f.storage_path,
