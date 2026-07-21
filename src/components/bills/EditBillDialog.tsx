@@ -1253,7 +1253,7 @@ export function EditBillDialog({ open, onOpenChange, billId }: EditBillDialogPro
                                 placeholder="Select account"
                                 accountType="expense"
                                 projectId={row.projectId || undefined}
-                                className="h-8"
+                                className="h-10"
                                 disabled={isApprovedBill}
                               />
                             </TableCell>
