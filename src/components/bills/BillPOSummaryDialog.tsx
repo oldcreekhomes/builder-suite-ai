@@ -261,33 +261,38 @@ export function BillPOSummaryDialog({
       return cmp !== 0 ? cmp : a.idx - b.idx;
     });
 
-  // "As entered" mode: one pseudo-group per raw bill line, in creation order.
-  const enteredRows = [...billLines]
-    .map((line, idx) => ({ line, idx }))
+  // "As entered" mode: same grouped rows as default, but ordered by the
+  // sequence the user typed the lines on the bill. We use the earliest
+  // (created_at, id) among each group's underlying bill_lines as its rank.
+  const groupFirstEntry = new Map<string, { at: string; id: string }>();
+  billLines.forEach((line) => {
+    const poId = resolveLineToPoId(line) ?? '__none__';
+    const lineKey = line.purchase_order_line_id || line.cost_code_id || 'no-cc';
+    const memoKey = (line.memo || '').trim();
+    const key = `${poId}::${lineKey}::${memoKey}`;
+    const at = line.created_at || '';
+    const id = line.id || '';
+    const cur = groupFirstEntry.get(key);
+    if (!cur || at < cur.at || (at === cur.at && id < cur.id)) {
+      groupFirstEntry.set(key, { at, id });
+    }
+  });
+  const enteredRows = groupOrder
+    .map((key, idx) => ({ key, group: groupMap.get(key)!, idx }))
     .sort((a, b) => {
-      const at = a.line.created_at || '';
-      const bt = b.line.created_at || '';
-      if (at !== bt) return at < bt ? -1 : 1;
-      const ai = a.line.id || '';
-      const bi = b.line.id || '';
-      if (ai !== bi) return ai < bi ? -1 : 1;
+      const af = groupFirstEntry.get(a.key) || { at: '', id: '' };
+      const bf = groupFirstEntry.get(b.key) || { at: '', id: '' };
+      if (af.at !== bf.at) return af.at < bf.at ? -1 : 1;
+      if (af.id !== bf.id) return af.id < bf.id ? -1 : 1;
       return a.idx - b.idx;
     })
-    .map(({ line, idx }) => {
-      const lotName = lotNameOf(line);
-      return {
-        key: `entered-${line.id || idx}`,
-        group: {
-          representative: line,
-          totalAmount: line.amount || 0,
-          lots: lotName ? [{ name: lotName, amount: line.amount || 0 }] : [],
-        } as GroupedLine,
-      };
-    });
+    .map(({ key, group }) => ({ key, group }));
 
   const displayRows = viewMode === 'entered'
     ? enteredRows
     : sortedGroups.map(({ key, group }) => ({ key, group }));
+
+
 
   const LotsCell = ({ lots, costCode }: { lots: { name: string; amount: number }[]; costCode: string }) => {
     if (lots.length === 0) return <span className="text-muted-foreground">—</span>;
