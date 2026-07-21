@@ -1306,7 +1306,7 @@ export function EditBillDialog({ open, onOpenChange, billId }: EditBillDialogPro
                                   onClick={() => removeExpenseRow(row.id, row.dbId)}
                                   size="sm"
                                   variant="destructive"
-                                  disabled={expenseRows.length === 1}
+                                  disabled={expenseRows.length === 1 && jobCostRows.length === 0}
                                   className="h-8 w-8 p-0"
                                 >
                                   <Trash2 className="h-4 w-4" />
