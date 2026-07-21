@@ -1,3 +1,4 @@
+import { useState } from "react";
 import {
   Dialog,
   DialogContent,
@@ -5,6 +6,7 @@ import {
   DialogTitle,
   DialogDescription,
 } from "@/components/ui/dialog";
+import { Button } from "@/components/ui/button";
 import {
   Table,
   TableBody,
@@ -81,6 +83,7 @@ export function BillPOSummaryDialog({
   bill,
 }: BillPOSummaryDialogProps) {
 
+  const [viewMode, setViewMode] = useState<'grouped' | 'entered'>('grouped');
   const matchedPoIdsArr = matches.map(m => m.po_id);
   const { data: vendorPOs, isLoading: isLoadingPOs } = useVendorPurchaseOrders(
     bill?.project_id,
@@ -258,6 +261,33 @@ export function BillPOSummaryDialog({
       return cmp !== 0 ? cmp : a.idx - b.idx;
     });
 
+  // "As entered" mode: one pseudo-group per raw bill line, in creation order.
+  const enteredRows = [...billLines]
+    .map((line, idx) => ({ line, idx }))
+    .sort((a, b) => {
+      const at = a.line.created_at || '';
+      const bt = b.line.created_at || '';
+      if (at !== bt) return at < bt ? -1 : 1;
+      const ai = a.line.id || '';
+      const bi = b.line.id || '';
+      if (ai !== bi) return ai < bi ? -1 : 1;
+      return a.idx - b.idx;
+    })
+    .map(({ line, idx }) => {
+      const lotName = lotNameOf(line);
+      return {
+        key: `entered-${line.id || idx}`,
+        group: {
+          representative: line,
+          totalAmount: line.amount || 0,
+          lots: lotName ? [{ name: lotName, amount: line.amount || 0 }] : [],
+        } as GroupedLine,
+      };
+    });
+
+  const displayRows = viewMode === 'entered'
+    ? enteredRows
+    : sortedGroups.map(({ key, group }) => ({ key, group }));
 
   const LotsCell = ({ lots, costCode }: { lots: { name: string; amount: number }[]; costCode: string }) => {
     if (lots.length === 0) return <span className="text-muted-foreground">—</span>;
@@ -295,20 +325,33 @@ export function BillPOSummaryDialog({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-[95vw] xl:max-w-7xl" onOpenAutoFocus={(e) => e.preventDefault()}>
           <DialogHeader>
-            <DialogTitle>PO Status Summary</DialogTitle>
-            <DialogDescription>
-              {(() => {
-                const linkedLines = billLines.filter(l => resolveLineToPoId(l) !== null);
-                const offPoLines = billLines.length - linkedLines.length;
-                const distinctPos = new Set(linkedLines.map(l => resolveLineToPoId(l))).size;
-                const linkedCount = linkedLines.length;
-                const linePart = `${linkedCount} line item${linkedCount === 1 ? '' : 's'} across ${distinctPos} PO${distinctPos === 1 ? '' : 's'}`;
-                const offPart = offPoLines > 0 ? ` · ${offPoLines} off-PO` : '';
-                const prefix = bill?.reference_number ? `Bill ${bill.reference_number} — ` : '';
-                return `${prefix}${linePart}${offPart}`;
-              })()}
-            </DialogDescription>
+            <div className="flex items-start justify-between gap-4">
+              <div>
+                <DialogTitle>PO Status Summary</DialogTitle>
+                <DialogDescription>
+                  {(() => {
+                    const linkedLines = billLines.filter(l => resolveLineToPoId(l) !== null);
+                    const offPoLines = billLines.length - linkedLines.length;
+                    const distinctPos = new Set(linkedLines.map(l => resolveLineToPoId(l))).size;
+                    const linkedCount = linkedLines.length;
+                    const linePart = `${linkedCount} line item${linkedCount === 1 ? '' : 's'} across ${distinctPos} PO${distinctPos === 1 ? '' : 's'}`;
+                    const offPart = offPoLines > 0 ? ` · ${offPoLines} off-PO` : '';
+                    const prefix = bill?.reference_number ? `Bill ${bill.reference_number} — ` : '';
+                    return `${prefix}${linePart}${offPart}`;
+                  })()}
+                </DialogDescription>
+              </div>
+              <Button
+                variant="outline"
+                size="sm"
+                className="mr-6 shrink-0"
+                onClick={() => setViewMode(v => v === 'grouped' ? 'entered' : 'grouped')}
+              >
+                {viewMode === 'grouped' ? 'View as entered' : 'View grouped'}
+              </Button>
+            </div>
           </DialogHeader>
+
 
           {!poDataReady ? (
             <div className="py-12 text-center text-sm text-muted-foreground">
@@ -333,7 +376,7 @@ export function BillPOSummaryDialog({
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {sortedGroups.map(({ key, group }) => {
+                {displayRows.map(({ key, group }) => {
                   const line = group.representative;
                   const resolvedPoId = resolveLineToPoId(line);
                   const match = resolvedPoId ? matchByPoId.get(resolvedPoId) : undefined;
@@ -425,7 +468,7 @@ export function BillPOSummaryDialog({
                 {(() => {
                   const seenPo = new Set<string>();
                   let poAmountTotal = 0;
-                  sortedGroups.forEach(({ group }) => {
+                  displayRows.forEach(({ group }) => {
                     const resolvedPoId = resolveLineToPoId(group.representative);
                     const m = resolvedPoId ? matchByPoId.get(resolvedPoId) : undefined;
                     if (m && !seenPo.has(m.po_id)) {
