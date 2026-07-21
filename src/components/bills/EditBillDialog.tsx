@@ -1210,7 +1210,7 @@ export function EditBillDialog({ open, onOpenChange, billId }: EditBillDialogPro
                                   }}
                                   size="sm"
                                   variant="destructive"
-                                  disabled={jobCostRows.length === 1}
+                                  disabled={jobCostRows.length === 1 && expenseRows.length === 0}
                                   className="h-8 w-8 p-0"
                                 >
                                   <Trash2 className="h-4 w-4" />
