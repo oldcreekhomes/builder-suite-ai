@@ -22,7 +22,7 @@ import { cn } from "@/lib/utils";
 import { SettingsTableWrapper } from "@/components/ui/settings-table-wrapper";
 import { FilesCell } from "@/components/purchaseOrders/components/FilesCell";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
-import { ArrowUpDown, ArrowUp, ArrowDown } from "lucide-react";
+import { ArrowUpDown, ArrowDown } from "lucide-react";
 
 const TruncatedCell = ({ value, className }: { value: string; className?: string }) => (
   <Tooltip>
