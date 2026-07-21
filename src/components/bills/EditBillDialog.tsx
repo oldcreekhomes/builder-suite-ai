@@ -1027,7 +1027,7 @@ export function EditBillDialog({ open, onOpenChange, billId }: EditBillDialogPro
                                         }
                                       }}
                                       placeholder="Cost Code"
-                                      className="h-8 truncate"
+                                      className="h-10 truncate"
                                     />
                                   </div>
                                 </TooltipTrigger>
@@ -1051,7 +1051,7 @@ export function EditBillDialog({ open, onOpenChange, billId }: EditBillDialogPro
                                         updateJobCostGroup(group, { memo: e.target.value });
                                       }
                                     }}
-                                    className="h-8 truncate"
+                                    className="h-10 truncate"
                                   />
                                 </TooltipTrigger>
                                 {group.memo && (
@@ -1072,7 +1072,7 @@ export function EditBillDialog({ open, onOpenChange, billId }: EditBillDialogPro
                                   }
                                 }}
                                 readOnly={isApprovedBill}
-                                className="h-7 px-1 border-0 bg-transparent shadow-none focus-visible:ring-1 focus-visible:ring-ring focus-visible:ring-offset-0 text-sm font-medium [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                                className="h-10 px-1 border-0 bg-transparent shadow-none focus-visible:ring-1 focus-visible:ring-ring focus-visible:ring-offset-0 text-sm font-medium [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
                                 placeholder="1.00"
                               />
                             </TableCell>
@@ -1087,7 +1087,7 @@ export function EditBillDialog({ open, onOpenChange, billId }: EditBillDialogPro
                                   }
                                 }}
                                 readOnly={isApprovedBill}
-                                className="h-7 px-1 border-0 bg-transparent shadow-none focus-visible:ring-1 focus-visible:ring-ring focus-visible:ring-offset-0 text-sm font-medium [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                                className="h-10 px-1 border-0 bg-transparent shadow-none focus-visible:ring-1 focus-visible:ring-ring focus-visible:ring-offset-0 text-sm font-medium [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
                               />
                             </TableCell>
 
@@ -1136,7 +1136,7 @@ export function EditBillDialog({ open, onOpenChange, billId }: EditBillDialogPro
                                     onValueChange={(value) => singleRow && updateJobCostRow(singleRow.id, 'lotId', value)}
                                     disabled={isApprovedBill}
                                   >
-                                    <SelectTrigger className="h-8 w-full">
+                                    <SelectTrigger className="h-10 w-full">
                                       <SelectValue placeholder="Select" />
                                     </SelectTrigger>
                                     <SelectContent>
@@ -1168,7 +1168,7 @@ export function EditBillDialog({ open, onOpenChange, billId }: EditBillDialogPro
                                   }
                                 }}
                                 costCodeId={group.accountId}
-                                className="h-8"
+                                className="h-10"
                                 onInfoClick={() => setPoSummaryOpen(true)}
                               />
                             </TableCell>
