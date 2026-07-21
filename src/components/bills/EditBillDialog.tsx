@@ -299,7 +299,7 @@ export function EditBillDialog({ open, onOpenChange, billId }: EditBillDialogPro
   };
 
   const removeJobCostRow = (id: string, dbId?: string) => {
-    if (jobCostRows.length > 1) {
+    if (jobCostRows.length > 1 || expenseRows.length >= 1) {
       setJobCostRows(jobCostRows.filter(row => row.id !== id));
       if (dbId) {
         setDeletedLineIds([...deletedLineIds, dbId]);
@@ -371,7 +371,7 @@ export function EditBillDialog({ open, onOpenChange, billId }: EditBillDialogPro
   };
 
   const removeExpenseRow = (id: string, dbId?: string) => {
-    if (expenseRows.length > 1) {
+    if (expenseRows.length > 1 || jobCostRows.length >= 1) {
       setExpenseRows(expenseRows.filter(row => row.id !== id));
       if (dbId) {
         setDeletedLineIds([...deletedLineIds, dbId]);
@@ -1210,7 +1210,7 @@ export function EditBillDialog({ open, onOpenChange, billId }: EditBillDialogPro
                                   }}
                                   size="sm"
                                   variant="destructive"
-                                  disabled={jobCostRows.length === 1}
+                                  disabled={jobCostRows.length === 1 && expenseRows.length === 0}
                                   className="h-8 w-8 p-0"
                                 >
                                   <Trash2 className="h-4 w-4" />
@@ -1306,7 +1306,7 @@ export function EditBillDialog({ open, onOpenChange, billId }: EditBillDialogPro
                                   onClick={() => removeExpenseRow(row.id, row.dbId)}
                                   size="sm"
                                   variant="destructive"
-                                  disabled={expenseRows.length === 1}
+                                  disabled={expenseRows.length === 1 && jobCostRows.length === 0}
                                   className="h-8 w-8 p-0"
                                 >
                                   <Trash2 className="h-4 w-4" />
