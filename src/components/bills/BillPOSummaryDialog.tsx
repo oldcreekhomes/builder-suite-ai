@@ -321,24 +321,7 @@ export function BillPOSummaryDialog({
               <TableHeader>
                 <TableRow>
                   <TableHead className="whitespace-nowrap">PO Number</TableHead>
-                  <TableHead className="whitespace-nowrap">
-                    <div className="flex items-center gap-1">
-                      Cost Code
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        className="h-6 w-6 p-0 -ml-1"
-                        title={entryOrder ? "Showing entry order — click to restore default" : "Show in original entry order"}
-                        onClick={() => setEntryOrder((prev) => !prev)}
-                      >
-                        {entryOrder ? (
-                          <ArrowDown className="h-3 w-3 text-muted-foreground" />
-                        ) : (
-                          <ArrowUpDown className="h-3 w-3 text-muted-foreground" />
-                        )}
-                      </Button>
-                    </div>
-                  </TableHead>
+                  <TableHead className="whitespace-nowrap">Cost Code</TableHead>
                   <TableHead className="whitespace-nowrap">Description</TableHead>
                   <TableHead className="whitespace-nowrap">Lots</TableHead>
                   <TableHead className="whitespace-nowrap">PO Amount</TableHead>
@@ -350,20 +333,7 @@ export function BillPOSummaryDialog({
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {(entryOrder
-                  ? entryOrderLines.map((line, i) => {
-                      const lotName = lotNameOf(line);
-                      return {
-                        key: `entry-${line.id || i}`,
-                        group: {
-                          representative: line,
-                          totalAmount: line.amount || 0,
-                          lots: lotName ? [{ name: lotName, amount: line.amount || 0 }] : [],
-                        } as GroupedLine,
-                      };
-                    })
-                  : sortedGroups
-                ).map(({ key, group }) => {
+                {sortedGroups.map(({ key, group }) => {
                   const line = group.representative;
                   const resolvedPoId = resolveLineToPoId(line);
                   const match = resolvedPoId ? matchByPoId.get(resolvedPoId) : undefined;
