@@ -1258,15 +1258,6 @@ export function EditBillDialog({ open, onOpenChange, billId }: EditBillDialogPro
                               />
                             </TableCell>
                             <TableCell>
-                              <JobSearchInput
-                                value={row.projectId || ""}
-                                onChange={(projectId) => updateExpenseRow(row.id, 'projectId', projectId)}
-                                placeholder="Select project"
-                                className="h-8"
-                                disabled={isApprovedBill}
-                              />
-                            </TableCell>
-                            <TableCell>
                               <Input
                                 placeholder="Description"
                                 value={row.memo}
