@@ -1253,6 +1253,7 @@ export function EditBillDialog({ open, onOpenChange, billId }: EditBillDialogPro
                                 onChange={(accountId) => updateExpenseRow(row.id, 'accountId', accountId)}
                                 placeholder="Select account"
                                 accountType="expense"
+                                projectId={row.projectId || undefined}
                                 className="h-8"
                                 disabled={isApprovedBill}
                               />

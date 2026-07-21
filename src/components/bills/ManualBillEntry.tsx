@@ -1032,6 +1032,7 @@ export function ManualBillEntry() {
                           updateExpenseRow(row.id, 'account', `${account.code} - ${account.name}`);
                         }}
                         placeholder="Select account"
+                        projectId={row.projectId || undefined}
                         className="h-8"
                       />
                     </div>
