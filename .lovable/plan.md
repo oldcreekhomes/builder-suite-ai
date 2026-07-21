@@ -1,48 +1,21 @@
-# Plan: Fix the StraightTalk bill approval and expense cost-code display
+## Diagnosis
 
-## What is happening
-- The StraightTalk $15.00 bill is stuck in the Review tab.
-- Its Cost Code column shows "-" instead of the account.
-- Clicking Approve does not move it to Approved.
+The StraightTalk expense line I re-inserted earlier has `unit_cost = 0` and `amount = 15.00` in the database. The Edit Bill dialog loads Expense rows the same way it loads Job Cost rows — it reads `line.unit_cost` into the row's `amount` field (line 249 in `EditBillDialog.tsx`). Because `unit_cost = 0`, the dialog shows Unit Cost = 0 and Total = $0.00, even though the bills list correctly shows $15.00 (which comes from `bills.total_amount`).
 
-## Root cause found
-- The bill row exists in `bills` with `total_amount = 15.00` and `status = draft`.
-- It has **zero rows** in `bill_lines`.
-- When Approve runs, it tries to create a journal entry from the bill lines. With no lines, the journal entry is unbalanced (only an AP credit), so the post silently fails and the bill stays in Review.
-- The empty Cost Code cell is a side effect of having no lines.
+So the Expense tab UI is already built the same way as Job Cost — the bug is bad data on this single line, plus no safety net for lines where `unit_cost` is missing.
 
-## What we will do
+## Plan
 
-### 1. Restore the missing bill line (data fix)
-Insert one expense line for the StraightTalk bill:
-- Bill ID: `58b851e0-6450-4cd4-8e10-3679068898d5`
-- Account: `5160 - Phone` (`cf2fc443-5dee-4251-a020-6ae272ae2c4f`)
-- Amount: `15.00`
-- Line type: `expense`
-- Project: the bill's project
+1. **Fix the StraightTalk line data** via a one-off SQL update: set `unit_cost = 15.00`, `quantity = 1` on bill line `4036119b-6d4f-4544-b1f4-e3ce5605b054`. Amount stays 15.00. After this the Edit Bill dialog will display: Qty 1, Unit Cost 15.00, Total $15.00, Description "Phone".
 
-### 2. Make expense bills show the account in the Cost Code column
-Update the shared `getBillCostCodeDisplay` helper so that expense lines fall back to the account code/name when no cost code is present. This makes the Review/Approved tables consistent: expense bills display the account just like job-cost bills display the cost code.
+2. **Add a loader fallback in `src/components/bills/EditBillDialog.tsx`** so any legacy line where `unit_cost = 0` but `amount > 0` still displays correctly. In the `.map(...)` for both Job Cost and Expense rows, compute:
+   - `unit_cost_display = line.unit_cost && line.unit_cost !== 0 ? line.unit_cost : (line.quantity ? line.amount / line.quantity : line.amount)`
+   
+   This is display-only — on save the existing logic recomputes `amount = qty * unit_cost` normally.
 
-### 3. Prevent approve when a bill has no lines
-Add a preflight check in the approve/post flow:
-- If a bill has `total_amount > 0` but zero bill lines, block approval.
-- Show a clear toast: "This bill has no line items. Open the bill, add the account/cost code, and save before approving."
+3. **No changes** to the Expense tab columns/layout — they already mirror Job Cost (Account, Description, Quantity, Unit Cost, Total, Actions).
 
-### 4. Harden the bill update so lines are never silently lost
-The current `updateBill` mutation deletes all existing `bill_lines` before inserting the new set. If the insert fails, the bill is left with no lines. We will add validation and ordering:
-- Validate that the incoming `billLines` array is non-empty for non-zero bills before deleting existing lines.
-- If the insert fails, do not leave the bill header in a broken state (return early so the user sees the error and can retry).
+### Technical details
 
-## Files to change
-- `src/lib/billListDisplay.ts` — expense account fallback in cost-code display.
-- `src/hooks/useBills.ts` — preflight check in `approveBill`/`postBill`; safer ordering in `updateBill`.
-
-## Data change
-- One `INSERT` into `bill_lines` for the StraightTalk bill.
-
-## Outcome
-- StraightTalk bill shows `5160 - Phone` in the Cost Code column.
-- Approve moves it to the Approved tab and creates a balanced journal entry.
-- Future bills cannot be approved if their lines were lost.
-- Editing a bill will no longer leave it with zero lines if the save fails.
+- File: `src/components/bills/EditBillDialog.tsx`, the two `.map(...)` blocks around lines 214–251.
+- SQL: single `UPDATE bill_lines SET unit_cost = 15.00, quantity = 1 WHERE id = '4036119b-6d4f-4544-b1f4-e3ce5605b054'` (no migration needed — data fix only, via `supabase--insert`-style write).
