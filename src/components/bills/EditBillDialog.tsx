@@ -1136,7 +1136,7 @@ export function EditBillDialog({ open, onOpenChange, billId }: EditBillDialogPro
                                     onValueChange={(value) => singleRow && updateJobCostRow(singleRow.id, 'lotId', value)}
                                     disabled={isApprovedBill}
                                   >
-                                    <SelectTrigger className="h-8 w-full">
+                                    <SelectTrigger className="h-10 w-full">
                                       <SelectValue placeholder="Select" />
                                     </SelectTrigger>
                                     <SelectContent>
