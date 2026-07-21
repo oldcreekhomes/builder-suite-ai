@@ -332,23 +332,17 @@ export function BillPOSummaryDialog({
               <TableHeader>
                 <TableRow>
                   <TableHead className="whitespace-nowrap">PO Number</TableHead>
-                  <TableHead className="whitespace-nowrap">Cost Code</TableHead>
                   <TableHead className="whitespace-nowrap">
                     <div className="flex items-center gap-1">
-                      Description
+                      Cost Code
                       <Button
                         variant="ghost"
                         size="sm"
                         className="h-6 w-6 p-0 -ml-1"
-                        onClick={() =>
-                          setDescriptionSort((prev) =>
-                            prev === 'asc' ? 'desc' : prev === 'desc' ? null : 'asc'
-                          )
-                        }
+                        title={entryOrder ? "Showing entry order — click to restore default" : "Show in original entry order"}
+                        onClick={() => setEntryOrder((prev) => !prev)}
                       >
-                        {descriptionSort === 'asc' ? (
-                          <ArrowUp className="h-3 w-3 text-muted-foreground" />
-                        ) : descriptionSort === 'desc' ? (
+                        {entryOrder ? (
                           <ArrowDown className="h-3 w-3 text-muted-foreground" />
                         ) : (
                           <ArrowUpDown className="h-3 w-3 text-muted-foreground" />
@@ -356,6 +350,7 @@ export function BillPOSummaryDialog({
                       </Button>
                     </div>
                   </TableHead>
+                  <TableHead className="whitespace-nowrap">Description</TableHead>
                   <TableHead className="whitespace-nowrap">Lots</TableHead>
                   <TableHead className="whitespace-nowrap">PO Amount</TableHead>
                   <TableHead className="whitespace-nowrap">Billed to Date</TableHead>
