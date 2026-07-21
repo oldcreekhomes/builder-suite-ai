@@ -83,6 +83,7 @@ export function BillPOSummaryDialog({
   bill,
 }: BillPOSummaryDialogProps) {
 
+  const [viewMode, setViewMode] = useState<'grouped' | 'entered'>('grouped');
   const matchedPoIdsArr = matches.map(m => m.po_id);
   const { data: vendorPOs, isLoading: isLoadingPOs } = useVendorPurchaseOrders(
     bill?.project_id,
