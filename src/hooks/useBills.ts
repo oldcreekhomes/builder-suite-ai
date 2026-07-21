@@ -836,11 +836,17 @@ export const useBills = () => {
     },
     onSuccess: (data, variables) => {
       queryClient.invalidateQueries({ queryKey: ['bills'] });
+      queryClient.invalidateQueries({ queryKey: ['bills-for-approval-v3'] });
       queryClient.invalidateQueries({ queryKey: ['bills-for-payment'] });
       queryClient.invalidateQueries({ queryKey: ['bill-approval-counts'] });
+      queryClient.invalidateQueries({ queryKey: ['paid-bill-payment-groups'] });
       queryClient.invalidateQueries({ queryKey: ['balance-sheet'] });
       queryClient.invalidateQueries({ queryKey: ['bill-payments-reconciliation'] });
       queryClient.invalidateQueries({ queryKey: ['account-transactions'] });
+      queryClient.invalidateQueries({ queryKey: ['job-costs'] });
+      queryClient.invalidateQueries({ queryKey: ['job-cost-actual-details'] });
+      queryClient.invalidateQueries({ queryKey: ['accounts'] });
+      queryClient.invalidateQueries({ queryKey: ['journal-entries'] });
       toast({
         title: "Success",
         description: `${variables.billIds.length} bill${variables.billIds.length > 1 ? 's' : ''} paid successfully and posted to General Ledger`,
