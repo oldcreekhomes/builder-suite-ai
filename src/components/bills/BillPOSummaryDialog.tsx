@@ -361,7 +361,20 @@ export function BillPOSummaryDialog({
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {sortedGroups.map(({ key, group }) => {
+                {(entryOrder
+                  ? entryOrderLines.map((line, i) => {
+                      const lotName = lotNameOf(line);
+                      return {
+                        key: `entry-${line.id || i}`,
+                        group: {
+                          representative: line,
+                          totalAmount: line.amount || 0,
+                          lots: lotName ? [{ name: lotName, amount: line.amount || 0 }] : [],
+                        } as GroupedLine,
+                      };
+                    })
+                  : sortedGroups
+                ).map(({ key, group }) => {
                   const line = group.representative;
                   const resolvedPoId = resolveLineToPoId(line);
                   const match = resolvedPoId ? matchByPoId.get(resolvedPoId) : undefined;
