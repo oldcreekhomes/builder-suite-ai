@@ -315,7 +315,14 @@ export function ProjectAccountsTab({ projectId }: ProjectAccountsTabProps) {
         style={{ paddingLeft: `${(depth + 1) * 16}px` }}
       >
         {isProjectScoped ? (
-          <span className="inline-block w-4 shrink-0" aria-hidden />
+          <Checkbox
+            checked={true}
+            onCheckedChange={(checked) => {
+              if (!checked) {
+                setDeleteTarget(account);
+              }
+            }}
+          />
         ) : (
           <Checkbox
             checked={!isExcluded}
@@ -388,17 +395,7 @@ export function ProjectAccountsTab({ projectId }: ProjectAccountsTabProps) {
           )}
         </div>
 
-        {isProjectScoped && (
-          <button
-            type="button"
-            onClick={() => setDeleteTarget(account)}
-            className="inline-flex items-center justify-center shrink-0 text-muted-foreground hover:text-destructive"
-            aria-label="Delete project-only account"
-            title="Delete this project-only account"
-          >
-            <Trash2 className="h-4 w-4" />
-          </button>
-        )}
+
 
         {isBank && !isExcluded && (
           <button
