@@ -213,20 +213,26 @@ export function EditBillDialog({ open, onOpenChange, billId }: EditBillDialogPro
       // Populate job cost rows
       const jobCosts = billData.bill_lines
         .filter((line: any) => line.line_type === 'job_cost')
-        .map((line: any, index: number) => ({
-          id: `job-${index}`,
-          dbId: line.id,
-          account: line.cost_codes ? `${line.cost_codes.code}: ${line.cost_codes.name}` : '',
-          accountId: line.cost_code_id || '',
-          project: '',
-          projectId: line.project_id || '',
-          lotId: line.lot_id || '',
-          purchaseOrderId: hydratePoIdForUI(line.purchase_order_id, line.po_assignment),
-          purchaseOrderLineId: line.purchase_order_line_id || undefined,
-          quantity: line.quantity?.toString() || '1',
-          amount: line.unit_cost?.toString() || '0',
-          memo: line.memo || ''
-        }));
+        .map((line: any, index: number) => {
+          const qty = parseFloat(line.quantity) || 1;
+          const uc = parseFloat(line.unit_cost) || 0;
+          const amt = parseFloat(line.amount) || 0;
+          const unitCostDisplay = uc !== 0 ? uc : (qty ? amt / qty : amt);
+          return {
+            id: `job-${index}`,
+            dbId: line.id,
+            account: line.cost_codes ? `${line.cost_codes.code}: ${line.cost_codes.name}` : '',
+            accountId: line.cost_code_id || '',
+            project: '',
+            projectId: line.project_id || '',
+            lotId: line.lot_id || '',
+            purchaseOrderId: hydratePoIdForUI(line.purchase_order_id, line.po_assignment),
+            purchaseOrderLineId: line.purchase_order_line_id || undefined,
+            quantity: line.quantity?.toString() || '1',
+            amount: unitCostDisplay.toString(),
+            memo: line.memo || ''
+          };
+        });
 
       setJobCostRows(jobCosts.length > 0 ? jobCosts : [
         { id: "1", account: "", accountId: "", project: "", projectId: billData.project_id || "", lotId: "", quantity: "", amount: "", memo: "" }
@@ -235,20 +241,27 @@ export function EditBillDialog({ open, onOpenChange, billId }: EditBillDialogPro
       // Populate expense rows
       const expenses = billData.bill_lines
         .filter((line: any) => line.line_type === 'expense')
-        .map((line: any, index: number) => ({
-          id: `expense-${index}`,
-          dbId: line.id,
-          account: line.accounts ? `${line.accounts.code}: ${line.accounts.name}` : '',
-          accountId: line.account_id || '',
-          project: '',
-          projectId: line.project_id || '',
-          lotId: line.lot_id || '',
-          purchaseOrderId: hydratePoIdForUI(line.purchase_order_id, line.po_assignment),
-          purchaseOrderLineId: line.purchase_order_line_id || undefined,
-          quantity: line.quantity?.toString() || '1',
-          amount: line.unit_cost?.toString() || '0',
-          memo: line.memo || ''
-        }));
+        .map((line: any, index: number) => {
+          const qty = parseFloat(line.quantity) || 1;
+          const uc = parseFloat(line.unit_cost) || 0;
+          const amt = parseFloat(line.amount) || 0;
+          const unitCostDisplay = uc !== 0 ? uc : (qty ? amt / qty : amt);
+          return {
+            id: `expense-${index}`,
+            dbId: line.id,
+            account: line.accounts ? `${line.accounts.code}: ${line.accounts.name}` : '',
+            accountId: line.account_id || '',
+            project: '',
+            projectId: line.project_id || '',
+            lotId: line.lot_id || '',
+            purchaseOrderId: hydratePoIdForUI(line.purchase_order_id, line.po_assignment),
+            purchaseOrderLineId: line.purchase_order_line_id || undefined,
+            quantity: line.quantity?.toString() || '1',
+            amount: unitCostDisplay.toString(),
+            memo: line.memo || ''
+          };
+        });
+
 
       setExpenseRows(expenses.length > 0 ? expenses : [
         { id: "1", account: "", accountId: "", project: "", projectId: billData.project_id || "", quantity: "", amount: "", memo: "" }
