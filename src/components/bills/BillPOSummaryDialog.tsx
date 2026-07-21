@@ -1,3 +1,4 @@
+import { useState } from "react";
 import {
   Dialog,
   DialogContent,
@@ -14,12 +15,14 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import { Button } from "@/components/ui/button";
 import { POMatch } from "@/hooks/useBillPOMatching";
 import { useVendorPurchaseOrders } from "@/hooks/useVendorPurchaseOrders";
 import { cn } from "@/lib/utils";
 import { SettingsTableWrapper } from "@/components/ui/settings-table-wrapper";
 import { FilesCell } from "@/components/purchaseOrders/components/FilesCell";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import { ArrowUpDown, ArrowUp, ArrowDown } from "lucide-react";
 
 const TruncatedCell = ({ value, className }: { value: string; className?: string }) => (
   <Tooltip>
@@ -78,6 +81,8 @@ export function BillPOSummaryDialog({
   matches,
   bill,
 }: BillPOSummaryDialogProps) {
+  const [descriptionSort, setDescriptionSort] = useState<'asc' | 'desc' | null>(null);
+
   const matchedPoIdsArr = matches.map(m => m.po_id);
   const { data: vendorPOs, isLoading: isLoadingPOs } = useVendorPurchaseOrders(
     bill?.project_id,
@@ -243,9 +248,17 @@ export function BillPOSummaryDialog({
   });
 
   // Sort groups by leading cost-code number ascending; missing → bottom. Stable.
+  // When descriptionSort is active, sort by description (memo) instead.
   const sortedGroups = groupOrder
     .map((key, idx) => ({ key, group: groupMap.get(key)!, idx, sortKey: getLineCostCodeDisplay(groupMap.get(key)!.representative) }))
     .sort((a, b) => {
+      if (descriptionSort) {
+        const aDesc = (a.group.representative.memo || '').trim().toLowerCase();
+        const bDesc = (b.group.representative.memo || '').trim().toLowerCase();
+        const cmp = aDesc.localeCompare(bDesc);
+        return descriptionSort === 'asc' ? cmp : -cmp;
+      }
+
       const aMatch = a.sortKey.match(/\d+(\.\d+)?/);
       const bMatch = b.sortKey.match(/\d+(\.\d+)?/);
       const aNum = aMatch ? parseFloat(aMatch[0]) : Number.POSITIVE_INFINITY;
@@ -318,7 +331,29 @@ export function BillPOSummaryDialog({
                 <TableRow>
                   <TableHead className="whitespace-nowrap">PO Number</TableHead>
                   <TableHead className="whitespace-nowrap">Cost Code</TableHead>
-                  <TableHead className="whitespace-nowrap">Description</TableHead>
+                  <TableHead className="whitespace-nowrap">
+                    <div className="flex items-center gap-1">
+                      Description
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="h-6 w-6 p-0 -ml-1"
+                        onClick={() =>
+                          setDescriptionSort((prev) =>
+                            prev === 'asc' ? 'desc' : prev === 'desc' ? null : 'asc'
+                          )
+                        }
+                      >
+                        {descriptionSort === 'asc' ? (
+                          <ArrowUp className="h-3 w-3 text-muted-foreground" />
+                        ) : descriptionSort === 'desc' ? (
+                          <ArrowDown className="h-3 w-3 text-muted-foreground" />
+                        ) : (
+                          <ArrowUpDown className="h-3 w-3 text-muted-foreground" />
+                        )}
+                      </Button>
+                    </div>
+                  </TableHead>
                   <TableHead className="whitespace-nowrap">Lots</TableHead>
                   <TableHead className="whitespace-nowrap">PO Amount</TableHead>
                   <TableHead className="whitespace-nowrap">Billed to Date</TableHead>
