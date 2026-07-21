@@ -1,33 +1,18 @@
-## Goal
-Add a small grey up/down sort arrow to the **Description** column header in the **PO Status Summary** dialog so the user can optionally sort rows by description. The default sort by cost code remains unchanged.
+## Revert description sort, add "entry order" view
 
-## Current state
-- `src/components/bills/BillPOSummaryDialog.tsx` groups bill lines by PO/cost-code/memo and currently sorts the grouped rows by cost code only.
-- The app already uses `ArrowUpDown` from `lucide-react` for column sorting elsewhere (e.g. `BillsApprovalTable.tsx`).
+**What to change in `src/components/bills/BillPOSummaryDialog.tsx`:**
 
-## Changes
-1. **State**
-   - Add local state `descriptionSort: 'asc' | 'desc' | null` (default `null`, meaning cost-code sort is active).
+1. Remove the description sort toggle button, `descriptionSort` state, `ArrowUp`/`ArrowDown`/`ArrowUpDown` imports, and the description-sort branch in the sort logic.
+2. Restore the Description header to plain text.
+3. Add a new sort control on the **Cost Code** header (small grey `ArrowUpDown` button matching app convention) that toggles between:
+   - **Default** — current cost-code ascending sort (grouped, as it is now)
+   - **Entry order** — the original order the lines were entered on the bill (using each line's `created_at` ascending, falling back to line `id` for stability)
 
-2. **Header UI**
-   - In the **Description** `TableHead`, add a small grey `ArrowUpDown` icon button to the right of the label.
-   - Use the same styling as other sort toggles in the app (`h-3 w-3 text-muted-foreground`).
-   - Clicking toggles: `null → asc → desc → null`.
-   - When `descriptionSort` is active, optionally show `ArrowUp` or `ArrowDown` instead of `ArrowUpDown`.
+   Icon states: neutral `ArrowUpDown` = default cost-code sort; `ArrowDown` (or similar) = entry order active. Click toggles between the two.
+4. When "entry order" is active, bypass the grouped-by-cost-code rendering and render each `bill_line` as its own row in original entry sequence, so the user sees the bill exactly as it was entered (no dedupe, no grouping, no re-sort).
+5. Do NOT touch the numbers, hover popovers, lot logic, totals, or any other behavior.
 
-3. **Sort logic**
-   - Keep the existing cost-code sort as the default.
-   - When `descriptionSort` is set, sort `sortedGroups` by the representative line's description (`memo`) ascending/descending.
-   - Cost-code sort remains stable as the fallback.
-
-4. **No other changes**
-   - Do not alter the grouping, totals, tooltips, status badges, file cells, or any other column behavior.
-
-## Files to edit
-- `src/components/bills/BillPOSummaryDialog.tsx`
-
-## Verification
-- Open the PO Status Summary dialog.
-- Confirm rows still default to cost-code order.
-- Click the grey arrow on Description and confirm rows reorder alphabetically by description.
-- Click again to reverse order; click a third time to return to cost-code order.
+### Technical notes
+- Group construction stays intact for the default view.
+- Entry-order view iterates `bill.bill_lines` sorted by `created_at asc, id asc` and renders one `TableRow` per line using the same cell components already used for the representative row.
+- No changes to data fetching, mutations, or other files.
