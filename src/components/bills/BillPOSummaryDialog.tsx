@@ -289,7 +289,7 @@ export function BillPOSummaryDialog({
     ? enteredRows
     : sortedGroups.map(({ key, group }) => ({ key, group }));
 
-
+  const LotsCell = ({ lots, costCode }: { lots: { name: string; amount: number }[]; costCode: string }) => {
     if (lots.length === 0) return <span className="text-muted-foreground">—</span>;
     const total = lots.reduce((s, l) => s + l.amount, 0);
     const fmt = (n: number) => `$${n.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
