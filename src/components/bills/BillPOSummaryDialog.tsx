@@ -325,20 +325,33 @@ export function BillPOSummaryDialog({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-[95vw] xl:max-w-7xl" onOpenAutoFocus={(e) => e.preventDefault()}>
           <DialogHeader>
-            <DialogTitle>PO Status Summary</DialogTitle>
-            <DialogDescription>
-              {(() => {
-                const linkedLines = billLines.filter(l => resolveLineToPoId(l) !== null);
-                const offPoLines = billLines.length - linkedLines.length;
-                const distinctPos = new Set(linkedLines.map(l => resolveLineToPoId(l))).size;
-                const linkedCount = linkedLines.length;
-                const linePart = `${linkedCount} line item${linkedCount === 1 ? '' : 's'} across ${distinctPos} PO${distinctPos === 1 ? '' : 's'}`;
-                const offPart = offPoLines > 0 ? ` · ${offPoLines} off-PO` : '';
-                const prefix = bill?.reference_number ? `Bill ${bill.reference_number} — ` : '';
-                return `${prefix}${linePart}${offPart}`;
-              })()}
-            </DialogDescription>
+            <div className="flex items-start justify-between gap-4">
+              <div>
+                <DialogTitle>PO Status Summary</DialogTitle>
+                <DialogDescription>
+                  {(() => {
+                    const linkedLines = billLines.filter(l => resolveLineToPoId(l) !== null);
+                    const offPoLines = billLines.length - linkedLines.length;
+                    const distinctPos = new Set(linkedLines.map(l => resolveLineToPoId(l))).size;
+                    const linkedCount = linkedLines.length;
+                    const linePart = `${linkedCount} line item${linkedCount === 1 ? '' : 's'} across ${distinctPos} PO${distinctPos === 1 ? '' : 's'}`;
+                    const offPart = offPoLines > 0 ? ` · ${offPoLines} off-PO` : '';
+                    const prefix = bill?.reference_number ? `Bill ${bill.reference_number} — ` : '';
+                    return `${prefix}${linePart}${offPart}`;
+                  })()}
+                </DialogDescription>
+              </div>
+              <Button
+                variant="outline"
+                size="sm"
+                className="mr-6 shrink-0"
+                onClick={() => setViewMode(v => v === 'grouped' ? 'entered' : 'grouped')}
+              >
+                {viewMode === 'grouped' ? 'View as entered' : 'View grouped'}
+              </Button>
+            </div>
           </DialogHeader>
+
 
           {!poDataReady ? (
             <div className="py-12 text-center text-sm text-muted-foreground">
