@@ -258,13 +258,6 @@ export function BillPOSummaryDialog({
       return cmp !== 0 ? cmp : a.idx - b.idx;
     });
 
-  // Entry-order view: one row per bill line in the order they were entered.
-  const entryOrderLines = [...billLines].sort((a, b) => {
-    const at = a.created_at || '';
-    const bt = b.created_at || '';
-    if (at !== bt) return at.localeCompare(bt);
-    return (a.id || '').localeCompare(b.id || '');
-  });
 
   const LotsCell = ({ lots, costCode }: { lots: { name: string; amount: number }[]; costCode: string }) => {
     if (lots.length === 0) return <span className="text-muted-foreground">—</span>;
