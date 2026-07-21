@@ -1,4 +1,3 @@
-import { useState } from "react";
 import {
   Dialog,
   DialogContent,
@@ -15,14 +14,12 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { Button } from "@/components/ui/button";
 import { POMatch } from "@/hooks/useBillPOMatching";
 import { useVendorPurchaseOrders } from "@/hooks/useVendorPurchaseOrders";
 import { cn } from "@/lib/utils";
 import { SettingsTableWrapper } from "@/components/ui/settings-table-wrapper";
 import { FilesCell } from "@/components/purchaseOrders/components/FilesCell";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
-import { ArrowUpDown, ArrowDown } from "lucide-react";
 
 const TruncatedCell = ({ value, className }: { value: string; className?: string }) => (
   <Tooltip>
@@ -83,7 +80,6 @@ export function BillPOSummaryDialog({
   matches,
   bill,
 }: BillPOSummaryDialogProps) {
-  const [entryOrder, setEntryOrder] = useState<boolean>(false);
 
   const matchedPoIdsArr = matches.map(m => m.po_id);
   const { data: vendorPOs, isLoading: isLoadingPOs } = useVendorPurchaseOrders(
@@ -262,13 +258,6 @@ export function BillPOSummaryDialog({
       return cmp !== 0 ? cmp : a.idx - b.idx;
     });
 
-  // Entry-order view: one row per bill line in the order they were entered.
-  const entryOrderLines = [...billLines].sort((a, b) => {
-    const at = a.created_at || '';
-    const bt = b.created_at || '';
-    if (at !== bt) return at.localeCompare(bt);
-    return (a.id || '').localeCompare(b.id || '');
-  });
 
   const LotsCell = ({ lots, costCode }: { lots: { name: string; amount: number }[]; costCode: string }) => {
     if (lots.length === 0) return <span className="text-muted-foreground">—</span>;
@@ -332,24 +321,7 @@ export function BillPOSummaryDialog({
               <TableHeader>
                 <TableRow>
                   <TableHead className="whitespace-nowrap">PO Number</TableHead>
-                  <TableHead className="whitespace-nowrap">
-                    <div className="flex items-center gap-1">
-                      Cost Code
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        className="h-6 w-6 p-0 -ml-1"
-                        title={entryOrder ? "Showing entry order — click to restore default" : "Show in original entry order"}
-                        onClick={() => setEntryOrder((prev) => !prev)}
-                      >
-                        {entryOrder ? (
-                          <ArrowDown className="h-3 w-3 text-muted-foreground" />
-                        ) : (
-                          <ArrowUpDown className="h-3 w-3 text-muted-foreground" />
-                        )}
-                      </Button>
-                    </div>
-                  </TableHead>
+                  <TableHead className="whitespace-nowrap">Cost Code</TableHead>
                   <TableHead className="whitespace-nowrap">Description</TableHead>
                   <TableHead className="whitespace-nowrap">Lots</TableHead>
                   <TableHead className="whitespace-nowrap">PO Amount</TableHead>
@@ -361,20 +333,7 @@ export function BillPOSummaryDialog({
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {(entryOrder
-                  ? entryOrderLines.map((line, i) => {
-                      const lotName = lotNameOf(line);
-                      return {
-                        key: `entry-${line.id || i}`,
-                        group: {
-                          representative: line,
-                          totalAmount: line.amount || 0,
-                          lots: lotName ? [{ name: lotName, amount: line.amount || 0 }] : [],
-                        } as GroupedLine,
-                      };
-                    })
-                  : sortedGroups
-                ).map(({ key, group }) => {
+                {sortedGroups.map(({ key, group }) => {
                   const line = group.representative;
                   const resolvedPoId = resolveLineToPoId(line);
                   const match = resolvedPoId ? matchByPoId.get(resolvedPoId) : undefined;
