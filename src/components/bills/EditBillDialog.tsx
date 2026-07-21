@@ -1248,8 +1248,12 @@ export function EditBillDialog({ open, onOpenChange, billId }: EditBillDialogPro
                           <TableRow key={row.id}>
                             <TableCell>
                               <AccountSearchInput
-                                value={row.accountId || ""}
-                                onChange={(accountId) => updateExpenseRow(row.id, 'accountId', accountId)}
+                                value={row.account || ""}
+                                onChange={(value) => updateExpenseRow(row.id, 'account', value)}
+                                onAccountSelect={(account) => {
+                                  updateExpenseRow(row.id, 'accountId', account.id);
+                                  updateExpenseRow(row.id, 'account', `${account.code} - ${account.name}`);
+                                }}
                                 placeholder="Select account"
                                 accountType="expense"
                                 projectId={row.projectId || undefined}
