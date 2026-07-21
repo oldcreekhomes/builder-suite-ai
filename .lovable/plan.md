@@ -1,13 +1,12 @@
 ## Change
 
-In `src/components/bills/EditBillDialog.tsx`, remove the Project column from the Expense tab table only.
+In `src/components/bills/EditBillDialog.tsx`, restore the Expense tab row visuals so the inputs match the height and spacing of the fields above (Vendor / Date / Reference No.):
 
-- Remove the "Project" `<TableHead>` from the Expense tab header.
-- Remove the corresponding project `<TableCell>` (project selector) from each Expense row.
-- Keep the current bill's `project_id` internally as the project for every expense line on save (unchanged behavior from before the recent addition).
-- No changes to the Job Cost tab.
-- No changes to `ManualBillEntry.tsx` or the account dropdown behavior — the Expense account picker still receives the bill's `projectId` so project-specific accounts (5120, 6020, etc.) remain in the list.
+- Widen the Account and Description cells to fill the space the removed Project column used to occupy (adjust `<TableHead>` widths back to comfortable defaults matching pre-change layout).
+- Restore input heights on the Expense row so `AccountSearchInput`, the Description `Input`, Quantity, Unit Cost inputs render at the standard shadcn height (`h-10`) rather than the shrunken `h-8`/`h-7` variants — matching the Vendor/Date/Reference inputs above.
+- Keep the trash button sized to match the row.
+- No functional/business logic changes. Job Cost tab untouched.
 
 ## Why
 
-The Edit Bill dialog is always scoped to a single project, so the per-line Project selector was unnecessary and was not requested.
+Removing the Project column left the remaining inputs looking cramped/shorter than the top row. This restores the original visual rhythm.
