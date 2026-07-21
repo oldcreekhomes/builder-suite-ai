@@ -468,7 +468,7 @@ export function BillPOSummaryDialog({
                 {(() => {
                   const seenPo = new Set<string>();
                   let poAmountTotal = 0;
-                  sortedGroups.forEach(({ group }) => {
+                  displayRows.forEach(({ group }) => {
                     const resolvedPoId = resolveLineToPoId(group.representative);
                     const m = resolvedPoId ? matchByPoId.get(resolvedPoId) : undefined;
                     if (m && !seenPo.has(m.po_id)) {
