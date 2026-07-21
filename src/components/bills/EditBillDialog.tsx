@@ -1231,8 +1231,8 @@ export function EditBillDialog({ open, onOpenChange, billId }: EditBillDialogPro
                   <Table containerClassName="relative w-full">
                     <TableHeader>
                       <TableRow>
-                        <TableHead className="w-[180px]">Account</TableHead>
-                        <TableHead className="w-[260px]">Description</TableHead>
+                        <TableHead className="w-[220px]">Account</TableHead>
+                        <TableHead>Description</TableHead>
                         <TableHead className="w-[90px]">Quantity</TableHead>
                         <TableHead className="w-[100px]">Unit Cost</TableHead>
                         <TableHead className="w-[100px]">Total</TableHead>
@@ -1253,7 +1253,7 @@ export function EditBillDialog({ open, onOpenChange, billId }: EditBillDialogPro
                                 placeholder="Select account"
                                 accountType="expense"
                                 projectId={row.projectId || undefined}
-                                className="h-8"
+                                className="h-10"
                                 disabled={isApprovedBill}
                               />
                             </TableCell>
@@ -1262,7 +1262,7 @@ export function EditBillDialog({ open, onOpenChange, billId }: EditBillDialogPro
                                 placeholder="Description"
                                 value={row.memo}
                                 onChange={(e) => updateExpenseRow(row.id, 'memo', e.target.value)}
-                                className="h-8 truncate"
+                                className="h-10 truncate"
                               />
                             </TableCell>
                             <TableCell>
@@ -1272,7 +1272,7 @@ export function EditBillDialog({ open, onOpenChange, billId }: EditBillDialogPro
                                 placeholder="1"
                                 value={row.quantity}
                                 onChange={(e) => updateExpenseRow(row.id, 'quantity', e.target.value)}
-                                className="h-7 px-1 border-0 bg-transparent shadow-none focus-visible:ring-1 focus-visible:ring-ring focus-visible:ring-offset-0 text-sm font-medium [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                                className="h-10 px-1 border-0 bg-transparent shadow-none focus-visible:ring-1 focus-visible:ring-ring focus-visible:ring-offset-0 text-sm font-medium [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
                                 readOnly={isApprovedBill}
                               />
                             </TableCell>
@@ -1283,7 +1283,7 @@ export function EditBillDialog({ open, onOpenChange, billId }: EditBillDialogPro
                                 placeholder="0.00"
                                 value={row.amount}
                                 onChange={(e) => updateExpenseRow(row.id, 'amount', e.target.value)}
-                                className="h-7 px-1 border-0 bg-transparent shadow-none focus-visible:ring-1 focus-visible:ring-ring focus-visible:ring-offset-0 text-sm font-medium [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                                className="h-10 px-1 border-0 bg-transparent shadow-none focus-visible:ring-1 focus-visible:ring-ring focus-visible:ring-offset-0 text-sm font-medium [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
                                 readOnly={isApprovedBill}
                               />
                             </TableCell>
