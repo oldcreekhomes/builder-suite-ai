@@ -1232,7 +1232,6 @@ export function EditBillDialog({ open, onOpenChange, billId }: EditBillDialogPro
                     <TableHeader>
                       <TableRow>
                         <TableHead className="w-[180px]">Account</TableHead>
-                        <TableHead className="w-[180px]">Project</TableHead>
                         <TableHead className="w-[260px]">Description</TableHead>
                         <TableHead className="w-[90px]">Quantity</TableHead>
                         <TableHead className="w-[100px]">Unit Cost</TableHead>
