@@ -1252,13 +1252,23 @@ export const useBills = () => {
 
       if (!bill) throw new Error("Bill not found");
 
+      // Validate that we are not about to save a non-zero bill with no lines.
+      // This prevents a prior UI bug from wiping out all bill_lines and leaving
+      // the bill un-approvable.
+      const newTotal = billLines.reduce((sum, line) => sum + line.amount, 0);
+      if (newTotal !== 0 && billLines.length === 0) {
+        throw new Error(
+          "Cannot save a bill with a non-zero total and no line items. Add at least one line before saving."
+        );
+      }
+
       // Update bill header and set status to 'draft' (back to review queue)
       const { error: billError } = await supabase
         .from('bills')
         .update({
           ...billData,
           status: 'draft', // KEY: Move back to review queue
-          total_amount: billLines.reduce((sum, line) => sum + line.amount, 0),
+          total_amount: newTotal,
           updated_at: new Date().toISOString()
         })
         .eq('id', billId);
