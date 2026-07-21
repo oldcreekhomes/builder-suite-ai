@@ -248,9 +248,17 @@ export function BillPOSummaryDialog({
   });
 
   // Sort groups by leading cost-code number ascending; missing → bottom. Stable.
+  // When descriptionSort is active, sort by description (memo) instead.
   const sortedGroups = groupOrder
     .map((key, idx) => ({ key, group: groupMap.get(key)!, idx, sortKey: getLineCostCodeDisplay(groupMap.get(key)!.representative) }))
     .sort((a, b) => {
+      if (descriptionSort) {
+        const aDesc = (a.group.representative.memo || '').trim().toLowerCase();
+        const bDesc = (b.group.representative.memo || '').trim().toLowerCase();
+        const cmp = aDesc.localeCompare(bDesc);
+        return descriptionSort === 'asc' ? cmp : -cmp;
+      }
+
       const aMatch = a.sortKey.match(/\d+(\.\d+)?/);
       const bMatch = b.sortKey.match(/\d+(\.\d+)?/);
       const aNum = aMatch ? parseFloat(aMatch[0]) : Number.POSITIVE_INFINITY;
