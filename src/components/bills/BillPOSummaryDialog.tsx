@@ -261,8 +261,35 @@ export function BillPOSummaryDialog({
       return cmp !== 0 ? cmp : a.idx - b.idx;
     });
 
+  // "As entered" mode: one pseudo-group per raw bill line, in creation order.
+  const enteredRows = [...billLines]
+    .map((line, idx) => ({ line, idx }))
+    .sort((a, b) => {
+      const at = a.line.created_at || '';
+      const bt = b.line.created_at || '';
+      if (at !== bt) return at < bt ? -1 : 1;
+      const ai = a.line.id || '';
+      const bi = b.line.id || '';
+      if (ai !== bi) return ai < bi ? -1 : 1;
+      return a.idx - b.idx;
+    })
+    .map(({ line, idx }) => {
+      const lotName = lotNameOf(line);
+      return {
+        key: `entered-${line.id || idx}`,
+        group: {
+          representative: line,
+          totalAmount: line.amount || 0,
+          lots: lotName ? [{ name: lotName, amount: line.amount || 0 }] : [],
+        } as GroupedLine,
+      };
+    });
 
-  const LotsCell = ({ lots, costCode }: { lots: { name: string; amount: number }[]; costCode: string }) => {
+  const displayRows = viewMode === 'entered'
+    ? enteredRows
+    : sortedGroups.map(({ key, group }) => ({ key, group }));
+
+
     if (lots.length === 0) return <span className="text-muted-foreground">—</span>;
     const total = lots.reduce((s, l) => s + l.amount, 0);
     const fmt = (n: number) => `$${n.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
