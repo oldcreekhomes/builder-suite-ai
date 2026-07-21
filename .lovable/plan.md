@@ -1,12 +1,14 @@
 ## Change
 
-In `src/components/bills/EditBillDialog.tsx`, restore the Expense tab row visuals so the inputs match the height and spacing of the fields above (Vendor / Date / Reference No.):
+In `src/components/bills/EditBillDialog.tsx`, resize the Job Cost tab row inputs to match the Expense tab's `h-10` height:
 
-- Widen the Account and Description cells to fill the space the removed Project column used to occupy (adjust `<TableHead>` widths back to comfortable defaults matching pre-change layout).
-- Restore input heights on the Expense row so `AccountSearchInput`, the Description `Input`, Quantity, Unit Cost inputs render at the standard shadcn height (`h-10`) rather than the shrunken `h-8`/`h-7` variants — matching the Vendor/Date/Reference inputs above.
-- Keep the trash button sized to match the row.
-- No functional/business logic changes. Job Cost tab untouched.
+- Cost Code / Description inputs: `h-8` → `h-10` (lines ~1030, 1054).
+- Quantity / Unit Cost numeric inputs: `h-7` → `h-10` (lines ~1075, 1090).
+- Lot Select trigger and PO Selection dropdown: `h-8` → `h-10` (lines ~1139, 1171).
+- Leave the trash/split icon buttons at `h-8 w-8` (they are icon buttons, not form fields).
+
+No functional changes.
 
 ## Why
 
-Removing the Project column left the remaining inputs looking cramped/shorter than the top row. This restores the original visual rhythm.
+Expense tab inputs are `h-10` matching the top form; Job Cost inputs are shorter (`h-8`/`h-7`). Aligning to `h-10` makes both tabs visually consistent.
