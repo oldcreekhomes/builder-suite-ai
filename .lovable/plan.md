@@ -1,14 +1,45 @@
-## Change
+## Problem
 
-In `src/components/bills/EditBillDialog.tsx`, resize the Job Cost tab row inputs to match the Expense tab's `h-10` height:
+Saving an expense line in the Edit Bill dialog fails with:
 
-- Cost Code / Description inputs: `h-8` → `h-10` (lines ~1030, 1054).
-- Quantity / Unit Cost numeric inputs: `h-7` → `h-10` (lines ~1075, 1090).
-- Lot Select trigger and PO Selection dropdown: `h-8` → `h-10` (lines ~1139, 1171).
-- Leave the trash/split icon buttons at `h-8 w-8` (they are icon buttons, not form fields).
+```
+invalid input syntax for type uuid: "5160 - Phone"
+```
 
-No functional changes.
+## Root Cause
 
-## Why
+In `src/components/bills/EditBillDialog.tsx` the Expense tab's `AccountSearchInput` is wired incorrectly:
 
-Expense tab inputs are `h-10` matching the top form; Job Cost inputs are shorter (`h-8`/`h-7`). Aligning to `h-10` makes both tabs visually consistent.
+```tsx
+<AccountSearchInput
+  value={row.accountId || ""}
+  onChange={(accountId) => updateExpenseRow(row.id, 'accountId', accountId)}
+  ...
+/>
+```
+
+`AccountSearchInput.onChange` emits the display string (e.g. `"5160 - Phone"`), not the UUID. Only the `onAccountSelect` callback provides the account id. So `row.accountId` gets overwritten with the display string, and the update mutation sends `"5160 - Phone"` to a uuid column → 22P02.
+
+`ManualBillEntry.tsx` wires the same component correctly (value = display, onChange updates `account`, onAccountSelect updates both `accountId` and `account`).
+
+## Fix
+
+Only change the Expense-row `AccountSearchInput` in `EditBillDialog.tsx` (around line 1250) to match the working pattern:
+
+```tsx
+<AccountSearchInput
+  value={row.account || ""}
+  onChange={(value) => updateExpenseRow(row.id, 'account', value)}
+  onAccountSelect={(account) => {
+    updateExpenseRow(row.id, 'accountId', account.id);
+    updateExpenseRow(row.id, 'account', `${account.code} - ${account.name}`);
+  }}
+  placeholder="Select account"
+  accountType="expense"
+  projectId={row.projectId || undefined}
+  className="h-10"
+  disabled={isApprovedBill}
+/>
+```
+
+No other files, no logic changes, no styling changes beyond this input's wiring.
