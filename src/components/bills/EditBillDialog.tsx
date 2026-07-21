@@ -1027,7 +1027,7 @@ export function EditBillDialog({ open, onOpenChange, billId }: EditBillDialogPro
                                         }
                                       }}
                                       placeholder="Cost Code"
-                                      className="h-8 truncate"
+                                      className="h-10 truncate"
                                     />
                                   </div>
                                 </TooltipTrigger>
