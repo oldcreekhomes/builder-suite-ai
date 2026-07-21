@@ -34,6 +34,8 @@ const TruncatedCell = ({ value, className }: { value: string; className?: string
 );
 
 interface BillLine {
+  id?: string;
+  created_at?: string;
   cost_code_id?: string | null;
   cost_code_display?: string;
   cost_codes?: { code?: string | null; name?: string | null } | null;
