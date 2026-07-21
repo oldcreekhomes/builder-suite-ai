@@ -130,6 +130,16 @@ export const useBills = () => {
         return bill;
       }
 
+      // Guard against bills with a non-zero total but no line items. Without
+      // this, the journal entry would be unbalanced (only an AP credit) and
+      // the bill would silently stay in draft.
+      const billLines = bill.bill_lines || [];
+      if (billLines.length === 0) {
+        throw new Error(
+          "This bill has no line items. Open the bill, add the account/cost code, and save before approving."
+        );
+      }
+
       // Get accounting settings for AP and WIP accounts
       const { data: settings } = await supabase
         .from('accounting_settings')
