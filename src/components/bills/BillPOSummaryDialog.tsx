@@ -376,7 +376,7 @@ export function BillPOSummaryDialog({
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {sortedGroups.map(({ key, group }) => {
+                {displayRows.map(({ key, group }) => {
                   const line = group.representative;
                   const resolvedPoId = resolveLineToPoId(line);
                   const match = resolvedPoId ? matchByPoId.get(resolvedPoId) : undefined;
