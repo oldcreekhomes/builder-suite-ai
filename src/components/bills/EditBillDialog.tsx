@@ -371,7 +371,7 @@ export function EditBillDialog({ open, onOpenChange, billId }: EditBillDialogPro
   };
 
   const removeExpenseRow = (id: string, dbId?: string) => {
-    if (expenseRows.length > 1) {
+    if (expenseRows.length > 1 || jobCostRows.length >= 1) {
       setExpenseRows(expenseRows.filter(row => row.id !== id));
       if (dbId) {
         setDeletedLineIds([...deletedLineIds, dbId]);
