@@ -83,7 +83,7 @@ export function BillPOSummaryDialog({
   matches,
   bill,
 }: BillPOSummaryDialogProps) {
-  const [descriptionSort, setDescriptionSort] = useState<'asc' | 'desc' | null>(null);
+  const [entryOrder, setEntryOrder] = useState<boolean>(false);
 
   const matchedPoIdsArr = matches.map(m => m.po_id);
   const { data: vendorPOs, isLoading: isLoadingPOs } = useVendorPurchaseOrders(
