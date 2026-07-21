@@ -1262,7 +1262,7 @@ export function EditBillDialog({ open, onOpenChange, billId }: EditBillDialogPro
                                 placeholder="Description"
                                 value={row.memo}
                                 onChange={(e) => updateExpenseRow(row.id, 'memo', e.target.value)}
-                                className="h-8 truncate"
+                                className="h-10 truncate"
                               />
                             </TableCell>
                             <TableCell>
