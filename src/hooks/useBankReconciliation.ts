@@ -1839,6 +1839,7 @@ export const useBankReconciliation = () => {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['bank-reconciliations'] });
+      queryClient.invalidateQueries({ queryKey: ['latest-bank-reconciliations'] });
       queryClient.invalidateQueries({ queryKey: ['reconciliation-transactions'] });
       toast({
         title: "Reconciliation Undone",
