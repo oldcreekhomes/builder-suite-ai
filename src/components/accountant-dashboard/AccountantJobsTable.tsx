@@ -639,3 +639,48 @@ export function AccountantJobsTable() {
     </div>
   );
 }
+
+function BuilderSuiteClosedBooksCell({
+  projectId,
+  currentDate,
+}: {
+  projectId: string;
+  currentDate?: string;
+}) {
+  const [open, setOpen] = useState(false);
+  const { closePeriod, isClosing } = useAccountingPeriods(projectId);
+
+  return (
+    <Popover open={open} onOpenChange={setOpen}>
+      <PopoverTrigger asChild>
+        <button
+          type="button"
+          disabled={isClosing}
+          className="w-full h-full text-left hover:underline cursor-pointer"
+          onClick={(e) => e.stopPropagation()}
+        >
+          {currentDate
+            ? format(parseISO(currentDate), "MMM d, yyyy")
+            : <span className="text-muted-foreground">-</span>}
+        </button>
+      </PopoverTrigger>
+      <PopoverContent className="w-auto p-0" align="start" onClick={(e) => e.stopPropagation()}>
+        <Calendar
+          mode="single"
+          selected={currentDate ? parseISO(currentDate) : undefined}
+          onSelect={(date) => {
+            if (!date) return;
+            closePeriod({
+              projectId,
+              periodEndDate: format(date, "yyyy-MM-dd"),
+            });
+            setOpen(false);
+          }}
+          initialFocus
+          className="p-3 pointer-events-auto"
+        />
+      </PopoverContent>
+    </Popover>
+  );
+}
+
