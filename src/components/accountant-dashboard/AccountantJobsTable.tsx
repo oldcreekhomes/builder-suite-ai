@@ -10,6 +10,7 @@ import { useUpdateProjectQBReconciliationDate } from "@/hooks/useUpdateProjectQB
 import { useUpdateProjectQBClosedBooksDate } from "@/hooks/useUpdateProjectQBClosedBooksDate";
 import { useUpdateProjectQBInvoiceDates } from "@/hooks/useUpdateProjectQBInvoiceDates";
 import { useUserRole } from "@/hooks/useUserRole";
+import { useAccountingPeriods } from "@/hooks/useAccountingPeriods";
 import { PROJECT_STATUS_GROUPS } from "@/constants/projectStatusGroups";
 import {
   Table,
