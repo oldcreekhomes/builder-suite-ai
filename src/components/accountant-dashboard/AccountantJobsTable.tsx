@@ -426,9 +426,11 @@ export function AccountantJobsTable() {
                         </PopoverContent>
                       </Popover>
                     ) : (
-                      latestReconciliations[project.id]?.statement_date 
-                        ? format(parseISO(latestReconciliations[project.id].statement_date), "MMM d, yyyy")
-                        : <span className="text-muted-foreground">-</span>
+                      <span onClick={(e) => e.stopPropagation()}>
+                        {latestReconciliations[project.id]?.statement_date 
+                          ? format(parseISO(latestReconciliations[project.id].statement_date), "MMM d, yyyy")
+                          : <span className="text-muted-foreground">-</span>}
+                      </span>
                     )}
                   </TableCell>
                   <TableCell className="whitespace-nowrap">
@@ -459,9 +461,10 @@ export function AccountantJobsTable() {
                         </PopoverContent>
                       </Popover>
                     ) : (
-                      closedPeriods[project.id]?.period_end_date 
-                        ? format(parseISO(closedPeriods[project.id].period_end_date), "MMM d, yyyy")
-                        : <span className="text-muted-foreground">-</span>
+                      <BuilderSuiteClosedBooksCell
+                        projectId={project.id}
+                        currentDate={closedPeriods[project.id]?.period_end_date}
+                      />
                     )}
                   </TableCell>
                   <TableCell className="whitespace-nowrap">
