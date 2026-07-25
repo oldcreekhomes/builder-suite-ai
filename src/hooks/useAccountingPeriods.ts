@@ -147,6 +147,7 @@ export const useAccountingPeriods = (projectId?: string) => {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['accounting-periods'] });
+      queryClient.invalidateQueries({ queryKey: ['latest-closed-periods'] });
       toast({
         title: "Books Closed",
         description: "The accounting period has been closed successfully.",
@@ -193,6 +194,7 @@ export const useAccountingPeriods = (projectId?: string) => {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['accounting-periods'] });
+      queryClient.invalidateQueries({ queryKey: ['latest-closed-periods'] });
       toast({
         title: "Books Reopened",
         description: "The accounting period has been reopened.",
