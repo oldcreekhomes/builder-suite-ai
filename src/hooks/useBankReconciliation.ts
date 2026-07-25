@@ -1283,6 +1283,7 @@ export const useBankReconciliation = () => {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['bank-reconciliations'] });
+      queryClient.invalidateQueries({ queryKey: ['latest-bank-reconciliations'] });
       toast({
         title: "Reconciliation updated",
         description: "Your changes have been saved.",
