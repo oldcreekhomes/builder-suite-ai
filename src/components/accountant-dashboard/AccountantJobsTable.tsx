@@ -462,10 +462,11 @@ export function AccountantJobsTable() {
                         </PopoverContent>
                       </Popover>
                     ) : (
-                      <BuilderSuiteClosedBooksCell
-                        projectId={project.id}
-                        currentDate={closedPeriods[project.id]?.period_end_date}
-                      />
+                      <span onClick={(e) => e.stopPropagation()}>
+                        {closedPeriods[project.id]?.period_end_date
+                          ? format(parseISO(closedPeriods[project.id].period_end_date), "MMM d, yyyy")
+                          : <span className="text-muted-foreground">-</span>}
+                      </span>
                     )}
                   </TableCell>
                   <TableCell className="whitespace-nowrap">
