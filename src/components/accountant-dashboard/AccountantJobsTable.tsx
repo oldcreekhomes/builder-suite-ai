@@ -47,7 +47,7 @@ export function AccountantJobsTable() {
   const [sortColumn, setSortColumn] = useState<'address' | 'manager'>('manager');
   const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('asc');
   const [isReorderEnabled, setIsReorderEnabled] = useState(false);
-  const [showQuickBooks, setShowQuickBooks] = useState(true);
+  const [showQuickBooks, setShowQuickBooks] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const [draggedProjectId, setDraggedProjectId] = useState<string | null>(null);
   const [dropTargetId, setDropTargetId] = useState<string | null>(null);
