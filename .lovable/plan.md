@@ -1,21 +1,59 @@
-## Diagnosis
 
-The StraightTalk expense line I re-inserted earlier has `unit_cost = 0` and `amount = 15.00` in the database. The Edit Bill dialog loads Expense rows the same way it loads Job Cost rows — it reads `line.unit_cost` into the row's `amount` field (line 249 in `EditBillDialog.tsx`). Because `unit_cost = 0`, the dialog shows Unit Cost = 0 and Total = $0.00, even though the bills list correctly shows $15.00 (which comes from `bills.total_amount`).
+## Problem
 
-So the Expense tab UI is already built the same way as Job Cost — the bug is bad data on this single line, plus no safety net for lines where `unit_cost` is missing.
+On 115 E. Oceanwatch, the Balance Sheet as of 2/28/2026 shows Atlantic Union Bank at **$36,673.78**, but the bank statement ends at **$36,933.39** — a **$259.61** shortfall in our system.
+
+The 1/31/2026 balance ($101,788.21) matches the statement's beginning balance exactly, so the entire discrepancy sits inside February.
+
+## What I already found
+
+- Feb 26, 2026 — JE `d72ad86e-a901-4fa8-8e5b-e6fdd9a5f756` "Credit applied - Ref: 2005904779-001" **debits the Atlantic Union Bank account $500.52** and credits account `f156…`. Per our vendor-credit rule, applying a vendor credit to a bill must **not** touch the cash/bank account — it should only shift AP and the credit-clearing account. This JE is almost certainly a code-path bug when a bill payment is fully or partially satisfied by a vendor credit.
+
+That JE alone does not equal $259.61, so a second entry (or a missing deposit) is contributing. Investigation continues in step 1 below before any fix is applied.
 
 ## Plan
 
-1. **Fix the StraightTalk line data** via a one-off SQL update: set `unit_cost = 15.00`, `quantity = 1` on bill line `4036119b-6d4f-4544-b1f4-e3ce5605b054`. Amount stays 15.00. After this the Edit Bill dialog will display: Qty 1, Unit Cost 15.00, Total $15.00, Description "Phone".
+### Step 1 — Confirm the exact cause (no code changes)
 
-2. **Add a loader fallback in `src/components/bills/EditBillDialog.tsx`** so any legacy line where `unit_cost = 0` but `amount > 0` still displays correctly. In the `.map(...)` for both Job Cost and Expense rows, compute:
-   - `unit_cost_display = line.unit_cost && line.unit_cost !== 0 ? line.unit_cost : (line.quantity ? line.amount / line.quantity : line.amount)`
-   
-   This is display-only — on save the existing logic recomputes `amount = qty * unit_cost` normally.
+1. Pull every 2/1–2/28/2026 line on the Atlantic Union Bank account for this project and diff it line-by-line against the bank statement transactions (117.33 deposit, 47 withdrawals, $15 service charge).
+2. Identify:
+   - Any entries in our system that are **not** on the statement (extra debits/credits like the $500.52 above).
+   - Any statement transactions **missing** from our system (the "credit not counted for" the user referenced).
+3. Confirm whether the $259.61 delta = (credit-applied JE incorrectly touching bank) minus (a missing deposit / credit), or two independent issues.
 
-3. **No changes** to the Expense tab columns/layout — they already mirror Job Cost (Account, Description, Quantity, Unit Cost, Total, Actions).
+### Step 2 — One-time data correction for this project
 
-### Technical details
+Depending on what step 1 shows, use the `insert` tool to correct only the offending JEs on this project:
 
-- File: `src/components/bills/EditBillDialog.tsx`, the two `.map(...)` blocks around lines 214–251.
-- SQL: single `UPDATE bill_lines SET unit_cost = 15.00, quantity = 1 WHERE id = '4036119b-6d4f-4544-b1f4-e3ce5605b054'` (no migration needed — data fix only, via `supabase--insert`-style write).
+- If the $500.52 "Credit applied" JE was wrongly written to bank: reverse just the two lines of that JE and re-post it against the correct credit-clearing account (not bank).
+- If a real bank deposit/credit is missing from our books: add the missing deposit for the exact amount and date shown on the statement.
+
+Every change scoped to `project_id = f13eae11-ab55-4034-b70c-734fc3afe340` and the Atlantic Union Bank account. No blanket updates.
+
+### Step 3 — Prevent recurrence in code
+
+Find the bill-payment code path that generated the "Credit applied" JE with a bank debit line, and stop it from ever writing to the bank account when the payment source is a vendor credit. Likely candidates (to be confirmed by read):
+
+- `src/hooks/useBillPayments.ts`
+- `src/hooks/useBills.ts` (payMultipleBills / applyCredit paths)
+- Any edge function that posts bill-payment JEs
+
+The guard: when a bill-payment allocation's source is a vendor credit (not cash), the JE must debit AP and credit the credit-clearing account only — never the bank account.
+
+### Step 4 — Verify
+
+- Re-run the same balance query for 2/28/2026 and confirm it equals $36,933.39.
+- Reload the Balance Sheet in the app for the same As-Of date and confirm the number matches.
+- Spot-check that no other project's Atlantic Union Bank balance moved unexpectedly.
+
+## Technical details
+
+- Bank account IDs for code `1010`: `27ed0c3a-be95-4367-aa21-1a2b51ea1585` (Atlantic Union) and `9503f76b-fc90-4e47-a53b-4cdfc7a10e73`.
+- Balance formula used and verified: `SUM(debit - credit)` on `journal_entry_lines` joined to `journal_entries` with `reversed_at IS NULL AND is_reversal = false`, filtered by `project_id` and `entry_date <= as_of`.
+- No changes to the Balance Sheet report code — the report is reading correctly; the underlying JE data is wrong.
+
+## What I will NOT touch
+
+- Balance Sheet / reports code (already reconciled per prior work).
+- Any other project's data.
+- The reconciliation UI or bank statement upload flow.
