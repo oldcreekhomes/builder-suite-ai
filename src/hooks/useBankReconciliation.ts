@@ -1256,6 +1256,7 @@ export const useBankReconciliation = () => {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['bank-reconciliations'] });
+      queryClient.invalidateQueries({ queryKey: ['latest-bank-reconciliations'] });
       toast({
         title: "Reconciliation saved",
         description: "Your reconciliation progress has been saved.",
@@ -1282,6 +1283,7 @@ export const useBankReconciliation = () => {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['bank-reconciliations'] });
+      queryClient.invalidateQueries({ queryKey: ['latest-bank-reconciliations'] });
       toast({
         title: "Reconciliation updated",
         description: "Your changes have been saved.",
@@ -1837,6 +1839,7 @@ export const useBankReconciliation = () => {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['bank-reconciliations'] });
+      queryClient.invalidateQueries({ queryKey: ['latest-bank-reconciliations'] });
       queryClient.invalidateQueries({ queryKey: ['reconciliation-transactions'] });
       toast({
         title: "Reconciliation Undone",
@@ -1872,6 +1875,7 @@ export const useBankReconciliation = () => {
     },
     onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ['bank-reconciliations'] });
+      queryClient.invalidateQueries({ queryKey: ['latest-bank-reconciliations'] });
       queryClient.invalidateQueries({ queryKey: ['reconciliation-transactions'] });
       queryClient.invalidateQueries({ queryKey: ['in-progress-reconciliation'] });
       toast({
