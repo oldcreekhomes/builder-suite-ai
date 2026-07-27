@@ -1,28 +1,14 @@
-## Goal
-On the **Builder Suite** tab of the Accountant Dashboard only, make the "Last Reconciliation" and "Closed Books" columns fully read-only. Values change only when the user performs a real reconciliation or closes books from their proper tabs, and the dashboard updates automatically when those actions happen.
+## What's happening
 
-QuickBooks tab is untouched — its date pickers remain as they are today.
+Kyleen was removed on a scheduled basis: her user row still has `access_revoked = false` with `pending_removal_at = Jul 27, 2026 12:06 UTC` (verified in the database). Danny, who is fully revoked, is already hidden from chat because `useCompanyUsers` filters `access_revoked = false`. Kyleen isn't filtered because her removal hasn't been processed by the nightly job yet, so she still appears in the Messages sidebar and other team lists.
 
-## Changes
+## Fix
 
-**`src/components/accountant-dashboard/AccountantJobsTable.tsx`** — Builder Suite branch only
+In `src/hooks/useCompanyUsers.ts` (the single source for the chat sidebar, floating chat windows, notification matrices, project dialogs and issue assignment), add `.is('pending_removal_at', null)` alongside the existing `confirmed` / `access_revoked` filters in both the owner branch and the internal-user branch.
 
-Closed Books cell (Builder Suite):
-- Replace `BuilderSuiteClosedBooksCell` (Popover + Calendar + `closePeriod`) with plain text: formatted `closedPeriods[project.id]?.period_end_date`, or `-`.
-- Remove the `BuilderSuiteClosedBooksCell` function.
+Effect: anyone marked for removal disappears immediately from chat lists and team pickers, while their login access still ends on the scheduled date (that behavior is unchanged). If the owner clicks "Undo Removal", `pending_removal_at` is cleared and the user reappears automatically.
 
-Last Reconciliation cell (Builder Suite):
-- Replace the current cell with plain text: formatted latest reconciliation date from `latestReconciliations[project.id]`, or `-`.
-- If the Builder Suite branch currently uses a Popover/Calendar here, remove it along with any `updateReconciliationDate` call inside the Builder Suite branch.
+## Notes
 
-Cleanup:
-- Only remove imports (`Popover`, `Calendar`, `useAccountingPeriods`, etc.) if they are no longer referenced anywhere in the file — the QuickBooks branch still uses date pickers, so most imports likely stay.
-- Do not touch `handleDateSelect`, the `field` union, or any QuickBooks-tab logic.
-
-## Auto-update on real actions
-- Closing books already invalidates `['latest-closed-periods']` → Builder Suite Closed Books column refreshes automatically. No change needed.
-- For Last Reconciliation: confirm the reconciliation-completion mutation invalidates the query key used by `useLatestBankReconciliationsByProject`. If it doesn't, add that invalidation so a new reconciliation shows up on the dashboard immediately.
-
-## Out of scope
-- QuickBooks tab — no changes.
-- Invoices Approved and Invoices Paid columns — remain editable on both tabs.
+- No database change and no change to the removal/revocation workflow itself.
+- Settings > Employees still shows her with the "Access ends Jul 27, 2026" badge so the owner can undo the removal — that table uses its own query and isn't affected.
