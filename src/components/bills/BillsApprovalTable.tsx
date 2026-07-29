@@ -1337,12 +1337,13 @@ export function BillsApprovalTable({ status, projectId, projectIds, showProjectC
                       billInfo: bill,
                       notes: '',
                     }),
-                    hidden: bill.status !== 'void',
+                    hidden: bill.status !== 'void' || !canEditBills,
                     disabled: bill.reconciled,
                   },
                   {
                     label: "Edit",
                     onClick: () => setEditingBillId(bill.id),
+                    hidden: !canEditBills,
                     disabled: bill.reconciled,
                   },
                   {
@@ -1353,6 +1354,7 @@ export function BillsApprovalTable({ status, projectId, projectIds, showProjectC
                     confirmTitle: "Delete Bill",
                     confirmDescription: `Are you sure you want to delete this bill from ${bill.companies?.company_name} for ${formatCurrency(bill.total_amount)}? This will also delete all associated journal entries and attachments.`,
                     isLoading: deleteBill.isPending,
+                    hidden: !canDeleteBills,
                     disabled: bill.reconciled,
                   },
                 ]}
