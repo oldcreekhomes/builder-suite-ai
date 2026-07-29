@@ -1,14 +1,27 @@
-## What's happening
+## Goal
+Move every cost at 214 N Granada off **Lot 2** and onto **Lot 1**, merging split lines so each bill shows one line per cost code at its full amount. Lot totals stay identical to the bill totals — nothing changes financially.
 
-Kyleen was removed on a scheduled basis: her user row still has `access_revoked = false` with `pending_removal_at = Jul 27, 2026 12:06 UTC` (verified in the database). Danny, who is fully revoked, is already hidden from chat because `useCompanyUsers` filters `access_revoked = false`. Kyleen isn't filtered because her removal hasn't been processed by the nightly job yet, so she still appears in the Messages sidebar and other team lists.
+Example: a $200 bill split $100 / $100 across Lot 1 and Lot 2 becomes a single $200 line on Lot 1.
 
-## Fix
+## What's on Lot 2 today (verified)
+| Table | Lot 2 rows | Lot 1 rows | No lot |
+|---|---|---|---|
+| bill_lines | 25 ($21,716.15) | 35 ($41,609.64) | 8 ($6,135.92) |
+| journal_entry_lines | 27 | 36 | 130 |
+| deposit_lines | 3 | 3 | 8 |
+| check_lines | 1 | 1 | 2 |
+| project_budgets | 0 | 89 | 0 |
+| bills / purchase orders | 0 | 0 | all |
 
-In `src/hooks/useCompanyUsers.ts` (the single source for the chat sidebar, floating chat windows, notification matrices, project dialogs and issue assignment), add `.is('pending_removal_at', null)` alongside the existing `confirmed` / `access_revoked` filters in both the owner branch and the internal-user branch.
+Budgets are already fully on Lot 1. Lines with no lot (like the single-lot Anchor Loans entries you pointed at) are untouched.
 
-Effect: anyone marked for removal disappears immediately from chat lists and team pickers, while their login access still ends on the scheduled date (that behavior is unchanged). If the owner clicks "Undo Removal", `pending_removal_at` is cleared and the user reappears automatically.
+## Plan (data only, no code changes)
+
+1. **Merge split bill lines.** For each bill where the same cost code appears on both Lot 1 and Lot 2, the Lot 1 line absorbs the Lot 2 amount (amounts and quantities summed, unit cost recalculated cent-precise from the new total), then the Lot 2 line is deleted. Lot 2 lines with no Lot 1 counterpart are simply retagged to Lot 1.
+2. **Retag the other transaction lines.** Set Lot 1 on the remaining Lot 2 rows in `journal_entry_lines`, `deposit_lines`, and `check_lines`. These are not merged — journal entries must stay one-to-one with their source rows so the GL stays balanced.
+3. **Verify.** Confirm zero rows anywhere still reference Lot 2, and confirm every affected bill's line total still equals its header amount to the cent.
+4. **Report back** with before/after totals so you can then delete Lot 2 yourself from Edit Project.
 
 ## Notes
-
-- No database change and no change to the removal/revocation workflow itself.
-- Settings > Employees still shows her with the "Access ends Jul 27, 2026" badge so the owner can undo the removal — that table uses its own query and isn't affected.
+- Bill totals, payments, journal entries, and the Balance Sheet are unaffected.
+- I will not delete Lot 2 — that stays your call after review.
