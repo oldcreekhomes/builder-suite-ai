@@ -1,27 +1,21 @@
-## Goal
-On the Paid tab for 214 N Granada, 8 bills show a blank Address because their bill lines have no lot assigned. Assign all of them to Lot 1.
+## Why Lot 2 won't delete
 
-## Confirmed current state
-Project `214 N Granada` has Lot 1 (`bc4bf662…`) and Lot 2 (`5d2f8419…`). These paid bills have exactly one line each with no lot:
+Verified in the database:
 
-| Vendor ref | Bill date | Amount |
-|---|---|---|
-| 11192025 (Old Creek) | 11/19/25 | $100.00 |
-| 12092025 (Old Creek) | 12/09/25 | $1,219.00 |
-| L2083743104 (Arlington County) | 05/11/26 | $4,678.74 |
-| 370 (ELG Consulting) | 06/01/26 | $85.00 |
-| 7772037697 (Cava) | 06/02/26 | $13.04 |
-| 111-0174241-2553051 (Amazon) | 06/09/26 | $15.24 |
-| 113-7554022-6966655 (Amazon) | 06/09/26 | $12.04 |
-| 111-6199372-8583440 (Amazon) | 06/10/26 | $12.86 |
+- Lot 2 (`5d2f8419…`) still exists on 214 N Granada.
+- All the visible cost tables are clean — 0 rows on Lot 2 in bills, bill lines, journal entry lines, check lines, deposit lines, credit card lines, budgets, and purchase orders.
+- **12 rows in `pending_bill_lines` (the ML bill-upload staging table) still point to Lot 2**, across 7 already-approved uploads (RC Fields invoices, ELG Consulting, 260730 Granada).
 
-All other paid bills already have Lot 1. Review / Rejected / Approved bills are untouched.
+That table's foreign key to `project_lots` is `NO ACTION`, so Postgres refuses the delete. The app catches the error and shows only a generic "Failed to delete lot" toast, which is why it looks like nothing happens.
 
-## Change
-Data-only update — no code changes.
+## Fix
 
-1. Set `bill_lines.lot_id = Lot 1` for lines with `lot_id IS NULL` belonging to bills in this project with status `paid`.
-2. Mirror the same lot on the corresponding `journal_entry_lines` rows (source_type `bill`) for those bills, so job-cost/lot reporting stays consistent.
-3. Verify: re-query the paid bills and confirm zero lines without a lot, and that each bill's line total still equals its header amount.
+1. **Data cleanup:** repoint those 12 `pending_bill_lines` rows from Lot 2 to Lot 1 (`bc4bf662…`), matching what we already did for the real bill lines.
+2. **Delete Lot 2** from `project_lots` and verify zero references remain anywhere.
+3. **Make failures visible (code):** in `src/hooks/useLots.ts`, have `deleteLot` show the actual database error text in the toast instead of a generic message, and detect the foreign-key violation case (`23503`) to say plainly that the lot still has costs/records attached and cannot be deleted.
 
-No bills in other statuses and no other projects are affected.
+## Technical details
+
+- Tables checked against Lot 2: `bills`, `bill_lines`, `project_budgets` (both `lot_id` and `historical_lot_id`), `project_purchase_orders`, `journal_entry_lines`, `check_lines`, `credit_card_lines`, `deposit_lines`, `pending_bill_lines`, `recurring_transaction_lines`. Only `pending_bill_lines` had rows.
+- RLS on `project_lots` allows the delete for owners/confirmed employees, so permissions are not the blocker.
+- No schema/foreign-key changes proposed — leaving the FK as `NO ACTION` keeps it impossible to orphan cost records by deleting a lot.
