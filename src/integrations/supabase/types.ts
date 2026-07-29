@@ -6199,6 +6199,7 @@ export type Database = {
           can_close_books: boolean
           can_delete_bills: boolean
           can_delete_price_history: boolean
+          can_edit_bills: boolean
           can_edit_projects: boolean
           can_edit_templates: boolean
           can_lock_budgets: boolean | null
@@ -6230,6 +6231,7 @@ export type Database = {
           can_close_books?: boolean
           can_delete_bills?: boolean
           can_delete_price_history?: boolean
+          can_edit_bills?: boolean
           can_edit_projects?: boolean
           can_edit_templates?: boolean
           can_lock_budgets?: boolean | null
@@ -6261,6 +6263,7 @@ export type Database = {
           can_close_books?: boolean
           can_delete_bills?: boolean
           can_delete_price_history?: boolean
+          can_edit_bills?: boolean
           can_edit_projects?: boolean
           can_edit_templates?: boolean
           can_lock_budgets?: boolean | null
