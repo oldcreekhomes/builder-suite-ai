@@ -560,7 +560,7 @@ export function WriteChecksContent({ projectId, recurringTemplate, onClearTempla
     setCheckNumber(check.check_number || "");
     
     // Set bank account display value and ID
-    const bankAcct = accounts.find(a => a.id === check.bank_account_id);
+    const bankAcct = allAccounts.find(a => a.id === check.bank_account_id);
     setBankAccount(bankAcct ? labelForAccount(bankAcct) : "");
     setBankAccountId(check.bank_account_id || "");
     
@@ -583,7 +583,7 @@ export function WriteChecksContent({ projectId, recurringTemplate, onClearTempla
         displayAccount = costCode ? `${costCode.code} - ${costCode.name}` : "";
       } else {
         // Look up account and format as "code - name"
-        const account = accounts.find(a => a.id === line.account_id);
+        const account = allAccounts.find(a => a.id === line.account_id);
         displayAccount = account ? `${account.code} - ${account.name}` : "";
       }
       
@@ -1251,7 +1251,7 @@ export function WriteChecksContent({ projectId, recurringTemplate, onClearTempla
                   onChange={(value) => {
                     if (!isTransactionLocked) {
                       setBankAccount(value);
-                      const account = accounts.find(a => labelForAccount(a) === value || `${a.code} - ${a.name}` === value);
+                      const account = allAccounts.find(a => labelForAccount(a) === value || `${a.code} - ${a.name}` === value);
                       if (account) setBankAccountId(account.id);
                     }
                   }}
