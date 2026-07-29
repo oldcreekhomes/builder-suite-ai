@@ -124,7 +124,7 @@ export function BillsApprovalTable({ status, projectId, projectIds, showProjectC
   const showAddressColumn = lots.length > 1;
   const { approveBill, rejectBill, rejectApprovedBill, deleteBill, payBill, payMultipleBills, resendBillToReview } = useBills();
   const { isOwner } = useUserRole();
-  const { canDeleteBills } = useAccountingPermissions();
+  const { canDeleteBills, canEditBills } = useAccountingPermissions();
   const { isDateLocked, latestClosedDate } = useClosedPeriodCheck(projectId);
   const queryClient = useQueryClient();
   const [sortColumn, setSortColumn] = useState<'project' | 'due_date' | 'vendor' | 'bill_date' | null>(
@@ -884,8 +884,8 @@ export function BillsApprovalTable({ status, projectId, projectIds, showProjectC
     (Array.isArray(status) && (status.includes('paid') || status.includes('posted')));
   
   const canShowDeleteButton = 
-    // Delete access is solely controlled by the can_delete_bills preference toggle
-    (canDeleteBills && (
+    // Actions menu shows when the user can delete OR edit bills
+    ((canDeleteBills || canEditBills) && (
       status === 'void' ||
       status === 'posted' ||
       status === 'paid' ||
@@ -1337,12 +1337,13 @@ export function BillsApprovalTable({ status, projectId, projectIds, showProjectC
                       billInfo: bill,
                       notes: '',
                     }),
-                    hidden: bill.status !== 'void',
+                    hidden: bill.status !== 'void' || !canEditBills,
                     disabled: bill.reconciled,
                   },
                   {
                     label: "Edit",
                     onClick: () => setEditingBillId(bill.id),
+                    hidden: !canEditBills,
                     disabled: bill.reconciled,
                   },
                   {
@@ -1353,6 +1354,7 @@ export function BillsApprovalTable({ status, projectId, projectIds, showProjectC
                     confirmTitle: "Delete Bill",
                     confirmDescription: `Are you sure you want to delete this bill from ${bill.companies?.company_name} for ${formatCurrency(bill.total_amount)}? This will also delete all associated journal entries and attachments.`,
                     isLoading: deleteBill.isPending,
+                    hidden: !canDeleteBills,
                     disabled: bill.reconciled,
                   },
                 ]}
@@ -1364,6 +1366,7 @@ export function BillsApprovalTable({ status, projectId, projectIds, showProjectC
                   {
                     label: "Edit",
                     onClick: () => setEditingBillId(bill.id),
+                    hidden: !canEditBills,
                     disabled: bill.reconciled,
                   },
                   {
@@ -1376,7 +1379,7 @@ export function BillsApprovalTable({ status, projectId, projectIds, showProjectC
                       notes: '',
                     }),
                     variant: "destructive",
-                    hidden: bill.status !== 'posted',
+                    hidden: bill.status !== 'posted' || !canEditBills,
                     disabled: bill.reconciled || (bill as any).amount_paid > 0 || rejectApprovedBill.isPending,
                   },
                   {
@@ -1387,6 +1390,7 @@ export function BillsApprovalTable({ status, projectId, projectIds, showProjectC
                     confirmTitle: "Delete Bill",
                     confirmDescription: `Are you sure you want to delete this bill from ${bill.companies?.company_name} for ${formatCurrency(bill.total_amount)}? This will also delete all associated journal entries and attachments.`,
                     isLoading: deleteBill.isPending,
+                    hidden: !canDeleteBills,
                     disabled: bill.reconciled,
                   },
                 ]}

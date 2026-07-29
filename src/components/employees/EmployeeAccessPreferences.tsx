@@ -126,6 +126,24 @@ export function EmployeeAccessPreferences({ employeeId }: EmployeeAccessPreferen
 
           <div className="flex items-center justify-between gap-4">
             <div className="space-y-0.5 flex-1">
+              <Label htmlFor="can-edit-bills" className="text-sm font-normal cursor-pointer">
+                Edit Invoices
+              </Label>
+              <p className="text-xs text-muted-foreground">
+                Ability to edit invoices on the Rejected, Approved, and Paid tabs, including resending rejected invoices back to review
+              </p>
+            </div>
+            <Switch
+              id="can-edit-bills"
+              checked={(preferences as any).can_edit_bills}
+              onCheckedChange={(checked) =>
+                updatePreferences({ can_edit_bills: checked } as any)
+              }
+            />
+          </div>
+
+          <div className="flex items-center justify-between gap-4">
+            <div className="space-y-0.5 flex-1">
               <Label htmlFor="can-delete-bills" className="text-sm font-normal cursor-pointer">
                 Delete Invoices
               </Label>
