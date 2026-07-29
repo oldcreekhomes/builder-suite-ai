@@ -326,10 +326,19 @@ export function WriteChecksContent({ projectId, recurringTemplate, onClearTempla
   };
 
   const updateExpenseRow = (id: string, field: keyof CheckRow, value: string) => {
-    setExpenseRows(expenseRows.map(row =>
+    setExpenseRows(prev => prev.map(row =>
       row.id === id ? { ...row, [field]: value } : row
     ));
     if (field === 'accountId' && value) {
+      setRowErrors(prev => ({ ...prev, [id]: false }));
+    }
+  };
+
+  const updateExpenseRowFields = (id: string, fields: Partial<CheckRow>) => {
+    setExpenseRows(prev => prev.map(row =>
+      row.id === id ? { ...row, ...fields } : row
+    ));
+    if (fields.accountId) {
       setRowErrors(prev => ({ ...prev, [id]: false }));
     }
   };
