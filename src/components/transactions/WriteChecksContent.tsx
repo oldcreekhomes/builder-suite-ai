@@ -1,4 +1,5 @@
 import { useState, useEffect, useMemo, useRef, useCallback } from "react";
+import { useQuery } from "@tanstack/react-query";
 import { useNavigate } from "react-router-dom";
 import { useUnsavedChangesContext } from "@/contexts/UnsavedChangesContext";
 import { supabase } from "@/integrations/supabase/client";
