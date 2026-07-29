@@ -109,9 +109,16 @@ export function useLots(projectId: string | undefined) {
       queryClient.invalidateQueries({ queryKey: ['project-lots', projectId] });
       toast({ title: "Lot deleted successfully" });
     },
-    onError: (error) => {
+    onError: (error: any) => {
       console.error('Error deleting lot:', error);
-      toast({ title: "Failed to delete lot", variant: "destructive" });
+      const isFkViolation = error?.code === '23503';
+      toast({
+        title: isFkViolation ? "Lot still has records attached" : "Failed to delete lot",
+        description: isFkViolation
+          ? "This lot is still referenced by bills, costs, or staged uploads. Move those to another lot first."
+          : error?.message || undefined,
+        variant: "destructive",
+      });
     },
   });
 
