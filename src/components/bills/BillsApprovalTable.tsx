@@ -124,7 +124,7 @@ export function BillsApprovalTable({ status, projectId, projectIds, showProjectC
   const showAddressColumn = lots.length > 1;
   const { approveBill, rejectBill, rejectApprovedBill, deleteBill, payBill, payMultipleBills, resendBillToReview } = useBills();
   const { isOwner } = useUserRole();
-  const { canDeleteBills } = useAccountingPermissions();
+  const { canDeleteBills, canEditBills } = useAccountingPermissions();
   const { isDateLocked, latestClosedDate } = useClosedPeriodCheck(projectId);
   const queryClient = useQueryClient();
   const [sortColumn, setSortColumn] = useState<'project' | 'due_date' | 'vendor' | 'bill_date' | null>(
