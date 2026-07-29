@@ -140,6 +140,28 @@ export function WriteChecksContent({ projectId, recurringTemplate, onClearTempla
 
   const { data: project } = useProject(projectId || "");
   const { accounts } = useAccounts();
+
+  // Project-specific accounts (accounts.project_id = current project). useAccounts()
+  // only returns global accounts, so without this a project-scoped account can't be
+  // resolved from its text at save time.
+  const { data: projectScopedAccounts } = useQuery({
+    queryKey: ['project-scoped-accounts', projectId],
+    enabled: !!projectId,
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('accounts')
+        .select('id, code, name, type, parent_id, subtype, project_id, is_active')
+        .eq('is_active', true)
+        .eq('project_id', projectId!);
+      if (error) throw error;
+      return data ?? [];
+    },
+  });
+
+  const allAccounts = useMemo(
+    () => ([...(accounts as any[]), ...((projectScopedAccounts as any[]) ?? [])]),
+    [accounts, projectScopedAccounts]
+  );
   const defaultBankAccountId = useProjectDefaultBankAccountId(projectId);
   const { data: accountNameOverrides } = useProjectAccountNames(projectId);
   const labelForAccount = (acct: { id: string; code: string; name: string }) =>
