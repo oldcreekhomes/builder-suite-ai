@@ -286,10 +286,21 @@ export function WriteChecksContent({ projectId, recurringTemplate, onClearTempla
   };
 
   const updateJobCostRow = (id: string, field: keyof CheckRow, value: string) => {
-    setJobCostRows(jobCostRows.map(row =>
+    setJobCostRows(prev => prev.map(row =>
       row.id === id ? { ...row, [field]: value } : row
     ));
     if (field === 'accountId' && value) {
+      setRowErrors(prev => ({ ...prev, [id]: false }));
+    }
+  };
+
+  // Apply several fields in a SINGLE state update so a selection (id + label)
+  // can't be clobbered by a second setState reading stale state.
+  const updateJobCostRowFields = (id: string, fields: Partial<CheckRow>) => {
+    setJobCostRows(prev => prev.map(row =>
+      row.id === id ? { ...row, ...fields } : row
+    ));
+    if (fields.accountId) {
       setRowErrors(prev => ({ ...prev, [id]: false }));
     }
   };
