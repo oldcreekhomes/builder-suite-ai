@@ -1312,8 +1312,10 @@ export function WriteChecksContent({ projectId, recurringTemplate, onClearTempla
                           value={row.account}
                           onChange={(value) => updateExpenseRow(row.id, "account", value)}
                           onAccountSelect={(account) => {
-                            updateExpenseRow(row.id, "accountId", account.id);
-                            updateExpenseRow(row.id, "account", `${account.code} - ${account.name}`);
+                            updateExpenseRowFields(row.id, {
+                              accountId: account.id,
+                              account: `${account.code} - ${account.name}`,
+                            });
                           }}
                           placeholder="Select account..."
                           projectId={projectId}
