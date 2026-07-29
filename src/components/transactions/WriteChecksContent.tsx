@@ -477,11 +477,11 @@ export function WriteChecksContent({ projectId, recurringTemplate, onClearTempla
     if (!text) return undefined;
     const leading = extractLeadingCode(text);
     if (leading) {
-      const exact = (accounts as any[]).find(acc => String(acc.code || "").toLowerCase() === leading.toLowerCase());
+      const exact = allAccounts.find(acc => String(acc.code || "").toLowerCase() === leading.toLowerCase());
       if (exact) return String(exact.id);
     }
     const q = normalize(text);
-    const matches = (accounts as any[]).filter(acc =>
+    const matches = allAccounts.filter(acc =>
       String(acc.code || "").toLowerCase().includes(q) || String(acc.name || "").toLowerCase().includes(q)
     );
     return matches.length === 1 ? String(matches[0].id) : undefined;
@@ -493,7 +493,7 @@ export function WriteChecksContent({ projectId, recurringTemplate, onClearTempla
   // or picked a new bank but the hidden id state lagged, resolve from text.
   const resolveBankAccountIdForSave = (): string => {
     if (!bankAccount) return bankAccountId;
-    const exact = (accounts as any[]).find(
+    const exact = allAccounts.find(
       (a) => `${a.code} - ${a.name}`.toLowerCase() === bankAccount.trim().toLowerCase()
     );
     if (exact) return String(exact.id);
