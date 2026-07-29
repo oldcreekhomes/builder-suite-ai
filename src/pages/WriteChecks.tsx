@@ -83,6 +83,28 @@ export default function WriteChecks() {
 
   const { data: project } = useProject(projectId || "");
   const { accounts } = useAccounts();
+
+  // Project-specific accounts (accounts.project_id = current project). useAccounts()
+  // only returns global accounts, so project-scoped accounts must be merged in for
+  // save-time text resolution.
+  const { data: projectScopedAccounts } = useQuery({
+    queryKey: ['project-scoped-accounts', projectId],
+    enabled: !!projectId,
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('accounts')
+        .select('id, code, name, type, parent_id, subtype, project_id, is_active')
+        .eq('is_active', true)
+        .eq('project_id', projectId!);
+      if (error) throw error;
+      return data ?? [];
+    },
+  });
+
+  const allAccounts = useMemo(
+    () => ([...(accounts as any[]), ...((projectScopedAccounts as any[]) ?? [])]),
+    [accounts, projectScopedAccounts]
+  );
   const { projects } = useProjectSearch();
   const { createCheck, updateCheck } = useChecks();
   const { costCodes } = useCostCodeSearch();
@@ -155,11 +177,22 @@ export default function WriteChecks() {
   };
 
   const updateJobCostRow = (id: string, field: keyof CheckRow, value: string) => {
-    setJobCostRows(jobCostRows.map(row => 
+    setJobCostRows(prev => prev.map(row => 
       row.id === id ? { ...row, [field]: value } : row
     ));
     // Clear error when user selects an account
     if (field === 'accountId' && value) {
+      setRowErrors(prev => ({ ...prev, [id]: false }));
+    }
+  };
+
+  // Apply several fields in a SINGLE state update so a selection (id + label)
+  // can't be clobbered by a second setState reading stale state.
+  const updateJobCostRowFields = (id: string, fields: Partial<CheckRow>) => {
+    setJobCostRows(prev => prev.map(row =>
+      row.id === id ? { ...row, ...fields } : row
+    ));
+    if (fields.accountId) {
       setRowErrors(prev => ({ ...prev, [id]: false }));
     }
   };
@@ -184,11 +217,20 @@ export default function WriteChecks() {
   };
 
   const updateExpenseRow = (id: string, field: keyof CheckRow, value: string) => {
-    setExpenseRows(expenseRows.map(row => 
+    setExpenseRows(prev => prev.map(row => 
       row.id === id ? { ...row, [field]: value } : row
     ));
     // Clear error when user selects an account
     if (field === 'accountId' && value) {
+      setRowErrors(prev => ({ ...prev, [id]: false }));
+    }
+  };
+
+  const updateExpenseRowFields = (id: string, fields: Partial<CheckRow>) => {
+    setExpenseRows(prev => prev.map(row =>
+      row.id === id ? { ...row, ...fields } : row
+    ));
+    if (fields.accountId) {
       setRowErrors(prev => ({ ...prev, [id]: false }));
     }
   };
@@ -348,11 +390,11 @@ export default function WriteChecks() {
     if (!text) return undefined;
     const leading = extractLeadingCode(text);
     if (leading) {
-      const exact = (accounts as any[]).find(acc => String(acc.code || "").toLowerCase() === leading.toLowerCase());
+      const exact = allAccounts.find(acc => String(acc.code || "").toLowerCase() === leading.toLowerCase());
       if (exact) return String(exact.id);
     }
     const q = normalize(text);
-    const matches = (accounts as any[]).filter(acc =>
+    const matches = allAccounts.filter(acc =>
       String(acc.code || "").toLowerCase().includes(q) || String(acc.name || "").toLowerCase().includes(q)
     );
     return matches.length === 1 ? String(matches[0].id) : undefined;
@@ -1035,8 +1077,10 @@ export default function WriteChecks() {
                                 value={row.account}
                                 onChange={(value) => updateExpenseRow(row.id, "account", value)}
                                 onAccountSelect={(account) => {
-                                  updateExpenseRow(row.id, "accountId", account.id);
-                                  updateExpenseRow(row.id, "account", `${account.code} - ${account.name}`);
+                                  updateExpenseRowFields(row.id, {
+                                    accountId: account.id,
+                                    account: `${account.code} - ${account.name}`,
+                                  });
                                 }}
                                 placeholder="Select account..."
                                 accountType="expense"
@@ -1124,8 +1168,10 @@ export default function WriteChecks() {
                                 value={row.account}
                                 onChange={(value) => updateJobCostRow(row.id, "account", value)}
                                 onCostCodeSelect={(costCode) => {
-                                  updateJobCostRow(row.id, "accountId", costCode.id);
-                                  updateJobCostRow(row.id, "account", `${costCode.code} - ${costCode.name}`);
+                                  updateJobCostRowFields(row.id, {
+                                    accountId: costCode.id,
+                                    account: `${costCode.code} - ${costCode.name}`,
+                                  });
                                 }}
                                 placeholder="Select cost code..."
                                 className={cn("h-10", rowErrors[row.id] && "border-red-500 border-2")}

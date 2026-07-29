@@ -1,4 +1,5 @@
 import { useState, useEffect, useMemo, useRef, useCallback } from "react";
+import { useQuery } from "@tanstack/react-query";
 import { useNavigate } from "react-router-dom";
 import { useUnsavedChangesContext } from "@/contexts/UnsavedChangesContext";
 import { supabase } from "@/integrations/supabase/client";
@@ -139,6 +140,28 @@ export function WriteChecksContent({ projectId, recurringTemplate, onClearTempla
 
   const { data: project } = useProject(projectId || "");
   const { accounts } = useAccounts();
+
+  // Project-specific accounts (accounts.project_id = current project). useAccounts()
+  // only returns global accounts, so without this a project-scoped account can't be
+  // resolved from its text at save time.
+  const { data: projectScopedAccounts } = useQuery({
+    queryKey: ['project-scoped-accounts', projectId],
+    enabled: !!projectId,
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('accounts')
+        .select('id, code, name, type, parent_id, subtype, project_id, is_active')
+        .eq('is_active', true)
+        .eq('project_id', projectId!);
+      if (error) throw error;
+      return data ?? [];
+    },
+  });
+
+  const allAccounts = useMemo(
+    () => ([...(accounts as any[]), ...((projectScopedAccounts as any[]) ?? [])]),
+    [accounts, projectScopedAccounts]
+  );
   const defaultBankAccountId = useProjectDefaultBankAccountId(projectId);
   const { data: accountNameOverrides } = useProjectAccountNames(projectId);
   const labelForAccount = (acct: { id: string; code: string; name: string }) =>
@@ -286,10 +309,21 @@ export function WriteChecksContent({ projectId, recurringTemplate, onClearTempla
   };
 
   const updateJobCostRow = (id: string, field: keyof CheckRow, value: string) => {
-    setJobCostRows(jobCostRows.map(row =>
+    setJobCostRows(prev => prev.map(row =>
       row.id === id ? { ...row, [field]: value } : row
     ));
     if (field === 'accountId' && value) {
+      setRowErrors(prev => ({ ...prev, [id]: false }));
+    }
+  };
+
+  // Apply several fields in a SINGLE state update so a selection (id + label)
+  // can't be clobbered by a second setState reading stale state.
+  const updateJobCostRowFields = (id: string, fields: Partial<CheckRow>) => {
+    setJobCostRows(prev => prev.map(row =>
+      row.id === id ? { ...row, ...fields } : row
+    ));
+    if (fields.accountId) {
       setRowErrors(prev => ({ ...prev, [id]: false }));
     }
   };
@@ -315,10 +349,19 @@ export function WriteChecksContent({ projectId, recurringTemplate, onClearTempla
   };
 
   const updateExpenseRow = (id: string, field: keyof CheckRow, value: string) => {
-    setExpenseRows(expenseRows.map(row =>
+    setExpenseRows(prev => prev.map(row =>
       row.id === id ? { ...row, [field]: value } : row
     ));
     if (field === 'accountId' && value) {
+      setRowErrors(prev => ({ ...prev, [id]: false }));
+    }
+  };
+
+  const updateExpenseRowFields = (id: string, fields: Partial<CheckRow>) => {
+    setExpenseRows(prev => prev.map(row =>
+      row.id === id ? { ...row, ...fields } : row
+    ));
+    if (fields.accountId) {
       setRowErrors(prev => ({ ...prev, [id]: false }));
     }
   };
@@ -434,11 +477,11 @@ export function WriteChecksContent({ projectId, recurringTemplate, onClearTempla
     if (!text) return undefined;
     const leading = extractLeadingCode(text);
     if (leading) {
-      const exact = (accounts as any[]).find(acc => String(acc.code || "").toLowerCase() === leading.toLowerCase());
+      const exact = allAccounts.find(acc => String(acc.code || "").toLowerCase() === leading.toLowerCase());
       if (exact) return String(exact.id);
     }
     const q = normalize(text);
-    const matches = (accounts as any[]).filter(acc =>
+    const matches = allAccounts.filter(acc =>
       String(acc.code || "").toLowerCase().includes(q) || String(acc.name || "").toLowerCase().includes(q)
     );
     return matches.length === 1 ? String(matches[0].id) : undefined;
@@ -450,7 +493,7 @@ export function WriteChecksContent({ projectId, recurringTemplate, onClearTempla
   // or picked a new bank but the hidden id state lagged, resolve from text.
   const resolveBankAccountIdForSave = (): string => {
     if (!bankAccount) return bankAccountId;
-    const exact = (accounts as any[]).find(
+    const exact = allAccounts.find(
       (a) => `${a.code} - ${a.name}`.toLowerCase() === bankAccount.trim().toLowerCase()
     );
     if (exact) return String(exact.id);
@@ -517,7 +560,7 @@ export function WriteChecksContent({ projectId, recurringTemplate, onClearTempla
     setCheckNumber(check.check_number || "");
     
     // Set bank account display value and ID
-    const bankAcct = accounts.find(a => a.id === check.bank_account_id);
+    const bankAcct = allAccounts.find(a => a.id === check.bank_account_id);
     setBankAccount(bankAcct ? labelForAccount(bankAcct) : "");
     setBankAccountId(check.bank_account_id || "");
     
@@ -540,7 +583,7 @@ export function WriteChecksContent({ projectId, recurringTemplate, onClearTempla
         displayAccount = costCode ? `${costCode.code} - ${costCode.name}` : "";
       } else {
         // Look up account and format as "code - name"
-        const account = accounts.find(a => a.id === line.account_id);
+        const account = allAccounts.find(a => a.id === line.account_id);
         displayAccount = account ? `${account.code} - ${account.name}` : "";
       }
       
@@ -1208,7 +1251,7 @@ export function WriteChecksContent({ projectId, recurringTemplate, onClearTempla
                   onChange={(value) => {
                     if (!isTransactionLocked) {
                       setBankAccount(value);
-                      const account = accounts.find(a => labelForAccount(a) === value || `${a.code} - ${a.name}` === value);
+                      const account = allAccounts.find(a => labelForAccount(a) === value || `${a.code} - ${a.name}` === value);
                       if (account) setBankAccountId(account.id);
                     }
                   }}
@@ -1292,8 +1335,10 @@ export function WriteChecksContent({ projectId, recurringTemplate, onClearTempla
                           value={row.account}
                           onChange={(value) => updateExpenseRow(row.id, "account", value)}
                           onAccountSelect={(account) => {
-                            updateExpenseRow(row.id, "accountId", account.id);
-                            updateExpenseRow(row.id, "account", `${account.code} - ${account.name}`);
+                            updateExpenseRowFields(row.id, {
+                              accountId: account.id,
+                              account: `${account.code} - ${account.name}`,
+                            });
                           }}
                           placeholder="Select account..."
                           projectId={projectId}
@@ -1420,8 +1465,10 @@ export function WriteChecksContent({ projectId, recurringTemplate, onClearTempla
                           value={row.account}
                           onChange={(value) => updateJobCostRow(row.id, "account", value)}
                           onCostCodeSelect={(costCode) => {
-                            updateJobCostRow(row.id, "accountId", costCode.id);
-                            updateJobCostRow(row.id, "account", `${costCode.code} - ${costCode.name}`);
+                            updateJobCostRowFields(row.id, {
+                              accountId: costCode.id,
+                              account: `${costCode.code} - ${costCode.name}`,
+                            });
                           }}
                           placeholder="Select cost code..."
                           className={cn("h-10", rowErrors[row.id] && "border-red-500 border-2")}
