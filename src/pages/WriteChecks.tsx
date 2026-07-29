@@ -83,6 +83,28 @@ export default function WriteChecks() {
 
   const { data: project } = useProject(projectId || "");
   const { accounts } = useAccounts();
+
+  // Project-specific accounts (accounts.project_id = current project). useAccounts()
+  // only returns global accounts, so project-scoped accounts must be merged in for
+  // save-time text resolution.
+  const { data: projectScopedAccounts } = useQuery({
+    queryKey: ['project-scoped-accounts', projectId],
+    enabled: !!projectId,
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('accounts')
+        .select('id, code, name, type, parent_id, subtype, project_id, is_active')
+        .eq('is_active', true)
+        .eq('project_id', projectId!);
+      if (error) throw error;
+      return data ?? [];
+    },
+  });
+
+  const allAccounts = useMemo(
+    () => ([...(accounts as any[]), ...((projectScopedAccounts as any[]) ?? [])]),
+    [accounts, projectScopedAccounts]
+  );
   const { projects } = useProjectSearch();
   const { createCheck, updateCheck } = useChecks();
   const { costCodes } = useCostCodeSearch();
