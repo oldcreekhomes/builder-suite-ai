@@ -884,8 +884,8 @@ export function BillsApprovalTable({ status, projectId, projectIds, showProjectC
     (Array.isArray(status) && (status.includes('paid') || status.includes('posted')));
   
   const canShowDeleteButton = 
-    // Delete access is solely controlled by the can_delete_bills preference toggle
-    (canDeleteBills && (
+    // Actions menu shows when the user can delete OR edit bills
+    ((canDeleteBills || canEditBills) && (
       status === 'void' ||
       status === 'posted' ||
       status === 'paid' ||
