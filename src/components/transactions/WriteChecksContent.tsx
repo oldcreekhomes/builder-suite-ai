@@ -1442,8 +1442,10 @@ export function WriteChecksContent({ projectId, recurringTemplate, onClearTempla
                           value={row.account}
                           onChange={(value) => updateJobCostRow(row.id, "account", value)}
                           onCostCodeSelect={(costCode) => {
-                            updateJobCostRow(row.id, "accountId", costCode.id);
-                            updateJobCostRow(row.id, "account", `${costCode.code} - ${costCode.name}`);
+                            updateJobCostRowFields(row.id, {
+                              accountId: costCode.id,
+                              account: `${costCode.code} - ${costCode.name}`,
+                            });
                           }}
                           placeholder="Select cost code..."
                           className={cn("h-10", rowErrors[row.id] && "border-red-500 border-2")}
