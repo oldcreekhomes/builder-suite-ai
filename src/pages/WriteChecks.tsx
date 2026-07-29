@@ -195,11 +195,20 @@ export default function WriteChecks() {
   };
 
   const updateExpenseRow = (id: string, field: keyof CheckRow, value: string) => {
-    setExpenseRows(expenseRows.map(row => 
+    setExpenseRows(prev => prev.map(row => 
       row.id === id ? { ...row, [field]: value } : row
     ));
     // Clear error when user selects an account
     if (field === 'accountId' && value) {
+      setRowErrors(prev => ({ ...prev, [id]: false }));
+    }
+  };
+
+  const updateExpenseRowFields = (id: string, fields: Partial<CheckRow>) => {
+    setExpenseRows(prev => prev.map(row =>
+      row.id === id ? { ...row, ...fields } : row
+    ));
+    if (fields.accountId) {
       setRowErrors(prev => ({ ...prev, [id]: false }));
     }
   };
