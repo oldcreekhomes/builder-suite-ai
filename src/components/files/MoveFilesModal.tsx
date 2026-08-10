@@ -75,39 +75,56 @@ export function MoveFilesModal({
           .not('original_filename', 'is', null),
         supabase
           .from('project_folders')
-          .select('folder_path')
+          .select('folder_path, parent_path, folder_name')
           .eq('project_id', projectId),
       ]);
 
       if (filesRes.error) throw filesRes.error;
       if (foldersRes.error) throw foldersRes.error;
 
-      const folderSet = new Set<string>();
+      const normalize = (p?: string | null) =>
+        (p || '').replace(/^\/+|\/+$/g, '').trim();
 
-      // Real folder records (includes empty folders)
-      foldersRes.data?.forEach(f => {
-        if (f.folder_path) {
-          // Add every ancestor path too
-          const parts = f.folder_path.split('/');
-          let currentPath = '';
-          parts.forEach(part => {
-            currentPath = currentPath ? `${currentPath}/${part}` : part;
-            if (currentPath.trim()) folderSet.add(currentPath);
-          });
-        }
-      });
+      // Children inferred from file paths, keyed by parent path ('' = root)
+      const childrenByParent = new Map<string, Set<string>>();
+      const addChild = (parent: string, name: string) => {
+        if (!name) return;
+        if (!childrenByParent.has(parent)) childrenByParent.set(parent, new Set());
+        childrenByParent.get(parent)!.add(name);
+      };
 
-      // Folders inferred from file paths
       filesRes.data?.forEach(file => {
-        if (file.original_filename && file.original_filename.includes('/')) {
-          const parts = file.original_filename.split('/');
-          let currentPath = '';
-          for (let i = 0; i < parts.length - 1; i++) {
-            currentPath = currentPath ? `${currentPath}/${parts[i]}` : parts[i];
-            folderSet.add(currentPath);
-          }
+        const path = normalize(file.original_filename);
+        if (!path || !path.includes('/')) return;
+        const parts = path.split('/');
+        let parent = '';
+        for (let i = 0; i < parts.length - 1; i++) {
+          addChild(parent, parts[i]);
+          parent = parent ? `${parent}/${parts[i]}` : parts[i];
         }
       });
+
+      // Folder records: only reachable ones (mirrors the file explorer)
+      foldersRes.data?.forEach((f: any) => {
+        const parent = normalize(f.parent_path);
+        const name = f.folder_name || normalize(f.folder_path).split('/').pop() || '';
+        addChild(parent, name);
+      });
+
+      // Walk from the root so unreachable/stale records are ignored
+      const folderSet = new Set<string>();
+      const queue: string[] = [''];
+      while (queue.length) {
+        const current = queue.shift() as string;
+        const children = childrenByParent.get(current);
+        if (!children) continue;
+        children.forEach(name => {
+          const full = current ? `${current}/${name}` : name;
+          if (folderSet.has(full)) return;
+          folderSet.add(full);
+          queue.push(full);
+        });
+      }
 
       // Don't allow moving a folder into itself or its own subfolders
       selectedFolderPaths.forEach(p => {
@@ -117,6 +134,7 @@ export function MoveFilesModal({
           }
         });
       });
+
 
       const folderList = Array.from(folderSet).sort((a, b) =>
         a.localeCompare(b, undefined, { numeric: true, sensitivity: 'base' })
