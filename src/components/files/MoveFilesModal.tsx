@@ -66,21 +66,41 @@ export function MoveFilesModal({
 
   const fetchFolders = async () => {
     try {
-      const { data, error } = await supabase
-        .from('project_files')
-        .select('original_filename')
-        .eq('project_id', projectId)
-        .eq('is_deleted', false)
-        .not('original_filename', 'is', null);
+      const [filesRes, foldersRes] = await Promise.all([
+        supabase
+          .from('project_files')
+          .select('original_filename')
+          .eq('project_id', projectId)
+          .eq('is_deleted', false)
+          .not('original_filename', 'is', null),
+        supabase
+          .from('project_folders')
+          .select('folder_path')
+          .eq('project_id', projectId),
+      ]);
 
-      if (error) throw error;
+      if (filesRes.error) throw filesRes.error;
+      if (foldersRes.error) throw foldersRes.error;
 
-      // Extract unique folder names from file paths
       const folderSet = new Set<string>();
-      data?.forEach(file => {
+
+      // Real folder records (includes empty folders)
+      foldersRes.data?.forEach(f => {
+        if (f.folder_path) {
+          // Add every ancestor path too
+          const parts = f.folder_path.split('/');
+          let currentPath = '';
+          parts.forEach(part => {
+            currentPath = currentPath ? `${currentPath}/${part}` : part;
+            if (currentPath.trim()) folderSet.add(currentPath);
+          });
+        }
+      });
+
+      // Folders inferred from file paths
+      filesRes.data?.forEach(file => {
         if (file.original_filename && file.original_filename.includes('/')) {
           const parts = file.original_filename.split('/');
-          // Get all possible folder paths (for nested folders)
           let currentPath = '';
           for (let i = 0; i < parts.length - 1; i++) {
             currentPath = currentPath ? `${currentPath}/${parts[i]}` : parts[i];
@@ -89,7 +109,18 @@ export function MoveFilesModal({
         }
       });
 
-      const folderList = Array.from(folderSet).sort();
+      // Don't allow moving a folder into itself or its own subfolders
+      selectedFolderPaths.forEach(p => {
+        folderSet.forEach(candidate => {
+          if (candidate === p || candidate.startsWith(`${p}/`)) {
+            folderSet.delete(candidate);
+          }
+        });
+      });
+
+      const folderList = Array.from(folderSet).sort((a, b) =>
+        a.localeCompare(b, undefined, { numeric: true, sensitivity: 'base' })
+      );
       setExistingFolders(folderList);
     } catch (error) {
       console.error('Error fetching folders:', error);
@@ -100,6 +131,7 @@ export function MoveFilesModal({
       });
     }
   };
+
 
   const syncFolderEntry = async (folder: SimpleFolder, destination: string) => {
     try {
