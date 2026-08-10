@@ -6,6 +6,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
+import { fetchAllRows } from "@/lib/supabasePaginate";
 import { FolderOpen, Home } from "lucide-react";
 
 interface SimpleFile {
@@ -66,20 +67,22 @@ export function MoveFilesModal({
 
   const fetchFolders = async () => {
     try {
-      const [filesRes, foldersRes] = await Promise.all([
-        supabase
-          .from('project_files')
-          .select('original_filename')
-          .eq('project_id', projectId)
-          .eq('is_deleted', false)
-          .not('original_filename', 'is', null),
+      const [filesData, foldersRes] = await Promise.all([
+        fetchAllRows(() =>
+          supabase
+            .from('project_files')
+            .select('original_filename')
+            .eq('project_id', projectId)
+            .eq('is_deleted', false)
+            .not('original_filename', 'is', null)
+            .order('id', { ascending: true })
+        ),
         supabase
           .from('project_folders')
           .select('folder_path, parent_path, folder_name')
           .eq('project_id', projectId),
       ]);
 
-      if (filesRes.error) throw filesRes.error;
       if (foldersRes.error) throw foldersRes.error;
 
       const normalize = (p?: string | null) =>
@@ -93,7 +96,7 @@ export function MoveFilesModal({
         childrenByParent.get(parent)!.add(name);
       };
 
-      filesRes.data?.forEach(file => {
+      filesData.forEach(file => {
         const path = normalize(file.original_filename);
         if (!path || !path.includes('/')) return;
         const parts = path.split('/');
