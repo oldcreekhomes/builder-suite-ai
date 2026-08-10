@@ -489,7 +489,9 @@ export function BudgetDetailsModal({
   // Reset historical project selection when dialog opens
   useEffect(() => {
     if (isOpen && budgetItem.budget_source === 'historical') {
-      setSelectedHistoricalProjectId((budgetItem as any).historical_project_id || null);
+      const pid = (budgetItem as any).historical_project_id;
+      const lid = (budgetItem as any).historical_lot_id;
+      setSelectedHistoricalProjectId(pid ? (lid ? `${pid}::${lid}` : pid) : null);
     }
   }, [isOpen, budgetItem.budget_source]);
 
