@@ -22,6 +22,7 @@ import { useBudgetBidSelection } from "@/hooks/useBudgetBidSelection";
 import { useBudgetSourceUpdate } from "@/hooks/useBudgetSourceUpdate";
 import { useHistoricalProjects, parseHistoricalKey } from "@/hooks/useHistoricalProjects";
 import { useHistoricalActualCosts } from "@/hooks/useHistoricalActualCosts";
+import { useMultipleHistoricalCosts } from "@/hooks/useMultipleHistoricalCosts";
 import { BudgetDetailsPurchaseOrderTab } from "@/components/budget/BudgetDetailsPurchaseOrderTab";
 import { useState, useEffect, useMemo, useRef } from "react";
 import { format } from "date-fns";
@@ -108,6 +109,38 @@ export function BudgetDetailsModal({
   });
   const parsedHistorical = selectedHistoricalProjectId ? parseHistoricalKey(selectedHistoricalProjectId) : null;
   const { data: historicalCosts } = useHistoricalActualCosts(parsedHistorical?.projectId || null, parsedHistorical?.lotId);
+
+  // Amount already saved on this budget row (used as a fallback so the dialog
+  // always agrees with the budget table).
+  const savedHistoricalAmount =
+    budgetItem.budget_source === 'historical'
+      ? Math.round(((budgetItem.quantity || 0) * (budgetItem.unit_price || 0)) * 100) / 100
+      : 0;
+
+  // Legacy rows stored only the source project id even when that project keeps
+  // its actual costs per lot. Those keys match no dropdown option, so resolve
+  // them to the correct project+lot entry.
+  const lotCandidateKeys = useMemo(() => {
+    if (!selectedHistoricalProjectId) return [] as string[];
+    if (selectedHistoricalProjectId.includes('::')) return [] as string[];
+    if (historicalProjects.some((p: any) => p.id === selectedHistoricalProjectId)) return [] as string[];
+    return historicalProjects
+      .filter((p: any) => p.projectId === selectedHistoricalProjectId)
+      .map((p: any) => p.id);
+  }, [selectedHistoricalProjectId, historicalProjects]);
+
+  const { data: lotCandidateCosts = {} } = useMultipleHistoricalCosts(lotCandidateKeys);
+
+  useEffect(() => {
+    if (lotCandidateKeys.length === 0) return;
+    const match = lotCandidateKeys.find(
+      (key) => Math.round(((lotCandidateCosts as any)[key]?.[costCode.code] || 0) * 100) / 100 === savedHistoricalAmount,
+    );
+    const resolved = match || lotCandidateKeys[0];
+    if (resolved && resolved !== selectedHistoricalProjectId) {
+      setSelectedHistoricalProjectId(resolved);
+    }
+  }, [lotCandidateKeys, lotCandidateCosts, savedHistoricalAmount, costCode.code, selectedHistoricalProjectId]);
 
   // Determine initial tab based on budget_source
   const getInitialTab = () => {
@@ -456,7 +489,9 @@ export function BudgetDetailsModal({
   // Reset historical project selection when dialog opens
   useEffect(() => {
     if (isOpen && budgetItem.budget_source === 'historical') {
-      setSelectedHistoricalProjectId((budgetItem as any).historical_project_id || null);
+      const pid = (budgetItem as any).historical_project_id;
+      const lid = (budgetItem as any).historical_lot_id;
+      setSelectedHistoricalProjectId(pid ? (lid ? `${pid}::${lid}` : pid) : null);
     }
   }, [isOpen, budgetItem.budget_source]);
 
@@ -525,7 +560,10 @@ export function BudgetDetailsModal({
     : manualTotalAmount;
 
   // Historical cost for current cost code
-  const historicalCostForCode = historicalCosts?.mapByCode[costCode.code] || 0;
+  const rawHistoricalCostForCode = historicalCosts?.mapByCode[costCode.code] || 0;
+  // Fall back to the amount already saved on the budget row so the dialog never
+  // shows "No data" / $0.00 for a row the budget table shows a value for.
+  const historicalCostForCode = rawHistoricalCostForCode > 0 ? rawHistoricalCostForCode : savedHistoricalAmount;
 
   const handleApply = async () => {
     if (isLocked) return;
