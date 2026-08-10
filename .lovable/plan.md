@@ -1,33 +1,23 @@
-## What's wrong
+# Fix: newly created (empty) folders missing from "Move Items to Folder"
 
-Two confirmed bugs make the check reject a line even though an account is clearly selected.
+## What's happening
 
-**1. The selected account ID is thrown away immediately (root cause)**
+The destination dropdown in the Move dialog does not list every folder in the project. It only lists folders it can infer from existing file paths — it reads the file list and splits each file's path into folder segments.
 
-In `src/components/transactions/WriteChecksContent.tsx`, picking an account fires two updates back to back:
+That's why `Financing/Refinance/LOIs` shows up (it contains files) but `Financing/Refinance/Loan Application Documents` does not: the new folder is empty, so no file path mentions it, so the dropdown never learns it exists. It shows correctly in the file browser because the browser reads the real folder records.
 
-```
-updateExpenseRow(row.id, "accountId", account.id);
-updateExpenseRow(row.id, "account", `${account.code} - ${account.name}`);
-```
+## The fix
 
-`updateExpenseRow` (and `updateJobCostRow`) rebuild state from the captured `expenseRows` array instead of using a functional state update. Both calls start from the same stale array, so the second one (the display text) overwrites the first, and `accountId` ends up empty. The row shows "2905.3 - Equity - EG" but validation sees no selection — hence the red border and "select a cost code... or an expense account" toast.
+Make the Move dialog's folder list read the actual folder records for the project and merge them with the folders inferred from file paths:
 
-**2. The save-time fallback can't find project-specific accounts**
+- Load all folder rows for the project (the same source the file browser uses).
+- Union those paths with the paths derived from file names, de-duplicate, and sort.
+- Exclude the folders currently being moved and their subfolders from the destination list, so a folder can't be moved into itself.
 
-`findAccountIdFromText` searches `useAccounts()`, which queries only `project_id IS NULL`. Account `2905.3 - Equity - EG` (id `7991a8da-…`) belongs to project `350e5951-…`, so the fallback that normally rescues a missing ID finds nothing and the validation fails for good.
+Result: every folder — empty or not, at any nesting depth — appears as a valid destination.
 
-## Fix
+## Technical notes
 
-In `src/components/transactions/WriteChecksContent.tsx`:
-
-1. Convert `updateExpenseRow` and `updateJobCostRow` to functional updates (`setExpenseRows(prev => prev.map(...))`), and add a small helper that applies multiple fields in one update so account selection sets `accountId` + `account` atomically. Use it in both the Chart of Accounts and Job Cost `onAccountSelect` handlers.
-2. Load the project-scoped accounts (same query `AccountSearchInput` uses: `accounts` where `project_id = projectId` and `is_active`) and merge them into the list `findAccountIdFromText` / `resolveBankAccountIdForSave` search, so a typed or pasted project account still resolves at save time.
-
-Apply the identical fix to `src/pages/WriteChecks.tsx`, which contains the same duplicated row-update and resolution logic (same failure mode on that route).
-
-No accounting logic, journal entry math, or validation rules change — the line will simply keep the account the user picked.
-
-## Verify
-
-Reopen Write Checks, select `2905.3 - Equity - EG`, enter the amount, and confirm Save & Close / Save Entry succeed and the check line posts against that account.
+- File: `src/components/files/MoveFilesModal.tsx`, in `fetchFolders()`.
+- Add a query against `project_folders` (`folder_path` for this `project_id`) alongside the existing `project_files` query, then build the `existingFolders` set from both.
+- No database changes; presentation/data-loading only.
