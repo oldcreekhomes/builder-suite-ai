@@ -560,7 +560,10 @@ export function BudgetDetailsModal({
     : manualTotalAmount;
 
   // Historical cost for current cost code
-  const historicalCostForCode = historicalCosts?.mapByCode[costCode.code] || 0;
+  const rawHistoricalCostForCode = historicalCosts?.mapByCode[costCode.code] || 0;
+  // Fall back to the amount already saved on the budget row so the dialog never
+  // shows "No data" / $0.00 for a row the budget table shows a value for.
+  const historicalCostForCode = rawHistoricalCostForCode > 0 ? rawHistoricalCostForCode : savedHistoricalAmount;
 
   const handleApply = async () => {
     if (isLocked) return;
