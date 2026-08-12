@@ -528,7 +528,7 @@ export const SimpleFileList: React.FC<SimpleFileListProps> = ({
             <TableHead>Name</TableHead>
             <TableHead className="w-24">Type</TableHead>
             <TableHead className="w-28">Size</TableHead>
-            <TableHead className="w-40">Uploaded By</TableHead>
+            <TableHead className="w-40 text-center">Uploaded By</TableHead>
             <TableHead className="w-32">Date</TableHead>
             <TableHead className="w-20 text-center">Actions</TableHead>
           </TableRow>
