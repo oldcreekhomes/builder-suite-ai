@@ -7,6 +7,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '
 import { DeleteConfirmationDialog } from '@/components/ui/delete-confirmation-dialog';
 import { Table, TableHeader, TableBody, TableHead, TableRow, TableCell } from '@/components/ui/table';
 import { TableRowActions } from '@/components/ui/table-row-actions';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { NewFolderModal } from './NewFolderModal';
 import { MoveFilesModal } from './MoveFilesModal';
 
