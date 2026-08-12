@@ -22,6 +22,11 @@ import type { FolderLock, FolderAccessGrant } from '@/hooks/useProjectFolderLock
 interface SimpleFolder {
   name: string;
   path: string;
+  creator?: {
+    first_name?: string;
+    last_name?: string;
+    email?: string;
+  };
 }
 
 interface SimpleFile {
