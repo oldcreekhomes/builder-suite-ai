@@ -611,8 +611,8 @@ export const SimpleFileList: React.FC<SimpleFileListProps> = ({
               <TableCell className="text-muted-foreground">
                 {formatFileSize(file.file_size)}
               </TableCell>
-              <TableCell className="text-muted-foreground truncate max-w-[160px]" title={getFullName(file.uploader)}>
-                {getInitials(file.uploader) || '—'}
+              <TableCell>
+                <UploaderBadge person={file.uploader} />
               </TableCell>
               <TableCell className="text-muted-foreground">
                 {new Date(file.uploaded_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
