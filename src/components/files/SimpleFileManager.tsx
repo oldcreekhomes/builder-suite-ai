@@ -173,12 +173,42 @@ export const SimpleFileManager = forwardRef<SimpleFileManagerHandle, SimpleFileM
       }
     });
 
+    // Fallbacks so a folder never shows an empty creator:
+    // 1) whoever uploaded the folder's .folderkeeper marker
+    // 2) whoever uploaded the earliest file inside the folder (any depth)
+    const keeperCreatorByPath = new Map<string, any>();
+    const earliestByPath = new Map<string, { at: number; person: any }>();
+    allFiles.forEach((file: any) => {
+      const person = file.uploader || file.uploaded_by_profile;
+      if (!person) return;
+      const p = normalizePath(file.original_filename);
+      if (!p) return;
+      const at = new Date(file.uploaded_at || file.created_at || 0).getTime();
+      if (file.file_type === 'folderkeeper') {
+        const folderPath = normalizePath(p.replace(/\/\.folderkeeper$/i, ''));
+        if (folderPath) keeperCreatorByPath.set(folderPath, person);
+        return;
+      }
+      const segments = p.split('/');
+      segments.pop();
+      let acc = '';
+      segments.forEach(seg => {
+        acc = acc ? `${acc}/${seg}` : seg;
+        const prev = earliestByPath.get(acc);
+        if (!prev || at < prev.at) earliestByPath.set(acc, { at, person });
+      });
+    });
+
     // Sort folders alphabetically (case-insensitive)
     const sortedFolders = Array.from(folders)
       .sort((a, b) => a.toLowerCase().localeCompare(b.toLowerCase()))
       .map(name => {
         const path = normalizedCurrentPath ? `${normalizedCurrentPath}/${name}` : name;
-        return { name, path, creator: creatorByPath.get(path) };
+        const creator =
+          creatorByPath.get(path) ||
+          keeperCreatorByPath.get(path) ||
+          earliestByPath.get(path)?.person;
+        return { name, path, creator };
       });
 
     // Sort files alphabetically by display name (case-insensitive)
