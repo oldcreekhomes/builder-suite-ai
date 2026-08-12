@@ -558,7 +558,7 @@ export const SimpleFileList: React.FC<SimpleFileListProps> = ({
               </TableCell>
               <TableCell className="text-muted-foreground">—</TableCell>
               <TableCell className="text-muted-foreground">—</TableCell>
-              <TableCell>
+              <TableCell className="text-center">
                 <UploaderBadge person={folder.creator} />
               </TableCell>
               <TableCell className="text-muted-foreground">—</TableCell>
