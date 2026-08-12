@@ -60,6 +60,29 @@ interface SimpleFileListProps {
   onUnlockFolder?: (folderPath: string) => void;
 }
 
+type PersonLike = { first_name?: string; last_name?: string; email?: string } | undefined;
+
+const getFullName = (person: PersonLike): string => {
+  if (!person) return '';
+  const name = `${person.first_name ?? ''} ${person.last_name ?? ''}`.trim();
+  return name || person.email || '';
+};
+
+const getInitials = (person: PersonLike): string => {
+  if (!person) return '';
+  const first = (person.first_name ?? '').trim();
+  const last = (person.last_name ?? '').trim();
+  if (first || last) {
+    return `${first.charAt(0)}${last.charAt(0)}`.toUpperCase();
+  }
+  const email = (person.email ?? '').trim();
+  if (!email) return '';
+  const local = email.split('@')[0] || '';
+  const parts = local.split(/[._-]+/).filter(Boolean);
+  if (parts.length >= 2) return `${parts[0].charAt(0)}${parts[1].charAt(0)}`.toUpperCase();
+  return local.slice(0, 2).toUpperCase();
+};
+
 const getFileTypeLabel = (mimeType: string): string => {
   if (mimeType.startsWith('image/')) return mimeType.split('/')[1]?.toUpperCase() || 'Image';
   if (mimeType.includes('pdf')) return 'PDF';
