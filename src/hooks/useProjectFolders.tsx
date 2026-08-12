@@ -33,7 +33,27 @@ export const useProjectFolders = (projectId: string) => {
         throw error;
       }
 
-      return data || [];
+      const folders = data || [];
+      const creatorIds = [...new Set(folders.map((f: any) => f.created_by).filter(Boolean))];
+
+      if (creatorIds.length === 0) return folders;
+
+      const { data: usersData } = await supabase
+        .from('users')
+        .select('id, email, first_name, last_name')
+        .in('id', creatorIds as string[]);
+
+      const creatorMap = new Map<string, any>();
+      usersData?.forEach((u: any) => creatorMap.set(u.id, {
+        email: u.email,
+        first_name: u.first_name,
+        last_name: u.last_name,
+      }));
+
+      return folders.map((f: any) => ({
+        ...f,
+        creator: creatorMap.get(f.created_by) || undefined,
+      }));
     },
     enabled: !!user && !!projectId,
   });

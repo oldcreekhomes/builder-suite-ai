@@ -165,13 +165,21 @@ export const SimpleFileManager = forwardRef<SimpleFileManagerHandle, SimpleFileM
       });
     }
 
+    // Map folder path -> creator (from authoritative project_folders rows)
+    const creatorByPath = new Map<string, any>();
+    (folderRows || []).forEach((fr: any) => {
+      if (fr.folder_path && fr.creator) {
+        creatorByPath.set(normalizePath(fr.folder_path), fr.creator);
+      }
+    });
+
     // Sort folders alphabetically (case-insensitive)
     const sortedFolders = Array.from(folders)
       .sort((a, b) => a.toLowerCase().localeCompare(b.toLowerCase()))
-      .map(name => ({
-        name,
-        path: normalizedCurrentPath ? `${normalizedCurrentPath}/${name}` : name
-      }));
+      .map(name => {
+        const path = normalizedCurrentPath ? `${normalizedCurrentPath}/${name}` : name;
+        return { name, path, creator: creatorByPath.get(path) };
+      });
 
     // Sort files alphabetically by display name (case-insensitive)
     const sortedFiles = files.sort((a, b) =>

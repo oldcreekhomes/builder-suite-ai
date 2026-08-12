@@ -22,6 +22,11 @@ import type { FolderLock, FolderAccessGrant } from '@/hooks/useProjectFolderLock
 interface SimpleFolder {
   name: string;
   path: string;
+  creator?: {
+    first_name?: string;
+    last_name?: string;
+    email?: string;
+  };
 }
 
 interface SimpleFile {
@@ -54,6 +59,29 @@ interface SimpleFileListProps {
   onLockFolder?: (folderPath: string) => void;
   onUnlockFolder?: (folderPath: string) => void;
 }
+
+type PersonLike = { first_name?: string; last_name?: string; email?: string } | undefined;
+
+const getFullName = (person: PersonLike): string => {
+  if (!person) return '';
+  const name = `${person.first_name ?? ''} ${person.last_name ?? ''}`.trim();
+  return name || person.email || '';
+};
+
+const getInitials = (person: PersonLike): string => {
+  if (!person) return '';
+  const first = (person.first_name ?? '').trim();
+  const last = (person.last_name ?? '').trim();
+  if (first || last) {
+    return `${first.charAt(0)}${last.charAt(0)}`.toUpperCase();
+  }
+  const email = (person.email ?? '').trim();
+  if (!email) return '';
+  const local = email.split('@')[0] || '';
+  const parts = local.split(/[._-]+/).filter(Boolean);
+  if (parts.length >= 2) return `${parts[0].charAt(0)}${parts[1].charAt(0)}`.toUpperCase();
+  return local.slice(0, 2).toUpperCase();
+};
 
 const getFileTypeLabel = (mimeType: string): string => {
   if (mimeType.startsWith('image/')) return mimeType.split('/')[1]?.toUpperCase() || 'Image';
@@ -510,7 +538,9 @@ export const SimpleFileList: React.FC<SimpleFileListProps> = ({
               </TableCell>
               <TableCell className="text-muted-foreground">—</TableCell>
               <TableCell className="text-muted-foreground">—</TableCell>
-              <TableCell className="text-muted-foreground">—</TableCell>
+              <TableCell className="text-muted-foreground" title={getFullName(folder.creator)}>
+                {getInitials(folder.creator) || '—'}
+              </TableCell>
               <TableCell className="text-muted-foreground">—</TableCell>
               <TableCell className="text-center">
                 <TableRowActions actions={[
@@ -561,12 +591,8 @@ export const SimpleFileList: React.FC<SimpleFileListProps> = ({
               <TableCell className="text-muted-foreground">
                 {formatFileSize(file.file_size)}
               </TableCell>
-              <TableCell className="text-muted-foreground truncate max-w-[160px]">
-                {file.uploader
-                  ? (file.uploader.first_name || file.uploader.last_name
-                    ? `${file.uploader.first_name ?? ''} ${file.uploader.last_name ?? ''}`.trim()
-                    : file.uploader.email)
-                  : '—'}
+              <TableCell className="text-muted-foreground truncate max-w-[160px]" title={getFullName(file.uploader)}>
+                {getInitials(file.uploader) || '—'}
               </TableCell>
               <TableCell className="text-muted-foreground">
                 {new Date(file.uploaded_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
