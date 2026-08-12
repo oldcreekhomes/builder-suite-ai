@@ -49,17 +49,22 @@ export const useProjectFiles = (projectId: string) => {
       const [usersData] = await Promise.all([
         supabase
           .from('users')
-          .select('id, email')
+          .select('id, email, first_name, last_name')
           .in('id', uploaderIds)
       ]);
 
       // Create a map of uploader info
       const uploaderMap = new Map();
-      usersData.data?.forEach(user => uploaderMap.set(user.id, { email: user.email }));
+      usersData.data?.forEach(user => uploaderMap.set(user.id, {
+        email: user.email,
+        first_name: (user as any).first_name,
+        last_name: (user as any).last_name,
+      }));
 
       // Combine files with uploader info
       const filesWithUploaders = filesData.map(file => ({
         ...file,
+        uploader: uploaderMap.get(file.uploaded_by) || undefined,
         uploaded_by_profile: uploaderMap.get(file.uploaded_by) || { email: 'Unknown' }
       }));
 
