@@ -538,7 +538,9 @@ export const SimpleFileList: React.FC<SimpleFileListProps> = ({
               </TableCell>
               <TableCell className="text-muted-foreground">—</TableCell>
               <TableCell className="text-muted-foreground">—</TableCell>
-              <TableCell className="text-muted-foreground">—</TableCell>
+              <TableCell className="text-muted-foreground" title={getFullName(folder.creator)}>
+                {getInitials(folder.creator) || '—'}
+              </TableCell>
               <TableCell className="text-muted-foreground">—</TableCell>
               <TableCell className="text-center">
                 <TableRowActions actions={[
