@@ -611,7 +611,7 @@ export const SimpleFileList: React.FC<SimpleFileListProps> = ({
               <TableCell className="text-muted-foreground">
                 {formatFileSize(file.file_size)}
               </TableCell>
-              <TableCell>
+              <TableCell className="text-center">
                 <UploaderBadge person={file.uploader} />
               </TableCell>
               <TableCell className="text-muted-foreground">
