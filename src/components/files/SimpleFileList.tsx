@@ -84,6 +84,25 @@ const getInitials = (person: PersonLike): string => {
   return local.slice(0, 2).toUpperCase();
 };
 
+const UploaderBadge = ({ person }: { person: PersonLike }) => {
+  const initials = getInitials(person);
+  if (!initials) return <span className="text-muted-foreground">—</span>;
+  return (
+    <TooltipProvider>
+      <Tooltip>
+        <TooltipTrigger asChild>
+          <div className="inline-flex h-7 w-7 items-center justify-center rounded-full bg-muted text-xs font-medium">
+            {initials}
+          </div>
+        </TooltipTrigger>
+        <TooltipContent>{getFullName(person) || 'Unknown'}</TooltipContent>
+      </Tooltip>
+    </TooltipProvider>
+  );
+};
+
+
+
 const getFileTypeLabel = (mimeType: string): string => {
   if (mimeType.startsWith('image/')) return mimeType.split('/')[1]?.toUpperCase() || 'Image';
   if (mimeType.includes('pdf')) return 'PDF';
