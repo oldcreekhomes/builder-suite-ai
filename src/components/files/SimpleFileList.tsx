@@ -7,6 +7,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '
 import { DeleteConfirmationDialog } from '@/components/ui/delete-confirmation-dialog';
 import { Table, TableHeader, TableBody, TableHead, TableRow, TableCell } from '@/components/ui/table';
 import { TableRowActions } from '@/components/ui/table-row-actions';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { NewFolderModal } from './NewFolderModal';
 import { MoveFilesModal } from './MoveFilesModal';
 
@@ -82,6 +83,25 @@ const getInitials = (person: PersonLike): string => {
   if (parts.length >= 2) return `${parts[0].charAt(0)}${parts[1].charAt(0)}`.toUpperCase();
   return local.slice(0, 2).toUpperCase();
 };
+
+const UploaderBadge = ({ person }: { person: PersonLike }) => {
+  const initials = getInitials(person);
+  if (!initials) return <span className="text-muted-foreground">—</span>;
+  return (
+    <TooltipProvider>
+      <Tooltip>
+        <TooltipTrigger asChild>
+          <div className="inline-flex h-7 w-7 items-center justify-center rounded-full bg-muted text-xs font-medium">
+            {initials}
+          </div>
+        </TooltipTrigger>
+        <TooltipContent>{getFullName(person) || 'Unknown'}</TooltipContent>
+      </Tooltip>
+    </TooltipProvider>
+  );
+};
+
+
 
 const getFileTypeLabel = (mimeType: string): string => {
   if (mimeType.startsWith('image/')) return mimeType.split('/')[1]?.toUpperCase() || 'Image';
@@ -538,8 +558,8 @@ export const SimpleFileList: React.FC<SimpleFileListProps> = ({
               </TableCell>
               <TableCell className="text-muted-foreground">—</TableCell>
               <TableCell className="text-muted-foreground">—</TableCell>
-              <TableCell className="text-muted-foreground" title={getFullName(folder.creator)}>
-                {getInitials(folder.creator) || '—'}
+              <TableCell>
+                <UploaderBadge person={folder.creator} />
               </TableCell>
               <TableCell className="text-muted-foreground">—</TableCell>
               <TableCell className="text-center">
@@ -591,8 +611,8 @@ export const SimpleFileList: React.FC<SimpleFileListProps> = ({
               <TableCell className="text-muted-foreground">
                 {formatFileSize(file.file_size)}
               </TableCell>
-              <TableCell className="text-muted-foreground truncate max-w-[160px]" title={getFullName(file.uploader)}>
-                {getInitials(file.uploader) || '—'}
+              <TableCell>
+                <UploaderBadge person={file.uploader} />
               </TableCell>
               <TableCell className="text-muted-foreground">
                 {new Date(file.uploaded_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
