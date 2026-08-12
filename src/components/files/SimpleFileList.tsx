@@ -528,7 +528,7 @@ export const SimpleFileList: React.FC<SimpleFileListProps> = ({
             <TableHead>Name</TableHead>
             <TableHead className="w-24">Type</TableHead>
             <TableHead className="w-28">Size</TableHead>
-            <TableHead className="w-40">Uploaded By</TableHead>
+            <TableHead className="w-40 text-center">Uploaded By</TableHead>
             <TableHead className="w-32">Date</TableHead>
             <TableHead className="w-20 text-center">Actions</TableHead>
           </TableRow>
@@ -558,7 +558,7 @@ export const SimpleFileList: React.FC<SimpleFileListProps> = ({
               </TableCell>
               <TableCell className="text-muted-foreground">—</TableCell>
               <TableCell className="text-muted-foreground">—</TableCell>
-              <TableCell>
+              <TableCell className="text-center">
                 <UploaderBadge person={folder.creator} />
               </TableCell>
               <TableCell className="text-muted-foreground">—</TableCell>
@@ -611,7 +611,7 @@ export const SimpleFileList: React.FC<SimpleFileListProps> = ({
               <TableCell className="text-muted-foreground">
                 {formatFileSize(file.file_size)}
               </TableCell>
-              <TableCell>
+              <TableCell className="text-center">
                 <UploaderBadge person={file.uploader} />
               </TableCell>
               <TableCell className="text-muted-foreground">
