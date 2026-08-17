@@ -1182,7 +1182,7 @@ export function AccountDetailDialog({
 
     if (transaction.reconciled) {
       toast({
-        title: "Cannot Reverse",
+        title: "Cannot Delete",
         description: "This payment is reconciled. Undo the reconciliation first.",
         variant: "destructive",
       });
@@ -1192,7 +1192,7 @@ export function AccountDetailDialog({
     if (isDateLocked(transaction.date)) {
       toast({
         title: "Books are Closed",
-        description: `This payment is dated on or before ${latestClosedDate ? format(new Date(latestClosedDate), 'PP') : 'the closed period'} and cannot be reversed. You must reopen the accounting period first.`,
+        description: `This payment is dated on or before ${latestClosedDate ? format(new Date(latestClosedDate), 'PP') : 'the closed period'} and cannot be deleted. You must reopen the accounting period first.`,
         variant: "destructive",
       });
       return;
@@ -1205,35 +1205,38 @@ export function AccountDetailDialog({
     );
 
     try {
-      const { error } = await supabase.rpc('reverse_consolidated_bill_payment' as any, {
+      const { error } = await supabase.rpc('delete_consolidated_bill_payment' as any, {
         bill_payment_id_param: transaction.source_id,
       });
       if (error) throw error;
 
       toast({
-        title: "Payment Reversed",
-        description: "A reversing entry was posted and the bills were returned to unpaid.",
+        title: "Payment Deleted",
+        description: "The payment and the bills it paid were permanently deleted.",
       });
 
       queryClient.invalidateQueries({ queryKey: ['account-transactions'] });
       queryClient.invalidateQueries({ queryKey: ['balance-sheet'] });
       queryClient.invalidateQueries({ queryKey: ['journal-entries'] });
       queryClient.invalidateQueries({ queryKey: ['bills'] });
+      queryClient.invalidateQueries({ queryKey: ['bills-for-approval-v3'] });
       queryClient.invalidateQueries({ queryKey: ['bills-for-payment'] });
       queryClient.invalidateQueries({ queryKey: ['bill-approval-counts'] });
+      queryClient.invalidateQueries({ queryKey: ['bill-counts'] });
       queryClient.invalidateQueries({ queryKey: ['bill-payments-reconciliation'] });
       queryClient.invalidateQueries({ queryKey: ['reconciliation-transactions'] });
       queryClient.refetchQueries({ queryKey: ['account-transactions'] });
     } catch (error: any) {
-      console.error('Error reversing payment:', error);
+      console.error('Error deleting payment:', error);
       queryClient.setQueryData(queryKey, previous);
       toast({
         title: "Error",
-        description: error?.message || "Failed to reverse payment. Please try again.",
+        description: error?.message || "Failed to delete payment. Please try again.",
         variant: "destructive",
       });
     }
   };
+
 
   const handleDelete = async (transaction: Transaction) => {
     if (!canDeleteBills) return;
@@ -1752,7 +1755,7 @@ export function AccountDetailDialog({
                                 variant: 'destructive' as const,
                                 requiresConfirmation: true,
                                 confirmTitle: 'Delete Payment',
-                                confirmDescription: 'This payment will be permanently deleted from the application and the related bills will be returned to unpaid. Continue?',
+                                confirmDescription: 'This payment and the bills it paid will be permanently deleted from the application. This cannot be undone. Continue?',
                               }] : []),
 
                               {

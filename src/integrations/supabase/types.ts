@@ -6618,6 +6618,10 @@ export type Database = {
         Args: { check_id_param: string }
         Returns: boolean
       }
+      delete_consolidated_bill_payment: {
+        Args: { bill_payment_id_param: string }
+        Returns: boolean
+      }
       delete_credit_card_with_journal_entries: {
         Args: { credit_card_id_param: string }
         Returns: boolean
