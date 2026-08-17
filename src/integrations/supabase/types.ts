@@ -871,6 +871,8 @@ export type Database = {
           reconciled: boolean | null
           reconciliation_date: string | null
           reconciliation_id: string | null
+          reversed_at: string | null
+          reversed_by: string | null
           total_amount: number
           updated_at: string | null
           updated_by: string | null
@@ -889,6 +891,8 @@ export type Database = {
           reconciled?: boolean | null
           reconciliation_date?: string | null
           reconciliation_id?: string | null
+          reversed_at?: string | null
+          reversed_by?: string | null
           total_amount: number
           updated_at?: string | null
           updated_by?: string | null
@@ -907,6 +911,8 @@ export type Database = {
           reconciled?: boolean | null
           reconciliation_date?: string | null
           reconciliation_id?: string | null
+          reversed_at?: string | null
+          reversed_by?: string | null
           total_amount?: number
           updated_at?: string | null
           updated_by?: string | null
@@ -6817,6 +6823,10 @@ export type Database = {
       }
       reverse_bill_payment: {
         Args: { journal_entry_id_param: string }
+        Returns: boolean
+      }
+      reverse_consolidated_bill_payment: {
+        Args: { bill_payment_id_param: string }
         Returns: boolean
       }
       update_project_task:
