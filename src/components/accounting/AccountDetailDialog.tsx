@@ -569,7 +569,8 @@ export function AccountDetailDialog({
           reconciliation_date,
           created_at
         `)
-        .eq('payment_account_id', accountId);
+        .eq('payment_account_id', accountId)
+        .is('reversed_at', null);
 
       if (projectId) {
         consolidatedPaymentsQuery = consolidatedPaymentsQuery.eq('project_id', projectId);
