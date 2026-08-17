@@ -1747,12 +1747,12 @@ export function AccountDetailDialog({
                                 onClick: () => setEditDescriptionTxn(txn),
                               }] : []),
                               ...(txn.source_type === 'consolidated_bill_payment' ? [{
-                                label: 'Reverse Payment',
+                                label: 'Delete',
                                 onClick: () => handleReversePayment(txn),
                                 variant: 'destructive' as const,
                                 requiresConfirmation: true,
-                                confirmTitle: 'Reverse Payment',
-                                confirmDescription: 'This will post a reversing journal entry for this payment and return the related bills to unpaid. The original entry stays on the books for audit purposes. Continue?',
+                                confirmTitle: 'Delete Payment',
+                                confirmDescription: 'This payment will be permanently deleted from the application and the related bills will be returned to unpaid. Continue?',
                               }] : []),
 
                               {
