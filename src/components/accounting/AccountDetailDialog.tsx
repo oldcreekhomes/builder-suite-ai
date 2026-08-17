@@ -1176,6 +1176,65 @@ export function AccountDetailDialog({
     prevOpenRef.current = open;
   }, [open, queryClient]);
 
+  const handleReversePayment = async (transaction: Transaction) => {
+    if (!canDeleteBills) return;
+    const { toast } = await import("@/hooks/use-toast");
+
+    if (transaction.reconciled) {
+      toast({
+        title: "Cannot Reverse",
+        description: "This payment is reconciled. Undo the reconciliation first.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (isDateLocked(transaction.date)) {
+      toast({
+        title: "Books are Closed",
+        description: `This payment is dated on or before ${latestClosedDate ? format(new Date(latestClosedDate), 'PP') : 'the closed period'} and cannot be reversed. You must reopen the accounting period first.`,
+        variant: "destructive",
+      });
+      return;
+    }
+
+    const queryKey = ['account-transactions', accountId, projectId, sortOrder] as const;
+    const previous = queryClient.getQueryData<Transaction[]>(queryKey);
+    queryClient.setQueryData<Transaction[]>(queryKey, (old) =>
+      (old || []).filter(t => t.line_id !== transaction.line_id)
+    );
+
+    try {
+      const { error } = await supabase.rpc('reverse_consolidated_bill_payment' as any, {
+        bill_payment_id_param: transaction.source_id,
+      });
+      if (error) throw error;
+
+      toast({
+        title: "Payment Reversed",
+        description: "A reversing entry was posted and the bills were returned to unpaid.",
+      });
+
+      queryClient.invalidateQueries({ queryKey: ['account-transactions'] });
+      queryClient.invalidateQueries({ queryKey: ['balance-sheet'] });
+      queryClient.invalidateQueries({ queryKey: ['journal-entries'] });
+      queryClient.invalidateQueries({ queryKey: ['bills'] });
+      queryClient.invalidateQueries({ queryKey: ['bills-for-payment'] });
+      queryClient.invalidateQueries({ queryKey: ['bill-approval-counts'] });
+      queryClient.invalidateQueries({ queryKey: ['bill-payments-reconciliation'] });
+      queryClient.invalidateQueries({ queryKey: ['reconciliation-transactions'] });
+      queryClient.refetchQueries({ queryKey: ['account-transactions'] });
+    } catch (error: any) {
+      console.error('Error reversing payment:', error);
+      queryClient.setQueryData(queryKey, previous);
+      toast({
+        title: "Error",
+        description: error?.message || "Failed to reverse payment. Please try again.",
+        variant: "destructive",
+      });
+    }
+  };
+
   const handleDelete = async (transaction: Transaction) => {
     if (!canDeleteBills) return;
     
