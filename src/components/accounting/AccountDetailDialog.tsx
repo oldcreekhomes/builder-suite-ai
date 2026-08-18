@@ -1212,7 +1212,7 @@ export function AccountDetailDialog({
 
       toast({
         title: "Payment Deleted",
-        description: "The payment and the bills it paid were permanently deleted.",
+        description: "The payment was deleted. The bills it paid are back in Approved as unpaid.",
       });
 
       queryClient.invalidateQueries({ queryKey: ['account-transactions'] });
@@ -1755,7 +1755,7 @@ export function AccountDetailDialog({
                                 variant: 'destructive' as const,
                                 requiresConfirmation: true,
                                 confirmTitle: 'Delete Payment',
-                                confirmDescription: 'This payment and the bills it paid will be permanently deleted from the application. This cannot be undone. Continue?',
+                                confirmDescription: 'This payment will be deleted from the register. The bills it paid stay in the application and go back to Approved as unpaid. Continue?',
                               }] : []),
 
                               {
