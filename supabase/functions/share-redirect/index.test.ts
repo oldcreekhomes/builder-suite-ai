@@ -17,7 +17,7 @@ Deno.test("share-redirect rejects requests without an id", async () => {
   assertMatch(body, /Missing id/);
 });
 
-Deno.test("share-redirect sends a single shared file directly to the public file opener", async () => {
+Deno.test("share-redirect sends a shared file link to the shared files viewer page", async () => {
   const response = await fetch(
     `${endpoint}?id=1x3erc8a3sce05pvfwgpv&type=f`,
     { redirect: "manual" },
@@ -25,20 +25,8 @@ Deno.test("share-redirect sends a single shared file directly to the public file
   await response.text();
 
   assertEquals(response.status, 302);
-  const location = response.headers.get("location") ?? "";
-  assertMatch(location, /\/functions\/v1\/public-file-download\?/);
-  assertMatch(location, /share_id=1x3erc8a3sce05pvfwgpv/);
-  assertMatch(location, /file_id=d2fef001-4547-4038-89fe-f8505f2103f2/);
-  assertMatch(location, /inline=true/);
-});
-
-Deno.test("public file opener redirects the shared PDF to its signed storage URL", async () => {
-  const response = await fetch(
-    `${SUPABASE_URL}/functions/v1/public-file-download?share_id=1x3erc8a3sce05pvfwgpv&file_id=d2fef001-4547-4038-89fe-f8505f2103f2&inline=true`,
-    { redirect: "manual" },
+  assertEquals(
+    response.headers.get("location"),
+    "https://buildersuiteml.com/s/f/1x3erc8a3sce05pvfwgpv",
   );
-  await response.text();
-
-  assertEquals(response.status, 302);
-  assertMatch(response.headers.get("location") ?? "", /\/storage\/v1\/object\/sign\/project-files\//);
 });
