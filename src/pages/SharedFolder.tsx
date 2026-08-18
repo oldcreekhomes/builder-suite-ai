@@ -90,14 +90,15 @@ export default function SharedFolder() {
 
         const sharedFiles = Array.isArray(data.files) ? data.files : [];
         const sharedFolders = Array.isArray(data.folders) ? data.folders : [];
+        const isSingleFileShare = shareData.share_type === 'file' && sharedFiles.length === 1;
 
-        // Single-file shares: treat the file's own directory as the root so the
-        // file shows immediately with its Download button (no folder drilling).
-        if (!path && sharedFiles.length === 1 && sharedFolders.length === 0) {
+        // A file share always opens on the file itself. Folder segments stored in
+        // original_filename describe where it came from, not viewer navigation.
+        if (isSingleFileShare) {
           const f = sharedFiles[0];
           const full: string = f.relative_path || f.original_filename || '';
           const dir = full.replace(/^\/+/, '').split('/').slice(0, -1).join('/');
-          if (dir) path = dir;
+          path = dir;
         }
 
         setRootPath(path);
@@ -105,8 +106,13 @@ export default function SharedFolder() {
 
         if (sharedFiles.length > 0) {
           setShareType('files');
-          setFiles(sharedFiles);
-          setFolders(sharedFolders);
+          setFiles(isSingleFileShare
+            ? sharedFiles.map((file) => ({
+                ...file,
+                relative_path: (file.relative_path || file.original_filename || '').split('/').pop() || file.original_filename,
+              }))
+            : sharedFiles);
+          setFolders(isSingleFileShare ? [] : sharedFolders);
         } else if (data.folders && data.folders.length > 0) {
 
           setShareType('files');
