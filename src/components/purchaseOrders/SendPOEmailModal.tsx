@@ -73,7 +73,7 @@ export function SendPOEmailModal({
 
           await supabase
             .from('project_purchase_orders')
-            .update({ sent_at: new Date().toISOString(), status: 'approved' })
+            .update({ status: 'approved' })
             .eq('id', purchaseOrder.id);
 
           toast({
