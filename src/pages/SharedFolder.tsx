@@ -86,15 +86,29 @@ export default function SharedFolder() {
         }
 
         const data = shareData.data as any;
-        const path = data.folder_path || data.folderPath || '';
+        let path = data.folder_path || data.folderPath || '';
+
+        const sharedFiles = Array.isArray(data.files) ? data.files : [];
+        const sharedFolders = Array.isArray(data.folders) ? data.folders : [];
+
+        // Single-file shares: treat the file's own directory as the root so the
+        // file shows immediately with its Download button (no folder drilling).
+        if (!path && sharedFiles.length === 1 && sharedFolders.length === 0) {
+          const f = sharedFiles[0];
+          const full: string = f.relative_path || f.original_filename || '';
+          const dir = full.replace(/^\/+/, '').split('/').slice(0, -1).join('/');
+          if (dir) path = dir;
+        }
+
         setRootPath(path);
         setCurrentPath(path);
 
-        if (data.files && data.files.length > 0) {
+        if (sharedFiles.length > 0) {
           setShareType('files');
-          setFiles(data.files);
-          setFolders(Array.isArray(data.folders) ? data.folders : []);
+          setFiles(sharedFiles);
+          setFolders(sharedFolders);
         } else if (data.folders && data.folders.length > 0) {
+
           setShareType('files');
           setFolders(data.folders);
         } else if (data.photos && data.photos.length > 0) {

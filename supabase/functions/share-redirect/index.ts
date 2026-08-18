@@ -55,24 +55,8 @@ Deno.serve(async (req) => {
       });
     }
 
-    const shareData = share.data as { files?: Array<{ id?: string }> } | null;
-    const singleFile = share.share_type === "file" && shareData?.files?.length === 1
-      ? shareData.files[0]
-      : null;
+    // Always use custom domain for shares (files, folders, photos)
 
-    if (singleFile?.id) {
-      const publicFileUrl = new URL(`${supabaseUrl}/functions/v1/public-file-download`);
-      publicFileUrl.searchParams.set("share_id", shareId);
-      publicFileUrl.searchParams.set("file_id", singleFile.id);
-      publicFileUrl.searchParams.set("inline", "true");
-
-      return new Response(null, {
-        status: 302,
-        headers: { ...corsHeaders, Location: publicFileUrl.toString() },
-      });
-    }
-
-    // Always use custom domain for actual folder and photo shares
     const targetOrigin = "https://buildersuiteml.com";
 
     // Choose path - our app handles both files/photos via /s/f/:id
