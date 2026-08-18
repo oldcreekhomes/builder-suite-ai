@@ -11,7 +11,6 @@ Deno.serve(async (req) => {
     const url = new URL(req.url);
     const shareId = url.searchParams.get("id");
     const type = url.searchParams.get("type") || "f"; // f = folder/files, p = photo
-    const originParam = url.searchParams.get("origin");
 
     if (!shareId) {
       return new Response(JSON.stringify({ error: "Missing id" }), {
@@ -36,7 +35,7 @@ Deno.serve(async (req) => {
     // Validate share link exists and not expired (leverages public SELECT policy)
     const { data: share, error } = await supabase
       .from("shared_links")
-      .select("share_id, share_type, expires_at")
+      .select("share_id, share_type, expires_at, data")
       .eq("share_id", shareId)
       .gt("expires_at", new Date().toISOString())
       .maybeSingle();
@@ -56,7 +55,24 @@ Deno.serve(async (req) => {
       });
     }
 
-    // Always use custom domain
+    const shareData = share.data as { files?: Array<{ id?: string }> } | null;
+    const singleFile = share.share_type === "file" && shareData?.files?.length === 1
+      ? shareData.files[0]
+      : null;
+
+    if (singleFile?.id) {
+      const publicFileUrl = new URL(`${supabaseUrl}/functions/v1/public-file-download`);
+      publicFileUrl.searchParams.set("share_id", shareId);
+      publicFileUrl.searchParams.set("file_id", singleFile.id);
+      publicFileUrl.searchParams.set("inline", "true");
+
+      return new Response(null, {
+        status: 302,
+        headers: { ...corsHeaders, Location: publicFileUrl.toString() },
+      });
+    }
+
+    // Always use custom domain for actual folder and photo shares
     const targetOrigin = "https://buildersuiteml.com";
 
     // Choose path - our app handles both files/photos via /s/f/:id

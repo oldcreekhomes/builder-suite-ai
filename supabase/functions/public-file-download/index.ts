@@ -1,16 +1,10 @@
-import "https://deno.land/x/xhr@0.1.0/mod.ts";
-import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2.50.0";
+import { createClient } from "npm:@supabase/supabase-js@2";
+import { corsHeaders } from "npm:@supabase/supabase-js@2/cors";
 
-const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
-};
-
-serve(async (req) => {
+Deno.serve(async (req) => {
   // Handle CORS preflight
   if (req.method === "OPTIONS") {
-    return new Response(null, { headers: corsHeaders });
+    return new Response("ok", { headers: corsHeaders });
   }
 
   try {
@@ -18,6 +12,7 @@ serve(async (req) => {
     const shareId = url.searchParams.get("share_id");
     const fileId = url.searchParams.get("file_id");
     const photoId = url.searchParams.get("photo_id");
+    const openInline = url.searchParams.get("inline") === "true";
 
     if (!shareId || (!fileId && !photoId)) {
       return new Response(JSON.stringify({ error: "Missing required parameters" }), {
@@ -105,17 +100,23 @@ serve(async (req) => {
     }
 
     // Generate a signed URL for download (valid for 1 hour)
-    const { data: signedUrlData, error: urlError } = await supabase.storage
-      .from(bucket)
-      .createSignedUrl(filePath, 3600, {
-        download: true
-      });
+    const signedUrlResult = openInline
+      ? await supabase.storage.from(bucket).createSignedUrl(filePath, 3600)
+      : await supabase.storage.from(bucket).createSignedUrl(filePath, 3600, { download: true });
+    const { data: signedUrlData, error: urlError } = signedUrlResult;
 
     if (urlError) {
       console.error("Error creating signed URL:", urlError);
       return new Response(JSON.stringify({ error: "Failed to generate download URL" }), {
         status: 500,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    if (openInline) {
+      return new Response(null, {
+        status: 302,
+        headers: { ...corsHeaders, Location: signedUrlData.signedUrl },
       });
     }
 
