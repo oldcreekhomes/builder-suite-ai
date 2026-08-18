@@ -17,10 +17,12 @@ So the change did save — it just couldn't reach the invisible row that was act
 
 2. **Resolver hardening:** in the shared notification-recipients helper, skip any recipient whose user is revoked, unconfirmed, or pending removal — for both the primary contact and the CC list. A removed employee can then never be the contact or get CC'd on Bid, PO, Schedule, Bid Submitted, or Accounting emails, even if a stale row survives.
 
-3. **Cleanup on removal:** when an employee's access is revoked or they're removed from the company, delete their `project_notification_recipients` rows so the matrix and the emails can never drift apart again.
+3. **Cleanup on removal (prevents recurrence):** purge a user's `project_notification_recipients` rows the moment their access is revoked or they're removed — in `revoke-employee-access` and `process-pending-removals`, plus a database trigger on `users` so it also happens for any path that flips `access_revoked` directly. Applies to every project, current and future.
+
+4. **Sweep existing data:** one-time cleanup of recipient rows belonging to any already-revoked/pending-removal user across all projects, so no other project is sitting on the same hidden star.
 
 ## Technical notes
 
-- Files touched: `supabase/functions/_shared/notification-recipients.ts` (active-user filter on receivers and primary), plus the employee revoke/remove edge functions to purge recipient rows.
-- Data cleanup is a targeted `DELETE` for user `1cb267af-...` plus an `UPDATE` setting Sohan primary on 214 N Granada; nothing else is affected.
-- Fallback order is unchanged: starred primary → alphabetically-first checked user → Construction Manager → project owner.
+- Files touched: `supabase/functions/_shared/notification-recipients.ts` (active-user filter on receivers and primary), `supabase/functions/revoke-employee-access/index.ts`, `supabase/functions/process-pending-removals/index.ts`.
+- Migration: trigger on `public.users` that deletes the user's `project_notification_recipients` rows when `access_revoked` becomes true or `pending_removal_at` is set; plus the one-time sweep DELETE.
+- Fallback order is unchanged: starred primary → alphabetically-first checked user → Construction Manager → project owner. With Kyleen's row gone, 214 N Granada resolves to Sohan.
