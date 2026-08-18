@@ -49,6 +49,14 @@ serve(async (req) => {
           .eq("id", u.id);
         if (updErr) throw updErr;
 
+        // Clear their per-project notification rows (primary contact / CC).
+        const { error: notifErr } = await supabaseAdmin
+          .from("project_notification_recipients")
+          .delete()
+          .eq("user_id", u.id);
+        if (notifErr) console.error("notification cleanup error", u.id, notifErr);
+
+
         results.push({ id: u.id, ok: true });
         console.log(`[process-pending-removals] ✅ revoked ${u.id}`);
       } catch (e) {
