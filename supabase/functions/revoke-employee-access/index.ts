@@ -103,6 +103,17 @@ const handler = async (req: Request): Promise<Response> => {
       .eq("id", employeeId);
     if (updErr) return json({ error: `Failed to schedule removal: ${updErr.message}` }, 500);
 
+    // Remove them from every project's notification matrix immediately so they
+    // can never remain the primary contact / CC on outgoing emails.
+    const { error: notifErr } = await supabaseAdmin
+      .from("project_notification_recipients")
+      .delete()
+      .eq("user_id", employeeId);
+    if (notifErr) {
+      console.error("Failed to clear notification recipients:", notifErr);
+    }
+
+
     return json({ success: true, pendingRemovalAt: endsAt });
   } catch (e) {
     console.error("revoke-employee-access error", e);

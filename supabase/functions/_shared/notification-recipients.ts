@@ -72,11 +72,30 @@ export async function resolveNotificationContacts(
   if (userIds.size > 0) {
     const { data: userRows } = await supabase
       .from("users")
-      .select("id, first_name, last_name, email, phone_number, company_name")
+      .select(
+        "id, first_name, last_name, email, phone_number, company_name, access_revoked, pending_removal_at, confirmed",
+      )
       .in("id", Array.from(userIds));
-    users = (userRows || []) as NotificationUser[];
+    // Never contact or CC a removed / revoked / unconfirmed employee, even if
+    // a stale project_notification_recipients row survives.
+    users = ((userRows || []) as any[])
+      .filter(
+        (u) =>
+          u.access_revoked !== true &&
+          !u.pending_removal_at &&
+          u.confirmed !== false,
+      )
+      .map(({ id, first_name, last_name, email, phone_number, company_name }) => ({
+        id,
+        first_name,
+        last_name,
+        email,
+        phone_number,
+        company_name,
+      })) as NotificationUser[];
   }
   const usersById = new Map(users.map((u) => [u.id, u]));
+
 
   // Determine primary (fallbacks: first alphabetical checked user, then project owner)
   let primary: NotificationUser | null = primaryUserId
@@ -102,15 +121,31 @@ export async function resolveNotificationContacts(
       .select("construction_manager, owner_id")
       .eq("id", projectId)
       .maybeSingle();
-    const fallbackUserId = proj?.construction_manager || proj?.owner_id;
-    if (fallbackUserId) {
+    const candidates = [proj?.construction_manager, proj?.owner_id].filter(
+      Boolean,
+    ) as string[];
+    for (const fallbackUserId of candidates) {
       const { data: fallbackRow } = await supabase
         .from("users")
-        .select("id, first_name, last_name, email, phone_number, company_name")
+        .select(
+          "id, first_name, last_name, email, phone_number, company_name, access_revoked, pending_removal_at",
+        )
         .eq("id", fallbackUserId)
         .maybeSingle();
-      if (fallbackRow) primary = fallbackRow as NotificationUser;
+      const fr = fallbackRow as any;
+      if (fr && fr.access_revoked !== true && !fr.pending_removal_at) {
+        primary = {
+          id: fr.id,
+          first_name: fr.first_name,
+          last_name: fr.last_name,
+          email: fr.email,
+          phone_number: fr.phone_number,
+          company_name: fr.company_name,
+        };
+        break;
+      }
     }
+
   }
 
   const cc: NotificationUser[] = receivers
