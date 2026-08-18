@@ -45,6 +45,7 @@ export default function SharedFolder() {
   const [rootPath, setRootPath] = useState("");
   const [currentPath, setCurrentPath] = useState("");
   const [shareType, setShareType] = useState<'photos' | 'files'>('photos');
+  const [isSingleFileShare, setIsSingleFileShare] = useState(false);
   const [loading, setLoading] = useState(true);
   const [isDownloading, setIsDownloading] = useState(false);
   const [expired, setExpired] = useState(false);
@@ -90,11 +91,12 @@ export default function SharedFolder() {
 
         const sharedFiles = Array.isArray(data.files) ? data.files : [];
         const sharedFolders = Array.isArray(data.folders) ? data.folders : [];
-        const isSingleFileShare = shareData.share_type === 'file' && sharedFiles.length === 1;
+        const singleFileShare = shareData.share_type === 'file' && sharedFiles.length === 1;
+        setIsSingleFileShare(singleFileShare);
 
         // A file share always opens on the file itself. Folder segments stored in
         // original_filename describe where it came from, not viewer navigation.
-        if (isSingleFileShare) {
+        if (singleFileShare) {
           const f = sharedFiles[0];
           const full: string = f.relative_path || f.original_filename || '';
           const dir = full.replace(/^\/+/, '').split('/').slice(0, -1).join('/');
@@ -106,13 +108,13 @@ export default function SharedFolder() {
 
         if (sharedFiles.length > 0) {
           setShareType('files');
-          setFiles(isSingleFileShare
+          setFiles(singleFileShare
             ? sharedFiles.map((file) => ({
                 ...file,
                 relative_path: (file.relative_path || file.original_filename || '').split('/').pop() || file.original_filename,
               }))
             : sharedFiles);
-          setFolders(isSingleFileShare ? [] : sharedFolders);
+          setFolders(singleFileShare ? [] : sharedFolders);
         } else if (data.folders && data.folders.length > 0) {
 
           setShareType('files');
@@ -359,6 +361,47 @@ export default function SharedFolder() {
                 </Button>
               </div>
             ))}
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (isSingleFileShare && files.length === 1) {
+    const file = files[0];
+    const fileName = (file.relative_path || file.original_filename).split('/').pop() || file.original_filename;
+
+    return (
+      <div className="flex-1 w-full min-h-screen bg-background flex items-center justify-center">
+        <div className="w-full max-w-2xl px-4 py-8">
+          <div className="bg-card rounded-lg shadow-lg p-6 mb-6">
+            <div className="text-sm text-muted-foreground font-medium mb-2">Shared Files</div>
+            <h1 className="text-2xl font-bold mb-2">Shared Files</h1>
+            <p className="text-muted-foreground mb-3">1 file</p>
+            <div className="p-3 bg-yellow-50 border border-yellow-200 rounded-lg flex items-center justify-between gap-3">
+              <p className="text-yellow-800 text-sm font-medium">
+                ⚠️ This share link expires in 7 days. Please download the file you need.
+              </p>
+              <Button size="sm" variant="outline" onClick={handleDownloadAll} disabled={isDownloading}>
+                <Download className="h-4 w-4 mr-2" />
+                {isDownloading ? 'Zipping...' : 'Download All'}
+              </Button>
+            </div>
+          </div>
+
+          <div className="bg-card rounded-lg shadow-sm p-4 flex items-center justify-between">
+            <div className="flex items-center gap-3 min-w-0 flex-1">
+              <FileText className="h-5 w-5 text-muted-foreground shrink-0" />
+              <div className="min-w-0">
+                <h3 className="font-medium truncate">{fileName}</h3>
+                <p className="text-xs text-muted-foreground">
+                  Uploaded: {new Date(file.uploaded_at).toLocaleDateString()}
+                </p>
+              </div>
+            </div>
+            <Button variant="outline" size="sm" onClick={() => handleFileDownload(file)}>
+              <Download className="h-4 w-4 mr-2" /> Download
+            </Button>
           </div>
         </div>
       </div>
