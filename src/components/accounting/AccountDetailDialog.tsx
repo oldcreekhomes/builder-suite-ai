@@ -1212,7 +1212,7 @@ export function AccountDetailDialog({
 
       toast({
         title: "Payment Deleted",
-        description: "The payment and the bills it paid were permanently deleted.",
+        description: "The payment was deleted. The bills it paid are back in Approved as unpaid.",
       });
 
       queryClient.invalidateQueries({ queryKey: ['account-transactions'] });
