@@ -18,6 +18,9 @@ export interface PurchaseOrder {
   created_by: string;
   updated_at: string;
   sent_at?: string | null;
+  first_sent_at?: string | null;
+  send_count?: number | null;
+
   extra: boolean;
   created_by_user?: {
     first_name: string | null;

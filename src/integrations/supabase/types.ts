@@ -4961,11 +4961,13 @@ export type Database = {
           custom_message: string | null
           extra: boolean
           files: Json | null
+          first_sent_at: string | null
           id: string
           lot_id: string | null
           notes: string | null
           po_number: string | null
           project_id: string
+          send_count: number
           sent_at: string | null
           status: string
           total_amount: number | null
@@ -4981,11 +4983,13 @@ export type Database = {
           custom_message?: string | null
           extra?: boolean
           files?: Json | null
+          first_sent_at?: string | null
           id?: string
           lot_id?: string | null
           notes?: string | null
           po_number?: string | null
           project_id: string
+          send_count?: number
           sent_at?: string | null
           status?: string
           total_amount?: number | null
@@ -5001,11 +5005,13 @@ export type Database = {
           custom_message?: string | null
           extra?: boolean
           files?: Json | null
+          first_sent_at?: string | null
           id?: string
           lot_id?: string | null
           notes?: string | null
           po_number?: string | null
           project_id?: string
+          send_count?: number
           sent_at?: string | null
           status?: string
           total_amount?: number | null

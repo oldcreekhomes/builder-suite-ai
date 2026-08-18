@@ -157,12 +157,40 @@ export function PurchaseOrdersTableRowContent({
       </TableCell>
       
       <TableCell>
-        <div className={item.sent_at ? 'font-medium' : 'font-medium text-muted-foreground'}>
-          {item.sent_at
-            ? new Date(item.sent_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
-            : 'Not sent'}
-        </div>
+        {(() => {
+          const firstSent = item.first_sent_at || item.sent_at;
+          if (!firstSent) {
+            return <div className="font-medium text-muted-foreground">Not sent</div>;
+          }
+          const fmt = (d: string) =>
+            new Date(d).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+          const sendCount = item.send_count ?? 1;
+          const resent = sendCount > 1 && item.sent_at && item.sent_at !== firstSent;
+          return (
+            <div>
+              <div className="font-medium">{fmt(firstSent)}</div>
+              {resent && (
+                <TooltipProvider>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <div className="text-xs text-muted-foreground">
+                        Resent {fmt(item.sent_at!)}
+                        {sendCount > 2 ? ` (${sendCount}x)` : ''}
+                      </div>
+                    </TooltipTrigger>
+                    <TooltipContent>
+                      <div>First sent {new Date(firstSent).toLocaleString('en-US')}</div>
+                      <div>Last sent {new Date(item.sent_at!).toLocaleString('en-US')}</div>
+                      <div>Total sends: {sendCount}</div>
+                    </TooltipContent>
+                  </Tooltip>
+                </TooltipProvider>
+              )}
+            </div>
+          );
+        })()}
       </TableCell>
+
       
       <TableCell>
         <FilesCell files={item.files} projectId={projectId} />
