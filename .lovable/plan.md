@@ -8,15 +8,16 @@
 
 So the data cannot be "found" inside the app. It has to come back from a database backup, or be re-entered from the invoices.
 
-## Step 1 - Recover the rows from a backup (preferred)
+## Step 1 - Get the rows back
 
-Supabase keeps automated daily backups / point-in-time recovery for this project. To get the exact bills back with all their information (lines, cost codes, lots, amounts, references, attachments):
+I only have access to the live database. Restoring a Supabase backup / point-in-time snapshot happens in the Supabase dashboard, which I cannot operate - that one click has to be done by you or whoever has dashboard access. Nothing else in Step 1 is on you: once a restore target exists, I do all the extraction and comparison.
 
-1. In the Supabase dashboard, restore a snapshot from **before** yesterday's deletion into a temporary restore target (a PITR clone or downloaded backup) - not over the live database.
-2. From that snapshot I pull, for project 126 Longview: the `bills` rows, their `bill_lines`, `bill_attachments`, and the `bill_payments` + `bill_payment_allocations` for 06/05/2026.
-3. I hand you the extracted list to confirm it matches your screenshot before anything is written back.
+Two ways forward, pick one:
 
-If you can't produce a pre-deletion snapshot, we fall back to re-entering the bills from the invoice PDFs (several are still stored as approved ML uploads, e.g. Green Landscaping MSG584 $568 and ConApp Metro OCH #16130 $21,965) plus the ones you re-upload.
+**A. Backup restore (exact recovery, needs one action from you).** Someone with Supabase dashboard access restores a snapshot from before yesterday's deletion into a temporary target - not over the live database. Then I pull the 126 Longview `bills`, `bill_lines`, `bill_attachments`, `bill_payments` and `bill_payment_allocations` for 06/05/2026 out of it and show you the list to confirm before anything is written back.
+
+**B. Rebuild without a restore (no action from you beyond sending invoices).** I re-create the 11 bills from your screenshot using the vendor, cost code, description and amount on each row, plus the invoice PDFs that are still stored from the ML uploads (e.g. Green Landscaping MSG584 $568, ConApp Metro OCH #16130 $21,965). The gap is original invoice numbers, bill dates and lot splits for the rows I have no source document for - I'd flag each one and ask you for the invoice, or enter it with the payment date as the bill date.
+
 
 ## Step 2 - Re-insert into 126 Longview
 
