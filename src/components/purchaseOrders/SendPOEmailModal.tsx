@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { useQueryClient } from '@tanstack/react-query';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
@@ -23,6 +24,7 @@ export function SendPOEmailModal({
   const [customMessage, setCustomMessage] = useState('');
   const [isSending, setIsSending] = useState(false);
   const { toast } = useToast();
+  const queryClient = useQueryClient();
 
   const handleSend = async () => {
     setIsSending(true);
@@ -75,6 +77,8 @@ export function SendPOEmailModal({
             .from('project_purchase_orders')
             .update({ status: 'approved' })
             .eq('id', purchaseOrder.id);
+
+          queryClient.invalidateQueries({ queryKey: ['purchase-orders'] });
 
           toast({
             title: "Success",
