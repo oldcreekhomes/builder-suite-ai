@@ -1,5 +1,5 @@
-import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
-import Stripe from "https://esm.sh/stripe@18.5.0";
+const serve = (handler: (req: Request) => Response | Promise<Response>) => Deno.serve(handler);
+import Stripe from "npm:stripe@18";
 import { createClient } from "npm:@supabase/supabase-js@2.57.2";
 
 const corsHeaders = {

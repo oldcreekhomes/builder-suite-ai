@@ -1,5 +1,5 @@
-import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
-import { Resend } from "https://esm.sh/resend@4.0.0";
+const serve = (handler: (req: Request) => Response | Promise<Response>) => Deno.serve(handler);
+import { Resend } from "npm:resend@4";
 
 const resendApiKey = Deno.env.get("RESEND_API_KEY");
 const resend = new Resend(resendApiKey);

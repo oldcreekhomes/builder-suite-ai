@@ -4,7 +4,7 @@
 // - Restores the original deposit to status 'posted'
 // NOTE: This function is intentionally scoped to specific hardcoded IDs and is public to allow one-off invocation.
 
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
+import { createClient } from 'npm:@supabase/supabase-js@2';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
