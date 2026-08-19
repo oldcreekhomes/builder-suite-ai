@@ -218,7 +218,6 @@ export default function BalanceSheet() {
     enabled: !!user && !!session && !authLoading, // Only run when authenticated
     refetchOnMount: 'always',
     refetchOnWindowFocus: 'always',
-    refetchInterval: 15000,
     retry: (failureCount, error: any) => {
       // Don't retry RLS policy violations (usually means auth issue)
       if (error?.code === 'PGRST301' || error?.message?.includes('row-level security')) {
