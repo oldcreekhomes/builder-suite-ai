@@ -45,7 +45,7 @@ export default function SharedFolder() {
   const [rootPath, setRootPath] = useState("");
   const [currentPath, setCurrentPath] = useState("");
   const [shareType, setShareType] = useState<'photos' | 'files'>('photos');
-  const [isSingleFileShare, setIsSingleFileShare] = useState(false);
+  const [singleFile, setSingleFile] = useState<SharedFile | null>(null);
   const [loading, setLoading] = useState(true);
   const [isDownloading, setIsDownloading] = useState(false);
   const [expired, setExpired] = useState(false);
@@ -99,27 +99,26 @@ export default function SharedFolder() {
           return;
         }
 
-        setIsSingleFileShare(singleFileShare);
-
-        // A file share always opens on the file itself. Folder segments stored in
-        // original_filename describe where it came from, not viewer navigation.
-        // Keep its viewer root empty so folder derivation cannot leak into this mode.
-        if (singleFileShare) {
-          path = '';
-        }
-
-        setRootPath(path);
-        setCurrentPath(path);
-
         if (singleFileShare) {
           const sharedFile = sharedFiles[0];
           const fileName = (sharedFile.relative_path || sharedFile.original_filename || '').split('/').pop()
             || sharedFile.original_filename;
 
           setShareType('files');
-          setFiles([{ ...sharedFile, original_filename: fileName, relative_path: fileName }]);
+          setSingleFile({ ...sharedFile, original_filename: fileName, relative_path: fileName });
+          setFiles([]);
           setFolders([]);
-        } else if (sharedFiles.length > 0) {
+          setRootPath('');
+          setCurrentPath('');
+          setLoading(false);
+          return;
+        }
+
+        setSingleFile(null);
+        setRootPath(path);
+        setCurrentPath(path);
+
+        if (sharedFiles.length > 0) {
           setShareType('files');
           setFiles(sharedFiles);
           setFolders(sharedFolders);
@@ -375,9 +374,8 @@ export default function SharedFolder() {
     );
   }
 
-  if (isSingleFileShare && files.length === 1) {
-    const file = files[0];
-    const fileName = (file.relative_path || file.original_filename).split('/').pop() || file.original_filename;
+  if (singleFile) {
+    const fileName = singleFile.original_filename;
 
     return (
       <div className="flex-1 w-full min-h-screen bg-background flex items-center justify-center">
@@ -399,11 +397,11 @@ export default function SharedFolder() {
               <div className="min-w-0">
                 <h3 className="font-medium truncate">{fileName}</h3>
                 <p className="text-xs text-muted-foreground">
-                  Uploaded: {new Date(file.uploaded_at).toLocaleDateString()}
+                   Uploaded: {new Date(singleFile.uploaded_at).toLocaleDateString()}
                 </p>
               </div>
             </div>
-            <Button variant="outline" size="sm" onClick={() => handleFileDownload(file)}>
+            <Button variant="outline" size="sm" onClick={() => handleFileDownload(singleFile)}>
               <Download className="h-4 w-4 mr-2" /> Download
             </Button>
           </div>
