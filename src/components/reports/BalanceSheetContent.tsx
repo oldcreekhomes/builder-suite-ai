@@ -63,7 +63,6 @@ export function BalanceSheetContent({ projectId, onHeaderActionChange, asOfDate,
         supabase
           .from('accounts')
           .select('id, code, name, type, is_active, parent_id')
-          .eq('is_active', true)
           .or(projectId ? `project_id.is.null,project_id.eq.${projectId}` : 'project_id.is.null'),
         projectId
           ? supabase
@@ -159,6 +158,10 @@ export function BalanceSheetContent({ projectId, onHeaderActionChange, asOfDate,
           expenseBalance += rawBalance;
           return;
         }
+
+        // Inactive accounts remain part of historical report math when they
+        // have activity, but do not add empty retired rows to the report.
+        if (!account.is_active && Math.abs(rawBalance) < 0.005) return;
 
         // For balance-sheet accounts, only honor exclusion if the account has no activity.
         // Hiding a non-zero asset/liability/equity would break Assets = Liabilities + Equity.

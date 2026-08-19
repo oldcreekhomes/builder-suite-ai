@@ -157,7 +157,6 @@ export function SendReportsDialog({ projectId, open, onOpenChange }: SendReports
           supabase
             .from('accounts')
             .select('id, code, name, type, is_active')
-            .eq('is_active', true)
             .or(projectId ? `project_id.is.null,project_id.eq.${projectId}` : 'project_id.is.null'),
           projectId
             ? supabase
@@ -225,6 +224,8 @@ export function SendReportsDialog({ projectId, open, onOpenChange }: SendReports
             expenseBalance += rawBalance;
             return;
           }
+
+          if (!account.is_active && Math.abs(rawBalance) < 0.005) return;
 
           // Only hide an excluded balance-sheet account when it has no activity.
           if (

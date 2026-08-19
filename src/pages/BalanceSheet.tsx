@@ -53,7 +53,6 @@ export default function BalanceSheet() {
         supabase
           .from('accounts')
           .select('id, code, name, type, is_active')
-          .eq('is_active', true)
           .or(projectId ? `project_id.is.null,project_id.eq.${projectId}` : 'project_id.is.null'),
         projectId
           ? supabase.from('project_account_exclusions').select('account_id').eq('project_id', projectId)
@@ -120,6 +119,9 @@ export default function BalanceSheet() {
           expenseBalance += rawBalance;
           return;
         }
+
+
+        if (!account.is_active && Math.abs(rawBalance) < 0.005) return;
 
         if (projectId && excludedAccountIds.has(account.id) && Math.abs(rawBalance) < 0.005) {
           return;
