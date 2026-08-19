@@ -96,11 +96,9 @@ export default function SharedFolder() {
 
         // A file share always opens on the file itself. Folder segments stored in
         // original_filename describe where it came from, not viewer navigation.
+        // Keep its viewer root empty so folder derivation cannot leak into this mode.
         if (singleFileShare) {
-          const f = sharedFiles[0];
-          const full: string = f.relative_path || f.original_filename || '';
-          const dir = full.replace(/^\/+/, '').split('/').slice(0, -1).join('/');
-          path = dir;
+          path = '';
         }
 
         setRootPath(path);
@@ -378,14 +376,10 @@ export default function SharedFolder() {
             <div className="text-sm text-muted-foreground font-medium mb-2">Shared Files</div>
             <h1 className="text-2xl font-bold mb-2">Shared Files</h1>
             <p className="text-muted-foreground mb-3">1 file</p>
-            <div className="p-3 bg-yellow-50 border border-yellow-200 rounded-lg flex items-center justify-between gap-3">
+            <div className="p-3 bg-yellow-50 border border-yellow-200 rounded-lg">
               <p className="text-yellow-800 text-sm font-medium">
                 ⚠️ This share link expires in 7 days. Please download the file you need.
               </p>
-              <Button size="sm" variant="outline" onClick={handleDownloadAll} disabled={isDownloading}>
-                <Download className="h-4 w-4 mr-2" />
-                {isDownloading ? 'Zipping...' : 'Download All'}
-              </Button>
             </div>
           </div>
 
