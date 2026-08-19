@@ -4,7 +4,7 @@
 // instead of needing the whole file. Lossless.
 
 import { createClient } from "npm:@supabase/supabase-js@2";
-import { PDFDocument } from "https://esm.sh/pdf-lib@1.17.1";
+import { PDFDocument } from "npm:pdf-lib@1.17.1";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
