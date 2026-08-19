@@ -1613,6 +1613,16 @@ export const useBankReconciliation = () => {
   const updateBillPaymentTransaction = useMutation({
     mutationFn: async ({ id, field, value, bankAccountId, type }: { id: string; field: string; value: any; bankAccountId: string; type: 'bill_payment' | 'consolidated_bill_payment' }) => {
       if (type === 'consolidated_bill_payment') {
+        // Resolve the bills this payment settles so we can keep their journal entries in step
+        const getAllocatedBillIds = async (): Promise<string[]> => {
+          const { data: allocations, error: allocError } = await supabase
+            .from('bill_payment_allocations')
+            .select('bill_id')
+            .eq('bill_payment_id', id);
+          if (allocError) throw allocError;
+          return (allocations || []).map((a: any) => a.bill_id).filter(Boolean);
+        };
+
         if (field === 'date') {
           const { data, error } = await supabase
             .from('bill_payments')
@@ -1622,6 +1632,18 @@ export const useBankReconciliation = () => {
             .single();
           if (error) throw error;
           if (!data) throw new Error('No matching bill payment found to update');
+
+          // Keep the payment journal entries on the same date as the payment,
+          // otherwise the register and the financial statements diverge.
+          const billIds = await getAllocatedBillIds();
+          if (billIds.length > 0) {
+            const { error: jeError } = await supabase
+              .from('journal_entries')
+              .update({ entry_date: value })
+              .eq('source_type', 'bill_payment')
+              .in('source_id', billIds);
+            if (jeError) throw jeError;
+          }
         } else if (field === 'reference_number') {
           const { data, error } = await supabase
             .from('bill_payments')
@@ -1632,14 +1654,45 @@ export const useBankReconciliation = () => {
           if (error) throw error;
           if (!data) throw new Error('No matching bill payment found to update');
         } else if (field === 'amount') {
+          const newAmount = Math.round(parseFloat(value) * 100) / 100;
+          if (!Number.isFinite(newAmount)) throw new Error('Invalid amount');
+
           const { data, error } = await supabase
             .from('bill_payments')
-            .update({ total_amount: parseFloat(value) })
+            .update({ total_amount: newAmount })
             .eq('id', id)
             .select('id')
             .single();
           if (error) throw error;
           if (!data) throw new Error('No matching bill payment found to update');
+
+          // Only a single-bill payment can be re-amounted unambiguously
+          const billIds = await getAllocatedBillIds();
+          if (billIds.length === 1) {
+            const { data: jes, error: jeFetchError } = await supabase
+              .from('journal_entries')
+              .select('id')
+              .eq('source_type', 'bill_payment')
+              .eq('source_id', billIds[0]);
+            if (jeFetchError) throw jeFetchError;
+            const jeIds = (jes || []).map((j: any) => j.id);
+            if (jeIds.length === 1) {
+              // Bank side (credit) and A/P side (debit)
+              const { error: bankError } = await supabase
+                .from('journal_entry_lines')
+                .update({ credit: newAmount })
+                .eq('journal_entry_id', jeIds[0])
+                .eq('account_id', bankAccountId);
+              if (bankError) throw bankError;
+
+              const { error: apError } = await supabase
+                .from('journal_entry_lines')
+                .update({ debit: newAmount })
+                .eq('journal_entry_id', jeIds[0])
+                .neq('account_id', bankAccountId);
+              if (apError) throw apError;
+            }
+          }
         }
       } else {
         if (field === 'date') {
