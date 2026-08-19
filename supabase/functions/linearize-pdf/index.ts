@@ -3,8 +3,8 @@
 // a sequentially-laid-out PDF that PDF.js can render with HTTP Range requests
 // instead of needing the whole file. Lossless.
 
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.4";
-import { PDFDocument } from "https://esm.sh/pdf-lib@1.17.1";
+import { createClient } from "npm:@supabase/supabase-js@2";
+import { PDFDocument } from "npm:pdf-lib@1.17.1";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
