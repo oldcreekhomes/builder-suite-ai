@@ -12,6 +12,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { AccountDetailDialog } from "@/components/accounting/AccountDetailDialog";
 import { useProjectAccountNames } from "@/hooks/useProjectAccountNames";
+import { fetchAllRows } from "@/lib/supabasePaginate";
 
 interface AccountBalance {
   id: string;
@@ -48,40 +49,44 @@ export default function BalanceSheet() {
     queryKey: ['balance-sheet', user?.id, projectId],
     queryFn: async (): Promise<BalanceSheetData> => {
       console.log("🔍 Balance Sheet: Starting query with user:", user?.email, "project:", projectId || 'Old Creek Homes');
-      // Get only necessary account fields for better performance
-      const { data: accounts, error: accountsError } = await supabase
-        .from('accounts')
-        .select('id, code, name, type, is_active')
-        .eq('is_active', true)
-        .is('project_id', null);
+      const [{ data: accounts, error: accountsError }, { data: exclusions, error: exclusionsError }] = await Promise.all([
+        supabase
+          .from('accounts')
+          .select('id, code, name, type, is_active')
+          .eq('is_active', true)
+          .or(projectId ? `project_id.is.null,project_id.eq.${projectId}` : 'project_id.is.null'),
+        projectId
+          ? supabase.from('project_account_exclusions').select('account_id').eq('project_id', projectId)
+          : Promise.resolve({ data: [] as { account_id: string }[], error: null }),
+      ]);
 
       if (accountsError) {
         console.error("🔍 Balance Sheet: Accounts query failed:", accountsError);
         throw accountsError;
       }
+      if (exclusionsError) throw exclusionsError;
+      const excludedAccountIds = new Set((exclusions || []).map((row) => row.account_id));
 
       console.time('⏱️ Balance Sheet: Journal lines query');
       
       // Query journal_entry_lines filtered by project_id
       // Since we backfilled project_id for all lines in project-scoped entries,
       // this now correctly includes all lines (expense + job cost) from project journal entries
-      let journalLinesQuery = supabase
-        .from('journal_entry_lines')
-        .select('account_id, debit, credit');
-      
-      if (projectId) {
-        journalLinesQuery = journalLinesQuery.eq('project_id', projectId);
-      } else {
-        journalLinesQuery = journalLinesQuery.is('project_id', null);
-      }
+      const formattedAsOfDate = new Date().toISOString().split('T')[0];
+      const buildJournalQuery = () => {
+        let query = supabase
+          .from('journal_entry_lines')
+          .select(`account_id, debit, credit, journal_entries!inner(entry_date, reversed_at, reversed_by_id)`)
+          .lte('journal_entries.entry_date', formattedAsOfDate)
+          .eq('journal_entries.is_reversal', false)
+          .is('journal_entries.reversed_by_id', null)
+          .or(`reversed_at.is.null,reversed_at.gt.${formattedAsOfDate}`, { referencedTable: 'journal_entries' });
+        query = projectId ? query.eq('project_id', projectId) : query.is('project_id', null);
+        return query;
+      };
 
-      const { data: journalLines, error: journalError } = await journalLinesQuery;
+      const journalLines = await fetchAllRows(buildJournalQuery);
       console.timeEnd('⏱️ Balance Sheet: Journal lines query');
-      
-      if (journalError) {
-        console.error("🔍 Balance Sheet: Journal lines query failed:", journalError);
-        throw journalError;
-      }
       
       console.log(`📊 Balance Sheet: Processing ${journalLines?.length || 0} journal lines`);
 
@@ -92,7 +97,7 @@ export default function BalanceSheet() {
         if (!accountBalances[line.account_id]) {
           accountBalances[line.account_id] = 0;
         }
-        accountBalances[line.account_id] += (line.debit || 0) - (line.credit || 0);
+        accountBalances[line.account_id] += Math.round(((line.debit || 0) - (line.credit || 0)) * 100);
       });
 
       // Categorize accounts with proper balance sheet presentation
@@ -105,7 +110,20 @@ export default function BalanceSheet() {
       let expenseBalance = 0;
 
       accounts?.forEach((account) => {
-        const rawBalance = accountBalances[account.id] || 0;
+        const rawBalance = (accountBalances[account.id] || 0) / 100;
+
+        if (account.type === 'revenue') {
+          revenueBalance += -rawBalance;
+          return;
+        }
+        if (account.type === 'expense') {
+          expenseBalance += rawBalance;
+          return;
+        }
+
+        if (projectId && excludedAccountIds.has(account.id) && Math.abs(rawBalance) < 0.005) {
+          return;
+        }
         
         // Apply proper accounting sign conventions for balance sheet presentation
         let displayBalance = rawBalance;
@@ -150,15 +168,6 @@ export default function BalanceSheet() {
             equity.push(equityBalance);
             break;
             
-          case 'revenue':
-            // Revenue accounts (credit normal) - accumulate for retained earnings
-            revenueBalance += -rawBalance; // Convert to positive for revenue
-            break;
-            
-          case 'expense':
-            // Expense accounts (debit normal) - accumulate for retained earnings
-            expenseBalance += rawBalance;
-            break;
         }
       });
 
@@ -205,6 +214,9 @@ export default function BalanceSheet() {
       };
     },
     enabled: !!user && !!session && !authLoading, // Only run when authenticated
+    refetchOnMount: 'always',
+    refetchOnWindowFocus: 'always',
+    refetchInterval: 15000,
     retry: (failureCount, error: any) => {
       // Don't retry RLS policy violations (usually means auth issue)
       if (error?.code === 'PGRST301' || error?.message?.includes('row-level security')) {
