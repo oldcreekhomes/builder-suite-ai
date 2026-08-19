@@ -91,7 +91,14 @@ export default function SharedFolder() {
 
         const sharedFiles = Array.isArray(data.files) ? data.files : [];
         const sharedFolders = Array.isArray(data.folders) ? data.folders : [];
-        const singleFileShare = shareData.share_type === 'file' && sharedFiles.length === 1;
+        const singleFileShare = shareData.share_type === 'file';
+
+        if (singleFileShare && sharedFiles.length !== 1) {
+          setError('This file share is invalid');
+          setLoading(false);
+          return;
+        }
+
         setIsSingleFileShare(singleFileShare);
 
         // A file share always opens on the file itself. Folder segments stored in
@@ -104,15 +111,18 @@ export default function SharedFolder() {
         setRootPath(path);
         setCurrentPath(path);
 
-        if (sharedFiles.length > 0) {
+        if (singleFileShare) {
+          const sharedFile = sharedFiles[0];
+          const fileName = (sharedFile.relative_path || sharedFile.original_filename || '').split('/').pop()
+            || sharedFile.original_filename;
+
           setShareType('files');
-          setFiles(singleFileShare
-            ? sharedFiles.map((file) => ({
-                ...file,
-                relative_path: (file.relative_path || file.original_filename || '').split('/').pop() || file.original_filename,
-              }))
-            : sharedFiles);
-          setFolders(singleFileShare ? [] : sharedFolders);
+          setFiles([{ ...sharedFile, original_filename: fileName, relative_path: fileName }]);
+          setFolders([]);
+        } else if (sharedFiles.length > 0) {
+          setShareType('files');
+          setFiles(sharedFiles);
+          setFolders(sharedFolders);
         } else if (data.folders && data.folders.length > 0) {
 
           setShareType('files');
