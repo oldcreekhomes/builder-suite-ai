@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo, ReactNode } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { fetchAllRows } from "@/lib/supabasePaginate";
 import { useAuth } from "@/hooks/useAuth";
@@ -48,6 +48,7 @@ interface BalanceSheetContentProps {
 
 export function BalanceSheetContent({ projectId, onHeaderActionChange, asOfDate, onAsOfDateChange }: BalanceSheetContentProps) {
   const { user, session, loading: authLoading } = useAuth();
+  const queryClient = useQueryClient();
   const [selectedAccount, setSelectedAccount] = useState<AccountBalance | null>(null);
   const [expandedAccounts, setExpandedAccounts] = useState<Set<string>>(new Set());
   const { data: nameOverrides } = useProjectAccountNames(projectId);
@@ -133,7 +134,7 @@ export function BalanceSheetContent({ projectId, onHeaderActionChange, asOfDate,
         if (!accountBalances[line.account_id]) {
           accountBalances[line.account_id] = 0;
         }
-        accountBalances[line.account_id] += (line.debit || 0) - (line.credit || 0);
+        accountBalances[line.account_id] += Math.round(((line.debit || 0) - (line.credit || 0)) * 100);
       });
 
 
@@ -145,17 +146,29 @@ export function BalanceSheetContent({ projectId, onHeaderActionChange, asOfDate,
       let expenseBalance = 0;
 
       accounts?.forEach((account) => {
+        const rawBalance = (accountBalances[account.id] || 0) / 100;
+
+        // Revenue and expense accounts are not displayed on the Balance Sheet,
+        // but their activity must always flow into Current Year Earnings. A
+        // project exclusion controls visibility, not the accounting equation.
+        if (account.type === 'revenue') {
+          revenueBalance += -rawBalance;
+          return;
+        }
+        if (account.type === 'expense') {
+          expenseBalance += rawBalance;
+          return;
+        }
+
         // For balance-sheet accounts, only honor exclusion if the account has no activity.
         // Hiding a non-zero asset/liability/equity would break Assets = Liabilities + Equity.
-        const rawBal = accountBalances[account.id] || 0;
         if (
           projectId &&
           excludedAccountIds.has(account.id) &&
-          (account.type === 'revenue' || account.type === 'expense' || Math.abs(rawBal) < 0.005)
+          Math.abs(rawBalance) < 0.005
         ) {
           return;
         }
-        const rawBalance = accountBalances[account.id] || 0;
         let displayBalance = rawBalance;
         
         switch (account.type) {
@@ -198,13 +211,6 @@ export function BalanceSheetContent({ projectId, onHeaderActionChange, asOfDate,
             equity.push(equityBalance);
             break;
             
-          case 'revenue':
-            revenueBalance += -rawBalance;
-            break;
-            
-          case 'expense':
-            expenseBalance += rawBalance;
-            break;
         }
       });
 
@@ -240,6 +246,9 @@ export function BalanceSheetContent({ projectId, onHeaderActionChange, asOfDate,
       };
     },
     enabled: !!user && !!session && !authLoading,
+    refetchOnMount: 'always',
+    refetchOnWindowFocus: 'always',
+    refetchInterval: 15000,
     retry: (failureCount, error: any) => {
       if (error?.code === 'PGRST301' || error?.message?.includes('row-level security')) {
         console.error("🔍 Balance Sheet: RLS policy violation, user needs to re-authenticate");
@@ -248,6 +257,24 @@ export function BalanceSheetContent({ projectId, onHeaderActionChange, asOfDate,
       return failureCount < 3;
     }
   });
+
+  useEffect(() => {
+    if (!projectId || !user || !session) return;
+
+    const refreshBalanceSheet = () => {
+      queryClient.invalidateQueries({ queryKey: ['balance-sheet', user.id, projectId] });
+    };
+
+    const channel = supabase
+      .channel(`balance-sheet-${projectId}`)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'journal_entry_lines', filter: `project_id=eq.${projectId}` }, refreshBalanceSheet)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'journal_entries' }, refreshBalanceSheet)
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [projectId, queryClient, session, user]);
 
   const applyOverrides = (list: AccountBalance[] | undefined): AccountBalance[] =>
     (list || []).map((a) => ({ ...a, name: nameOverrides?.get(a.id) ?? a.name }));

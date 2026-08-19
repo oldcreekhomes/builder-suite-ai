@@ -202,7 +202,7 @@ export function SendReportsDialog({ projectId, open, onOpenChange }: SendReports
           if (!accountBalances[line.account_id]) {
             accountBalances[line.account_id] = 0;
           }
-          accountBalances[line.account_id] += (line.debit || 0) - (line.credit || 0);
+          accountBalances[line.account_id] += Math.round(((line.debit || 0) - (line.credit || 0)) * 100);
         });
 
         const assets: { current: any[], fixed: any[] } = { current: [], fixed: [] };
@@ -212,18 +212,29 @@ export function SendReportsDialog({ projectId, open, onOpenChange }: SendReports
         let expenseBalance = 0;
 
         accounts?.forEach((account: any) => {
-          const rawBal = accountBalances[account.id] || 0;
-          // Only honor exclusion for balance-sheet accounts when balance is ~0;
-          // always drop excluded revenue/expense (matches on-screen).
+          const rawBalance = (accountBalances[account.id] || 0) / 100;
+
+          // Exclusions control report visibility only. Revenue and expense
+          // activity must always be included in Current Year Earnings so the
+          // emailed Balance Sheet preserves the accounting equation.
+          if (account.type === 'revenue') {
+            revenueBalance += -rawBalance;
+            return;
+          }
+          if (account.type === 'expense') {
+            expenseBalance += rawBalance;
+            return;
+          }
+
+          // Only hide an excluded balance-sheet account when it has no activity.
           if (
             projectId &&
             excludedAccountIds.has(account.id) &&
-            (account.type === 'revenue' || account.type === 'expense' || Math.abs(rawBal) < 0.005)
+            Math.abs(rawBalance) < 0.005
           ) {
             return;
           }
 
-          const rawBalance = rawBal;
           switch (account.type) {
             case 'asset':
               assets.current.push({
@@ -248,12 +259,6 @@ export function SendReportsDialog({ projectId, open, onOpenChange }: SendReports
                 name: account.name,
                 balance: -rawBalance,
               });
-              break;
-            case 'revenue':
-              revenueBalance += -rawBalance;
-              break;
-            case 'expense':
-              expenseBalance += rawBalance;
               break;
           }
         });
