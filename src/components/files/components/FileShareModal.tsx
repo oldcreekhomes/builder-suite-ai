@@ -46,31 +46,7 @@ export function FileShareModal({ isOpen, onClose, file }: FileShareModalProps) {
       const userId = userData.user?.id;
       if (!userId) throw new Error('You must be logged in to generate a share link.');
       
-      // Check for existing valid share link for this file
-      const { data: existingShare, error: existingError } = await supabase
-        .from('shared_links')
-        .select('share_id, expires_at')
-        .eq('share_type', 'file')
-        .gt('expires_at', new Date().toISOString())
-        .contains('data', { files: [{ id: file.id }] })
-        .order('created_at', { ascending: false })
-        .limit(1)
-        .maybeSingle();
-
-      if (!existingError && existingShare) {
-        // Reuse existing valid link
-        const baseUrl = 'https://nlmnwlvmmkngrgatnzkj.supabase.co/functions/v1/share-redirect';
-        const shareUrl = `${baseUrl}?id=${existingShare.share_id}&type=f`;
-        setShareLink(shareUrl);
-        setIsGeneratingLink(false);
-        toast({
-          title: "Link Retrieved",
-          description: "Using existing shareable link",
-        });
-        return;
-      }
-      
-      // Create a unique share ID
+      // Every Share File action creates a fresh seven-day link for this exact file.
       const shareId = Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15);
       
       // Store the share data in Supabase database
