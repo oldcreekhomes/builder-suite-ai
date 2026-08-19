@@ -251,7 +251,6 @@ export function BalanceSheetContent({ projectId, onHeaderActionChange, asOfDate,
     enabled: !!user && !!session && !authLoading,
     refetchOnMount: 'always',
     refetchOnWindowFocus: 'always',
-    refetchInterval: 15000,
     retry: (failureCount, error: any) => {
       if (error?.code === 'PGRST301' || error?.message?.includes('row-level security')) {
         console.error("🔍 Balance Sheet: RLS policy violation, user needs to re-authenticate");
