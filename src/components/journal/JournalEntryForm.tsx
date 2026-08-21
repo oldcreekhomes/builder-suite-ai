@@ -485,12 +485,22 @@ export const JournalEntryForm = ({ projectId, activeTab: parentActiveTab }: Jour
     createNewEntry();
   };
 
+  const isSavingRef = useRef(false);
+
   const handleSubmit = async (mode: 'close' | 'new' | 'stay' = 'new') => {
+    // Prevent duplicate inserts from rapid/double clicks
+    if (isSavingRef.current) {
+      console.warn('Save already in progress, ignoring duplicate submit');
+      return;
+    }
     // Check for missing selections before submitting (safety check, button should be disabled)
     if (totals.missingSelections > 0) {
       console.warn('Cannot submit: Missing selections for lines with amounts');
       return;
     }
+    isSavingRef.current = true;
+    try {
+
 
     const allLines = [...expenseLines, ...jobCostLines];
     const journalLines = allLines
