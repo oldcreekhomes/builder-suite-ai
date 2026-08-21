@@ -1,25 +1,34 @@
-# Reallocate Family Fire Services bill 1968 to 2401 A/B/C
+# Swap lot allocation on the two Family Fire Services bills
 
-The $10,980 Family Fire Services invoice (ref 1968, bill date 05/28/26, 4530: Plumbing) at 2401 N Potomac is allocated to 2405 A, 2405 B and 2405 C. It belongs on 2401 A/B/C, split evenly.
-
-The other Family Fire invoice on that screen (ref 2219, $9,600) is already correctly on 2401 A/B/C, so it is untouched.
+Both Family Fire Services invoices at 2401 N Potomac are pointed at the wrong addresses. They need to swap.
 
 ## What changes
 
-| Line | Now | After |
-| --- | --- | --- |
-| 1 | 2405 A — $3,660.00 | 2401 A — $3,660.00 |
-| 2 | 2405 B — $3,660.00 | 2401 B — $3,660.00 |
-| 3 | 2405 C — $3,660.00 | 2401 C — $3,660.00 |
+Invoice 1968 — $10,980.00, bill date 05/28/26, 4530: Plumbing
 
-Amounts are already an even split, so only the address changes. Total stays $10,980.00; status, dates, vendor, cost code, PO match and attachments are untouched.
+| Now | After |
+| --- | --- |
+| 2405 A — $3,660.00 | 2401 A — $3,660.00 |
+| 2405 B — $3,660.00 | 2401 B — $3,660.00 |
+| 2405 C — $3,660.00 | 2401 C — $3,660.00 |
+
+Invoice 2219 — $9,600.00, bill date 07/21/26, 4530: Plumbing
+
+| Now | After |
+| --- | --- |
+| 2401 A — $3,200.00 | 2405 A — $3,200.00 |
+| 2401 B — $3,200.00 | 2405 B — $3,200.00 |
+| 2401 C — $3,200.00 | 2405 C — $3,200.00 |
+
+Both are already even splits, so only the address changes. Totals, status, dates, vendor, cost code, PO match and attachments are untouched.
 
 ## Technical details
 
-Data-only update (no code changes), scoped to bill `9e2d4956-…`:
+Data-only update, no code changes:
 
-1. Repoint the three `bill_lines` rows' `lot_id` to the 2401 A/B/C lot ids.
-2. Repoint the three matching debit lines on the bill's journal entry `ddc7cecf-…` (dated 05/28/26) to the same lots. The $10,980 A/P credit line has no lot, so the entry stays balanced.
-3. Verify: bill total = sum of lines = $10,980.00, journal debits = credits, and the PO Status hover lists 2401 A/B/C.
+1. Bill `9e2d4956-…` (ref 1968): repoint its three `bill_lines` and the three debit lines on journal entry `ddc7cecf-…` (05/28/26) to the 2401 A/B/C lot ids.
+2. Bill `81e57d96-…` (ref 2219): repoint its three `bill_lines` and the three debit lines on journal entry `c37b3e09-…` (07/21/26) to the 2405 A/B/C lot ids.
+3. The A/P credit line on each entry carries no lot, so both entries stay balanced.
+4. Verify: each bill total still equals the sum of its lines ($10,980.00 / $9,600.00), debits equal credits, and the PO Status hover shows the new addresses.
 
-Other bills at this project that use 2405 A/B/C are left alone — those addresses are still valid lots on the project.
+Other bills at this project using 2405 A/B/C are left alone — those are valid lots.
