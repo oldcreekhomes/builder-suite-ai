@@ -485,12 +485,22 @@ export const JournalEntryForm = ({ projectId, activeTab: parentActiveTab }: Jour
     createNewEntry();
   };
 
+  const isSavingRef = useRef(false);
+
   const handleSubmit = async (mode: 'close' | 'new' | 'stay' = 'new') => {
+    // Prevent duplicate inserts from rapid/double clicks
+    if (isSavingRef.current) {
+      console.warn('Save already in progress, ignoring duplicate submit');
+      return;
+    }
     // Check for missing selections before submitting (safety check, button should be disabled)
     if (totals.missingSelections > 0) {
       console.warn('Cannot submit: Missing selections for lines with amounts');
       return;
     }
+    isSavingRef.current = true;
+    try {
+
 
     const allLines = [...expenseLines, ...jobCostLines];
     const journalLines = allLines
@@ -531,6 +541,14 @@ export const JournalEntryForm = ({ projectId, activeTab: parentActiveTab }: Jour
       if (newEntry?.id) {
         await finalizePendingAttachments(newEntry.id);
       }
+
+      // Latch onto the newly created entry so a second save updates it
+      // instead of inserting another duplicate entry.
+      if (mode === 'stay' && newEntry?.id) {
+        setCurrentJournalEntryId(newEntry.id);
+        setViewedEntryId(newEntry.id);
+        setIsViewingMode(true);
+      }
     }
 
     // Handle navigation based on mode
@@ -540,7 +558,11 @@ export const JournalEntryForm = ({ projectId, activeTab: parentActiveTab }: Jour
       createNewEntry();
     }
     // 'stay' mode: just show success toast, don't navigate or clear
+    } finally {
+      isSavingRef.current = false;
+    }
   };
+
 
   const isValid = totals.isBalanced && totals.missingSelections === 0;
 
