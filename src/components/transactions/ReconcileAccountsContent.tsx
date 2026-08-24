@@ -253,6 +253,7 @@ export function ReconcileAccountsContent({ projectId }: ReconcileAccountsContent
   const [uncheckedWarningDialogOpen, setUncheckedWarningDialogOpen] = useState(false);
   const [uncheckedWarningMessage, setUncheckedWarningMessage] = useState("");
   const [discardDialogOpen, setDiscardDialogOpen] = useState(false);
+  const [pendingAccountSwitchId, setPendingAccountSwitchId] = useState<string | null>(null);
   const [reconciliationToDiscard, setReconciliationToDiscard] = useState<any>(null);
 
   const {
@@ -1127,6 +1128,25 @@ export function ReconcileAccountsContent({ projectId }: ReconcileAccountsContent
     }
   };
 
+  // Switch the selected bank account, resetting on-screen reconciliation state.
+  // The saved in-progress record for the previous account is left untouched.
+  const switchBankAccount = (accountId: string) => {
+    setSelectedBankAccountId(accountId);
+    setEndingBalance("");
+    endingBalanceRef.current = "";
+    setNotes("");
+    notesRef.current = "";
+    setCheckedTransactions(new Set());
+    checkedTransactionsRef.current = new Set();
+    setCurrentReconciliationId(null);
+    currentReconciliationIdRef.current = null;
+    setIsReconciliationMode(false);
+    setInitialCheckedTransactionsLoaded(false);
+    setHasLoadedFromDatabase(false);
+    isRestoredRef.current = false;
+    hasUnsavedChangesRef.current = false;
+  };
+
   return (
     <div className="space-y-4">
       <Card className="p-6">
@@ -1137,13 +1157,13 @@ export function ReconcileAccountsContent({ projectId }: ReconcileAccountsContent
             <Select
               value={selectedBankAccountId || ""}
               onValueChange={(value) => {
-                setSelectedBankAccountId(value || null);
-                setEndingBalance("");
-                setNotes("");
-                setCheckedTransactions(new Set());
-                setIsReconciliationMode(false);
+                if (!value || value === selectedBankAccountId) return;
+                if (isReconciliationMode) {
+                  setPendingAccountSwitchId(value);
+                  return;
+                }
+                switchBankAccount(value);
               }}
-              disabled={isReconciliationMode}
             >
               <SelectTrigger className="w-full mt-1">
                 <SelectValue placeholder="Select an account..." />
@@ -1825,6 +1845,33 @@ export function ReconcileAccountsContent({ projectId }: ReconcileAccountsContent
               disabled={discardReconciliation.isPending}
             >
               {discardReconciliation.isPending ? "Discarding..." : "Discard Reconciliation"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* Switch Account Confirmation Dialog */}
+      <AlertDialog
+        open={!!pendingAccountSwitchId}
+        onOpenChange={(open) => !open && setPendingAccountSwitchId(null)}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Switch accounts?</AlertDialogTitle>
+            <AlertDialogDescription>
+              You have a reconciliation in progress on this account. Your saved progress stays
+              intact — you can come back to this account later and pick up where you left off.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => {
+                if (pendingAccountSwitchId) switchBankAccount(pendingAccountSwitchId);
+                setPendingAccountSwitchId(null);
+              }}
+            >
+              Switch Account
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
