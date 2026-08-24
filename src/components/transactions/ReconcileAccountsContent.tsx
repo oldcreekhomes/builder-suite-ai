@@ -253,6 +253,7 @@ export function ReconcileAccountsContent({ projectId }: ReconcileAccountsContent
   const [uncheckedWarningDialogOpen, setUncheckedWarningDialogOpen] = useState(false);
   const [uncheckedWarningMessage, setUncheckedWarningMessage] = useState("");
   const [discardDialogOpen, setDiscardDialogOpen] = useState(false);
+  const [pendingAccountSwitchId, setPendingAccountSwitchId] = useState<string | null>(null);
   const [reconciliationToDiscard, setReconciliationToDiscard] = useState<any>(null);
 
   const {
