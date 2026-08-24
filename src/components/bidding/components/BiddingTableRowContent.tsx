@@ -104,8 +104,7 @@ export function BiddingTableRowContent({
             <SelectValue />
           </SelectTrigger>
           <SelectContent className="bg-white border shadow-md z-50">
-            <SelectItem value="draft">Draft</SelectItem>
-            <SelectItem value="sent">Sent</SelectItem>
+<SelectItem value="draft">Draft</SelectItem>
             <SelectItem value="closed">Closed</SelectItem>
           </SelectContent>
         </Select>
