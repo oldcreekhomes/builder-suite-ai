@@ -54,6 +54,6 @@ QuickBooks 4160 Permits & County Fees ($95.00) has no app equivalent, so it fold
 ## Technical details
 
 - Delete the 19 uncoded WIP lines on journal entry `d6b83ca9...` and insert 779 replacement lines (41 codes x 19 lots), account 1430, project Nob Hill, same memo.
-- Per-code split: `floor(amount/19)` to cents on lots 1-18, remainder on lot 19, so each code sums exactly.
+- Per-code split: each cost code's amount is divided by 19 evenly, rounded to cents on lots 1-18, with the last lot absorbing the rounding remainder so every code sums exactly.
 - Entry stays balanced at 1,954,000.00 debits = credits; the 1010 line keeps its cleared flag against the 03/31 opening reconciliation.
 - Verification after the change: sum of WIP lines = 1,921,591.33, per-code totals match the report line for line, and the Job Costs screen shows each code across all 19 lots.
