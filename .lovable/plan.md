@@ -13,19 +13,20 @@ So: the bid package invitation was never sent through the app's Send Bid Package
 
 Short answer for you: the original invitation was **not** sent from the app. Vendors only got reminder emails.
 
-## Proposed fixes
+## The fix
 
-1. Stop the Status dropdown from silently faking a send.
-   - Remove "Sent" as a manually selectable status (leave Draft / Closed and let sends drive "Sent"), or require confirmation and record that it was set manually rather than emailed.
+1. "Sent" becomes system-only.
+   - Remove "Sent" from the manual Status dropdown everywhere (package details modal and the bidding table row). Users can still set Draft and Closed; "Sent" is set only by the real Send Bid Package / Send to single company flow.
+   - Any package already sitting at "Sent" keeps displaying "Sent" — this only blocks setting it by hand going forward.
 
-2. Don't let the reminder job email vendors who were never invited.
-   - Skip a vendor in `send-bid-reminders` when that vendor has no per-vendor send timestamp, so reminders can never precede an invitation.
+2. Reminders can never precede an invitation.
+   - In `send-bid-reminders`, skip vendors with no per-vendor send timestamp, so a vendor who was never invited never gets a "Bid Coming Due" email.
 
-3. Make the send stamp reliable and visible.
-   - Check the result of the per-vendor and package stamp writes after the send email succeeds and surface a warning if either fails, instead of silently leaving "Not sent".
-   - Show a clear "Sent to 0 of 3 vendors" style indicator on the package header so a package marked Sent with no vendor sends is obvious at a glance.
+3. Make a broken send obvious.
+   - Error-check the package and per-vendor stamp writes after a successful send email and warn the user if a stamp fails, instead of silently leaving "Not sent".
+   - Show "Sent to X of Y vendors" on the package header so a Sent package with zero vendor sends is visible at a glance.
 
-4. Immediate action for this package: send the 4730 - Appliances invitation to M & M Appliance and ABW Appliances (and Bray and Scarff if you want them re-invited) through Send Bid Package so the real dates get recorded.
+4. Immediate action for this package: send the 4730 - Appliances invitation to M & M Appliance and ABW Appliances (and Bray and Scarff if you want them re-invited) through Send Bid Package so real dates get recorded.
 
 ## Technical notes
 
