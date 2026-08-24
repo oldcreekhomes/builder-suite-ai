@@ -221,8 +221,8 @@ export function BidPackageDetailsModal({
                 <SelectTrigger className="h-9 w-full">
                   <SelectValue placeholder="Status" />
                 </SelectTrigger>
-                <SelectContent>
-<SelectItem value="draft">Draft</SelectItem>
+<SelectContent>
+                  <SelectItem value="draft">Draft</SelectItem>
                   <SelectItem value="closed">Closed</SelectItem>
                 </SelectContent>
               </Select>
