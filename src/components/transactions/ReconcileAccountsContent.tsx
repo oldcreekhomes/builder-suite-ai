@@ -1128,6 +1128,25 @@ export function ReconcileAccountsContent({ projectId }: ReconcileAccountsContent
     }
   };
 
+  // Switch the selected bank account, resetting on-screen reconciliation state.
+  // The saved in-progress record for the previous account is left untouched.
+  const switchBankAccount = (accountId: string) => {
+    setSelectedBankAccountId(accountId);
+    setEndingBalance("");
+    endingBalanceRef.current = "";
+    setNotes("");
+    notesRef.current = "";
+    setCheckedTransactions(new Set());
+    checkedTransactionsRef.current = new Set();
+    setCurrentReconciliationId(null);
+    currentReconciliationIdRef.current = null;
+    setIsReconciliationMode(false);
+    setInitialCheckedTransactionsLoaded(false);
+    setHasLoadedFromDatabase(false);
+    isRestoredRef.current = false;
+    hasUnsavedChangesRef.current = false;
+  };
+
   return (
     <div className="space-y-4">
       <Card className="p-6">
