@@ -13,7 +13,7 @@ Date 03/31/2026, project 100 Nob Hill Ct, description "Opening Balance - QuickBo
 | 1430 WIP - Direct Construction Costs (19 lot lines) | 1,921,591.33 | |
 | 2530.1 Loan Land - Russell Trust | | 903,000.00 |
 | 2530.2 Loan Land - McVeigh 2nd Trust | | 320,000.00 |
-| 2905 Equity - OCH | | 731,000.00 |
+| 2905.1 Equity Partner #1 | | 731,000.00 |
 | **Total** | **1,954,000.00** | **1,954,000.00** |
 
 Accounts Payable is 0.00, so no line is needed.
