@@ -1178,47 +1178,19 @@ export function ReconcileAccountsContent({ projectId }: ReconcileAccountsContent
             </Select>
           </div>
 
-          <div className="lg:col-span-2">
+<div className="lg:col-span-2">
             <Label>Statement Date</Label>
-            <Popover>
-              <PopoverTrigger asChild>
-                <Button
-                  variant="outline"
-                  disabled={!selectedBankAccountId || isReconciliationMode}
-                  className={cn(
-                    "w-full justify-start text-left font-normal mt-1",
-                    !statementDate && "text-muted-foreground"
-                  )}
-                >
-                  <CalendarIcon className="mr-2 h-4 w-4" />
-                  {statementDate ? format(statementDate, "PP") : "Pick a date"}
-                </Button>
-              </PopoverTrigger>
-              <PopoverContent className="w-auto p-0">
-                <Calendar
-                  mode="single"
-                  selected={statementDate}
-                  onSelect={(date) => { if (date) setStatementDate(date); }}
-                  defaultMonth={statementDate}
-                  initialFocus
-                  className={cn("p-3 pointer-events-auto")}
-                  disabled={(date) => {
-                    // Disable dates on or before the last completed reconciliation
-                    if (lastCompletedDate) {
-                      // Normalize both to start of day in local timezone for accurate comparison
-                      const dateOnly = new Date(date.getFullYear(), date.getMonth(), date.getDate());
-                      const lastOnly = new Date(
-                        lastCompletedDate.getFullYear(), 
-                        lastCompletedDate.getMonth(), 
-                        lastCompletedDate.getDate()
-                      );
-                      return dateOnly <= lastOnly;
-                    }
-                    return false;
-                  }}
-                />
-              </PopoverContent>
-            </Popover>
+            <Button
+              variant="outline"
+              disabled
+              className={cn(
+                "w-full justify-start text-left font-normal mt-1",
+                !statementDate && "text-muted-foreground"
+              )}
+            >
+              <CalendarIcon className="mr-2 h-4 w-4" />
+              {statementDate ? format(statementDate, "PP") : "Pick a date"}
+            </Button>
           </div>
 
           <div className="lg:col-span-2">
