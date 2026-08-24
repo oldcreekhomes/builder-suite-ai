@@ -81,13 +81,14 @@ const handler = async (req: Request): Promise<Response> => {
             construction_manager,
             region
           ),
-          project_bids!inner (
+project_bids!inner (
             id,
             company_id,
             bid_status,
             price,
             proposals,
             reminder_sent_at,
+            email_sent_at,
             companies!inner (
               id,
               company_name,
