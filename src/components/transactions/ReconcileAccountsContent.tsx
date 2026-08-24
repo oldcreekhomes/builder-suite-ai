@@ -1138,13 +1138,13 @@ export function ReconcileAccountsContent({ projectId }: ReconcileAccountsContent
             <Select
               value={selectedBankAccountId || ""}
               onValueChange={(value) => {
-                setSelectedBankAccountId(value || null);
-                setEndingBalance("");
-                setNotes("");
-                setCheckedTransactions(new Set());
-                setIsReconciliationMode(false);
+                if (!value || value === selectedBankAccountId) return;
+                if (isReconciliationMode) {
+                  setPendingAccountSwitchId(value);
+                  return;
+                }
+                switchBankAccount(value);
               }}
-              disabled={isReconciliationMode}
             >
               <SelectTrigger className="w-full mt-1">
                 <SelectValue placeholder="Select an account..." />
