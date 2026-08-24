@@ -47,13 +47,13 @@ Your QuickBooks 4000-series numbers do not match the app's cost codes, so these 
 
 The 1000/2000/3000 series codes match one-for-one, so they post as-is.
 
-## One open question
+## Permit fees
 
-**QuickBooks 4160 Permits & County Fees ($95.00) has no matching cost code in the app.** Tell me where it should go — 3060 Permits & Fees, 2120 Permit Fees, or a new 4160 cost code. I'll hold that $95 until you say.
+QuickBooks 4160 Permits & County Fees ($95.00) has no app equivalent, so it folds into **2120 Permit Fees** as you asked.
 
 ## Technical details
 
-- Delete the 19 uncoded WIP lines on journal entry `d6b83ca9...` and insert 798 replacement lines (42 codes x 19 lots), account 1430, project Nob Hill, same memo.
+- Delete the 19 uncoded WIP lines on journal entry `d6b83ca9...` and insert 779 replacement lines (41 codes x 19 lots), account 1430, project Nob Hill, same memo.
 - Per-code split: `floor(amount/19)` to cents on lots 1-18, remainder on lot 19, so each code sums exactly.
 - Entry stays balanced at 1,954,000.00 debits = credits; the 1010 line keeps its cleared flag against the 03/31 opening reconciliation.
 - Verification after the change: sum of WIP lines = 1,921,591.33, per-code totals match the report line for line, and the Job Costs screen shows each code across all 19 lots.
