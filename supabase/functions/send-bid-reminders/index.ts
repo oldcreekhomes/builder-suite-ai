@@ -117,9 +117,15 @@ project_bids!inner (
         for (const bid of pkg.project_bids as any[]) {
           const companyName = bid.companies.company_name;
           
-          // Skip if they said NO (will_not_bid)
+// Skip if they said NO (will_not_bid)
           if (bid.bid_status === 'will_not_bid') {
             console.log(`  ⏭️ Skipping ${companyName} - they declined (will_not_bid)`);
+            continue;
+          }
+          
+          // Skip if they were never actually invited (no send timestamp)
+          if (!bid.email_sent_at) {
+            console.log(`  ⏭️ Skipping ${companyName} - never invited (no email_sent_at)`);
             continue;
           }
           
