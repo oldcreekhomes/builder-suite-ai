@@ -52,6 +52,7 @@ export const JournalEntryForm = ({ projectId, activeTab: parentActiveTab }: Jour
   const { createManualJournalEntry, updateManualJournalEntry, deleteManualJournalEntry, journalEntries, isLoading } = useJournalEntries();
   const { isDateLocked, latestClosedDate } = useClosedPeriodCheck(projectId);
   const { lots } = useLots(projectId);
+  const { data: accountNameOverrides } = useProjectAccountNames(projectId);
   const showAddressColumn = lots.length > 1;
   const [entryDate, setEntryDate] = useState<Date>(new Date());
   const [description, setDescription] = useState("");
