@@ -9,6 +9,7 @@ import { DateInputPicker } from "@/components/ui/date-input-picker";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Textarea } from "@/components/ui/textarea";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import { useProjectAccountNames, resolveAccountName } from "@/hooks/useProjectAccountNames";
 import { AccountSearchInput } from "@/components/AccountSearchInput";
 import { JobSearchInput } from "@/components/JobSearchInput";
 import { CostCodeSearchInput } from "@/components/CostCodeSearchInput";
