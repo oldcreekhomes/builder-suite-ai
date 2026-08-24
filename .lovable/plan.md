@@ -26,7 +26,7 @@ Short answer for you: the original invitation was **not** sent from the app. Ven
    - Error-check the package and per-vendor stamp writes after a successful send email and warn the user if a stamp fails, instead of silently leaving "Not sent".
    - Show "Sent to X of Y vendors" on the package header so a Sent package with zero vendor sends is visible at a glance.
 
-4. Immediate action for this package: send the 4730 - Appliances invitation to M & M Appliance and ABW Appliances (and Bray and Scarff if you want them re-invited) through Send Bid Package so real dates get recorded.
+4. Immediate action for this package: send the 4730 - Appliances invitation to M & M Appliance and ABW Appliances (and Bray and Scarff if you want them re-invited) through Send Bid Package so real dates get recorded.  PLACEHOLDER
 
 ## Technical notes
 
