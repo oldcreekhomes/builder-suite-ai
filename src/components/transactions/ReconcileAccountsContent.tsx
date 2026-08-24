@@ -1850,6 +1850,33 @@ export function ReconcileAccountsContent({ projectId }: ReconcileAccountsContent
         </AlertDialogContent>
       </AlertDialog>
 
+      {/* Switch Account Confirmation Dialog */}
+      <AlertDialog
+        open={!!pendingAccountSwitchId}
+        onOpenChange={(open) => !open && setPendingAccountSwitchId(null)}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Switch accounts?</AlertDialogTitle>
+            <AlertDialogDescription>
+              You have a reconciliation in progress on this account. Your saved progress stays
+              intact — you can come back to this account later and pick up where you left off.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => {
+                if (pendingAccountSwitchId) switchBankAccount(pendingAccountSwitchId);
+                setPendingAccountSwitchId(null);
+              }}
+            >
+              Switch Account
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
       {/* Unchecked Transactions Warning Dialog */}
       <AlertDialog open={uncheckedWarningDialogOpen} onOpenChange={setUncheckedWarningDialogOpen}>
         <AlertDialogContent>
