@@ -81,13 +81,14 @@ const handler = async (req: Request): Promise<Response> => {
             construction_manager,
             region
           ),
-          project_bids!inner (
+project_bids!inner (
             id,
             company_id,
             bid_status,
             price,
             proposals,
             reminder_sent_at,
+            email_sent_at,
             companies!inner (
               id,
               company_name,
@@ -119,6 +120,12 @@ const handler = async (req: Request): Promise<Response> => {
           // Skip if they said NO (will_not_bid)
           if (bid.bid_status === 'will_not_bid') {
             console.log(`  ⏭️ Skipping ${companyName} - they declined (will_not_bid)`);
+            continue;
+          }
+          
+          // Skip if they were never actually invited (no send timestamp)
+          if (!bid.email_sent_at) {
+            console.log(`  ⏭️ Skipping ${companyName} - never invited (no email_sent_at)`);
             continue;
           }
           
