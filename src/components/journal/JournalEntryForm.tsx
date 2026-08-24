@@ -379,7 +379,9 @@ export const JournalEntryForm = ({ projectId, activeTab: parentActiveTab }: Jour
         id: crypto.randomUUID(),
         line_type: line.cost_code_id ? 'job_cost' : 'expense' as 'expense' | 'job_cost',
         account_id: line.account_id || "",
-        account_display: line.accounts ? `${line.accounts.code} - ${line.accounts.name}` : "",
+        account_display: line.accounts
+          ? `${line.accounts.code} - ${resolveAccountName({ id: line.account_id, name: line.accounts.name }, accountNameOverrides)}`
+          : "",
         cost_code_id: line.cost_code_id || "",
         cost_code_display: line.cost_codes ? `${line.cost_codes.code} - ${line.cost_codes.name}` : "",
         debit: line.debit?.toString() || "",
