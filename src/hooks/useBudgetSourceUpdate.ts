@@ -28,6 +28,12 @@ export function useBudgetSourceUpdate(projectId: string) {
         updateData.historical_project_id = params.historicalProjectId;
         updateData.historical_lot_id = params.historicalLotId || null;
         updateData.selected_bid_id = null;
+        if (params.manualQuantity !== undefined && params.manualQuantity !== null) {
+          updateData.quantity = params.manualQuantity;
+        }
+        if (params.manualUnitPrice !== undefined && params.manualUnitPrice !== null) {
+          updateData.unit_price = params.manualUnitPrice;
+        }
       } else if (params.source === 'vendor-bid') {
         updateData.historical_project_id = null;
       } else if (params.source === 'manual') {

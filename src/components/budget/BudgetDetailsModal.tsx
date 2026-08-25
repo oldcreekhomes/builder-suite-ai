@@ -561,9 +561,21 @@ export function BudgetDetailsModal({
 
   // Historical cost for current cost code
   const rawHistoricalCostForCode = historicalCosts?.mapByCode[costCode.code] || 0;
-  // Fall back to the amount already saved on the budget row so the dialog never
-  // shows "No data" / $0.00 for a row the budget table shows a value for.
-  const historicalCostForCode = rawHistoricalCostForCode > 0 ? rawHistoricalCostForCode : savedHistoricalAmount;
+  // Only fall back to the amount already saved on the budget row when the user is
+  // still looking at the exact source saved on the row — otherwise switching to a
+  // different historical project would re-save the stale amount.
+  const savedHistoricalKey = (() => {
+    const pid = (budgetItem as any).historical_project_id;
+    const lid = (budgetItem as any).historical_lot_id;
+    if (budgetItem.budget_source !== 'historical' || !pid) return null;
+    return lid ? `${pid}::${lid}` : pid;
+  })();
+  const isSavedHistoricalSelection =
+    !!savedHistoricalKey && savedHistoricalKey === selectedHistoricalProjectId;
+  const historicalCostForCode =
+    rawHistoricalCostForCode > 0
+      ? rawHistoricalCostForCode
+      : (isSavedHistoricalSelection ? savedHistoricalAmount : 0);
 
   const handleApply = async () => {
     if (isLocked) return;
