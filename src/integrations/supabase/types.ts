@@ -6839,6 +6839,14 @@ export type Database = {
         Args: { bill_payment_id_param: string }
         Returns: boolean
       }
+      update_approved_bill_atomic: {
+        Args: {
+          bill_date_param: string
+          bill_id_param: string
+          lines_param: Json
+        }
+        Returns: string
+      }
       update_project_task:
         | {
             Args: {
