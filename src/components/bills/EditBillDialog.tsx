@@ -767,11 +767,10 @@ export function EditBillDialog({ open, onOpenChange, billId }: EditBillDialogPro
     setJobCostRows((prev) => {
       const childIds = new Set(group.children.map((c) => c.id));
       const lotCount = Math.max(group.children.length, 1);
-
-      const newUnit = patch.unit_cost !== undefined ? Number(patch.unit_cost) || 0 : group.unitCost;
-      const newQty = patch.quantity !== undefined ? Number(patch.quantity) || 0 : group.quantity;
-
-      // Cent-precise per-lot QUANTITY split (hundredths)
+      const changesQuantity = patch.quantity !== undefined;
+      const changesUnitCost = patch.unit_cost !== undefined;
+      const newUnit = changesUnitCost ? Number(patch.unit_cost) || 0 : group.unitCost;
+      const newQty = changesQuantity ? Number(patch.quantity) || 0 : group.quantity;
       const totalQtyHundredths = Math.round(newQty * 100);
       const baseQtyHundredths = Math.floor(totalQtyHundredths / lotCount);
       const extraQtyHundredths = totalQtyHundredths - baseQtyHundredths * lotCount;
@@ -789,8 +788,8 @@ export function EditBillDialog({ open, onOpenChange, billId }: EditBillDialogPro
           ...('memo' in patch ? { memo: patch.memo || '' } : {}),
           ...('purchaseOrderId' in patch ? { purchaseOrderId: patch.purchaseOrderId || '' } : {}),
           ...('purchaseOrderLineId' in patch ? { purchaseOrderLineId: patch.purchaseOrderLineId || '' } : {}),
-          quantity: childQty.toString(),
-          amount: newUnit.toString(),
+          ...(changesQuantity ? { quantity: childQty.toString() } : {}),
+          ...(changesUnitCost ? { amount: newUnit.toString() } : {}),
         };
       });
     });
