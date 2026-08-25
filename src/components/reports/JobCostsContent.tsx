@@ -808,7 +808,7 @@ return parentRows;
 
                         {expandedGroups.has(group) && (
                           <>
-                            {rows.map(row => (
+                            {detailRows.map(row => (
                               <JobCostRow
                                 key={row.costCodeId}
                                 row={row}
