@@ -2,6 +2,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/useAuth";
+import { fetchAllRows } from "@/lib/supabasePaginate";
 
 interface JournalLineData {
   line_number: number;
@@ -58,20 +59,31 @@ export const useJournalEntries = () => {
       if (entriesError) throw entriesError;
       if (!entries) return [];
 
-      // Fetch lines for all entries
-      const { data: lines, error: linesError } = await supabase
-        .from("journal_entry_lines")
-        .select(`
-          *,
-          accounts:account_id (id, name, code),
-          cost_codes:cost_code_id (id, name, code),
-          projects:project_id (id, address),
-          project_lots:lot_id (id, lot_name, lot_number)
-        `)
-        .in("journal_entry_id", entries.map(e => e.id))
-        .order("line_number", { ascending: true });
+      // Fetch every line without hitting Supabase's 1,000-row response cap or
+      // the URL-length limit caused by a large journal-entry ID list.
+      const entryIds = entries.map((entry) => entry.id);
+      const lines: any[] = [];
+      const idBatchSize = 100;
 
-      if (linesError) throw linesError;
+      for (let index = 0; index < entryIds.length; index += idBatchSize) {
+        const idBatch = entryIds.slice(index, index + idBatchSize);
+        const batchLines = await fetchAllRows<any>(() =>
+          supabase
+            .from("journal_entry_lines")
+            .select(`
+              *,
+              accounts:account_id (id, name, code),
+              cost_codes:cost_code_id (id, name, code),
+              projects:project_id (id, address),
+              project_lots:lot_id (id, lot_name, lot_number)
+            `)
+            .in("journal_entry_id", idBatch)
+            .order("journal_entry_id", { ascending: true })
+            .order("line_number", { ascending: true })
+            .order("id", { ascending: true })
+        );
+        lines.push(...batchLines);
+      }
 
       // Group lines by entry
       return entries.map(entry => ({
