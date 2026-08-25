@@ -794,18 +794,21 @@ return parentRows;
               ) : (
                 <>
                   {Object.entries(groupedJobCosts).map(([group, rows], index) => {
-                    const groupTotals = calculateGroupTotals(rows);
+                    const headerRow = rows.find(r => r.costCode === group);
+                    const detailRows = rows.filter(r => r.costCode !== group);
+                    const groupTotals = calculateGroupTotals(detailRows);
                     return (
                       <tbody key={group}>
                         <JobCostGroupHeader
                           group={group}
+                          groupName={headerRow?.costCodeName}
                           isExpanded={expandedGroups.has(group)}
                           onToggle={() => handleGroupToggle(group)}
-                          groupTotal={groupTotals}
                         />
+
                         {expandedGroups.has(group) && (
                           <>
-                            {rows.map(row => (
+                            {detailRows.map(row => (
                               <JobCostRow
                                 key={row.costCodeId}
                                 row={row}
