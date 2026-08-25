@@ -35,7 +35,6 @@ export function useBudgetSourceUpdate(projectId: string) {
           updateData.unit_price = params.manualUnitPrice;
         }
       } else if (params.source === 'vendor-bid') {
-      } else if (params.source === 'vendor-bid') {
         updateData.historical_project_id = null;
       } else if (params.source === 'manual') {
         updateData.selected_bid_id = null;
