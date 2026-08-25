@@ -29,6 +29,15 @@ export interface BillLineData {
   memo?: string;
 }
 
+interface ApprovedBillLineUpdate {
+  sourceDbId: string;
+  lineType: 'job_cost' | 'expense';
+  costCodeId?: string;
+  lotId?: string;
+  amountCents: number;
+  memo?: string;
+}
+
 export const useBills = () => {
   const { user } = useAuth();
   const queryClient = useQueryClient();
@@ -1098,105 +1107,36 @@ export const useBills = () => {
     }
   });
 
-  // Update approved/posted/paid bills WITHOUT changing status or creating reversals
-  // Only updates allowed fields: date, notes, cost codes on lines
+  // Atomically update only the permitted fields on approved/posted/paid bills.
+  // The RPC preserves the original total and synchronizes the linked journal entry.
   const updateApprovedBill = useMutation({
     mutationFn: async ({ 
       billId, 
-      billData, 
+      billDate,
       billLines 
     }: { 
       billId: string; 
-      billData: { bill_date: string; notes?: string }; 
-      billLines: { dbId: string; cost_code_id?: string; lot_id?: string; purchase_order_id?: string; purchase_order_line_id?: string; po_assignment?: 'none' | 'auto' | null; memo?: string }[];
+      billDate: string;
+      billLines: ApprovedBillLineUpdate[];
     }) => {
       if (!user) throw new Error("User not authenticated");
 
-      // Get the bill with its journal entries
-      const { data: bill, error: billError } = await supabase
-        .from('bills')
-        .select('id, owner_id, status')
-        .eq('id', billId)
-        .single();
+      const { data, error } = await supabase.rpc('update_approved_bill_atomic', {
+        bill_id_param: billId,
+        bill_date_param: billDate,
+        lines_param: billLines.map((line) => ({
+          source_db_id: line.sourceDbId,
+          line_type: line.lineType,
+          cost_code_id: line.costCodeId || null,
+          lot_id: line.lotId || null,
+          amount_cents: line.amountCents,
+          memo: line.memo || null,
+        })),
+      });
 
-      if (billError) throw billError;
-      if (!bill) throw new Error("Bill not found");
+      if (error) throw error;
 
-      // Update bill header (only date and notes, NOT status)
-      const { error: updateError } = await supabase
-        .from('bills')
-        .update({
-          bill_date: billData.bill_date,
-          notes: billData.notes,
-          updated_at: new Date().toISOString()
-        })
-        .eq('id', billId);
-
-      if (updateError) throw updateError;
-
-      // Update bill lines (cost_code_id, lot_id, and memo)
-      for (const line of billLines) {
-        if (!line.dbId) continue;
-        
-        const { error: lineError } = await supabase
-          .from('bill_lines')
-          .update({
-            cost_code_id: line.cost_code_id || null,
-            lot_id: line.lot_id || null,
-            purchase_order_id: line.purchase_order_id || null,
-            purchase_order_line_id: line.purchase_order_line_id || null,
-            po_assignment: line.po_assignment ?? null,
-            memo: line.memo || null,
-            updated_at: new Date().toISOString()
-          })
-          .eq('id', line.dbId);
-
-        if (lineError) throw lineError;
-      }
-
-      // Get journal entries for this bill and update their cost codes
-      const { data: journalEntries } = await supabase
-        .from('journal_entries')
-        .select('id')
-        .eq('source_type', 'bill')
-        .eq('source_id', billId)
-        .is('reversed_by_id', null);
-
-      if (journalEntries && journalEntries.length > 0) {
-        // For each bill line, find and update corresponding journal entry line
-        for (const line of billLines) {
-          if (!line.dbId) continue;
-          
-          // Get the original bill line to find its position
-          const { data: billLine } = await supabase
-            .from('bill_lines')
-            .select('line_number, project_id')
-            .eq('id', line.dbId)
-            .single();
-
-          if (billLine) {
-            // Update journal entry lines with matching line_number
-            for (const je of journalEntries) {
-              const { error: jelError } = await supabase
-                .from('journal_entry_lines')
-                .update({
-                  cost_code_id: line.cost_code_id || null,
-                  lot_id: line.lot_id || null,
-                  memo: line.memo || null,
-                  updated_at: new Date().toISOString()
-                })
-                .eq('journal_entry_id', je.id)
-                .eq('line_number', billLine.line_number);
-
-              if (jelError) {
-                console.error('Error updating journal entry line:', jelError);
-              }
-            }
-          }
-        }
-      }
-
-      return billId;
+      return data;
     },
     onSuccess: async () => {
       // Remove cached PO matching results so the badge recomputes from fresh
@@ -1219,11 +1159,11 @@ export const useBills = () => {
         description: "Bill updated successfully",
       });
     },
-    onError: (error) => {
+    onError: (error: Error) => {
       console.error('Error updating approved bill:', error);
       toast({
         title: "Error",
-        description: "Failed to update bill",
+        description: error.message || "Failed to update bill",
         variant: "destructive",
       });
     }

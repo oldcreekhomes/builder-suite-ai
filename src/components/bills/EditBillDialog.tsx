@@ -55,6 +55,7 @@ interface EditBillDialogProps {
 interface ExpenseRow {
   id: string;
   dbId?: string;
+  sourceDbId?: string;
   account: string;
   accountId?: string;
   project: string;
@@ -344,6 +345,7 @@ export function EditBillDialog({ open, onOpenChange, billId }: EditBillDialogPro
       quantity: '1',
       amount: (index === lots.length - 1 ? remainder : perLotAmount).toFixed(2),
       memo: rowToSplit.memo,
+      sourceDbId: rowToSplit.dbId || rowToSplit.sourceDbId,
     }));
 
     const rowIndex = jobCostRows.findIndex(r => r.id === rowId);
@@ -601,40 +603,42 @@ export function EditBillDialog({ open, onOpenChange, billId }: EditBillDialogPro
     };
 
     try {
-      // For approved/posted/paid bills, use updateApprovedBill (no status change, no reversals)
+      // Approved bills use one atomic operation that preserves the original total
+      // while allowing existing lines to be reallocated across lots.
       if (['approved', 'posted', 'paid'].includes(billData?.status)) {
-        // Build list of bill line updates with their database IDs (include memo)
         const jobCostLineUpdates = jobCostRows
-          .filter(row => row.dbId)
+          .filter(row => row.dbId || row.sourceDbId)
           .map(row => ({
-            dbId: row.dbId!,
-            cost_code_id: row.accountId || undefined,
-            lot_id: row.lotId || undefined,
-            purchase_order_id: sanitizePoId(row.purchaseOrderId),
-            purchase_order_line_id: sanitizePoId(row.purchaseOrderLineId),
-            po_assignment: derivePoAssignment(row.purchaseOrderId),
+            sourceDbId: row.sourceDbId || row.dbId || '',
+            lineType: 'job_cost' as const,
+            costCodeId: row.accountId || undefined,
+            lotId: row.lotId || undefined,
+            amountCents: Math.round(rowTotal(parseFloat(row.quantity) || 0, parseFloat(row.amount) || 0) * 100),
             memo: row.memo || undefined
           }));
 
         const expenseLineUpdates = expenseRows
-          .filter(row => row.dbId)
+          .filter(row => row.dbId || row.sourceDbId)
           .map(row => ({
-            dbId: row.dbId!,
-            lot_id: row.lotId || undefined,
-            purchase_order_id: sanitizePoId(row.purchaseOrderId),
-            purchase_order_line_id: sanitizePoId(row.purchaseOrderLineId),
-            po_assignment: derivePoAssignment(row.purchaseOrderId),
+            sourceDbId: row.sourceDbId || row.dbId || '',
+            lineType: 'expense' as const,
+            costCodeId: undefined,
+            lotId: row.lotId || undefined,
+            amountCents: Math.round(rowTotal(parseFloat(row.quantity) || 0, parseFloat(row.amount) || 0) * 100),
             memo: row.memo || undefined
           }));
 
         const lineUpdates = [...jobCostLineUpdates, ...expenseLineUpdates];
+        const updatedTotalCents = lineUpdates.reduce((sum, line) => sum + line.amountCents, 0);
+        const originalTotalCents = Math.round(Number(billData.total_amount || 0) * 100);
+
+        if (updatedTotalCents !== originalTotalCents) {
+          throw new Error(`The bill total cannot change from $${(originalTotalCents / 100).toFixed(2)}.`);
+        }
 
         await updateApprovedBill.mutateAsync({
           billId,
-          billData: {
-            bill_date: normalizeToYMD(billDate),
-            notes: finalNotes
-          },
+          billDate: normalizeToYMD(billDate),
           billLines: lineUpdates
         });
       } else {
@@ -815,7 +819,7 @@ export function EditBillDialog({ open, onOpenChange, billId }: EditBillDialogPro
           <DialogTitle>Edit Bill</DialogTitle>
         <DialogDescription>
           {isApprovedBill 
-            ? "Only date, cost code allocation, files, and notes can be modified for approved bills."
+            ? "Only date, cost code, description, and equal lot division can be modified for approved bills."
             : "Make changes to this bill."
           }
         </DialogDescription>
@@ -922,9 +926,9 @@ export function EditBillDialog({ open, onOpenChange, billId }: EditBillDialogPro
                 attachments={newAttachments}
                 onAttachmentsChange={setNewAttachments}
                 billId={billId}
-                disabled={false}
+                disabled={isApprovedBill}
                 existingAttachments={attachments}
-                onDeleteExisting={handleDeleteAttachment}
+                onDeleteExisting={isApprovedBill ? undefined : handleDeleteAttachment}
                 onClickExisting={(attachment) => openBillAttachment(attachment.file_path, attachment.file_name, {
                   id: attachment.id,
                   size: attachment.file_size,
@@ -941,6 +945,7 @@ export function EditBillDialog({ open, onOpenChange, billId }: EditBillDialogPro
                   variant="outline"
                   className="h-10 flex-1"
                   onClick={() => setNotesDialogOpen(true)}
+                  disabled={isApprovedBill}
                 >
                   {internalNotes.trim() ? (
                     <>
@@ -1182,6 +1187,7 @@ export function EditBillDialog({ open, onOpenChange, billId }: EditBillDialogPro
                                 }}
                                 costCodeId={group.accountId}
                                 className="h-10"
+                                disabled={isApprovedBill}
                                 onInfoClick={() => setPoSummaryOpen(true)}
                               />
                             </TableCell>
@@ -1345,11 +1351,11 @@ export function EditBillDialog({ open, onOpenChange, billId }: EditBillDialogPro
 
             {/* Actions */}
             <div className="flex justify-end gap-2">
-              <Button variant="outline" onClick={() => onOpenChange(false)} disabled={updateBill.isPending || correctBill.isPending}>
+              <Button variant="outline" onClick={() => onOpenChange(false)} disabled={updateBill.isPending || updateApprovedBill.isPending || correctBill.isPending}>
                 Cancel
               </Button>
-              <Button onClick={handleSave} disabled={updateBill.isPending || correctBill.isPending}>
-                {updateBill.isPending || correctBill.isPending ? "Saving..." : "Save Changes"}
+              <Button onClick={handleSave} disabled={updateBill.isPending || updateApprovedBill.isPending || correctBill.isPending}>
+                {updateBill.isPending || updateApprovedBill.isPending || correctBill.isPending ? "Saving..." : "Save Changes"}
               </Button>
             </div>
           </div>
