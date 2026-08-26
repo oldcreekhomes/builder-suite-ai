@@ -93,6 +93,9 @@ export function EditDepositDialog({ open, onOpenChange, depositId }: EditDeposit
   const displayAccountName = (acc: { id: string; name: string }) =>
     resolveAccountName(acc, accountOverrides ?? null);
 
+  // Bank accounts allowed for this deposit's project (excluded accounts removed).
+  const { bankAccounts } = useProjectPaymentAccounts(projectIdForOverrides);
+
   const { lots } = useLots(depositData?.project_id);
   const showAddressColumn = lots.length > 1;
 
