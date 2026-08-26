@@ -355,7 +355,7 @@ export function PriceHistoryModal({
         )}
 
         {/* Statistics Summary */}
-        <div className="grid grid-cols-6 gap-4 p-4 bg-muted rounded-lg">
+        <div className="grid grid-cols-6 gap-2 p-4 bg-muted rounded-lg">
           <div>
             <p className="text-sm text-muted-foreground whitespace-nowrap">Current Price</p>
             <p className="text-lg font-semibold">${stats.currentPrice.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</p>
