@@ -85,35 +85,10 @@ export function PayBillDialog({
   const [paymentAmount, setPaymentAmount] = useState<string>("");
   const [paymentAmountError, setPaymentAmountError] = useState<string>("");
 
-  // Filter accounts for payment methods. Prefer explicit subtype classification
-  // (subtype = 'bank' / 'credit_card') and fall back to the legacy keyword
-  // heuristic only when no account in this tenant has a subtype set yet.
-  const anyHasSubtype = accounts.some((a: any) => a?.subtype);
+  // Payment methods scoped to the project: excluded accounts removed, project
+  // account-name overrides applied.
+  const { paymentAccounts: allPaymentMethods } = useProjectPaymentAccounts(resolvedProjectId);
 
-  const paymentAccounts = accounts.filter((account: any) =>
-    anyHasSubtype
-      ? account.subtype === 'bank'
-      : account.type === 'asset' && (
-          account.name.toLowerCase().includes('cash') ||
-          account.name.toLowerCase().includes('bank') ||
-          account.name.toLowerCase().includes('checking') ||
-          account.name.toLowerCase().includes('savings')
-        )
-  );
-
-  const creditCardAccounts = accounts.filter((account: any) =>
-    anyHasSubtype
-      ? account.subtype === 'credit_card'
-      : account.type === 'liability' && (
-          account.name.toLowerCase().includes('credit') ||
-          account.name.toLowerCase().includes('card')
-        )
-  );
-
-  const allPaymentMethods = [
-    ...paymentAccounts.map(acc => ({ ...acc, category: 'Cash/Bank' })),
-    ...creditCardAccounts.map(acc => ({ ...acc, category: 'Credit Card' }))
-  ];
 
   const handleConfirm = () => {
     if (billsArray.length === 0 || !paymentAccountId) return;
