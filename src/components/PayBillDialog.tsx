@@ -113,12 +113,19 @@ export function PayBillDialog({
   };
 
   // Auto-fill default bank when the dialog opens (covers external open prop changes
-  // and async-loaded accounts list).
+  // and async-loaded accounts list). If the stored default isn't available for
+  // this project (excluded from its Chart of Accounts), fall back to the first
+  // allowed bank account instead of preselecting a hidden account.
   useEffect(() => {
-    if (open && !paymentAccountId && defaultBankAccountId) {
+    if (!open || paymentAccountId || allPaymentMethods.length === 0) return;
+    const allowedIds = new Set(allPaymentMethods.map((a) => a.id));
+    if (defaultBankAccountId && allowedIds.has(defaultBankAccountId)) {
       setPaymentAccountId(defaultBankAccountId);
+      return;
     }
-  }, [open, defaultBankAccountId, paymentAccountId]);
+    const firstBank = allPaymentMethods.find((a) => a.category === 'Cash/Bank');
+    if (firstBank) setPaymentAccountId(firstBank.id);
+  }, [open, defaultBankAccountId, paymentAccountId, allPaymentMethods]);
 
   // Auto-fill payment amount with remaining balance when dialog opens for a single bill.
   useEffect(() => {
