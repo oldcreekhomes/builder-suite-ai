@@ -12,6 +12,7 @@ import { Plus, Trash2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useAccounts } from "@/hooks/useAccounts";
 import { useProjectAccountNames, resolveAccountName } from "@/hooks/useProjectAccountNames";
+import { useProjectPaymentAccounts } from "@/hooks/useProjectPaymentAccounts";
 import { useDeposits, DepositData, DepositLineData } from "@/hooks/useDeposits";
 import { useCostCodeSearch } from "@/hooks/useCostCodeSearch";
 import { useLots } from "@/hooks/useLots";
@@ -62,18 +63,8 @@ export function EditDepositDialog({ open, onOpenChange, depositId }: EditDeposit
   const { updateDepositFull } = useDeposits();
   const { costCodes } = useCostCodeSearch();
 
-  // Active bank accounts for "Deposit To" dropdown
-  const anyHasSubtype = accounts.some((a: any) => a?.subtype);
-  const bankAccounts = accounts.filter((account: any) =>
-    anyHasSubtype
-      ? account.subtype === 'bank'
-      : account.type === 'asset' && (
-          account.name.toLowerCase().includes('cash') ||
-          account.name.toLowerCase().includes('bank') ||
-          account.name.toLowerCase().includes('checking') ||
-          account.name.toLowerCase().includes('savings')
-        )
-  );
+  // Bank accounts for "Deposit To" are resolved below, scoped to the deposit's project.
+
 
   // Load deposit data
   const { data: depositData, isLoading } = useQuery({
@@ -102,6 +93,9 @@ export function EditDepositDialog({ open, onOpenChange, depositId }: EditDeposit
   const { data: accountOverrides } = useProjectAccountNames(projectIdForOverrides);
   const displayAccountName = (acc: { id: string; name: string }) =>
     resolveAccountName(acc, accountOverrides ?? null);
+
+  // Bank accounts allowed for this deposit's project (excluded accounts removed).
+  const { bankAccounts } = useProjectPaymentAccounts(projectIdForOverrides);
 
   const { lots } = useLots(depositData?.project_id);
   const showAddressColumn = lots.length > 1;

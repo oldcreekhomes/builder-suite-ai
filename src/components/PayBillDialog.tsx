@@ -24,7 +24,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { cn } from "@/lib/utils";
-import { useAccounts } from "@/hooks/useAccounts";
+import { useProjectPaymentAccounts } from "@/hooks/useProjectPaymentAccounts";
 import { useProjectDefaultBankAccountId } from "@/hooks/useProjectDefaultBankAccountId";
 
 interface BillForPayment {
@@ -62,7 +62,6 @@ export function PayBillDialog({
 }: PayBillDialogProps) {
   const billsArray = Array.isArray(bills) ? bills : bills ? [bills] : [];
   const isMultiple = billsArray.length > 1;
-  const { accounts } = useAccounts();
   // Resolve default bank: use per-project override only when all bills share the same project.
   const uniqueProjectIds = Array.from(new Set(billsArray.map(b => b.project_id).filter(Boolean))) as string[];
   const resolvedProjectId = uniqueProjectIds.length === 1 ? uniqueProjectIds[0] : undefined;
@@ -85,35 +84,10 @@ export function PayBillDialog({
   const [paymentAmount, setPaymentAmount] = useState<string>("");
   const [paymentAmountError, setPaymentAmountError] = useState<string>("");
 
-  // Filter accounts for payment methods. Prefer explicit subtype classification
-  // (subtype = 'bank' / 'credit_card') and fall back to the legacy keyword
-  // heuristic only when no account in this tenant has a subtype set yet.
-  const anyHasSubtype = accounts.some((a: any) => a?.subtype);
+  // Payment methods scoped to the project: excluded accounts removed, project
+  // account-name overrides applied.
+  const { paymentAccounts: allPaymentMethods } = useProjectPaymentAccounts(resolvedProjectId);
 
-  const paymentAccounts = accounts.filter((account: any) =>
-    anyHasSubtype
-      ? account.subtype === 'bank'
-      : account.type === 'asset' && (
-          account.name.toLowerCase().includes('cash') ||
-          account.name.toLowerCase().includes('bank') ||
-          account.name.toLowerCase().includes('checking') ||
-          account.name.toLowerCase().includes('savings')
-        )
-  );
-
-  const creditCardAccounts = accounts.filter((account: any) =>
-    anyHasSubtype
-      ? account.subtype === 'credit_card'
-      : account.type === 'liability' && (
-          account.name.toLowerCase().includes('credit') ||
-          account.name.toLowerCase().includes('card')
-        )
-  );
-
-  const allPaymentMethods = [
-    ...paymentAccounts.map(acc => ({ ...acc, category: 'Cash/Bank' })),
-    ...creditCardAccounts.map(acc => ({ ...acc, category: 'Credit Card' }))
-  ];
 
   const handleConfirm = () => {
     if (billsArray.length === 0 || !paymentAccountId) return;
@@ -139,12 +113,19 @@ export function PayBillDialog({
   };
 
   // Auto-fill default bank when the dialog opens (covers external open prop changes
-  // and async-loaded accounts list).
+  // and async-loaded accounts list). If the stored default isn't available for
+  // this project (excluded from its Chart of Accounts), fall back to the first
+  // allowed bank account instead of preselecting a hidden account.
   useEffect(() => {
-    if (open && !paymentAccountId && defaultBankAccountId) {
+    if (!open || paymentAccountId || allPaymentMethods.length === 0) return;
+    const allowedIds = new Set(allPaymentMethods.map((a) => a.id));
+    if (defaultBankAccountId && allowedIds.has(defaultBankAccountId)) {
       setPaymentAccountId(defaultBankAccountId);
+      return;
     }
-  }, [open, defaultBankAccountId, paymentAccountId]);
+    const firstBank = allPaymentMethods.find((a) => a.category === 'Cash/Bank');
+    if (firstBank) setPaymentAccountId(firstBank.id);
+  }, [open, defaultBankAccountId, paymentAccountId, allPaymentMethods]);
 
   // Auto-fill payment amount with remaining balance when dialog opens for a single bill.
   useEffect(() => {
@@ -172,10 +153,8 @@ export function PayBillDialog({
         const remaining = Math.round((singleBill.total_amount - (singleBill.amount_paid || 0)) * 100) / 100;
         setPaymentAmount(remaining.toFixed(2));
       }
-      // Pre-select the default bank account if one is configured and field is empty
-      if (!paymentAccountId && defaultBankAccountId) {
-        setPaymentAccountId(defaultBankAccountId);
-      }
+      // Default payment method is preselected by the effect above, which also
+      // guards against defaults excluded from this project.
     }
     onOpenChange(newOpen);
   };
