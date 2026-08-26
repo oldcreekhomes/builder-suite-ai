@@ -403,7 +403,7 @@ export function PriceHistoryModal({
         )}
 
         {/* Statistics Summary */}
-        <div className="grid grid-cols-5 gap-4 p-4 bg-muted rounded-lg">
+        <div className="grid grid-cols-6 gap-4 p-4 bg-muted rounded-lg">
           <div>
             <p className="text-sm text-muted-foreground">Current Price</p>
             <p className="text-lg font-semibold">${stats.currentPrice.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</p>
@@ -423,11 +423,26 @@ export function PriceHistoryModal({
             </p>
           </div>
           <div>
-            <p className="text-sm text-muted-foreground">% Change</p>
+            <p className="text-sm text-muted-foreground">Total Change</p>
             <p className={`text-lg font-semibold ${stats.isNegative ? 'text-red-600' : 'text-green-600'}`}>
-              {stats.isNegative ? '-' : '+'}${Math.abs(stats.percentChange).toLocaleString('en-US', { minimumFractionDigits: 1, maximumFractionDigits: 1 })}%
+              {stats.isNegative ? '-' : '+'}{Math.abs(stats.percentChange).toLocaleString('en-US', { minimumFractionDigits: 1, maximumFractionDigits: 1 })}%
             </p>
+            {history.length > 0 && (
+              <p className="text-xs text-muted-foreground">{formatSpan(stats.years)}</p>
+            )}
           </div>
+          <div>
+            <p className="text-sm text-muted-foreground">Annual Change</p>
+            {stats.annualizedPercent === null ? (
+              <p className="text-lg font-semibold">—</p>
+            ) : (
+              <p className={`text-lg font-semibold ${stats.annualizedPercent < 0 ? 'text-red-600' : 'text-green-600'}`}>
+                {stats.annualizedPercent < 0 ? '-' : '+'}{Math.abs(stats.annualizedPercent).toLocaleString('en-US', { minimumFractionDigits: 1, maximumFractionDigits: 1 })}%
+              </p>
+            )}
+            <p className="text-xs text-muted-foreground">per year</p>
+          </div>
+
         </div>
       </DialogContent>
     </Dialog>
