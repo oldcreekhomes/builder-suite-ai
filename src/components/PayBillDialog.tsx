@@ -153,10 +153,8 @@ export function PayBillDialog({
         const remaining = Math.round((singleBill.total_amount - (singleBill.amount_paid || 0)) * 100) / 100;
         setPaymentAmount(remaining.toFixed(2));
       }
-      // Pre-select the default bank account if one is configured and field is empty
-      if (!paymentAccountId && defaultBankAccountId) {
-        setPaymentAccountId(defaultBankAccountId);
-      }
+      // Default payment method is preselected by the effect above, which also
+      // guards against defaults excluded from this project.
     }
     onOpenChange(newOpen);
   };
