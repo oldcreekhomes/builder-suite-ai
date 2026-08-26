@@ -62,18 +62,8 @@ export function EditDepositDialog({ open, onOpenChange, depositId }: EditDeposit
   const { updateDepositFull } = useDeposits();
   const { costCodes } = useCostCodeSearch();
 
-  // Active bank accounts for "Deposit To" dropdown
-  const anyHasSubtype = accounts.some((a: any) => a?.subtype);
-  const bankAccounts = accounts.filter((account: any) =>
-    anyHasSubtype
-      ? account.subtype === 'bank'
-      : account.type === 'asset' && (
-          account.name.toLowerCase().includes('cash') ||
-          account.name.toLowerCase().includes('bank') ||
-          account.name.toLowerCase().includes('checking') ||
-          account.name.toLowerCase().includes('savings')
-        )
-  );
+  // Bank accounts for "Deposit To" are resolved below, scoped to the deposit's project.
+
 
   // Load deposit data
   const { data: depositData, isLoading } = useQuery({
