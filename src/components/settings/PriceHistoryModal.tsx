@@ -260,7 +260,9 @@ export function PriceHistoryModal({
         volatility: 0, 
         priceChange: 0, 
         percentChange: 0, 
-        isNegative: false 
+        isNegative: false,
+        years: 0,
+        annualizedPercent: null as number | null,
       };
     }
 
@@ -289,6 +291,19 @@ export function PriceHistoryModal({
     const percentChange = firstPrice > 0 ? ((priceChange / firstPrice) * 100) : 0;
     const isNegative = priceChange < 0;
 
+    // Time span between first recorded price and today, in years
+    const firstDate = new Date(sortedHistoryOldest[0].changed_at);
+    const msPerYear = 365.25 * 24 * 60 * 60 * 1000;
+    const years = Math.max(0, (Date.now() - firstDate.getTime()) / msPerYear);
+
+    // Annualized rate (CAGR). Under 1 year we don't extrapolate.
+    let annualizedPercent: number | null = null;
+    if (firstPrice > 0 && priceForCalculation > 0) {
+      annualizedPercent = years >= 1
+        ? (Math.pow(priceForCalculation / firstPrice, 1 / years) - 1) * 100
+        : percentChange;
+    }
+
     return { 
       currentPrice: currentPrice, // Always show actual table value
       min, 
@@ -296,9 +311,18 @@ export function PriceHistoryModal({
       volatility, 
       priceChange, 
       percentChange, 
-      isNegative 
+      isNegative,
+      years,
+      annualizedPercent,
     };
   };
+
+  const formatSpan = (years: number) => {
+    if (years >= 1) return `over ${years.toFixed(1)} yrs`;
+    const months = Math.max(0, Math.round(years * 12));
+    return `over ${months} mo`;
+  };
+
 
   const stats = calculateVolatility();
   const chartData = generateHistoricalChartData();
