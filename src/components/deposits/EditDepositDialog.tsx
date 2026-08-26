@@ -12,6 +12,7 @@ import { Plus, Trash2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useAccounts } from "@/hooks/useAccounts";
 import { useProjectAccountNames, resolveAccountName } from "@/hooks/useProjectAccountNames";
+import { useProjectPaymentAccounts } from "@/hooks/useProjectPaymentAccounts";
 import { useDeposits, DepositData, DepositLineData } from "@/hooks/useDeposits";
 import { useCostCodeSearch } from "@/hooks/useCostCodeSearch";
 import { useLots } from "@/hooks/useLots";
