@@ -24,7 +24,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { cn } from "@/lib/utils";
-import { useAccounts } from "@/hooks/useAccounts";
+import { useProjectPaymentAccounts } from "@/hooks/useProjectPaymentAccounts";
 import { useProjectDefaultBankAccountId } from "@/hooks/useProjectDefaultBankAccountId";
 
 interface BillForPayment {
