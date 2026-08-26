@@ -70,6 +70,9 @@ export function groupBillLines<T>(
   // Second pass: merge lot-distributed groups that share
   // (costCode + memo + PO + POLine), regardless of unitCost, so a remainder
   // lot at a different per-lot rate collapses into the main row.
+  // A candidate is only merged when its lots do NOT overlap the lots already
+  // in the group — otherwise it is a genuinely separate line (e.g. a newly
+  // added line on the same cost code) and must keep its own row.
   const lotMergeKey = (n: NormalizedLine) =>
     [n.costCodeKey, n.memo.trim(), n.purchaseOrderId, n.purchaseOrderLineId].join('|');
 
@@ -89,6 +92,9 @@ export function groupBillLines<T>(
     }
     const mk = lotMergeKey(pick(children[0]));
     const merged: T[] = [...children];
+    const seenLots = new Set<string>(
+      children.map((c) => pick(c).lotId).filter((x): x is string => Boolean(x)),
+    );
     used.add(key);
     for (const otherKey of order) {
       if (used.has(otherKey)) continue;
@@ -96,12 +102,18 @@ export function groupBillLines<T>(
       const otherAllLot = otherChildren.every((c) => Boolean(pick(c).lotId));
       if (!otherAllLot) continue;
       if (lotMergeKey(pick(otherChildren[0])) !== mk) continue;
+      const otherLots = otherChildren
+        .map((c) => pick(c).lotId)
+        .filter((x): x is string => Boolean(x));
+      if (otherLots.some((l) => seenLots.has(l))) continue;
       merged.push(...otherChildren);
+      otherLots.forEach((l) => seenLots.add(l));
       used.add(otherKey);
     }
     mergedBuckets.set(key, merged);
     mergedOrder.push(key);
   }
+
 
   return mergedOrder.map((key) => {
     const children = mergedBuckets.get(key)!;
