@@ -355,27 +355,27 @@ export function PriceHistoryModal({
         )}
 
         {/* Statistics Summary */}
-        <div className="grid grid-cols-6 gap-4 p-4 bg-muted rounded-lg">
+        <div className="grid grid-cols-3 gap-4 p-4 bg-muted rounded-lg">
           <div>
-            <p className="text-sm text-muted-foreground">Current Price</p>
+            <p className="text-sm text-muted-foreground whitespace-nowrap">Current Price</p>
             <p className="text-lg font-semibold">${stats.currentPrice.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</p>
           </div>
           <div>
-            <p className="text-sm text-muted-foreground">Min Price</p>
+            <p className="text-sm text-muted-foreground whitespace-nowrap">Min Price</p>
             <p className="text-lg font-semibold">${stats.min.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</p>
           </div>
           <div>
-            <p className="text-sm text-muted-foreground">Max Price</p>
+            <p className="text-sm text-muted-foreground whitespace-nowrap">Max Price</p>
             <p className="text-lg font-semibold">${stats.max.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</p>
           </div>
           <div>
-            <p className="text-sm text-muted-foreground">Price Change</p>
+            <p className="text-sm text-muted-foreground whitespace-nowrap">Price Change</p>
             <p className={`text-lg font-semibold ${stats.isNegative ? 'text-red-600' : 'text-green-600'}`}>
               {stats.isNegative ? '-' : '+'}${Math.abs(stats.priceChange).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
             </p>
           </div>
           <div>
-            <p className="text-sm text-muted-foreground">Total Change</p>
+            <p className="text-sm text-muted-foreground whitespace-nowrap">Total Change</p>
             <p className={`text-lg font-semibold ${stats.isNegative ? 'text-red-600' : 'text-green-600'}`}>
               {stats.isNegative ? '-' : '+'}{Math.abs(stats.percentChange).toLocaleString('en-US', { minimumFractionDigits: 1, maximumFractionDigits: 1 })}%
             </p>
@@ -384,7 +384,7 @@ export function PriceHistoryModal({
             )}
           </div>
           <div>
-            <p className="text-sm text-muted-foreground">Annual Change</p>
+            <p className="text-sm text-muted-foreground whitespace-nowrap">Annual Change</p>
             {stats.annualizedPercent === null ? (
               <p className="text-lg font-semibold">—</p>
             ) : (
