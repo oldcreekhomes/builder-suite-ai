@@ -111,57 +111,9 @@ export function PriceHistoryModal({
 
       if (error) throw error;
       setHistory(data || []);
-      
-      // AUTO-SYNC: Update cost code price to match most recent history
-      if (data && data.length > 0) {
-        const mostRecentHistoricalPrice = Number(data[0].price || 0);
-        const currentTablePrice = Number(costCode.price || 0);
-        
-        // If they don't match, sync the historical price to the table
-        if (mostRecentHistoricalPrice !== currentTablePrice) {
-          if (skipAutoSync) {
-            console.log('⚠️ Auto-sync skipped - edit dialog is open');
-            toast({
-              title: "Auto-sync disabled",
-              description: "Close the edit dialog to enable automatic price synchronization.",
-              variant: "destructive",
-            });
-          } else {
-            console.log('🔄 Auto-syncing price from history:', {
-              currentTablePrice,
-              mostRecentHistoricalPrice,
-              willUpdate: true
-            });
+      // NOTE: This modal is read-only. It must never write back to cost_codes —
+      // a backdated history entry would otherwise overwrite the live price.
 
-            const { error: updateError } = await supabase
-              .from('cost_codes')
-              .update({ 
-                price: mostRecentHistoricalPrice,
-                updated_at: new Date().toISOString()
-              })
-              .eq('id', costCode.id);
-
-            if (updateError) {
-              console.error('Error auto-syncing price:', updateError);
-              toast({
-                title: "Error syncing price",
-                description: updateError.message,
-                variant: "destructive",
-              });
-            } else {
-              console.log('✅ Price auto-synced successfully');
-              // Notify parent to refetch
-              onPriceSync?.();
-              toast({
-                title: "Price updated",
-                description: `Price synced to $${mostRecentHistoricalPrice.toLocaleString()} from history`,
-              });
-            }
-          }
-        } else {
-          console.log('✅ Price already in sync');
-        }
-      }
     } catch (error) {
       console.error('Error fetching price history:', error);
     } finally {
