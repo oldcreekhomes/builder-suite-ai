@@ -260,7 +260,9 @@ export function PriceHistoryModal({
         volatility: 0, 
         priceChange: 0, 
         percentChange: 0, 
-        isNegative: false 
+        isNegative: false,
+        years: 0,
+        annualizedPercent: null as number | null,
       };
     }
 
@@ -289,6 +291,19 @@ export function PriceHistoryModal({
     const percentChange = firstPrice > 0 ? ((priceChange / firstPrice) * 100) : 0;
     const isNegative = priceChange < 0;
 
+    // Time span between first recorded price and today, in years
+    const firstDate = new Date(sortedHistoryOldest[0].changed_at);
+    const msPerYear = 365.25 * 24 * 60 * 60 * 1000;
+    const years = Math.max(0, (Date.now() - firstDate.getTime()) / msPerYear);
+
+    // Annualized rate (CAGR). Under 1 year we don't extrapolate.
+    let annualizedPercent: number | null = null;
+    if (firstPrice > 0 && priceForCalculation > 0) {
+      annualizedPercent = years >= 1
+        ? (Math.pow(priceForCalculation / firstPrice, 1 / years) - 1) * 100
+        : percentChange;
+    }
+
     return { 
       currentPrice: currentPrice, // Always show actual table value
       min, 
@@ -296,9 +311,18 @@ export function PriceHistoryModal({
       volatility, 
       priceChange, 
       percentChange, 
-      isNegative 
+      isNegative,
+      years,
+      annualizedPercent,
     };
   };
+
+  const formatSpan = (years: number) => {
+    if (years >= 1) return `over ${years.toFixed(1)} yrs`;
+    const months = Math.max(0, Math.round(years * 12));
+    return `over ${months} mo`;
+  };
+
 
   const stats = calculateVolatility();
   const chartData = generateHistoricalChartData();
@@ -379,7 +403,7 @@ export function PriceHistoryModal({
         )}
 
         {/* Statistics Summary */}
-        <div className="grid grid-cols-5 gap-4 p-4 bg-muted rounded-lg">
+        <div className="grid grid-cols-6 gap-4 p-4 bg-muted rounded-lg">
           <div>
             <p className="text-sm text-muted-foreground">Current Price</p>
             <p className="text-lg font-semibold">${stats.currentPrice.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</p>
@@ -399,11 +423,26 @@ export function PriceHistoryModal({
             </p>
           </div>
           <div>
-            <p className="text-sm text-muted-foreground">% Change</p>
+            <p className="text-sm text-muted-foreground">Total Change</p>
             <p className={`text-lg font-semibold ${stats.isNegative ? 'text-red-600' : 'text-green-600'}`}>
-              {stats.isNegative ? '-' : '+'}${Math.abs(stats.percentChange).toLocaleString('en-US', { minimumFractionDigits: 1, maximumFractionDigits: 1 })}%
+              {stats.isNegative ? '-' : '+'}{Math.abs(stats.percentChange).toLocaleString('en-US', { minimumFractionDigits: 1, maximumFractionDigits: 1 })}%
             </p>
+            {history.length > 0 && (
+              <p className="text-xs text-muted-foreground">{formatSpan(stats.years)}</p>
+            )}
           </div>
+          <div>
+            <p className="text-sm text-muted-foreground">Annual Change</p>
+            {stats.annualizedPercent === null ? (
+              <p className="text-lg font-semibold">—</p>
+            ) : (
+              <p className={`text-lg font-semibold ${stats.annualizedPercent < 0 ? 'text-red-600' : 'text-green-600'}`}>
+                {stats.annualizedPercent < 0 ? '-' : '+'}{Math.abs(stats.annualizedPercent).toLocaleString('en-US', { minimumFractionDigits: 1, maximumFractionDigits: 1 })}%
+              </p>
+            )}
+            <p className="text-xs text-muted-foreground">per year</p>
+          </div>
+
         </div>
       </DialogContent>
     </Dialog>
