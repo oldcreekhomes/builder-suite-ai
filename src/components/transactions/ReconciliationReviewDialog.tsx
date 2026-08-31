@@ -560,7 +560,7 @@ export function ReconciliationReviewDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-6xl h-[85vh] max-h-[85vh] flex flex-col overflow-hidden">
+      <DialogContent className="w-[95vw] max-w-[1600px] sm:max-w-[95vw] h-[85vh] max-h-[85vh] flex flex-col overflow-hidden">
         <DialogHeader>
           <DialogTitle className="text-xl">
             Reconciliation Review
@@ -610,7 +610,16 @@ export function ReconciliationReviewDialog({
                     <p className="text-sm text-muted-foreground italic">No checks or bill payments in this reconciliation</p>
                   ) : (
                     <div className="border rounded-lg overflow-hidden">
-                      <table className="w-full text-sm">
+                      <table className="w-full text-sm table-fixed">
+                        <colgroup>
+                          <col className="w-[100px]" />
+                          <col className="w-[70px]" />
+                          <col className="w-[18%]" />
+                          <col className="w-[26%]" />
+                          <col className="w-[16%]" />
+                          <col className="w-[18%]" />
+                          <col className="w-[130px]" />
+                        </colgroup>
                         <thead className="bg-muted">
                           <tr>
                             <th className="p-2 text-left">Date</th>
@@ -629,19 +638,19 @@ export function ReconciliationReviewDialog({
                               className={`border-t ${t._txn ? 'cursor-pointer hover:bg-muted/50' : ''}`}
                               onClick={() => openDetail(t)}
                             >
-                              <td className="p-2">
+                              <td className="p-2 whitespace-nowrap">
                                 {t.date ? formatDateSafe(t.date, "MM/dd/yyyy") : '-'}
                               </td>
-                              <td className="p-2">
+                              <td className="p-2 whitespace-nowrap">
                                 {t.type === 'bill_payment' ? 'Pmt' :
                                  t.type === 'journal_entry' ? 'JE' : 'Check'}
                               </td>
-                              <td className="p-2 max-w-[220px] truncate">{t.payee}</td>
-                              <td className="p-2 max-w-[220px]" onClick={(e) => e.stopPropagation()}>
+                              <td className="p-2 truncate" title={t.payee}>{t.payee}</td>
+                              <td className="p-2 overflow-hidden" onClick={(e) => e.stopPropagation()}>
                                 <DescriptionCell text={t.description} />
                               </td>
-                              <td className="p-2">{t.reference || '-'}</td>
-                              <td className="p-2 max-w-[200px]" onClick={(e) => e.stopPropagation()}>
+                              <td className="p-2 truncate" title={t.reference || ''}>{t.reference || '-'}</td>
+                              <td className="p-2 overflow-hidden" onClick={(e) => e.stopPropagation()}>
                                 <BreakdownCell
                                   breakdown={t.costCodeBreakdown}
                                   title="Included Cost Codes"
@@ -674,7 +683,14 @@ export function ReconciliationReviewDialog({
                     <p className="text-sm text-muted-foreground italic">No deposits in this reconciliation</p>
                   ) : (
                     <div className="border rounded-lg overflow-hidden">
-                      <table className="w-full text-sm">
+                      <table className="w-full text-sm table-fixed">
+                        <colgroup>
+                          <col className="w-[100px]" />
+                          <col className="w-[90px]" />
+                          <col className="w-[28%]" />
+                          <col className="w-auto" />
+                          <col className="w-[130px]" />
+                        </colgroup>
                         <thead className="bg-muted">
                           <tr>
                             <th className="p-2 text-left">Date</th>
@@ -691,14 +707,14 @@ export function ReconciliationReviewDialog({
                               className={`border-t ${t._txn ? 'cursor-pointer hover:bg-muted/50' : ''}`}
                               onClick={() => openDetail(t)}
                             >
-                              <td className="p-2">
+                              <td className="p-2 whitespace-nowrap">
                                 {t.date ? formatDateSafe(t.date, "MM/dd/yyyy") : '-'}
                               </td>
-                              <td className="p-2">
+                              <td className="p-2 whitespace-nowrap">
                                 {t.type === 'journal_entry' ? 'JE' : 'Deposit'}
                               </td>
-                              <td className="p-2 max-w-[240px] truncate">{t.payee}</td>
-                              <td className="p-2 max-w-[260px]" onClick={(e) => e.stopPropagation()}>
+                              <td className="p-2 truncate" title={t.payee}>{t.payee}</td>
+                              <td className="p-2 overflow-hidden" onClick={(e) => e.stopPropagation()}>
                                 <DescriptionCell text={t.description} />
                               </td>
                               <td className="p-2 text-right text-green-600 font-medium whitespace-nowrap">
