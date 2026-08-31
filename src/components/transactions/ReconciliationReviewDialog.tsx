@@ -707,14 +707,14 @@ export function ReconciliationReviewDialog({
                               className={`border-t ${t._txn ? 'cursor-pointer hover:bg-muted/50' : ''}`}
                               onClick={() => openDetail(t)}
                             >
-                              <td className="p-2">
+                              <td className="p-2 whitespace-nowrap">
                                 {t.date ? formatDateSafe(t.date, "MM/dd/yyyy") : '-'}
                               </td>
-                              <td className="p-2">
+                              <td className="p-2 whitespace-nowrap">
                                 {t.type === 'journal_entry' ? 'JE' : 'Deposit'}
                               </td>
-                              <td className="p-2 max-w-[240px] truncate">{t.payee}</td>
-                              <td className="p-2 max-w-[260px]" onClick={(e) => e.stopPropagation()}>
+                              <td className="p-2 truncate" title={t.payee}>{t.payee}</td>
+                              <td className="p-2 overflow-hidden" onClick={(e) => e.stopPropagation()}>
                                 <DescriptionCell text={t.description} />
                               </td>
                               <td className="p-2 text-right text-green-600 font-medium whitespace-nowrap">
