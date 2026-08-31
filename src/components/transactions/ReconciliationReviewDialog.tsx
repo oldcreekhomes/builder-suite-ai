@@ -560,7 +560,7 @@ export function ReconciliationReviewDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-6xl h-[85vh] max-h-[85vh] flex flex-col overflow-hidden">
+      <DialogContent className="w-[95vw] max-w-[1600px] sm:max-w-[95vw] h-[85vh] max-h-[85vh] flex flex-col overflow-hidden">
         <DialogHeader>
           <DialogTitle className="text-xl">
             Reconciliation Review
