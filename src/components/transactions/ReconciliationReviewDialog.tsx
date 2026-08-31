@@ -683,7 +683,14 @@ export function ReconciliationReviewDialog({
                     <p className="text-sm text-muted-foreground italic">No deposits in this reconciliation</p>
                   ) : (
                     <div className="border rounded-lg overflow-hidden">
-                      <table className="w-full text-sm">
+                      <table className="w-full text-sm table-fixed">
+                        <colgroup>
+                          <col className="w-[100px]" />
+                          <col className="w-[90px]" />
+                          <col className="w-[28%]" />
+                          <col className="w-auto" />
+                          <col className="w-[130px]" />
+                        </colgroup>
                         <thead className="bg-muted">
                           <tr>
                             <th className="p-2 text-left">Date</th>
