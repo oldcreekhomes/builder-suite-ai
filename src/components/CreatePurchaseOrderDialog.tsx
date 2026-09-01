@@ -116,6 +116,7 @@ export const CreatePurchaseOrderDialog = ({
   const hasInitializedRef = useRef(false);
   const prevIsExtractingRef = useRef(false);
   const originalFileIdsRef = useRef<Set<string>>(new Set());
+  const uploadedThisSessionIdsRef = useRef<Set<string>>(new Set());
 
   // Reset init guard when dialog closes
   useEffect(() => {
@@ -123,6 +124,7 @@ export const CreatePurchaseOrderDialog = ({
       hasInitializedRef.current = false;
       prevIsExtractingRef.current = false;
       originalFileIdsRef.current = new Set();
+      uploadedThisSessionIdsRef.current = new Set();
       setRemovedExistingFiles([]);
     }
   }, [open]);
@@ -294,6 +296,7 @@ export const CreatePurchaseOrderDialog = ({
         const { error } = await supabase.storage.from('project-files').upload(filePath, file);
         if (error) { toast({ title: "Error", description: `Failed to upload ${file.name}`, variant: "destructive" }); continue; }
         const { data: { publicUrl } } = supabase.storage.from('project-files').getPublicUrl(filePath);
+        uploadedThisSessionIdsRef.current.add(fileName);
         setUploadedFiles(prev => [...prev, { id: fileName, name: file.name, size: file.size, url: publicUrl }]);
       }
     } finally { setIsUploading(false); }
@@ -326,10 +329,13 @@ export const CreatePurchaseOrderDialog = ({
       return;
     }
 
-    const filePath = getProjectFileStoragePath(fileToRemove);
-    const { error } = await supabase.storage.from('project-files').remove([filePath]);
-    if (error) {
-      console.error('Failed to remove unsaved PO attachment from storage:', error);
+    if (uploadedThisSessionIdsRef.current.has(fileToRemove.id)) {
+      const filePath = getProjectFileStoragePath(fileToRemove);
+      const { error } = await supabase.storage.from('project-files').remove([filePath]);
+      if (error) {
+        console.error('Failed to remove unsaved PO attachment from storage:', error);
+      }
+      uploadedThisSessionIdsRef.current.delete(fileToRemove.id);
     }
   };
 
@@ -427,10 +433,15 @@ export const CreatePurchaseOrderDialog = ({
         await savePOLines(editOrder.id, validLines);
 
         if (removedExistingFiles.length > 0) {
-          const pathsToDelete = removedExistingFiles.map(getProjectFileStoragePath);
-          const { error: storageError } = await supabase.storage.from('project-files').remove(pathsToDelete);
-          if (storageError) {
-            console.error('PO updated, but removed attachment cleanup failed:', storageError);
+          const ownedPathPrefix = `purchase-orders/${projectId}/`;
+          const pathsToDelete = removedExistingFiles
+            .map(getProjectFileStoragePath)
+            .filter(path => path.startsWith(ownedPathPrefix));
+          if (pathsToDelete.length > 0) {
+            const { error: storageError } = await supabase.storage.from('project-files').remove(pathsToDelete);
+            if (storageError) {
+              console.error('PO updated, but removed attachment cleanup failed:', storageError);
+            }
           }
           setRemovedExistingFiles([]);
         }
