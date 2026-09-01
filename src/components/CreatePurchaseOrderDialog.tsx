@@ -88,6 +88,7 @@ export const CreatePurchaseOrderDialog = ({
   const [selectedCompany, setSelectedCompany] = useState<{ id: string; name: string } | null>(null);
   const [notes, setNotes] = useState("");
   const [uploadedFiles, setUploadedFiles] = useState<UploadedFile[]>([]);
+  const [removedExistingFiles, setRemovedExistingFiles] = useState<UploadedFile[]>([]);
   const [isUploading, setIsUploading] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [customMessage, setCustomMessage] = useState("");
@@ -114,12 +115,15 @@ export const CreatePurchaseOrderDialog = ({
   // Guards: only seed once per dialog open, don't clobber user edits on parent re-renders
   const hasInitializedRef = useRef(false);
   const prevIsExtractingRef = useRef(false);
+  const originalFileIdsRef = useRef<Set<string>>(new Set());
 
   // Reset init guard when dialog closes
   useEffect(() => {
     if (!open) {
       hasInitializedRef.current = false;
       prevIsExtractingRef.current = false;
+      originalFileIdsRef.current = new Set();
+      setRemovedExistingFiles([]);
     }
   }, [open]);
 
@@ -159,7 +163,9 @@ export const CreatePurchaseOrderDialog = ({
         name: editOrder.companies?.company_name,
       });
       setNotes(editOrder.notes || "");
-      setUploadedFiles(editOrder.files || []);
+      const existingFiles = editOrder.files || [];
+      setUploadedFiles(existingFiles);
+      originalFileIdsRef.current = new Set(existingFiles.map((file: UploadedFile) => file.id));
       setCustomMessage(editOrder.custom_message || "");
       // Lines load via the existingLines effect below; mark initialized there
     } else {
@@ -300,12 +306,31 @@ export const CreatePurchaseOrderDialog = ({
     maxSize: 10 * 1024 * 1024,
   });
 
-  const removeFile = async (fileToRemove: UploadedFile) => {
+  const getProjectFileStoragePath = (file: UploadedFile) => {
     try {
-      const filePath = `purchase-orders/${projectId}/${fileToRemove.id}`;
-      await supabase.storage.from('project-files').remove([filePath]);
-      setUploadedFiles(prev => prev.filter(f => f.id !== fileToRemove.id));
-    } catch { toast({ title: "Error", description: "Failed to remove file", variant: "destructive" }); }
+      const url = new URL(file.url);
+      const marker = '/object/public/project-files/';
+      const markerIndex = url.pathname.indexOf(marker);
+      if (markerIndex >= 0) return decodeURIComponent(url.pathname.slice(markerIndex + marker.length));
+    } catch {
+      // Fall back to the standard PO path for legacy records without a usable URL.
+    }
+    return `purchase-orders/${projectId}/${file.id}`;
+  };
+
+  const removeFile = async (fileToRemove: UploadedFile) => {
+    setUploadedFiles(prev => prev.filter(f => f.id !== fileToRemove.id));
+
+    if (originalFileIdsRef.current.has(fileToRemove.id)) {
+      setRemovedExistingFiles(prev => prev.some(file => file.id === fileToRemove.id) ? prev : [...prev, fileToRemove]);
+      return;
+    }
+
+    const filePath = getProjectFileStoragePath(fileToRemove);
+    const { error } = await supabase.storage.from('project-files').remove([filePath]);
+    if (error) {
+      console.error('Failed to remove unsaved PO attachment from storage:', error);
+    }
   };
 
   // === Submit handler: bid flow vs standard flow ===
@@ -400,6 +425,15 @@ export const CreatePurchaseOrderDialog = ({
 
         if (error) throw error;
         await savePOLines(editOrder.id, validLines);
+
+        if (removedExistingFiles.length > 0) {
+          const pathsToDelete = removedExistingFiles.map(getProjectFileStoragePath);
+          const { error: storageError } = await supabase.storage.from('project-files').remove(pathsToDelete);
+          if (storageError) {
+            console.error('PO updated, but removed attachment cleanup failed:', storageError);
+          }
+          setRemovedExistingFiles([]);
+        }
 
         if (vendorVisibleChanged) {
           // Fire-and-forget: don't block UI on the email send
