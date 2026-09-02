@@ -72,6 +72,17 @@ function BankStatementsDialogContent({ projectId, onOpenChange }: Omit<BankState
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
   const [bulkAccountId, setBulkAccountId] = useState<string>("");
 
+  // Collapse every account group by default when the dialog first opens.
+  useEffect(() => {
+    if (!open || groups.length === 0) return;
+    setCollapsed((prev) => {
+      if (Object.keys(prev).length > 0) return prev;
+      const defaults: Record<string, boolean> = {};
+      groups.forEach((g) => { defaults[g.key] = true; });
+      return defaults;
+    });
+  }, [open, groups]);
+
   const cleanName = (raw?: string) => (raw ? raw.replace(/^\d{13}_/, "") : "");
   const displayName = (raw?: string | null) => {
     const stripped = (raw || '').replace('Bank Statements/', '');
