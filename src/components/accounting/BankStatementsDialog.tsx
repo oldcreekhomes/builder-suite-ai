@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import {
@@ -10,6 +10,14 @@ import {
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Checkbox } from "@/components/ui/checkbox";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import {
   Table,
   TableBody,
@@ -18,7 +26,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { Upload, CalendarIcon } from "lucide-react";
+import { Upload, CalendarIcon, ChevronDown, ChevronRight, Search, Landmark } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { format } from "date-fns";
 import { UniversalFilePreviewProvider, useUniversalFilePreviewContext } from "@/components/files/UniversalFilePreviewProvider";
@@ -27,8 +35,9 @@ import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { cn } from "@/lib/utils";
 import { TableRowActions } from "@/components/ui/table-row-actions";
-import { SettingsTableWrapper } from "@/components/ui/settings-table-wrapper";
 import { formatDateSafe } from "@/utils/dateOnly";
+import { useProjectStatementAccounts } from "@/hooks/useProjectStatementAccounts";
+import { ManageStatementAccountsDialog } from "./ManageStatementAccountsDialog";
 
 interface BankStatementsDialogProps {
   projectId: string;
@@ -36,33 +45,48 @@ interface BankStatementsDialogProps {
   onOpenChange: (open: boolean) => void;
 }
 
+const UNASSIGNED = "__unassigned__";
+
 function BankStatementsDialogContent({ projectId, onOpenChange }: Omit<BankStatementsDialogProps, 'open'>) {
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const { openProjectFile } = useUniversalFilePreviewContext();
+  const { accounts: statementAccounts, activeAccounts } = useProjectStatementAccounts(projectId);
+
   const [isUploading, setIsUploading] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editingName, setEditingName] = useState("");
   const [editingDate, setEditingDate] = useState<Date | undefined>(undefined);
-  
+  const [editingAccountId, setEditingAccountId] = useState<string>(UNASSIGNED);
+
   // Upload dialog state
   const [uploadDialogOpen, setUploadDialogOpen] = useState(false);
   const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
   const [uploadStatementDate, setUploadStatementDate] = useState<Date | undefined>(undefined);
+  const [uploadAccountId, setUploadAccountId] = useState<string>("");
+
+  // Organization state
+  const [manageAccountsOpen, setManageAccountsOpen] = useState(false);
+  const [search, setSearch] = useState("");
+  const [collapsed, setCollapsed] = useState<Record<string, boolean>>({});
+  const [selectedIds, setSelectedIds] = useState<string[]>([]);
+  const [bulkAccountId, setBulkAccountId] = useState<string>("");
 
   const cleanName = (raw?: string) => (raw ? raw.replace(/^\d{13}_/, "") : "");
+  const displayName = (raw?: string | null) =>
+    cleanName((raw || '').replace('Bank Statements/', '')) || 'Untitled';
 
-  // Fetch bank statements - sorted by statement_date ASC, nulls last
+  // Fetch bank statements
   const { data: statements, isLoading } = useQuery({
     queryKey: ['bank-statements', projectId],
     queryFn: async () => {
       const { data, error } = await supabase
         .from('project_files')
-        .select('id, original_filename, storage_path, uploaded_at, mime_type, file_size, statement_date')
+        .select('id, original_filename, storage_path, uploaded_at, mime_type, file_size, statement_date, statement_account_id')
         .eq('project_id', projectId)
         .eq('is_deleted', false)
         .like('original_filename', 'Bank Statements/%')
-        .order('statement_date', { ascending: true, nullsFirst: false });
+        .order('statement_date', { ascending: false, nullsFirst: false });
 
       if (error) throw error;
       return data || [];
@@ -96,17 +120,18 @@ function BankStatementsDialogContent({ projectId, onOpenChange }: Omit<BankState
     },
   });
 
-  // Update mutation (filename and statement_date)
+  // Update mutation (filename, statement_date, account)
   const updateMutation = useMutation({
-    mutationFn: async ({ fileId, newName, statementDate }: { fileId: string; newName: string; statementDate: Date | null }) => {
+    mutationFn: async ({ fileId, newName, statementDate, statementAccountId }: { fileId: string; newName: string; statementDate: Date | null; statementAccountId: string | null }) => {
       const { error } = await supabase
         .from('project_files')
-        .update({ 
+        .update({
           original_filename: `Bank Statements/${newName}`,
-          statement_date: statementDate ? format(statementDate, 'yyyy-MM-dd') : null
+          statement_date: statementDate ? format(statementDate, 'yyyy-MM-dd') : null,
+          statement_account_id: statementAccountId,
         })
         .eq('id', fileId);
-      
+
       if (error) throw error;
     },
     onSuccess: () => {
@@ -114,6 +139,7 @@ function BankStatementsDialogContent({ projectId, onOpenChange }: Omit<BankState
       setEditingId(null);
       setEditingName("");
       setEditingDate(undefined);
+      setEditingAccountId(UNASSIGNED);
       toast({
         title: "Success",
         description: "Bank statement updated successfully",
@@ -128,9 +154,33 @@ function BankStatementsDialogContent({ projectId, onOpenChange }: Omit<BankState
     },
   });
 
-  const handleEdit = (fileId: string, currentName: string, currentDate: string | null) => {
+  // Bulk assign mutation
+  const bulkAssignMutation = useMutation({
+    mutationFn: async ({ ids, accountId }: { ids: string[]; accountId: string }) => {
+      const { error } = await supabase
+        .from('project_files')
+        .update({ statement_account_id: accountId })
+        .in('id', ids);
+      if (error) throw error;
+    },
+    onSuccess: (_data, variables) => {
+      queryClient.invalidateQueries({ queryKey: ['bank-statements', projectId] });
+      setSelectedIds([]);
+      setBulkAccountId("");
+      toast({
+        title: "Statements moved",
+        description: `${variables.ids.length} statement(s) assigned.`,
+      });
+    },
+    onError: (error: any) => {
+      toast({ title: "Error", description: error.message, variant: "destructive" });
+    },
+  });
+
+  const handleEdit = (fileId: string, currentName: string, currentDate: string | null, currentAccountId: string | null) => {
     setEditingId(fileId);
     setEditingName(cleanName(currentName.replace('Bank Statements/', '')));
+    setEditingAccountId(currentAccountId || UNASSIGNED);
     if (currentDate) {
       const [year, month, day] = currentDate.split('-').map(Number);
       setEditingDate(new Date(year, month - 1, day));
@@ -149,10 +199,11 @@ function BankStatementsDialogContent({ projectId, onOpenChange }: Omit<BankState
       return;
     }
     if (editingId) {
-      updateMutation.mutate({ 
-        fileId: editingId, 
+      updateMutation.mutate({
+        fileId: editingId,
         newName: editingName.trim(),
-        statementDate: editingDate || null
+        statementDate: editingDate || null,
+        statementAccountId: editingAccountId === UNASSIGNED ? null : editingAccountId,
       });
     }
   };
@@ -160,7 +211,7 @@ function BankStatementsDialogContent({ projectId, onOpenChange }: Omit<BankState
   const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files;
     if (!files || files.length === 0) return;
-    
+
     const pdfFiles = Array.from(files).filter(f => f.type === 'application/pdf');
     if (pdfFiles.length !== files.length) {
       toast({
@@ -186,6 +237,14 @@ function BankStatementsDialogContent({ projectId, onOpenChange }: Omit<BankState
       });
       return;
     }
+    if (!uploadAccountId) {
+      toast({
+        title: "Account Required",
+        description: "Please select which account these statements belong to",
+        variant: "destructive",
+      });
+      return;
+    }
 
     setIsUploading(true);
 
@@ -198,7 +257,6 @@ function BankStatementsDialogContent({ projectId, onOpenChange }: Omit<BankState
         const fileId = crypto.randomUUID();
         const storageName = `${projectId}/${fileId}_${originalFilename}`;
 
-        // Upload to storage
         const { data: uploadUrl, error: urlError } = await supabase.storage
           .from('project-files')
           .createSignedUploadUrl(storageName);
@@ -215,7 +273,6 @@ function BankStatementsDialogContent({ projectId, onOpenChange }: Omit<BankState
 
         if (!uploadResponse.ok) throw new Error('Upload failed');
 
-        // Insert record with statement_date
         const { error: insertError } = await supabase
           .from('project_files')
           .insert({
@@ -229,6 +286,7 @@ function BankStatementsDialogContent({ projectId, onOpenChange }: Omit<BankState
             uploaded_by: user.id,
             is_deleted: false,
             statement_date: format(uploadStatementDate, 'yyyy-MM-dd'),
+            statement_account_id: uploadAccountId,
           });
 
         if (insertError) throw insertError;
@@ -236,16 +294,16 @@ function BankStatementsDialogContent({ projectId, onOpenChange }: Omit<BankState
 
       queryClient.invalidateQueries({ queryKey: ['bank-statements', projectId] });
       queryClient.invalidateQueries({ queryKey: ['bank-statement-metrics', projectId] });
-      
+
       toast({
         title: "Success",
         description: `${selectedFiles.length} statement(s) uploaded successfully`,
       });
-      
-      // Reset state
+
       setUploadDialogOpen(false);
       setSelectedFiles([]);
       setUploadStatementDate(undefined);
+      setUploadAccountId("");
     } catch (error: any) {
       toast({
         title: "Upload failed",
@@ -293,8 +351,49 @@ function BankStatementsDialogContent({ projectId, onOpenChange }: Omit<BankState
     return formatDateSafe(dateStr, 'MM/dd/yy');
   };
 
+  // Group statements by statement account, in the user's configured order
+  const groups = useMemo(() => {
+    const term = search.trim().toLowerCase();
+    const rows = (statements || []).filter((s) =>
+      !term || displayName(s.original_filename).toLowerCase().includes(term)
+    );
+
+    const byAccount = new Map<string, any[]>();
+    for (const row of rows) {
+      const key = row.statement_account_id || UNASSIGNED;
+      if (!byAccount.has(key)) byAccount.set(key, []);
+      byAccount.get(key)!.push(row);
+    }
+
+    const sortRows = (list: any[]) =>
+      [...list].sort((a, b) => (b.statement_date || '').localeCompare(a.statement_date || ''));
+
+    const ordered = statementAccounts
+      .filter((a) => byAccount.has(a.id) || a.is_active)
+      .map((a) => ({
+        key: a.id,
+        label: a.name,
+        rows: sortRows(byAccount.get(a.id) || []),
+      }));
+
+    const unassigned = byAccount.get(UNASSIGNED) || [];
+    if (unassigned.length > 0) {
+      ordered.push({ key: UNASSIGNED, label: 'Unassigned', rows: sortRows(unassigned) });
+    }
+
+    return ordered;
+  }, [statements, statementAccounts, search]);
+
+  const totalRows = (statements || []).length;
+
+  const toggleGroup = (key: string) =>
+    setCollapsed((prev) => ({ ...prev, [key]: !prev[key] }));
+
+  const toggleSelected = (id: string) =>
+    setSelectedIds((prev) => (prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]));
+
   return (
-    <DialogContent className="max-w-4xl max-h-[80vh] flex flex-col overflow-hidden">
+    <DialogContent className="max-w-4xl max-h-[85vh] flex flex-col overflow-hidden">
       <DialogHeader>
         <DialogTitle>Bank Statements</DialogTitle>
         <DialogDescription>
@@ -302,116 +401,203 @@ function BankStatementsDialogContent({ projectId, onOpenChange }: Omit<BankState
         </DialogDescription>
       </DialogHeader>
 
-      <div className="flex justify-end mb-4">
-        <Button asChild disabled={isUploading}>
-          <label className="cursor-pointer">
-            <Upload className="h-4 w-4 mr-2" />
-            {isUploading ? 'Uploading...' : 'Upload PDF'}
-            <input
-              type="file"
-              accept="application/pdf"
-              multiple
-              className="hidden"
-              onChange={handleFileSelect}
-              disabled={isUploading}
-            />
-          </label>
-        </Button>
+      <div className="flex items-center gap-2">
+        <div className="relative flex-1 max-w-sm">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+          <Input
+            placeholder="Search statements..."
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            className="pl-9"
+          />
+        </div>
+        <div className="ml-auto flex items-center gap-2">
+          <Button variant="outline" onClick={() => setManageAccountsOpen(true)}>
+            <Landmark className="h-4 w-4 mr-2" />
+            Accounts
+          </Button>
+          <Button asChild disabled={isUploading}>
+            <label className="cursor-pointer">
+              <Upload className="h-4 w-4 mr-2" />
+              {isUploading ? 'Uploading...' : 'Upload PDF'}
+              <input
+                type="file"
+                accept="application/pdf"
+                multiple
+                className="hidden"
+                onChange={handleFileSelect}
+                disabled={isUploading}
+              />
+            </label>
+          </Button>
+        </div>
       </div>
 
-      <div className="flex-1 min-h-0 overflow-y-auto">
+      {selectedIds.length > 0 && (
+        <div className="flex items-center gap-2 rounded-md border bg-muted/40 px-3 py-2">
+          <span className="text-sm">{selectedIds.length} selected</span>
+          <Select value={bulkAccountId} onValueChange={setBulkAccountId}>
+            <SelectTrigger className="h-8 w-64">
+              <SelectValue placeholder="Move to account..." />
+            </SelectTrigger>
+            <SelectContent className="bg-popover z-50">
+              {activeAccounts.map((a) => (
+                <SelectItem key={a.id} value={a.id}>{a.name}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          <Button
+            size="sm"
+            disabled={!bulkAccountId || bulkAssignMutation.isPending}
+            onClick={() => bulkAssignMutation.mutate({ ids: selectedIds, accountId: bulkAccountId })}
+          >
+            Move
+          </Button>
+          <Button size="sm" variant="ghost" onClick={() => setSelectedIds([])}>Clear</Button>
+        </div>
+      )}
+
+      <div className="flex-1 min-h-0 overflow-y-auto space-y-3">
         {isLoading ? (
           <div className="p-8 text-center text-muted-foreground">Loading...</div>
-        ) : statements && statements.length > 0 ? (
-          <SettingsTableWrapper>
-          <Table containerClassName="relative w-full overflow-visible max-h-none">
-            <TableHeader>
-              <TableRow>
-                <TableHead>File Name</TableHead>
-                <TableHead>Statement End Date</TableHead>
-                <TableHead>Uploaded</TableHead>
-                <TableHead>Size</TableHead>
-                <TableHead className="text-center">Actions</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {statements.map((statement) => (
-                  <TableRow 
-                    key={statement.id}
-                    onClick={() => {
-                      openProjectFile(
-                        statement.storage_path,
-                        cleanName(statement.original_filename?.replace('Bank Statements/', '') || 'Statement')
-                      );
-                    }}
-                    className="cursor-pointer hover:bg-muted/50"
-                  >
-                  <TableCell className="font-medium">
-                    {cleanName(statement.original_filename?.replace('Bank Statements/', '') || 'Untitled')}
-                  </TableCell>
-                  <TableCell>
-                    {formatStatementDate(statement.statement_date)}
-                  </TableCell>
-                  <TableCell>
-                    {statement.uploaded_at ? formatDateSafe(statement.uploaded_at, 'MM/dd/yy') : '-'}
-                  </TableCell>
-                  <TableCell>
-                    {statement.file_size ? formatFileSize(statement.file_size) : '-'}
-                  </TableCell>
-                  <TableCell className="text-center">
-                    <div className="flex justify-center" onClick={(e) => e.stopPropagation()}>
-                      <TableRowActions
-                        actions={[
-                          {
-                            label: "Download",
-                            onClick: () => handleDownload(
-                              statement.storage_path,
-                              cleanName(statement.original_filename?.replace('Bank Statements/', '') || 'statement.pdf')
-                            ),
-                          },
-                          {
-                            label: "Edit",
-                            onClick: () => handleEdit(statement.id, statement.original_filename || '', statement.statement_date),
-                          },
-                          {
-                            label: "Delete",
-                            variant: "destructive",
-                            requiresConfirmation: true,
-                            confirmTitle: "Delete Bank Statement",
-                            confirmDescription: "Are you sure you want to delete this bank statement? This action cannot be undone.",
-                            onClick: () => deleteMutation.mutate(statement.id),
-                            isLoading: deleteMutation.isPending,
-                          },
-                        ]}
-                      />
-                    </div>
-                  </TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
-          </SettingsTableWrapper>
-        ) : (
+        ) : totalRows === 0 ? (
           <div className="p-8 text-center text-muted-foreground">
             <p>No bank statements yet.</p>
-            <p className="text-sm mt-2">Upload a PDF to get started.</p>
+            <p className="text-sm mt-2">Add an account, then upload a PDF to get started.</p>
           </div>
+        ) : groups.length === 0 ? (
+          <div className="p-8 text-center text-muted-foreground">No statements match your search.</div>
+        ) : (
+          groups.map((group) => {
+            const isCollapsed = !!collapsed[group.key];
+            const latest = group.rows.find((r) => r.statement_date)?.statement_date || null;
+            return (
+              <div key={group.key} className="border rounded-md overflow-hidden">
+                <button
+                  type="button"
+                  onClick={() => toggleGroup(group.key)}
+                  className="w-full flex items-center gap-2 px-3 py-2 bg-muted/50 hover:bg-muted text-left"
+                >
+                  {isCollapsed ? <ChevronRight className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
+                  <span className="font-medium text-sm">{group.label}</span>
+                  <span className="text-xs text-muted-foreground">
+                    {group.rows.length} statement{group.rows.length === 1 ? '' : 's'}
+                  </span>
+                  {latest && (
+                    <span className="ml-auto text-xs text-muted-foreground">
+                      Latest {formatStatementDate(latest)}
+                    </span>
+                  )}
+                </button>
+
+                {!isCollapsed && (
+                  group.rows.length === 0 ? (
+                    <div className="px-4 py-3 text-sm text-muted-foreground">No statements yet.</div>
+                  ) : (
+                    <Table containerClassName="relative w-full overflow-visible max-h-none">
+                      <TableHeader>
+                        <TableRow>
+                          <TableHead className="w-10"></TableHead>
+                          <TableHead>File Name</TableHead>
+                          <TableHead className="w-40">Statement End Date</TableHead>
+                          <TableHead className="w-28">Uploaded</TableHead>
+                          <TableHead className="w-24">Size</TableHead>
+                          <TableHead className="w-20 text-center">Actions</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {group.rows.map((statement) => (
+                          <TableRow
+                            key={statement.id}
+                            onClick={() => {
+                              openProjectFile(
+                                statement.storage_path,
+                                displayName(statement.original_filename)
+                              );
+                            }}
+                            className="cursor-pointer hover:bg-muted/50"
+                          >
+                            <TableCell onClick={(e) => e.stopPropagation()}>
+                              <Checkbox
+                                checked={selectedIds.includes(statement.id)}
+                                onCheckedChange={() => toggleSelected(statement.id)}
+                              />
+                            </TableCell>
+                            <TableCell className="font-medium">
+                              {displayName(statement.original_filename)}
+                            </TableCell>
+                            <TableCell>{formatStatementDate(statement.statement_date)}</TableCell>
+                            <TableCell>
+                              {statement.uploaded_at ? formatDateSafe(statement.uploaded_at, 'MM/dd/yy') : '-'}
+                            </TableCell>
+                            <TableCell>
+                              {statement.file_size ? formatFileSize(statement.file_size) : '-'}
+                            </TableCell>
+                            <TableCell className="text-center">
+                              <div className="flex justify-center" onClick={(e) => e.stopPropagation()}>
+                                <TableRowActions
+                                  actions={[
+                                    {
+                                      label: "Download",
+                                      onClick: () => handleDownload(
+                                        statement.storage_path,
+                                        displayName(statement.original_filename)
+                                      ),
+                                    },
+                                    {
+                                      label: "Edit",
+                                      onClick: () => handleEdit(
+                                        statement.id,
+                                        statement.original_filename || '',
+                                        statement.statement_date,
+                                        statement.statement_account_id
+                                      ),
+                                    },
+                                    {
+                                      label: "Delete",
+                                      variant: "destructive",
+                                      requiresConfirmation: true,
+                                      confirmTitle: "Delete Bank Statement",
+                                      confirmDescription: "Are you sure you want to delete this bank statement? This action cannot be undone.",
+                                      onClick: () => deleteMutation.mutate(statement.id),
+                                      isLoading: deleteMutation.isPending,
+                                    },
+                                  ]}
+                                />
+                              </div>
+                            </TableCell>
+                          </TableRow>
+                        ))}
+                      </TableBody>
+                    </Table>
+                  )
+                )}
+              </div>
+            );
+          })
         )}
       </div>
 
-      {/* Upload Dialog with Statement End Date */}
+      <ManageStatementAccountsDialog
+        projectId={projectId}
+        open={manageAccountsOpen}
+        onOpenChange={setManageAccountsOpen}
+      />
+
+      {/* Upload Dialog with Account + Statement End Date */}
       <Dialog open={uploadDialogOpen} onOpenChange={(open) => {
         if (!open) {
           setUploadDialogOpen(false);
           setSelectedFiles([]);
           setUploadStatementDate(undefined);
+          setUploadAccountId("");
         }
       }}>
         <DialogContent>
           <DialogHeader>
             <DialogTitle>Upload Bank Statement</DialogTitle>
             <DialogDescription>
-              Select the statement end date for {selectedFiles.length} file(s)
+              Select the account and statement end date for {selectedFiles.length} file(s)
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-4 py-4">
@@ -420,6 +606,25 @@ function BankStatementsDialogContent({ projectId, onOpenChange }: Omit<BankState
               <div className="text-sm text-muted-foreground">
                 {selectedFiles.map(f => f.name).join(', ')}
               </div>
+            </div>
+            <div className="space-y-2">
+              <Label>Account</Label>
+              {activeAccounts.length === 0 ? (
+                <div className="text-sm text-muted-foreground">
+                  No statement accounts yet — close this and use the Accounts button to add one.
+                </div>
+              ) : (
+                <Select value={uploadAccountId} onValueChange={setUploadAccountId}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select account" />
+                  </SelectTrigger>
+                  <SelectContent className="bg-popover z-50">
+                    {activeAccounts.map((a) => (
+                      <SelectItem key={a.id} value={a.id}>{a.name}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              )}
             </div>
             <div className="space-y-2">
               <Label>Statement End Date</Label>
@@ -455,6 +660,7 @@ function BankStatementsDialogContent({ projectId, onOpenChange }: Omit<BankState
                 setUploadDialogOpen(false);
                 setSelectedFiles([]);
                 setUploadStatementDate(undefined);
+                setUploadAccountId("");
               }}
               disabled={isUploading}
             >
@@ -462,7 +668,7 @@ function BankStatementsDialogContent({ projectId, onOpenChange }: Omit<BankState
             </Button>
             <Button
               onClick={handleUpload}
-              disabled={isUploading || !uploadStatementDate}
+              disabled={isUploading || !uploadStatementDate || !uploadAccountId}
             >
               {isUploading ? "Uploading..." : "Upload"}
             </Button>
@@ -470,13 +676,13 @@ function BankStatementsDialogContent({ projectId, onOpenChange }: Omit<BankState
         </DialogContent>
       </Dialog>
 
-      {/* Edit Dialog with Statement End Date */}
+      {/* Edit Dialog with Account + Statement End Date */}
       <Dialog open={!!editingId} onOpenChange={(open) => !open && setEditingId(null)}>
         <DialogContent>
           <DialogHeader>
             <DialogTitle>Edit Bank Statement</DialogTitle>
             <DialogDescription>
-              Update the file name and statement end date
+              Update the account, file name and statement end date
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-4 py-4">
@@ -491,6 +697,20 @@ function BankStatementsDialogContent({ projectId, onOpenChange }: Omit<BankState
                 }}
                 placeholder="Enter filename"
               />
+            </div>
+            <div className="space-y-2">
+              <Label>Account</Label>
+              <Select value={editingAccountId} onValueChange={setEditingAccountId}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Select account" />
+                </SelectTrigger>
+                <SelectContent className="bg-popover z-50">
+                  <SelectItem value={UNASSIGNED}>Unassigned</SelectItem>
+                  {statementAccounts.map((a) => (
+                    <SelectItem key={a.id} value={a.id}>{a.name}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
             <div className="space-y-2">
               <Label>Statement End Date</Label>
@@ -544,8 +764,8 @@ export function BankStatementsDialog(props: BankStatementsDialogProps) {
   return (
     <Dialog open={props.open} onOpenChange={props.onOpenChange}>
       <UniversalFilePreviewProvider>
-        <BankStatementsDialogContent 
-          projectId={props.projectId} 
+        <BankStatementsDialogContent
+          projectId={props.projectId}
           onOpenChange={props.onOpenChange}
         />
       </UniversalFilePreviewProvider>
