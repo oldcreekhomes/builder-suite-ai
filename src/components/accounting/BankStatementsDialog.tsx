@@ -562,7 +562,7 @@ function BankStatementsDialogContent({ projectId, onOpenChange }: Omit<BankState
                             onClick={() => {
                               openProjectFile(
                                 statement.storage_path,
-                                displayName(statement.original_filename)
+                                `${statement._label}.pdf`
                               );
                             }}
                             className="cursor-pointer hover:bg-muted/50"
@@ -573,9 +573,13 @@ function BankStatementsDialogContent({ projectId, onOpenChange }: Omit<BankState
                                 onCheckedChange={() => toggleSelected(statement.id)}
                               />
                             </TableCell>
-                            <TableCell className="font-medium">
-                              {displayName(statement.original_filename)}
+                            <TableCell
+                              className="font-medium"
+                              title={displayName(statement.original_filename)}
+                            >
+                              {statement._label}
                             </TableCell>
+
                             <TableCell>{formatStatementDate(statement.statement_date)}</TableCell>
                             <TableCell>
                               {statement.uploaded_at ? formatDateSafe(statement.uploaded_at, 'MM/dd/yy') : '-'}
