@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import {
@@ -68,20 +68,9 @@ function BankStatementsDialogContent({ projectId, onOpenChange }: Omit<BankState
   // Organization state
   const [manageAccountsOpen, setManageAccountsOpen] = useState(false);
   const [search, setSearch] = useState("");
-  const [collapsed, setCollapsed] = useState<Record<string, boolean>>({});
+  const [expanded, setExpanded] = useState<Record<string, boolean>>({});
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
   const [bulkAccountId, setBulkAccountId] = useState<string>("");
-
-  // Collapse every account group by default when the dialog first opens.
-  useEffect(() => {
-    if (!open || groups.length === 0) return;
-    setCollapsed((prev) => {
-      if (Object.keys(prev).length > 0) return prev;
-      const defaults: Record<string, boolean> = {};
-      groups.forEach((g) => { defaults[g.key] = true; });
-      return defaults;
-    });
-  }, [open, groups]);
 
   const cleanName = (raw?: string) => (raw ? raw.replace(/^\d{13}_/, "") : "");
   const displayName = (raw?: string | null) => {
@@ -448,7 +437,7 @@ function BankStatementsDialogContent({ projectId, onOpenChange }: Omit<BankState
   const totalRows = (statements || []).length;
 
   const toggleGroup = (key: string) =>
-    setCollapsed((prev) => ({ ...prev, [key]: !prev[key] }));
+    setExpanded((prev) => ({ ...prev, [key]: !prev[key] }));
 
   const toggleSelected = (id: string) =>
     setSelectedIds((prev) => (prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]));
