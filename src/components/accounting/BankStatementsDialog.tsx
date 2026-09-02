@@ -73,8 +73,25 @@ function BankStatementsDialogContent({ projectId, onOpenChange }: Omit<BankState
   const [bulkAccountId, setBulkAccountId] = useState<string>("");
 
   const cleanName = (raw?: string) => (raw ? raw.replace(/^\d{13}_/, "") : "");
-  const displayName = (raw?: string | null) =>
-    cleanName((raw || '').replace('Bank Statements/', '')) || 'Untitled';
+  const displayName = (raw?: string | null) => {
+    const stripped = (raw || '').replace('Bank Statements/', '');
+    const base = stripped.split('/').pop() || stripped;
+    return cleanName(base).replace(/\.pdf$/i, '') || 'Untitled';
+  };
+
+  const MONTHS = [
+    'January', 'February', 'March', 'April', 'May', 'June',
+    'July', 'August', 'September', 'October', 'November', 'December',
+  ];
+
+  // "2025-06-30" -> "June 2025" (no timezone conversion)
+  const periodLabel = (dateStr?: string | null) => {
+    if (!dateStr) return null;
+    const m = /^(\d{4})-(\d{2})/.exec(dateStr);
+    if (!m) return null;
+    return `${MONTHS[Number(m[2]) - 1]} ${m[1]}`;
+  };
+
 
   // Fetch bank statements
   const { data: statements, isLoading } = useQuery({
@@ -357,35 +374,65 @@ function BankStatementsDialogContent({ projectId, onOpenChange }: Omit<BankState
   // Group statements by statement account, in the user's configured order
   const groups = useMemo(() => {
     const term = search.trim().toLowerCase();
-    const rows = (statements || []).filter((s) =>
-      !term || displayName(s.original_filename).toLowerCase().includes(term)
-    );
 
     const byAccount = new Map<string, any[]>();
-    for (const row of rows) {
+    for (const row of statements || []) {
       const key = row.statement_account_id || UNASSIGNED;
       if (!byAccount.has(key)) byAccount.set(key, []);
       byAccount.get(key)!.push(row);
     }
 
+    // Newest statement period first; undated rows last. Ties broken by newest upload.
     const sortRows = (list: any[]) =>
-      [...list].sort((a, b) => (b.statement_date || '').localeCompare(a.statement_date || ''));
+      [...list].sort((a, b) => {
+        const ad = a.statement_date || '';
+        const bd = b.statement_date || '';
+        if (ad && bd && ad !== bd) return bd.localeCompare(ad);
+        if (ad && !bd) return -1;
+        if (!ad && bd) return 1;
+        return (b.uploaded_at || '').localeCompare(a.uploaded_at || '');
+      });
+
+    // Label each row by its statement period, numbering duplicates within the account.
+    const labelRows = (list: any[]) => {
+      const counts = new Map<string, number>();
+      return list.map((row) => {
+        const period = periodLabel(row.statement_date);
+        let label: string;
+        if (period) {
+          const n = (counts.get(period) || 0) + 1;
+          counts.set(period, n);
+          label = n === 1 ? period : `${period} (${n})`;
+        } else {
+          label = displayName(row.original_filename);
+        }
+        return { ...row, _label: label };
+      });
+    };
+
+    const matches = (row: any) =>
+      !term ||
+      String(row._label).toLowerCase().includes(term) ||
+      String(row.original_filename || '').toLowerCase().includes(term);
+
+    const buildRows = (list: any[]) => labelRows(sortRows(list)).filter(matches);
 
     const ordered = statementAccounts
       .filter((a) => byAccount.has(a.id) || a.is_active)
       .map((a) => ({
         key: a.id,
         label: a.name,
-        rows: sortRows(byAccount.get(a.id) || []),
+        rows: buildRows(byAccount.get(a.id) || []),
       }));
 
     const unassigned = byAccount.get(UNASSIGNED) || [];
     if (unassigned.length > 0) {
-      ordered.push({ key: UNASSIGNED, label: 'Unassigned', rows: sortRows(unassigned) });
+      ordered.push({ key: UNASSIGNED, label: 'Unassigned', rows: buildRows(unassigned) });
     }
 
     return ordered;
   }, [statements, statementAccounts, search]);
+
 
   const totalRows = (statements || []).length;
 
@@ -515,7 +562,7 @@ function BankStatementsDialogContent({ projectId, onOpenChange }: Omit<BankState
                             onClick={() => {
                               openProjectFile(
                                 statement.storage_path,
-                                displayName(statement.original_filename)
+                                `${statement._label}.pdf`
                               );
                             }}
                             className="cursor-pointer hover:bg-muted/50"
@@ -526,9 +573,13 @@ function BankStatementsDialogContent({ projectId, onOpenChange }: Omit<BankState
                                 onCheckedChange={() => toggleSelected(statement.id)}
                               />
                             </TableCell>
-                            <TableCell className="font-medium">
-                              {displayName(statement.original_filename)}
+                            <TableCell
+                              className="font-medium"
+                              title={displayName(statement.original_filename)}
+                            >
+                              {statement._label}
                             </TableCell>
+
                             <TableCell>{formatStatementDate(statement.statement_date)}</TableCell>
                             <TableCell>
                               {statement.uploaded_at ? formatDateSafe(statement.uploaded_at, 'MM/dd/yy') : '-'}
@@ -544,8 +595,9 @@ function BankStatementsDialogContent({ projectId, onOpenChange }: Omit<BankState
                                       label: "Download",
                                       onClick: () => handleDownload(
                                         statement.storage_path,
-                                        displayName(statement.original_filename)
+                                        `${statement._label}.pdf`
                                       ),
+
                                     },
                                     {
                                       label: "Edit",
