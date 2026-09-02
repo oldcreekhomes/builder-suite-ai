@@ -17,7 +17,7 @@ import { format, addMonths, endOfMonth } from "date-fns";
 import { formatDateSafe } from "@/utils/dateOnly";
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { CalendarIcon, Save, CheckCircle2, Lock, LockOpen, ChevronDown, ChevronUp, Loader2, ArrowUpDown, ArrowUp, ArrowDown, StickyNote } from "lucide-react";
+import { CalendarIcon, Save, CheckCircle2, Lock, LockOpen, ChevronDown, ChevronUp, Loader2, ArrowUpDown, ArrowUp, ArrowDown, StickyNote, FileText } from "lucide-react";
 import { TableRowActions } from "@/components/ui/table-row-actions";
 import { ReconciliationReviewDialog } from "./ReconciliationReviewDialog";
 import {
@@ -298,6 +298,64 @@ export function ReconcileAccountsContent({ projectId }: ReconcileAccountsContent
     refetchOnWindowFocus: false,  // Prevent refetch from overwriting user edits
     staleTime: Infinity,          // Never auto-refetch
   });
+
+  // Statement PDFs uploaded via the Statements dialog, matched to each
+  // reconciliation by statement account (linked COA account) + statement date.
+  const { data: statementFiles } = useQuery({
+    queryKey: ['reconciliation-statements', projectId, selectedBankAccountId],
+    queryFn: async () => {
+      if (!projectId || !selectedBankAccountId) return [];
+      const { data: stmtAccounts, error: saError } = await supabase
+        .from('project_statement_accounts')
+        .select('id, name, account_id')
+        .eq('project_id', projectId)
+        .eq('account_id', selectedBankAccountId);
+      if (saError) throw saError;
+      const accountIds = (stmtAccounts || []).map((a: any) => a.id);
+      if (accountIds.length === 0) return [];
+      const { data: files, error: fError } = await supabase
+        .from('project_files')
+        .select('id, original_filename, storage_path, statement_date, statement_account_id')
+        .eq('project_id', projectId)
+        .eq('is_deleted', false)
+        .in('statement_account_id', accountIds);
+      if (fError) throw fError;
+      return (files || []).filter((f: any) => f.statement_date && f.storage_path);
+    },
+    enabled: !!projectId && !!selectedBankAccountId,
+  });
+
+  const findStatementForReconciliation = (statementDate: string) => {
+    if (!statementFiles || statementFiles.length === 0) return null;
+    const exact = statementFiles.find((f: any) => f.statement_date === statementDate);
+    if (exact) return exact;
+    // Fall back to same month/year when day doesn't line up exactly
+    const monthKey = (statementDate || '').slice(0, 7);
+    return statementFiles.find((f: any) => (f.statement_date || '').slice(0, 7) === monthKey) || null;
+  };
+
+  const handleStatementDownload = async (file: { storage_path: string; original_filename: string }) => {
+    try {
+      const { data, error } = await supabase.storage
+        .from('project-files')
+        .download(file.storage_path);
+      if (error) throw error;
+      const url = URL.createObjectURL(data);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = file.original_filename;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+    } catch (error: any) {
+      toast({
+        title: "Download failed",
+        description: error.message,
+        variant: "destructive",
+      });
+    }
+  };
 
   // Reconcilable accounts: bank + credit card subtypes, active, not excluded for this project
   const bankAccounts = (accounts ?? []).filter((acc: any) => {
@@ -1687,6 +1745,7 @@ export function ReconcileAccountsContent({ projectId }: ReconcileAccountsContent
                   <thead className="bg-muted">
                     <tr>
                       <th className="p-3 text-left">Statement Date</th>
+                      <th className="p-3 text-center">Statement</th>
                       <th className="p-3 text-left">Beginning Balance</th>
                       <th className="p-3 text-left">Ending Balance</th>
                       <th className="p-3 text-left">Difference</th>
@@ -1703,6 +1762,31 @@ export function ReconcileAccountsContent({ projectId }: ReconcileAccountsContent
                         <tr key={rec.id} className="border-t hover:bg-muted/50">
                           <td className="p-3">
                             {formatDateSafe(rec.statement_date, "MM/dd/yyyy")}
+                          </td>
+                          <td className="p-3 text-center">
+                            {(() => {
+                              const stmt = findStatementForReconciliation(rec.statement_date);
+                              if (!stmt) return <span className="text-muted-foreground">-</span>;
+                              return (
+                                <TooltipProvider>
+                                  <Tooltip>
+                                    <TooltipTrigger asChild>
+                                      <Button
+                                        variant="ghost"
+                                        size="sm"
+                                        onClick={() => handleStatementDownload(stmt)}
+                                        className="h-8 w-8 p-0"
+                                      >
+                                        <FileText className="h-4 w-4 text-red-600" />
+                                      </Button>
+                                    </TooltipTrigger>
+                                    <TooltipContent>
+                                      <p>{stmt.original_filename}</p>
+                                    </TooltipContent>
+                                  </Tooltip>
+                                </TooltipProvider>
+                              );
+                            })()}
                           </td>
                           <td className="p-3">
                             {formatCurrency(rec.statement_beginning_balance || 0)}
