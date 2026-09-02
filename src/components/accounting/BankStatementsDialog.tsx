@@ -68,7 +68,7 @@ function BankStatementsDialogContent({ projectId, onOpenChange }: Omit<BankState
   // Organization state
   const [manageAccountsOpen, setManageAccountsOpen] = useState(false);
   const [search, setSearch] = useState("");
-  const [collapsed, setCollapsed] = useState<Record<string, boolean>>({});
+  const [expanded, setExpanded] = useState<Record<string, boolean>>({});
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
   const [bulkAccountId, setBulkAccountId] = useState<string>("");
 
@@ -437,7 +437,7 @@ function BankStatementsDialogContent({ projectId, onOpenChange }: Omit<BankState
   const totalRows = (statements || []).length;
 
   const toggleGroup = (key: string) =>
-    setCollapsed((prev) => ({ ...prev, [key]: !prev[key] }));
+    setExpanded((prev) => ({ ...prev, [key]: !prev[key] }));
 
   const toggleSelected = (id: string) =>
     setSelectedIds((prev) => (prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]));
@@ -519,7 +519,7 @@ function BankStatementsDialogContent({ projectId, onOpenChange }: Omit<BankState
           <div className="p-8 text-center text-muted-foreground">No statements match your search.</div>
         ) : (
           groups.map((group) => {
-            const isCollapsed = !!collapsed[group.key];
+            const isCollapsed = !expanded[group.key];
             const latest = group.rows.find((r) => r.statement_date)?.statement_date || null;
             return (
               <div key={group.key} className="border rounded-md overflow-hidden">
