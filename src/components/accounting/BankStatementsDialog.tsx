@@ -445,9 +445,9 @@ function BankStatementsDialogContent({ projectId, onOpenChange }: Omit<BankState
   return (
     <DialogContent className="max-w-4xl max-h-[85vh] flex flex-col overflow-hidden">
       <DialogHeader>
-        <DialogTitle>Bank Statements</DialogTitle>
+        <DialogTitle>Statements</DialogTitle>
         <DialogDescription>
-          Upload and manage bank statement PDFs for this project
+          Upload and manage statement PDFs for this project
         </DialogDescription>
       </DialogHeader>
 
@@ -512,7 +512,7 @@ function BankStatementsDialogContent({ projectId, onOpenChange }: Omit<BankState
           <div className="p-8 text-center text-muted-foreground">Loading...</div>
         ) : totalRows === 0 ? (
           <div className="p-8 text-center text-muted-foreground">
-            <p>No bank statements yet.</p>
+            <p>No statements yet.</p>
             <p className="text-sm mt-2">Add an account, then upload a PDF to get started.</p>
           </div>
         ) : groups.length === 0 ? (
@@ -612,8 +612,8 @@ function BankStatementsDialogContent({ projectId, onOpenChange }: Omit<BankState
                                       label: "Delete",
                                       variant: "destructive",
                                       requiresConfirmation: true,
-                                      confirmTitle: "Delete Bank Statement",
-                                      confirmDescription: "Are you sure you want to delete this bank statement? This action cannot be undone.",
+                                      confirmTitle: "Delete Statement",
+                                      confirmDescription: "Are you sure you want to delete this statement? This action cannot be undone.",
                                       onClick: () => deleteMutation.mutate(statement.id),
                                       isLoading: deleteMutation.isPending,
                                     },
