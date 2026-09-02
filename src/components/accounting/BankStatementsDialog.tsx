@@ -89,7 +89,10 @@ function BankStatementsDialogContent({ projectId, onOpenChange }: Omit<BankState
         .order('statement_date', { ascending: false, nullsFirst: false });
 
       if (error) throw error;
-      return data || [];
+      // Hide folder placeholder records – they are not statements
+      return (data || []).filter(
+        (f) => !(f.original_filename || '').toLowerCase().endsWith('.folderkeeper')
+      );
     },
   });
 
