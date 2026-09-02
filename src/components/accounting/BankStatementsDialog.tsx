@@ -374,35 +374,65 @@ function BankStatementsDialogContent({ projectId, onOpenChange }: Omit<BankState
   // Group statements by statement account, in the user's configured order
   const groups = useMemo(() => {
     const term = search.trim().toLowerCase();
-    const rows = (statements || []).filter((s) =>
-      !term || displayName(s.original_filename).toLowerCase().includes(term)
-    );
 
     const byAccount = new Map<string, any[]>();
-    for (const row of rows) {
+    for (const row of statements || []) {
       const key = row.statement_account_id || UNASSIGNED;
       if (!byAccount.has(key)) byAccount.set(key, []);
       byAccount.get(key)!.push(row);
     }
 
+    // Newest statement period first; undated rows last. Ties broken by newest upload.
     const sortRows = (list: any[]) =>
-      [...list].sort((a, b) => (b.statement_date || '').localeCompare(a.statement_date || ''));
+      [...list].sort((a, b) => {
+        const ad = a.statement_date || '';
+        const bd = b.statement_date || '';
+        if (ad && bd && ad !== bd) return bd.localeCompare(ad);
+        if (ad && !bd) return -1;
+        if (!ad && bd) return 1;
+        return (b.uploaded_at || '').localeCompare(a.uploaded_at || '');
+      });
+
+    // Label each row by its statement period, numbering duplicates within the account.
+    const labelRows = (list: any[]) => {
+      const counts = new Map<string, number>();
+      return list.map((row) => {
+        const period = periodLabel(row.statement_date);
+        let label: string;
+        if (period) {
+          const n = (counts.get(period) || 0) + 1;
+          counts.set(period, n);
+          label = n === 1 ? period : `${period} (${n})`;
+        } else {
+          label = displayName(row.original_filename);
+        }
+        return { ...row, _label: label };
+      });
+    };
+
+    const matches = (row: any) =>
+      !term ||
+      String(row._label).toLowerCase().includes(term) ||
+      String(row.original_filename || '').toLowerCase().includes(term);
+
+    const buildRows = (list: any[]) => labelRows(sortRows(list)).filter(matches);
 
     const ordered = statementAccounts
       .filter((a) => byAccount.has(a.id) || a.is_active)
       .map((a) => ({
         key: a.id,
         label: a.name,
-        rows: sortRows(byAccount.get(a.id) || []),
+        rows: buildRows(byAccount.get(a.id) || []),
       }));
 
     const unassigned = byAccount.get(UNASSIGNED) || [];
     if (unassigned.length > 0) {
-      ordered.push({ key: UNASSIGNED, label: 'Unassigned', rows: sortRows(unassigned) });
+      ordered.push({ key: UNASSIGNED, label: 'Unassigned', rows: buildRows(unassigned) });
     }
 
     return ordered;
   }, [statements, statementAccounts, search]);
+
 
   const totalRows = (statements || []).length;
 
