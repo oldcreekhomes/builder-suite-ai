@@ -9,7 +9,6 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Checkbox } from "@/components/ui/checkbox";
 import {
   Select,
   SelectContent,
@@ -17,9 +16,10 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { ArrowDown, ArrowUp, Check, Pencil, Plus, Trash2, X } from "lucide-react";
+import { Check, Plus, X } from "lucide-react";
 import { useProjectStatementAccounts, type StatementAccount } from "@/hooks/useProjectStatementAccounts";
 import { useProjectPaymentAccounts } from "@/hooks/useProjectPaymentAccounts";
+import { TableRowActions, type TableAction } from "@/components/ui/table-row-actions";
 
 const NONE = "__none__";
 
@@ -36,7 +36,6 @@ export function ManageStatementAccountsDialog({ projectId, open, onOpenChange }:
     createAccount,
     updateAccount,
     deleteAccount,
-    reorderAccounts,
   } = useProjectStatementAccounts(projectId);
   const { paymentAccounts } = useProjectPaymentAccounts(projectId);
 
@@ -77,14 +76,6 @@ export function ManageStatementAccountsDialog({ projectId, open, onOpenChange }:
     );
   };
 
-  const move = (index: number, direction: -1 | 1) => {
-    const next = [...accounts];
-    const target = index + direction;
-    if (target < 0 || target >= next.length) return;
-    [next[index], next[target]] = [next[target], next[index]];
-    reorderAccounts.mutate(next);
-  };
-
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-2xl max-h-[80vh] flex flex-col overflow-hidden">
@@ -103,7 +94,7 @@ export function ManageStatementAccountsDialog({ projectId, open, onOpenChange }:
               No accounts yet. Add one below.
             </div>
           ) : (
-            accounts.map((a, index) => {
+            accounts.map((a) => {
               const linked = paymentAccounts.find((p) => p.id === a.account_id);
               return (
                 <div key={a.id} className="flex items-center gap-2 border rounded-md px-3 py-2">
@@ -151,49 +142,28 @@ export function ManageStatementAccountsDialog({ projectId, open, onOpenChange }:
                           </div>
                         )}
                       </div>
-                      <label className="flex items-center gap-2 text-xs text-muted-foreground">
-                        <Checkbox
-                          checked={a.is_active}
-                          onCheckedChange={(checked) =>
-                            updateAccount.mutate({ id: a.id, is_active: checked === true })
-                          }
-                        />
-                        Active
-                      </label>
-                      <Button
-                        size="sm"
-                        variant="ghost"
-                        className="h-8 w-8 p-0"
-                        onClick={() => move(index, -1)}
-                        disabled={index === 0}
-                      >
-                        <ArrowUp className="h-4 w-4" />
-                      </Button>
-                      <Button
-                        size="sm"
-                        variant="ghost"
-                        className="h-8 w-8 p-0"
-                        onClick={() => move(index, 1)}
-                        disabled={index === accounts.length - 1}
-                      >
-                        <ArrowDown className="h-4 w-4" />
-                      </Button>
-                      <Button
-                        size="sm"
-                        variant="ghost"
-                        className="h-8 w-8 p-0"
-                        onClick={() => startEdit(a)}
-                      >
-                        <Pencil className="h-4 w-4" />
-                      </Button>
-                      <Button
-                        size="sm"
-                        variant="ghost"
-                        className="h-8 w-8 p-0 text-destructive"
-                        onClick={() => deleteAccount.mutate(a.id)}
-                      >
-                        <Trash2 className="h-4 w-4" />
-                      </Button>
+                      <TableRowActions
+                        actions={[
+                          {
+                            label: a.is_active ? "Deactivate" : "Activate",
+                            onClick: () =>
+                              updateAccount.mutate({ id: a.id, is_active: !a.is_active }),
+                          },
+                          {
+                            label: "Edit",
+                            onClick: () => startEdit(a),
+                          },
+                          {
+                            label: "Delete",
+                            variant: "destructive",
+                            requiresConfirmation: true,
+                            confirmTitle: "Delete Statement Account",
+                            confirmDescription: `Are you sure you want to delete "${a.name}"? This action cannot be undone.`,
+                            onClick: () => deleteAccount.mutate(a.id),
+                            isLoading: deleteAccount.isPending,
+                          },
+                        ] satisfies TableAction[]}
+                      />
                     </>
                   )}
                 </div>
