@@ -305,7 +305,7 @@ export default function Accounting() {
                   <>
                     <Card className="cursor-pointer hover:bg-accent/5 transition-colors" onClick={() => setShowBankStatements(true)}>
                       <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-3">
-                        <CardTitle className="text-sm font-medium">Bank Statements</CardTitle>
+                        <CardTitle className="text-sm font-medium">Statements</CardTitle>
                         <Receipt className="h-4 w-4 text-muted-foreground" />
                       </CardHeader>
                       <CardContent className="space-y-1">
