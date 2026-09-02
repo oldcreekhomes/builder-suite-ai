@@ -519,7 +519,7 @@ function BankStatementsDialogContent({ projectId, onOpenChange }: Omit<BankState
           <div className="p-8 text-center text-muted-foreground">No statements match your search.</div>
         ) : (
           groups.map((group) => {
-            const isCollapsed = !!collapsed[group.key];
+            const isCollapsed = !expanded[group.key];
             const latest = group.rows.find((r) => r.statement_date)?.statement_date || null;
             return (
               <div key={group.key} className="border rounded-md overflow-hidden">
