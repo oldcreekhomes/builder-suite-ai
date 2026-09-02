@@ -94,7 +94,7 @@ export function ManageStatementAccountsDialog({ projectId, open, onOpenChange }:
               No accounts yet. Add one below.
             </div>
           ) : (
-            accounts.map((a, index) => {
+            accounts.map((a) => {
               const linked = paymentAccounts.find((p) => p.id === a.account_id);
               return (
                 <div key={a.id} className="flex items-center gap-2 border rounded-md px-3 py-2">
