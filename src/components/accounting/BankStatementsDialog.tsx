@@ -595,8 +595,9 @@ function BankStatementsDialogContent({ projectId, onOpenChange }: Omit<BankState
                                       label: "Download",
                                       onClick: () => handleDownload(
                                         statement.storage_path,
-                                        displayName(statement.original_filename)
+                                        `${statement._label}.pdf`
                                       ),
+
                                     },
                                     {
                                       label: "Edit",
