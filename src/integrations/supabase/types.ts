@@ -4544,6 +4544,7 @@ export type Database = {
           mime_type: string
           original_filename: string
           project_id: string
+          statement_account_id: string | null
           statement_date: string | null
           storage_path: string
           updated_at: string
@@ -4564,6 +4565,7 @@ export type Database = {
           mime_type: string
           original_filename: string
           project_id: string
+          statement_account_id?: string | null
           statement_date?: string | null
           storage_path: string
           updated_at?: string
@@ -4584,6 +4586,7 @@ export type Database = {
           mime_type?: string
           original_filename?: string
           project_id?: string
+          statement_account_id?: string | null
           statement_date?: string | null
           storage_path?: string
           updated_at?: string
@@ -4604,6 +4607,13 @@ export type Database = {
             columns: ["project_id"]
             isOneToOne: false
             referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "project_files_statement_account_id_fkey"
+            columns: ["statement_account_id"]
+            isOneToOne: false
+            referencedRelation: "project_statement_accounts"
             referencedColumns: ["id"]
           },
           {
@@ -5117,6 +5127,60 @@ export type Database = {
             columns: ["updated_by"]
             isOneToOne: false
             referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      project_statement_accounts: {
+        Row: {
+          account_id: string | null
+          created_at: string
+          created_by: string | null
+          id: string
+          is_active: boolean
+          name: string
+          project_id: string
+          sort_order: number
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          account_id?: string | null
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          is_active?: boolean
+          name: string
+          project_id: string
+          sort_order?: number
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          account_id?: string | null
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          is_active?: boolean
+          name?: string
+          project_id?: string
+          sort_order?: number
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "project_statement_accounts_account_id_fkey"
+            columns: ["account_id"]
+            isOneToOne: false
+            referencedRelation: "accounts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "project_statement_accounts_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
             referencedColumns: ["id"]
           },
         ]
