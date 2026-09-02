@@ -1745,6 +1745,7 @@ export function ReconcileAccountsContent({ projectId }: ReconcileAccountsContent
                   <thead className="bg-muted">
                     <tr>
                       <th className="p-3 text-left">Statement Date</th>
+                      <th className="p-3 text-center">Statement</th>
                       <th className="p-3 text-left">Beginning Balance</th>
                       <th className="p-3 text-left">Ending Balance</th>
                       <th className="p-3 text-left">Difference</th>
@@ -1761,6 +1762,31 @@ export function ReconcileAccountsContent({ projectId }: ReconcileAccountsContent
                         <tr key={rec.id} className="border-t hover:bg-muted/50">
                           <td className="p-3">
                             {formatDateSafe(rec.statement_date, "MM/dd/yyyy")}
+                          </td>
+                          <td className="p-3 text-center">
+                            {(() => {
+                              const stmt = findStatementForReconciliation(rec.statement_date);
+                              if (!stmt) return <span className="text-muted-foreground">-</span>;
+                              return (
+                                <TooltipProvider>
+                                  <Tooltip>
+                                    <TooltipTrigger asChild>
+                                      <Button
+                                        variant="ghost"
+                                        size="sm"
+                                        onClick={() => handleStatementDownload(stmt)}
+                                        className="h-8 w-8 p-0"
+                                      >
+                                        <FileText className="h-4 w-4 text-red-600" />
+                                      </Button>
+                                    </TooltipTrigger>
+                                    <TooltipContent>
+                                      <p>{stmt.original_filename}</p>
+                                    </TooltipContent>
+                                  </Tooltip>
+                                </TooltipProvider>
+                              );
+                            })()}
                           </td>
                           <td className="p-3">
                             {formatCurrency(rec.statement_beginning_balance || 0)}
