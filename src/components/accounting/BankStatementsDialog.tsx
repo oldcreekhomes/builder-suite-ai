@@ -73,8 +73,25 @@ function BankStatementsDialogContent({ projectId, onOpenChange }: Omit<BankState
   const [bulkAccountId, setBulkAccountId] = useState<string>("");
 
   const cleanName = (raw?: string) => (raw ? raw.replace(/^\d{13}_/, "") : "");
-  const displayName = (raw?: string | null) =>
-    cleanName((raw || '').replace('Bank Statements/', '')) || 'Untitled';
+  const displayName = (raw?: string | null) => {
+    const stripped = (raw || '').replace('Bank Statements/', '');
+    const base = stripped.split('/').pop() || stripped;
+    return cleanName(base).replace(/\.pdf$/i, '') || 'Untitled';
+  };
+
+  const MONTHS = [
+    'January', 'February', 'March', 'April', 'May', 'June',
+    'July', 'August', 'September', 'October', 'November', 'December',
+  ];
+
+  // "2025-06-30" -> "June 2025" (no timezone conversion)
+  const periodLabel = (dateStr?: string | null) => {
+    if (!dateStr) return null;
+    const m = /^(\d{4})-(\d{2})/.exec(dateStr);
+    if (!m) return null;
+    return `${MONTHS[Number(m[2]) - 1]} ${m[1]}`;
+  };
+
 
   // Fetch bank statements
   const { data: statements, isLoading } = useQuery({
