@@ -1551,7 +1551,7 @@ export function AccountDetailDialog({
             <div className="text-center py-8 text-muted-foreground">
               {hidePaid && transactions && transactions.length > 0 
                 ? "All bills are paid. Toggle off 'Hide Paid' to see all transactions."
-                : "No transactions found for this account."
+                : "No transactions yet for this account."
               }
             </div>
           ) : (
