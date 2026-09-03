@@ -143,6 +143,8 @@ export function AccountSearchInput({
     return true;
   });
 
+  // Parents with at least one active visible child are not selectable.
+  const parentAccountIds = getParentAccountIds(typeFilteredAccounts);
 
   const normalizedSearchQuery = searchQuery.trim().toLowerCase();
   const matchesSelectedAccount = typeFilteredAccounts.some(account =>
