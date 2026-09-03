@@ -203,11 +203,11 @@ export function AccountSearchInput({
     }
     
     // Try exact code match first (case-sensitive)
-    let match = typeFilteredAccounts.find(account => account.code === codeToMatch);
+    let match = typeFilteredAccounts.find(account => account.code === codeToMatch && isAccountSelectable(account, parentAccountIds));
     
     // Try case-insensitive exact code match
     if (!match) {
-      match = typeFilteredAccounts.find(account => account.code.toLowerCase() === codeToMatch.toLowerCase());
+      match = typeFilteredAccounts.find(account => account.code.toLowerCase() === codeToMatch.toLowerCase() && isAccountSelectable(account, parentAccountIds));
     }
     
     // Try matching full "code - name" or "code name" format (using override name)
@@ -216,8 +216,9 @@ export function AccountSearchInput({
       match = typeFilteredAccounts.find(account => {
         const name = displayNameOf(account);
         return (
-          `${account.code} - ${name}`.toLowerCase() === normalized ||
-          `${account.code} ${name}`.toLowerCase() === normalized
+          isAccountSelectable(account, parentAccountIds) &&
+          (`${account.code} - ${name}`.toLowerCase() === normalized ||
+          `${account.code} ${name}`.toLowerCase() === normalized)
         );
       });
     }
@@ -228,7 +229,7 @@ export function AccountSearchInput({
       if (tokens.length > 0) {
         const matches = typeFilteredAccounts.filter(account => {
           const name = displayNameOf(account).toLowerCase();
-          return tokens.every(t =>
+          return isAccountSelectable(account, parentAccountIds) && tokens.every(t =>
             account.code.toLowerCase().includes(t) || name.includes(t)
           );
         });
@@ -238,7 +239,7 @@ export function AccountSearchInput({
       }
     }
     
-    // If we found a match, select it
+    // If we found a selectable match, select it
     if (match) {
       handleSelectAccount(match);
     }
