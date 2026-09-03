@@ -1154,13 +1154,6 @@ export function AccountDetailDialog({
     placeholderData: keepPreviousData,
   });
 
-  // Auto-close dialog when all transactions are deleted
-  useEffect(() => {
-    if (transactions && transactions.length === 0 && open) {
-      onOpenChange(false);
-    }
-  }, [transactions, open, onOpenChange]);
-
   // Refetch reports when dialog closes to ensure immediate updates
   useEffect(() => {
     if (prevOpenRef.current && !open) {
@@ -1558,7 +1551,7 @@ export function AccountDetailDialog({
             <div className="text-center py-8 text-muted-foreground">
               {hidePaid && transactions && transactions.length > 0 
                 ? "All bills are paid. Toggle off 'Hide Paid' to see all transactions."
-                : "No transactions found for this account."
+                : "No transactions yet for this account."
               }
             </div>
           ) : (
