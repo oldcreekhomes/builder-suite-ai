@@ -266,6 +266,7 @@ export function AccountSearchInput({
   };
 
   const handleSelectAccount = (account: { id: string; code: string; name: string }) => {
+    if (!isAccountSelectable(account, parentAccountIds)) return;
     justSelectedRef.current = true;
     const resolvedName = displayNameOf(account);
     const selectedValue = `${account.code} - ${resolvedName}`;
@@ -310,20 +311,32 @@ export function AccountSearchInput({
           onMouseDown={(e) => e.stopPropagation()}
           onWheel={(e) => e.stopPropagation()}
         >
-          {filteredAccounts.map((account) => (
-            <button
-              key={account.id}
-              type="button"
-              className="block w-full px-4 py-2 text-left text-sm hover:bg-accent hover:text-accent-foreground"
-              onMouseDown={(e) => {
-                e.preventDefault();
-                e.stopPropagation();
-                handleSelectAccount(account);
-              }}
-            >
-              <div className="font-medium">{account.code} - {displayNameOf(account)}</div>
-            </button>
-          ))}
+          {filteredAccounts.map((account) => {
+            const isParent = !isAccountSelectable(account, parentAccountIds);
+            return (
+              <button
+                key={account.id}
+                type="button"
+                disabled={isParent}
+                className={cn(
+                  "block w-full px-4 py-2 text-left text-sm",
+                  isParent
+                    ? "text-muted-foreground cursor-not-allowed hover:bg-transparent"
+                    : "hover:bg-accent hover:text-accent-foreground"
+                )}
+                onMouseDown={(e) => {
+                  if (isParent) return;
+                  e.preventDefault();
+                  e.stopPropagation();
+                  handleSelectAccount(account);
+                }}
+              >
+                <div className={cn("font-medium", (account as any).parent_id && "pl-4")}>
+                  {account.code} - {displayNameOf(account)}
+                </div>
+              </button>
+            );
+          })}
         </div>,
         document.body
       )}
