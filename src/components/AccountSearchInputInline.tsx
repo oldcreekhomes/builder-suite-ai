@@ -126,6 +126,7 @@ export function AccountSearchInputInline({
   };
 
   const handleSelectAccount = (account: { id: string; code: string; name: string }) => {
+    if (!isAccountSelectable(account, parentAccountIds)) return;
     const resolvedName = displayNameOf(account);
     const selectedValue = `${account.code} - ${resolvedName}`;
     setSearchQuery(selectedValue);
@@ -147,7 +148,8 @@ export function AccountSearchInputInline({
       const code = acc.code ?? '';
       const name = displayNameOf(acc);
       const full = `${code} - ${name}`;
-      return normalize(code) === lc || normalize(full) === lc || normalize(`${code} ${name}`) === lc;
+      return isAccountSelectable(acc, parentAccountIds) &&
+        (normalize(code) === lc || normalize(full) === lc || normalize(`${code} ${name}`) === lc);
     });
 
     if (exact) {
@@ -155,7 +157,7 @@ export function AccountSearchInputInline({
       return;
     }
 
-    if (filteredAccounts.length === 1) {
+    if (filteredAccounts.length === 1 && isAccountSelectable(filteredAccounts[0], parentAccountIds)) {
       const a = filteredAccounts[0];
       handleSelectAccount({ id: String(a.id), code: a.code, name: a.name });
     }
