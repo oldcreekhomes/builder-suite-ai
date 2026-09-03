@@ -29,6 +29,7 @@ import {
 import { cn } from "@/lib/utils";
 import { Separator } from "@/components/ui/separator";
 import { supabase } from "@/integrations/supabase/client";
+import { getParentAccountIds, isAccountSelectable } from "@/lib/accountSelectable";
 import {
   Select,
   SelectContent,
@@ -1227,11 +1228,18 @@ export function ReconcileAccountsContent({ projectId }: ReconcileAccountsContent
                 <SelectValue placeholder="Select an account..." />
               </SelectTrigger>
               <SelectContent>
-                {bankAccounts.map((account) => (
-                  <SelectItem key={account.id} value={account.id}>
-                    {account.code} - {displayAccountName(account)}
-                  </SelectItem>
-                ))}
+                {(() => {
+                  const parentIds = getParentAccountIds(bankAccounts);
+                  return bankAccounts.map((account) => {
+                    const isParent = !isAccountSelectable(account, parentIds);
+                    return (
+                      <SelectItem key={account.id} value={account.id} disabled={isParent}>
+                        {account.code} - {displayAccountName(account)}
+                        {isParent && ' (has sub-accounts)'}
+                      </SelectItem>
+                    );
+                  });
+                })()}
               </SelectContent>
             </Select>
           </div>
