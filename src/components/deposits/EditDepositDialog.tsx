@@ -23,6 +23,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { toDateLocal } from "@/utils/dateOnly";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { DepositAttachmentUpload, DepositAttachment } from "@/components/deposits/DepositAttachmentUpload";
+import { getParentAccountIds, isAccountSelectable } from "@/lib/accountSelectable";
 
 interface EditDepositDialogProps {
   open: boolean;
@@ -485,11 +486,18 @@ export function EditDepositDialog({ open, onOpenChange, depositId }: EditDeposit
                   <SelectValue placeholder="Select bank account..." />
                 </SelectTrigger>
                 <SelectContent>
-                  {bankAccounts.map((acc: any) => (
-                    <SelectItem key={acc.id} value={acc.id}>
-                      {acc.code} - {displayAccountName(acc)}
-                    </SelectItem>
-                  ))}
+                  {(() => {
+                    const parentIds = getParentAccountIds(bankAccounts);
+                    return bankAccounts.map((acc: any) => {
+                      const isParent = !isAccountSelectable(acc, parentIds);
+                      return (
+                        <SelectItem key={acc.id} value={acc.id} disabled={isParent}>
+                          {acc.code} - {displayAccountName(acc)}
+                          {isParent && ' (has sub-accounts)'}
+                        </SelectItem>
+                      );
+                    });
+                  })()}
                 </SelectContent>
               </Select>
             </div>
