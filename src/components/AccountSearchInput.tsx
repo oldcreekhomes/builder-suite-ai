@@ -6,6 +6,7 @@ import { cn } from "@/lib/utils";
 import { useAccounts } from "@/hooks/useAccounts";
 import { useProjectAccountNames, resolveAccountName } from "@/hooks/useProjectAccountNames";
 import { supabase } from "@/integrations/supabase/client";
+import { getParentAccountIds, isAccountSelectable } from "@/lib/accountSelectable";
 
 interface AccountSearchInputProps {
   value: string;
