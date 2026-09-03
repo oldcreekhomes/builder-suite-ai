@@ -80,6 +80,9 @@ export function AccountSearchInputInline({
     .filter(acc => !accountType || acc.type === accountType)
     .filter(acc => !excludedIds || !excludedIds.has(acc.id));
 
+  // Parents with at least one active visible child are not selectable.
+  const parentAccountIds = getParentAccountIds(eligibleAccounts);
+
   // Filter by search query (against code + override name).
   // If a matched account is a parent, also include all eligible children.
   const filteredAccounts = (() => {
