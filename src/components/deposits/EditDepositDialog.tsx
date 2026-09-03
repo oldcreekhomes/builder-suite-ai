@@ -232,14 +232,27 @@ export function EditDepositDialog({ open, onOpenChange, depositId }: EditDeposit
           memo: row.memo || undefined,
         }));
 
-      const depositLines = [...chartLines, ...jobCostLines];
+      const rawLines = [...chartLines, ...jobCostLines];
 
-      if (depositLines.length === 0) {
+      if (rawLines.length === 0) {
         toast({ title: "Validation Error", description: "Please add at least one line item", variant: "destructive" });
         return;
       }
 
-      const total = calculateTotal();
+      const total = Math.round(calculateTotal() * 100) / 100;
+
+      // Cent-precise: round each line to whole cents and push any remainder onto the last line
+      const depositLines: DepositLineData[] = rawLines.map((line) => ({
+        ...line,
+        amount: Math.round(line.amount * 100) / 100,
+      }));
+      const linesCents = depositLines.reduce((sum, l) => sum + Math.round(l.amount * 100), 0);
+      const diff = Math.round(total * 100) - linesCents;
+      if (diff !== 0) {
+        const last = depositLines[depositLines.length - 1];
+        last.amount = Math.round(last.amount * 100 + diff) / 100;
+      }
+
 
       const updatedDepositData: DepositData = {
         deposit_date: depositDate.toISOString().split('T')[0],
