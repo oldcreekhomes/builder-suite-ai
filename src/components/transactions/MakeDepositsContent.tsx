@@ -781,9 +781,25 @@ export function MakeDepositsContent({ projectId, activeTab: parentActiveTab }: M
           memo: row.memo || undefined
         }));
       
-      const depositLines: DepositLineData[] = [...chartLines, ...jobCostLines];
+      const rawLines: DepositLineData[] = [...chartLines, ...jobCostLines];
 
       const depositAmount = parseFloat(calculateTotal());
+
+      // Cent-precise: round each line to whole cents and push any remainder onto the last line
+      const targetCents = Math.round(depositAmount * 100);
+      const depositLines: DepositLineData[] = rawLines.map((line) => ({
+        ...line,
+        amount: Math.round(line.amount * 100) / 100,
+      }));
+      if (depositLines.length > 0) {
+        const linesCents = depositLines.reduce((sum, l) => sum + Math.round(l.amount * 100), 0);
+        const diff = targetCents - linesCents;
+        if (diff !== 0) {
+          const last = depositLines[depositLines.length - 1];
+          last.amount = Math.round(last.amount * 100 + diff) / 100;
+        }
+      }
+
 
       const depositData: DepositData = {
         deposit_date: depositDate.toISOString().split('T')[0],
