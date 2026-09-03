@@ -26,6 +26,7 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { cn } from "@/lib/utils";
 import { useProjectPaymentAccounts } from "@/hooks/useProjectPaymentAccounts";
 import { useProjectDefaultBankAccountId } from "@/hooks/useProjectDefaultBankAccountId";
+import { getParentAccountIds, isAccountSelectable } from "@/lib/accountSelectable";
 
 interface BillForPayment {
   id: string;
@@ -277,11 +278,18 @@ export function PayBillDialog({
                       No payment accounts available
                     </SelectItem>
                   ) : (
-                    allPaymentMethods.map((account) => (
-                      <SelectItem key={account.id} value={account.id}>
-                        {account.category === 'Credit Card' ? '💳' : '🏦'} {account.code} - {account.name}
-                      </SelectItem>
-                    ))
+                    (() => {
+                      const parentIds = getParentAccountIds(allPaymentMethods);
+                      return allPaymentMethods.map((account) => {
+                        const isParent = !isAccountSelectable(account, parentIds);
+                        return (
+                          <SelectItem key={account.id} value={account.id} disabled={isParent}>
+                            {account.category === 'Credit Card' ? '💳' : '🏦'} {account.code} - {account.name}
+                            {isParent && ' (has sub-accounts)'}
+                          </SelectItem>
+                        );
+                      });
+                    })()
                   )}
                 </SelectContent>
               </Select>

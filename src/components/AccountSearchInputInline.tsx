@@ -5,6 +5,7 @@ import { cn } from "@/lib/utils";
 import { useAccounts } from "@/hooks/useAccounts";
 import { useProjectAccountNames, resolveAccountName } from "@/hooks/useProjectAccountNames";
 import { supabase } from "@/integrations/supabase/client";
+import { getParentAccountIds, isAccountSelectable } from "@/lib/accountSelectable";
 
 interface AccountSearchInputInlineProps {
   value: string;
@@ -79,6 +80,9 @@ export function AccountSearchInputInline({
     .filter(acc => !accountType || acc.type === accountType)
     .filter(acc => !excludedIds || !excludedIds.has(acc.id));
 
+  // Parents with at least one active visible child are not selectable.
+  const parentAccountIds = getParentAccountIds(eligibleAccounts);
+
   // Filter by search query (against code + override name).
   // If a matched account is a parent, also include all eligible children.
   const filteredAccounts = (() => {
@@ -122,6 +126,7 @@ export function AccountSearchInputInline({
   };
 
   const handleSelectAccount = (account: { id: string; code: string; name: string }) => {
+    if (!isAccountSelectable(account, parentAccountIds)) return;
     const resolvedName = displayNameOf(account);
     const selectedValue = `${account.code} - ${resolvedName}`;
     setSearchQuery(selectedValue);
@@ -143,7 +148,8 @@ export function AccountSearchInputInline({
       const code = acc.code ?? '';
       const name = displayNameOf(acc);
       const full = `${code} - ${name}`;
-      return normalize(code) === lc || normalize(full) === lc || normalize(`${code} ${name}`) === lc;
+      return isAccountSelectable(acc, parentAccountIds) &&
+        (normalize(code) === lc || normalize(full) === lc || normalize(`${code} ${name}`) === lc);
     });
 
     if (exact) {
@@ -151,7 +157,7 @@ export function AccountSearchInputInline({
       return;
     }
 
-    if (filteredAccounts.length === 1) {
+    if (filteredAccounts.length === 1 && isAccountSelectable(filteredAccounts[0], parentAccountIds)) {
       const a = filteredAccounts[0];
       handleSelectAccount({ id: String(a.id), code: a.code, name: a.name });
     }
@@ -172,20 +178,34 @@ export function AccountSearchInputInline({
       
       {showResults && filteredAccounts.length > 0 && (
         <div className="absolute z-50 mt-1 max-h-64 w-full overflow-auto rounded border bg-background shadow-sm">
-          {filteredAccounts.map((account) => (
-            <button
-              key={account.id}
-              type="button"
-              className="block w-full px-3 py-2 text-left text-sm hover:bg-muted"
-              onMouseDown={() => handleSelectAccount({ 
-                id: String(account.id), 
-                code: account.code, 
-                name: account.name 
-              })}
-            >
-              <div className="font-medium">{account.code} - {displayNameOf(account)}</div>
-            </button>
-          ))}
+          {filteredAccounts.map((account) => {
+            const isParent = !isAccountSelectable(account, parentAccountIds);
+            return (
+              <button
+                key={account.id}
+                type="button"
+                disabled={isParent}
+                className={cn(
+                  "block w-full px-3 py-2 text-left text-sm",
+                  isParent
+                    ? "text-muted-foreground cursor-not-allowed hover:bg-transparent"
+                    : "hover:bg-muted"
+                )}
+                onMouseDown={() => {
+                  if (isParent) return;
+                  handleSelectAccount({ 
+                    id: String(account.id), 
+                    code: account.code, 
+                    name: account.name 
+                  });
+                }}
+              >
+                <div className={cn("font-medium", (account as any).parent_id && "pl-4")}>
+                  {account.code} - {displayNameOf(account)}
+                </div>
+              </button>
+            );
+          })}
         </div>
       )}
     </div>

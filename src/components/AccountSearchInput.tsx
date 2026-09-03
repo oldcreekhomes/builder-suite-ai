@@ -6,6 +6,7 @@ import { cn } from "@/lib/utils";
 import { useAccounts } from "@/hooks/useAccounts";
 import { useProjectAccountNames, resolveAccountName } from "@/hooks/useProjectAccountNames";
 import { supabase } from "@/integrations/supabase/client";
+import { getParentAccountIds, isAccountSelectable } from "@/lib/accountSelectable";
 
 interface AccountSearchInputProps {
   value: string;
@@ -142,6 +143,8 @@ export function AccountSearchInput({
     return true;
   });
 
+  // Parents with at least one active visible child are not selectable.
+  const parentAccountIds = getParentAccountIds(typeFilteredAccounts);
 
   const normalizedSearchQuery = searchQuery.trim().toLowerCase();
   const matchesSelectedAccount = typeFilteredAccounts.some(account =>
@@ -200,11 +203,11 @@ export function AccountSearchInput({
     }
     
     // Try exact code match first (case-sensitive)
-    let match = typeFilteredAccounts.find(account => account.code === codeToMatch);
+    let match = typeFilteredAccounts.find(account => account.code === codeToMatch && isAccountSelectable(account, parentAccountIds));
     
     // Try case-insensitive exact code match
     if (!match) {
-      match = typeFilteredAccounts.find(account => account.code.toLowerCase() === codeToMatch.toLowerCase());
+      match = typeFilteredAccounts.find(account => account.code.toLowerCase() === codeToMatch.toLowerCase() && isAccountSelectable(account, parentAccountIds));
     }
     
     // Try matching full "code - name" or "code name" format (using override name)
@@ -213,8 +216,9 @@ export function AccountSearchInput({
       match = typeFilteredAccounts.find(account => {
         const name = displayNameOf(account);
         return (
-          `${account.code} - ${name}`.toLowerCase() === normalized ||
-          `${account.code} ${name}`.toLowerCase() === normalized
+          isAccountSelectable(account, parentAccountIds) &&
+          (`${account.code} - ${name}`.toLowerCase() === normalized ||
+          `${account.code} ${name}`.toLowerCase() === normalized)
         );
       });
     }
@@ -225,7 +229,7 @@ export function AccountSearchInput({
       if (tokens.length > 0) {
         const matches = typeFilteredAccounts.filter(account => {
           const name = displayNameOf(account).toLowerCase();
-          return tokens.every(t =>
+          return isAccountSelectable(account, parentAccountIds) && tokens.every(t =>
             account.code.toLowerCase().includes(t) || name.includes(t)
           );
         });
@@ -235,7 +239,7 @@ export function AccountSearchInput({
       }
     }
     
-    // If we found a match, select it
+    // If we found a selectable match, select it
     if (match) {
       handleSelectAccount(match);
     }
@@ -262,6 +266,7 @@ export function AccountSearchInput({
   };
 
   const handleSelectAccount = (account: { id: string; code: string; name: string }) => {
+    if (!isAccountSelectable(account, parentAccountIds)) return;
     justSelectedRef.current = true;
     const resolvedName = displayNameOf(account);
     const selectedValue = `${account.code} - ${resolvedName}`;
@@ -306,20 +311,32 @@ export function AccountSearchInput({
           onMouseDown={(e) => e.stopPropagation()}
           onWheel={(e) => e.stopPropagation()}
         >
-          {filteredAccounts.map((account) => (
-            <button
-              key={account.id}
-              type="button"
-              className="block w-full px-4 py-2 text-left text-sm hover:bg-accent hover:text-accent-foreground"
-              onMouseDown={(e) => {
-                e.preventDefault();
-                e.stopPropagation();
-                handleSelectAccount(account);
-              }}
-            >
-              <div className="font-medium">{account.code} - {displayNameOf(account)}</div>
-            </button>
-          ))}
+          {filteredAccounts.map((account) => {
+            const isParent = !isAccountSelectable(account, parentAccountIds);
+            return (
+              <button
+                key={account.id}
+                type="button"
+                disabled={isParent}
+                className={cn(
+                  "block w-full px-4 py-2 text-left text-sm",
+                  isParent
+                    ? "text-muted-foreground cursor-not-allowed hover:bg-transparent"
+                    : "hover:bg-accent hover:text-accent-foreground"
+                )}
+                onMouseDown={(e) => {
+                  if (isParent) return;
+                  e.preventDefault();
+                  e.stopPropagation();
+                  handleSelectAccount(account);
+                }}
+              >
+                <div className={cn("font-medium", (account as any).parent_id && "pl-4")}>
+                  {account.code} - {displayNameOf(account)}
+                </div>
+              </button>
+            );
+          })}
         </div>,
         document.body
       )}

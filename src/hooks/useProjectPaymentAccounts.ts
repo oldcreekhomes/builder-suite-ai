@@ -11,6 +11,7 @@ export interface PaymentAccountOption {
   type: string;
   subtype?: string | null;
   category: "Cash/Bank" | "Credit Card";
+  parent_id?: string | null;
 }
 
 /**
@@ -70,6 +71,7 @@ export function useProjectPaymentAccounts(projectId?: string | null) {
       type: a.type,
       subtype: a.subtype ?? null,
       category: isCard(a) ? "Credit Card" : "Cash/Bank",
+      parent_id: a.parent_id ?? null,
     });
 
     const bankAccounts = allowed.filter(isBank).map(decorate);
