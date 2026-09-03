@@ -178,20 +178,34 @@ export function AccountSearchInputInline({
       
       {showResults && filteredAccounts.length > 0 && (
         <div className="absolute z-50 mt-1 max-h-64 w-full overflow-auto rounded border bg-background shadow-sm">
-          {filteredAccounts.map((account) => (
-            <button
-              key={account.id}
-              type="button"
-              className="block w-full px-3 py-2 text-left text-sm hover:bg-muted"
-              onMouseDown={() => handleSelectAccount({ 
-                id: String(account.id), 
-                code: account.code, 
-                name: account.name 
-              })}
-            >
-              <div className="font-medium">{account.code} - {displayNameOf(account)}</div>
-            </button>
-          ))}
+          {filteredAccounts.map((account) => {
+            const isParent = !isAccountSelectable(account, parentAccountIds);
+            return (
+              <button
+                key={account.id}
+                type="button"
+                disabled={isParent}
+                className={cn(
+                  "block w-full px-3 py-2 text-left text-sm",
+                  isParent
+                    ? "text-muted-foreground cursor-not-allowed hover:bg-transparent"
+                    : "hover:bg-muted"
+                )}
+                onMouseDown={() => {
+                  if (isParent) return;
+                  handleSelectAccount({ 
+                    id: String(account.id), 
+                    code: account.code, 
+                    name: account.name 
+                  });
+                }}
+              >
+                <div className={cn("font-medium", (account as any).parent_id && "pl-4")}>
+                  {account.code} - {displayNameOf(account)}
+                </div>
+              </button>
+            );
+          })}
         </div>
       )}
     </div>
