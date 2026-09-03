@@ -15,6 +15,7 @@ import { groupAccountsByParent } from "@/lib/accountHierarchy";
 import { useProjectAccountNames, resolveAccountName } from "@/hooks/useProjectAccountNames";
 import { AddProjectAccountDialog } from "@/components/AddProjectAccountDialog";
 import { DeleteConfirmationDialog } from "@/components/ui/delete-confirmation-dialog";
+import { fetchAllRows } from "@/lib/supabasePaginate";
 
 interface ProjectAccountsTabProps {
   projectId: string;
@@ -329,28 +330,40 @@ export function ProjectAccountsTab({ projectId }: ProjectAccountsTabProps) {
             onCheckedChange={async (checked) => {
               const wantExclude = !checked;
               if (wantExclude) {
-                // Guard: block disabling an account that has non-zero project activity
-                const { data, error } = await supabase
+                // Match the live-ledger reversal rules used by the Balance Sheet.
+                const buildBalanceQuery = () => supabase
                   .from('journal_entry_lines')
-                  .select('debit, credit')
+                  .select(`
+                    debit,
+                    credit,
+                    journal_entries!inner(reversed_at, reversed_by_id)
+                  `)
                   .eq('account_id', account.id)
-                  .eq('project_id', projectId);
-                if (error) {
+                  .eq('project_id', projectId)
+                  .eq('journal_entries.is_reversal', false)
+                  .is('journal_entries.reversed_by_id', null)
+                  .is('journal_entries.reversed_at', null);
+
+                let data;
+                try {
+                  data = await fetchAllRows(buildBalanceQuery);
+                } catch (error) {
+                  const message = error instanceof Error ? error.message : 'Unknown error';
                   toast({
                     title: "Error",
-                    description: `Failed to verify account balance: ${error.message}`,
+                    description: `Failed to verify account balance: ${message}`,
                     variant: "destructive",
                   });
                   return;
                 }
-                const totalDebit = Math.round(
-                  (data ?? []).reduce((s, l: any) => s + Number(l.debit || 0), 0) * 100
-                ) / 100;
-                const totalCredit = Math.round(
-                  (data ?? []).reduce((s, l: any) => s + Number(l.credit || 0), 0) * 100
-                ) / 100;
-                const balance = Math.round((totalDebit - totalCredit) * 100) / 100;
-                if (Math.abs(balance) > 0.005) {
+                const balanceCents = (data ?? []).reduce(
+                  (sum, line: any) => sum
+                    + Math.round(Number(line.debit || 0) * 100)
+                    - Math.round(Number(line.credit || 0) * 100),
+                  0
+                );
+                if (balanceCents !== 0) {
+                  const balance = balanceCents / 100;
                   const formatted = new Intl.NumberFormat('en-US', {
                     style: 'currency',
                     currency: 'USD',
