@@ -5464,6 +5464,7 @@ export type Database = {
           name: string
           next_date: string
           owner_id: string
+          project_id: string | null
           template_data: Json
           transaction_type: string
           updated_at: string
@@ -5480,6 +5481,7 @@ export type Database = {
           name: string
           next_date: string
           owner_id: string
+          project_id?: string | null
           template_data?: Json
           transaction_type: string
           updated_at?: string
@@ -5496,6 +5498,7 @@ export type Database = {
           name?: string
           next_date?: string
           owner_id?: string
+          project_id?: string | null
           template_data?: Json
           transaction_type?: string
           updated_at?: string
@@ -5507,6 +5510,13 @@ export type Database = {
             columns: ["created_by"]
             isOneToOne: false
             referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "recurring_transactions_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
             referencedColumns: ["id"]
           },
           {
