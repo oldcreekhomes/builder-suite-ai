@@ -13,6 +13,14 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { AccountSearchInputInline } from "@/components/AccountSearchInputInline";
+import { CostCodeSearchInput } from "@/components/CostCodeSearchInput";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { AccountSearchInput } from "@/components/AccountSearchInput";
 import { VendorSearchInput } from "@/components/VendorSearchInput";
 import { useProjects, Project } from "@/hooks/useProjects";
@@ -35,8 +43,11 @@ interface Row {
   payToCompanyId: string;
   payToName: string;
   checkNumber: string;
+  entryType: "account" | "cost_code";
   accountId: string;
   accountLabel: string;
+  costCodeId: string;
+  costCodeLabel: string;
   description: string;
   amount: string;
 }
@@ -52,8 +63,11 @@ const blankRow = (defaultDate: Date): Row => ({
   payToCompanyId: "",
   payToName: "",
   checkNumber: "",
+  entryType: "account",
   accountId: "",
   accountLabel: "",
+  costCodeId: "",
+  costCodeLabel: "",
   description: "",
   amount: "",
 });
@@ -148,6 +162,7 @@ export function MultiCheckTable() {
   const isRowEmpty = (r: Row) =>
     !r.projectId &&
     !r.accountId &&
+    !r.costCodeId &&
     !r.amount &&
     !r.payToName &&
     !r.description &&
@@ -168,7 +183,11 @@ export function MultiCheckTable() {
       if (!r.projectId) errors.push(`${rowLabel}: pick a project.`);
       if (!r.bankAccountId) errors.push(`${rowLabel}: pick a pay-from bank account.`);
       if (!r.payToName) errors.push(`${rowLabel}: pick who the check is paid to.`);
-      if (!r.accountId) errors.push(`${rowLabel}: pick an account.`);
+      if (r.entryType === "cost_code") {
+        if (!r.costCodeId) errors.push(`${rowLabel}: pick a cost code.`);
+      } else if (!r.accountId) {
+        errors.push(`${rowLabel}: pick an account.`);
+      }
       const amt = Math.round((Number(r.amount) || 0) * 100) / 100;
       if (!amt || amt <= 0) errors.push(`${rowLabel}: enter an amount greater than 0.`);
       if (errors.length === 0) {
@@ -179,7 +198,9 @@ export function MultiCheckTable() {
           payToCompanyId: r.payToCompanyId || undefined,
           payToName: r.payToName,
           checkNumber: r.checkNumber || undefined,
-          accountId: r.accountId,
+          entryType: r.entryType,
+          accountId: r.entryType === "account" ? r.accountId : undefined,
+          costCodeId: r.entryType === "cost_code" ? r.costCodeId : undefined,
           description: r.description || undefined,
           amount: amt,
         });
@@ -251,7 +272,8 @@ export function MultiCheckTable() {
               <TableHead className="w-[200px]">Pay From (Bank)</TableHead>
               <TableHead className="w-[200px]">Pay To</TableHead>
               <TableHead className="w-[90px]">Check #</TableHead>
-              <TableHead className="w-[220px]">Account</TableHead>
+              <TableHead className="w-[130px]">Type</TableHead>
+              <TableHead className="w-[220px]">Cost Code / Account</TableHead>
               <TableHead>Description</TableHead>
               <TableHead className="w-[90px] text-right">Amount</TableHead>
               <TableHead className="w-10" />
@@ -314,21 +336,60 @@ export function MultiCheckTable() {
                   />
                 </TableCell>
                 <TableCell>
-                  <AccountSearchInputInline
-                    value={r.accountLabel}
-                    onChange={(v) => {
-                      updateRow(r.id, { accountLabel: v });
-                      if (!v) updateRow(r.id, { accountId: "" });
-                    }}
-                    onAccountSelect={(a) =>
+                  <Select
+                    value={r.entryType}
+                    onValueChange={(v) =>
                       updateRow(r.id, {
-                        accountId: a.id,
-                        accountLabel: `${a.code} - ${a.name}`,
+                        entryType: v as Row["entryType"],
+                        accountId: "",
+                        accountLabel: "",
+                        costCodeId: "",
+                        costCodeLabel: "",
                       })
                     }
-                    projectId={r.projectId || undefined}
-                    placeholder="Select account..."
-                  />
+                  >
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent className="bg-popover z-50">
+                      <SelectItem value="account">Account</SelectItem>
+                      <SelectItem value="cost_code">Cost Code</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </TableCell>
+                <TableCell>
+                  {r.entryType === "cost_code" ? (
+                    <CostCodeSearchInput
+                      value={r.costCodeLabel}
+                      onChange={(v) => {
+                        updateRow(r.id, { costCodeLabel: v });
+                        if (!v) updateRow(r.id, { costCodeId: "" });
+                      }}
+                      onCostCodeSelect={(cc) =>
+                        updateRow(r.id, {
+                          costCodeId: cc.id,
+                          costCodeLabel: `${cc.code} - ${cc.name}`,
+                        })
+                      }
+                      placeholder="Select cost code..."
+                    />
+                  ) : (
+                    <AccountSearchInputInline
+                      value={r.accountLabel}
+                      onChange={(v) => {
+                        updateRow(r.id, { accountLabel: v });
+                        if (!v) updateRow(r.id, { accountId: "" });
+                      }}
+                      onAccountSelect={(a) =>
+                        updateRow(r.id, {
+                          accountId: a.id,
+                          accountLabel: `${a.code} - ${a.name}`,
+                        })
+                      }
+                      projectId={r.projectId || undefined}
+                      placeholder="Select account..."
+                    />
+                  )}
                 </TableCell>
                 <TableCell>
                   <Input
