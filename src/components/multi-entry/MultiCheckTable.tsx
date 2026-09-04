@@ -266,6 +266,20 @@ export function MultiCheckTable() {
             <span className="text-muted-foreground">Total:&nbsp;</span>
             <span className="font-semibold">{fmtMoney(total)}</span>
           </div>
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="ghost" size="icon">
+                <MoreHorizontal className="h-4 w-4" />
+                <span className="sr-only">Actions</span>
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end">
+              <DropdownMenuItem onClick={addRow}>Add Row</DropdownMenuItem>
+              <DropdownMenuItem onClick={clearAll} disabled={saveMutation.isPending}>
+                Clear All
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
         </div>
       </div>
 
