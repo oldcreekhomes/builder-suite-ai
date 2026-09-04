@@ -121,7 +121,7 @@ export function BillNotesDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-md">
+      <DialogContent className="max-w-md max-h-[85vh] flex flex-col">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <StickyNote className="h-4 w-4 text-yellow-600" />
@@ -132,7 +132,7 @@ export function BillNotesDialog({
           </div>
         </DialogHeader>
         
-        <div className="space-y-4">
+        <div className="space-y-4 overflow-y-auto flex-1 min-h-0 pr-1">
           {/* New note input */}
           <div>
             <label className="text-sm font-medium mb-2 block">Add a note</label>
@@ -148,7 +148,7 @@ export function BillNotesDialog({
           {parsedNotes.length > 0 && (
             <div>
               <label className="text-sm font-medium mb-2 block text-muted-foreground">Previous notes</label>
-              <ScrollArea className="max-h-[200px]">
+              <ScrollArea className="h-[240px]">
                 <div className="space-y-2">
                   {parsedNotes.map((note, index) => {
                     const displayUser =
