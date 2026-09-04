@@ -140,7 +140,7 @@ export function BillNotesDialog({
               placeholder="Type your note here..."
               value={newNote}
               onChange={(e) => setNewNote(e.target.value)}
-              className="min-h-[80px] resize-none border-2 border-foreground focus-visible:ring-foreground focus-visible:ring-offset-0"
+              className="min-h-[80px] resize-none border border-foreground focus-visible:border-foreground focus-visible:ring-0 focus-visible:ring-offset-0"
             />
           </div>
 
