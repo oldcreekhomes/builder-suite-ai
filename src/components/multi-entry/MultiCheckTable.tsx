@@ -296,7 +296,6 @@ export function MultiCheckTable() {
               <TableHead className="w-[220px]">Cost Code / Account</TableHead>
               <TableHead>Description</TableHead>
               <TableHead className="w-[90px] text-right">Amount</TableHead>
-              <TableHead className="w-[70px] text-center">Actions</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
