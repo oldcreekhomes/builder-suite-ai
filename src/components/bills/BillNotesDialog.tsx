@@ -10,7 +10,6 @@ import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { StickyNote, User, Calendar } from "lucide-react";
 import { parseBillNotes } from "@/lib/billNoteUtils";
-import { ScrollArea } from "@/components/ui/scroll-area";
 import { supabase } from "@/integrations/supabase/client";
 
 interface BillNotesDialogProps {
@@ -148,7 +147,7 @@ export function BillNotesDialog({
           {parsedNotes.length > 0 && (
             <div>
               <label className="text-sm font-medium mb-2 block text-muted-foreground">Previous notes</label>
-              <ScrollArea className="h-[240px]">
+              <div className="h-[240px] scrollbar-always-visible pr-1">
                 <div className="space-y-2">
                   {parsedNotes.map((note, index) => {
                     const displayUser =
@@ -183,7 +182,7 @@ export function BillNotesDialog({
                     );
                   })}
                 </div>
-              </ScrollArea>
+              </div>
             </div>
           )}
         </div>

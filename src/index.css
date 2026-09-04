@@ -182,4 +182,21 @@
   .no-spinner {
     -moz-appearance: textfield;
   }
+
+  /* Always-visible scrollbar (WebKit + Firefox) */
+  .scrollbar-always-visible {
+    scrollbar-width: thin;
+    scrollbar-color: hsl(var(--border)) transparent;
+    overflow-y: auto;
+  }
+  .scrollbar-always-visible::-webkit-scrollbar {
+    width: 6px;
+  }
+  .scrollbar-always-visible::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  .scrollbar-always-visible::-webkit-scrollbar-thumb {
+    background-color: hsl(var(--border));
+    border-radius: 3px;
+  }
 }
