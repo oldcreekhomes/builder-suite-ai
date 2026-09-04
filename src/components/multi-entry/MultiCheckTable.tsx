@@ -1,9 +1,10 @@
 import { useMemo, useState } from "react";
 import { format } from "date-fns";
-import { Plus, Trash2 } from "lucide-react";
+import { Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { DateInputPicker } from "@/components/ui/date-input-picker";
+import { TableRowActions } from "@/components/ui/table-row-actions";
 import {
   Table,
   TableBody,
@@ -63,7 +64,7 @@ const blankRow = (defaultDate: Date): Row => ({
   payToCompanyId: "",
   payToName: "",
   checkNumber: "",
-  entryType: "account",
+  entryType: "cost_code",
   accountId: "",
   accountLabel: "",
   costCodeId: "",
@@ -276,7 +277,7 @@ export function MultiCheckTable() {
               <TableHead className="w-[220px]">Cost Code / Account</TableHead>
               <TableHead>Description</TableHead>
               <TableHead className="w-[90px] text-right">Amount</TableHead>
-              <TableHead className="w-10" />
+              <TableHead className="w-[70px] text-center">Actions</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -352,8 +353,8 @@ export function MultiCheckTable() {
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent className="bg-popover z-50">
-                      <SelectItem value="account">Account</SelectItem>
                       <SelectItem value="cost_code">Cost Code</SelectItem>
+                      <SelectItem value="account">Account</SelectItem>
                     </SelectContent>
                   </Select>
                 </TableCell>
@@ -407,15 +408,17 @@ export function MultiCheckTable() {
                     className="text-right"
                   />
                 </TableCell>
-                <TableCell>
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    onClick={() => removeRow(r.id)}
-                    disabled={rows.length === 1}
-                  >
-                    <Trash2 className="h-4 w-4 text-destructive" />
-                  </Button>
+                <TableCell className="text-center">
+                  <TableRowActions
+                    actions={[
+                      {
+                        label: "Delete",
+                        variant: "destructive",
+                        onClick: () => removeRow(r.id),
+                        disabled: rows.length === 1,
+                      },
+                    ]}
+                  />
                 </TableCell>
               </TableRow>
             ))}
