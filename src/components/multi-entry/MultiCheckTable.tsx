@@ -20,6 +20,7 @@ import {
 } from "@/components/ui/table";
 import { AccountSearchInputInline } from "@/components/AccountSearchInputInline";
 import { CostCodeSearchInput } from "@/components/CostCodeSearchInput";
+import { TableRowActions } from "@/components/ui/table-row-actions";
 import {
   Select,
   SelectContent,
