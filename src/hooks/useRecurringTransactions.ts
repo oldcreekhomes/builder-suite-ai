@@ -19,6 +19,7 @@ export interface RecurringTransactionLine {
 export interface RecurringTransaction {
   id: string;
   owner_id: string;
+  project_id?: string | null;
   name: string;
   transaction_type: "check" | "credit_card" | "bill";
   frequency: "weekly" | "monthly" | "quarterly" | "annually";
@@ -41,7 +42,9 @@ export interface CreateRecurringTransactionInput {
   auto_enter: boolean;
   template_data: Record<string, any>;
   lines: RecurringTransactionLine[];
+  project_id?: string | null;
 }
+
 
 async function getEffectiveOwnerId() {
   const { data: { user } } = await supabase.auth.getUser();
