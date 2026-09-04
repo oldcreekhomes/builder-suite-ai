@@ -163,7 +163,7 @@ export function BillNotesDialog({
                         <div className="flex items-center justify-between mb-1.5">
                           <div className="flex items-center gap-1.5 text-muted-foreground">
                             <User className="h-3 w-3" />
-                            <span className="font-medium text-foreground">
+                            <span className="font-medium">
                               {displayUser}
                             </span>
                           </div>
@@ -178,7 +178,7 @@ export function BillNotesDialog({
                             </span>
                           )}
                         </div>
-                        <p className="text-foreground whitespace-pre-wrap">{note.content}</p>
+                        <p className="whitespace-pre-wrap">{note.content}</p>
                       </div>
                     );
                   })}
