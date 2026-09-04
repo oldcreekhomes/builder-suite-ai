@@ -385,28 +385,6 @@ export function MultiCheckTable() {
                   />
                 </TableCell>
                 <TableCell>
-                  <Select
-                    value={r.entryType}
-                    onValueChange={(v) =>
-                      updateRow(r.id, {
-                        entryType: v as Row["entryType"],
-                        accountId: "",
-                        accountLabel: "",
-                        costCodeId: "",
-                        costCodeLabel: "",
-                      })
-                    }
-                  >
-                    <SelectTrigger>
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent className="bg-popover z-50">
-                      <SelectItem value="cost_code">Cost Code</SelectItem>
-                      <SelectItem value="account">Account</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </TableCell>
-                <TableCell>
                   {r.entryType === "cost_code" ? (
                     <CostCodeSearchInput
                       value={r.costCodeLabel}
@@ -454,6 +432,18 @@ export function MultiCheckTable() {
                     inputMode="decimal"
                     placeholder="0.00"
                     className="text-right"
+                  />
+                </TableCell>
+                <TableCell className="text-right">
+                  <TableRowActions
+                    actions={[
+                      {
+                        label: "Delete",
+                        variant: "destructive",
+                        onClick: () => removeRow(r.id),
+                        disabled: rows.length === 1,
+                      },
+                    ]}
                   />
                 </TableCell>
               </TableRow>
