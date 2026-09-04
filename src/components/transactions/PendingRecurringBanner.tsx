@@ -5,10 +5,12 @@ import { Button } from "@/components/ui/button";
 interface PendingRecurringBannerProps {
   onEnterTransaction?: (rt: RecurringTransaction) => void;
   onViewAll?: () => void;
+  projectId?: string;
 }
 
-export function PendingRecurringBanner({ onEnterTransaction, onViewAll }: PendingRecurringBannerProps) {
-  const { dueTransactions } = useRecurringTransactions();
+export function PendingRecurringBanner({ onEnterTransaction, onViewAll, projectId }: PendingRecurringBannerProps) {
+  const { dueTransactions } = useRecurringTransactions(projectId);
+
 
   if (dueTransactions.length === 0) return null;
 
