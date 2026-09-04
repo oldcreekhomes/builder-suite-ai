@@ -9,7 +9,9 @@ export interface MultiCheckRowInput {
   payToCompanyId?: string;
   payToName: string;
   checkNumber?: string;
-  accountId: string;
+  entryType?: "account" | "cost_code";
+  accountId?: string;
+  costCodeId?: string;
   description?: string;
   amount: number; // dollars
 }
