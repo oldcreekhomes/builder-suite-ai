@@ -61,7 +61,7 @@ interface Row {
 
 const STATUS_ORDER = ["Under Construction", "Permitting", "In Design"] as const;
 
-const blankRow = (defaultDate: Date): Row => ({
+const blankRow = (defaultDate: Date, type: Row["entryType"] = "cost_code"): Row => ({
   id: crypto.randomUUID(),
   projectId: "",
   checkDate: defaultDate,
@@ -70,7 +70,7 @@ const blankRow = (defaultDate: Date): Row => ({
   payToCompanyId: "",
   payToName: "",
   checkNumber: "",
-  entryType: "cost_code",
+  entryType: type,
   accountId: "",
   accountLabel: "",
   costCodeId: "",
