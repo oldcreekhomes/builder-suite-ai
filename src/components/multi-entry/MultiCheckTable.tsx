@@ -155,12 +155,26 @@ export function MultiCheckTable() {
     });
   };
 
-  const addRow = () => setRows((rs) => [...rs, blankRow(defaultDate)]);
+  const addRow = () => setRows((rs) => [...rs, blankRow(defaultDate, entryType)]);
   const removeRow = (id: string) =>
     setRows((rs) => (rs.length > 1 ? rs.filter((r) => r.id !== id) : rs));
 
   const clearAll = () =>
-    setRows(Array.from({ length: 5 }, () => blankRow(defaultDate)));
+    setRows(Array.from({ length: 5 }, () => blankRow(defaultDate, entryType)));
+
+  const handleEntryTypeChange = (type: Row["entryType"]) => {
+    setEntryType(type);
+    setRows((rs) =>
+      rs.map((r) => ({
+        ...r,
+        entryType: type,
+        accountId: "",
+        accountLabel: "",
+        costCodeId: "",
+        costCodeLabel: "",
+      })),
+    );
+  };
 
   const total = useMemo(
     () => rows.reduce((s, r) => s + (Number(r.amount) || 0), 0),
