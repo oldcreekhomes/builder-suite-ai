@@ -118,6 +118,11 @@ export function RecurringTransactionsContent({ projectId, onEnterTransaction }: 
                       {rt.name}
                     </div>
                   </TableCell>
+                  {!projectId && (
+                    <TableCell className="text-muted-foreground">
+                      {rt.project_id ? (projectNames[rt.project_id] ?? "—") : "—"}
+                    </TableCell>
+                  )}
                   <TableCell>
                     <Badge variant="outline">{formatType(rt.transaction_type)}</Badge>
                   </TableCell>
