@@ -1,9 +1,9 @@
 import { useMemo, useState } from "react";
 import { format } from "date-fns";
-import { MoreHorizontal, Plus } from "lucide-react";
+import { ChevronDown, MoreHorizontal, Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
+
 import { DateInputPicker } from "@/components/ui/date-input-picker";
 import {
   DropdownMenu,
@@ -22,13 +22,6 @@ import {
 import { AccountSearchInputInline } from "@/components/AccountSearchInputInline";
 import { CostCodeSearchInput } from "@/components/CostCodeSearchInput";
 import { TableRowActions } from "@/components/ui/table-row-actions";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 import { AccountSearchInput } from "@/components/AccountSearchInput";
 import { VendorSearchInput } from "@/components/VendorSearchInput";
 import { useProjects, Project } from "@/hooks/useProjects";
