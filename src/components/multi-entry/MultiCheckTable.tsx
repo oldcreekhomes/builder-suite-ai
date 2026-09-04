@@ -320,10 +320,12 @@ export function MultiCheckTable() {
               <TableHead className="w-[200px]">Pay From (Bank)</TableHead>
               <TableHead className="w-[200px]">Pay To</TableHead>
               <TableHead className="w-[90px]">Check #</TableHead>
-              <TableHead className="w-[130px]">Type</TableHead>
-              <TableHead className="w-[220px]">Cost Code / Account</TableHead>
+              <TableHead className="w-[220px]">
+                {entryType === "cost_code" ? "Cost Code" : "Account"}
+              </TableHead>
               <TableHead>Description</TableHead>
               <TableHead className="w-[90px] text-right">Amount</TableHead>
+              <TableHead className="w-[60px]"></TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
