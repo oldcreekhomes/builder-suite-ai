@@ -426,18 +426,6 @@ export function MultiCheckTable() {
                     className="text-right"
                   />
                 </TableCell>
-                <TableCell className="text-center">
-                  <TableRowActions
-                    actions={[
-                      {
-                        label: "Delete",
-                        variant: "destructive",
-                        onClick: () => removeRow(r.id),
-                        disabled: rows.length === 1,
-                      },
-                    ]}
-                  />
-                </TableCell>
               </TableRow>
             ))}
           </TableBody>
