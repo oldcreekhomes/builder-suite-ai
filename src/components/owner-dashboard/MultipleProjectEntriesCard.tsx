@@ -16,6 +16,11 @@ export function MultipleProjectEntriesCard() {
       to: "/multi-entry/deposits",
       description: "Record deposits across many projects in one screen.",
     },
+    {
+      label: "Enter Multiple Checks",
+      to: "/multi-entry/checks",
+      description: "Record checks across many projects in one screen.",
+    },
   ];
 
   return (

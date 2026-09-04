@@ -178,6 +178,7 @@ const IncomeStatement = safeLazy(() => import("./pages/IncomeStatement"));
 const WriteChecks = safeLazy(() => import("./pages/WriteChecks"));
 const MakeDeposits = safeLazy(() => import("./pages/MakeDeposits"));
 const MultipleDeposits = safeLazy(() => import("./pages/MultipleDeposits"));
+const MultipleChecks = safeLazy(() => import("./pages/MultipleChecks"));
 const BankReconciliation = safeLazy(() => import("./pages/BankReconciliation"));
 const JournalEntry = safeLazy(() => import("./pages/JournalEntry"));
 const Transactions = safeLazy(() => import("./pages/Transactions"));
@@ -255,6 +256,7 @@ const AppContent = () => {
                 <Route path="/accounting/banking/write-checks" element={<ProtectedRoute><WriteChecks /></ProtectedRoute>} />
                 <Route path="/accounting/banking/make-deposits" element={<ProtectedRoute><MakeDeposits /></ProtectedRoute>} />
                 <Route path="/multi-entry/deposits" element={<ProtectedRoute><MultipleDeposits /></ProtectedRoute>} />
+                <Route path="/multi-entry/checks" element={<ProtectedRoute><MultipleChecks /></ProtectedRoute>} />
                 <Route path="/estimating-ai" element={<ProtectedRoute><EstimatingAI /></ProtectedRoute>} />
                 <Route path="/project/:projectId" element={<ProtectedRoute><ProjectDashboard /></ProtectedRoute>} />
                 <Route path="/project/:projectId/photos" element={<ProtectedRoute><ProjectPhotos /></ProtectedRoute>} />

@@ -1661,6 +1661,7 @@ export type Database = {
           id: string
           is_reversal: boolean
           memo: string | null
+          multi_entry_batch_id: string | null
           owner_id: string
           pay_to: string
           project_id: string | null
@@ -1689,6 +1690,7 @@ export type Database = {
           id?: string
           is_reversal?: boolean
           memo?: string | null
+          multi_entry_batch_id?: string | null
           owner_id: string
           pay_to: string
           project_id?: string | null
@@ -1717,6 +1719,7 @@ export type Database = {
           id?: string
           is_reversal?: boolean
           memo?: string | null
+          multi_entry_batch_id?: string | null
           owner_id?: string
           pay_to?: string
           project_id?: string | null
