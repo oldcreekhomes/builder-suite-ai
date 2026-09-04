@@ -94,8 +94,9 @@ export function MultiCheckTable() {
   const saveMutation = useMultiCheckBatchSave();
 
   const [defaultDate, setDefaultDate] = useState<Date>(new Date());
+  const [entryType, setEntryType] = useState<Row["entryType"]>("cost_code");
   const [rows, setRows] = useState<Row[]>(() =>
-    Array.from({ length: 5 }, () => blankRow(new Date())),
+    Array.from({ length: 5 }, () => blankRow(new Date(), "cost_code")),
   );
 
   // Group active projects the same way Active Jobs table does
