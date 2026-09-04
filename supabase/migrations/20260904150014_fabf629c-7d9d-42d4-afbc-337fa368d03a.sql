@@ -1,0 +1,2 @@
+ALTER TABLE public.checks ADD COLUMN IF NOT EXISTS multi_entry_batch_id uuid;
+CREATE INDEX IF NOT EXISTS idx_checks_multi_entry_batch_id ON public.checks (multi_entry_batch_id) WHERE multi_entry_batch_id IS NOT NULL;
