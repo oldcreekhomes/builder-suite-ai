@@ -353,8 +353,8 @@ export function MultiCheckTable() {
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent className="bg-popover z-50">
-                      <SelectItem value="account">Account</SelectItem>
                       <SelectItem value="cost_code">Cost Code</SelectItem>
+                      <SelectItem value="account">Account</SelectItem>
                     </SelectContent>
                   </Select>
                 </TableCell>
