@@ -101,6 +101,7 @@ export function useRecurringTransactions(projectId?: string) {
         .from("recurring_transactions")
         .insert({
           owner_id: ownerId,
+          project_id: input.project_id || (input.template_data?.project_id as string) || null,
           name: input.name,
           transaction_type: input.transaction_type,
           frequency: input.frequency,
@@ -109,6 +110,7 @@ export function useRecurringTransactions(projectId?: string) {
           auto_enter: input.auto_enter,
           template_data: input.template_data,
         })
+
         .select()
         .single();
       if (error) throw error;
