@@ -20,6 +20,7 @@ import {
 } from "@/components/ui/table";
 import { AccountSearchInputInline } from "@/components/AccountSearchInputInline";
 import { CostCodeSearchInput } from "@/components/CostCodeSearchInput";
+import { TableRowActions } from "@/components/ui/table-row-actions";
 import {
   Select,
   SelectContent,
@@ -60,7 +61,7 @@ interface Row {
 
 const STATUS_ORDER = ["Under Construction", "Permitting", "In Design"] as const;
 
-const blankRow = (defaultDate: Date): Row => ({
+const blankRow = (defaultDate: Date, type: Row["entryType"] = "cost_code"): Row => ({
   id: crypto.randomUUID(),
   projectId: "",
   checkDate: defaultDate,
@@ -69,7 +70,7 @@ const blankRow = (defaultDate: Date): Row => ({
   payToCompanyId: "",
   payToName: "",
   checkNumber: "",
-  entryType: "cost_code",
+  entryType: type,
   accountId: "",
   accountLabel: "",
   costCodeId: "",
@@ -93,8 +94,9 @@ export function MultiCheckTable() {
   const saveMutation = useMultiCheckBatchSave();
 
   const [defaultDate, setDefaultDate] = useState<Date>(new Date());
+  const [entryType, setEntryType] = useState<Row["entryType"]>("cost_code");
   const [rows, setRows] = useState<Row[]>(() =>
-    Array.from({ length: 5 }, () => blankRow(new Date())),
+    Array.from({ length: 5 }, () => blankRow(new Date(), "cost_code")),
   );
 
   // Group active projects the same way Active Jobs table does
@@ -153,12 +155,26 @@ export function MultiCheckTable() {
     });
   };
 
-  const addRow = () => setRows((rs) => [...rs, blankRow(defaultDate)]);
+  const addRow = () => setRows((rs) => [...rs, blankRow(defaultDate, entryType)]);
   const removeRow = (id: string) =>
     setRows((rs) => (rs.length > 1 ? rs.filter((r) => r.id !== id) : rs));
 
   const clearAll = () =>
-    setRows(Array.from({ length: 5 }, () => blankRow(defaultDate)));
+    setRows(Array.from({ length: 5 }, () => blankRow(defaultDate, entryType)));
+
+  const handleEntryTypeChange = (type: Row["entryType"]) => {
+    setEntryType(type);
+    setRows((rs) =>
+      rs.map((r) => ({
+        ...r,
+        entryType: type,
+        accountId: "",
+        accountLabel: "",
+        costCodeId: "",
+        costCodeLabel: "",
+      })),
+    );
+  };
 
   const total = useMemo(
     () => rows.reduce((s, r) => s + (Number(r.amount) || 0), 0),
@@ -266,6 +282,18 @@ export function MultiCheckTable() {
             <span className="text-muted-foreground">Total:&nbsp;</span>
             <span className="font-semibold">{fmtMoney(total)}</span>
           </div>
+          <Select
+            value={entryType}
+            onValueChange={(v) => handleEntryTypeChange(v as Row["entryType"])}
+          >
+            <SelectTrigger className="w-[130px]">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent className="bg-popover z-50">
+              <SelectItem value="cost_code">Cost Code</SelectItem>
+              <SelectItem value="account">Account</SelectItem>
+            </SelectContent>
+          </Select>
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <Button variant="ghost" size="icon">
@@ -292,10 +320,12 @@ export function MultiCheckTable() {
               <TableHead className="w-[200px]">Pay From (Bank)</TableHead>
               <TableHead className="w-[200px]">Pay To</TableHead>
               <TableHead className="w-[90px]">Check #</TableHead>
-              <TableHead className="w-[130px]">Type</TableHead>
-              <TableHead className="w-[220px]">Cost Code / Account</TableHead>
+              <TableHead className="w-[220px]">
+                {entryType === "cost_code" ? "Cost Code" : "Account"}
+              </TableHead>
               <TableHead>Description</TableHead>
               <TableHead className="w-[90px] text-right">Amount</TableHead>
+              <TableHead className="w-[60px]"></TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -355,28 +385,6 @@ export function MultiCheckTable() {
                   />
                 </TableCell>
                 <TableCell>
-                  <Select
-                    value={r.entryType}
-                    onValueChange={(v) =>
-                      updateRow(r.id, {
-                        entryType: v as Row["entryType"],
-                        accountId: "",
-                        accountLabel: "",
-                        costCodeId: "",
-                        costCodeLabel: "",
-                      })
-                    }
-                  >
-                    <SelectTrigger>
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent className="bg-popover z-50">
-                      <SelectItem value="cost_code">Cost Code</SelectItem>
-                      <SelectItem value="account">Account</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </TableCell>
-                <TableCell>
                   {r.entryType === "cost_code" ? (
                     <CostCodeSearchInput
                       value={r.costCodeLabel}
@@ -424,6 +432,18 @@ export function MultiCheckTable() {
                     inputMode="decimal"
                     placeholder="0.00"
                     className="text-right"
+                  />
+                </TableCell>
+                <TableCell className="text-right">
+                  <TableRowActions
+                    actions={[
+                      {
+                        label: "Delete",
+                        variant: "destructive",
+                        onClick: () => removeRow(r.id),
+                        disabled: rows.length === 1,
+                      },
+                    ]}
                   />
                 </TableCell>
               </TableRow>
