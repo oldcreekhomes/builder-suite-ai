@@ -282,6 +282,18 @@ export function MultiCheckTable() {
             <span className="text-muted-foreground">Total:&nbsp;</span>
             <span className="font-semibold">{fmtMoney(total)}</span>
           </div>
+          <Select
+            value={entryType}
+            onValueChange={(v) => handleEntryTypeChange(v as Row["entryType"])}
+          >
+            <SelectTrigger className="w-[130px]">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent className="bg-popover z-50">
+              <SelectItem value="cost_code">Cost Code</SelectItem>
+              <SelectItem value="account">Account</SelectItem>
+            </SelectContent>
+          </Select>
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <Button variant="ghost" size="icon">
