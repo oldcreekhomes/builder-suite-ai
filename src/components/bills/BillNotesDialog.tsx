@@ -121,7 +121,7 @@ export function BillNotesDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-md max-h-[85vh] flex flex-col dark bg-background text-foreground">
+      <DialogContent className="max-w-md max-h-[85vh] flex flex-col">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <StickyNote className="h-4 w-4 text-yellow-600" />
@@ -163,7 +163,7 @@ export function BillNotesDialog({
                         <div className="flex items-center justify-between mb-1.5">
                           <div className="flex items-center gap-1.5 text-muted-foreground">
                             <User className="h-3 w-3" />
-                            <span className="font-medium text-foreground">
+                            <span className="font-medium">
                               {displayUser}
                             </span>
                           </div>
@@ -178,7 +178,7 @@ export function BillNotesDialog({
                             </span>
                           )}
                         </div>
-                        <p className="text-foreground whitespace-pre-wrap">{note.content}</p>
+                        <p className="whitespace-pre-wrap">{note.content}</p>
                       </div>
                     );
                   })}
