@@ -1,10 +1,15 @@
 import { useMemo, useState } from "react";
 import { format } from "date-fns";
-import { Plus } from "lucide-react";
+import { MoreHorizontal, Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { DateInputPicker } from "@/components/ui/date-input-picker";
-import { TableRowActions } from "@/components/ui/table-row-actions";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import {
   Table,
   TableBody,
