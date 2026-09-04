@@ -67,6 +67,32 @@ const blankRow = (defaultDate: Date): Row => ({
   amount: "",
 });
 
+// Temporary pre-fill: Old Creek Homes equity deposits (09/04/2026).
+const CAPITAL_ONE_ID = "7b456e28-9eec-44cb-9f01-c745cc70867c";
+const CAPITAL_ONE_LABEL = "1015 - Capital One";
+const OLD_CREEK_ID = "4e36c64e-1af3-4566-aa01-10997cd285ab";
+const OLD_CREEK_NAME = "Old Creek Homes, LLC";
+
+const SEED_ROWS: Array<{ projectId: string; amount: string }> = [
+  { projectId: "691271e6-e46f-4745-8efb-200500e819f0", amount: "62000.00" },
+  { projectId: "e5439be5-1658-4a0c-a6d1-c1e03d9eae68", amount: "1000.00" },
+  { projectId: "f13eae11-ab55-4034-b70c-734fc3afe340", amount: "16000.00" },
+  { projectId: "beff6777-37be-4e4a-b8b6-5481d20fe27e", amount: "15000.00" },
+  { projectId: "494d10f1-cbb4-4f64-9ee9-92e755cb088f", amount: "15000.00" },
+];
+
+const seededRows = (defaultDate: Date): Row[] =>
+  SEED_ROWS.map((s) => ({
+    ...blankRow(defaultDate),
+    projectId: s.projectId,
+    bankAccountId: CAPITAL_ONE_ID,
+    bankAccountLabel: CAPITAL_ONE_LABEL,
+    receivedFromCompanyId: OLD_CREEK_ID,
+    receivedFromName: OLD_CREEK_NAME,
+    description: "Equity",
+    amount: s.amount,
+  }));
+
 const fmtMoney = (n: number) =>
   n.toLocaleString("en-US", {
     style: "currency",
@@ -75,6 +101,7 @@ const fmtMoney = (n: number) =>
     maximumFractionDigits: 2,
   });
 
+
 export function MultiDepositTable() {
   const { data: projects = [] } = useProjects();
   const { accounts } = useAccounts();
@@ -82,9 +109,8 @@ export function MultiDepositTable() {
   const saveMutation = useMultiDepositBatchSave();
 
   const [defaultDate, setDefaultDate] = useState<Date>(new Date());
-  const [rows, setRows] = useState<Row[]>(() =>
-    Array.from({ length: 5 }, () => blankRow(new Date())),
-  );
+  const [rows, setRows] = useState<Row[]>(() => seededRows(new Date()));
+
 
   // Group active projects the same way Active Jobs table does
   const groupedProjects = useMemo(() => {
