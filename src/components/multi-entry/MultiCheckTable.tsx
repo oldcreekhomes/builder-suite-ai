@@ -1,9 +1,9 @@
 import { useMemo, useState } from "react";
 import { format } from "date-fns";
-import { MoreHorizontal, Plus } from "lucide-react";
+import { ChevronDown, MoreHorizontal, Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
+
 import { DateInputPicker } from "@/components/ui/date-input-picker";
 import {
   DropdownMenu,
@@ -22,13 +22,6 @@ import {
 import { AccountSearchInputInline } from "@/components/AccountSearchInputInline";
 import { CostCodeSearchInput } from "@/components/CostCodeSearchInput";
 import { TableRowActions } from "@/components/ui/table-row-actions";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 import { AccountSearchInput } from "@/components/AccountSearchInput";
 import { VendorSearchInput } from "@/components/VendorSearchInput";
 import { useProjects, Project } from "@/hooks/useProjects";
@@ -283,25 +276,6 @@ export function MultiCheckTable() {
             <span className="text-muted-foreground">Total:&nbsp;</span>
             <span className="font-semibold">{fmtMoney(total)}</span>
           </div>
-          <div className="flex items-center gap-2">
-            <Label className="text-sm text-muted-foreground whitespace-nowrap">
-              Apply rows as
-            </Label>
-            <Select
-              value={entryType}
-              onValueChange={(v) =>
-                handleEntryTypeChange(v as Row["entryType"])
-              }
-            >
-              <SelectTrigger className="w-[160px]">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent className="bg-popover z-50">
-                <SelectItem value="cost_code">Cost Code</SelectItem>
-                <SelectItem value="account">Account</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <Button variant="ghost" size="icon">
@@ -329,7 +303,25 @@ export function MultiCheckTable() {
               <TableHead className="w-[200px]">Pay To</TableHead>
               <TableHead className="w-[90px]">Check #</TableHead>
               <TableHead className="w-[220px]">
-                {entryType === "cost_code" ? "Cost Code" : "Account"}
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <button
+                      type="button"
+                      className="flex items-center gap-1 font-medium hover:text-foreground transition-colors"
+                    >
+                      {entryType === "cost_code" ? "Cost Code" : "Account"}
+                      <ChevronDown className="h-3.5 w-3.5 text-muted-foreground" />
+                    </button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="start" className="bg-popover z-50">
+                    <DropdownMenuItem onClick={() => handleEntryTypeChange("cost_code")}>
+                      Cost Code
+                    </DropdownMenuItem>
+                    <DropdownMenuItem onClick={() => handleEntryTypeChange("account")}>
+                      Account
+                    </DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
               </TableHead>
               <TableHead>Description</TableHead>
               <TableHead className="w-[90px] text-right">Amount</TableHead>
