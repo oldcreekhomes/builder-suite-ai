@@ -1107,6 +1107,7 @@ export function CreditCardsContent({ projectId, recurringTemplate, onClearTempla
 
         {/* Memorize Dialog */}
         <MemorizeTransactionDialog
+          projectId={selectedProjectId || projectId}
           open={memorizeDialogOpen}
           onOpenChange={setMemorizeDialogOpen}
           transactionType="credit_card"

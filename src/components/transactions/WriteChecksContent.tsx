@@ -1707,6 +1707,7 @@ export function WriteChecksContent({ projectId, recurringTemplate, onClearTempla
 
       {/* Memorize Dialog */}
       <MemorizeTransactionDialog
+          projectId={projectId}
         open={memorizeDialogOpen}
         onOpenChange={setMemorizeDialogOpen}
         transactionType="check"

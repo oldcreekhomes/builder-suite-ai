@@ -19,6 +19,7 @@ export interface RecurringTransactionLine {
 export interface RecurringTransaction {
   id: string;
   owner_id: string;
+  project_id?: string | null;
   name: string;
   transaction_type: "check" | "credit_card" | "bill";
   frequency: "weekly" | "monthly" | "quarterly" | "annually";
@@ -41,7 +42,9 @@ export interface CreateRecurringTransactionInput {
   auto_enter: boolean;
   template_data: Record<string, any>;
   lines: RecurringTransactionLine[];
+  project_id?: string | null;
 }
+
 
 async function getEffectiveOwnerId() {
   const { data: { user } } = await supabase.auth.getUser();
@@ -68,22 +71,24 @@ function advanceDate(dateStr: string, frequency: string): string {
   return next.toISOString().split("T")[0];
 }
 
-export function useRecurringTransactions() {
+export function useRecurringTransactions(projectId?: string) {
   const queryClient = useQueryClient();
 
   const { data: recurringTransactions = [], isLoading } = useQuery({
-    queryKey: ["recurring-transactions"],
+    queryKey: ["recurring-transactions", projectId ?? "all"],
     queryFn: async () => {
       const ownerId = await getEffectiveOwnerId();
-      const { data, error } = await supabase
+      let query = supabase
         .from("recurring_transactions")
         .select(`*, recurring_transaction_lines(*)`)
-        .eq("owner_id", ownerId)
-        .order("next_date", { ascending: true });
+        .eq("owner_id", ownerId);
+      if (projectId) query = query.eq("project_id", projectId);
+      const { data, error } = await query.order("next_date", { ascending: true });
       if (error) throw error;
       return (data || []) as RecurringTransaction[];
     },
   });
+
 
   const dueTransactions = recurringTransactions.filter(
     (rt) => rt.is_active && new Date(rt.next_date + "T00:00:00") <= new Date()
@@ -96,6 +101,7 @@ export function useRecurringTransactions() {
         .from("recurring_transactions")
         .insert({
           owner_id: ownerId,
+          project_id: input.project_id || (input.template_data?.project_id as string) || null,
           name: input.name,
           transaction_type: input.transaction_type,
           frequency: input.frequency,
@@ -104,6 +110,7 @@ export function useRecurringTransactions() {
           auto_enter: input.auto_enter,
           template_data: input.template_data,
         })
+
         .select()
         .single();
       if (error) throw error;

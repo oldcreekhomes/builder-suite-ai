@@ -1,4 +1,6 @@
 import { useState } from "react";
+import { useQuery } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
 import { useRecurringTransactions, type RecurringTransaction } from "@/hooks/useRecurringTransactions";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
@@ -15,12 +17,24 @@ interface RecurringTransactionsContentProps {
 }
 
 export function RecurringTransactionsContent({ projectId, onEnterTransaction }: RecurringTransactionsContentProps) {
-  const { recurringTransactions, dueTransactions, isLoading, deleteRecurring, toggleActive } = useRecurringTransactions();
+  const { recurringTransactions, dueTransactions, isLoading, deleteRecurring, toggleActive } = useRecurringTransactions(projectId);
   const [typeFilter, setTypeFilter] = useState<string>("all");
+
+  const { data: projectNames = {} } = useQuery({
+    queryKey: ["recurring-project-names"],
+    enabled: !projectId,
+    queryFn: async () => {
+      const { data } = await supabase.from("projects").select("id, address");
+      const map: Record<string, string> = {};
+      (data || []).forEach((p: any) => { map[p.id] = p.address; });
+      return map;
+    },
+  });
 
   const filtered = typeFilter === "all"
     ? recurringTransactions
     : recurringTransactions.filter((rt) => rt.transaction_type === typeFilter);
+
 
   const formatType = (type: string) => {
     switch (type) {
@@ -83,6 +97,7 @@ export function RecurringTransactionsContent({ projectId, onEnterTransaction }: 
           <TableHeader>
             <TableRow>
               <TableHead>Name</TableHead>
+              {!projectId && <TableHead>Project</TableHead>}
               <TableHead>Type</TableHead>
               <TableHead>Amount</TableHead>
               <TableHead>Frequency</TableHead>
@@ -103,6 +118,11 @@ export function RecurringTransactionsContent({ projectId, onEnterTransaction }: 
                       {rt.name}
                     </div>
                   </TableCell>
+                  {!projectId && (
+                    <TableCell className="text-muted-foreground">
+                      {rt.project_id ? (projectNames[rt.project_id] ?? "—") : "—"}
+                    </TableCell>
+                  )}
                   <TableCell>
                     <Badge variant="outline">{formatType(rt.transaction_type)}</Badge>
                   </TableCell>

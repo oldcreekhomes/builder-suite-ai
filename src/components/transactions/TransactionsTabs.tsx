@@ -52,9 +52,11 @@ function TransactionsTabsInner({ projectId }: TransactionsTabsProps) {
     <>
       <div className="flex flex-1 overflow-hidden flex-col">
         <PendingRecurringBanner
+          projectId={projectId}
           onEnterTransaction={handleEnterRecurring}
           onViewAll={() => handleItemChange("recurring")}
         />
+
         <div className="flex flex-1 overflow-hidden">
           <ContentSidebar
             title="Transaction Type"

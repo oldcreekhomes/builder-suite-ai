@@ -16,6 +16,7 @@ interface MemorizeTransactionDialogProps {
   templateData: Record<string, any>;
   lines: RecurringTransactionLine[];
   defaultName?: string;
+  projectId?: string;
 }
 
 export function MemorizeTransactionDialog({
@@ -25,6 +26,7 @@ export function MemorizeTransactionDialog({
   templateData,
   lines,
   defaultName = "",
+  projectId,
 }: MemorizeTransactionDialogProps) {
   const { createRecurring } = useRecurringTransactions();
   const [name, setName] = useState(defaultName);
@@ -43,7 +45,9 @@ export function MemorizeTransactionDialog({
       auto_enter: autoEnter,
       template_data: templateData,
       lines,
+      project_id: projectId || (templateData?.project_id as string) || null,
     };
+
 
     await createRecurring.mutateAsync(input);
     onOpenChange(false);
