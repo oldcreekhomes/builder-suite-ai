@@ -9,7 +9,9 @@ export interface MultiCheckRowInput {
   payToCompanyId?: string;
   payToName: string;
   checkNumber?: string;
-  accountId: string;
+  entryType?: "account" | "cost_code";
+  accountId?: string;
+  costCodeId?: string;
   description?: string;
   amount: number; // dollars
 }
@@ -43,13 +45,21 @@ export function useMultiCheckBatchSave() {
             check_number: row.checkNumber || undefined,
           },
           checkLines: [
-            {
-              line_type: "expense",
-              account_id: row.accountId,
-              project_id: row.projectId,
-              amount: row.amount,
-              memo: row.description || undefined,
-            },
+            row.entryType === "cost_code"
+              ? {
+                  line_type: "job_cost" as const,
+                  cost_code_id: row.costCodeId,
+                  project_id: row.projectId,
+                  amount: row.amount,
+                  memo: row.description || undefined,
+                }
+              : {
+                  line_type: "expense" as const,
+                  account_id: row.accountId,
+                  project_id: row.projectId,
+                  amount: row.amount,
+                  memo: row.description || undefined,
+                },
           ],
         });
 
