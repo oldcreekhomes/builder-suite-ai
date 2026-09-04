@@ -1,10 +1,15 @@
 import { useMemo, useState } from "react";
 import { format } from "date-fns";
-import { Plus } from "lucide-react";
+import { MoreHorizontal, Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { DateInputPicker } from "@/components/ui/date-input-picker";
-import { TableRowActions } from "@/components/ui/table-row-actions";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import {
   Table,
   TableBody,
@@ -261,6 +266,20 @@ export function MultiCheckTable() {
             <span className="text-muted-foreground">Total:&nbsp;</span>
             <span className="font-semibold">{fmtMoney(total)}</span>
           </div>
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="ghost" size="icon">
+                <MoreHorizontal className="h-4 w-4" />
+                <span className="sr-only">Actions</span>
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end">
+              <DropdownMenuItem onClick={addRow}>Add Row</DropdownMenuItem>
+              <DropdownMenuItem onClick={clearAll} disabled={saveMutation.isPending}>
+                Clear All
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
         </div>
       </div>
 
@@ -277,7 +296,6 @@ export function MultiCheckTable() {
               <TableHead className="w-[220px]">Cost Code / Account</TableHead>
               <TableHead>Description</TableHead>
               <TableHead className="w-[90px] text-right">Amount</TableHead>
-              <TableHead className="w-[70px] text-center">Actions</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -406,18 +424,6 @@ export function MultiCheckTable() {
                     inputMode="decimal"
                     placeholder="0.00"
                     className="text-right"
-                  />
-                </TableCell>
-                <TableCell className="text-center">
-                  <TableRowActions
-                    actions={[
-                      {
-                        label: "Delete",
-                        variant: "destructive",
-                        onClick: () => removeRow(r.id),
-                        disabled: rows.length === 1,
-                      },
-                    ]}
                   />
                 </TableCell>
               </TableRow>
