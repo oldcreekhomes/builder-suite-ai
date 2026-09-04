@@ -71,22 +71,24 @@ function advanceDate(dateStr: string, frequency: string): string {
   return next.toISOString().split("T")[0];
 }
 
-export function useRecurringTransactions() {
+export function useRecurringTransactions(projectId?: string) {
   const queryClient = useQueryClient();
 
   const { data: recurringTransactions = [], isLoading } = useQuery({
-    queryKey: ["recurring-transactions"],
+    queryKey: ["recurring-transactions", projectId ?? "all"],
     queryFn: async () => {
       const ownerId = await getEffectiveOwnerId();
-      const { data, error } = await supabase
+      let query = supabase
         .from("recurring_transactions")
         .select(`*, recurring_transaction_lines(*)`)
-        .eq("owner_id", ownerId)
-        .order("next_date", { ascending: true });
+        .eq("owner_id", ownerId);
+      if (projectId) query = query.eq("project_id", projectId);
+      const { data, error } = await query.order("next_date", { ascending: true });
       if (error) throw error;
       return (data || []) as RecurringTransaction[];
     },
   });
+
 
   const dueTransactions = recurringTransactions.filter(
     (rt) => rt.is_active && new Date(rt.next_date + "T00:00:00") <= new Date()
