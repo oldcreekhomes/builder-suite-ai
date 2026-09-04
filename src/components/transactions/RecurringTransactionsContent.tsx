@@ -97,6 +97,7 @@ export function RecurringTransactionsContent({ projectId, onEnterTransaction }: 
           <TableHeader>
             <TableRow>
               <TableHead>Name</TableHead>
+              {!projectId && <TableHead>Project</TableHead>}
               <TableHead>Type</TableHead>
               <TableHead>Amount</TableHead>
               <TableHead>Frequency</TableHead>
