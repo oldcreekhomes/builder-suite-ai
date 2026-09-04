@@ -2018,7 +2018,11 @@ export function BillsApprovalTable({ status, projectId, projectIds, showProjectC
                                   )}
                                 </TableCell>}
                                 <TableCell className="w-10 text-center" onClick={(e) => e.stopPropagation()}>
-                                  {childBill ? <BillFilesCell attachments={childBill.bill_attachments || []} /> : 
+                                  {childBill ? <BillFilesCell
+                                      attachments={childBill.bill_attachments || []}
+                                      billId={childBill.id}
+                                      onUploaded={() => queryClient.invalidateQueries({ queryKey: ['bills-for-approval-v3'] })}
+                                    /> : 
                                     <div className="flex justify-center">
                                       <div className="h-8 w-8 opacity-0 pointer-events-none" />
                                     </div>
