@@ -109,9 +109,8 @@ export function MultiDepositTable() {
   const saveMutation = useMultiDepositBatchSave();
 
   const [defaultDate, setDefaultDate] = useState<Date>(new Date());
-  const [rows, setRows] = useState<Row[]>(() =>
-    Array.from({ length: 5 }, () => blankRow(new Date())),
-  );
+  const [rows, setRows] = useState<Row[]>(() => seededRows(new Date()));
+
 
   // Group active projects the same way Active Jobs table does
   const groupedProjects = useMemo(() => {
