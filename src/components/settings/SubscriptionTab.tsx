@@ -165,7 +165,17 @@ function UpdatePaymentForm({
         "update-payment-method",
         { body: { payment_method_id: paymentMethod.id } }
       );
-      if (fnError) throw fnError;
+      if (fnError) {
+        // Surface the real error body instead of "Edge Function returned a non-2xx status code"
+        let message = fnError.message;
+        try {
+          const body = await (fnError as any)?.context?.json?.();
+          if (body?.error) message = body.error;
+        } catch {
+          /* keep original message */
+        }
+        throw new Error(message);
+      }
       if (data?.error) throw new Error(data.error);
       toast({
         title: "Payment method updated",
