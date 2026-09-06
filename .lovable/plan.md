@@ -6,24 +6,20 @@ The card update failed three times this afternoon. The log message each time is:
 
 `[UPDATE-PAYMENT-METHOD] Error: No Stripe customer found`
 
-The card update routine looks up the billing account by matching your login email against the email on file at Stripe. Your billing email was changed earlier (that's a supported feature), so those two no longer match and the lookup finds nothing — even though the billing account exists and is active (`cus_UmceJk3lIuPv3U`).
-
-The billing-email routine already handles this correctly: it uses the billing account ID saved in the subscription record and only falls back to the email match. The card routine was never updated the same way.
+Stripe attaches every saved card to a customer record, so updating your card must find your billing account. The routine finds it by matching your login email against the email on file at Stripe. Your billing email was changed earlier (a supported feature), so the two no longer match — the lookup finds nothing even though your billing account exists and is active. The correct account ID (`cus_UmceJk3lIuPv3U`) is already saved in your subscription record; the routine just never uses it.
 
 ## Change
 
-Update the card-update routine to find the billing account the same way the billing-email routine does:
+Update the card-update routine (`update-payment-method`) to use only the saved billing account ID:
 
-1. Read the saved billing account ID from the subscription record for the signed-in owner.
-2. Only if none is saved, fall back to matching by login email.
-3. If neither finds an account, return a clear message ("No billing account found for this user") instead of a generic failure.
-
-Also surface the real message in the dialog instead of the raw "Edge Function returned a non-2xx status code" text, so any future failure is readable.
+1. Read the billing account ID from the subscription record for the signed-in owner. Remove the email-match lookup entirely — it was the wrong source of truth and is the cause of the failure.
+2. If no saved ID exists, return a clear message ("No billing account found for this user") instead of a generic failure.
+3. Surface the real error message in the update-card dialog instead of the raw "Edge Function returned a non-2xx status code" text, so any future failure is readable.
 
 ## Notes
 
-- Backend routine + one dialog message. No database changes, no change to your subscription, card, or billing email.
-- Employees on a shared account keep working as before, since the lookup is by subscription owner.
+- One backend routine + one dialog message. No database changes, no change to your subscription, card, or billing email.
+- Employees on a shared account keep working, since the lookup is by subscription owner.
 
 ## Verification
 
