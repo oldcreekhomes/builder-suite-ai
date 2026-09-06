@@ -37,10 +37,23 @@ serve(async (req) => {
 
     const stripe = new Stripe(stripeKey, { apiVersion: "2025-08-27.basil" });
 
-    // Find customer
-    const customers = await stripe.customers.list({ email: user.email, limit: 1 });
-    if (customers.data.length === 0) throw new Error("No Stripe customer found");
-    const customerId = customers.data[0].id;
+    // Find customer: use the stored stripe_customer_id from the subscription record
+    // (the billing email may differ from the login email, so never match by email)
+    const { data: subRow } = await supabaseClient
+      .from("subscriptions")
+      .select("stripe_customer_id")
+      .eq("owner_id", user.id)
+      .maybeSingle();
+    const customerId = subRow?.stripe_customer_id as string | undefined;
+    if (!customerId) {
+      return new Response(
+        JSON.stringify({ error: "No billing account found for this user" }),
+        {
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+          status: 404,
+        }
+      );
+    }
 
     // Attach new payment method to customer
     await stripe.paymentMethods.attach(payment_method_id, { customer: customerId });
