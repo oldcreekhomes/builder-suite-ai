@@ -1113,7 +1113,7 @@ export function ReconcileAccountsContent({ projectId }: ReconcileAccountsContent
     isRestoredRef.current = true; // Mark restoration complete - auto-save now allowed
     console.log('✅ Restoration complete (no in-progress record), auto-save now enabled');
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [selectedBankAccountId, reconciliationHistory, inProgressReconciliation, isLoadingInProgress]);
+  }, [selectedBankAccountId, reconciliationHistory, inProgressReconciliation, isLoadingInProgress, historyLoading]);
 
 
   const formatCurrency = (amount: number) => {
