@@ -985,7 +985,7 @@ export function ReconcileAccountsContent({ projectId }: ReconcileAccountsContent
   useEffect(() => {
     // CRITICAL: Wait for query to finish loading before deciding if there's data to restore
     // This prevents the race condition where restoration runs with undefined data
-    if (isLoadingInProgress) {
+    if (isLoadingInProgress || historyLoading) {
       return;
     }
     
