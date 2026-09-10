@@ -985,7 +985,7 @@ export function ReconcileAccountsContent({ projectId }: ReconcileAccountsContent
   useEffect(() => {
     // CRITICAL: Wait for query to finish loading before deciding if there's data to restore
     // This prevents the race condition where restoration runs with undefined data
-    if (isLoadingInProgress) {
+    if (isLoadingInProgress || historyLoading) {
       return;
     }
     
@@ -1014,6 +1014,14 @@ export function ReconcileAccountsContent({ projectId }: ReconcileAccountsContent
     if (hasLoadedFromDatabase) {
       // Still update beginning balance (derived from completed history, not user input)
       setBeginningBalance(String(correctBeginningBalance));
+      // Safety net: if the startup pass ran before history arrived, the statement
+      // date can end up empty. Fill the next period end from the last completed.
+      if (!statementDate && lastCompleted && !inProgressReconciliation) {
+        const [lcY, lcM, lcD] = lastCompleted.statement_date.split('-').map(Number);
+        const defaultDate = endOfMonth(addMonths(new Date(lcY, lcM - 1, lcD), 1));
+        setStatementDate(defaultDate);
+        setHideTransactionsAfterDate(defaultDate);
+      }
       return;
     }
 
@@ -1105,7 +1113,7 @@ export function ReconcileAccountsContent({ projectId }: ReconcileAccountsContent
     isRestoredRef.current = true; // Mark restoration complete - auto-save now allowed
     console.log('✅ Restoration complete (no in-progress record), auto-save now enabled');
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [selectedBankAccountId, reconciliationHistory, inProgressReconciliation, isLoadingInProgress]);
+  }, [selectedBankAccountId, reconciliationHistory, inProgressReconciliation, isLoadingInProgress, historyLoading]);
 
 
   const formatCurrency = (amount: number) => {
