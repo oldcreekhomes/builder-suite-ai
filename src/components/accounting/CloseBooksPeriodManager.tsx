@@ -176,18 +176,25 @@ export function CloseBooksPeriodManager({ projectId }: CloseBooksPeriodManagerPr
                   </div>
                   
                   {period.status === 'closed' && (
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => {
-                        setSelectedPeriodId(period.id);
-                        setShowReopenDialog(true);
-                      }}
-                      disabled={isReopening}
-                    >
-                      <Unlock className="mr-2 h-4 w-4" />
-                      Reopen
-                    </Button>
+                    <div className="flex flex-col items-end gap-1">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => {
+                          setSelectedPeriodId(period.id);
+                          setShowReopenDialog(true);
+                        }}
+                        disabled={isReopening || period.id !== newestClosedPeriod?.id}
+                      >
+                        <Unlock className="mr-2 h-4 w-4" />
+                        Reopen
+                      </Button>
+                      {period.id !== newestClosedPeriod?.id && newestClosedPeriod && (
+                        <p className="text-xs text-muted-foreground">
+                          Reopen {formatDateSafe(newestClosedPeriod.period_end_date, "MMMM d, yyyy")} first
+                        </p>
+                      )}
+                    </div>
                   )}
                 </div>
               ))}
