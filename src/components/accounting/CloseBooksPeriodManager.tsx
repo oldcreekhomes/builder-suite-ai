@@ -29,6 +29,11 @@ export function CloseBooksPeriodManager({ projectId }: CloseBooksPeriodManagerPr
   const [showReopenDialog, setShowReopenDialog] = useState(false);
   const [selectedPeriodId, setSelectedPeriodId] = useState<string>("");
 
+  // Only the most recently closed period may be reopened (newest-first order)
+  const newestClosedPeriod = (periods ?? [])
+    .filter((p) => p.status === 'closed')
+    .sort((a, b) => (a.period_end_date < b.period_end_date ? 1 : -1))[0];
+
   const handleClosePeriod = () => {
     if (!selectedDate) return;
     
@@ -176,18 +181,25 @@ export function CloseBooksPeriodManager({ projectId }: CloseBooksPeriodManagerPr
                   </div>
                   
                   {period.status === 'closed' && (
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => {
-                        setSelectedPeriodId(period.id);
-                        setShowReopenDialog(true);
-                      }}
-                      disabled={isReopening}
-                    >
-                      <Unlock className="mr-2 h-4 w-4" />
-                      Reopen
-                    </Button>
+                    <div className="flex flex-col items-end gap-1">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => {
+                          setSelectedPeriodId(period.id);
+                          setShowReopenDialog(true);
+                        }}
+                        disabled={isReopening || period.id !== newestClosedPeriod?.id}
+                      >
+                        <Unlock className="mr-2 h-4 w-4" />
+                        Reopen
+                      </Button>
+                      {period.id !== newestClosedPeriod?.id && newestClosedPeriod && (
+                        <p className="text-xs text-muted-foreground">
+                          Reopen {formatDateSafe(newestClosedPeriod.period_end_date, "MMMM d, yyyy")} first
+                        </p>
+                      )}
+                    </div>
                   )}
                 </div>
               ))}

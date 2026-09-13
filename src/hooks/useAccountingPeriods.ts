@@ -177,6 +177,38 @@ export const useAccountingPeriods = (projectId?: string) => {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error('Not authenticated');
 
+      // Enforce newest-first reopening within the period's project
+      const { data: target, error: targetError } = await supabase
+        .from('accounting_periods')
+        .select('id, project_id, period_end_date, status')
+        .eq('id', periodId)
+        .single();
+
+      if (targetError) throw targetError;
+      if (target.status !== 'closed') throw new Error('This period is not closed');
+
+      const { data: closedPeriods, error: closedError } = await supabase
+        .from('accounting_periods')
+        .select('id, period_end_date')
+        .eq('project_id', target.project_id)
+        .eq('status', 'closed')
+        .order('period_end_date', { ascending: false })
+        .limit(1);
+
+      if (closedError) throw closedError;
+
+      const newest = closedPeriods?.[0];
+      if (newest && newest.id !== periodId) {
+        const [y, m, d] = newest.period_end_date.split('-').map(Number);
+        const label = new Date(y, m - 1, d).toLocaleDateString('en-US', {
+          month: 'long', day: 'numeric', year: 'numeric',
+        });
+        throw new Error(
+          `You must reopen periods newest first. Reopen ${label} before this one.`
+        );
+      }
+
+
       const { data, error } = await supabase
         .from('accounting_periods')
         .update({
