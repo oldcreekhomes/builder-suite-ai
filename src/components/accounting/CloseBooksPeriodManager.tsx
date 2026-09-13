@@ -29,6 +29,11 @@ export function CloseBooksPeriodManager({ projectId }: CloseBooksPeriodManagerPr
   const [showReopenDialog, setShowReopenDialog] = useState(false);
   const [selectedPeriodId, setSelectedPeriodId] = useState<string>("");
 
+  // Only the most recently closed period may be reopened (newest-first order)
+  const newestClosedPeriod = (periods ?? [])
+    .filter((p) => p.status === 'closed')
+    .sort((a, b) => (a.period_end_date < b.period_end_date ? 1 : -1))[0];
+
   const handleClosePeriod = () => {
     if (!selectedDate) return;
     
