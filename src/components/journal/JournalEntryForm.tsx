@@ -837,7 +837,7 @@ export const JournalEntryForm = ({ projectId, activeTab: parentActiveTab }: Jour
                                 <SelectContent>
                                   {lots.map((lot) => (
                                     <SelectItem key={lot.id} value={lot.id}>
-                                      Lot {lot.lot_number}
+                                      {lot.lot_name || `Lot ${lot.lot_number}`}
                                     </SelectItem>
                                   ))}
                                 </SelectContent>
