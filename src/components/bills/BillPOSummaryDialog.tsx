@@ -220,13 +220,41 @@ export function BillPOSummaryDialog({
     return line.project_lots.lot_name || (line.project_lots.lot_number != null ? `Lot ${line.project_lots.lot_number}` : null);
   };
 
+  // Lines that share PO + cost code + description belong together even when some
+  // of them carry a purchase_order_line_id and others don't. Resolve a single PO
+  // line per (PO, cost code, memo) bucket so unlinked siblings join their linked
+  // peers instead of splitting into a separate row.
+  const bucketKeyOf = (line: BillLine) => {
+    const poId = resolveLineToPoId(line) ?? '__none__';
+    const memoKey = (line.memo || '').trim();
+    return `${poId}::${line.cost_code_id || 'no-cc'}::${memoKey}`;
+  };
+  const bucketPoLineIds = new Map<string, Set<string>>();
+  billLines.forEach((line) => {
+    if (!line.purchase_order_line_id) return;
+    const bk = bucketKeyOf(line);
+    if (!bucketPoLineIds.has(bk)) bucketPoLineIds.set(bk, new Set());
+    bucketPoLineIds.get(bk)!.add(line.purchase_order_line_id);
+  });
+  const groupKeyOf = (line: BillLine) => {
+    const bk = bucketKeyOf(line);
+    const ids = bucketPoLineIds.get(bk);
+    // Only one distinct PO line in the bucket → unlinked lines join it.
+    if (!line.purchase_order_line_id && ids && ids.size === 1) {
+      return `${bk}::${Array.from(ids)[0]}`;
+    }
+    const lineKey = line.purchase_order_line_id || line.cost_code_id || 'no-cc';
+    const poId = resolveLineToPoId(line) ?? '__none__';
+    const memoKey = (line.memo || '').trim();
+    return line.purchase_order_line_id
+      ? `${bk}::${line.purchase_order_line_id}`
+      : `${poId}::${lineKey}::${memoKey}`;
+  };
+
   const groupMap = new Map<string, GroupedLine>();
   const groupOrder: string[] = [];
   billLines.forEach((line) => {
-    const poId = resolveLineToPoId(line) ?? '__none__';
-    const lineKey = line.purchase_order_line_id || line.cost_code_id || 'no-cc';
-    const memoKey = (line.memo || '').trim();
-    const key = `${poId}::${lineKey}::${memoKey}`;
+    const key = groupKeyOf(line);
     let g = groupMap.get(key);
     if (!g) {
       g = { representative: line, totalAmount: 0, lots: [] };
@@ -266,10 +294,7 @@ export function BillPOSummaryDialog({
   // (created_at, id) among each group's underlying bill_lines as its rank.
   const groupFirstEntry = new Map<string, { at: string; id: string }>();
   billLines.forEach((line) => {
-    const poId = resolveLineToPoId(line) ?? '__none__';
-    const lineKey = line.purchase_order_line_id || line.cost_code_id || 'no-cc';
-    const memoKey = (line.memo || '').trim();
-    const key = `${poId}::${lineKey}::${memoKey}`;
+    const key = groupKeyOf(line);
     const at = line.created_at || '';
     const id = line.id || '';
     const cur = groupFirstEntry.get(key);
