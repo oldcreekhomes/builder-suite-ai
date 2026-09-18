@@ -236,20 +236,10 @@ export function BillPOSummaryDialog({
     if (!bucketPoLineIds.has(bk)) bucketPoLineIds.set(bk, new Set());
     bucketPoLineIds.get(bk)!.add(line.purchase_order_line_id);
   });
-  const groupKeyOf = (line: BillLine) => {
-    const bk = bucketKeyOf(line);
-    const ids = bucketPoLineIds.get(bk);
-    // Only one distinct PO line in the bucket → unlinked lines join it.
-    if (!line.purchase_order_line_id && ids && ids.size === 1) {
-      return `${bk}::${Array.from(ids)[0]}`;
-    }
-    const lineKey = line.purchase_order_line_id || line.cost_code_id || 'no-cc';
-    const poId = resolveLineToPoId(line) ?? '__none__';
-    const memoKey = (line.memo || '').trim();
-    return line.purchase_order_line_id
-      ? `${bk}::${line.purchase_order_line_id}`
-      : `${poId}::${lineKey}::${memoKey}`;
-  };
+  // One row per (PO, cost code, description). Lines that share all three are the
+  // same scope split across lots, so they collapse into a single row even when
+  // they happen to be linked to different PO lines or to none at all.
+  const groupKeyOf = (line: BillLine) => bucketKeyOf(line);
 
   const groupMap = new Map<string, GroupedLine>();
   const groupOrder: string[] = [];
