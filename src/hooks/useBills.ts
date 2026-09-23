@@ -133,7 +133,7 @@ export const useBills = () => {
       if (billTotal === 0) {
         const { error: zeroUpdateError } = await supabase
           .from('bills')
-          .update({ status: 'posted', updated_at: new Date().toISOString() })
+          .update({ status: 'posted', updated_at: new Date().toISOString(), archived_at: null, archived_by: null } as any)
           .eq('id', billId);
         if (zeroUpdateError) throw zeroUpdateError;
         return bill;
@@ -255,6 +255,8 @@ export const useBills = () => {
         .from('bills')
         .update({ 
           status: 'posted',
+          archived_at: null,
+          archived_by: null,
           updated_at: new Date().toISOString()
         })
         .eq('id', billId);
@@ -1208,6 +1210,8 @@ export const useBills = () => {
         .update({
           ...billData,
           status: 'draft', // KEY: Move back to review queue
+          archived_at: null,
+          archived_by: null,
           total_amount: newTotal,
           updated_at: new Date().toISOString()
         })
@@ -1621,6 +1625,8 @@ export const useBills = () => {
         .from('bills')
         .update({
           status: 'draft',
+          archived_at: null,
+          archived_by: null,
           notes: finalNotes,
           updated_at: new Date().toISOString(),
         })
