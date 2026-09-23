@@ -959,6 +959,8 @@ export type Database = {
       bills: {
         Row: {
           amount_paid: number
+          archived_at: string | null
+          archived_by: string | null
           bill_date: string
           correction_reason: string | null
           created_at: string
@@ -986,6 +988,8 @@ export type Database = {
         }
         Insert: {
           amount_paid?: number
+          archived_at?: string | null
+          archived_by?: string | null
           bill_date?: string
           correction_reason?: string | null
           created_at?: string
@@ -1013,6 +1017,8 @@ export type Database = {
         }
         Update: {
           amount_paid?: number
+          archived_at?: string | null
+          archived_by?: string | null
           bill_date?: string
           correction_reason?: string | null
           created_at?: string
