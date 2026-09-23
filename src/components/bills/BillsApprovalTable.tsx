@@ -328,6 +328,11 @@ export function BillsApprovalTable({ status, projectId, projectIds, showProjectC
         .eq('is_reversal', false)
         .is('reversed_at', null);
 
+      directQuery = archived
+        ? (directQuery as any).not('archived_at', 'is', null)
+        : (directQuery as any).is('archived_at', null);
+
+
       // Filter by project_id or projectIds if provided
       if (projectIds && projectIds.length > 0) {
         directQuery = directQuery.in('project_id', projectIds);
@@ -1362,8 +1367,18 @@ export function BillsApprovalTable({ status, projectId, projectIds, showProjectC
                   {
                     label: "Edit",
                     onClick: () => setEditingBillId(bill.id),
-                    hidden: !canEditBills,
+                    hidden: !canEditBills || archived,
                     disabled: bill.reconciled,
+                  },
+                  {
+                    label: "Archive",
+                    onClick: () => archiveBill.mutate(bill.id),
+                    variant: "destructive",
+                    requiresConfirmation: true,
+                    confirmTitle: "Archive Bill",
+                    confirmDescription: `Archive this rejected bill from ${bill.companies?.company_name} for ${formatCurrency(bill.total_amount)}? It moves to the Archived tab for tracking and never counts in any report.`,
+                    isLoading: archiveBill.isPending,
+                    hidden: archived || bill.status !== 'void' || !canEditBills,
                   },
                   {
                     label: "Delete Bill",
