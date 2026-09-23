@@ -117,16 +117,31 @@ interface BillsApprovalTableProps {
   /** Filter rows by due date <= filterDate when set to "due-on-or-before". */
   dueDateFilter?: "all" | "due-on-or-before";
   filterDate?: Date;
+  /** Show archived (tracking-only) rejected bills instead of active ones. */
+  archived?: boolean;
 }
 
-export function BillsApprovalTable({ status, projectId, projectIds, showProjectColumn = true, defaultSortBy, sortOrder, enableSorting = false, showPayBillButton = false, searchQuery, showEditButton = false, enableBatchPayment = false, dueDateFilter = "all", filterDate }: BillsApprovalTableProps) {
-  const { lots } = useLots(projectId);
-  const showAddressColumn = lots.length > 1;
-  const { approveBill, rejectBill, rejectApprovedBill, deleteBill, payBill, payMultipleBills, resendBillToReview } = useBills();
-  const { isOwner } = useUserRole();
-  const { canDeleteBills, canEditBills } = useAccountingPermissions();
-  const { isDateLocked, latestClosedDate } = useClosedPeriodCheck(projectId);
+export function BillsApprovalTable({ status, projectId, projectIds, showProjectColumn = true, defaultSortBy, sortOrder, enableSorting = false, showPayBillButton = false, searchQuery, showEditButton = false, enableBatchPayment = false, dueDateFilter = "all", filterDate, archived = false }: BillsApprovalTableProps) {
+...
   const queryClient = useQueryClient();
+  const archiveBill = useMutation({
+    mutationFn: async (billId: string) => {
+      const { data: { user } } = await supabase.auth.getUser();
+      const { error } = await supabase
+        .from('bills')
+        .update({ archived_at: new Date().toISOString(), archived_by: user?.id ?? null } as any)
+        .eq('id', billId)
+        .eq('status', 'void');
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['bills-for-approval-v3'] });
+      queryClient.invalidateQueries({ queryKey: ['bill-approval-counts'] });
+      queryClient.invalidateQueries({ queryKey: ['bill-counts-by-project'] });
+      toast({ title: "Bill archived" });
+    },
+    onError: (e: any) => toast({ title: "Archive failed", description: e.message, variant: "destructive" }),
+  });
   const [sortColumn, setSortColumn] = useState<'project' | 'due_date' | 'vendor' | 'bill_date' | null>(
     defaultSortBy === 'due_date' ? 'due_date' : 'bill_date'
   );
