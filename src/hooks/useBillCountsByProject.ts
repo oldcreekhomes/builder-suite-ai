@@ -16,7 +16,7 @@ export function useBillCountsByProject(projectIds: string[]) {
 
       const { data: bills, error } = await supabase
         .from('bills')
-        .select('id, project_id, status, due_date, is_reversal')
+        .select('id, project_id, status, due_date, is_reversal, archived_at')
         .in('project_id', projectIds)
         .in('status', ['draft', 'posted', 'void']);
 
@@ -42,7 +42,7 @@ export function useBillCountsByProject(projectIds: string[]) {
             const dueDate = new Date(b.due_date);
             return dueDate < today;
           }).length,
-          rejectedCount: projectBills.filter(b => b.status === 'void').length,
+          rejectedCount: projectBills.filter(b => b.status === 'void' && !(b as any).archived_at).length,
           payCount: projectBills.filter(b => b.status === 'posted' && !b.is_reversal).length,
         };
       });
