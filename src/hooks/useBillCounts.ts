@@ -7,6 +7,7 @@ interface BillCounts {
   approvedCount: number;
   payBillsCount: number;
   aiExtractCount: number;
+  archivedCount: number;
 }
 
 export function useBillCounts(projectId?: string, projectIds?: string[]) {
@@ -24,7 +25,14 @@ export function useBillCounts(projectId?: string, projectIds?: string[]) {
       const rejectedQuery = supabase
         .from('bills')
         .select('id', { count: 'exact', head: true })
-        .eq('status', 'void');
+        .eq('status', 'void')
+        .is('archived_at', null);
+
+      const archivedQuery = supabase
+        .from('bills')
+        .select('id', { count: 'exact', head: true })
+        .eq('status', 'void')
+        .not('archived_at', 'is', null);
       
       const approvedQuery = supabase
         .from('bills')
@@ -48,23 +56,26 @@ export function useBillCounts(projectId?: string, projectIds?: string[]) {
       if (projectIds && projectIds.length > 0) {
         pendingQuery.in('project_id', projectIds);
         rejectedQuery.in('project_id', projectIds);
+        archivedQuery.in('project_id', projectIds);
         approvedQuery.in('project_id', projectIds);
         payBillsQuery.in('project_id', projectIds);
         aiExtractQuery.in('project_id', projectIds);
       } else if (projectId) {
         pendingQuery.eq('project_id', projectId);
         rejectedQuery.eq('project_id', projectId);
+        archivedQuery.eq('project_id', projectId);
         approvedQuery.eq('project_id', projectId);
         payBillsQuery.eq('project_id', projectId);
         aiExtractQuery.eq('project_id', projectId);
       }
 
-      const [pendingResult, rejectedResult, approvedResult, payBillsResult, aiExtractResult] = await Promise.all([
+      const [pendingResult, rejectedResult, approvedResult, payBillsResult, aiExtractResult, archivedResult] = await Promise.all([
         pendingQuery,
         rejectedQuery,
         approvedQuery,
         payBillsQuery,
-        aiExtractQuery
+        aiExtractQuery,
+        archivedQuery
       ]);
 
       if (pendingResult.error) throw pendingResult.error;
@@ -78,7 +89,8 @@ export function useBillCounts(projectId?: string, projectIds?: string[]) {
         rejectedCount: rejectedResult.count || 0,
         approvedCount: approvedResult.count || 0,
         payBillsCount: payBillsResult.count || 0,
-        aiExtractCount: aiExtractResult.count || 0
+        aiExtractCount: aiExtractResult.count || 0,
+        archivedCount: archivedResult.count || 0
       };
     },
   });

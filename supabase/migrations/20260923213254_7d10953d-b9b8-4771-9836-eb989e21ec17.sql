@@ -1,0 +1,2 @@
+ALTER TABLE public.bills ADD COLUMN IF NOT EXISTS archived_at timestamptz, ADD COLUMN IF NOT EXISTS archived_by uuid;
+CREATE INDEX IF NOT EXISTS idx_bills_project_archived ON public.bills(project_id, archived_at);

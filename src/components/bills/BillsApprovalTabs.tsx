@@ -931,6 +931,8 @@ export function BillsApprovalTabs({ projectId, projectIds, reviewOnly = false, o
           return "Approved";
         case 'pay':
           return "Paid";
+        case 'archived':
+          return "Archived";
         default:
           return status;
       }
@@ -950,6 +952,8 @@ export function BillsApprovalTabs({ projectId, projectIds, reviewOnly = false, o
         return `Approved (${displayCount})`;
       case 'pay':
         return `Paid (${displayCount})`;
+      case 'archived':
+        return `Archived (${displayCount})`;
       default:
         return `${status} (${displayCount})`;
     }
@@ -961,6 +965,7 @@ export function BillsApprovalTabs({ projectId, projectIds, reviewOnly = false, o
         { value: "rejected", label: getTabLabel('rejected', counts?.rejectedCount) },
         { value: "approve", label: getTabLabel('approve', counts?.approvedCount) },
         { value: "pay", label: getTabLabel('pay', counts?.payBillsCount) },
+        { value: "archived", label: getTabLabel('archived', counts?.archivedCount) },
       ]
     : [
         { value: "manual", label: getTabLabel('manual', undefined) },
@@ -969,6 +974,7 @@ export function BillsApprovalTabs({ projectId, projectIds, reviewOnly = false, o
         { value: "rejected", label: getTabLabel('rejected', counts?.rejectedCount) },
         { value: "approve", label: getTabLabel('approve', counts?.approvedCount) },
         { value: "pay", label: getTabLabel('pay', counts?.payBillsCount) },
+        { value: "archived", label: getTabLabel('archived', counts?.archivedCount) },
       ];
 
   const sidebarItems = tabs.map(tab => ({ value: tab.value, label: tab.label }));
@@ -1181,6 +1187,21 @@ export function BillsApprovalTabs({ projectId, projectIds, reviewOnly = false, o
       {activeTab === "pay" && (
         <BillsApprovalTable 
           status="paid"
+          projectId={effectiveProjectId} 
+          projectIds={projectIds}
+          showProjectColumn={false}
+          enableSorting={true}
+          defaultSortBy="due_date"
+          sortOrder="asc"
+          searchQuery={searchQuery}
+          showEditButton={true}
+        />
+      )}
+
+      {activeTab === "archived" && (
+        <BillsApprovalTable 
+          status="void"
+          archived={true}
           projectId={effectiveProjectId} 
           projectIds={projectIds}
           showProjectColumn={false}

@@ -117,9 +117,11 @@ interface BillsApprovalTableProps {
   /** Filter rows by due date <= filterDate when set to "due-on-or-before". */
   dueDateFilter?: "all" | "due-on-or-before";
   filterDate?: Date;
+  /** Show archived (tracking-only) rejected bills instead of active ones. */
+  archived?: boolean;
 }
 
-export function BillsApprovalTable({ status, projectId, projectIds, showProjectColumn = true, defaultSortBy, sortOrder, enableSorting = false, showPayBillButton = false, searchQuery, showEditButton = false, enableBatchPayment = false, dueDateFilter = "all", filterDate }: BillsApprovalTableProps) {
+export function BillsApprovalTable({ status, projectId, projectIds, showProjectColumn = true, defaultSortBy, sortOrder, enableSorting = false, showPayBillButton = false, searchQuery, showEditButton = false, enableBatchPayment = false, dueDateFilter = "all", filterDate, archived = false }: BillsApprovalTableProps) {
   const { lots } = useLots(projectId);
   const showAddressColumn = lots.length > 1;
   const { approveBill, rejectBill, rejectApprovedBill, deleteBill, payBill, payMultipleBills, resendBillToReview } = useBills();
@@ -127,6 +129,24 @@ export function BillsApprovalTable({ status, projectId, projectIds, showProjectC
   const { canDeleteBills, canEditBills } = useAccountingPermissions();
   const { isDateLocked, latestClosedDate } = useClosedPeriodCheck(projectId);
   const queryClient = useQueryClient();
+  const archiveBill = useMutation({
+    mutationFn: async (billId: string) => {
+      const { data: { user } } = await supabase.auth.getUser();
+      const { error } = await supabase
+        .from('bills')
+        .update({ archived_at: new Date().toISOString(), archived_by: user?.id ?? null } as any)
+        .eq('id', billId)
+        .eq('status', 'void');
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['bills-for-approval-v3'] });
+      queryClient.invalidateQueries({ queryKey: ['bill-approval-counts'] });
+      queryClient.invalidateQueries({ queryKey: ['bill-counts-by-project'] });
+      toast({ title: "Bill archived" });
+    },
+    onError: (e: any) => toast({ title: "Archive failed", description: e.message, variant: "destructive" }),
+  });
   const [sortColumn, setSortColumn] = useState<'project' | 'due_date' | 'vendor' | 'bill_date' | null>(
     defaultSortBy === 'due_date' ? 'due_date' : 'bill_date'
   );
@@ -312,6 +332,11 @@ export function BillsApprovalTable({ status, projectId, projectIds, showProjectC
         .in('status', statusArray)
         .eq('is_reversal', false)
         .is('reversed_at', null);
+
+      directQuery = archived
+        ? (directQuery as any).not('archived_at', 'is', null)
+        : (directQuery as any).is('archived_at', null);
+
 
       // Filter by project_id or projectIds if provided
       if (projectIds && projectIds.length > 0) {
@@ -1347,8 +1372,18 @@ export function BillsApprovalTable({ status, projectId, projectIds, showProjectC
                   {
                     label: "Edit",
                     onClick: () => setEditingBillId(bill.id),
-                    hidden: !canEditBills,
+                    hidden: !canEditBills || archived,
                     disabled: bill.reconciled,
+                  },
+                  {
+                    label: "Archive",
+                    onClick: () => archiveBill.mutate(bill.id),
+                    variant: "destructive",
+                    requiresConfirmation: true,
+                    confirmTitle: "Archive Bill",
+                    confirmDescription: `Archive this rejected bill from ${bill.companies?.company_name} for ${formatCurrency(bill.total_amount)}? It moves to the Archived tab for tracking and never counts in any report.`,
+                    isLoading: archiveBill.isPending,
+                    hidden: archived || bill.status !== 'void' || !canEditBills,
                   },
                   {
                     label: "Delete Bill",
