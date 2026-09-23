@@ -333,7 +333,7 @@ export function BillsApprovalTable({ status, projectId, projectIds, showProjectC
         .eq('is_reversal', false)
         .is('reversed_at', null);
 
-      directQuery = archived
+      if (statusArray.length === 1 && statusArray[0] === 'void') directQuery = archived
         ? (directQuery as any).not('archived_at', 'is', null)
         : (directQuery as any).is('archived_at', null);
 
