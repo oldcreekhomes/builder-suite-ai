@@ -122,7 +122,12 @@ interface BillsApprovalTableProps {
 }
 
 export function BillsApprovalTable({ status, projectId, projectIds, showProjectColumn = true, defaultSortBy, sortOrder, enableSorting = false, showPayBillButton = false, searchQuery, showEditButton = false, enableBatchPayment = false, dueDateFilter = "all", filterDate, archived = false }: BillsApprovalTableProps) {
-...
+  const { lots } = useLots(projectId);
+  const showAddressColumn = lots.length > 1;
+  const { approveBill, rejectBill, rejectApprovedBill, deleteBill, payBill, payMultipleBills, resendBillToReview } = useBills();
+  const { isOwner } = useUserRole();
+  const { canDeleteBills, canEditBills } = useAccountingPermissions();
+  const { isDateLocked, latestClosedDate } = useClosedPeriodCheck(projectId);
   const queryClient = useQueryClient();
   const archiveBill = useMutation({
     mutationFn: async (billId: string) => {
