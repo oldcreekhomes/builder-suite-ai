@@ -153,6 +153,7 @@ export function EmployeeActivitySection() {
                                     ["Budgets", r.budgets_8h, r.budgets_24h, r.budgets_7d, r.budgets_30d],
                                     ["Schedule", r.schedule_8h, r.schedule_24h, r.schedule_7d, r.schedule_30d],
                                     ["Photos", r.photos_8h, r.photos_24h, r.photos_7d, r.photos_30d],
+                                    ["Banking", r.banking_8h, r.banking_24h, r.banking_7d, r.banking_30d],
                                     ["Chat", r.chat_8h, r.chat_24h, r.chat_7d, r.chat_30d],
                                   ] as Array<[string, number, number, number, number]>).map(([label, a, b, c, d]) => (
                                     <TableRow key={label} className="h-9">

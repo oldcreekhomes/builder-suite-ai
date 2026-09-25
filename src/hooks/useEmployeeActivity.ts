@@ -32,6 +32,8 @@ export interface EmployeeActivityRow {
   schedule_8h: number; schedule_24h: number; schedule_7d: number; schedule_30d: number;
   photos_8h: number; photos_24h: number; photos_7d: number; photos_30d: number;
   chat_8h: number; chat_24h: number; chat_7d: number; chat_30d: number;
+  banking_count: number;
+  banking_8h: number; banking_24h: number; banking_7d: number; banking_30d: number;
 }
 
 export const useEmployeeActivity = (enabled: boolean) => {
