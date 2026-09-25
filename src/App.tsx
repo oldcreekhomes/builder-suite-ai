@@ -2,6 +2,7 @@ import { Suspense, lazy, ComponentType } from "react";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { useActivityHeartbeat } from "@/hooks/useActivityHeartbeat";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { ChatProvider } from "@/contexts/ChatContext";
 import { ImpersonationBanner } from "@/components/ImpersonationBanner";
@@ -206,6 +207,7 @@ const queryClient = new QueryClient();
 
 const AppContent = () => {
   console.log("[APP] AppContent rendering");
+  useActivityHeartbeat();
 
   return (
     <BrowserRouter>
