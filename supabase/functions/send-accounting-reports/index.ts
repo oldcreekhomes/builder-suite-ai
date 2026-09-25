@@ -174,6 +174,23 @@ const handler = async (req: Request): Promise<Response> => {
 
     console.log("Email sent successfully:", emailResponse);
 
+    // Log the send for Employee Activity
+    try {
+      const token = (req.headers.get("Authorization") || "").replace("Bearer ", "");
+      const { data: { user } } = await supabase.auth.getUser(token);
+      if (user) {
+        const { data: u } = await supabase.from("users").select("home_builder_id").eq("id", user.id).maybeSingle();
+        await supabase.from("report_email_log").insert({
+          sent_by: user.id,
+          home_builder_id: u?.home_builder_id || user.id,
+          project_id: projectId,
+          recipients: recipientEmail,
+        });
+      }
+    } catch (e) {
+      console.error("Failed to log report email:", e);
+    }
+
     return new Response(JSON.stringify({ success: true }), {
       status: 200,
       headers: { ...corsHeaders, "Content-Type": "application/json" },
