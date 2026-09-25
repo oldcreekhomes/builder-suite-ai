@@ -5537,6 +5537,33 @@ export type Database = {
           },
         ]
       }
+      report_email_log: {
+        Row: {
+          home_builder_id: string | null
+          id: string
+          project_id: string | null
+          recipients: string | null
+          sent_at: string
+          sent_by: string
+        }
+        Insert: {
+          home_builder_id?: string | null
+          id?: string
+          project_id?: string | null
+          recipients?: string | null
+          sent_at?: string
+          sent_by: string
+        }
+        Update: {
+          home_builder_id?: string | null
+          id?: string
+          project_id?: string | null
+          recipients?: string | null
+          sent_at?: string
+          sent_by?: string
+        }
+        Relationships: []
+      }
       shared_links: {
         Row: {
           created_at: string
@@ -6428,6 +6455,7 @@ export type Database = {
           hq_state: string | null
           hq_zip: string | null
           id: string
+          last_active_at: string | null
           last_name: string | null
           pending_removal_at: string | null
           phone_number: string | null
@@ -6451,6 +6479,7 @@ export type Database = {
           hq_state?: string | null
           hq_zip?: string | null
           id?: string
+          last_active_at?: string | null
           last_name?: string | null
           pending_removal_at?: string | null
           phone_number?: string | null
@@ -6474,6 +6503,7 @@ export type Database = {
           hq_state?: string | null
           hq_zip?: string | null
           id?: string
+          last_active_at?: string | null
           last_name?: string | null
           pending_removal_at?: string | null
           phone_number?: string | null
@@ -6747,66 +6777,13 @@ export type Database = {
       get_employee_activity_summary: {
         Args: { p_end_date?: string; p_start_date?: string }
         Returns: {
-          actions_24h: number
-          actions_30d: number
-          actions_7d: number
-          actions_8h: number
           avatar_url: string
-          banking_24h: number
-          banking_30d: number
-          banking_7d: number
-          banking_8h: number
-          banking_count: number
-          bids_24h: number
-          bids_30d: number
-          bids_7d: number
-          bids_8h: number
-          bids_count: number
-          bills_24h: number
-          bills_30d: number
-          bills_7d: number
-          bills_8h: number
-          bills_count: number
-          budgets_24h: number
-          budgets_30d: number
-          budgets_7d: number
-          budgets_8h: number
-          budgets_count: number
-          chat_24h: number
-          chat_30d: number
-          chat_7d: number
-          chat_8h: number
-          chat_count: number
+          counts: Json
           email: string
-          files_24h: number
-          files_30d: number
-          files_7d: number
-          files_8h: number
-          files_count: number
           first_name: string
-          jes_24h: number
-          jes_30d: number
-          jes_7d: number
-          jes_8h: number
-          jes_count: number
           last_action: string
           last_name: string
-          photos_24h: number
-          photos_30d: number
-          photos_7d: number
-          photos_8h: number
-          photos_count: number
-          pos_24h: number
-          pos_30d: number
-          pos_7d: number
-          pos_8h: number
-          pos_count: number
           role: string
-          schedule_24h: number
-          schedule_30d: number
-          schedule_7d: number
-          schedule_8h: number
-          schedule_count: number
           total_actions: number
           user_id: string
         }[]
@@ -6927,6 +6904,7 @@ export type Database = {
         Args: { bill_payment_id_param: string }
         Returns: boolean
       }
+      touch_last_active: { Args: never; Returns: undefined }
       update_approved_bill_atomic: {
         Args: {
           bill_date_param: string

@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { useEmployeeActivity, EmployeeActivityRow } from "@/hooks/useEmployeeActivity";
+import { useEmployeeActivity, EmployeeActivityRow, ACTIVITY_DOMAINS, BUCKETS, countFor, totalFor } from "@/hooks/useEmployeeActivity";
 import { useNotificationPreferences } from "@/hooks/useNotificationPreferences";
 import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
@@ -144,35 +144,27 @@ export function EmployeeActivitySection() {
                                   </TableRow>
                                 </TableHeader>
                                 <TableBody>
-                                  {([
-                                    ["Bills", r.bills_8h, r.bills_24h, r.bills_7d, r.bills_30d],
-                                    ["POs", r.pos_8h, r.pos_24h, r.pos_7d, r.pos_30d],
-                                    ["Bids", r.bids_8h, r.bids_24h, r.bids_7d, r.bids_30d],
-                                    ["JEs", r.jes_8h, r.jes_24h, r.jes_7d, r.jes_30d],
-                                    ["Files", r.files_8h, r.files_24h, r.files_7d, r.files_30d],
-                                    ["Budgets", r.budgets_8h, r.budgets_24h, r.budgets_7d, r.budgets_30d],
-                                    ["Schedule", r.schedule_8h, r.schedule_24h, r.schedule_7d, r.schedule_30d],
-                                    ["Photos", r.photos_8h, r.photos_24h, r.photos_7d, r.photos_30d],
-                                    ["Banking", r.banking_8h, r.banking_24h, r.banking_7d, r.banking_30d],
-                                    ["Chat", r.chat_8h, r.chat_24h, r.chat_7d, r.chat_30d],
-                                  ] as Array<[string, number, number, number, number]>).map(([label, a, b, c, d]) => (
-                                    <TableRow key={label} className="h-9">
+                                  {ACTIVITY_DOMAINS.map(([key, label]) => (
+                                    <TableRow key={key} className="h-9">
                                       <TableCell className="font-medium text-xs">{label}</TableCell>
-                                      {[a, b, c, d].map((v, i) => (
-                                        <TableCell
-                                          key={i}
-                                          className={`text-right text-xs tabular-nums ${v === 0 ? "text-muted-foreground" : ""}`}
-                                        >
-                                          {v}
-                                        </TableCell>
-                                      ))}
+                                      {BUCKETS.map((b) => {
+                                        const v = countFor(r, key, b);
+                                        return (
+                                          <TableCell
+                                            key={b}
+                                            className={`text-right text-xs tabular-nums ${v === 0 ? "text-muted-foreground" : ""}`}
+                                          >
+                                            {v}
+                                          </TableCell>
+                                        );
+                                      })}
                                     </TableRow>
                                   ))}
                                   <TableRow className="h-9 border-t-2">
                                     <TableCell className="font-semibold text-xs">Total</TableCell>
-                                    {[r.actions_8h, r.actions_24h, r.actions_7d, r.actions_30d].map((v, i) => (
-                                      <TableCell key={i} className="text-right text-xs font-semibold tabular-nums">
-                                        {v}
+                                    {BUCKETS.map((b) => (
+                                      <TableCell key={b} className="text-right text-xs font-semibold tabular-nums">
+                                        {totalFor(r, b)}
                                       </TableCell>
                                     ))}
                                   </TableRow>
