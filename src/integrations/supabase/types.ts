@@ -6752,6 +6752,11 @@ export type Database = {
           actions_7d: number
           actions_8h: number
           avatar_url: string
+          banking_24h: number
+          banking_30d: number
+          banking_7d: number
+          banking_8h: number
+          banking_count: number
           bids_24h: number
           bids_30d: number
           bids_7d: number
