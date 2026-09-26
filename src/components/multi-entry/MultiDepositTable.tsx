@@ -25,6 +25,7 @@ import { AccountSearchInputInline } from "@/components/AccountSearchInputInline"
 import { AccountSearchInput } from "@/components/AccountSearchInput";
 import { VendorSearchInput } from "@/components/VendorSearchInput";
 import { useProjects, Project } from "@/hooks/useProjects";
+import { useUserProfile } from "@/hooks/useUserProfile";
 import { ProjectPickerPopover } from "@/components/projects/ProjectPickerPopover";
 import { useAccounts } from "@/hooks/useAccounts";
 import { supabase } from "@/integrations/supabase/client";
@@ -51,15 +52,16 @@ interface Row {
 }
 
 const STATUS_ORDER = ["Under Construction", "Permitting", "In Design"] as const;
+const OLD_CREEK_HOME_BUILDER_ID = "2653aba8-d154-4301-99bf-77d559492e19";
 const CAPITAL_ONE_ID = "7b456e28-9eec-44cb-9f01-c745cc70867c";
 const CAPITAL_ONE_LABEL = "1015 - Capital One";
 
-const blankRow = (defaultDate: Date): Row => ({
+const blankRow = (defaultDate: Date, useOldCreekDefault = false): Row => ({
   id: crypto.randomUUID(),
   projectId: "",
   depositDate: defaultDate,
-  bankAccountId: CAPITAL_ONE_ID,
-  bankAccountLabel: CAPITAL_ONE_LABEL,
+  bankAccountId: useOldCreekDefault ? CAPITAL_ONE_ID : "",
+  bankAccountLabel: useOldCreekDefault ? CAPITAL_ONE_LABEL : "",
   receivedFromCompanyId: "",
   receivedFromName: "",
   checkNumber: "",
@@ -80,13 +82,30 @@ const fmtMoney = (n: number) =>
 
 export function MultiDepositTable() {
   const { data: projects = [] } = useProjects();
+  const { profile } = useUserProfile();
   const { accounts } = useAccounts();
   const queryClient = useQueryClient();
   const saveMutation = useMultiDepositBatchSave();
 
   const [defaultDate, setDefaultDate] = useState<Date>(new Date());
   const [rows, setRows] = useState<Row[]>(() => [blankRow(new Date())]);
+  const effectiveBuilderId = profile?.home_builder_id || profile?.id;
+  const useOldCreekDefault = effectiveBuilderId === OLD_CREEK_HOME_BUILDER_ID;
 
+  useEffect(() => {
+    if (!useOldCreekDefault) return;
+    setRows((currentRows) =>
+      currentRows.map((row) =>
+        !row.projectId && !row.bankAccountId
+          ? {
+              ...row,
+              bankAccountId: CAPITAL_ONE_ID,
+              bankAccountLabel: CAPITAL_ONE_LABEL,
+            }
+          : row,
+      ),
+    );
+  }, [useOldCreekDefault]);
 
   // Group active projects the same way Active Jobs table does
   const groupedProjects = useMemo(() => {
@@ -160,12 +179,13 @@ export function MultiDepositTable() {
     });
   };
 
-  const addRow = () => setRows((rs) => [...rs, blankRow(defaultDate)]);
+  const addRow = () =>
+    setRows((rs) => [...rs, blankRow(defaultDate, useOldCreekDefault)]);
   const removeRow = (id: string) =>
     setRows((rs) => (rs.length > 1 ? rs.filter((r) => r.id !== id) : rs));
 
   const clearAll = () =>
-    setRows([blankRow(defaultDate)]);
+    setRows([blankRow(defaultDate, useOldCreekDefault)]);
 
   const total = useMemo(
     () => rows.reduce((s, r) => s + (Number(r.amount) || 0), 0),
