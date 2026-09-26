@@ -341,7 +341,7 @@ export function AccountantJobsTable() {
               )}
               onClick={() => handleSort('manager')}
             >
-              <div className="flex items-center">
+              <div className="flex items-center justify-center">
                 Manager
                 {getSortIcon('manager')}
               </div>
