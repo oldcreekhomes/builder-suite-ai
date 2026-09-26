@@ -196,6 +196,7 @@ export function AccountSearchInputInline({
   return (
     <div className="relative">
       <Input
+        ref={inputRef}
         type="text"
         value={searchQuery}
         onChange={handleInputChange}
@@ -205,9 +206,25 @@ export function AccountSearchInputInline({
         placeholder={placeholder}
         className={className}
       />
-      
-      {showResults && filteredAccounts.length > 0 && (
-        <div className="absolute z-50 mt-1 max-h-64 w-full overflow-auto rounded border bg-background shadow-sm">
+
+      {mounted && showResults && filteredAccounts.length > 0 && createPortal(
+        <div
+          style={{
+            position: 'fixed',
+            top: menuPos.top,
+            left: menuPos.left,
+            width: menuPos.width,
+            zIndex: 2147483647,
+            maxHeight: '240px',
+            overflowY: 'auto',
+            overscrollBehavior: 'contain',
+            WebkitOverflowScrolling: 'touch',
+            pointerEvents: 'auto'
+          }}
+          className="rounded-md border bg-popover shadow-lg"
+          onMouseDown={(e) => e.stopPropagation()}
+          onWheel={(e) => e.stopPropagation()}
+        >
           {filteredAccounts.map((account) => {
             const isParent = !isAccountSelectable(account, parentAccountIds);
             return (
@@ -219,14 +236,16 @@ export function AccountSearchInputInline({
                   "block w-full px-3 py-2 text-left text-sm",
                   isParent
                     ? "text-muted-foreground cursor-not-allowed hover:bg-transparent"
-                    : "hover:bg-muted"
+                    : "hover:bg-accent hover:text-accent-foreground"
                 )}
-                onMouseDown={() => {
+                onMouseDown={(e) => {
                   if (isParent) return;
-                  handleSelectAccount({ 
-                    id: String(account.id), 
-                    code: account.code, 
-                    name: account.name 
+                  e.preventDefault();
+                  e.stopPropagation();
+                  handleSelectAccount({
+                    id: String(account.id),
+                    code: account.code,
+                    name: account.name
                   });
                 }}
               >
@@ -236,7 +255,8 @@ export function AccountSearchInputInline({
               </button>
             );
           })}
-        </div>
+        </div>,
+        document.body
       )}
     </div>
   );
