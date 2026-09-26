@@ -29,6 +29,7 @@ export function AccountSearchInputInline({
 }: AccountSearchInputInlineProps) {
   const [searchQuery, setSearchQuery] = useState(value);
   const [showResults, setShowResults] = useState(false);
+  const inputRef = useRef<HTMLInputElement>(null);
   const { accounts: globalAccounts, isLoading } = useAccounts();
   const { data: overrides } = useProjectAccountNames(projectId);
 
