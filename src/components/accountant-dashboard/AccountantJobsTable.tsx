@@ -417,11 +417,22 @@ export function AccountantJobsTable() {
                   <TableCell className="font-medium truncate" title={project.address || "No address"}>
                     {getStreetAddress(project.address)}
                   </TableCell>
-                  <TableCell className="text-center font-medium">
+                  <TableCell className="text-center">
                     {managerInitials
-                      ? <span title={managerName}>
-                          {managerInitials}
-                        </span>
+                      ? (
+                        <TooltipProvider>
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <span
+                                className="inline-flex h-7 w-7 items-center justify-center rounded-full bg-muted text-xs font-medium"
+                              >
+                                {managerInitials}
+                              </span>
+                            </TooltipTrigger>
+                            <TooltipContent>{managerName || "Unknown"}</TooltipContent>
+                          </Tooltip>
+                        </TooltipProvider>
+                      )
                       : <span className="text-muted-foreground">-</span>
                     }
                   </TableCell>
