@@ -27,6 +27,7 @@ import { Input } from "@/components/ui/input";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Calendar } from "@/components/ui/calendar";
 import { ArrowUpDown, ArrowUp, ArrowDown, GripVertical, Search, X } from "lucide-react";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { cn } from "@/lib/utils";
 
 const statusPriority: Record<string, number> = {
@@ -416,11 +417,22 @@ export function AccountantJobsTable() {
                   <TableCell className="font-medium truncate" title={project.address || "No address"}>
                     {getStreetAddress(project.address)}
                   </TableCell>
-                  <TableCell className="text-center font-medium">
+                  <TableCell className="text-center">
                     {managerInitials
-                      ? <span title={managerName}>
-                          {managerInitials}
-                        </span>
+                      ? (
+                        <TooltipProvider>
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <span
+                                className="inline-flex h-7 w-7 items-center justify-center rounded-full bg-muted text-xs font-medium"
+                              >
+                                {managerInitials}
+                              </span>
+                            </TooltipTrigger>
+                            <TooltipContent>{managerName || "Unknown"}</TooltipContent>
+                          </Tooltip>
+                        </TooltipProvider>
+                      )
                       : <span className="text-muted-foreground">-</span>
                     }
                   </TableCell>
