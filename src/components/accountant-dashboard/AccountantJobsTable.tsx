@@ -35,8 +35,16 @@ const statusPriority: Record<string, number> = {
   "In Design": 3,
 };
 
-const getStreetAddress = (address?: string) =>
-  address?.split(',')[0].trim() || "No address";
+const getStreetAddress = (address?: string) => {
+  if (!address) return "No address";
+
+  const beforeComma = address.split(',')[0].trim();
+  const streetMatch = beforeComma.match(
+    /^(.+?\b(?:Street|St|Avenue|Ave|Road|Rd|Boulevard|Blvd|Drive|Dr|Lane|Ln|Court|Ct|Place|Pl|Way|Circle|Cir|Terrace|Ter|Highway|Hwy)\b(?:\s+(?:Unit|Apt|Suite|#)\s*[\w-]+)?)(?:\s+.*)?$/i
+  );
+
+  return streetMatch?.[1] || beforeComma;
+};
 
 const getManagerInitials = (manager?: { first_name: string; last_name: string } | null) => {
   if (!manager) return null;
@@ -378,6 +386,10 @@ export function AccountantJobsTable() {
               const bills = billCounts[project.id];
               const isDragging = draggedProjectId === project.id;
               const isDropTarget = dropTargetId === project.id;
+              const managerInitials = getManagerInitials(project.accounting_manager_user);
+              const managerName = project.accounting_manager_user
+                ? `${project.accounting_manager_user.first_name} ${project.accounting_manager_user.last_name}`.trim()
+                : "";
               
               return (
                 <TableRow
@@ -405,9 +417,9 @@ export function AccountantJobsTable() {
                     {getStreetAddress(project.address)}
                   </TableCell>
                   <TableCell className="text-center font-medium">
-                    {getManagerInitials(project.accounting_manager_user)
-                      ? <span title={`${project.accounting_manager_user?.first_name} ${project.accounting_manager_user?.last_name}`}>
-                          {getManagerInitials(project.accounting_manager_user)}
+                    {managerInitials
+                      ? <span title={managerName}>
+                          {managerInitials}
                         </span>
                       : <span className="text-muted-foreground">-</span>
                     }
