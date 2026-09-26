@@ -74,6 +74,34 @@ export function AccountSearchInputInline({
     setSearchQuery(value);
   }, [value]);
 
+  const [mounted, setMounted] = useState(false);
+  const [menuPos, setMenuPos] = useState({ top: 0, left: 0, width: 0 });
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  const updatePosition = () => {
+    if (!inputRef.current) return;
+    const rect = inputRef.current.getBoundingClientRect();
+    setMenuPos({
+      top: rect.bottom + 4,
+      left: rect.left,
+      width: rect.width
+    });
+  };
+
+  useEffect(() => {
+    if (!showResults) return;
+    updatePosition();
+    window.addEventListener("scroll", updatePosition, true);
+    window.addEventListener("resize", updatePosition);
+    return () => {
+      window.removeEventListener("scroll", updatePosition, true);
+      window.removeEventListener("resize", updatePosition);
+    };
+  }, [showResults]);
+
   const displayNameOf = (acc: { id: string; name: string }) =>
     resolveAccountName(acc, overrides ?? null);
 
