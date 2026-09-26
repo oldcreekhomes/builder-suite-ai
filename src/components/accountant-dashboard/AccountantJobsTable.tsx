@@ -35,6 +35,25 @@ const statusPriority: Record<string, number> = {
   "In Design": 3,
 };
 
+const getStreetAddress = (address?: string) => {
+  if (!address) return "No address";
+
+  const beforeComma = address.split(',')[0].trim();
+  const streetMatch = beforeComma.match(
+    /^(.+?\b(?:Street|St|Avenue|Ave|Road|Rd|Boulevard|Blvd|Drive|Dr|Lane|Ln|Court|Ct|Place|Pl|Way|Circle|Cir|Terrace|Ter|Highway|Hwy)\b(?:\s+(?:Unit|Apt|Suite|#)\s*[\w-]+)?)(?:\s+.*)?$/i
+  );
+
+  return streetMatch?.[1] || beforeComma;
+};
+
+const getManagerInitials = (manager?: { first_name: string; last_name: string } | null) => {
+  if (!manager) return null;
+
+  const firstInitial = manager.first_name.trim().charAt(0);
+  const lastInitial = manager.last_name.trim().charAt(0);
+  return `${firstInitial}${lastInitial}`.toUpperCase() || null;
+};
+
 export function AccountantJobsTable() {
   const navigate = useNavigate();
   const { data: projects = [] } = useProjects();
@@ -260,7 +279,7 @@ export function AccountantJobsTable() {
   };
 
   return (
-    <div className="rounded-lg border bg-card">
+    <div className="min-w-0 overflow-hidden rounded-lg border bg-card">
       <div className="p-4 border-b flex items-center justify-between">
         <div className="flex items-center gap-4">
           <h3 className="text-lg font-semibold">Active Jobs</h3>
@@ -293,7 +312,7 @@ export function AccountantJobsTable() {
           </div>
         </div>
       </div>
-      <Table>
+      <Table className="table-fixed [&_th]:px-2 [&_td]:px-2">
         <TableHeader className="[&_tr]:border-b-0">
           {/* First row - main headers spanning 2 rows + Bills category label */}
           <TableRow className="hover:bg-transparent">
@@ -303,7 +322,7 @@ export function AccountantJobsTable() {
             <TableHead 
               rowSpan={2}
               className={cn(
-                "select-none align-bottom",
+                "w-[22%] select-none align-bottom",
                 isReorderEnabled && "cursor-pointer hover:bg-muted/50"
               )}
               onClick={() => handleSort('address')}
@@ -316,21 +335,21 @@ export function AccountantJobsTable() {
             <TableHead
               rowSpan={2}
               className={cn(
-                "select-none align-bottom",
+                "w-[7%] select-none align-bottom text-center",
                 isReorderEnabled && "cursor-pointer hover:bg-muted/50"
               )}
               onClick={() => handleSort('manager')}
             >
               <div className="flex items-center">
-                Accounting Manager
+                Manager
                 {getSortIcon('manager')}
               </div>
             </TableHead>
-            <TableHead rowSpan={2} className="align-bottom">Last Reconciliation</TableHead>
-            <TableHead rowSpan={2} className="align-bottom">Closed Books</TableHead>
-            <TableHead rowSpan={2} className="align-bottom">Invoices Approved?</TableHead>
-            <TableHead rowSpan={2} className="align-bottom">Invoices Paid?</TableHead>
-            <TableHead colSpan={4} className="text-center py-1 h-auto border-b-0">
+            <TableHead rowSpan={2} className="w-[13%] align-bottom">Last Reconciliation</TableHead>
+            <TableHead rowSpan={2} className="w-[11%] align-bottom">Closed Books</TableHead>
+            <TableHead rowSpan={2} className="w-[12%] align-bottom">Invoices Approved?</TableHead>
+            <TableHead rowSpan={2} className="w-[11%] align-bottom">Invoices Paid?</TableHead>
+            <TableHead colSpan={4} className="w-[24%] text-center py-1 h-auto border-b-0">
               <div className="flex items-center justify-center gap-1">
                 <div className="flex-1 h-px bg-muted-foreground/30"></div>
                 <span className="text-[10px] text-muted-foreground font-normal px-1">Bills</span>
@@ -367,6 +386,10 @@ export function AccountantJobsTable() {
               const bills = billCounts[project.id];
               const isDragging = draggedProjectId === project.id;
               const isDropTarget = dropTargetId === project.id;
+              const managerInitials = getManagerInitials(project.accounting_manager_user);
+              const managerName = project.accounting_manager_user
+                ? `${project.accounting_manager_user.first_name} ${project.accounting_manager_user.last_name}`.trim()
+                : "";
               
               return (
                 <TableRow
@@ -390,12 +413,14 @@ export function AccountantJobsTable() {
                       <GripVertical className="h-4 w-4 text-muted-foreground" />
                     </TableCell>
                   )}
-                  <TableCell className="font-medium whitespace-nowrap">
-                    {project.address || "No address"}
+                  <TableCell className="font-medium truncate" title={project.address || "No address"}>
+                    {getStreetAddress(project.address)}
                   </TableCell>
-                  <TableCell>
-                    {project.accounting_manager_user 
-                      ? `${project.accounting_manager_user.first_name} ${project.accounting_manager_user.last_name}`
+                  <TableCell className="text-center font-medium">
+                    {managerInitials
+                      ? <span title={managerName}>
+                          {managerInitials}
+                        </span>
                       : <span className="text-muted-foreground">-</span>
                     }
                   </TableCell>

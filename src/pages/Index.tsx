@@ -95,7 +95,10 @@ export default function Index() {
                   <EmployeeActivitySection />
                 </>
               ) : (
-                <AccountantJobsTable />
+                <div className="grid min-w-0 gap-6 lg:grid-cols-[minmax(0,1fr)_340px]">
+                  <AccountantJobsTable />
+                  <MultipleProjectEntriesCard />
+                </div>
               )}
             </div>
           </SidebarInset>
