@@ -108,20 +108,21 @@ export function CashPositionCard() {
       <Table className="table-fixed">
         <TableHeader>
           <TableRow className="h-11">
-            <TableHead className="w-[26%] pl-4">Job</TableHead>
-            <TableHead className="w-[30%]">Bank Account</TableHead>
-            <TableHead className="w-[22%] text-right">Approved Bills ({days} days)</TableHead>
-            <TableHead className="w-[22%] pr-4 text-right">Total</TableHead>
+            <TableHead className="w-[24%] pl-4">Job</TableHead>
+            <TableHead className="w-[20%]">Bank Account</TableHead>
+            <TableHead className="w-[18%] text-right">Bank Balance</TableHead>
+            <TableHead className="w-[19%] text-right">Approved Bills ({days} days)</TableHead>
+            <TableHead className="w-[19%] pr-4 text-right">Total</TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
           {query.isLoading ? (
             <TableRow className="h-11">
-              <TableCell colSpan={4} className="text-center text-muted-foreground">Loading…</TableCell>
+              <TableCell colSpan={5} className="text-center text-muted-foreground">Loading…</TableCell>
             </TableRow>
           ) : rows.length === 0 ? (
             <TableRow className="h-11">
-              <TableCell colSpan={4} className="text-center text-muted-foreground">No active jobs</TableCell>
+              <TableCell colSpan={5} className="text-center text-muted-foreground">No active jobs</TableCell>
             </TableRow>
           ) : (
             rows.map((r) => {
@@ -133,13 +134,11 @@ export function CashPositionCard() {
                   </TableCell>
                   <TableCell>
                     <div className="flex items-center gap-2 min-w-0">
-                      <span className="truncate text-muted-foreground shrink-0 max-w-[45%]">
-                        {r.account_code ? `${r.account_code}` : "—"}
-                      </span>
+                      <span className="text-muted-foreground shrink-0">{r.account_code ? `${r.account_code}` : "—"}</span>
                       <span className="truncate">{r.account_name || ""}</span>
-                      <span className="tabular-nums ml-auto whitespace-nowrap">{formatCurrency(r.bank_balance)}</span>
                     </div>
                   </TableCell>
+                  <TableCell className="text-right tabular-nums whitespace-nowrap pr-4">{formatCurrency(r.bank_balance)}</TableCell>
                   <TableCell className="text-right tabular-nums whitespace-nowrap">{formatCurrency(r.approved_due)}</TableCell>
                   <TableCell className={cn("text-right tabular-nums whitespace-nowrap font-semibold pr-4", netClass(net))}>
                     {formatCurrency(net)}
@@ -153,7 +152,8 @@ export function CashPositionCard() {
           <TableFooter>
             <TableRow className="h-11">
               <TableCell className="pl-4 font-semibold">Total</TableCell>
-              <TableCell className="text-right tabular-nums font-semibold">{formatCurrency(totBank)}</TableCell>
+              <TableCell></TableCell>
+              <TableCell className="text-right tabular-nums font-semibold pr-4">{formatCurrency(totBank)}</TableCell>
               <TableCell className="text-right tabular-nums font-semibold">{formatCurrency(totDue)}</TableCell>
               <TableCell className={cn("text-right tabular-nums font-semibold pr-4", netClass(totNet))}>
                 {formatCurrency(totNet)}
