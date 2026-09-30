@@ -42,8 +42,14 @@ function formatCurrency(value: number) {
   });
 }
 
+const STREET_SUFFIX =
+  /^(.*?\b(?:street|st|avenue|ave|road|rd|drive|dr|lane|ln|way|court|ct|boulevard|blvd|place|pl|terrace|ter|circle|cir|parkway|pkwy|highway|hwy)\.?(?:\s+(?:n|s|e|w|ne|nw|se|sw)\b\.?)?)(?:\s+.*)?$/i;
+
+// Street only — drop city/state/zip even when there is no comma before the city.
 function shortAddress(a: string) {
-  return (a || "").split(",")[0];
+  const first = (a || "").split(",")[0].trim();
+  const m = first.match(STREET_SUFFIX);
+  return m ? m[1] : first;
 }
 
 /**
