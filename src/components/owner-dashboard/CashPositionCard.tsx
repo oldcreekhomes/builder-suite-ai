@@ -19,6 +19,8 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import { useProjects } from "@/hooks/useProjects";
 import { cn } from "@/lib/utils";
 
 type Row = {
@@ -52,12 +54,21 @@ function shortAddress(a: string) {
   return m ? m[1] : first;
 }
 
+function getManagerInitials(manager?: { first_name: string; last_name: string } | null) {
+  if (!manager) return null;
+
+  const firstInitial = manager.first_name.trim().charAt(0);
+  const lastInitial = manager.last_name.trim().charAt(0);
+  return `${firstInitial}${lastInitial}`.toUpperCase() || null;
+}
+
 /**
  * Cash Position — one row per active job:
  * Job | Bank account + job balance | Approved bills due in N days | Balance − bills
  */
 export function CashPositionCard() {
   const [days, setDays] = useState<number>(10);
+  const { data: projects = [] } = useProjects();
 
   const query = useQuery({
     queryKey: ["project-cash-position", days],
@@ -114,29 +125,52 @@ export function CashPositionCard() {
       <Table className="table-fixed">
         <TableHeader>
           <TableRow className="h-11">
-            <TableHead className="w-[24%] pl-4">Job</TableHead>
+            <TableHead className="w-[22%] pl-4">Job</TableHead>
+            <TableHead className="w-[8%] text-center">Manager</TableHead>
             <TableHead className="w-[20%]">Bank Account</TableHead>
-            <TableHead className="w-[18%]">Bank Balance</TableHead>
-            <TableHead className="w-[19%]">Approved Bills ({days} days)</TableHead>
-            <TableHead className="w-[19%]">Total</TableHead>
+            <TableHead className="w-[16%]">Bank Balance</TableHead>
+            <TableHead className="w-[18%]">Approved Bills ({days} days)</TableHead>
+            <TableHead className="w-[16%]">Total</TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
           {query.isLoading ? (
             <TableRow className="h-11">
-              <TableCell colSpan={5} className="text-center text-muted-foreground">Loading…</TableCell>
+              <TableCell colSpan={6} className="text-center text-muted-foreground">Loading…</TableCell>
             </TableRow>
           ) : rows.length === 0 ? (
             <TableRow className="h-11">
-              <TableCell colSpan={5} className="text-center text-muted-foreground">No active jobs</TableCell>
+              <TableCell colSpan={6} className="text-center text-muted-foreground">No active jobs</TableCell>
             </TableRow>
           ) : (
             rows.map((r) => {
               const net = r2(r.bank_balance - r.approved_due);
+              const project = projects.find((item) => item.id === r.project_id);
+              const manager = project?.accounting_manager_user;
+              const managerInitials = getManagerInitials(manager);
+              const managerName = manager
+                ? `${manager.first_name} ${manager.last_name}`.trim()
+                : "";
               return (
                 <TableRow key={r.project_id} className="h-11">
                   <TableCell className="truncate pl-4 font-medium" title={shortAddress(r.address)}>
                     {shortAddress(r.address)}
+                  </TableCell>
+                  <TableCell className="text-center">
+                    {managerInitials ? (
+                      <TooltipProvider>
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <span className="inline-flex h-7 w-7 items-center justify-center rounded-full bg-muted text-xs font-medium">
+                              {managerInitials}
+                            </span>
+                          </TooltipTrigger>
+                          <TooltipContent>{managerName || "Unknown"}</TooltipContent>
+                        </Tooltip>
+                      </TooltipProvider>
+                    ) : (
+                      <span className="text-muted-foreground">-</span>
+                    )}
                   </TableCell>
                   <TableCell>
                     <div className="flex items-center gap-2 min-w-0">
@@ -158,6 +192,7 @@ export function CashPositionCard() {
           <TableFooter>
             <TableRow className="h-11">
               <TableCell className="pl-4 font-semibold">Total</TableCell>
+              <TableCell></TableCell>
               <TableCell></TableCell>
               <TableCell className="tabular-nums font-semibold">{formatCurrency(totBank)}</TableCell>
               <TableCell className="tabular-nums font-semibold">{formatCurrency(totDue)}</TableCell>
