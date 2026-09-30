@@ -1,7 +1,8 @@
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { Wallet, RefreshCw } from "lucide-react";
+import { Wallet, RefreshCw, Search } from "lucide-react";
+import { Input } from "@/components/ui/input";
 import {
   Select,
   SelectContent,
@@ -68,6 +69,7 @@ function getManagerInitials(manager?: { first_name: string; last_name: string } 
  */
 export function CashPositionCard() {
   const [days, setDays] = useState<number>(10);
+  const [searchQuery, setSearchQuery] = useState("");
   const { data: projects = [] } = useProjects();
 
   const query = useQuery({
@@ -89,7 +91,23 @@ export function CashPositionCard() {
     staleTime: 60_000,
   });
 
-  const rows = query.data || [];
+  const allRows = query.data || [];
+  const q = searchQuery.trim().toLowerCase();
+  const rows = q
+    ? allRows.filter((r) => {
+        const project = projects.find((item) => item.id === r.project_id);
+        const manager = project?.accounting_manager_user;
+        const managerName = manager
+          ? `${manager.first_name} ${manager.last_name}`.trim()
+          : "";
+        return (
+          shortAddress(r.address).toLowerCase().includes(q) ||
+          (r.account_name || "").toLowerCase().includes(q) ||
+          (r.account_code || "").toLowerCase().includes(q) ||
+          managerName.toLowerCase().includes(q)
+        );
+      })
+    : allRows;
   const totBank = r2(rows.reduce((s, r) => s + r.bank_balance, 0));
   const totDue = r2(rows.reduce((s, r) => s + r.approved_due, 0));
   const totNet = r2(totBank - totDue);
@@ -99,9 +117,20 @@ export function CashPositionCard() {
   return (
     <div className="rounded-lg border bg-card flex flex-col">
       <div className="p-4 border-b flex items-center justify-between gap-2">
-        <div className="flex items-center gap-2 min-w-0">
-          <Wallet className="h-4 w-4 text-muted-foreground shrink-0" />
-          <h3 className="text-lg font-semibold truncate">Cash Position</h3>
+        <div className="flex items-center gap-4">
+          <div className="flex items-center gap-2 min-w-0">
+            <Wallet className="h-4 w-4 text-muted-foreground shrink-0" />
+            <h3 className="text-lg font-semibold truncate">Cash Position</h3>
+          </div>
+          <div className="relative">
+            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
+            <Input
+              placeholder="Search..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="pl-9 w-64"
+            />
+          </div>
         </div>
         <div className="flex items-center gap-2">
           <Select value={String(days)} onValueChange={(v) => setDays(Number(v))}>
