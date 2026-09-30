@@ -22,28 +22,30 @@ export function useBillCountsByProject(projectIds: string[]) {
 
       if (error) throw error;
 
-      const today = new Date();
-      today.setHours(0, 0, 0, 0);
+      const now = new Date();
+      const pad = (n: number) => String(n).padStart(2, '0');
+      const todayStr = `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}`;
+      const dueStr = (d: string | null) => (d ? String(d).slice(0, 10) : null);
 
       const countsByProject: Record<string, ProjectBillCounts> = {};
 
       projectIds.forEach(projectId => {
-        const projectBills = bills?.filter(b => b.project_id === projectId) || [];
-        const draftBills = projectBills.filter(b => b.status === 'draft');
-        
+        const projectBills = (bills?.filter(b => b.project_id === projectId) || [])
+          .filter(b => !(b as any).archived_at && !b.is_reversal);
+
         countsByProject[projectId] = {
-          currentCount: draftBills.filter(b => {
-            if (!b.due_date) return true; // No due date = current
-            const dueDate = new Date(b.due_date);
-            return dueDate >= today;
+          currentCount: projectBills.filter(b => {
+            if (b.status !== 'draft') return false;
+            const d = dueStr(b.due_date);
+            return !d || d >= todayStr;
           }).length,
-          lateCount: draftBills.filter(b => {
-            if (!b.due_date) return false;
-            const dueDate = new Date(b.due_date);
-            return dueDate < today;
+          // Late = any unpaid bill (Review, Rejected, Approved) past due
+          lateCount: projectBills.filter(b => {
+            const d = dueStr(b.due_date);
+            return !!d && d < todayStr;
           }).length,
-          rejectedCount: projectBills.filter(b => b.status === 'void' && !(b as any).archived_at).length,
-          payCount: projectBills.filter(b => b.status === 'posted' && !b.is_reversal).length,
+          rejectedCount: projectBills.filter(b => b.status === 'void').length,
+          payCount: projectBills.filter(b => b.status === 'posted').length,
         };
       });
 
