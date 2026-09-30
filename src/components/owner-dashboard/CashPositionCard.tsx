@@ -110,9 +110,9 @@ export function CashPositionCard() {
           <TableRow className="h-11">
             <TableHead className="w-[24%] pl-4">Job</TableHead>
             <TableHead className="w-[20%]">Bank Account</TableHead>
-            <TableHead className="w-[18%] text-right">Bank Balance</TableHead>
-            <TableHead className="w-[19%] text-right">Approved Bills ({days} days)</TableHead>
-            <TableHead className="w-[19%] pr-4 text-right">Total</TableHead>
+            <TableHead className="w-[18%]">Bank Balance</TableHead>
+            <TableHead className="w-[19%]">Approved Bills ({days} days)</TableHead>
+            <TableHead className="w-[19%]">Total</TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
@@ -138,9 +138,9 @@ export function CashPositionCard() {
                       <span className="truncate">{r.account_name || ""}</span>
                     </div>
                   </TableCell>
-                  <TableCell className="text-right tabular-nums whitespace-nowrap pr-4">{formatCurrency(r.bank_balance)}</TableCell>
-                  <TableCell className="text-right tabular-nums whitespace-nowrap">{formatCurrency(r.approved_due)}</TableCell>
-                  <TableCell className={cn("text-right tabular-nums whitespace-nowrap font-semibold pr-4", netClass(net))}>
+                  <TableCell className="tabular-nums whitespace-nowrap">{formatCurrency(r.bank_balance)}</TableCell>
+                  <TableCell className="tabular-nums whitespace-nowrap">{formatCurrency(r.approved_due)}</TableCell>
+                  <TableCell className={cn("tabular-nums whitespace-nowrap font-semibold", netClass(net))}>
                     {formatCurrency(net)}
                   </TableCell>
                 </TableRow>
@@ -153,9 +153,9 @@ export function CashPositionCard() {
             <TableRow className="h-11">
               <TableCell className="pl-4 font-semibold">Total</TableCell>
               <TableCell></TableCell>
-              <TableCell className="text-right tabular-nums font-semibold pr-4">{formatCurrency(totBank)}</TableCell>
-              <TableCell className="text-right tabular-nums font-semibold">{formatCurrency(totDue)}</TableCell>
-              <TableCell className={cn("text-right tabular-nums font-semibold pr-4", netClass(totNet))}>
+              <TableCell className="tabular-nums font-semibold">{formatCurrency(totBank)}</TableCell>
+              <TableCell className="tabular-nums font-semibold">{formatCurrency(totDue)}</TableCell>
+              <TableCell className={cn("tabular-nums font-semibold", netClass(totNet))}>
                 {formatCurrency(totNet)}
               </TableCell>
             </TableRow>
