@@ -6817,6 +6817,18 @@ export type Database = {
           id: string
         }[]
       }
+      get_project_cash_position: {
+        Args: { p_days: number }
+        Returns: {
+          account_code: string
+          account_id: string
+          account_name: string
+          address: string
+          approved_due: number
+          bank_balance: number
+          project_id: string
+        }[]
+      }
       get_project_tasks: {
         Args: { project_id_param: string }
         Returns: {
