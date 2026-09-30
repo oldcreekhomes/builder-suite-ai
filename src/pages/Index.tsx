@@ -99,13 +99,26 @@ export default function Index() {
                   <EmployeeActivitySection />
                 </>
               ) : (
-                <div className="grid min-w-0 gap-6 lg:grid-cols-[minmax(0,1fr)_340px]">
-                  <AccountantJobsTable />
-                  <div className="flex flex-col gap-6 min-w-0">
-                    <MultipleProjectEntriesCard />
-                    <CashPositionCard />
-                  </div>
-                </div>
+                <Tabs defaultValue="active-jobs" className="min-w-0">
+                  <TabsList>
+                    <TabsTrigger value="active-jobs">Active Jobs</TabsTrigger>
+                    <TabsTrigger value="cash-position">Cash Position</TabsTrigger>
+                    <TabsTrigger value="multiple-entries">Multiple Project Entries</TabsTrigger>
+                  </TabsList>
+                  <TabsContent value="active-jobs" className="mt-6">
+                    <AccountantJobsTable />
+                  </TabsContent>
+                  <TabsContent value="cash-position" className="mt-6">
+                    <div className="max-w-md">
+                      <CashPositionCard />
+                    </div>
+                  </TabsContent>
+                  <TabsContent value="multiple-entries" className="mt-6">
+                    <div className="max-w-md">
+                      <MultipleProjectEntriesCard />
+                    </div>
+                  </TabsContent>
+                </Tabs>
               )}
             </div>
           </SidebarInset>
