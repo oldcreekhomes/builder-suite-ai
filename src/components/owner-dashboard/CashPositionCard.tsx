@@ -1,7 +1,8 @@
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { Wallet, RefreshCw } from "lucide-react";
+import { Wallet, RefreshCw, Search } from "lucide-react";
+import { Input } from "@/components/ui/input";
 import {
   Select,
   SelectContent,
@@ -68,6 +69,7 @@ function getManagerInitials(manager?: { first_name: string; last_name: string } 
  */
 export function CashPositionCard() {
   const [days, setDays] = useState<number>(10);
+  const [searchQuery, setSearchQuery] = useState("");
   const { data: projects = [] } = useProjects();
 
   const query = useQuery({
