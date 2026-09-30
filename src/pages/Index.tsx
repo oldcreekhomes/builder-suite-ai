@@ -14,6 +14,7 @@ import { ActiveJobsTable } from "@/components/owner-dashboard/ActiveJobsTable";
 import { AccountantJobsTable } from "@/components/accountant-dashboard/AccountantJobsTable";
 import { EmployeeActivitySection } from "@/components/owner-dashboard/EmployeeActivitySection";
 import { MultipleProjectEntriesCard } from "@/components/owner-dashboard/MultipleProjectEntriesCard";
+import { CashPositionCard } from "@/components/owner-dashboard/CashPositionCard";
 import { UniversalFilePreviewProvider } from "@/components/files/UniversalFilePreviewProvider";
 
 import { useProjects } from "@/hooks/useProjects";
@@ -90,14 +91,20 @@ export default function Index() {
                 <>
                   <div className="grid gap-6 lg:grid-cols-[1fr_340px]">
                     <ActiveJobsTable />
-                    <MultipleProjectEntriesCard />
+                    <div className="flex flex-col gap-6">
+                      <MultipleProjectEntriesCard />
+                      <CashPositionCard />
+                    </div>
                   </div>
                   <EmployeeActivitySection />
                 </>
               ) : (
                 <div className="grid min-w-0 gap-6 lg:grid-cols-[minmax(0,1fr)_340px]">
                   <AccountantJobsTable />
-                  <MultipleProjectEntriesCard />
+                  <div className="flex flex-col gap-6 min-w-0">
+                    <MultipleProjectEntriesCard />
+                    <CashPositionCard />
+                  </div>
                 </div>
               )}
             </div>
