@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Wallet, RefreshCw } from "lucide-react";
@@ -9,18 +9,29 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableFooter,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
-type BankBalance = {
-  account_id: string;
-  code: string;
-  name: string;
-  is_default_bank: boolean;
-  balance: number;
+type Row = {
+  project_id: string;
+  address: string;
+  account_code: string | null;
+  account_name: string | null;
+  bank_balance: number;
+  approved_due: number;
 };
 
 const DAY_OPTIONS = [10, 15, 20];
+const r2 = (v: number) => Math.round(v * 100) / 100;
 
 function formatCurrency(value: number) {
   return value.toLocaleString("en-US", {
@@ -31,64 +42,42 @@ function formatCurrency(value: number) {
   });
 }
 
+function shortAddress(a: string) {
+  return (a || "").split(",")[0];
+}
+
 /**
- * "Cash Position" card — Owner & Accountant dashboards.
- * Column 1: current bank balance (book balance from the general ledger).
- * Column 2: approved (posted) bills coming due within 10/15/20 days.
- * Column 3: balance minus approved bills, green when positive, red when negative.
+ * Cash Position — one row per active job:
+ * Job | Bank account + job balance | Approved bills due in N days | Balance − bills
  */
 export function CashPositionCard() {
   const [days, setDays] = useState<number>(10);
-  const [selectedAccountId, setSelectedAccountId] = useState<string | null>(null);
 
-  const balancesQuery = useQuery({
-    queryKey: ["bank-account-balances"],
+  const query = useQuery({
+    queryKey: ["project-cash-position", days],
     queryFn: async () => {
-      const { data, error } = await supabase.rpc("get_bank_account_balances");
-      if (error) throw error;
-      return (data || []).map((row: any) => ({
-        account_id: row.account_id,
-        code: row.code,
-        name: row.name,
-        is_default_bank: !!row.is_default_bank,
-        balance: Number(row.balance) || 0,
-      })) as BankBalance[];
-    },
-    staleTime: 60_000,
-  });
-
-  const accounts = balancesQuery.data || [];
-
-  const activeAccount = useMemo(() => {
-    if (!accounts.length) return null;
-    if (selectedAccountId) {
-      return accounts.find((a) => a.account_id === selectedAccountId) || accounts[0];
-    }
-    return accounts.find((a) => a.is_default_bank) || accounts[0];
-  }, [accounts, selectedAccountId]);
-
-  const approvedQuery = useQuery({
-    queryKey: ["approved-bills-due", days],
-    queryFn: async () => {
-      const { data, error } = await supabase.rpc("get_approved_bills_due", {
+      const { data, error } = await (supabase.rpc as any)("get_project_cash_position", {
         p_days: days,
       });
       if (error) throw error;
-      return Number(data) || 0;
+      return ((data as any[]) || []).map((r) => ({
+        project_id: r.project_id,
+        address: r.address,
+        account_code: r.account_code,
+        account_name: r.account_name,
+        bank_balance: Number(r.bank_balance) || 0,
+        approved_due: Number(r.approved_due) || 0,
+      })) as Row[];
     },
     staleTime: 60_000,
   });
 
-  const active = activeAccount?.balance ?? 0;
-  const approved = approvedQuery.data ?? 0;
-  const net = Math.round((active - approved) * 100) / 100;
+  const rows = query.data || [];
+  const totBank = r2(rows.reduce((s, r) => s + r.bank_balance, 0));
+  const totDue = r2(rows.reduce((s, r) => s + r.approved_due, 0));
+  const totNet = r2(totBank - totDue);
 
-  const isLoading = balancesQuery.isLoading || approvedQuery.isLoading;
-
-  const refresh = () => {
-    balancesQuery.refetch();
-    approvedQuery.refetch();
-  };
+  const netClass = (n: number) => (n < 0 ? "text-destructive" : "text-green-600");
 
   return (
     <div className="rounded-lg border bg-card flex flex-col">
@@ -97,84 +86,82 @@ export function CashPositionCard() {
           <Wallet className="h-4 w-4 text-muted-foreground shrink-0" />
           <h3 className="text-lg font-semibold truncate">Cash Position</h3>
         </div>
-        <Button
-          variant="ghost"
-          size="icon"
-          className="h-7 w-7 shrink-0"
-          onClick={refresh}
-          title="Refresh"
-        >
-          <RefreshCw className={cn("h-4 w-4", isLoading && "animate-spin")} />
-        </Button>
-      </div>
-
-      <div className="p-4 flex flex-col gap-3">
-        {accounts.length > 1 && (
-          <Select
-            value={activeAccount?.account_id || ""}
-            onValueChange={setSelectedAccountId}
-          >
-            <SelectTrigger className="h-8 text-xs">
-              <SelectValue placeholder="Select bank account" />
+        <div className="flex items-center gap-2">
+          <Select value={String(days)} onValueChange={(v) => setDays(Number(v))}>
+            <SelectTrigger className="h-8 w-[110px] text-xs">
+              <SelectValue />
             </SelectTrigger>
             <SelectContent className="z-[100] bg-popover">
-              {accounts.map((a) => (
-                <SelectItem key={a.account_id} value={a.account_id}>
-                  {a.code} - {a.name}
+              {DAY_OPTIONS.map((d) => (
+                <SelectItem key={d} value={String(d)}>
+                  {d} days
                 </SelectItem>
               ))}
             </SelectContent>
           </Select>
-        )}
-
-        <div className="grid grid-cols-3 gap-2">
-          <div className="min-w-0">
-            <div className="text-xs text-muted-foreground truncate">
-              {activeAccount ? activeAccount.name : "Active Amount"}
-            </div>
-            <div className="mt-1 text-sm font-semibold tabular-nums">
-              {formatCurrency(active)}
-            </div>
-          </div>
-
-          <div className="min-w-0">
-            <Select
-              value={String(days)}
-              onValueChange={(v) => setDays(Number(v))}
-            >
-              <SelectTrigger className="h-6 px-1 text-xs border-0 shadow-none focus:ring-0 text-muted-foreground">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent className="z-[100] bg-popover">
-                {DAY_OPTIONS.map((d) => (
-                  <SelectItem key={d} value={String(d)}>
-                    {d} days
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-            <div className="mt-1 text-sm font-semibold tabular-nums">
-              {formatCurrency(approved)}
-            </div>
-          </div>
-
-          <div className="min-w-0">
-            <div className="text-xs text-muted-foreground truncate">Total</div>
-            <div
-              className={cn(
-                "mt-1 text-sm font-semibold tabular-nums",
-                net < 0 ? "text-destructive" : "text-green-600"
-              )}
-            >
-              {formatCurrency(net)}
-            </div>
-          </div>
+          <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => query.refetch()} title="Refresh">
+            <RefreshCw className={cn("h-4 w-4", query.isFetching && "animate-spin")} />
+          </Button>
         </div>
-
-        <p className="text-[11px] text-muted-foreground">
-          Approved bills include anything already past due.
-        </p>
       </div>
+
+      <Table className="table-fixed">
+        <TableHeader>
+          <TableRow className="h-11">
+            <TableHead className="w-[28%]">Job</TableHead>
+            <TableHead className="w-[26%]">Bank Account</TableHead>
+            <TableHead className="w-[23%] text-right">Approved Bills ({days} days)</TableHead>
+            <TableHead className="w-[23%] text-right">Total</TableHead>
+          </TableRow>
+        </TableHeader>
+        <TableBody>
+          {query.isLoading ? (
+            <TableRow className="h-11">
+              <TableCell colSpan={4} className="text-center text-muted-foreground">Loading…</TableCell>
+            </TableRow>
+          ) : rows.length === 0 ? (
+            <TableRow className="h-11">
+              <TableCell colSpan={4} className="text-center text-muted-foreground">No active jobs</TableCell>
+            </TableRow>
+          ) : (
+            rows.map((r) => {
+              const net = r2(r.bank_balance - r.approved_due);
+              return (
+                <TableRow key={r.project_id} className="h-11">
+                  <TableCell className="truncate font-medium">{shortAddress(r.address)}</TableCell>
+                  <TableCell className="truncate">
+                    <div className="flex items-center justify-between gap-2">
+                      <span className="truncate text-muted-foreground">
+                        {r.account_code ? `${r.account_code} ${r.account_name}` : "—"}
+                      </span>
+                      <span className="tabular-nums">{formatCurrency(r.bank_balance)}</span>
+                    </div>
+                  </TableCell>
+                  <TableCell className="text-right tabular-nums">{formatCurrency(r.approved_due)}</TableCell>
+                  <TableCell className={cn("text-right tabular-nums font-semibold", netClass(net))}>
+                    {formatCurrency(net)}
+                  </TableCell>
+                </TableRow>
+              );
+            })
+          )}
+        </TableBody>
+        {rows.length > 0 && (
+          <TableFooter>
+            <TableRow className="h-11">
+              <TableCell className="font-semibold">Total</TableCell>
+              <TableCell className="text-right tabular-nums font-semibold">{formatCurrency(totBank)}</TableCell>
+              <TableCell className="text-right tabular-nums font-semibold">{formatCurrency(totDue)}</TableCell>
+              <TableCell className={cn("text-right tabular-nums font-semibold", netClass(totNet))}>
+                {formatCurrency(totNet)}
+              </TableCell>
+            </TableRow>
+          </TableFooter>
+        )}
+      </Table>
+      <p className="px-4 py-2 text-[11px] text-muted-foreground">
+        Approved bills include anything already past due.
+      </p>
     </div>
   );
 }
