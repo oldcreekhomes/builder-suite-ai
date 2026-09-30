@@ -14,6 +14,7 @@ import { ActiveJobsTable } from "@/components/owner-dashboard/ActiveJobsTable";
 import { AccountantJobsTable } from "@/components/accountant-dashboard/AccountantJobsTable";
 import { EmployeeActivitySection } from "@/components/owner-dashboard/EmployeeActivitySection";
 import { MultipleProjectEntriesCard } from "@/components/owner-dashboard/MultipleProjectEntriesCard";
+import { CashPositionCard } from "@/components/owner-dashboard/CashPositionCard";
 import { UniversalFilePreviewProvider } from "@/components/files/UniversalFilePreviewProvider";
 
 import { useProjects } from "@/hooks/useProjects";
