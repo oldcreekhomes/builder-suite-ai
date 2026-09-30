@@ -24,23 +24,23 @@ export function MultipleProjectEntriesCard() {
   ];
 
   return (
-    <div className="rounded-lg border bg-card flex flex-col h-full">
-      <div className="p-4 border-b flex items-center gap-2">
+    <div className="rounded-lg border bg-card flex flex-col">
+      <div className="px-4 py-3 border-b flex items-center gap-2">
         <Layers className="h-4 w-4 text-muted-foreground" />
         <h3 className="text-lg font-semibold">Multiple Project Entries</h3>
       </div>
-      <div className="p-4 flex flex-col gap-2 flex-1">
+      <div className="px-4 py-3 flex flex-col gap-1">
         {links.map((link) => (
           <button
             key={link.to}
             type="button"
             onClick={() => navigate(link.to)}
-            className="w-full text-left rounded-md border border-transparent hover:border-border hover:bg-muted/50 transition-colors p-3 group"
+            className="w-full text-left rounded-md border border-transparent hover:border-border hover:bg-muted/50 transition-colors px-2 py-1.5 group"
           >
             <div className="flex items-center justify-between gap-2">
               <div className="min-w-0">
-                <div className="font-medium">{link.label}</div>
-                <div className="text-xs text-muted-foreground mt-0.5">
+                <div className="font-medium text-sm">{link.label}</div>
+                <div className="text-xs text-muted-foreground">
                   {link.description}
                 </div>
               </div>
