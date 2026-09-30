@@ -110,9 +110,7 @@ export default function Index() {
                     <AccountantJobsTable />
                   </TabsContent>
                   <TabsContent value="cash-position" className="mt-6">
-                    <div className="max-w-md">
                       <CashPositionCard />
-                    </div>
                   </TabsContent>
                   <TabsContent value="multiple-entries" className="mt-6">
                     <div className="max-w-md">
