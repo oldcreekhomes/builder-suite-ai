@@ -117,9 +117,20 @@ export function CashPositionCard() {
   return (
     <div className="rounded-lg border bg-card flex flex-col">
       <div className="p-4 border-b flex items-center justify-between gap-2">
-        <div className="flex items-center gap-2 min-w-0">
-          <Wallet className="h-4 w-4 text-muted-foreground shrink-0" />
-          <h3 className="text-lg font-semibold truncate">Cash Position</h3>
+        <div className="flex items-center gap-4">
+          <div className="flex items-center gap-2 min-w-0">
+            <Wallet className="h-4 w-4 text-muted-foreground shrink-0" />
+            <h3 className="text-lg font-semibold truncate">Cash Position</h3>
+          </div>
+          <div className="relative">
+            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
+            <Input
+              placeholder="Search..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="pl-9 w-64"
+            />
+          </div>
         </div>
         <div className="flex items-center gap-2">
           <Select value={String(days)} onValueChange={(v) => setDays(Number(v))}>
