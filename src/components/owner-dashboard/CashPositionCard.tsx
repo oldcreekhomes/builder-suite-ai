@@ -91,7 +91,23 @@ export function CashPositionCard() {
     staleTime: 60_000,
   });
 
-  const rows = query.data || [];
+  const allRows = query.data || [];
+  const q = searchQuery.trim().toLowerCase();
+  const rows = q
+    ? allRows.filter((r) => {
+        const project = projects.find((item) => item.id === r.project_id);
+        const manager = project?.accounting_manager_user;
+        const managerName = manager
+          ? `${manager.first_name} ${manager.last_name}`.trim()
+          : "";
+        return (
+          shortAddress(r.address).toLowerCase().includes(q) ||
+          (r.account_name || "").toLowerCase().includes(q) ||
+          (r.account_code || "").toLowerCase().includes(q) ||
+          managerName.toLowerCase().includes(q)
+        );
+      })
+    : allRows;
   const totBank = r2(rows.reduce((s, r) => s + r.bank_balance, 0));
   const totDue = r2(rows.reduce((s, r) => s + r.approved_due, 0));
   const totNet = r2(totBank - totDue);
