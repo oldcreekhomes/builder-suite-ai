@@ -108,10 +108,10 @@ export function CashPositionCard() {
       <Table className="table-fixed">
         <TableHeader>
           <TableRow className="h-11">
-            <TableHead className="w-[28%]">Job</TableHead>
-            <TableHead className="w-[26%]">Bank Account</TableHead>
-            <TableHead className="w-[23%] text-right">Approved Bills ({days} days)</TableHead>
-            <TableHead className="w-[23%] text-right">Total</TableHead>
+            <TableHead className="w-[26%] pl-4">Job</TableHead>
+            <TableHead className="w-[30%]">Bank Account</TableHead>
+            <TableHead className="w-[22%] text-right">Approved Bills ({days} days)</TableHead>
+            <TableHead className="w-[22%] pr-4 text-right">Total</TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
@@ -128,17 +128,20 @@ export function CashPositionCard() {
               const net = r2(r.bank_balance - r.approved_due);
               return (
                 <TableRow key={r.project_id} className="h-11">
-                  <TableCell className="truncate font-medium">{shortAddress(r.address)}</TableCell>
-                  <TableCell className="truncate">
-                    <div className="flex items-center justify-between gap-2">
-                      <span className="truncate text-muted-foreground">
-                        {r.account_code ? `${r.account_code} ${r.account_name}` : "—"}
+                  <TableCell className="truncate pl-4 font-medium" title={shortAddress(r.address)}>
+                    {shortAddress(r.address)}
+                  </TableCell>
+                  <TableCell>
+                    <div className="flex items-center gap-2 min-w-0">
+                      <span className="truncate text-muted-foreground shrink-0 max-w-[45%]">
+                        {r.account_code ? `${r.account_code}` : "—"}
                       </span>
-                      <span className="tabular-nums">{formatCurrency(r.bank_balance)}</span>
+                      <span className="truncate">{r.account_name || ""}</span>
+                      <span className="tabular-nums ml-auto whitespace-nowrap">{formatCurrency(r.bank_balance)}</span>
                     </div>
                   </TableCell>
-                  <TableCell className="text-right tabular-nums">{formatCurrency(r.approved_due)}</TableCell>
-                  <TableCell className={cn("text-right tabular-nums font-semibold", netClass(net))}>
+                  <TableCell className="text-right tabular-nums whitespace-nowrap">{formatCurrency(r.approved_due)}</TableCell>
+                  <TableCell className={cn("text-right tabular-nums whitespace-nowrap font-semibold pr-4", netClass(net))}>
                     {formatCurrency(net)}
                   </TableCell>
                 </TableRow>
@@ -149,10 +152,10 @@ export function CashPositionCard() {
         {rows.length > 0 && (
           <TableFooter>
             <TableRow className="h-11">
-              <TableCell className="font-semibold">Total</TableCell>
+              <TableCell className="pl-4 font-semibold">Total</TableCell>
               <TableCell className="text-right tabular-nums font-semibold">{formatCurrency(totBank)}</TableCell>
               <TableCell className="text-right tabular-nums font-semibold">{formatCurrency(totDue)}</TableCell>
-              <TableCell className={cn("text-right tabular-nums font-semibold", netClass(totNet))}>
+              <TableCell className={cn("text-right tabular-nums font-semibold pr-4", netClass(totNet))}>
                 {formatCurrency(totNet)}
               </TableCell>
             </TableRow>
