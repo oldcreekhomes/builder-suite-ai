@@ -94,7 +94,6 @@ export default function Index() {
                     <ActiveJobsTable />
                     <div className="flex flex-col gap-6">
                       <MultipleProjectEntriesCard />
-                      <CashPositionCard />
                     </div>
                   </div>
                   <EmployeeActivitySection />
