@@ -3,11 +3,10 @@ import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useRecurringTransactions, type RecurringTransaction } from "@/hooks/useRecurringTransactions";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { DeleteButton } from "@/components/ui/delete-button";
-import { Trash2, Play, Pause, AlertCircle } from "lucide-react";
+import { TableRowActions } from "@/components/ui/table-row-actions";
+import { AlertCircle } from "lucide-react";
 import { format } from "date-fns";
 import { toDateLocal } from "@/utils/dateOnly";
 
@@ -103,7 +102,7 @@ export function RecurringTransactionsContent({ projectId, onEnterTransaction }: 
               <TableHead>Frequency</TableHead>
               <TableHead>Next Date</TableHead>
               <TableHead>Status</TableHead>
-              <TableHead className="text-right">Actions</TableHead>
+              <TableHead className="w-20 text-center">Actions</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -138,31 +137,30 @@ export function RecurringTransactionsContent({ projectId, onEnterTransaction }: 
                       <Badge variant="secondary">Paused</Badge>
                     )}
                   </TableCell>
-                  <TableCell className="text-right">
-                    <div className="flex justify-end gap-1">
-                      {due && onEnterTransaction && (
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => onEnterTransaction(rt)}
-                        >
-                          Enter Now
-                        </Button>
-                      )}
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => toggleActive.mutate({ id: rt.id, is_active: !rt.is_active })}
-                        title={rt.is_active ? "Pause" : "Resume"}
-                      >
-                        {rt.is_active ? <Pause className="h-4 w-4" /> : <Play className="h-4 w-4" />}
-                      </Button>
-                      <DeleteButton
-                        onDelete={() => deleteRecurring.mutateAsync(rt.id)}
-                        title="Delete Recurring Transaction"
-                        description={`Are you sure you want to delete "${rt.name}"? This cannot be undone.`}
-                      />
-                    </div>
+                  <TableCell className="text-center">
+                    <TableRowActions
+                      actions={[
+                        {
+                          label: "Enter Now",
+                          onClick: () => onEnterTransaction?.(rt),
+                          hidden: !due || !onEnterTransaction,
+                        },
+                        {
+                          label: rt.is_active ? "Pause" : "Resume",
+                          onClick: () => toggleActive.mutate({ id: rt.id, is_active: !rt.is_active }),
+                          disabled: toggleActive.isPending,
+                        },
+                        {
+                          label: "Delete",
+                          variant: "destructive",
+                          requiresConfirmation: true,
+                          confirmTitle: "Delete Recurring Transaction",
+                          confirmDescription: `Are you sure you want to delete "${rt.name}"? This cannot be undone.`,
+                          onClick: () => deleteRecurring.mutateAsync(rt.id),
+                          isLoading: deleteRecurring.isPending,
+                        },
+                      ]}
+                    />
                   </TableCell>
                 </TableRow>
               );
