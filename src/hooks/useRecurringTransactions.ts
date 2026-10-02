@@ -132,7 +132,10 @@ export function useRecurringTransactions(projectId?: string) {
         const { error: lineError } = await supabase
           .from("recurring_transaction_lines")
           .insert(linesToInsert);
-        if (lineError) throw lineError;
+        if (lineError) {
+          await supabase.from("recurring_transactions").delete().eq("id", data.id);
+          throw lineError;
+        }
       }
       return data;
     },
