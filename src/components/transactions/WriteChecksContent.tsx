@@ -1728,7 +1728,7 @@ export function WriteChecksContent({ projectId, recurringTemplate, onClearTempla
         lines={[
           ...jobCostRows.filter(r => parseFloat(r.amount) > 0).map((r, i) => ({
             line_type: "job_cost" as const,
-            account_id: r.accountId,
+            cost_code_id: r.accountId,
             project_id: r.projectId,
             lot_id: r.lotId,
             quantity: parseFloat(r.quantity || "1") || 1,
