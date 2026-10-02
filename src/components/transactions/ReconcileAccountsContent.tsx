@@ -85,11 +85,19 @@ function calculateReconciledBalance(
 }
 
 // Helper to get allocation display text and determine if tooltip is needed
-function getAllocationDisplay(allocations: AllocationBreakdown[] | undefined, labelType: 'code' | 'account' = 'code'): {
+// Project-specific account names keyed by account code (set by ReconcileAccountsContent)
+let accountCodeNameOverrides: Map<string, string> = new Map();
+function withProjectNames(allocations: AllocationBreakdown[] | undefined, labelType: 'code' | 'account'): AllocationBreakdown[] | undefined {
+  if (!allocations || labelType !== 'account' || accountCodeNameOverrides.size === 0) return allocations;
+  return allocations.map(a => accountCodeNameOverrides.has(a.code) ? { ...a, name: accountCodeNameOverrides.get(a.code)! } : a);
+}
+
+function getAllocationDisplay(rawAllocations: AllocationBreakdown[] | undefined, labelType: 'code' | 'account' = 'code'): {
   display: string;
   hasMultiple: boolean;
   breakdown: AllocationBreakdown[];
 } {
+  const allocations = withProjectNames(rawAllocations, labelType);
   if (!allocations || allocations.length === 0) {
     return { display: '-', hasMultiple: false, breakdown: [] };
   }
@@ -168,6 +176,11 @@ export function ReconcileAccountsContent({ projectId }: ReconcileAccountsContent
   const { data: accountOverrides } = useProjectAccountNames(projectId);
   const displayAccountName = (acc: { id: string; name: string }) =>
     resolveAccountName(acc, accountOverrides ?? null);
+  accountCodeNameOverrides = new Map(
+    (accounts || [])
+      .filter((a: any) => accountOverrides?.has(a.id))
+      .map((a: any) => [a.code as string, accountOverrides!.get(a.id) as string])
+  );
   const defaultBankAccountId = useProjectDefaultBankAccountId(projectId);
 
   // Restore selected bank account from localStorage
