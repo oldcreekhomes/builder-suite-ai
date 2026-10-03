@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useQuery } from "@tanstack/react-query";
 import { Card } from "@/components/ui/card";
 import { Cloud, CloudRain, Sun, Wind } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
@@ -23,61 +23,23 @@ interface WeatherForecastProps {
 }
 
 export function WeatherForecast({ address }: WeatherForecastProps) {
-  const [weatherData, setWeatherData] = useState<WeatherData | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-
-  useEffect(() => {
-    const fetchWeather = async () => {
-      try {
-        console.log('WeatherForecast: Starting to fetch weather for address:', address);
-        setLoading(true);
-        setError(null);
-
-        console.log('WeatherForecast: Invoking supabase function...');
-        const { data, error: functionError } = await supabase.functions.invoke(
-          'get-weather-forecast',
-          {
-            body: JSON.stringify({ address })
-          }
-        );
-
-        console.log('WeatherForecast: Function response:', { data, functionError });
-
-        if (functionError) {
-          console.error('WeatherForecast: Function error:', functionError);
-          throw functionError;
-        }
-
-        if (!data) {
-          console.error('WeatherForecast: No data returned from function');
-          throw new Error('No data returned from weather function');
-        }
-
-        console.log('WeatherForecast: Successfully received weather data:', data);
-        console.log('WeatherForecast: Data location:', data?.location);
-        console.log('WeatherForecast: Data forecast length:', data?.forecast?.length);
-        
-        // Clear any previous errors and set the data
-        setError(null);
-        setWeatherData(data);
-      } catch (err) {
-        console.error('WeatherForecast: Error in fetchWeather:', err);
-        console.error('WeatherForecast: Error details:', JSON.stringify(err, null, 2));
-        setError('Failed to load weather data');
-      } finally {
-        console.log('WeatherForecast: Setting loading to false');
-        setLoading(false);
-      }
-    };
-
-    if (address) {
-      console.log('WeatherForecast: Address provided, fetching weather:', address);
-      fetchWeather();
-    } else {
-      console.log('WeatherForecast: No address provided');
-    }
-  }, [address]);
+  const { data: weatherData = null, isLoading, isError } = useQuery({
+    queryKey: ["weather-forecast", address],
+    enabled: !!address,
+    staleTime: 4 * 60 * 60 * 1000,
+    gcTime: 4 * 60 * 60 * 1000,
+    retry: 1,
+    queryFn: async (): Promise<WeatherData> => {
+      const { data, error } = await supabase.functions.invoke('get-weather-forecast', {
+        body: JSON.stringify({ address }),
+      });
+      if (error) throw error;
+      if (!data) throw new Error('No data returned from weather function');
+      return data as WeatherData;
+    },
+  });
+  const loading = !!address && isLoading;
+  const error = isError ? 'Failed to load weather data' : null;
 
   const getWeatherIcon = (iconCode: string) => {
     // Map OpenWeather icon codes to our Lucide icons
