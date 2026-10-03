@@ -1,47 +1,17 @@
-
+import { lazy } from "react";
 import { Home, Users, Building2, Settings, CreditCard } from "lucide-react";
-import Index from "./pages/Index";
-import Employees from "./pages/Employees";
-import Companies from "./pages/Companies";
-import SettingsPage from "./pages/Settings";
-import WriteChecks from "./pages/WriteChecks";
-import Landing from "./pages/Landing";
 
-// Component to handle root route logic
-const RootHandler = () => {
-  // This will be handled by ProtectedRoute to show landing page for unauthenticated users
-  return <Index />;
-};
+// Lazy-loaded so these pages are only downloaded when visited.
+const Index = lazy(() => import("./pages/Index"));
+const Employees = lazy(() => import("./pages/Employees"));
+const Companies = lazy(() => import("./pages/Companies"));
+const SettingsPage = lazy(() => import("./pages/Settings"));
+const WriteChecks = lazy(() => import("./pages/WriteChecks"));
 
 export const navItems = [
-  {
-    title: "Home",
-    to: "/",
-    icon: Home,
-    page: RootHandler,
-  },
-  {
-    title: "Employees", 
-    to: "/employees",
-    icon: Users,
-    page: Employees,
-  },
-  {
-    title: "Companies", 
-    to: "/companies",
-    icon: Building2,
-    page: Companies,
-  },
-  {
-    title: "Write Checks", 
-    to: "/write-checks",
-    icon: CreditCard,
-    page: WriteChecks,
-  },
-  {
-    title: "Settings", 
-    to: "/settings",
-    icon: Settings,
-    page: SettingsPage,
-  },
+  { title: "Home", to: "/", icon: Home, page: Index },
+  { title: "Employees", to: "/employees", icon: Users, page: Employees },
+  { title: "Companies", to: "/companies", icon: Building2, page: Companies },
+  { title: "Write Checks", to: "/write-checks", icon: CreditCard, page: WriteChecks },
+  { title: "Settings", to: "/settings", icon: Settings, page: SettingsPage },
 ];

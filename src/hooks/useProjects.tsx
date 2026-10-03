@@ -86,8 +86,6 @@ export const useProjects = () => {
       return projects;
     },
     enabled: !!user,
-    staleTime: 0,
-    refetchOnWindowFocus: true,
-    refetchOnMount: "always",
+    staleTime: 2 * 60 * 1000,
   });
 };

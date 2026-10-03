@@ -203,7 +203,14 @@ import { MarketplaceGuard } from "./components/guards/MarketplaceGuard";
 import { TemplatesGuard } from "./components/guards/TemplatesGuard";
 import { ApartmentGuard } from "./components/guards/ApartmentGuard";
 
-const queryClient = new QueryClient();
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      staleTime: 60 * 1000,
+      refetchOnWindowFocus: false,
+    },
+  },
+});
 
 const AppContent = () => {
   console.log("[APP] AppContent rendering");
