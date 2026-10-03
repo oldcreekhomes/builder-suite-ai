@@ -1,9 +1,9 @@
 import { useAuth } from "@/hooks/useAuth";
-import { useEffect, useState } from "react";
+import { useEffect, useState, lazy } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import Index from "@/pages/Index";
-import Landing from "@/pages/Landing";
-import MarketplacePortal from "@/pages/MarketplacePortal";
+const Index = lazy(() => import("@/pages/Index"));
+const Landing = lazy(() => import("@/pages/Landing"));
+const MarketplacePortal = lazy(() => import("@/pages/MarketplacePortal"));
 
 const RootRoute = () => {
   const { user, loading } = useAuth();
