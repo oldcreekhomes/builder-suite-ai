@@ -13,6 +13,7 @@ import { useProjectPhotos } from "@/hooks/useProjectPhotos";
 import { PhotoViewer } from "@/components/photos/PhotoViewer";
 import { WeatherForecast } from "@/components/WeatherForecast";
 import { ProjectAccountingAlerts } from "@/components/project-dashboard/ProjectAccountingAlerts";
+import { getThumbnailUrl } from "@/utils/thumbnailUtils";
 
 export default function ProjectDashboard() {
   const { projectId } = useParams();
@@ -91,8 +92,10 @@ export default function ProjectDashboard() {
                           {recentPhotos.map((photo) => (
                             <div key={photo.id} className="aspect-square rounded-md overflow-hidden bg-gray-100">
                               <img
-                                src={photo.url}
+                                src={getThumbnailUrl(photo.url, 160)}
                                 alt={photo.description || 'Project photo'}
+                                loading="lazy"
+                                decoding="async"
                                 className="w-full h-full object-cover"
                               />
                             </div>
