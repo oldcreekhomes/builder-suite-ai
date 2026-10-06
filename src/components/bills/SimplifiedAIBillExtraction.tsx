@@ -1,6 +1,8 @@
 import { useState, useEffect, useRef, forwardRef, useImperativeHandle } from "react";
 import { createRoot } from "react-dom/client";
 import { Document as PdfDocument, Page as PdfPage } from 'react-pdf';
+import { ensurePdfWorker } from '@/lib/pdfConfig';
+ensurePdfWorker();
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
 import { Button } from "@/components/ui/button";
