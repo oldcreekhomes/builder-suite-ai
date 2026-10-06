@@ -28,7 +28,6 @@ export default defineConfig({
         manualChunks(id) {
           if (!id.includes("node_modules")) return;
           if (id.includes("/xlsx/")) return "vendor-xlsx";
-          if (id.includes("/pdfjs-dist/")) return "vendor-pdfjs";
         },
       },
     },
