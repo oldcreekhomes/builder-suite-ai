@@ -8,6 +8,8 @@ import { DOMOverlays } from "./DOMOverlays";
 import { useAnnotations } from "@/hooks/useAnnotations";
 import { useToast } from "@/hooks/use-toast";
 import { Document, Page } from 'react-pdf';
+import { ensurePdfWorker } from '@/lib/pdfConfig';
+ensurePdfWorker();
 import 'react-pdf/dist/Page/AnnotationLayer.css';
 import 'react-pdf/dist/Page/TextLayer.css';
 import { 

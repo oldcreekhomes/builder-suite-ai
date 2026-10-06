@@ -1,28 +1,24 @@
-// Centralized PDF.js configuration
-// This file must be imported in main.tsx BEFORE any PDF components are used
-// to ensure the worker is configured globally.
-
+// Centralized PDF.js configuration. Workers are self-hosted in /public/pdfjs/<version>/
+// so they always match the API version and never depend on a CDN.
 import { pdfjs } from 'react-pdf';
-import { GlobalWorkerOptions } from 'pdfjs-dist';
+import { GlobalWorkerOptions, version as distVersion } from 'pdfjs-dist';
 
-// CRITICAL: Use the exact version from react-pdf to prevent API/Worker version mismatch
-// react-pdf exports pdfjs.version which tells us exactly what version it needs
 const workerVersion = pdfjs.version;
+export const PDF_WORKER_SRC = `/pdfjs/${workerVersion}/pdf.worker.min.mjs`;
+const distWorkerSrc = `/pdfjs/${distVersion}/pdf.worker.min.mjs`;
 
-// Use unpkg CDN with the EXACT version that react-pdf's pdfjs expects
-// This ensures API version === Worker version
-const workerSrc = `//unpkg.com/pdfjs-dist@${workerVersion}/build/pdf.worker.min.mjs`;
+/** Re-apply worker config; react-pdf may reset it when its chunk loads lazily. */
+export function ensurePdfWorker() {
+  if (pdfjs.GlobalWorkerOptions.workerSrc !== PDF_WORKER_SRC) {
+    pdfjs.GlobalWorkerOptions.workerSrc = PDF_WORKER_SRC;
+  }
+  if (GlobalWorkerOptions !== pdfjs.GlobalWorkerOptions && GlobalWorkerOptions.workerSrc !== distWorkerSrc) {
+    GlobalWorkerOptions.workerSrc = distWorkerSrc;
+  }
+}
 
-// Configure for react-pdf
-pdfjs.GlobalWorkerOptions.workerSrc = workerSrc;
+ensurePdfWorker();
 
-// Configure for direct pdfjs-dist usage (SimplifiedAIBillExtraction, etc.)
-GlobalWorkerOptions.workerSrc = workerSrc;
-
-// Log version for debugging
-console.log(`PDF.js configured: API v${pdfjs.version}, Worker v${workerVersion}`);
-
-// Export for verification if needed
 export const PDF_WORKER_CONFIGURED = true;
 export const PDF_VERSION = workerVersion;
 export { pdfjs };
