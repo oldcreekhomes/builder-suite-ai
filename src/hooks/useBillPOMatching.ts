@@ -1,5 +1,7 @@
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import { batchedIn, fetchAllRows } from "@/lib/supabasePaginate";
+import { sumBilledPrior, type BilledEntry } from "@/lib/poBilledToDate";
 
 export interface POMatch {
   po_id: string;
@@ -178,50 +180,72 @@ export function useBillPOMatching(bills: BillForMatching[]) {
       // to calculate cumulative billed amounts per PO. Store per-bill entries so
       // we can exclude the currently iterated bill (avoid double-counting).
       const poIds = pos.map(po => po.id);
-      const billedEntriesByPo = new Map<string, Array<{ bill_id: string; amount: number }>>();
+      const billedEntriesByPo = new Map<string, BilledEntry[]>();
 
       if (poIds.length) {
-        const { data: linkedLines, error: linkedError } = await supabase
-          .from('bill_lines')
-          .select(`
-            bill_id,
-            purchase_order_id,
-            amount,
-            is_reversal,
-            bills!inner (
-              status,
-              is_reversal,
-              reversed_at
-            )
-          `)
-          .in('purchase_order_id', poIds)
-          .not('purchase_order_id', 'is', null);
-
-        if (linkedError) throw linkedError;
+        // Paginate: lot-split bills easily exceed Supabase's 1,000-row cap.
+        const linkedLines = await batchedIn<any>(
+          async (ids) => ({
+            data: await fetchAllRows<any>(() =>
+              supabase
+                .from('bill_lines')
+                .select(`
+                  id,
+                  bill_id,
+                  purchase_order_id,
+                  amount,
+                  bills!inner (
+                    status,
+                    is_reversal,
+                    reversed_at,
+                    archived_at,
+                    bill_date,
+                    created_at
+                  )
+                `)
+                .in('purchase_order_id', ids)
+                .order('id', { ascending: true })
+            ),
+            error: null,
+          }),
+          poIds,
+          100,
+        );
 
         // Status-based rule: include only bills committed to the GL (approved or paid).
-        // Review/draft and rejected bills are excluded — they are not committed cost.
-        (linkedLines || []).forEach(line => {
-          const billData = line.bills as unknown as { status: string; is_reversal: boolean; reversed_at: string | null };
+        (linkedLines || []).forEach((line: any) => {
+          const billData = line.bills as { status: string; is_reversal: boolean; reversed_at: string | null; archived_at: string | null; bill_date: string | null; created_at: string | null };
           if (
             billData &&
             ['approved', 'paid', 'posted'].includes(billData.status) &&
             !billData.is_reversal &&
             !billData.reversed_at &&
+            !billData.archived_at &&
             line.purchase_order_id
           ) {
             const arr = billedEntriesByPo.get(line.purchase_order_id) || [];
-            arr.push({ bill_id: line.bill_id, amount: line.amount || 0 });
+            arr.push({ bill_id: line.bill_id, amount: line.amount || 0, bill_date: billData.bill_date, created_at: billData.created_at });
             billedEntriesByPo.set(line.purchase_order_id, arr);
           }
         });
       }
 
-      // Helper: sum billed amount for a PO excluding a specific bill id.
-      const sumBilledExcluding = (poId: string, excludeBillId: string): number =>
-        (billedEntriesByPo.get(poId) || [])
-          .filter(e => e.bill_id !== excludeBillId)
-          .reduce((s, e) => s + e.amount, 0);
+      // Dates of the bills being evaluated, so Billed to Date only counts earlier bills.
+      const billDates = new Map<string, { bill_date: string | null; created_at: string | null }>();
+      const billIds = bills.map(b => b.id).filter(Boolean);
+      if (billIds.length) {
+        const rows = await batchedIn<any>(
+          (ids) => supabase.from('bills').select('id, bill_date, created_at').in('id', ids),
+          billIds,
+        );
+        rows.forEach(r => billDates.set(r.id, { bill_date: r.bill_date, created_at: r.created_at }));
+      }
+
+      // Helper: billed amount for a PO from bills prior to the given bill.
+      const sumBilledExcluding = (poId: string, excludeBillId: string): number => {
+        const d = billDates.get(excludeBillId);
+        return sumBilledPrior(billedEntriesByPo.get(poId) || [], excludeBillId, d?.bill_date, d?.created_at);
+      };
 
       // Now build the result map for each bill
       const resultMap = new Map<string, BillPOMatchResult>();
