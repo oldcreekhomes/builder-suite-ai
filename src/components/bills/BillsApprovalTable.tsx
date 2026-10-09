@@ -300,6 +300,7 @@ export function BillsApprovalTable({ status, projectId, projectIds, showProjectC
           ),
           bill_lines (
             line_type,
+            line_number,
             cost_code_id,
             account_id,
             lot_id,
@@ -376,6 +377,7 @@ export function BillsApprovalTable({ status, projectId, projectIds, showProjectC
           bill_lines!inner(
             project_id,
             line_type,
+            line_number,
             cost_code_id,
             account_id,
             lot_id,

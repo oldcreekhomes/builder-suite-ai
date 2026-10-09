@@ -35,6 +35,7 @@ const TruncatedCell = ({ value, className }: { value: string; className?: string
 interface BillLine {
   id?: string;
   created_at?: string;
+  line_number?: number | null;
   cost_code_id?: string | null;
   cost_code_display?: string;
   cost_codes?: { code?: string | null; name?: string | null } | null;
@@ -282,21 +283,23 @@ export function BillPOSummaryDialog({
   // "As entered" mode: same grouped rows as default, but ordered by the
   // sequence the user typed the lines on the bill. We use the earliest
   // (created_at, id) among each group's underlying bill_lines as its rank.
-  const groupFirstEntry = new Map<string, { at: string; id: string }>();
+  const groupFirstEntry = new Map<string, { ln: number; at: string; id: string }>();
   billLines.forEach((line) => {
     const key = groupKeyOf(line);
+    const ln = typeof line.line_number === 'number' ? line.line_number : Number.MAX_SAFE_INTEGER;
     const at = line.created_at || '';
     const id = line.id || '';
     const cur = groupFirstEntry.get(key);
-    if (!cur || at < cur.at || (at === cur.at && id < cur.id)) {
-      groupFirstEntry.set(key, { at, id });
+    if (!cur || ln < cur.ln || (ln === cur.ln && (at < cur.at || (at === cur.at && id < cur.id)))) {
+      groupFirstEntry.set(key, { ln, at, id });
     }
   });
   const enteredRows = groupOrder
     .map((key, idx) => ({ key, group: groupMap.get(key)!, idx }))
     .sort((a, b) => {
-      const af = groupFirstEntry.get(a.key) || { at: '', id: '' };
-      const bf = groupFirstEntry.get(b.key) || { at: '', id: '' };
+      const af = groupFirstEntry.get(a.key) || { ln: Number.MAX_SAFE_INTEGER, at: '', id: '' };
+      const bf = groupFirstEntry.get(b.key) || { ln: Number.MAX_SAFE_INTEGER, at: '', id: '' };
+      if (af.ln !== bf.ln) return af.ln - bf.ln;
       if (af.at !== bf.at) return af.at < bf.at ? -1 : 1;
       if (af.id !== bf.id) return af.id < bf.id ? -1 : 1;
       return a.idx - b.idx;
