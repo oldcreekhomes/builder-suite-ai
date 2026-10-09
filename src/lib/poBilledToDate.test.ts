@@ -1,3 +1,4 @@
+// @ts-ignore - bun's built-in test runner (run with `bun test`)
 import { expect, test } from "bun:test";
 import { sumBilledPrior } from "./poBilledToDate";
 
