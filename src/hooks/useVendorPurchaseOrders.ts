@@ -1,5 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import { fetchAllRows } from "@/lib/supabasePaginate";
 
 export interface BilledInvoice {
   bill_id: string;
@@ -89,6 +90,9 @@ export function useVendorPurchaseOrders(
       if (!pos || pos.length === 0) return [];
 
       const poIds = pos.map(po => po.id);
+      // Billed to Date only counts bills dated on/before the bill being viewed.
+      const cutoff = excludeBillDate ? excludeBillDate.slice(0, 10) : null;
+      const isPrior = (d: string | null | undefined) => !cutoff || (d || '').slice(0, 10) <= cutoff;
 
       // Fetch PO line items
       const { data: poLines } = await supabase
@@ -121,15 +125,16 @@ export function useVendorPurchaseOrders(
       let invoicesByLineId = new Map<string, BilledInvoice[]>();
 
       if (poLineIds.length > 0) {
-        const { data: lineBilled } = await supabase
+        const lineBilled = await fetchAllRows<any>(() => supabase
           .from('bill_lines')
-        .select('purchase_order_line_id, amount, bill_id, bills!bill_lines_bill_id_fkey(id, reference_number, bill_date, status)')
-        .in('purchase_order_line_id', poLineIds);
+          .select('id, purchase_order_line_id, amount, bill_id, bills!bill_lines_bill_id_fkey(id, reference_number, bill_date, status, archived_at)')
+          .in('purchase_order_line_id', poLineIds)
+          .order('id', { ascending: true }));
 
         // Status-based rule: include only bills committed to the GL (approved or paid).
         // Review/draft and rejected bills are excluded — they are not committed cost.
         const activeBilled = (lineBilled || []).filter((bl: any) =>
-          bl.bills?.status && (bl.bills.status === 'approved' || bl.bills.status === 'paid' || bl.bills.status === 'posted')
+          bl.bills?.status && (bl.bills.status === 'approved' || bl.bills.status === 'paid' || bl.bills.status === 'posted') && !bl.bills.archived_at && isPrior(bl.bills.bill_date)
         );
 
         activeBilled.filter((bl: any) => {
@@ -163,14 +168,15 @@ export function useVendorPurchaseOrders(
       });
 
       // Also fetch billed amounts at PO level (for lines linked by purchase_order_id but not purchase_order_line_id)
-      const { data: poBilled } = await supabase
+      const poBilled = await fetchAllRows<any>(() => supabase
         .from('bill_lines')
-        .select('purchase_order_id, purchase_order_line_id, cost_code_id, memo, amount, bill_id, bills!bill_lines_bill_id_fkey(id, reference_number, bill_date, status)')
+        .select('id, purchase_order_id, purchase_order_line_id, cost_code_id, memo, amount, bill_id, bills!bill_lines_bill_id_fkey(id, reference_number, bill_date, status, archived_at)')
         .in('purchase_order_id', poIds)
-        .is('purchase_order_line_id', null);
+        .is('purchase_order_line_id', null)
+        .order('id', { ascending: true }));
 
       const activePoBilled = (poBilled || []).filter((bl: any) =>
-        bl.bills?.status && (bl.bills.status === 'approved' || bl.bills.status === 'paid' || bl.bills.status === 'posted')
+        bl.bills?.status && (bl.bills.status === 'approved' || bl.bills.status === 'paid' || bl.bills.status === 'posted') && !bl.bills.archived_at && isPrior(bl.bills.bill_date)
       );
 
       // --- Helper: simple keyword overlap for memo-to-description matching ---
