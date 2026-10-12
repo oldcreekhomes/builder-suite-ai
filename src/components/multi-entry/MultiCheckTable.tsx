@@ -95,6 +95,8 @@ const loadDraft = () => {
       rows: (d.rows || []).map((r: any) => ({
         ...r,
         checkDate: new Date(r.checkDate),
+        lotId: r.lotId || "",
+        splitGroupId: r.splitGroupId || "",
         attachments: [],
       })),
     };
