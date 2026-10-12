@@ -10,7 +10,7 @@
   - [ ] Switch Column 1 from book balance to live bank balance
 
 - [x] Enter Multiple Checks: full width, file attachments, lot split divider, draft saved across navigation
-- [ ] Enter Multiple Checks: one visible row per split check with lot-count hover breakdown
+- [x] Enter Multiple Checks: one visible row per split check with lot-count hover breakdown (grouping/math tests passed; signed-in UI verification unavailable with external auth)
 
 ## Open (blocked on user)
 - [ ] Green Landscaping MSG527 — how/when was it actually paid?

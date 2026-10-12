@@ -27,7 +27,7 @@ test("19 lot split and edited total preserve every cent with remainder on final 
 });
 
 test("restoring a draft preserves unequal allocations without redistribution", () => {
-  const rows = JSON.parse(JSON.stringify([
+  const rows: { splitGroupId: string; amount: string }[] = JSON.parse(JSON.stringify([
     { splitGroupId: "draft", amount: "10.01" },
     { splitGroupId: "draft", amount: "20.02" },
   ]));
