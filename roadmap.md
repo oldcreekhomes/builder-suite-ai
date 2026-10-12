@@ -9,6 +9,8 @@
   - [ ] Edge functions: plaid-link-token, plaid-exchange-token, plaid-refresh-balance
   - [ ] Switch Column 1 from book balance to live bank balance
 
+- [x] Enter Multiple Checks: full width, file attachments, lot split divider, draft saved across navigation
+
 ## Open (blocked on user)
 - [ ] Green Landscaping MSG527 — how/when was it actually paid?
 - [ ] Airtron at 1 East Custis — resend HVAC package invite or upload proposal
