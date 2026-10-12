@@ -1,6 +1,7 @@
 # Roadmap
 
 ## In progress
+- [x] Multiple Checks: entered-order summary, checked file saving with safe retry, wider cost code, corrected alignment (6 tests passed; signed-in verification unavailable)
 - [x] Multiple Checks: cents on blur and all entry fields in saved summary (build and allocation tests passed; signed-in verification unavailable with external auth)
 - [x] Cash Position card below Multiple Project Entries (Owner + Accountant dashboards)
   - [x] Card UI: Active Amount | Approved Bills (10/15/20 days) | Total (green/red)
@@ -14,5 +15,6 @@
 - [x] Enter Multiple Checks: one visible row per split check with lot-count hover breakdown (grouping/math tests passed; signed-in UI verification unavailable with external auth)
 
 ## Open (blocked on user)
+- [ ] Reattach missing files for Oct 12 Multiple Checks batch: 412 E Nelson, Waterloo, Nob Hill, and both N Potomac entries (only 413 E Nelson has a saved file; no verified originals for these checks)
 - [ ] Green Landscaping MSG527 — how/when was it actually paid?
 - [ ] Airtron at 1 East Custis — resend HVAC package invite or upload proposal

@@ -428,7 +428,7 @@ export function MultiCheckTable() {
     } catch (e: any) {
       toast({
         title: "Save failed",
-        description: e?.message || "Something went wrong saving the batch.",
+        description: `${e?.message || "Something went wrong saving the batch."} Your files are retained. Click Save Batch again to resume without duplicating saved checks.`,
         variant: "destructive",
       });
     }
@@ -436,6 +436,7 @@ export function MultiCheckTable() {
 
   return (
     <div className="rounded-lg border bg-card">
+      <fieldset disabled={saveMutation.isPending || saveMutation.hasPendingBatch} className="min-w-0">
       <div className="p-4 border-b flex items-center justify-between gap-4 flex-wrap">
         <div>
           <h3 className="text-lg font-semibold">Enter Multiple Checks</h3>
@@ -741,17 +742,18 @@ export function MultiCheckTable() {
           </TableBody>
         </Table>
       </div>
+      </fieldset>
 
       <div className="p-4 border-t flex items-center justify-between gap-2">
-        <Button variant="outline" size="sm" onClick={addRow}>
+        <Button variant="outline" size="sm" onClick={addRow} disabled={saveMutation.isPending || saveMutation.hasPendingBatch}>
           <Plus className="h-4 w-4 mr-1" /> Add Row
         </Button>
         <div className="flex items-center gap-2">
-          <Button variant="ghost" onClick={clearAll} disabled={saveMutation.isPending}>
+          <Button variant="ghost" onClick={clearAll} disabled={saveMutation.isPending || saveMutation.hasPendingBatch}>
             Clear
           </Button>
           <Button onClick={handleSave} disabled={saveMutation.isPending}>
-            {saveMutation.isPending ? "Saving…" : "Save Batch"}
+            {saveMutation.isPending ? "Saving…" : saveMutation.hasPendingBatch ? "Retry Save" : "Save Batch"}
           </Button>
         </div>
       </div>
