@@ -3,6 +3,7 @@ import { Button } from '@/components/ui/button';
 import { getFileIcon, getFileIconColor, getCleanFileName } from '@/components/bidding/utils/fileIconUtils';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/hooks/use-toast';
+import { canRemoveCheckFile } from '@/lib/checkAttachmentStorage';
 
 export interface CheckAttachment {
   id?: string;
@@ -170,14 +171,17 @@ export function CheckAttachmentUpload({
           return;
         }
 
-        // Delete from storage
-        const { error: storageError } = await supabase.storage
-          .from('project-files')
-          .remove([attachment.file_path]);
-
-        if (storageError) {
-          console.error('Storage delete error:', storageError);
-          // Don't show error to user as database record is already deleted
+        // Restored attachments may share a file with other checks in this company.
+        const { data: references, error: referenceError } = await supabase
+          .from('check_attachments')
+          .select('id')
+          .eq('file_path', attachment.file_path)
+          .limit(1);
+        if (canRemoveCheckFile(references?.length || 0, !!referenceError)) {
+          const { error: storageError } = await supabase.storage
+            .from('project-files')
+            .remove([attachment.file_path]);
+          if (storageError) console.error('Storage delete error:', storageError);
         }
       } catch (error) {
         console.error('Unexpected error during deletion:', error);
