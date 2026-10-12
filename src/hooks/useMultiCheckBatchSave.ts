@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useChecks } from "./useChecks";
@@ -27,6 +28,7 @@ export interface MultiCheckRowInput {
 }
 
 let pendingBatch: BatchProgress<MultiCheckRowInput> | null = null;
+let pendingUserId: string | undefined;
 
 const sanitize = (name: string) =>
   name.replace(/\s+/g, "_").replace(/[^\w.-]/g, "_").replace(/_+/g, "_");
@@ -40,14 +42,21 @@ const sanitize = (name: string) =>
 export function useMultiCheckBatchSave() {
   const queryClient = useQueryClient();
   const { createCheck } = useChecks();
+  const [hasPendingBatch, setHasPendingBatch] = useState(!!pendingBatch);
 
-  return useMutation({
+  const mutation = useMutation({
     mutationFn: async (rows: MultiCheckRowInput[]) => {
-      if (!rows.length) throw new Error("No rows to save");
-
-      if (!pendingBatch) pendingBatch = newBatchProgress(crypto.randomUUID(), rows);
-      const progress = pendingBatch;
       const userId = (await supabase.auth.getUser()).data.user?.id;
+      if (!userId) throw new Error("Sign in before saving checks.");
+      if (pendingBatch && pendingUserId !== userId) {
+        throw new Error("Sign in as the user who started this batch to finish saving it.");
+      }
+      if (!pendingBatch) {
+        if (!rows.length) throw new Error("No rows to save");
+        pendingBatch = newBatchProgress(crypto.randomUUID(), rows);
+        pendingUserId = userId;
+      }
+      const progress = pendingBatch;
 
       const saved = await resumeCheckBatch(progress, {
         create: async (row) => {
@@ -110,14 +119,18 @@ export function useMultiCheckBatchSave() {
         },
       });
       pendingBatch = null;
+      pendingUserId = undefined;
       return saved;
     },
     onError: () => {
+      setHasPendingBatch(!!pendingBatch);
       queryClient.invalidateQueries({ queryKey: ["multi-check-batches"] });
     },
     onSuccess: () => {
+      setHasPendingBatch(false);
       queryClient.invalidateQueries({ queryKey: ["checks"] });
       queryClient.invalidateQueries({ queryKey: ["multi-check-batches"] });
     },
   });
+  return { ...mutation, hasPendingBatch };
 }
