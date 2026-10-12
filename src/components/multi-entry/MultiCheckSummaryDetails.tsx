@@ -47,7 +47,7 @@ export function CheckSummaryAddress({ check }: { check: MultiCheckBatchCheck }) 
 export function CheckSummaryFiles({ check }: { check: MultiCheckBatchCheck }) {
   const { openCheckAttachment } = useUniversalFilePreviewContext();
   if (!check.files.length) return <span>—</span>;
-  return <div className="flex items-center gap-1 flex-wrap" onClick={(e) => e.stopPropagation()}>
+  return <div className="flex items-center justify-center gap-1 flex-wrap" onClick={(e) => e.stopPropagation()}>
     {check.files.map(file => <TooltipProvider key={file.id}><Tooltip><TooltipTrigger asChild>
       <Button variant="ghost" size="sm" aria-label={`View ${file.file_name}`} onClick={() =>
         openCheckAttachment(file.file_path, file.file_name, {

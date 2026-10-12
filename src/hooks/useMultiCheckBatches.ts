@@ -1,3 +1,4 @@
+import { enteredOrder } from "@/lib/multiCheckBatchProgress";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { batchedIn, fetchAllRows } from "@/lib/supabasePaginate";
@@ -28,6 +29,7 @@ export interface MultiCheckFile {
 
 export interface MultiCheckBatchCheck {
   id: string;
+  created_at: string;
   check_date: string;
   amount: number;
   project_id: string | null;
@@ -180,6 +182,7 @@ export function useMultiCheckBatches() {
 
         const check: MultiCheckBatchCheck = {
           id: r.id,
+          created_at: r.created_at,
           check_date: r.check_date,
           amount: Number(r.amount || 0),
           project_id: r.project_id,
@@ -223,6 +226,7 @@ export function useMultiCheckBatches() {
 
       const list = Array.from(groups.values()).map((g) => ({
         ...g,
+        checks: enteredOrder(g.checks),
         projectCount: new Set(g.checks.map((c) => c.project_id).filter(Boolean))
           .size,
       }));

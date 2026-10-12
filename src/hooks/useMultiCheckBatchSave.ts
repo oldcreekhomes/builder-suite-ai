@@ -1,6 +1,7 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useChecks } from "./useChecks";
+import { newBatchProgress, resumeCheckBatch, type BatchProgress } from "@/lib/multiCheckBatchProgress";
 
 export interface MultiCheckLineInput {
   lotId?: string;
@@ -25,6 +26,8 @@ export interface MultiCheckRowInput {
   files?: File[];
 }
 
+let pendingBatch: BatchProgress<MultiCheckRowInput> | null = null;
+
 const sanitize = (name: string) =>
   name.replace(/\s+/g, "_").replace(/[^\w.-]/g, "_").replace(/_+/g, "_");
 
@@ -42,11 +45,12 @@ export function useMultiCheckBatchSave() {
     mutationFn: async (rows: MultiCheckRowInput[]) => {
       if (!rows.length) throw new Error("No rows to save");
 
-      const batchId = (globalThis.crypto as Crypto).randomUUID();
-      const createdIds: string[] = [];
+      if (!pendingBatch) pendingBatch = newBatchProgress(crypto.randomUUID(), rows);
+      const progress = pendingBatch;
       const userId = (await supabase.auth.getUser()).data.user?.id;
 
-      for (const row of rows) {
+      const saved = await resumeCheckBatch(progress, {
+        create: async (row) => {
         const lines = row.lines && row.lines.length > 0
           ? row.lines
           : [{ amount: row.amount }];
@@ -82,41 +86,34 @@ export function useMultiCheckBatchSave() {
           ),
         });
 
-        const newId = (result as any)?.id;
-        if (newId) {
-          createdIds.push(newId);
-          for (const file of row.files || []) {
-            const filePath = `check-attachments/${newId}/${Date.now()}_${sanitize(file.name)}`;
-            const { error: upErr } = await supabase.storage
-              .from("project-files")
-              .upload(filePath, file);
-            if (upErr) {
-              console.error("[multi-check] attachment upload failed", upErr);
-              continue;
-            }
-            await supabase.from("check_attachments").insert({
-              check_id: newId,
-              file_name: file.name,
-              file_path: filePath,
-              file_size: file.size,
-              content_type: file.type,
-              uploaded_by: userId,
-            });
+        const newId = result?.id;
+        if (!newId) throw new Error("The check was not returned after saving.");
+        return newId;
+        },
+        tag: async (checkId, batchId) => {
+          const { error } = await supabase.from("checks")
+            .update({ multi_entry_batch_id: batchId }).eq("id", checkId);
+          if (error) throw error;
+        },
+        attach: async (checkId, file) => {
+          const filePath = `check-attachments/${checkId}/${crypto.randomUUID()}_${sanitize(file.name)}`;
+          const { error: uploadError } = await supabase.storage.from("project-files").upload(filePath, file);
+          if (uploadError) throw new Error(`Could not upload ${file.name}: ${uploadError.message}`);
+          const { error: recordError } = await supabase.from("check_attachments").insert({
+            check_id: checkId, file_name: file.name, file_path: filePath,
+            file_size: file.size, content_type: file.type, uploaded_by: userId,
+          });
+          if (recordError) {
+            await supabase.storage.from("project-files").remove([filePath]);
+            throw new Error(`Could not save ${file.name}: ${recordError.message}`);
           }
-        }
-      }
-
-      if (createdIds.length > 0) {
-        const { error } = await supabase
-          .from("checks")
-          .update({ multi_entry_batch_id: batchId } as any)
-          .in("id", createdIds);
-        if (error) {
-          console.error("[multi-check] batch tag failed", error);
-        }
-      }
-
-      return { batchId, count: createdIds.length };
+        },
+      });
+      pendingBatch = null;
+      return saved;
+    },
+    onError: () => {
+      queryClient.invalidateQueries({ queryKey: ["multi-check-batches"] });
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["checks"] });

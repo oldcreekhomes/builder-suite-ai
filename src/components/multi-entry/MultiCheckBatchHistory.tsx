@@ -107,9 +107,9 @@ export function MultiCheckBatchHistory() {
               <TableHead className="w-8" />
               <TableHead>Saved At</TableHead>
               <TableHead>Saved By</TableHead>
-              <TableHead className="text-right"># Checks</TableHead>
-              <TableHead className="text-right"># Projects</TableHead>
-              <TableHead className="text-right">Total</TableHead>
+              <TableHead className="text-left"># Checks</TableHead>
+              <TableHead className="text-left"># Projects</TableHead>
+              <TableHead className="text-left">Total</TableHead>
               <TableHead className="text-center w-32">Actions</TableHead>
             </TableRow>
           </TableHeader>
@@ -131,9 +131,9 @@ export function MultiCheckBatchHistory() {
                       {b.savedAt ? format(new Date(b.savedAt), "MMM d, yyyy h:mm a") : "—"}
                     </TableCell>
                     <TableCell>{b.savedByName || "—"}</TableCell>
-                    <TableCell className="text-right">{b.count}</TableCell>
-                    <TableCell className="text-right">{b.projectCount}</TableCell>
-                    <TableCell className="text-right font-medium">{fmtMoney(b.total)}</TableCell>
+                    <TableCell className="text-left">{b.count}</TableCell>
+                    <TableCell className="text-left">{b.projectCount}</TableCell>
+                    <TableCell className="text-left font-medium">{fmtMoney(b.total)}</TableCell>
                     <TableCell className="text-center" onClick={(e) => e.stopPropagation()}>
                       <Button
                         variant="ghost"
@@ -162,11 +162,11 @@ export function MultiCheckBatchHistory() {
                                 <TableHead className="w-[190px]">Pay From (Bank)</TableHead>
                                 <TableHead className="w-[160px]">Pay To</TableHead>
                                 <TableHead className="w-[80px]">Check #</TableHead>
-                                <TableHead className="w-[200px]">Cost Code / Account</TableHead>
-                                <TableHead className="w-[170px]">Description</TableHead>
-                                <TableHead className="w-[120px] text-right">Amount</TableHead>
-                                <TableHead className="w-[100px]">Address</TableHead>
-                                <TableHead className="w-[100px]">Files</TableHead>
+                                <TableHead className="w-[280px]">Cost Code / Account</TableHead>
+                                <TableHead className="w-[130px]">Description</TableHead>
+                                <TableHead className="w-[100px] text-left">Amount</TableHead>
+                                <TableHead className="w-[100px] text-center">Address</TableHead>
+                                <TableHead className="w-[100px] text-center">Files</TableHead>
                               </TableRow>
                             </TableHeader>
                             <TableBody>
@@ -187,9 +187,9 @@ export function MultiCheckBatchHistory() {
                                    <TableCell><SummaryText text={c.check_number || "—"} /></TableCell>
                                    <TableCell><SummaryText text={Array.from(new Set(c.lines.map(l => l.label))).join(", ") || "—"} /></TableCell>
                                    <TableCell><SummaryText text={c.memo || "—"} /></TableCell>
-                                  <TableCell className="text-right">{fmtMoney(c.amount)}</TableCell>
-                                   <TableCell><CheckSummaryAddress check={c} /></TableCell>
-                                   <TableCell><CheckSummaryFiles check={c} /></TableCell>
+                                  <TableCell className="text-left">{fmtMoney(c.amount)}</TableCell>
+                                   <TableCell className="text-center"><CheckSummaryAddress check={c} /></TableCell>
+                                   <TableCell className="text-center"><CheckSummaryFiles check={c} /></TableCell>
                                 </TableRow>
                               ))}
                             </TableBody>

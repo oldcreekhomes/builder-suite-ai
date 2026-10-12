@@ -428,7 +428,7 @@ export function MultiCheckTable() {
     } catch (e: any) {
       toast({
         title: "Save failed",
-        description: e?.message || "Something went wrong saving the batch.",
+        description: `${e?.message || "Something went wrong saving the batch."} Your files are retained. Click Save Batch again to resume without duplicating saved checks.`,
         variant: "destructive",
       });
     }
