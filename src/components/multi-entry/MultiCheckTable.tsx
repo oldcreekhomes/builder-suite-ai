@@ -634,9 +634,14 @@ export function MultiCheckTable() {
                       if (split) setAmountEdits((edits) => ({ ...edits, [r.id]: e.target.value }));
                       updateRow(r.id, { amount: e.target.value });
                     }}
-                    onBlur={() => setAmountEdits((edits) => {
-                      const next = { ...edits }; delete next[r.id]; return next;
-                    })}
+                    onBlur={() => {
+                      if (!split && r.amount.trim() && Number.isFinite(Number(r.amount))) {
+                        updateRow(r.id, { amount: Number(r.amount).toFixed(2) });
+                      }
+                      setAmountEdits((edits) => {
+                        const next = { ...edits }; delete next[r.id]; return next;
+                      });
+                    }}
                     inputMode="decimal"
                     placeholder="0.00"
                     className="text-right"
