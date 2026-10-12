@@ -15,6 +15,6 @@
 - [x] Enter Multiple Checks: one visible row per split check with lot-count hover breakdown (grouping/math tests passed; signed-in UI verification unavailable with external auth)
 
 ## Open (blocked on user)
-- [ ] Reattach missing files for Oct 12 Multiple Checks batch: 412 E Nelson, Waterloo, Nob Hill, and both N Potomac entries (only 413 E Nelson has a saved file; no verified originals for these checks)
+- [ ] Restore confirmed identical PDF for all six Oct 12 batch checks and protect shared file references from deletion
 - [ ] Green Landscaping MSG527 — how/when was it actually paid?
 - [ ] Airtron at 1 East Custis — resend HVAC package invite or upload proposal
