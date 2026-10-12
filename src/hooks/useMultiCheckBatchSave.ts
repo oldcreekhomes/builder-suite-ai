@@ -2,6 +2,11 @@ import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useChecks } from "./useChecks";
 
+export interface MultiCheckLineInput {
+  lotId?: string;
+  amount: number; // dollars
+}
+
 export interface MultiCheckRowInput {
   projectId: string;
   checkDate: string; // yyyy-MM-dd
@@ -13,14 +18,21 @@ export interface MultiCheckRowInput {
   accountId?: string;
   costCodeId?: string;
   description?: string;
-  amount: number; // dollars
+  amount: number; // dollars (check total)
+  /** One line per lot when the check was split across addresses. */
+  lines?: MultiCheckLineInput[];
+  /** Files to attach to this check after it is created. */
+  files?: File[];
 }
+
+const sanitize = (name: string) =>
+  name.replace(/\s+/g, "_").replace(/[^\w.-]/g, "_").replace(/_+/g, "_");
 
 /**
  * Saves many checks in a single batch, tagging each with the same
  * multi_entry_batch_id. Reuses the existing createCheck code path so
  * accounting posting, RLS, and audit behavior are identical to the
- * Write Checks page.
+ * Write Checks page. Attachments use the same storage path/table as Write Checks.
  */
 export function useMultiCheckBatchSave() {
   const queryClient = useQueryClient();
@@ -32,8 +44,13 @@ export function useMultiCheckBatchSave() {
 
       const batchId = (globalThis.crypto as Crypto).randomUUID();
       const createdIds: string[] = [];
+      const userId = (await supabase.auth.getUser()).data.user?.id;
 
       for (const row of rows) {
+        const lines = row.lines && row.lines.length > 0
+          ? row.lines
+          : [{ amount: row.amount }];
+
         const result = await createCheck.mutateAsync({
           checkData: {
             check_date: row.checkDate,
@@ -44,27 +61,49 @@ export function useMultiCheckBatchSave() {
             memo: row.description || undefined,
             check_number: row.checkNumber || undefined,
           },
-          checkLines: [
+          checkLines: lines.map((l) =>
             row.entryType === "cost_code"
               ? {
                   line_type: "job_cost" as const,
                   cost_code_id: row.costCodeId,
                   project_id: row.projectId,
-                  amount: row.amount,
+                  lot_id: l.lotId || undefined,
+                  amount: l.amount,
                   memo: row.description || undefined,
                 }
               : {
                   line_type: "expense" as const,
                   account_id: row.accountId,
                   project_id: row.projectId,
-                  amount: row.amount,
+                  lot_id: l.lotId || undefined,
+                  amount: l.amount,
                   memo: row.description || undefined,
                 },
-          ],
+          ),
         });
 
         const newId = (result as any)?.id;
-        if (newId) createdIds.push(newId);
+        if (newId) {
+          createdIds.push(newId);
+          for (const file of row.files || []) {
+            const filePath = `check-attachments/${newId}/${Date.now()}_${sanitize(file.name)}`;
+            const { error: upErr } = await supabase.storage
+              .from("project-files")
+              .upload(filePath, file);
+            if (upErr) {
+              console.error("[multi-check] attachment upload failed", upErr);
+              continue;
+            }
+            await supabase.from("check_attachments").insert({
+              check_id: newId,
+              file_name: file.name,
+              file_path: filePath,
+              file_size: file.size,
+              content_type: file.type,
+              uploaded_by: userId,
+            });
+          }
+        }
       }
 
       if (createdIds.length > 0) {
