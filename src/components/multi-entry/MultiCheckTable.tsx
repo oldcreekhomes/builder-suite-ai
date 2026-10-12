@@ -48,6 +48,7 @@ import {
   MultiCheckRowInput,
 } from "@/hooks/useMultiCheckBatchSave";
 import { toast } from "@/hooks/use-toast";
+import { checkGroupTotal, groupCheckRows, splitCheckAmount } from "@/lib/multiCheckGroups";
 
 interface Row {
   id: string;
@@ -154,6 +155,8 @@ export function MultiCheckTable() {
       ? initialDraft.rows
       : Array.from({ length: 5 }, () => blankRow(new Date(), "cost_code")),
   );
+  const [amountEdits, setAmountEdits] = useState<Record<string, string>>({});
+  const visibleGroups = useMemo(() => groupCheckRows(rows), [rows]);
 
   // Persist the draft on every change so leaving the page never loses work.
   useEffect(() => {
@@ -205,9 +208,7 @@ export function MultiCheckTable() {
       if (!row) return rs;
       const lots = lotsFor(row.projectId);
       if (lots.length < 2) return rs;
-      const totalValue = Math.round((Number(row.amount) || 0) * 100) / 100;
-      const perLot = Math.floor((totalValue / lots.length) * 100) / 100;
-      const remainder = Math.round((totalValue - perLot * (lots.length - 1)) * 100) / 100;
+      const amounts = splitCheckAmount(row.amount, lots.length);
       const groupId = crypto.randomUUID();
       const newRows: Row[] = lots.map((lot, i) => ({
         ...row,
@@ -215,7 +216,7 @@ export function MultiCheckTable() {
         lotId: lot.id,
         splitGroupId: groupId,
         attachments: i === 0 ? row.attachments : [],
-        amount: (i === lots.length - 1 ? remainder : perLot).toFixed(2),
+        amount: amounts[i],
       }));
       const idx = rs.findIndex((r) => r.id === rowId);
       return [...rs.slice(0, idx), ...newRows, ...rs.slice(idx + 1)];
@@ -274,12 +275,29 @@ export function MultiCheckTable() {
   const updateRow = (id: string, patch: Partial<Row>) =>
     setRows((rs) => {
       const target = rs.find((r) => r.id === id);
+      if (!target) return rs;
+      const group = target.splitGroupId
+        ? rs.filter((r) => r.splitGroupId === target.splitGroupId) : [target];
+      // A new project must become one unsplit check, never orphan detail rows.
+      if ("projectId" in patch && target.splitGroupId) {
+        return rs.flatMap((r) => {
+          if (r.id === id) return [{ ...r, amount: checkGroupTotal(group).toFixed(2),
+            attachments: group.flatMap((g) => g.attachments), ...patch }];
+          return r.splitGroupId === target.splitGroupId ? [] : [r];
+        });
+      }
+      const amounts = "amount" in patch && target.splitGroupId
+        ? splitCheckAmount(patch.amount || "", group.length) : undefined;
       const shared: Partial<Row> = {};
       for (const k of SHARED_KEYS) if (k in patch) (shared as any)[k] = (patch as any)[k];
       return rs.map((r) => {
+        if (target.splitGroupId && r.splitGroupId === target.splitGroupId) {
+          return { ...r, ...shared,
+            ...(amounts ? { amount: amounts[group.findIndex((g) => g.id === r.id)] } : {}),
+            ...("attachments" in patch ? { attachments: r.id === id ? patch.attachments || [] : [] } : {}),
+          };
+        }
         if (r.id === id) return { ...r, ...patch };
-        if (target?.splitGroupId && r.splitGroupId === target.splitGroupId && Object.keys(shared).length)
-          return { ...r, ...shared };
         return r;
       });
     });
@@ -298,9 +316,15 @@ export function MultiCheckTable() {
 
   const addRow = () => setRows((rs) => [...rs, blankRow(defaultDate, entryType)]);
   const removeRow = (id: string) =>
-    setRows((rs) => (rs.length > 1 ? rs.filter((r) => r.id !== id) : rs));
+    setRows((rs) => {
+      const target = rs.find((r) => r.id === id);
+      if (!target || groupCheckRows(rs).length <= 1) return rs;
+      return rs.filter((r) => target.splitGroupId
+        ? r.splitGroupId !== target.splitGroupId : r.id !== id);
+    });
 
   const clearAll = () => {
+    setAmountEdits({});
     draftCache = null;
     try { localStorage.removeItem(DRAFT_KEY); } catch { /* ignore */ }
     setRows(Array.from({ length: 5 }, () => blankRow(defaultDate, entryType)));
@@ -321,7 +345,7 @@ export function MultiCheckTable() {
   };
 
   const total = useMemo(
-    () => rows.reduce((s, r) => s + (Number(r.amount) || 0), 0),
+    () => checkGroupTotal(rows),
     [rows],
   );
 
@@ -345,17 +369,7 @@ export function MultiCheckTable() {
     const payload: MultiCheckRowInput[] = [];
 
     // Collapse split rows into one check each
-    const groups: Row[][] = [];
-    const seen = new Map<string, Row[]>();
-    for (const r of nonEmpty) {
-      if (r.splitGroupId) {
-        const g = seen.get(r.splitGroupId);
-        if (g) { g.push(r); continue; }
-        const ng = [r];
-        seen.set(r.splitGroupId, ng);
-        groups.push(ng);
-      } else groups.push([r]);
-    }
+    const groups = groupCheckRows(nonEmpty);
 
     groups.forEach((group, idx) => {
       const r = group[0];
@@ -500,8 +514,24 @@ export function MultiCheckTable() {
             </TableRow>
           </TableHeader>
           <TableBody>
-            {rows.map((r) => (
-              <TableRow key={r.id} className="align-top">
+            {visibleGroups.map((group) => {
+              const r = group[0];
+              const split = !!r.splitGroupId;
+              const lotMap = new Map<string, { name: string; order: number; cents: number }>();
+              for (const line of group) {
+                if (!line.lotId) continue;
+                const lot = lotsFor(r.projectId).find((l) => l.id === line.lotId);
+                const existing = lotMap.get(line.lotId);
+                const cents = Math.round((Number(line.amount) || 0) * 100);
+                if (existing) existing.cents += cents;
+                else lotMap.set(line.lotId, {
+                  name: lot?.lot_name || (lot ? `Lot ${lot.lot_number}` : "Address"),
+                  order: lot?.lot_number ?? Number.MAX_SAFE_INTEGER, cents,
+                });
+              }
+              const breakdown = Array.from(lotMap.values()).sort((a, b) => a.order - b.order || a.name.localeCompare(b.name));
+              return (
+              <TableRow key={r.id} className="h-11 align-top">
                 <TableCell>
                   <ProjectPickerPopover
                     value={r.projectId}
@@ -598,8 +628,15 @@ export function MultiCheckTable() {
                 </TableCell>
                 <TableCell className="text-right">
                   <Input
-                    value={r.amount}
-                    onChange={(e) => updateRow(r.id, { amount: e.target.value })}
+                    aria-label="Check amount"
+                    value={split ? amountEdits[r.id] ?? checkGroupTotal(group).toFixed(2) : r.amount}
+                    onChange={(e) => {
+                      if (split) setAmountEdits((edits) => ({ ...edits, [r.id]: e.target.value }));
+                      updateRow(r.id, { amount: e.target.value });
+                    }}
+                    onBlur={() => setAmountEdits((edits) => {
+                      const next = { ...edits }; delete next[r.id]; return next;
+                    })}
                     inputMode="decimal"
                     placeholder="0.00"
                     className="text-right"
@@ -607,7 +644,33 @@ export function MultiCheckTable() {
                 </TableCell>
                 {showAddressColumn && (
                   <TableCell>
-                    {lotsFor(r.projectId).length > 1 ? (
+                    {split ? (
+                      <TooltipProvider>
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <Button variant="ghost" size="sm" aria-label={`${breakdown.length} lots allocation`}>
+                              {breakdown.length > 1 ? `+${breakdown.length}` : breakdown[0]?.name || "—"}
+                            </Button>
+                          </TooltipTrigger>
+                          <TooltipContent className="max-w-xs">
+                            <div className="space-y-2">
+                              <div className="font-medium text-xs">{r.entryType === "cost_code" ? r.costCodeLabel : r.accountLabel}</div>
+                              <div className="max-h-80 overflow-y-auto pl-2 space-y-0.5">
+                                {breakdown.map((lot, i) => (
+                                  <div key={i} className="flex justify-between gap-4 text-xs">
+                                    <span className="text-muted-foreground">{lot.name}:</span>
+                                    <span>{fmtMoney(lot.cents / 100)}</span>
+                                  </div>
+                                ))}
+                              </div>
+                              <div className="border-t pt-1 flex justify-between gap-4 font-medium text-xs">
+                                <span>Total:</span><span>{fmtMoney(checkGroupTotal(group))}</span>
+                              </div>
+                            </div>
+                          </TooltipContent>
+                        </Tooltip>
+                      </TooltipProvider>
+                    ) : lotsFor(r.projectId).length > 1 ? (
                       <div className="flex items-center gap-1">
                         <Select
                           value={r.lotId || ""}
@@ -630,8 +693,9 @@ export function MultiCheckTable() {
                               <Button
                                 onClick={() => splitRowEvenly(r.id)}
                                 size="sm"
-                                variant="ghost"
-                                className="h-8 w-8 p-0 shrink-0"
+                                variant="outline"
+                                className="shrink-0"
+                                aria-label="Split evenly across all addresses"
                                 disabled={!!r.lotId || (Number(r.amount) || 0) <= 0}
                               >
                                 <Divide className="h-4 w-4" />
@@ -650,7 +714,7 @@ export function MultiCheckTable() {
                   <CheckAttachmentUpload
                     inputId={`multi-check-file-${r.id}`}
                     compact
-                    attachments={r.attachments}
+                    attachments={group.flatMap((g) => g.attachments)}
                     onAttachmentsChange={(a) => updateRow(r.id, { attachments: a })}
                   />
                 </TableCell>
@@ -661,13 +725,14 @@ export function MultiCheckTable() {
                         label: "Delete",
                         variant: "destructive",
                         onClick: () => removeRow(r.id),
-                        disabled: rows.length === 1,
+                         disabled: visibleGroups.length === 1,
                       },
                     ]}
                   />
                 </TableCell>
               </TableRow>
-            ))}
+            );
+            })}
           </TableBody>
         </Table>
       </div>
