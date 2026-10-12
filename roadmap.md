@@ -1,6 +1,7 @@
 # Roadmap
 
 ## In progress
+- [ ] Multiple Checks: entered-order summary, complete file saving with safe retry, wider cost code, corrected alignment
 - [x] Multiple Checks: cents on blur and all entry fields in saved summary (build and allocation tests passed; signed-in verification unavailable with external auth)
 - [x] Cash Position card below Multiple Project Entries (Owner + Accountant dashboards)
   - [x] Card UI: Active Amount | Approved Bills (10/15/20 days) | Total (green/red)
