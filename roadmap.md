@@ -15,6 +15,6 @@
 - [x] Enter Multiple Checks: one visible row per split check with lot-count hover breakdown (grouping/math tests passed; signed-in UI verification unavailable with external auth)
 
 ## Open (blocked on user)
-- [ ] Restore confirmed identical PDF for all six Oct 12 batch checks and protect shared file references from deletion
+- [x] Restore confirmed identical PDF for all six Oct 12 batch checks and protect shared file references from deletion (six attachments verified; three deletion-safety tests passed; signed-in preview unavailable)
 - [ ] Green Landscaping MSG527 — how/when was it actually paid?
 - [ ] Airtron at 1 East Custis — resend HVAC package invite or upload proposal
