@@ -1,6 +1,20 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { format } from "date-fns";
-import { ChevronDown, MoreHorizontal, Plus } from "lucide-react";
+import { ChevronDown, Divide, MoreHorizontal, Plus } from "lucide-react";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
+import { CheckAttachmentUpload, type CheckAttachment } from "@/components/checks/CheckAttachmentUpload";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 
@@ -51,7 +65,45 @@ interface Row {
   costCodeLabel: string;
   description: string;
   amount: string;
+  lotId: string;
+  /** Rows sharing a splitGroupId save as ONE check with one line per lot. */
+  splitGroupId: string;
+  attachments: CheckAttachment[];
 }
+
+interface ProjectLotLite {
+  id: string;
+  project_id: string;
+  lot_number: number;
+  lot_name: string | null;
+}
+
+// Draft persistence: in-memory cache keeps File attachments across in-app
+// navigation; localStorage keeps the text fields across a full page reload.
+const DRAFT_KEY = "multi_check_draft_v1";
+let draftCache: { rows: Row[]; defaultDate: string; entryType: Row["entryType"] } | null = null;
+
+const loadDraft = () => {
+  if (draftCache) return draftCache;
+  try {
+    const raw = localStorage.getItem(DRAFT_KEY);
+    if (!raw) return null;
+    const d = JSON.parse(raw);
+    return {
+      defaultDate: d.defaultDate,
+      entryType: d.entryType,
+      rows: (d.rows || []).map((r: any) => ({
+        ...r,
+        checkDate: new Date(r.checkDate),
+        lotId: r.lotId || "",
+        splitGroupId: r.splitGroupId || "",
+        attachments: [],
+      })),
+    };
+  } catch {
+    return null;
+  }
+};
 
 const STATUS_ORDER = ["Under Construction", "Permitting", "In Design"] as const;
 
@@ -71,6 +123,9 @@ const blankRow = (defaultDate: Date, type: Row["entryType"] = "cost_code"): Row 
   costCodeLabel: "",
   description: "",
   amount: "",
+  lotId: "",
+  splitGroupId: "",
+  attachments: [],
 });
 
 const fmtMoney = (n: number) =>
@@ -87,11 +142,85 @@ export function MultiCheckTable() {
   const queryClient = useQueryClient();
   const saveMutation = useMultiCheckBatchSave();
 
-  const [defaultDate, setDefaultDate] = useState<Date>(new Date());
-  const [entryType, setEntryType] = useState<Row["entryType"]>("cost_code");
-  const [rows, setRows] = useState<Row[]>(() =>
-    Array.from({ length: 5 }, () => blankRow(new Date(), "cost_code")),
+  const [initialDraft] = useState(loadDraft);
+  const [defaultDate, setDefaultDate] = useState<Date>(() =>
+    initialDraft?.defaultDate ? new Date(initialDraft.defaultDate) : new Date(),
   );
+  const [entryType, setEntryType] = useState<Row["entryType"]>(
+    initialDraft?.entryType || "cost_code",
+  );
+  const [rows, setRows] = useState<Row[]>(() =>
+    initialDraft?.rows?.length
+      ? initialDraft.rows
+      : Array.from({ length: 5 }, () => blankRow(new Date(), "cost_code")),
+  );
+
+  // Persist the draft on every change so leaving the page never loses work.
+  useEffect(() => {
+    draftCache = { rows, defaultDate: defaultDate.toISOString(), entryType };
+    try {
+      localStorage.setItem(
+        DRAFT_KEY,
+        JSON.stringify({
+          defaultDate: defaultDate.toISOString(),
+          entryType,
+          rows: rows.map(({ attachments, ...r }) => ({
+            ...r,
+            checkDate: r.checkDate.toISOString(),
+          })),
+        }),
+      );
+    } catch {
+      /* storage full / unavailable — in-memory cache still works */
+    }
+  }, [rows, defaultDate, entryType]);
+
+  // Lots for every project picked on the page (one query)
+  const pickedProjectIds = useMemo(
+    () => Array.from(new Set(rows.map((r) => r.projectId).filter(Boolean))).sort(),
+    [rows],
+  );
+  const { data: lotsByProject = {} } = useQuery({
+    queryKey: ["multi-check-lots", pickedProjectIds],
+    enabled: pickedProjectIds.length > 0,
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("project_lots")
+        .select("id, project_id, lot_number, lot_name")
+        .in("project_id", pickedProjectIds)
+        .order("lot_number", { ascending: true });
+      if (error) throw error;
+      const map: Record<string, ProjectLotLite[]> = {};
+      for (const l of (data || []) as ProjectLotLite[]) (map[l.project_id] ||= []).push(l);
+      return map;
+    },
+  });
+  const lotsFor = (projectId: string) => lotsByProject[projectId] || [];
+  const showAddressColumn = rows.some((r) => lotsFor(r.projectId).length > 1);
+
+  // Same penny-precise even split as Enter Bills / Write Checks
+  const splitRowEvenly = (rowId: string) => {
+    setRows((rs) => {
+      const row = rs.find((r) => r.id === rowId);
+      if (!row) return rs;
+      const lots = lotsFor(row.projectId);
+      if (lots.length < 2) return rs;
+      const totalValue = Math.round((Number(row.amount) || 0) * 100) / 100;
+      const perLot = Math.floor((totalValue / lots.length) * 100) / 100;
+      const remainder = Math.round((totalValue - perLot * (lots.length - 1)) * 100) / 100;
+      const groupId = crypto.randomUUID();
+      const newRows: Row[] = lots.map((lot, i) => ({
+        ...row,
+        id: i === 0 ? row.id : crypto.randomUUID(),
+        lotId: lot.id,
+        splitGroupId: groupId,
+        attachments: i === 0 ? row.attachments : [],
+        amount: (i === lots.length - 1 ? remainder : perLot).toFixed(2),
+      }));
+      const idx = rs.findIndex((r) => r.id === rowId);
+      return [...rs.slice(0, idx), ...newRows, ...rs.slice(idx + 1)];
+    });
+  };
 
   // Group active projects the same way Active Jobs table does
   const groupedProjects = useMemo(() => {
@@ -136,14 +265,32 @@ export function MultiCheckTable() {
 
   const labelForAccount = (a: any) => (a ? `${a.code} - ${a.name}` : "");
 
+  // Header fields stay in sync across rows of the same split check
+  const SHARED_KEYS: (keyof Row)[] = [
+    "projectId", "checkDate", "bankAccountId", "bankAccountLabel", "payToCompanyId",
+    "payToName", "checkNumber", "accountId", "accountLabel", "costCodeId",
+    "costCodeLabel", "description",
+  ];
   const updateRow = (id: string, patch: Partial<Row>) =>
-    setRows((rs) => rs.map((r) => (r.id === id ? { ...r, ...patch } : r)));
+    setRows((rs) => {
+      const target = rs.find((r) => r.id === id);
+      const shared: Partial<Row> = {};
+      for (const k of SHARED_KEYS) if (k in patch) (shared as any)[k] = (patch as any)[k];
+      return rs.map((r) => {
+        if (r.id === id) return { ...r, ...patch };
+        if (target?.splitGroupId && r.splitGroupId === target.splitGroupId && Object.keys(shared).length)
+          return { ...r, ...shared };
+        return r;
+      });
+    });
 
   const handleProjectPick = (id: string, projectId: string) => {
     const defaultBankId = projectBankDefaults[projectId] || "";
     const acct = (accounts || []).find((a: any) => a.id === defaultBankId);
     updateRow(id, {
       projectId,
+      lotId: "",
+      splitGroupId: "",
       bankAccountId: defaultBankId,
       bankAccountLabel: acct ? labelForAccount(acct) : "",
     });
@@ -153,8 +300,11 @@ export function MultiCheckTable() {
   const removeRow = (id: string) =>
     setRows((rs) => (rs.length > 1 ? rs.filter((r) => r.id !== id) : rs));
 
-  const clearAll = () =>
+  const clearAll = () => {
+    draftCache = null;
+    try { localStorage.removeItem(DRAFT_KEY); } catch { /* ignore */ }
     setRows(Array.from({ length: 5 }, () => blankRow(defaultDate, entryType)));
+  };
 
   const handleEntryTypeChange = (type: Row["entryType"]) => {
     setEntryType(type);
@@ -194,8 +344,25 @@ export function MultiCheckTable() {
     const errors: string[] = [];
     const payload: MultiCheckRowInput[] = [];
 
-    nonEmpty.forEach((r, idx) => {
-      const rowLabel = `Row ${idx + 1}`;
+    // Collapse split rows into one check each
+    const groups: Row[][] = [];
+    const seen = new Map<string, Row[]>();
+    for (const r of nonEmpty) {
+      if (r.splitGroupId) {
+        const g = seen.get(r.splitGroupId);
+        if (g) { g.push(r); continue; }
+        const ng = [r];
+        seen.set(r.splitGroupId, ng);
+        groups.push(ng);
+      } else groups.push([r]);
+    }
+
+    groups.forEach((group, idx) => {
+      const r = group[0];
+      const rowLabel = `Check ${idx + 1}`;
+      const lineCents = group.map((g) => Math.round((Number(g.amount) || 0) * 100));
+      if (group.some((g) => lotsFor(g.projectId).length > 1 && !g.lotId))
+        errors.push(`${rowLabel}: pick an address or split it.`);
       if (!r.projectId) errors.push(`${rowLabel}: pick a project.`);
       if (!r.bankAccountId) errors.push(`${rowLabel}: pick a pay-from bank account.`);
       if (!r.payToName) errors.push(`${rowLabel}: pick who the check is paid to.`);
@@ -204,7 +371,7 @@ export function MultiCheckTable() {
       } else if (!r.accountId) {
         errors.push(`${rowLabel}: pick an account.`);
       }
-      const amt = Math.round((Number(r.amount) || 0) * 100) / 100;
+      const amt = lineCents.reduce((a, b) => a + b, 0) / 100;
       if (!amt || amt <= 0) errors.push(`${rowLabel}: enter an amount greater than 0.`);
       if (errors.length === 0) {
         payload.push({
@@ -219,6 +386,8 @@ export function MultiCheckTable() {
           costCodeId: r.entryType === "cost_code" ? r.costCodeId : undefined,
           description: r.description || undefined,
           amount: amt,
+          lines: group.map((g, i) => ({ lotId: g.lotId || undefined, amount: lineCents[i] / 100 })),
+          files: group.flatMap((g) => g.attachments.map((a) => a.file).filter(Boolean) as File[]),
         });
       }
     });
@@ -324,7 +493,9 @@ export function MultiCheckTable() {
                 </DropdownMenu>
               </TableHead>
               <TableHead>Description</TableHead>
-              <TableHead className="w-[90px] text-right">Amount</TableHead>
+              <TableHead className="w-[110px] text-right">Amount</TableHead>
+              {showAddressColumn && <TableHead className="w-[190px]">Address</TableHead>}
+              <TableHead className="w-[110px]">Files</TableHead>
               <TableHead className="w-[60px]"></TableHead>
             </TableRow>
           </TableHeader>
@@ -432,6 +603,55 @@ export function MultiCheckTable() {
                     inputMode="decimal"
                     placeholder="0.00"
                     className="text-right"
+                  />
+                </TableCell>
+                {showAddressColumn && (
+                  <TableCell>
+                    {lotsFor(r.projectId).length > 1 ? (
+                      <div className="flex items-center gap-1">
+                        <Select
+                          value={r.lotId || ""}
+                          onValueChange={(v) => updateRow(r.id, { lotId: v })}
+                        >
+                          <SelectTrigger className="h-9">
+                            <SelectValue placeholder="Select" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {lotsFor(r.projectId).map((lot) => (
+                              <SelectItem key={lot.id} value={lot.id}>
+                                {lot.lot_name || `Lot ${lot.lot_number}`}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                        <TooltipProvider>
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <Button
+                                onClick={() => splitRowEvenly(r.id)}
+                                size="sm"
+                                variant="ghost"
+                                className="h-8 w-8 p-0 shrink-0"
+                                disabled={!!r.lotId || (Number(r.amount) || 0) <= 0}
+                              >
+                                <Divide className="h-4 w-4" />
+                              </Button>
+                            </TooltipTrigger>
+                            <TooltipContent>
+                              <p>Split evenly across all addresses</p>
+                            </TooltipContent>
+                          </Tooltip>
+                        </TooltipProvider>
+                      </div>
+                    ) : null}
+                  </TableCell>
+                )}
+                <TableCell>
+                  <CheckAttachmentUpload
+                    inputId={`multi-check-file-${r.id}`}
+                    compact
+                    attachments={r.attachments}
+                    onAttachmentsChange={(a) => updateRow(r.id, { attachments: a })}
                   />
                 </TableCell>
                 <TableCell className="text-right">

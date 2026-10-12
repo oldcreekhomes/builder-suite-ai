@@ -14,7 +14,7 @@ export default function MultipleChecks() {
           <SidebarInset className="flex-1">
             <CompanyDashboardHeader title=" " />
             <main className="flex-1 overflow-auto">
-              <div className="container mx-auto p-6 space-y-6">
+              <div className="flex-1 px-6 pt-3 pb-6 space-y-6">
                 <MultiCheckTable />
                 <MultiCheckBatchHistory />
               </div>

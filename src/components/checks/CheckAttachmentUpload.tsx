@@ -18,13 +18,19 @@ interface CheckAttachmentUploadProps {
   onAttachmentsChange: (attachments: CheckAttachment[]) => void;
   checkId?: string;
   disabled?: boolean;
+  /** Unique id when several uploaders render on one page. */
+  inputId?: string;
+  /** Compact icon-sized button for table rows. */
+  compact?: boolean;
 }
 
 export function CheckAttachmentUpload({ 
   attachments, 
   onAttachmentsChange, 
   checkId,
-  disabled = false 
+  disabled = false,
+  inputId = 'check-file-input',
+  compact = false,
 }: CheckAttachmentUploadProps) {
   const [isUploading, setIsUploading] = useState(false);
 
@@ -267,15 +273,15 @@ export function CheckAttachmentUpload({
       <Button
         variant="outline"
         size="sm"
-        onClick={() => document.getElementById('check-file-input')?.click()}
+        onClick={() => document.getElementById(inputId)?.click()}
         disabled={disabled || isUploading}
-        className="h-10 flex-1"
+        className={compact ? "h-9 px-2" : "h-10 flex-1"}
       >
-        {isUploading ? 'Uploading...' : 'Add Files'}
+        {isUploading ? 'Uploading...' : compact ? 'Files' : 'Add Files'}
       </Button>
       
       <input
-        id="check-file-input"
+        id={inputId}
         type="file"
         multiple
         onChange={handleFileSelect}
