@@ -1,4 +1,5 @@
-import { useState } from "react";
+import { Fragment, useState } from "react";
+import { CheckSummaryAddress, CheckSummaryFiles, SummaryText } from "./MultiCheckSummaryDetails";
 import { format } from "date-fns";
 import { ChevronDown, ChevronRight, Loader2, Lock, Trash2 } from "lucide-react";
 import { useMultiCheckBatches } from "@/hooks/useMultiCheckBatches";
@@ -117,7 +118,7 @@ export function MultiCheckBatchHistory() {
               const isOpen = openId === b.batchId;
               const hasLocked = b.checks.some((c) => c.reconciled || !!c.reconciliation_id);
               return (
-                <>
+                <Fragment key={b.batchId}>
                   <TableRow
                     key={b.batchId}
                     className="cursor-pointer"
@@ -153,36 +154,42 @@ export function MultiCheckBatchHistory() {
                     <TableRow>
                       <TableCell colSpan={7} className="bg-muted/30 p-0">
                         <div className="p-3">
-                          <Table>
+                          <Table className="table-fixed min-w-[1400px]">
                             <TableHeader>
                               <TableRow>
-                                <TableHead>Date</TableHead>
-                                <TableHead>Project</TableHead>
-                                <TableHead>Bank</TableHead>
-                                <TableHead>Pay To</TableHead>
-                                <TableHead>Check #</TableHead>
-                                <TableHead>Description</TableHead>
-                                <TableHead className="text-right">Amount</TableHead>
+                                <TableHead className="w-[240px]">Project</TableHead>
+                                <TableHead className="w-[100px]">Date</TableHead>
+                                <TableHead className="w-[190px]">Pay From (Bank)</TableHead>
+                                <TableHead className="w-[160px]">Pay To</TableHead>
+                                <TableHead className="w-[80px]">Check #</TableHead>
+                                <TableHead className="w-[200px]">Cost Code / Account</TableHead>
+                                <TableHead className="w-[170px]">Description</TableHead>
+                                <TableHead className="w-[120px] text-right">Amount</TableHead>
+                                <TableHead className="w-[100px]">Address</TableHead>
+                                <TableHead className="w-[100px]">Files</TableHead>
                               </TableRow>
                             </TableHeader>
                             <TableBody>
                               {b.checks.map((c) => (
                                 <TableRow
                                   key={c.id}
-                                  className="cursor-pointer"
+                                   className="h-11 cursor-pointer"
                                   onClick={() => {
                                     if (c.project_id) {
                                       window.location.href = `/project/${c.project_id}/accounting/transactions?tab=write-checks&checkId=${c.id}`;
                                     }
                                   }}
                                 >
-                                  <TableCell>{format(new Date(c.check_date), "MM/dd/yyyy")}</TableCell>
-                                  <TableCell>{c.project_address || "—"}</TableCell>
-                                  <TableCell>{c.bank_account_label || "—"}</TableCell>
-                                  <TableCell>{c.pay_to || "—"}</TableCell>
-                                  <TableCell>{c.check_number || "—"}</TableCell>
-                                  <TableCell className="truncate max-w-[240px]">{c.memo || "—"}</TableCell>
+                                   <TableCell><SummaryText text={c.project_address || "—"} /></TableCell>
+                                   <TableCell>{format(new Date(`${c.check_date}T00:00:00`), "MM/dd/yyyy")}</TableCell>
+                                   <TableCell><SummaryText text={c.bank_account_label || "—"} /></TableCell>
+                                   <TableCell><SummaryText text={c.pay_to || "—"} /></TableCell>
+                                   <TableCell><SummaryText text={c.check_number || "—"} /></TableCell>
+                                   <TableCell><SummaryText text={Array.from(new Set(c.lines.map(l => l.label))).join(", ") || "—"} /></TableCell>
+                                   <TableCell><SummaryText text={c.memo || "—"} /></TableCell>
                                   <TableCell className="text-right">{fmtMoney(c.amount)}</TableCell>
+                                   <TableCell><CheckSummaryAddress check={c} /></TableCell>
+                                   <TableCell><CheckSummaryFiles check={c} /></TableCell>
                                 </TableRow>
                               ))}
                             </TableBody>
@@ -191,7 +198,7 @@ export function MultiCheckBatchHistory() {
                       </TableCell>
                     </TableRow>
                   )}
-                </>
+                </Fragment>
               );
             })}
           </TableBody>
