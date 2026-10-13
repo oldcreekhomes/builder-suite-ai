@@ -10,6 +10,7 @@ const ALLOWED_REDIRECTS = new Set([
   "https://buildersuiteai.com/plaid/oauth",
   "https://builder-suite-ai.lovable.app/plaid/oauth",
   "https://id-preview--7f4eccd7-6d58-465f-a474-4c0fb79b4bab.lovable.app/plaid/oauth",
+  "https://7f4eccd7-6d58-465f-a474-4c0fb79b4bab.lovableproject.com/plaid/oauth",
 ]);
 
 class PlaidError extends Error {}
