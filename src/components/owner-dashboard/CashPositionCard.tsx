@@ -126,15 +126,17 @@ export function CashPositionCard({ scope = "company" }: { scope?: CashPositionSc
             <Wallet className="h-5 w-5 text-primary shrink-0" />
             <h3 className="text-lg font-semibold truncate">Cash Position</h3>
           </div>
-          <div className="relative">
-            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
-            <Input
-              placeholder="Search..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className={cn("pl-9 w-64", managerView && "w-40 max-w-full")}
-            />
-          </div>
+          {!managerView && (
+            <div className="relative">
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
+              <Input
+                placeholder="Search..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="pl-9 w-64"
+              />
+            </div>
+          )}
         </div>
         <div className="flex items-center gap-2">
           <Select value={String(days)} onValueChange={(v) => setDays(Number(v))}>
