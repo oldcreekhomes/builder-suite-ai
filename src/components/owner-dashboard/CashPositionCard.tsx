@@ -20,6 +20,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
+import { Card } from "@/components/ui/card";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { useProjects } from "@/hooks/useProjects";
 import { cn } from "@/lib/utils";
@@ -118,11 +119,11 @@ export function CashPositionCard({ scope = "company" }: { scope?: CashPositionSc
   const netClass = (n: number) => (n < 0 ? "text-destructive" : "text-green-600");
 
   return (
-    <div className={cn("rounded-lg border bg-card flex flex-col min-w-0", managerView && "h-full overflow-hidden")}>
-      <div className={cn("p-4 border-b flex items-center justify-between gap-2", managerView && "flex-wrap shrink-0")}>
+    <Card className={cn("flex flex-col min-w-0", managerView && "h-full overflow-hidden")}>
+      <div className={cn("p-6 border-b flex items-center justify-between gap-2", managerView && "flex-wrap shrink-0")}>
         <div className={cn("flex items-center gap-4", managerView && "flex-wrap min-w-0 flex-1")}>
           <div className="flex items-center gap-2 min-w-0">
-            <Wallet className="h-4 w-4 text-muted-foreground shrink-0" />
+            <Wallet className="h-5 w-5 text-primary shrink-0" />
             <h3 className="text-lg font-semibold truncate">Cash Position</h3>
           </div>
           <div className="relative">
@@ -137,7 +138,7 @@ export function CashPositionCard({ scope = "company" }: { scope?: CashPositionSc
         </div>
         <div className="flex items-center gap-2">
           <Select value={String(days)} onValueChange={(v) => setDays(Number(v))}>
-            <SelectTrigger className="h-8 w-[110px] text-xs">
+            <SelectTrigger className="h-9 w-[110px] text-sm font-medium">
               <SelectValue />
             </SelectTrigger>
             <SelectContent className="z-[100] bg-popover">
@@ -148,13 +149,13 @@ export function CashPositionCard({ scope = "company" }: { scope?: CashPositionSc
               ))}
             </SelectContent>
           </Select>
-          <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => query.refetch()} title="Refresh">
+          <Button variant="outline" size="sm" className="w-9 px-0 shrink-0" onClick={() => query.refetch()} title="Refresh" aria-label="Refresh Cash Position">
             <RefreshCw className={cn("h-4 w-4", query.isFetching && "animate-spin")} />
           </Button>
         </div>
       </div>
 
-      <Table className={cn("table-fixed", managerView && "min-w-[900px]")}
+      <Table className={cn("table-fixed text-sm font-normal", managerView && "min-w-[900px]")}
         containerClassName={managerView ? "relative w-full min-h-0 flex-1 overflow-auto" : undefined}>
         <TableHeader>
           <TableRow className="h-11">
@@ -186,7 +187,7 @@ export function CashPositionCard({ scope = "company" }: { scope?: CashPositionSc
                 : "";
               return (
                 <TableRow key={r.project_id} className="h-11">
-                  <TableCell className="truncate pl-4 font-medium" title={shortAddress(r.address)}>
+                  <TableCell className="truncate pl-4" title={shortAddress(r.address)}>
                     {shortAddress(r.address)}
                   </TableCell>
                   <TableCell className="text-center">
@@ -213,7 +214,7 @@ export function CashPositionCard({ scope = "company" }: { scope?: CashPositionSc
                   </TableCell>
                   <TableCell className="tabular-nums whitespace-nowrap">{formatCurrency(r.bank_balance)}</TableCell>
                   <TableCell className="tabular-nums whitespace-nowrap">{formatCurrency(r.approved_due)}</TableCell>
-                  <TableCell className={cn("tabular-nums whitespace-nowrap font-semibold", netClass(net))}>
+                  <TableCell className={cn("tabular-nums whitespace-nowrap", netClass(net))}>
                     {formatCurrency(net)}
                   </TableCell>
                 </TableRow>
@@ -239,6 +240,6 @@ export function CashPositionCard({ scope = "company" }: { scope?: CashPositionSc
       <p className="px-4 py-2 text-[11px] text-muted-foreground shrink-0">
         Approved bills include anything already past due.
       </p>
-    </div>
+    </Card>
   );
 }
