@@ -457,6 +457,81 @@ export type Database = {
           },
         ]
       }
+      bank_connections: {
+        Row: {
+          access_token: string
+          account_id: string
+          account_label: string | null
+          account_mask: string | null
+          available_balance: number | null
+          created_at: string
+          created_by: string | null
+          current_balance: number | null
+          id: string
+          institution_name: string | null
+          last_error: string | null
+          last_synced_at: string | null
+          owner_id: string
+          plaid_account_id: string
+          plaid_item_id: string
+          project_id: string
+          updated_at: string
+        }
+        Insert: {
+          access_token: string
+          account_id: string
+          account_label?: string | null
+          account_mask?: string | null
+          available_balance?: number | null
+          created_at?: string
+          created_by?: string | null
+          current_balance?: number | null
+          id?: string
+          institution_name?: string | null
+          last_error?: string | null
+          last_synced_at?: string | null
+          owner_id: string
+          plaid_account_id: string
+          plaid_item_id: string
+          project_id: string
+          updated_at?: string
+        }
+        Update: {
+          access_token?: string
+          account_id?: string
+          account_label?: string | null
+          account_mask?: string | null
+          available_balance?: number | null
+          created_at?: string
+          created_by?: string | null
+          current_balance?: number | null
+          id?: string
+          institution_name?: string | null
+          last_error?: string | null
+          last_synced_at?: string | null
+          owner_id?: string
+          plaid_account_id?: string
+          plaid_item_id?: string
+          project_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "bank_connections_account_id_fkey"
+            columns: ["account_id"]
+            isOneToOne: false
+            referencedRelation: "accounts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "bank_connections_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       bank_reconciliations: {
         Row: {
           bank_account_id: string
