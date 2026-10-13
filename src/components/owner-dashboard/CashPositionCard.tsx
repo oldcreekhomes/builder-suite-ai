@@ -155,26 +155,26 @@ export function CashPositionCard({ scope = "company" }: { scope?: CashPositionSc
         </div>
       </div>
 
-      <Table className={cn("table-fixed text-sm font-normal", managerView && "min-w-[900px]")}
+      <Table className="table-fixed text-sm font-normal [&_tbody_tr]:h-8 [&_tfoot_tr]:h-8 [&_td]:py-1"
         containerClassName={managerView ? "relative w-full min-h-0 flex-1 overflow-auto" : undefined}>
         <TableHeader>
           <TableRow className="h-11">
-            <TableHead className="w-[22%] pl-4">Job</TableHead>
-            <TableHead className="w-[8%] text-center">Manager</TableHead>
-            <TableHead className="w-[20%]">Bank Account</TableHead>
-            <TableHead className="w-[16%]">Bank Balance</TableHead>
-            <TableHead className="w-[18%]">Approved Bills ({days} days)</TableHead>
-            <TableHead className="w-[16%]">Total</TableHead>
+            <TableHead className={cn("pl-4", managerView ? "w-[26%]" : "w-[22%]")}>Job</TableHead>
+            {!managerView && <TableHead className="w-[8%] text-center">Manager</TableHead>}
+            <TableHead className={managerView ? "w-[23%]" : "w-[20%]"}>Bank Account</TableHead>
+            <TableHead className={managerView ? "w-[17%]" : "w-[16%]"}>Bank Balance</TableHead>
+            <TableHead className={managerView ? "w-[17%]" : "w-[18%]"}>Approved Bills ({days} days)</TableHead>
+            <TableHead className={managerView ? "w-[17%]" : "w-[16%]"}>Total</TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
           {query.isLoading || (managerView && projectsLoading) ? (
             <TableRow className="h-11">
-              <TableCell colSpan={6} className="text-center text-muted-foreground">Loading…</TableCell>
+              <TableCell colSpan={managerView ? 5 : 6} className="text-center text-muted-foreground">Loading…</TableCell>
             </TableRow>
           ) : rows.length === 0 ? (
             <TableRow className="h-11">
-              <TableCell colSpan={6} className="text-center text-muted-foreground">No active jobs</TableCell>
+              <TableCell colSpan={managerView ? 5 : 6} className="text-center text-muted-foreground">No active jobs</TableCell>
             </TableRow>
           ) : (
             rows.map((r) => {
@@ -187,10 +187,15 @@ export function CashPositionCard({ scope = "company" }: { scope?: CashPositionSc
                 : "";
               return (
                 <TableRow key={r.project_id} className="h-11">
-                  <TableCell className="truncate pl-4" title={shortAddress(r.address)}>
-                    {shortAddress(r.address)}
+                  <TableCell className="pl-4">
+                    <TooltipProvider>
+                      <Tooltip>
+                        <TooltipTrigger asChild><span className="block truncate">{shortAddress(r.address)}</span></TooltipTrigger>
+                        <TooltipContent>{shortAddress(r.address)}</TooltipContent>
+                      </Tooltip>
+                    </TooltipProvider>
                   </TableCell>
-                  <TableCell className="text-center">
+                  {!managerView && <TableCell className="text-center">
                     {managerInitials ? (
                       <TooltipProvider>
                         <Tooltip>
@@ -205,12 +210,19 @@ export function CashPositionCard({ scope = "company" }: { scope?: CashPositionSc
                     ) : (
                       <span className="text-muted-foreground">-</span>
                     )}
-                  </TableCell>
+                  </TableCell>}
                   <TableCell>
-                    <div className="flex items-center gap-2 min-w-0">
-                      <span className="text-muted-foreground shrink-0">{r.account_code ? `${r.account_code}` : "—"}</span>
-                      <span className="truncate">{r.account_name || ""}</span>
-                    </div>
+                    <TooltipProvider>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <div className="flex items-center gap-2 min-w-0">
+                            <span className="text-muted-foreground shrink-0">{r.account_code || "—"}</span>
+                            <span className="truncate">{r.account_name || ""}</span>
+                          </div>
+                        </TooltipTrigger>
+                        <TooltipContent>{[r.account_code, r.account_name].filter(Boolean).join(" ")}</TooltipContent>
+                      </Tooltip>
+                    </TooltipProvider>
                   </TableCell>
                   <TableCell className="tabular-nums whitespace-nowrap">{formatCurrency(r.bank_balance)}</TableCell>
                   <TableCell className="tabular-nums whitespace-nowrap">{formatCurrency(r.approved_due)}</TableCell>
@@ -226,7 +238,7 @@ export function CashPositionCard({ scope = "company" }: { scope?: CashPositionSc
           <TableFooter>
             <TableRow className="h-11">
               <TableCell className="pl-4 font-semibold">Total</TableCell>
-              <TableCell></TableCell>
+              {!managerView && <TableCell></TableCell>}
               <TableCell></TableCell>
               <TableCell className="tabular-nums font-semibold">{formatCurrency(totBank)}</TableCell>
               <TableCell className="tabular-nums font-semibold">{formatCurrency(totDue)}</TableCell>
@@ -237,9 +249,6 @@ export function CashPositionCard({ scope = "company" }: { scope?: CashPositionSc
           </TableFooter>
         )}
       </Table>
-      <p className="px-4 py-2 text-[11px] text-muted-foreground shrink-0">
-        Approved bills include anything already past due.
-      </p>
     </Card>
   );
 }
