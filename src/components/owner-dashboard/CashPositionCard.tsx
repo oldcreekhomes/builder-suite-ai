@@ -26,6 +26,7 @@ import { useProjects } from "@/hooks/useProjects";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/hooks/useAuth";
 import { cashPositionTotals, scopeCashPositionRows, type CashPositionScope } from "@/lib/cashPositionScope";
+import { PlaidConnectButton } from "@/components/banking/PlaidConnectButton";
 
 type Row = {
   project_id: string;
@@ -197,8 +198,8 @@ export function CashPositionCard({ scope = "company" }: { scope?: CashPositionSc
               ))}
             </SelectContent>
           </Select>
-          <Button variant="outline" size="sm" className="w-9 px-0 shrink-0" onClick={() => query.refetch()} title="Refresh" aria-label="Refresh Cash Position">
-            <RefreshCw className={cn("h-4 w-4", query.isFetching && "animate-spin")} />
+          <Button variant="outline" size="sm" className="w-9 px-0 shrink-0" onClick={refreshAll} title="Refresh (pulls live bank balances)" aria-label="Refresh Cash Position">
+            <RefreshCw className={cn("h-4 w-4", (query.isFetching || syncing) && "animate-spin")} />
           </Button>
         </div>
       </div>
@@ -272,7 +273,38 @@ export function CashPositionCard({ scope = "company" }: { scope?: CashPositionSc
                       </Tooltip>
                     </TooltipProvider>
                   </TableCell>
-                  <TableCell className="tabular-nums whitespace-nowrap">{formatCurrency(r.bank_balance)}</TableCell>
+                  <TableCell className="tabular-nums whitespace-nowrap">
+                    <div className="flex items-center gap-1">
+                      {r.live && r.live.current_balance != null ? (
+                        <TooltipProvider>
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <span className="inline-flex items-center gap-1">
+                                <span className={cn("h-1.5 w-1.5 rounded-full", r.live.last_error ? "bg-destructive" : "bg-green-600")} />
+                                {formatCurrency(r.bank_balance)}
+                              </span>
+                            </TooltipTrigger>
+                            <TooltipContent>
+                              <div>Live bank: {formatCurrency(r.bank_balance)}</div>
+                              <div>Books: {formatCurrency(r.book_balance)}</div>
+                              <div>Difference: {formatCurrency(r2(r.bank_balance - r.book_balance))}</div>
+                              {r.live.last_synced_at && <div>Updated {new Date(r.live.last_synced_at).toLocaleString()}</div>}
+                              {r.live.last_error && <div className="text-destructive">{r.live.last_error}</div>}
+                            </TooltipContent>
+                          </Tooltip>
+                        </TooltipProvider>
+                      ) : (
+                        <span>{formatCurrency(r.bank_balance)}</span>
+                      )}
+                      {!managerView && r.account_id && (
+                        <PlaidConnectButton
+                          target={{ projectId: r.project_id, accountId: r.account_id }}
+                          connected={!!r.live}
+                          onConnected={() => { connQuery.refetch(); }}
+                        />
+                      )}
+                    </div>
+                  </TableCell>
                   <TableCell className="tabular-nums whitespace-nowrap">{formatCurrency(r.approved_due)}</TableCell>
                   <TableCell className={cn("tabular-nums whitespace-nowrap", netClass(net))}>
                     {formatCurrency(net)}
