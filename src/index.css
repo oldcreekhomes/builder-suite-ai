@@ -199,4 +199,14 @@
     background-color: hsl(var(--border));
     border-radius: 3px;
   }
+
+  /* Dense tables: one shared row height + cell padding (Cash Position, Active Jobs) */
+  .table-compact tbody tr,
+  .table-compact tfoot tr {
+    height: 2rem;
+  }
+  .table-compact td {
+    padding-top: 0.25rem;
+    padding-bottom: 0.25rem;
+  }
 }

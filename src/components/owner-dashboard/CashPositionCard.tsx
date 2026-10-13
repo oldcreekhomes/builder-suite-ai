@@ -155,7 +155,7 @@ export function CashPositionCard({ scope = "company" }: { scope?: CashPositionSc
         </div>
       </div>
 
-      <Table className="table-fixed text-sm font-normal [&_tbody_tr]:h-8 [&_tfoot_tr]:h-8 [&_td]:py-1"
+      <Table className="table-fixed text-sm font-normal table-compact"
         containerClassName={managerView ? "relative w-full min-h-0 flex-1 overflow-auto" : undefined}>
         <TableHeader>
           <TableRow className="h-11">

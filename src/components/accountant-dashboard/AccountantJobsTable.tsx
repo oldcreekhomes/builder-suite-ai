@@ -313,7 +313,7 @@ export function AccountantJobsTable() {
           </div>
         </div>
       </div>
-      <Table className="table-fixed [&_th]:px-2 [&_td]:px-2">
+      <Table className="table-fixed table-compact [&_th]:px-2 [&_td]:px-2">
         <TableHeader className="[&_tr]:border-b-0">
           {/* First row - main headers spanning 2 rows + Bills category label */}
           <TableRow className="hover:bg-transparent">
@@ -370,14 +370,14 @@ export function AccountantJobsTable() {
         <TableBody>
           {activeProjects.length === 0 ? (
             <TableRow>
-              <TableCell colSpan={isReorderEnabled ? 11 : 10} className="text-center text-muted-foreground py-8">
+              <TableCell colSpan={isReorderEnabled ? 11 : 10} className="text-center text-muted-foreground !py-8">
                 No active projects
               </TableCell>
             </TableRow>
           ) : (
             projectsByStatus.flatMap((group) => [
               <TableRow key={`group-${group.status}`} className="bg-muted/30 hover:bg-muted/30">
-                <TableCell colSpan={isReorderEnabled ? 11 : 10} className="py-2">
+                <TableCell colSpan={isReorderEnabled ? 11 : 10} className="py-1">
                   <span className={`text-xs font-semibold px-2 py-1 rounded ${group.color}`}>
                     {group.status}
                   </span>
@@ -424,7 +424,7 @@ export function AccountantJobsTable() {
                           <Tooltip>
                             <TooltipTrigger asChild>
                               <span
-                                className="inline-flex h-7 w-7 items-center justify-center rounded-full bg-muted text-xs font-medium"
+                                className="inline-flex h-6 w-6 items-center justify-center rounded-full bg-muted text-xs font-medium"
                               >
                                 {managerInitials}
                               </span>
