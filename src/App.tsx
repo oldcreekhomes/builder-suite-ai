@@ -125,6 +125,7 @@ const Auth = safeLazy(() => import("./pages/Auth"));
 const Landing = safeLazy(() => import("./pages/Landing"));
 const AboutUs = safeLazy(() => import("./pages/AboutUs"));
 const PasswordReset = safeLazy(() => import("./pages/PasswordReset"));
+const PlaidOAuth = safeLazy(() => import("./pages/PlaidOAuth"));
 const NotFound = safeLazy(() => import("./pages/NotFound"));
 const OutboundRedirect = safeLazy(() => import("./pages/OutboundRedirect"));
 const MarketplaceSignup = safeLazy(() => import("./pages/MarketplaceSignup"));
@@ -257,6 +258,7 @@ const AppContent = () => {
               <Route element={<SidebarLayout />}>
                 <Route path="/" element={<RootRoute />} />
                 <Route path="/marketplace-portal" element={<ProtectedRoute><MarketplacePortal /></ProtectedRoute>} />
+                <Route path="/plaid/oauth" element={<ProtectedRoute><PlaidOAuth /></ProtectedRoute>} />
                 <Route path="/accounting" element={<ProtectedRoute><Accounting /></ProtectedRoute>} />
                 <Route path="/accounting/bills/approve" element={<ProtectedRoute><ApproveBills /></ProtectedRoute>} />
                 <Route path="/accounting/transactions/journal-entry" element={<ProtectedRoute><JournalEntry /></ProtectedRoute>} />
