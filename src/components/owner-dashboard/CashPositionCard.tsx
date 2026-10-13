@@ -26,7 +26,9 @@ import { useProjects } from "@/hooks/useProjects";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/hooks/useAuth";
 import { cashPositionTotals, scopeCashPositionRows, type CashPositionScope } from "@/lib/cashPositionScope";
-import { PlaidConnectButton } from "@/components/banking/PlaidConnectButton";
+import { PlaidConnectButton, invokePlaid } from "@/components/banking/PlaidConnectButton";
+import { Link2 } from "lucide-react";
+import { toast } from "sonner";
 
 type Row = {
   project_id: string;
@@ -40,13 +42,14 @@ type Row = {
 
 type LiveConn = {
   id: string;
-  project_id: string;
-  account_id: string;
+  connection_id: string;
+  project_id: string | null;
+  account_id: string | null;
+  name: string | null;
+  mask: string | null;
   current_balance: number | null;
   last_synced_at: string | null;
   last_error: string | null;
-  institution_name: string | null;
-  account_mask: string | null;
 };
 
 const DAY_OPTIONS = [10, 15, 20];
