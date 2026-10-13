@@ -30,10 +30,22 @@ import { cashPositionTotals, scopeCashPositionRows, type CashPositionScope } fro
 type Row = {
   project_id: string;
   address: string;
+  account_id: string | null;
   account_code: string | null;
   account_name: string | null;
   bank_balance: number;
   approved_due: number;
+};
+
+type LiveConn = {
+  id: string;
+  project_id: string;
+  account_id: string;
+  current_balance: number | null;
+  last_synced_at: string | null;
+  last_error: string | null;
+  institution_name: string | null;
+  account_mask: string | null;
 };
 
 const DAY_OPTIONS = [10, 15, 20];
@@ -87,6 +99,7 @@ export function CashPositionCard({ scope = "company" }: { scope?: CashPositionSc
       return ((data as any[]) || []).map((r) => ({
         project_id: r.project_id,
         address: r.address,
+        account_id: r.account_id,
         account_code: r.account_code,
         account_name: r.account_name,
         bank_balance: Number(r.bank_balance) || 0,
@@ -97,7 +110,40 @@ export function CashPositionCard({ scope = "company" }: { scope?: CashPositionSc
     enabled: !!user?.id,
   });
 
-  const allRows = scopeCashPositionRows(query.data || [], projects, scope, user?.id);
+  const connQuery = useQuery({
+    queryKey: ["bank-connections", user?.id],
+    queryFn: async () => {
+      const { data, error } = await (supabase as any)
+        .from("bank_connections")
+        .select("id, project_id, account_id, current_balance, last_synced_at, last_error, institution_name, account_mask");
+      if (error) throw error;
+      return (data || []) as LiveConn[];
+    },
+    staleTime: 60_000,
+    enabled: !!user?.id,
+  });
+  const liveMap = new Map((connQuery.data || []).map((c) => [`${c.project_id}:${c.account_id}`, c]));
+  const [syncing, setSyncing] = useState(false);
+  const refreshAll = async () => {
+    setSyncing(true);
+    try {
+      if ((connQuery.data || []).length > 0) {
+        await supabase.functions.invoke("plaid", { body: { action: "refresh" } });
+      }
+    } finally {
+      await Promise.all([query.refetch(), connQuery.refetch()]);
+      setSyncing(false);
+    }
+  };
+
+  // Live bank balance replaces book balance when a bank is connected; book stays in the tooltip.
+  const withLive = (query.data || []).map((r) => {
+    const live = liveMap.get(`${r.project_id}:${r.account_id}`);
+    return live && live.current_balance != null
+      ? { ...r, book_balance: r.bank_balance, bank_balance: Number(live.current_balance), live }
+      : { ...r, book_balance: r.bank_balance, live };
+  });
+  const allRows = scopeCashPositionRows(withLive, projects, scope, user?.id);
   const q = searchQuery.trim().toLowerCase();
   const rows = q
     ? allRows.filter((r) => {
