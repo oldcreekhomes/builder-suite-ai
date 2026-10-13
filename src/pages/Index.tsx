@@ -5,7 +5,6 @@ import { SidebarInset } from "@/components/ui/sidebar";
 import { CompanyDashboardHeader } from "@/components/CompanyDashboardHeader";
 import { MyProjectsCard } from "@/components/MyProjectsCard";
 import { InsuranceAlertsCard } from "@/components/InsuranceAlertsCard";
-import { RecentPhotos } from "@/components/RecentPhotos";
 import { WeatherForecast } from "@/components/WeatherForecast";
 import { ProjectWarnings } from "@/components/ProjectWarnings";
 import { ProjectBidsCard } from "@/components/ProjectBidsCard";
@@ -65,23 +64,23 @@ export default function Index() {
               <OnboardingChecklist />
               {dashboardView === "project-manager" ? (
                 <>
-                <div className="grid gap-6 md:grid-cols-4 md:grid-rows-2" style={{ height: 'calc(100vh - 220px)' }}>
-                  <div className="col-start-1 row-span-2 min-h-0 h-full">
+                <div className="grid gap-6 md:grid-cols-3 auto-rows-[300px]">
+                  <div className="min-h-0 min-w-0 h-full">
                     <MyProjectsCard />
                   </div>
-                  <div className="col-start-2 row-start-1 min-h-0 h-full">
+                  <div className="min-h-0 min-w-0 h-full">
                     <ProjectBidsCard />
                   </div>
-                  <div className="col-start-3 row-start-1 min-h-0 h-full">
+                  <div className="min-h-0 min-w-0 h-full">
                     <InsuranceAlertsCard />
                   </div>
-                  <div className="col-start-2 col-span-2 row-start-2 min-h-0 h-full">
+                </div>
+                <div className="grid gap-6 lg:grid-cols-2 auto-rows-[340px]">
+                  <div className="min-h-0 min-w-0 h-full">
                     <ProjectWarnings />
                   </div>
-                  <div className="col-start-4 row-span-2 min-h-0 h-full">
-                    <div className="rounded-xl bg-muted/50 h-full">
-                      <RecentPhotos />
-                    </div>
+                  <div className="min-h-0 min-w-0 h-full">
+                    <CashPositionCard scope="accounting-manager" />
                   </div>
                 </div>
                   <div className="rounded-xl bg-muted/50">

@@ -23,6 +23,8 @@ import { Button } from "@/components/ui/button";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { useProjects } from "@/hooks/useProjects";
 import { cn } from "@/lib/utils";
+import { useAuth } from "@/hooks/useAuth";
+import { cashPositionTotals, scopeCashPositionRows, type CashPositionScope } from "@/lib/cashPositionScope";
 
 type Row = {
   project_id: string;
@@ -67,13 +69,15 @@ function getManagerInitials(manager?: { first_name: string; last_name: string } 
  * Cash Position — one row per active job:
  * Job | Bank account + job balance | Approved bills due in N days | Balance − bills
  */
-export function CashPositionCard() {
+export function CashPositionCard({ scope = "company" }: { scope?: CashPositionScope }) {
+  const { user } = useAuth();
+  const managerView = scope === "accounting-manager";
   const [days, setDays] = useState<number>(10);
   const [searchQuery, setSearchQuery] = useState("");
-  const { data: projects = [] } = useProjects();
+  const { data: projects = [], isLoading: projectsLoading } = useProjects();
 
   const query = useQuery({
-    queryKey: ["project-cash-position", days],
+    queryKey: ["project-cash-position", user?.id, scope, days],
     queryFn: async () => {
       const { data, error } = await (supabase.rpc as any)("get_project_cash_position", {
         p_days: days,
@@ -89,9 +93,10 @@ export function CashPositionCard() {
       })) as Row[];
     },
     staleTime: 60_000,
+    enabled: !!user?.id,
   });
 
-  const allRows = query.data || [];
+  const allRows = scopeCashPositionRows(query.data || [], projects, scope, user?.id);
   const q = searchQuery.trim().toLowerCase();
   const rows = q
     ? allRows.filter((r) => {
@@ -108,16 +113,14 @@ export function CashPositionCard() {
         );
       })
     : allRows;
-  const totBank = r2(rows.reduce((s, r) => s + r.bank_balance, 0));
-  const totDue = r2(rows.reduce((s, r) => s + r.approved_due, 0));
-  const totNet = r2(totBank - totDue);
+  const { bank: totBank, due: totDue, net: totNet } = cashPositionTotals(rows);
 
   const netClass = (n: number) => (n < 0 ? "text-destructive" : "text-green-600");
 
   return (
-    <div className="rounded-lg border bg-card flex flex-col">
-      <div className="p-4 border-b flex items-center justify-between gap-2">
-        <div className="flex items-center gap-4">
+    <div className={cn("rounded-lg border bg-card flex flex-col min-w-0", managerView && "h-full overflow-hidden")}>
+      <div className={cn("p-4 border-b flex items-center justify-between gap-2", managerView && "flex-wrap shrink-0")}>
+        <div className={cn("flex items-center gap-4", managerView && "flex-wrap min-w-0 flex-1")}>
           <div className="flex items-center gap-2 min-w-0">
             <Wallet className="h-4 w-4 text-muted-foreground shrink-0" />
             <h3 className="text-lg font-semibold truncate">Cash Position</h3>
@@ -128,7 +131,7 @@ export function CashPositionCard() {
               placeholder="Search..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="pl-9 w-64"
+              className={cn("pl-9 w-64", managerView && "w-40 max-w-full")}
             />
           </div>
         </div>
@@ -151,7 +154,8 @@ export function CashPositionCard() {
         </div>
       </div>
 
-      <Table className="table-fixed">
+      <Table className={cn("table-fixed", managerView && "min-w-[900px]")}
+        containerClassName={managerView ? "relative w-full min-h-0 flex-1 overflow-auto" : undefined}>
         <TableHeader>
           <TableRow className="h-11">
             <TableHead className="w-[22%] pl-4">Job</TableHead>
@@ -163,7 +167,7 @@ export function CashPositionCard() {
           </TableRow>
         </TableHeader>
         <TableBody>
-          {query.isLoading ? (
+          {query.isLoading || (managerView && projectsLoading) ? (
             <TableRow className="h-11">
               <TableCell colSpan={6} className="text-center text-muted-foreground">Loading…</TableCell>
             </TableRow>
@@ -232,7 +236,7 @@ export function CashPositionCard() {
           </TableFooter>
         )}
       </Table>
-      <p className="px-4 py-2 text-[11px] text-muted-foreground">
+      <p className="px-4 py-2 text-[11px] text-muted-foreground shrink-0">
         Approved bills include anything already past due.
       </p>
     </div>
