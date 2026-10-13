@@ -27,7 +27,6 @@ import { cn } from "@/lib/utils";
 import { useAuth } from "@/hooks/useAuth";
 import { cashPositionTotals, scopeCashPositionRows, type CashPositionScope } from "@/lib/cashPositionScope";
 import { PlaidConnectButton, invokePlaid } from "@/components/banking/PlaidConnectButton";
-import { Link2 } from "lucide-react";
 import { toast } from "sonner";
 
 type Row = {
@@ -147,15 +146,6 @@ export function CashPositionCard({ scope = "company" }: { scope?: CashPositionSc
       setSyncing(false);
     }
   };
-  const assign = async (projectId: string, accountId: string, bankAccountId: string | null) => {
-    try {
-      await invokePlaid({ action: "assign", project_id: projectId, account_id: accountId, bank_account_id: bankAccountId });
-      await connQuery.refetch();
-    } catch (e) {
-      toast.error((e as Error).message);
-    }
-  };
-
   // Live bank balance replaces book balance when a bank account is assigned; book stays in the tooltip.
   const withLive = (query.data || []).map((r) => {
     const live = liveMap.get(`${r.project_id}:${r.account_id}`);
@@ -318,24 +308,6 @@ export function CashPositionCard({ scope = "company" }: { scope?: CashPositionSc
                         </TooltipProvider>
                       ) : (
                         <span>{formatCurrency(r.bank_balance)}</span>
-                      )}
-                      {!managerView && r.account_id && bankAccounts.length > 0 && (
-                        <Select
-                          value={r.live?.id ?? "none"}
-                          onValueChange={(v) => assign(r.project_id, r.account_id!, v === "none" ? null : v)}
-                        >
-                          <SelectTrigger className="h-6 w-6 p-0 border-0 shadow-none justify-center [&>svg]:hidden" title="Choose live bank account" aria-label="Choose live bank account">
-                            <Link2 className={cn("h-3.5 w-3.5", r.live ? "text-green-600" : "text-muted-foreground")} />
-                          </SelectTrigger>
-                          <SelectContent className="z-[100] bg-popover">
-                            <SelectItem value="none">Use book balance</SelectItem>
-                            {bankAccounts.map((a) => (
-                              <SelectItem key={a.id} value={a.id}>
-                                {(a.name || "Account")}{a.mask ? ` …${a.mask}` : ""} — {a.current_balance != null ? formatCurrency(Number(a.current_balance)) : "n/a"}
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
                       )}
                     </div>
                   </TableCell>
