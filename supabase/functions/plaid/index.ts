@@ -5,6 +5,15 @@ import { z } from "npm:zod@3";
 const PLAID_ENV = (Deno.env.get("PLAID_ENV") || "production").trim().toLowerCase();
 const PLAID_BASE = PLAID_ENV === "sandbox" ? "https://sandbox.plaid.com" : "https://production.plaid.com";
 const REDIRECT_URI = "https://app.buildersuiteai.com/plaid/oauth";
+const ALLOWED_REDIRECTS = new Set([
+  "https://app.buildersuiteai.com/plaid/oauth",
+  "https://buildersuiteai.com/plaid/oauth",
+  "https://builder-suite-ai.lovable.app/plaid/oauth",
+  "https://id-preview--7f4eccd7-6d58-465f-a474-4c0fb79b4bab.lovable.app/plaid/oauth",
+  "https://7f4eccd7-6d58-465f-a474-4c0fb79b4bab.lovableproject.com/plaid/oauth",
+]);
+
+class PlaidError extends Error {}
 
 const json = (body: unknown, status = 200) =>
   new Response(JSON.stringify(body), { status, headers: { ...corsHeaders, "Content-Type": "application/json" } });
@@ -20,7 +29,7 @@ async function plaid(path: string, body: Record<string, unknown>) {
     }),
   });
   const data = await res.json();
-  if (!res.ok) throw new Error(data.error_message || data.error_code || `Plaid error ${res.status}`);
+  if (!res.ok) throw new PlaidError(data.error_message || data.error_code || `Plaid error ${res.status}`);
   return data;
 }
 
@@ -46,7 +55,7 @@ async function syncConnection(admin: any, connectionId: string, ownerId: string,
 }
 
 const Body = z.discriminatedUnion("action", [
-  z.object({ action: z.literal("link_token"), use_redirect: z.boolean().optional() }),
+  z.object({ action: z.literal("link_token"), redirect_uri: z.string().url().optional() }),
   z.object({
     action: z.literal("exchange"),
     public_token: z.string().min(1),
@@ -89,7 +98,7 @@ Deno.serve(async (req) => {
         products: ["transactions"],
         country_codes: ["US"],
         language: "en",
-        ...(b.use_redirect === false ? {} : { redirect_uri: REDIRECT_URI }),
+        redirect_uri: b.redirect_uri && ALLOWED_REDIRECTS.has(b.redirect_uri) ? b.redirect_uri : REDIRECT_URI,
       });
       return json({ link_token: data.link_token });
     }
@@ -154,6 +163,8 @@ Deno.serve(async (req) => {
     return json({ error: "Unknown action" }, 400);
   } catch (e) {
     console.error(e);
+    // Expected Plaid refusals return 200 + { error } so the app shows a short message
+    if (e instanceof PlaidError) return json({ error: e.message });
     return json({ error: (e as Error).message }, 500);
   }
 });
