@@ -1,37 +1,37 @@
 import { useCallback, useEffect, useState } from "react";
 import { usePlaidLink, type PlaidLinkOnSuccessMetadata } from "react-plaid-link";
-import { Link2 } from "lucide-react";
+import { Landmark } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 
 const PENDING_KEY = "plaid_pending_link";
 
-export type PlaidTarget = { projectId: string; accountId: string };
+async function invokePlaid(body: Record<string, unknown>) {
+  const { data, error } = await supabase.functions.invoke("plaid", { body });
+  if (data && (data as any).error) throw new Error(String((data as any).error));
+  if (error) {
+    // Read the server's message instead of surfacing a raw HTTP error
+    let msg = error.message;
+    try {
+      const ctx = (error as any).context;
+      if (ctx?.json) msg = (await ctx.json())?.error || msg;
+    } catch { /* ignore */ }
+    throw new Error(msg);
+  }
+  return data as any;
+}
+export { invokePlaid };
 
-export async function exchangePlaidToken(
-  target: PlaidTarget,
-  publicToken: string,
-  metadata: PlaidLinkOnSuccessMetadata,
-) {
-  const acct = metadata.accounts?.[0];
-  if (!acct) throw new Error("No bank account selected");
-  const { data, error } = await supabase.functions.invoke("plaid", {
-    body: {
-      action: "exchange",
-      public_token: publicToken,
-      plaid_account_id: acct.id,
-      project_id: target.projectId,
-      account_id: target.accountId,
-      institution_name: metadata.institution?.name ?? undefined,
-      account_mask: acct.mask ?? undefined,
-      account_label: acct.name ?? undefined,
-    },
+export async function exchangePlaidToken(publicToken: string, metadata: PlaidLinkOnSuccessMetadata) {
+  await invokePlaid({
+    action: "exchange",
+    public_token: publicToken,
+    institution_name: metadata.institution?.name ?? undefined,
   });
-  if (error || (data as any)?.error) throw new Error((data as any)?.error || error?.message);
 }
 
-export function readPendingPlaid(): { linkToken: string; target: PlaidTarget } | null {
+export function readPendingPlaid(): { linkToken: string } | null {
   try {
     return JSON.parse(localStorage.getItem(PENDING_KEY) || "null");
   } catch {
@@ -42,26 +42,23 @@ export function clearPendingPlaid() {
   localStorage.removeItem(PENDING_KEY);
 }
 
-export function PlaidConnectButton({ target, connected, onConnected }: {
-  target: PlaidTarget;
-  connected: boolean;
-  onConnected: () => void;
-}) {
+/** One button: sign in to the bank once; every account it shares is saved. */
+export function PlaidConnectButton({ connected, onConnected }: { connected: boolean; onConnected: () => void }) {
   const [linkToken, setLinkToken] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
 
   const onSuccess = useCallback(async (publicToken: string, metadata: PlaidLinkOnSuccessMetadata) => {
     try {
-      await exchangePlaidToken(target, publicToken, metadata);
-      clearPendingPlaid();
+      await exchangePlaidToken(publicToken, metadata);
       toast.success("Bank connected");
       onConnected();
     } catch (e) {
       toast.error((e as Error).message || "Could not connect bank");
     } finally {
+      clearPendingPlaid();
       setLinkToken(null);
     }
-  }, [target, onConnected]);
+  }, [onConnected]);
 
   const { open, ready } = usePlaidLink({
     token: linkToken,
@@ -76,10 +73,10 @@ export function PlaidConnectButton({ target, connected, onConnected }: {
   const start = async () => {
     setLoading(true);
     try {
-      const { data, error } = await supabase.functions.invoke("plaid", { body: { action: "link_token" } });
-      if (error || !(data as any)?.link_token) throw new Error((data as any)?.error || error?.message || "Plaid unavailable");
-      const token = (data as any).link_token as string;
-      localStorage.setItem(PENDING_KEY, JSON.stringify({ linkToken: token, target }));
+      const data = await invokePlaid({ action: "link_token" });
+      const token = data?.link_token as string;
+      if (!token) throw new Error("Plaid unavailable");
+      localStorage.setItem(PENDING_KEY, JSON.stringify({ linkToken: token }));
       setLinkToken(token);
     } catch (e) {
       toast.error((e as Error).message);
@@ -89,16 +86,9 @@ export function PlaidConnectButton({ target, connected, onConnected }: {
   };
 
   return (
-    <Button
-      variant="ghost"
-      size="sm"
-      className="h-6 w-6 p-0 shrink-0"
-      onClick={start}
-      disabled={loading}
-      title={connected ? "Reconnect bank (live balance)" : "Connect bank for live balance"}
-      aria-label="Connect bank"
-    >
-      <Link2 className={connected ? "h-3.5 w-3.5 text-green-600" : "h-3.5 w-3.5 text-muted-foreground"} />
+    <Button variant="outline" size="sm" className="h-9" onClick={start} disabled={loading}>
+      <Landmark className="h-4 w-4 mr-1" />
+      {connected ? "Add Bank" : "Connect Bank"}
     </Button>
   );
 }
