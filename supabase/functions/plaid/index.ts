@@ -24,19 +24,41 @@ async function plaid(path: string, body: Record<string, unknown>) {
   return data;
 }
 
+// deno-lint-ignore no-explicit-any
+async function syncConnection(admin: any, connectionId: string, ownerId: string, accessToken: string) {
+  const bal = await plaid("/accounts/balance/get", { access_token: accessToken });
+  const now = new Date().toISOString();
+  for (const a of bal.accounts || []) {
+    const { error } = await admin.from("bank_connection_accounts").upsert({
+      connection_id: connectionId,
+      owner_id: ownerId,
+      plaid_account_id: a.account_id,
+      name: a.official_name || a.name || null,
+      mask: a.mask || null,
+      current_balance: a.balances?.current ?? null,
+      available_balance: a.balances?.available ?? null,
+      last_synced_at: now,
+      updated_at: now,
+    }, { onConflict: "plaid_account_id" });
+    if (error) throw error;
+  }
+  await admin.from("bank_connections").update({ last_synced_at: now, last_error: null, updated_at: now }).eq("id", connectionId);
+}
+
 const Body = z.discriminatedUnion("action", [
   z.object({ action: z.literal("link_token"), use_redirect: z.boolean().optional() }),
   z.object({
     action: z.literal("exchange"),
     public_token: z.string().min(1),
-    plaid_account_id: z.string().min(1),
-    project_id: z.string().uuid(),
-    account_id: z.string().uuid(),
     institution_name: z.string().max(200).optional(),
-    account_mask: z.string().max(10).optional(),
-    account_label: z.string().max(200).optional(),
   }),
   z.object({ action: z.literal("refresh") }),
+  z.object({
+    action: z.literal("assign"),
+    bank_account_id: z.string().uuid().nullable(),
+    project_id: z.string().uuid(),
+    account_id: z.string().uuid(),
+  }),
   z.object({ action: z.literal("disconnect"), connection_id: z.string().uuid() }),
 ]);
 
@@ -73,62 +95,52 @@ Deno.serve(async (req) => {
     }
 
     if (b.action === "exchange") {
-      const { data: project } = await admin.from("projects").select("id").eq("id", b.project_id).eq("owner_id", ownerId).maybeSingle();
-      const { data: account } = await admin.from("accounts").select("id").eq("id", b.account_id).eq("owner_id", ownerId).maybeSingle();
-      if (!project || !account) return json({ error: "Project or account not found" }, 404);
-
       const ex = await plaid("/item/public_token/exchange", { public_token: b.public_token });
-      const bal = await plaid("/accounts/balance/get", {
-        access_token: ex.access_token,
-        options: { account_ids: [b.plaid_account_id] },
-      });
-      const acct = bal.accounts?.[0];
-      const { error } = await admin.from("bank_connections").upsert({
+      const now = new Date().toISOString();
+      const { data: conn, error } = await admin.from("bank_connections").upsert({
         owner_id: ownerId,
-        project_id: b.project_id,
-        account_id: b.account_id,
         plaid_item_id: ex.item_id,
-        plaid_account_id: b.plaid_account_id,
         access_token: ex.access_token,
         institution_name: b.institution_name ?? null,
-        account_mask: b.account_mask ?? acct?.mask ?? null,
-        account_label: b.account_label ?? acct?.name ?? null,
-        current_balance: acct?.balances?.current ?? null,
-        available_balance: acct?.balances?.available ?? null,
-        last_synced_at: new Date().toISOString(),
+        last_synced_at: now,
         last_error: null,
         created_by: uid,
-        updated_at: new Date().toISOString(),
-      }, { onConflict: "project_id,account_id" });
+        updated_at: now,
+      }, { onConflict: "plaid_item_id" }).select("id").single();
       if (error) throw error;
+      await syncConnection(admin, conn.id, ownerId, ex.access_token);
       return json({ ok: true });
     }
 
     if (b.action === "refresh") {
       const { data: conns, error } = await admin.from("bank_connections")
-        .select("id, access_token, plaid_account_id").eq("owner_id", ownerId);
+        .select("id, access_token").eq("owner_id", ownerId);
       if (error) throw error;
       let updated = 0;
       for (const c of conns || []) {
         try {
-          const bal = await plaid("/accounts/balance/get", {
-            access_token: c.access_token,
-            options: { account_ids: [c.plaid_account_id] },
-          });
-          const acct = bal.accounts?.[0];
-          await admin.from("bank_connections").update({
-            current_balance: acct?.balances?.current ?? null,
-            available_balance: acct?.balances?.available ?? null,
-            last_synced_at: new Date().toISOString(),
-            last_error: null,
-            updated_at: new Date().toISOString(),
-          }).eq("id", c.id);
+          await syncConnection(admin, c.id, ownerId, c.access_token);
           updated++;
         } catch (e) {
           await admin.from("bank_connections").update({ last_error: String((e as Error).message).slice(0, 500) }).eq("id", c.id);
         }
       }
       return json({ ok: true, updated, total: conns?.length || 0 });
+    }
+
+    if (b.action === "assign") {
+      const { data: project } = await admin.from("projects").select("id").eq("id", b.project_id).eq("owner_id", ownerId).maybeSingle();
+      if (!project) return json({ error: "Project not found" }, 404);
+      // Clear any existing link for this job + book account
+      await admin.from("bank_connection_accounts").update({ project_id: null, account_id: null })
+        .eq("owner_id", ownerId).eq("project_id", b.project_id).eq("account_id", b.account_id);
+      if (b.bank_account_id) {
+        const { error } = await admin.from("bank_connection_accounts")
+          .update({ project_id: b.project_id, account_id: b.account_id, updated_at: new Date().toISOString() })
+          .eq("id", b.bank_account_id).eq("owner_id", ownerId);
+        if (error) throw error;
+      }
+      return json({ ok: true });
     }
 
     if (b.action === "disconnect") {
