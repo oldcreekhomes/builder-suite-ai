@@ -73,7 +73,7 @@ export function PlaidConnectButton({ connected, onConnected }: { connected: bool
   const start = async () => {
     setLoading(true);
     try {
-      const data = await invokePlaid({ action: "link_token" });
+      const data = await invokePlaid({ action: "link_token", redirect_uri: `${window.location.origin}/plaid/oauth` });
       const token = data?.link_token as string;
       if (!token) throw new Error("Plaid unavailable");
       localStorage.setItem(PENDING_KEY, JSON.stringify({ linkToken: token }));
