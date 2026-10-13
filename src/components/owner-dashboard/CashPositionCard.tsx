@@ -26,7 +26,9 @@ import { useProjects } from "@/hooks/useProjects";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/hooks/useAuth";
 import { cashPositionTotals, scopeCashPositionRows, type CashPositionScope } from "@/lib/cashPositionScope";
-import { PlaidConnectButton } from "@/components/banking/PlaidConnectButton";
+import { PlaidConnectButton, invokePlaid } from "@/components/banking/PlaidConnectButton";
+import { Link2 } from "lucide-react";
+import { toast } from "sonner";
 
 type Row = {
   project_id: string;
@@ -40,13 +42,14 @@ type Row = {
 
 type LiveConn = {
   id: string;
-  project_id: string;
-  account_id: string;
+  connection_id: string;
+  project_id: string | null;
+  account_id: string | null;
+  name: string | null;
+  mask: string | null;
   current_balance: number | null;
   last_synced_at: string | null;
   last_error: string | null;
-  institution_name: string | null;
-  account_mask: string | null;
 };
 
 const DAY_OPTIONS = [10, 15, 20];
@@ -112,32 +115,48 @@ export function CashPositionCard({ scope = "company" }: { scope?: CashPositionSc
   });
 
   const connQuery = useQuery({
-    queryKey: ["bank-connections", user?.id],
+    queryKey: ["bank-connection-accounts", user?.id],
     queryFn: async () => {
-      const { data, error } = await (supabase as any)
-        .from("bank_connections")
-        .select("id, project_id, account_id, current_balance, last_synced_at, last_error, institution_name, account_mask");
+      const [{ data, error }, { data: conns }] = await Promise.all([
+        (supabase as any)
+          .from("bank_connection_accounts")
+          .select("id, connection_id, project_id, account_id, name, mask, current_balance, last_synced_at")
+          .order("name"),
+        (supabase as any).from("bank_connections").select("id, last_error"),
+      ]);
       if (error) throw error;
-      return (data || []) as LiveConn[];
+      const errs = new Map(((conns || []) as any[]).map((c) => [c.id, c.last_error]));
+      return ((data || []) as any[]).map((a) => ({ ...a, last_error: errs.get(a.connection_id) ?? null })) as LiveConn[];
     },
     staleTime: 60_000,
     enabled: !!user?.id,
   });
-  const liveMap = new Map((connQuery.data || []).map((c) => [`${c.project_id}:${c.account_id}`, c]));
+  const bankAccounts = connQuery.data || [];
+  const liveMap = new Map(
+    bankAccounts.filter((c) => c.project_id).map((c) => [`${c.project_id}:${c.account_id}`, c]),
+  );
   const [syncing, setSyncing] = useState(false);
   const refreshAll = async () => {
     setSyncing(true);
     try {
-      if ((connQuery.data || []).length > 0) {
-        await supabase.functions.invoke("plaid", { body: { action: "refresh" } });
-      }
+      if (bankAccounts.length > 0) await invokePlaid({ action: "refresh" });
+    } catch (e) {
+      toast.error((e as Error).message);
     } finally {
       await Promise.all([query.refetch(), connQuery.refetch()]);
       setSyncing(false);
     }
   };
+  const assign = async (projectId: string, accountId: string, bankAccountId: string | null) => {
+    try {
+      await invokePlaid({ action: "assign", project_id: projectId, account_id: accountId, bank_account_id: bankAccountId });
+      await connQuery.refetch();
+    } catch (e) {
+      toast.error((e as Error).message);
+    }
+  };
 
-  // Live bank balance replaces book balance when a bank is connected; book stays in the tooltip.
+  // Live bank balance replaces book balance when a bank account is assigned; book stays in the tooltip.
   const withLive = (query.data || []).map((r) => {
     const live = liveMap.get(`${r.project_id}:${r.account_id}`);
     return live && live.current_balance != null
@@ -198,6 +217,9 @@ export function CashPositionCard({ scope = "company" }: { scope?: CashPositionSc
               ))}
             </SelectContent>
           </Select>
+          {!managerView && (
+            <PlaidConnectButton connected={bankAccounts.length > 0} onConnected={() => { connQuery.refetch(); }} />
+          )}
           <Button variant="outline" size="sm" className="w-9 px-0 shrink-0" onClick={refreshAll} title="Refresh (pulls live bank balances)" aria-label="Refresh Cash Position">
             <RefreshCw className={cn("h-4 w-4", (query.isFetching || syncing) && "animate-spin")} />
           </Button>
@@ -288,6 +310,7 @@ export function CashPositionCard({ scope = "company" }: { scope?: CashPositionSc
                               <div>Live bank: {formatCurrency(r.bank_balance)}</div>
                               <div>Books: {formatCurrency(r.book_balance)}</div>
                               <div>Difference: {formatCurrency(r2(r.bank_balance - r.book_balance))}</div>
+                              <div>{r.live.name}{r.live.mask ? ` …${r.live.mask}` : ""}</div>
                               {r.live.last_synced_at && <div>Updated {new Date(r.live.last_synced_at).toLocaleString()}</div>}
                               {r.live.last_error && <div className="text-destructive">{r.live.last_error}</div>}
                             </TooltipContent>
@@ -296,12 +319,23 @@ export function CashPositionCard({ scope = "company" }: { scope?: CashPositionSc
                       ) : (
                         <span>{formatCurrency(r.bank_balance)}</span>
                       )}
-                      {!managerView && r.account_id && (
-                        <PlaidConnectButton
-                          target={{ projectId: r.project_id, accountId: r.account_id }}
-                          connected={!!r.live}
-                          onConnected={() => { connQuery.refetch(); }}
-                        />
+                      {!managerView && r.account_id && bankAccounts.length > 0 && (
+                        <Select
+                          value={r.live?.id ?? "none"}
+                          onValueChange={(v) => assign(r.project_id, r.account_id!, v === "none" ? null : v)}
+                        >
+                          <SelectTrigger className="h-6 w-6 p-0 border-0 shadow-none justify-center [&>svg]:hidden" title="Choose live bank account" aria-label="Choose live bank account">
+                            <Link2 className={cn("h-3.5 w-3.5", r.live ? "text-green-600" : "text-muted-foreground")} />
+                          </SelectTrigger>
+                          <SelectContent className="z-[100] bg-popover">
+                            <SelectItem value="none">Use book balance</SelectItem>
+                            {bankAccounts.map((a) => (
+                              <SelectItem key={a.id} value={a.id}>
+                                {(a.name || "Account")}{a.mask ? ` …${a.mask}` : ""} — {a.current_balance != null ? formatCurrency(Number(a.current_balance)) : "n/a"}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
                       )}
                     </div>
                   </TableCell>

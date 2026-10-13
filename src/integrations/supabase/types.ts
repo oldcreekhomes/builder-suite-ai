@@ -457,80 +457,114 @@ export type Database = {
           },
         ]
       }
-      bank_connections: {
+      bank_connection_accounts: {
         Row: {
-          access_token: string
-          account_id: string
-          account_label: string | null
-          account_mask: string | null
+          account_id: string | null
           available_balance: number | null
+          connection_id: string
           created_at: string
-          created_by: string | null
           current_balance: number | null
           id: string
-          institution_name: string | null
-          last_error: string | null
           last_synced_at: string | null
+          mask: string | null
+          name: string | null
           owner_id: string
           plaid_account_id: string
-          plaid_item_id: string
-          project_id: string
+          project_id: string | null
           updated_at: string
         }
         Insert: {
-          access_token: string
-          account_id: string
-          account_label?: string | null
-          account_mask?: string | null
+          account_id?: string | null
           available_balance?: number | null
+          connection_id: string
           created_at?: string
-          created_by?: string | null
           current_balance?: number | null
           id?: string
-          institution_name?: string | null
-          last_error?: string | null
           last_synced_at?: string | null
+          mask?: string | null
+          name?: string | null
           owner_id: string
           plaid_account_id: string
-          plaid_item_id: string
-          project_id: string
+          project_id?: string | null
           updated_at?: string
         }
         Update: {
-          access_token?: string
-          account_id?: string
-          account_label?: string | null
-          account_mask?: string | null
+          account_id?: string | null
           available_balance?: number | null
+          connection_id?: string
           created_at?: string
-          created_by?: string | null
           current_balance?: number | null
           id?: string
-          institution_name?: string | null
-          last_error?: string | null
           last_synced_at?: string | null
+          mask?: string | null
+          name?: string | null
           owner_id?: string
           plaid_account_id?: string
-          plaid_item_id?: string
-          project_id?: string
+          project_id?: string | null
           updated_at?: string
         }
         Relationships: [
           {
-            foreignKeyName: "bank_connections_account_id_fkey"
+            foreignKeyName: "bank_connection_accounts_account_id_fkey"
             columns: ["account_id"]
             isOneToOne: false
             referencedRelation: "accounts"
             referencedColumns: ["id"]
           },
           {
-            foreignKeyName: "bank_connections_project_id_fkey"
+            foreignKeyName: "bank_connection_accounts_connection_id_fkey"
+            columns: ["connection_id"]
+            isOneToOne: false
+            referencedRelation: "bank_connections"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "bank_connection_accounts_project_id_fkey"
             columns: ["project_id"]
             isOneToOne: false
             referencedRelation: "projects"
             referencedColumns: ["id"]
           },
         ]
+      }
+      bank_connections: {
+        Row: {
+          access_token: string
+          created_at: string
+          created_by: string | null
+          id: string
+          institution_name: string | null
+          last_error: string | null
+          last_synced_at: string | null
+          owner_id: string
+          plaid_item_id: string
+          updated_at: string
+        }
+        Insert: {
+          access_token: string
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          institution_name?: string | null
+          last_error?: string | null
+          last_synced_at?: string | null
+          owner_id: string
+          plaid_item_id: string
+          updated_at?: string
+        }
+        Update: {
+          access_token?: string
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          institution_name?: string | null
+          last_error?: string | null
+          last_synced_at?: string | null
+          owner_id?: string
+          plaid_item_id?: string
+          updated_at?: string
+        }
+        Relationships: []
       }
       bank_reconciliations: {
         Row: {

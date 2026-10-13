@@ -13,7 +13,7 @@ export default function PlaidOAuth() {
     receivedRedirectUri: window.location.href,
     onSuccess: async (publicToken, metadata) => {
       try {
-        if (pending) await exchangePlaidToken(pending.target, publicToken, metadata);
+        if (pending) await exchangePlaidToken(publicToken, metadata);
         toast.success("Bank connected");
       } catch (e) {
         toast.error((e as Error).message);
