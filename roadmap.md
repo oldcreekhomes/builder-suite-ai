@@ -1,6 +1,7 @@
 # Roadmap
 
 ## In progress
+- [x] Accountant dashboard Active Jobs rows tightened to Cash Position density via shared `.table-compact` (build OK; rendered rows measured 33px vs 45px before; Cash Position rows unchanged at 32px; signed-in visual verification unavailable with external auth)
 - [x] Compact shared Cash Position rows, hide Manager only on PM, fit five PM columns, and remove explanatory note (7 tests passed; build OK; signed-in visual verification unavailable with external auth)
 - [x] Shared Cash Position on PM dashboard: Accounting Manager filtering, equal top panels, half-width alerts/cash, remove Recent Photos, keep forecast (7 tests passed; build OK; authenticated visual verification unavailable with external auth)
 - [x] Multiple Checks: entered-order summary, checked file saving with safe retry, wider cost code, corrected alignment (6 tests passed; signed-in verification unavailable)
