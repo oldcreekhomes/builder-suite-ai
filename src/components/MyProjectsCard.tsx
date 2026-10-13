@@ -91,8 +91,8 @@ export function MyProjectsCard() {
     .filter((group) => group.projects.length > 0);
 
   return (
-    <Card className="h-full">
-      <div className="p-6 border-b border-gray-200">
+    <Card className="h-full flex flex-col min-h-0">
+      <div className="p-6 border-b border-gray-200 shrink-0">
         <div className="flex items-center justify-between">
           <div className="flex items-center space-x-2">
             <FolderOpen className="h-5 w-5 text-primary" />
@@ -105,7 +105,7 @@ export function MyProjectsCard() {
           )}
         </div>
       </div>
-      <CardContent className="p-0">
+      <CardContent className="p-0 flex-1 min-h-0 overflow-hidden">
         {isLoading ? (
           <div className="text-sm text-muted-foreground">Loading projects...</div>
         ) : activeProjects.length === 0 ? (
