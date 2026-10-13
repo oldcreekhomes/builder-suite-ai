@@ -1,0 +1,147 @@
+import { corsHeaders } from "npm:@supabase/supabase-js@2/cors";
+import { createClient } from "npm:@supabase/supabase-js@2";
+import { z } from "npm:zod@3";
+
+const PLAID_ENV = (Deno.env.get("PLAID_ENV") || "production").trim().toLowerCase();
+const PLAID_BASE = PLAID_ENV === "sandbox" ? "https://sandbox.plaid.com" : "https://production.plaid.com";
+const REDIRECT_URI = "https://app.buildersuiteai.com/plaid/oauth";
+
+const json = (body: unknown, status = 200) =>
+  new Response(JSON.stringify(body), { status, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+
+async function plaid(path: string, body: Record<string, unknown>) {
+  const res = await fetch(`${PLAID_BASE}${path}`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      client_id: Deno.env.get("PLAID_CLIENT_ID"),
+      secret: Deno.env.get("PLAID_SECRET"),
+      ...body,
+    }),
+  });
+  const data = await res.json();
+  if (!res.ok) throw new Error(data.error_message || data.error_code || `Plaid error ${res.status}`);
+  return data;
+}
+
+const Body = z.discriminatedUnion("action", [
+  z.object({ action: z.literal("link_token"), use_redirect: z.boolean().optional() }),
+  z.object({
+    action: z.literal("exchange"),
+    public_token: z.string().min(1),
+    plaid_account_id: z.string().min(1),
+    project_id: z.string().uuid(),
+    account_id: z.string().uuid(),
+    institution_name: z.string().max(200).optional(),
+    account_mask: z.string().max(10).optional(),
+    account_label: z.string().max(200).optional(),
+  }),
+  z.object({ action: z.literal("refresh") }),
+  z.object({ action: z.literal("disconnect"), connection_id: z.string().uuid() }),
+]);
+
+Deno.serve(async (req) => {
+  if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
+  try {
+    const authHeader = req.headers.get("Authorization") || "";
+    const url = Deno.env.get("SUPABASE_URL")!;
+    const userClient = createClient(url, Deno.env.get("SUPABASE_ANON_KEY")!, {
+      global: { headers: { Authorization: authHeader } },
+    });
+    const { data: userData, error: userErr } = await userClient.auth.getUser();
+    if (userErr || !userData.user) return json({ error: "Unauthorized" }, 401);
+    const uid = userData.user.id;
+
+    const admin = createClient(url, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!);
+    const { data: profile } = await admin.from("users").select("home_builder_id, confirmed").eq("id", uid).maybeSingle();
+    const ownerId = profile?.home_builder_id && profile.confirmed ? profile.home_builder_id : uid;
+
+    const parsed = Body.safeParse(await req.json());
+    if (!parsed.success) return json({ error: parsed.error.flatten().fieldErrors }, 400);
+    const b = parsed.data;
+
+    if (b.action === "link_token") {
+      const data = await plaid("/link/token/create", {
+        user: { client_user_id: uid },
+        client_name: "BuilderSuite ML",
+        products: ["transactions"],
+        country_codes: ["US"],
+        language: "en",
+        ...(b.use_redirect === false ? {} : { redirect_uri: REDIRECT_URI }),
+      });
+      return json({ link_token: data.link_token });
+    }
+
+    if (b.action === "exchange") {
+      const { data: project } = await admin.from("projects").select("id").eq("id", b.project_id).eq("owner_id", ownerId).maybeSingle();
+      const { data: account } = await admin.from("accounts").select("id").eq("id", b.account_id).eq("owner_id", ownerId).maybeSingle();
+      if (!project || !account) return json({ error: "Project or account not found" }, 404);
+
+      const ex = await plaid("/item/public_token/exchange", { public_token: b.public_token });
+      const bal = await plaid("/accounts/balance/get", {
+        access_token: ex.access_token,
+        options: { account_ids: [b.plaid_account_id] },
+      });
+      const acct = bal.accounts?.[0];
+      const { error } = await admin.from("bank_connections").upsert({
+        owner_id: ownerId,
+        project_id: b.project_id,
+        account_id: b.account_id,
+        plaid_item_id: ex.item_id,
+        plaid_account_id: b.plaid_account_id,
+        access_token: ex.access_token,
+        institution_name: b.institution_name ?? null,
+        account_mask: b.account_mask ?? acct?.mask ?? null,
+        account_label: b.account_label ?? acct?.name ?? null,
+        current_balance: acct?.balances?.current ?? null,
+        available_balance: acct?.balances?.available ?? null,
+        last_synced_at: new Date().toISOString(),
+        last_error: null,
+        created_by: uid,
+        updated_at: new Date().toISOString(),
+      }, { onConflict: "project_id,account_id" });
+      if (error) throw error;
+      return json({ ok: true });
+    }
+
+    if (b.action === "refresh") {
+      const { data: conns, error } = await admin.from("bank_connections")
+        .select("id, access_token, plaid_account_id").eq("owner_id", ownerId);
+      if (error) throw error;
+      let updated = 0;
+      for (const c of conns || []) {
+        try {
+          const bal = await plaid("/accounts/balance/get", {
+            access_token: c.access_token,
+            options: { account_ids: [c.plaid_account_id] },
+          });
+          const acct = bal.accounts?.[0];
+          await admin.from("bank_connections").update({
+            current_balance: acct?.balances?.current ?? null,
+            available_balance: acct?.balances?.available ?? null,
+            last_synced_at: new Date().toISOString(),
+            last_error: null,
+            updated_at: new Date().toISOString(),
+          }).eq("id", c.id);
+          updated++;
+        } catch (e) {
+          await admin.from("bank_connections").update({ last_error: String((e as Error).message).slice(0, 500) }).eq("id", c.id);
+        }
+      }
+      return json({ ok: true, updated, total: conns?.length || 0 });
+    }
+
+    if (b.action === "disconnect") {
+      const { data: c } = await admin.from("bank_connections").select("id, access_token")
+        .eq("id", b.connection_id).eq("owner_id", ownerId).maybeSingle();
+      if (!c) return json({ error: "Not found" }, 404);
+      try { await plaid("/item/remove", { access_token: c.access_token }); } catch { /* already removed */ }
+      await admin.from("bank_connections").delete().eq("id", c.id);
+      return json({ ok: true });
+    }
+    return json({ error: "Unknown action" }, 400);
+  } catch (e) {
+    console.error(e);
+    return json({ error: (e as Error).message }, 500);
+  }
+});
