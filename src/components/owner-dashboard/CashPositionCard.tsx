@@ -26,14 +26,27 @@ import { useProjects } from "@/hooks/useProjects";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/hooks/useAuth";
 import { cashPositionTotals, scopeCashPositionRows, type CashPositionScope } from "@/lib/cashPositionScope";
+import { PlaidConnectButton } from "@/components/banking/PlaidConnectButton";
 
 type Row = {
   project_id: string;
   address: string;
+  account_id: string | null;
   account_code: string | null;
   account_name: string | null;
   bank_balance: number;
   approved_due: number;
+};
+
+type LiveConn = {
+  id: string;
+  project_id: string;
+  account_id: string;
+  current_balance: number | null;
+  last_synced_at: string | null;
+  last_error: string | null;
+  institution_name: string | null;
+  account_mask: string | null;
 };
 
 const DAY_OPTIONS = [10, 15, 20];
@@ -87,6 +100,7 @@ export function CashPositionCard({ scope = "company" }: { scope?: CashPositionSc
       return ((data as any[]) || []).map((r) => ({
         project_id: r.project_id,
         address: r.address,
+        account_id: r.account_id,
         account_code: r.account_code,
         account_name: r.account_name,
         bank_balance: Number(r.bank_balance) || 0,
@@ -97,7 +111,40 @@ export function CashPositionCard({ scope = "company" }: { scope?: CashPositionSc
     enabled: !!user?.id,
   });
 
-  const allRows = scopeCashPositionRows(query.data || [], projects, scope, user?.id);
+  const connQuery = useQuery({
+    queryKey: ["bank-connections", user?.id],
+    queryFn: async () => {
+      const { data, error } = await (supabase as any)
+        .from("bank_connections")
+        .select("id, project_id, account_id, current_balance, last_synced_at, last_error, institution_name, account_mask");
+      if (error) throw error;
+      return (data || []) as LiveConn[];
+    },
+    staleTime: 60_000,
+    enabled: !!user?.id,
+  });
+  const liveMap = new Map((connQuery.data || []).map((c) => [`${c.project_id}:${c.account_id}`, c]));
+  const [syncing, setSyncing] = useState(false);
+  const refreshAll = async () => {
+    setSyncing(true);
+    try {
+      if ((connQuery.data || []).length > 0) {
+        await supabase.functions.invoke("plaid", { body: { action: "refresh" } });
+      }
+    } finally {
+      await Promise.all([query.refetch(), connQuery.refetch()]);
+      setSyncing(false);
+    }
+  };
+
+  // Live bank balance replaces book balance when a bank is connected; book stays in the tooltip.
+  const withLive = (query.data || []).map((r) => {
+    const live = liveMap.get(`${r.project_id}:${r.account_id}`);
+    return live && live.current_balance != null
+      ? { ...r, book_balance: r.bank_balance, bank_balance: Number(live.current_balance), live }
+      : { ...r, book_balance: r.bank_balance, live };
+  });
+  const allRows = scopeCashPositionRows(withLive, projects, scope, user?.id);
   const q = searchQuery.trim().toLowerCase();
   const rows = q
     ? allRows.filter((r) => {
@@ -151,8 +198,8 @@ export function CashPositionCard({ scope = "company" }: { scope?: CashPositionSc
               ))}
             </SelectContent>
           </Select>
-          <Button variant="outline" size="sm" className="w-9 px-0 shrink-0" onClick={() => query.refetch()} title="Refresh" aria-label="Refresh Cash Position">
-            <RefreshCw className={cn("h-4 w-4", query.isFetching && "animate-spin")} />
+          <Button variant="outline" size="sm" className="w-9 px-0 shrink-0" onClick={refreshAll} title="Refresh (pulls live bank balances)" aria-label="Refresh Cash Position">
+            <RefreshCw className={cn("h-4 w-4", (query.isFetching || syncing) && "animate-spin")} />
           </Button>
         </div>
       </div>
@@ -226,7 +273,38 @@ export function CashPositionCard({ scope = "company" }: { scope?: CashPositionSc
                       </Tooltip>
                     </TooltipProvider>
                   </TableCell>
-                  <TableCell className="tabular-nums whitespace-nowrap">{formatCurrency(r.bank_balance)}</TableCell>
+                  <TableCell className="tabular-nums whitespace-nowrap">
+                    <div className="flex items-center gap-1">
+                      {r.live && r.live.current_balance != null ? (
+                        <TooltipProvider>
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <span className="inline-flex items-center gap-1">
+                                <span className={cn("h-1.5 w-1.5 rounded-full", r.live.last_error ? "bg-destructive" : "bg-green-600")} />
+                                {formatCurrency(r.bank_balance)}
+                              </span>
+                            </TooltipTrigger>
+                            <TooltipContent>
+                              <div>Live bank: {formatCurrency(r.bank_balance)}</div>
+                              <div>Books: {formatCurrency(r.book_balance)}</div>
+                              <div>Difference: {formatCurrency(r2(r.bank_balance - r.book_balance))}</div>
+                              {r.live.last_synced_at && <div>Updated {new Date(r.live.last_synced_at).toLocaleString()}</div>}
+                              {r.live.last_error && <div className="text-destructive">{r.live.last_error}</div>}
+                            </TooltipContent>
+                          </Tooltip>
+                        </TooltipProvider>
+                      ) : (
+                        <span>{formatCurrency(r.bank_balance)}</span>
+                      )}
+                      {!managerView && r.account_id && (
+                        <PlaidConnectButton
+                          target={{ projectId: r.project_id, accountId: r.account_id }}
+                          connected={!!r.live}
+                          onConnected={() => { connQuery.refetch(); }}
+                        />
+                      )}
+                    </div>
+                  </TableCell>
                   <TableCell className="tabular-nums whitespace-nowrap">{formatCurrency(r.approved_due)}</TableCell>
                   <TableCell className={cn("tabular-nums whitespace-nowrap", netClass(net))}>
                     {formatCurrency(net)}
