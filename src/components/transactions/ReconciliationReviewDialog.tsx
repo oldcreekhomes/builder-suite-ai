@@ -419,7 +419,8 @@ export function ReconciliationReviewDialog({
           description: line.memo || undefined,
           costCode: label,
           costCodeBreakdown: label ? [{ code: label, amount: amt }] : [],
-          amount: Number(line.debit) > 0 ? Number(line.debit) : -Number(line.credit),
+          // Bank debit = money in (deposit side, negative here); bank credit = money out (payment side, positive)
+          amount: Number(line.debit) > 0 ? -Number(line.debit) : Number(line.credit),
           type: 'journal_entry' as const,
           _txn: {
             source_type: 'manual',
