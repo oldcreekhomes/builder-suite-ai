@@ -11,7 +11,7 @@ import { useAccounts } from "@/hooks/useAccounts";
 import { useProjectAccountNames, resolveAccountName } from "@/hooks/useProjectAccountNames";
 import { useProjectDefaultBankAccountId } from "@/hooks/useProjectDefaultBankAccountId";
 import { useProject } from "@/hooks/useProject";
-import { useBankReconciliation, AllocationBreakdown } from "@/hooks/useBankReconciliation";
+import { useBankReconciliation, AllocationBreakdown, InvoiceBreakdown } from "@/hooks/useBankReconciliation";
 import { useUndoReconciliationPermissions } from "@/hooks/useUndoReconciliationPermissions";
 import { format, addMonths, endOfMonth } from "date-fns";
 import { formatDateSafe } from "@/utils/dateOnly";
@@ -118,11 +118,49 @@ function getAllocationDisplay(rawAllocations: AllocationBreakdown[] | undefined,
 }
 
 // Component to render allocation cell with optional tooltip
-function AllocationCell({ allocations, labelType = 'code' }: { allocations: AllocationBreakdown[] | undefined; labelType?: 'code' | 'account' }) {
+function AllocationCell({ allocations, labelType = 'code', invoices }: { allocations: AllocationBreakdown[] | undefined; labelType?: 'code' | 'account'; invoices?: InvoiceBreakdown[] }) {
   const { display, hasMultiple, breakdown } = getAllocationDisplay(allocations, labelType);
   
   const formatCurrencyTooltip = (amount: number) => 
     new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(amount);
+
+  if (invoices && invoices.length > 1) {
+    const grand = Math.round(invoices.reduce((s, i) => s + i.amount, 0) * 100) / 100;
+    return (
+      <Tooltip>
+        <TooltipTrigger asChild>
+          <span className="text-sm truncate inline-block align-middle w-full cursor-help">{display}</span>
+        </TooltipTrigger>
+        <TooltipContent side="top" className="max-w-sm">
+          <div className="space-y-2 text-xs">
+            {invoices.map((inv) => (
+              <div key={inv.bill_id} className="space-y-0.5">
+                <div className="flex justify-between gap-4 font-semibold border-b pb-0.5">
+                  <span>Invoice #{inv.reference_number || '-'}</span>
+                  <span>{formatCurrencyTooltip(inv.amount)}</span>
+                </div>
+                {inv.allocations.map((alloc, idx) => (
+                  <div key={idx} className="pl-2">
+                    <div className="font-medium">{alloc.code}: {alloc.name}</div>
+                    {alloc.lots.map((lot, lotIdx) => (
+                      <div key={lotIdx} className="pl-2 flex justify-between gap-4">
+                        <span className="text-muted-foreground">{lot.name === 'No Lot' ? 'No Lot' : `Lot ${lot.name}`}:</span>
+                        <span>{formatCurrencyTooltip(lot.amount)}</span>
+                      </div>
+                    ))}
+                  </div>
+                ))}
+              </div>
+            ))}
+            <div className="flex justify-between gap-4 font-medium border-t pt-1">
+              <span>Total:</span>
+              <span>{formatCurrencyTooltip(grand)}</span>
+            </div>
+          </div>
+        </TooltipContent>
+      </Tooltip>
+    );
+  }
   
   if (!hasMultiple) {
     return <span className="text-sm truncate inline-block align-middle w-full">{display}</span>;
@@ -1491,6 +1529,7 @@ export function ReconcileAccountsContent({ projectId }: ReconcileAccountsContent
                                 <AllocationCell 
                                   allocations={check.accountAllocations?.length ? check.accountAllocations : check.allocations} 
                                   labelType={check.accountAllocations?.length ? "account" : "code"} 
+                                  invoices={(check as any).invoiceBreakdowns}
                                 />
                               </td>
                               <td className="pl-2 pr-2 py-2 text-left whitespace-nowrap">
