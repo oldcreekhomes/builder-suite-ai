@@ -23,6 +23,13 @@ export interface BillPaymentAllocationSummary {
   amount_allocated: number;
 }
 
+export interface InvoiceBreakdown {
+  bill_id: string;
+  reference_number: string | null;
+  amount: number;
+  allocations: AllocationBreakdown[];
+}
+
 interface ReconciliationTransaction {
   id: string;
   date: string;
@@ -38,6 +45,8 @@ interface ReconciliationTransaction {
   journal_entry_line_id?: string;
   // Cost code allocations for checks/bill payments
   allocations?: AllocationBreakdown[];
+  // For consolidated bill payments - per-invoice cost code + lot breakdown
+  invoiceBreakdowns?: InvoiceBreakdown[];
   // Account allocations for deposits
   accountAllocations?: AllocationBreakdown[];
   // For consolidated bill payments - list of bills included in this payment
