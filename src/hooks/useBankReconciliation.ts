@@ -624,30 +624,52 @@ export const useBankReconciliation = () => {
                 linesByBill.set(line.bill_id, existing);
               });
 
+              // Single-lot projects: unassigned lines belong to the only lot
+              let singleLotName: string | null = null;
+              if (projectId) {
+                const { data: projLots } = await supabase
+                  .from('project_lots')
+                  .select('lot_number')
+                  .eq('project_id', projectId);
+                if (projLots && projLots.length === 1) singleLotName = String(projLots[0].lot_number);
+              }
+              const lotNameFor = (line: any) => {
+                const lot = line.project_lots as unknown as { lot_number: string | number } | null;
+                return lot?.lot_number != null ? String(lot.lot_number) : (singleLotName || 'No Lot');
+              };
+
               // For each consolidated payment, aggregate allocations from all its bills
               consolidatedBillPaymentTransactions = consolidatedBillPaymentTransactions.map(cp => {
                 const paymentAllocations = allocationsByPayment.get(cp.id) || [];
                 const allAllocations: AllocationBreakdown[] = [];
                 const byCostCode = new Map<string, { code: string; name: string; lots: AllocationLot[] }>();
+                const invoiceBreakdowns: InvoiceBreakdown[] = [];
 
                 paymentAllocations.forEach(pa => {
                   const linesForBill = linesByBill.get(pa.bill_id) || [];
+                  const billByCode = new Map<string, { code: string; name: string; lots: AllocationLot[] }>();
                   linesForBill.forEach(line => {
                     if (!line.cost_code_id || !line.cost_codes) return;
                     const costCode = line.cost_codes as unknown as { code: string; name: string };
                     const key = line.cost_code_id;
+                    const lotEntry = { name: lotNameFor(line), amount: Number(line.amount) };
                     if (!byCostCode.has(key)) {
-                      byCostCode.set(key, { 
-                        code: costCode.code, 
-                        name: costCode.name, 
-                        lots: [] 
-                      });
+                      byCostCode.set(key, { code: costCode.code, name: costCode.name, lots: [] });
                     }
-                    const lot = line.project_lots as unknown as { lot_number: string } | null;
-                    byCostCode.get(key)!.lots.push({
-                      name: lot?.lot_number || 'No Lot',
-                      amount: Number(line.amount)
-                    });
+                    byCostCode.get(key)!.lots.push(lotEntry);
+                    if (!billByCode.has(key)) {
+                      billByCode.set(key, { code: costCode.code, name: costCode.name, lots: [] });
+                    }
+                    billByCode.get(key)!.lots.push(lotEntry);
+                  });
+                  invoiceBreakdowns.push({
+                    bill_id: pa.bill_id,
+                    reference_number: pa.reference_number,
+                    amount: pa.amount_allocated,
+                    allocations: Array.from(billByCode.values()).map(cc => ({
+                      ...cc,
+                      total: Math.round(cc.lots.reduce((s, l) => s + l.amount, 0) * 100) / 100,
+                    })),
                   });
                 });
 
@@ -656,13 +678,14 @@ export const useBankReconciliation = () => {
                     code: cc.code,
                     name: cc.name,
                     lots: cc.lots,
-                    total: cc.lots.reduce((sum, l) => sum + l.amount, 0)
+                    total: Math.round(cc.lots.reduce((sum, l) => sum + l.amount, 0) * 100) / 100
                   });
                 });
 
                 return {
                   ...cp,
-                  allocations: allAllocations
+                  allocations: allAllocations,
+                  invoiceBreakdowns,
                 };
               });
             }
