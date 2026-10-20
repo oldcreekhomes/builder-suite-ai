@@ -1,6 +1,7 @@
 # Roadmap
 
 ## In progress
+- [x] Reconciliation Review: vendor credits on payments counted permanently (saved payment totals; clearing tags credit side; past months backfilled; OW Nov–Mar match statements; 3 tests passed)
 - [x] Cash Position: search box hidden on PM dashboard only, accountant keeps it (shared component conditional; build OK; signed-in visual verification unavailable with external auth)
 - [x] Accountant dashboard Active Jobs rows tightened to Cash Position density via shared `.table-compact` (build OK; rendered rows measured 33px vs 45px before; Cash Position rows unchanged at 32px; signed-in visual verification unavailable with external auth)
 - [x] Compact shared Cash Position rows, hide Manager only on PM, fit five PM columns, and remove explanatory note (7 tests passed; build OK; signed-in visual verification unavailable with external auth)
