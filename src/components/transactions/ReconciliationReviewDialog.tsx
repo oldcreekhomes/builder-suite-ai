@@ -193,6 +193,17 @@ export function ReconciliationReviewDialog({
         .map((l: any) => l.journal_entries?.source_id)
         .filter(Boolean);
 
+      // ----- Saved (consolidated) bill payments cleared in this reconciliation -----
+      // The payment's saved total is what hits the bank statement.
+      const { data: reconciledPayments } = await supabase
+        .from('bill_payments')
+        .select('id, payment_date, total_amount, vendor_id, bill_payment_allocations(bill_id, amount_allocated)')
+        .eq('reconciliation_id', reconciliationId)
+        .eq('payment_account_id', bankAccountId);
+      const paymentBillIds = (reconciledPayments || []).flatMap((p: any) =>
+        (p.bill_payment_allocations || []).map((a: any) => a.bill_id)
+      );
+
       // ----- Legacy bills directly reconciled -----
       const { data: legacyBills } = await supabase
         .from('bills')
@@ -200,7 +211,7 @@ export function ReconciliationReviewDialog({
         .eq('reconciliation_id', reconciliationId);
 
       const allBillIds = Array.from(
-        new Set([...jeBillIds, ...((legacyBills || []).map((b) => b.id))])
+        new Set([...jeBillIds, ...paymentBillIds, ...((legacyBills || []).map((b) => b.id))])
       );
 
       // Fetch bill details + lines
