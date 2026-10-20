@@ -171,6 +171,7 @@ export function ReconciliationReviewDialog({
         .from('journal_entry_lines')
         .select(`
           id,
+          debit,
           credit,
           journal_entry_id,
           journal_entries!inner (
@@ -181,8 +182,7 @@ export function ReconciliationReviewDialog({
           )
         `)
         .eq('reconciliation_id', reconciliationId)
-        .eq('account_id', bankAccountId)
-        .gt('credit', 0);
+        .eq('account_id', bankAccountId);
 
       const bpLines = (reconciledBillPaymentLines || []).filter(
         (line: any) => line.journal_entries?.source_type === 'bill_payment'
@@ -506,7 +506,7 @@ export function ReconciliationReviewDialog({
           const label = r.amount < 0 ? 'Credit' : 'Bill';
           return {
             code: `${label} ${r.reference || ''}${codes ? ` · ${codes}` : ''}`.trim(),
-            amount: -r.amount < 0 ? r.amount : r.amount,
+            amount: r.amount,
           };
         });
         combined.push({
