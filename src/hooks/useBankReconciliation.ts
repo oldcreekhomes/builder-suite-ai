@@ -1,6 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { batchedIn } from "@/lib/supabasePaginate";
+import { pickPaymentJournalEntries, PAYMENT_JE_MATCH_WINDOW_DAYS } from "@/lib/reconciliationPaymentRows";
 import { useToast } from "@/hooks/use-toast";
 import { toDateLocal } from "@/utils/dateOnly";
 
@@ -1377,7 +1378,15 @@ export const useBankReconciliation = () => {
           .eq('id', id);
         if (error) throw error;
       } else if (type === 'consolidated_bill_payment') {
-        // For consolidated bill payments, update the bill_payments table
+        // Read the payment first so an uncheck only clears entries tagged
+        // to the reconciliation this payment was cleared in.
+        const { data: bp } = await supabase
+          .from('bill_payments')
+          .select('payment_account_id, payment_date, total_amount, reconciliation_id')
+          .eq('id', id)
+          .maybeSingle();
+        const previousRecId: string | null = (bp as any)?.reconciliation_id || null;
+
         const { error } = await supabase
           .from('bill_payments')
           .update({
@@ -1388,49 +1397,88 @@ export const useBankReconciliation = () => {
           .eq('id', id);
         if (error) throw error;
 
-        // Also stamp the corresponding bank-side JE lines so the
-        // Reconciliation Review dialog (which reads from
-        // journal_entry_lines.reconciliation_id) shows this payment.
-        // Tag BOTH sides (bill lines that take money out AND vendor-credit
-        // lines that put money back), but for each bill only the payment
-        // entry belonging to THIS payment (same date, else the closest date),
-        // so other payments on the same bill are untouched.
-        const { data: bp } = await supabase
-          .from('bill_payments')
-          .select('payment_account_id, payment_date')
-          .eq('id', id)
-          .maybeSingle();
+        // Stamp the bank-side JE lines of THIS payment only (bills and vendor
+        // credits). Never touch entries from another payment / month.
         const { data: allocs } = await supabase
           .from('bill_payment_allocations')
           .select('bill_id')
           .eq('bill_payment_id', id);
         const billIds = (allocs || []).map((a: any) => a.bill_id);
         if (bp?.payment_account_id && bp?.payment_date && billIds.length > 0) {
-          const { data: jes } = await supabase
-            .from('journal_entries')
-            .select('id, source_id, entry_date')
-            .eq('source_type', 'bill_payment')
-            .in('source_id', billIds);
-          const payTime = new Date(`${bp.payment_date}T00:00:00Z`).getTime();
-          const bestByBill = new Map<string, { ids: string[]; diff: number }>();
-          (jes || []).forEach((j: any) => {
-            const diff = Math.abs(new Date(`${j.entry_date}T00:00:00Z`).getTime() - payTime);
-            const cur = bestByBill.get(j.source_id);
-            if (!cur || diff < cur.diff) bestByBill.set(j.source_id, { ids: [j.id], diff });
-            else if (diff === cur.diff) cur.ids.push(j.id);
-          });
-          const jeIds = Array.from(bestByBill.values()).flatMap((v) => v.ids);
-          if (jeIds.length > 0) {
-            const { error: jelErr } = await supabase
-              .from('journal_entry_lines')
-              .update({
-                reconciled,
-                reconciliation_id: reconciliationId || null,
-                reconciliation_date: reconciliationDate || null,
-              })
-              .in('journal_entry_id', jeIds)
-              .eq('account_id', bp.payment_account_id);
-            if (jelErr) throw jelErr;
+          if (reconciled) {
+            const jes = await batchedIn<any>(
+              (ids) => supabase
+                .from('journal_entries')
+                .select('id, source_id, entry_date')
+                .eq('source_type', 'bill_payment')
+                .in('source_id', ids),
+              billIds
+            );
+            const jeIdList = jes.map((j: any) => j.id);
+            const lines = await batchedIn<any>(
+              (ids) => supabase
+                .from('journal_entry_lines')
+                .select('journal_entry_id, reconciliation_id')
+                .in('journal_entry_id', ids)
+                .eq('account_id', bp.payment_account_id),
+              jeIdList
+            );
+            const recsByJe = new Map<string, (string | null)[]>();
+            lines.forEach((l: any) => {
+              const arr = recsByJe.get(l.journal_entry_id) || [];
+              arr.push(l.reconciliation_id);
+              recsByJe.set(l.journal_entry_id, arr);
+            });
+            const jeIds = pickPaymentJournalEntries(
+              { total_amount: (bp as any).total_amount, payment_date: bp.payment_date },
+              jes.map((j: any) => ({
+                id: j.id,
+                source_id: j.source_id,
+                entry_date: j.entry_date,
+                bankLineReconciliationIds: recsByJe.get(j.id) || [],
+              })),
+              reconciliationId || null
+            );
+            if (jeIds.length > 0) {
+              const { error: jelErr } = await supabase
+                .from('journal_entry_lines')
+                .update({
+                  reconciled: true,
+                  reconciliation_id: reconciliationId || null,
+                  reconciliation_date: reconciliationDate || null,
+                })
+                .in('journal_entry_id', jeIds)
+                .eq('account_id', bp.payment_account_id)
+                .or(`reconciliation_id.is.null,reconciliation_id.eq.${reconciliationId}`);
+              if (jelErr) throw jelErr;
+            }
+          } else if (previousRecId) {
+            // Uncheck: clear only lines of this payment's bills that were
+            // tagged to the reconciliation this payment was in, near its date.
+            const jes = await batchedIn<any>(
+              (ids) => supabase
+                .from('journal_entries')
+                .select('id, entry_date')
+                .eq('source_type', 'bill_payment')
+                .in('source_id', ids),
+              billIds
+            );
+            const payDay = new Date(`${bp.payment_date}T00:00:00Z`).getTime() / 86400000;
+            const jeIds = jes
+              .filter((j: any) =>
+                Math.abs(new Date(`${j.entry_date}T00:00:00Z`).getTime() / 86400000 - payDay) <=
+                PAYMENT_JE_MATCH_WINDOW_DAYS
+              )
+              .map((j: any) => j.id);
+            if (jeIds.length > 0) {
+              const { error: jelErr } = await supabase
+                .from('journal_entry_lines')
+                .update({ reconciled: false, reconciliation_id: null, reconciliation_date: null })
+                .in('journal_entry_id', jeIds)
+                .eq('account_id', bp.payment_account_id)
+                .eq('reconciliation_id', previousRecId);
+              if (jelErr) throw jelErr;
+            }
           }
         }
       } else if (type === 'journal_entry') {
