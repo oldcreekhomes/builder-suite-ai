@@ -4,6 +4,7 @@ import { TransactionDetailDialog } from "@/components/accounting/TransactionDeta
 import { UniversalFilePreviewProvider } from "@/components/files/UniversalFilePreviewProvider";
 import { supabase } from "@/integrations/supabase/client";
 import { formatDateSafe } from "@/utils/dateOnly";
+import { buildPaymentRow } from "@/lib/reconciliationPaymentRows";
 import {
   Dialog,
   DialogContent,
@@ -193,6 +194,17 @@ export function ReconciliationReviewDialog({
         .map((l: any) => l.journal_entries?.source_id)
         .filter(Boolean);
 
+      // ----- Saved (consolidated) bill payments cleared in this reconciliation -----
+      // The payment's saved total is what hits the bank statement.
+      const { data: reconciledPayments } = await supabase
+        .from('bill_payments')
+        .select('id, payment_date, total_amount, vendor_id, bill_payment_allocations(bill_id, amount_allocated)')
+        .eq('reconciliation_id', reconciliationId)
+        .eq('payment_account_id', bankAccountId);
+      const paymentBillIds = (reconciledPayments || []).flatMap((p: any) =>
+        (p.bill_payment_allocations || []).map((a: any) => a.bill_id)
+      );
+
       // ----- Legacy bills directly reconciled -----
       const { data: legacyBills } = await supabase
         .from('bills')
@@ -200,7 +212,7 @@ export function ReconciliationReviewDialog({
         .eq('reconciliation_id', reconciliationId);
 
       const allBillIds = Array.from(
-        new Set([...jeBillIds, ...((legacyBills || []).map((b) => b.id))])
+        new Set([...jeBillIds, ...paymentBillIds, ...((legacyBills || []).map((b) => b.id))])
       );
 
       // Fetch bill details + lines
@@ -221,7 +233,12 @@ export function ReconciliationReviewDialog({
 
       // Vendors
       const vendorIds = Array.from(
-        new Set((allBills || []).map((b: any) => b.vendor_id).filter(Boolean))
+        new Set(
+          [
+            ...(allBills || []).map((b: any) => b.vendor_id),
+            ...(reconciledPayments || []).map((p: any) => p.vendor_id),
+          ].filter(Boolean)
+        )
       );
       const { data: vendors } = vendorIds.length
         ? await supabase
@@ -460,63 +477,80 @@ export function ReconciliationReviewDialog({
         return t ? { ...bp, _txn: t } : bp;
       });
 
-      // ----- Combine lines paid together in one consolidated payment -----
-      // A payment that applies a vendor credit (bill + credit memo) clears the
-      // bank as ONE net amount, so show it as one row matching the statement.
-      const { data: reconciledPayments } = await supabase
-        .from('bill_payments')
-        .select('id, payment_date, bill_payment_allocations(bill_id)')
-        .eq('reconciliation_id', reconciliationId);
-
-      const paymentByBillDate = new Map<string, string>();
+      // ----- One row per saved bill payment, at its saved total -----
+      // The bank statement shows ONE amount per payment (bills minus any
+      // vendor credits). Use the payment's saved total so the review is right
+      // even if some of its journal lines were never tagged as cleared.
+      const paymentKeys = new Set<string>();
+      const paymentBillSet = new Set<string>();
       (reconciledPayments || []).forEach((p: any) => {
         (p.bill_payment_allocations || []).forEach((a: any) => {
-          paymentByBillDate.set(`${a.bill_id}|${p.payment_date}`, p.id);
+          paymentKeys.add(`${a.bill_id}|${p.payment_date}`);
+          paymentBillSet.add(a.bill_id);
         });
       });
 
       const lineById = new Map((bpLines as any[]).map((l) => [l.id, l]));
-      const groups = new Map<string, ClearedTransaction[]>();
+      const rowsByBillDate = new Map<string, ClearedTransaction>();
       const ungrouped: ClearedTransaction[] = [];
       billPayments.forEach((bp) => {
         const line = lineById.get(bp.id);
-        const paymentId = line
-          ? paymentByBillDate.get(`${line.journal_entries?.source_id}|${line.journal_entries?.entry_date}`)
-          : undefined;
-        if (!paymentId) {
-          ungrouped.push(bp);
+        if (line) {
+          const key = `${line.journal_entries?.source_id}|${line.journal_entries?.entry_date}`;
+          if (paymentKeys.has(key)) {
+            if (!rowsByBillDate.has(key)) rowsByBillDate.set(key, bp);
+            return;
+          }
+        } else if (paymentBillSet.has(bp.id)) {
+          // Legacy bill row already represented by its saved payment
           return;
         }
-        const arr = groups.get(paymentId) || [];
-        arr.push(bp);
-        groups.set(paymentId, arr);
+        ungrouped.push(bp);
       });
 
-      const combined: ClearedTransaction[] = [];
-      groups.forEach((rows, paymentId) => {
-        if (rows.length === 1) {
-          combined.push(rows[0]);
-          return;
-        }
-        const netCents = rows.reduce((s, r) => s + Math.round(r.amount * 100), 0);
-        const main = [...rows].sort((a, b) => b.amount - a.amount)[0];
-        const refs = rows.map((r) => r.reference).filter(Boolean) as string[];
-        const breakdown: BreakdownEntry[] = rows.map((r) => {
-          const codes = (r.costCodeBreakdown || []).map((c) => c.code).join(', ');
-          const label = r.amount < 0 ? 'Credit' : 'Bill';
-          return {
-            code: `${label} ${r.reference || ''}${codes ? ` · ${codes}` : ''}`.trim(),
-            amount: r.amount,
-          };
+      const combined: ClearedTransaction[] = (reconciledPayments || []).map((p: any) => {
+        const allocs = (p.bill_payment_allocations || []) as any[];
+        const sorted = [...allocs].sort(
+          (a, b) => Number(b.amount_allocated) - Number(a.amount_allocated)
+        );
+        const mainAlloc = sorted[0];
+        const mainBill: any = mainAlloc ? billMap.get(mainAlloc.bill_id) : undefined;
+        const mainRow = mainAlloc
+          ? rowsByBillDate.get(`${mainAlloc.bill_id}|${p.payment_date}`)
+          : undefined;
+        const allocInputs = sorted.map((a) => {
+          const bill: any = billMap.get(a.bill_id);
+          const codes = buildCostCodeBreakdown(billLinesByBill.get(a.bill_id) || [], ccMap)
+            .map((c) => c.code)
+            .join(', ');
+          return { amount: Number(a.amount_allocated) || 0, reference: bill?.reference_number, codes };
         });
-        combined.push({
-          ...main,
-          id: `payment:${paymentId}`,
+        const { amount, breakdown } = buildPaymentRow(p.total_amount, allocInputs);
+        const refs = allocInputs.map((a) => a.reference).filter(Boolean) as string[];
+        const singleBillLines = allocs.length === 1 ? billLinesByBill.get(mainAlloc.bill_id) || [] : [];
+        const vendorName =
+          vendorMap.get(p.vendor_id) ||
+          (mainBill ? vendorMap.get(mainBill.vendor_id) : undefined) ||
+          'Unknown Vendor';
+        return {
+          id: `payment:${p.id}`,
+          date: p.payment_date,
+          payee: vendorName,
           reference: refs.length > 1 ? `${refs[0]} +${refs.length - 1}` : refs[0],
-          description: summarizeMemos(rows.map((r) => r.description)),
-          costCodeBreakdown: breakdown,
-          amount: netCents / 100,
-        });
+          description:
+            summarizeMemos(
+              sorted.flatMap((a) => (billLinesByBill.get(a.bill_id) || []).map((l: any) => l.memo))
+            ) ||
+            (mainBill?.notes && String(mainBill.notes).trim()) ||
+            undefined,
+          costCodeBreakdown:
+            allocs.length === 1 ? buildCostCodeBreakdown(singleBillLines, ccMap) : breakdown,
+          amount,
+          type: 'bill_payment' as const,
+          _txn:
+            mainRow?._txn ||
+            (mainAlloc ? sourceTxnMap.get(`bill_payment:${mainAlloc.bill_id}`) : undefined),
+        } as ClearedTransaction;
       });
 
       billPayments = [...ungrouped, ...combined].filter((bp) => bp.amount !== 0);

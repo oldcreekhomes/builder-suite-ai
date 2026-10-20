@@ -1391,9 +1391,12 @@ export const useBankReconciliation = () => {
         // Also stamp the corresponding bank-side JE lines so the
         // Reconciliation Review dialog (which reads from
         // journal_entry_lines.reconciliation_id) shows this payment.
+        // Tag BOTH sides (bill lines that take money out AND vendor-credit
+        // lines that put money back) but only the entries dated on this
+        // payment's date, so other payments on the same bill are untouched.
         const { data: bp } = await supabase
           .from('bill_payments')
-          .select('payment_account_id')
+          .select('payment_account_id, payment_date')
           .eq('id', id)
           .maybeSingle();
         const { data: allocs } = await supabase
@@ -1401,11 +1404,12 @@ export const useBankReconciliation = () => {
           .select('bill_id')
           .eq('bill_payment_id', id);
         const billIds = (allocs || []).map((a: any) => a.bill_id);
-        if (bp?.payment_account_id && billIds.length > 0) {
+        if (bp?.payment_account_id && bp?.payment_date && billIds.length > 0) {
           const { data: jes } = await supabase
             .from('journal_entries')
             .select('id')
             .eq('source_type', 'bill_payment')
+            .eq('entry_date', bp.payment_date)
             .in('source_id', billIds);
           const jeIds = (jes || []).map((j: any) => j.id);
           if (jeIds.length > 0) {
@@ -1417,8 +1421,7 @@ export const useBankReconciliation = () => {
                 reconciliation_date: reconciliationDate || null,
               })
               .in('journal_entry_id', jeIds)
-              .eq('account_id', bp.payment_account_id)
-              .gt('credit', 0);
+              .eq('account_id', bp.payment_account_id);
             if (jelErr) throw jelErr;
           }
         }
