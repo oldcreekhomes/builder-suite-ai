@@ -1,4 +1,5 @@
-import { describe, it, expect } from 'vitest';
+// @ts-ignore - bun's built-in test runner (matches existing project tests)
+import { describe, it, expect } from 'bun:test';
 import { buildPaymentRow } from './reconciliationPaymentRows';
 
 describe('buildPaymentRow', () => {
