@@ -4,7 +4,8 @@ import { TransactionDetailDialog } from "@/components/accounting/TransactionDeta
 import { UniversalFilePreviewProvider } from "@/components/files/UniversalFilePreviewProvider";
 import { supabase } from "@/integrations/supabase/client";
 import { formatDateSafe } from "@/utils/dateOnly";
-import { buildPaymentRow } from "@/lib/reconciliationPaymentRows";
+import { buildPaymentRow, shouldCountLooseLine } from "@/lib/reconciliationPaymentRows";
+import { batchedIn } from "@/lib/supabasePaginate";
 import {
   Dialog,
   DialogContent,
