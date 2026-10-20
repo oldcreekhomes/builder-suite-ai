@@ -341,11 +341,12 @@ export function ReconciliationReviewDialog({
               reference: bill?.reference_number || undefined,
               description,
               costCodeBreakdown: buildCostCodeBreakdown(lines, ccMap),
-              amount: Number(line.credit),
+              // Bank credit = money out (positive); bank debit (e.g. vendor credit applied) = money in (negative)
+              amount: Number(line.credit) > 0 ? Number(line.credit) : -Number(line.debit || 0),
               type: 'bill_payment' as const,
             };
           })
-          .filter((bp: ClearedTransaction) => bp.amount > 0);
+          .filter((bp: ClearedTransaction) => bp.amount !== 0);
       }
 
       // ----- Legacy bills path -----
@@ -542,15 +543,15 @@ export function ReconciliationReviewDialog({
 
   const allDebits = [
     ...(data?.checks || []),
-    ...(data?.billPayments || []),
+    ...(data?.billPayments || []).filter((bp) => bp.amount > 0),
     ...(data?.journalEntries || []).filter((je) => je.amount > 0),
   ].sort((a, b) => a.date.localeCompare(b.date));
 
   const allCredits = [
     ...(data?.deposits || []),
-    ...(data?.journalEntries || [])
-      .filter((je) => je.amount < 0)
-      .map((je) => ({ ...je, amount: Math.abs(je.amount) })),
+    ...[...(data?.billPayments || []), ...(data?.journalEntries || [])]
+      .filter((t) => t.amount < 0)
+      .map((t) => ({ ...t, amount: Math.abs(t.amount) })),
   ].sort((a, b) => a.date.localeCompare(b.date));
 
   const totalDebits = allDebits.reduce((sum, t) => sum + t.amount, 0);
