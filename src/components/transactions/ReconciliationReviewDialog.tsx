@@ -205,6 +205,19 @@ export function ReconciliationReviewDialog({
         (p.bill_payment_allocations || []).map((a: any) => a.bill_id)
       );
 
+      // Bills (from tagged JE lines) that have ANY saved payment, in any month.
+      // Their bank activity is represented by saved payments, so their loose
+      // JE lines must never be counted on their own.
+      const uniqueJeBillIds = Array.from(new Set(jeBillIds as string[]));
+      const jeBillAllocs = await batchedIn<{ bill_id: string }>(
+        (ids) => supabase
+          .from('bill_payment_allocations')
+          .select('bill_id')
+          .in('bill_id', ids),
+        uniqueJeBillIds
+      );
+      const billsWithSavedPayments = new Set(jeBillAllocs.map((a) => a.bill_id));
+
       // ----- Legacy bills directly reconciled -----
       const { data: legacyBills } = await supabase
         .from('bills')
@@ -513,6 +526,9 @@ export function ReconciliationReviewDialog({
             if (!rowsByBill.has(billId)) rowsByBill.set(billId, bp);
             return;
           }
+          // Bill has saved payments (possibly in another month): those
+          // payments represent it. Don't count this stray line again.
+          if (!shouldCountLooseLine(billId, billsWithSavedPayments)) return;
         } else if (paymentBillSet.has(bp.id)) {
           // Legacy bill row already represented by its saved payment
           return;
