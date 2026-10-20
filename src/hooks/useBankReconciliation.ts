@@ -1392,8 +1392,9 @@ export const useBankReconciliation = () => {
         // Reconciliation Review dialog (which reads from
         // journal_entry_lines.reconciliation_id) shows this payment.
         // Tag BOTH sides (bill lines that take money out AND vendor-credit
-        // lines that put money back) but only the entries dated on this
-        // payment's date, so other payments on the same bill are untouched.
+        // lines that put money back), but for each bill only the payment
+        // entry belonging to THIS payment (same date, else the closest date),
+        // so other payments on the same bill are untouched.
         const { data: bp } = await supabase
           .from('bill_payments')
           .select('payment_account_id, payment_date')
@@ -1407,11 +1408,18 @@ export const useBankReconciliation = () => {
         if (bp?.payment_account_id && bp?.payment_date && billIds.length > 0) {
           const { data: jes } = await supabase
             .from('journal_entries')
-            .select('id')
+            .select('id, source_id, entry_date')
             .eq('source_type', 'bill_payment')
-            .eq('entry_date', bp.payment_date)
             .in('source_id', billIds);
-          const jeIds = (jes || []).map((j: any) => j.id);
+          const payTime = new Date(`${bp.payment_date}T00:00:00Z`).getTime();
+          const bestByBill = new Map<string, { ids: string[]; diff: number }>();
+          (jes || []).forEach((j: any) => {
+            const diff = Math.abs(new Date(`${j.entry_date}T00:00:00Z`).getTime() - payTime);
+            const cur = bestByBill.get(j.source_id);
+            if (!cur || diff < cur.diff) bestByBill.set(j.source_id, { ids: [j.id], diff });
+            else if (diff === cur.diff) cur.ids.push(j.id);
+          });
+          const jeIds = Array.from(bestByBill.values()).flatMap((v) => v.ids);
           if (jeIds.length > 0) {
             const { error: jelErr } = await supabase
               .from('journal_entry_lines')
