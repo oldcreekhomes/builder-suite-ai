@@ -32,21 +32,6 @@ export function buildPaymentRow(
   return { amount: cents / 100, breakdown };
 }
 
-/**
- * Review rule: a loose bank journal line for a bill payment counts on its
- * own ONLY when that bill has no saved bill_payments at all. When the bill
- * has saved payments, those payments (at their saved totals) represent the
- * bank activity, so a stray line from another month can never be counted
- * a second time.
- */
-export function shouldCountLooseLine(
-  billId: string | null | undefined,
-  billsWithSavedPayments: Set<string>
-): boolean {
-  if (!billId) return true;
-  return !billsWithSavedPayments.has(billId);
-}
-
 export const PAYMENT_JE_MATCH_WINDOW_DAYS = 7;
 
 export interface PaymentJournalEntryCandidate {
@@ -87,4 +72,30 @@ export function pickPaymentJournalEntries(
     else if (diff === cur.diff) cur.ids.push(c.id);
   });
   return Array.from(best.values()).flatMap((v) => v.ids);
+}
+
+export interface SavedPaymentRef {
+  payment_date: string;
+  reconciliation_id: string | null;
+}
+
+/**
+ * Review rule for a loose bank journal line of a bill payment: skip it when
+ * the bill has a saved payment within the match window that is already
+ * cleared in a reconciliation (that payment row represents it at its saved
+ * total, in its own month). Otherwise — legacy months where only the journal
+ * line was cleared — count the line.
+ */
+export function shouldCountLooseLine(
+  billId: string | null | undefined,
+  entryDate: string | null | undefined,
+  savedPaymentsByBill: Map<string, SavedPaymentRef[]>
+): boolean {
+  if (!billId || !entryDate) return true;
+  const day = dayNum(entryDate);
+  return !(savedPaymentsByBill.get(billId) || []).some(
+    (p) =>
+      !!p.reconciliation_id &&
+      Math.abs(dayNum(p.payment_date) - day) <= PAYMENT_JE_MATCH_WINDOW_DAYS
+  );
 }

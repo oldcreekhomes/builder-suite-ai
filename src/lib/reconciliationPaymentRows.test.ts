@@ -33,11 +33,21 @@ describe('buildPaymentRow', () => {
 import { shouldCountLooseLine, pickPaymentJournalEntries } from './reconciliationPaymentRows';
 
 describe('shouldCountLooseLine', () => {
-  it('never counts a stray line for a bill that has saved payments (earlier-month payment)', () => {
-    expect(shouldCountLooseLine('bill-abc', new Set(['bill-abc']))).toBe(false);
+  const byBill = new Map([
+    ['bill-erie', [
+      { payment_date: '2026-04-15', reconciliation_id: 'rec-apr' },
+      { payment_date: '2026-05-15', reconciliation_id: 'rec-may' },
+    ]],
+    ['bill-legacy', [{ payment_date: '2024-07-11', reconciliation_id: null }]],
+  ]);
+  it('an April payment line never counts again in May once April cleared its payment', () => {
+    expect(shouldCountLooseLine('bill-erie', '2026-04-15', byBill)).toBe(false);
   });
-  it('counts a line for a legacy bill with no saved payments', () => {
-    expect(shouldCountLooseLine('bill-old', new Set(['bill-abc']))).toBe(true);
+  it('counts a legacy line whose saved payment was never checked off', () => {
+    expect(shouldCountLooseLine('bill-legacy', '2024-07-11', byBill)).toBe(true);
+  });
+  it('counts a line for a bill with no saved payments', () => {
+    expect(shouldCountLooseLine('bill-none', '2026-05-01', byBill)).toBe(true);
   });
 });
 

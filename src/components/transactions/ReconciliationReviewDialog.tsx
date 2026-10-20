@@ -4,7 +4,7 @@ import { TransactionDetailDialog } from "@/components/accounting/TransactionDeta
 import { UniversalFilePreviewProvider } from "@/components/files/UniversalFilePreviewProvider";
 import { supabase } from "@/integrations/supabase/client";
 import { formatDateSafe } from "@/utils/dateOnly";
-import { buildPaymentRow, shouldCountLooseLine } from "@/lib/reconciliationPaymentRows";
+import { buildPaymentRow, shouldCountLooseLine, type SavedPaymentRef } from "@/lib/reconciliationPaymentRows";
 import { batchedIn } from "@/lib/supabasePaginate";
 import {
   Dialog,
@@ -210,14 +210,21 @@ export function ReconciliationReviewDialog({
       // Their bank activity is represented by saved payments, so their loose
       // JE lines must never be counted on their own.
       const uniqueJeBillIds = Array.from(new Set(jeBillIds as string[]));
-      const jeBillAllocs = await batchedIn<{ bill_id: string }>(
+      const jeBillAllocs = await batchedIn<any>(
         (ids) => supabase
           .from('bill_payment_allocations')
-          .select('bill_id')
+          .select('bill_id, bill_payments!inner(payment_date, reconciliation_id, payment_account_id)')
           .in('bill_id', ids),
         uniqueJeBillIds
       );
-      const billsWithSavedPayments = new Set(jeBillAllocs.map((a) => a.bill_id));
+      const savedPaymentsByBill = new Map<string, SavedPaymentRef[]>();
+      jeBillAllocs.forEach((a: any) => {
+        const p = a.bill_payments;
+        if (!p || p.payment_account_id !== bankAccountId) return;
+        const arr = savedPaymentsByBill.get(a.bill_id) || [];
+        arr.push({ payment_date: p.payment_date, reconciliation_id: p.reconciliation_id });
+        savedPaymentsByBill.set(a.bill_id, arr);
+      });
 
       // ----- Legacy bills directly reconciled -----
       const { data: legacyBills } = await supabase
@@ -527,9 +534,9 @@ export function ReconciliationReviewDialog({
             if (!rowsByBill.has(billId)) rowsByBill.set(billId, bp);
             return;
           }
-          // Bill has saved payments (possibly in another month): those
-          // payments represent it. Don't count this stray line again.
-          if (!shouldCountLooseLine(billId, billsWithSavedPayments)) return;
+          // This line's payment is already cleared (possibly in another month)
+          // and counted there at its saved total. Don't count it again.
+          if (!shouldCountLooseLine(billId, entryDate, savedPaymentsByBill)) return;
         } else if (paymentBillSet.has(bp.id)) {
           // Legacy bill row already represented by its saved payment
           return;
