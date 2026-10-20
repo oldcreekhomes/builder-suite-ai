@@ -233,7 +233,12 @@ export function ReconciliationReviewDialog({
 
       // Vendors
       const vendorIds = Array.from(
-        new Set((allBills || []).map((b: any) => b.vendor_id).filter(Boolean))
+        new Set(
+          [
+            ...(allBills || []).map((b: any) => b.vendor_id),
+            ...(reconciledPayments || []).map((p: any) => p.vendor_id),
+          ].filter(Boolean)
+        )
       );
       const { data: vendors } = vendorIds.length
         ? await supabase
