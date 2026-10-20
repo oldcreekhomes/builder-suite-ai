@@ -481,24 +481,36 @@ export function ReconciliationReviewDialog({
       // The bank statement shows ONE amount per payment (bills minus any
       // vendor credits). Use the payment's saved total so the review is right
       // even if some of its journal lines were never tagged as cleared.
-      const paymentKeys = new Set<string>();
+      // A bill's payment journal entry can be dated a few days off the saved
+      // payment date (e.g. payment 2/16, entry 2/18). Match by bill within a
+      // short window so those lines aren't counted a second time.
+      const MATCH_WINDOW_DAYS = 7;
+      const dayNum = (d: string) => Math.round(new Date(`${d}T00:00:00Z`).getTime() / 86400000);
+      const paymentDatesByBill = new Map<string, number[]>();
       const paymentBillSet = new Set<string>();
       (reconciledPayments || []).forEach((p: any) => {
         (p.bill_payment_allocations || []).forEach((a: any) => {
-          paymentKeys.add(`${a.bill_id}|${p.payment_date}`);
+          const arr = paymentDatesByBill.get(a.bill_id) || [];
+          arr.push(dayNum(p.payment_date));
+          paymentDatesByBill.set(a.bill_id, arr);
           paymentBillSet.add(a.bill_id);
         });
       });
+      const coveredByPayment = (billId: string, entryDate: string) =>
+        (paymentDatesByBill.get(billId) || []).some(
+          (d) => Math.abs(d - dayNum(entryDate)) <= MATCH_WINDOW_DAYS
+        );
 
       const lineById = new Map((bpLines as any[]).map((l) => [l.id, l]));
-      const rowsByBillDate = new Map<string, ClearedTransaction>();
+      const rowsByBill = new Map<string, ClearedTransaction>();
       const ungrouped: ClearedTransaction[] = [];
       billPayments.forEach((bp) => {
         const line = lineById.get(bp.id);
         if (line) {
-          const key = `${line.journal_entries?.source_id}|${line.journal_entries?.entry_date}`;
-          if (paymentKeys.has(key)) {
-            if (!rowsByBillDate.has(key)) rowsByBillDate.set(key, bp);
+          const billId = line.journal_entries?.source_id;
+          const entryDate = line.journal_entries?.entry_date;
+          if (billId && entryDate && coveredByPayment(billId, entryDate)) {
+            if (!rowsByBill.has(billId)) rowsByBill.set(billId, bp);
             return;
           }
         } else if (paymentBillSet.has(bp.id)) {
@@ -515,9 +527,7 @@ export function ReconciliationReviewDialog({
         );
         const mainAlloc = sorted[0];
         const mainBill: any = mainAlloc ? billMap.get(mainAlloc.bill_id) : undefined;
-        const mainRow = mainAlloc
-          ? rowsByBillDate.get(`${mainAlloc.bill_id}|${p.payment_date}`)
-          : undefined;
+        const mainRow = mainAlloc ? rowsByBill.get(mainAlloc.bill_id) : undefined;
         const allocInputs = sorted.map((a) => {
           const bill: any = billMap.get(a.bill_id);
           const codes = buildCostCodeBreakdown(billLinesByBill.get(a.bill_id) || [], ccMap)
