@@ -1,20 +1,29 @@
-# Reconciliation Review: is the fix permanent?
+# Fix Oceanwatch AUB April 2026 review, then check every other reconciliation
 
 ## Short answer
-- **Going forward: yes.** When you check off a payment that used a credit, the bill and the credit are now both marked as cleared, for that payment only. The review shows the amount actually paid (bills minus credits), which matches the bank statement. You won't need to fix new reconciliations by hand.
-- **Past reconciliations: mostly done.** I already went back through past months and fixed 23 bank entries where a credit had been left out. All Oceanwatch months from November through March now match their statements.
-- **What's left:** about 11 past months still don't match. These are older problems that the new fix can't fix on its own, such as Oceanwatch April, where the 5/15 Erie Insurance $64.87 payment is marked as cleared in April, and a $4,950.00 payment dated 11/10 marked as cleared in October. They need one-by-one review because they look like duplicate payments or payments marked in the wrong month.
+- **Going forward, the fix is permanent.** Payments that use credits now count at the amount actually paid, and checking off a payment clears only that payment.
+- **Older months can still have bad data from before the fix.** These need a one-time cleanup, which I'll do for all reconciliations.
 
-## Proposed next step: clean up the remaining months
-1. Go through every completed reconciliation, on every job, where the bottom ending balance doesn't equal the statement.
-2. For each one, list the exact items causing the difference: a payment from a different month, a duplicate payment, or a missing credit.
-3. Send you the list (job, month, item, amount) before changing anything.
-4. After you approve, fix each item: move it to the right month or remove the duplicate payment and its bank entry. Then confirm each month matches and the next month starts from the right balance.
+## April: what's wrong (confirmed)
+The April review is off by exactly $64.87.
+- The Erie Insurance bill 04152026 ($64.87) was paid twice: once on 4/15 and again on 5/15.
+- Both bank entries are marked as cleared in April. Only the 4/15 one belongs there, because a 5/15 payment can't clear on an April statement.
+
+## Fix
+1. Unmark the 5/15 Erie $64.87 entry from April. After that, the April review should end at $54,378.52, the same as the statement.
+2. The 5/15 payment looks like a duplicate of the 4/15 one, because there's one bill and two payments. Check it against the May bank statement:
+   - If $64.87 didn't come out in May, delete the duplicate 5/15 payment and its bank entry so the bank balance and bills owed are right.
+   - If it did come out, leave it so it can be cleared in May.
+   - I'll report what I find before deleting anything.
+3. Run the same check across every completed reconciliation on every job. Find each month where the bottom of the review doesn't match the statement, and list the items causing it (job, month, item, amount). That includes the $4,950.00 payment dated 11/10 that's marked as cleared in October.
+4. Fix the items you approve, the same way, and confirm each month shows a $0.00 difference.
 
 ## Verification
-- Every completed reconciliation's review ending balance equals its statement ending balance, with a $0.00 difference.
-- Bank balances and the books only change where a true duplicate payment is removed, and only with your approval.
+- The Oceanwatch April review ends at $54,378.52, with a $0.00 difference.
+- November through March still match their statements.
+- After the cleanup, every completed reconciliation's review matches its statement.
 
 ## Technical details
-- Audit query: for each `bank_reconciliations` row with status completed, compute beginning + cleared deposits − cleared payments (saved `bill_payments.total_amount` for consolidated payments, bank JE lines otherwise) and compare to `statement_ending_balance`.
-- Known items: OW April (Erie $64.87, dated 5/15, tagged to April) and $4,950.00 dated 11/10 tagged to October. About 9 more months across projects 350e5951, 494d, 691271, 8bf27, a50ae and e5439.
+- April reconciliation `b622f0c5-a8a8-416c-bc16-fe6f9f578b94`. Clear `reconciliation_id` on the bank JE line dated 2026-05-15, credit 64.87, memo "Payment for bill 04152026".
+- Bill payments: `0300c4aa…` (4/15, reconciled in April) and `feb7a65c…` (5/15, not reconciled), both for 64.87 on the same bill.
+- Audit: for each completed `bank_reconciliations` row, compute beginning + cleared deposits − cleared payments, the same way the review does, and compare to `statement_ending_balance`. Flag any tagged lines dated after the statement date.
