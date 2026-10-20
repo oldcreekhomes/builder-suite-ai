@@ -171,6 +171,7 @@ export function ReconciliationReviewDialog({
         .from('journal_entry_lines')
         .select(`
           id,
+          debit,
           credit,
           journal_entry_id,
           journal_entries!inner (
@@ -181,8 +182,7 @@ export function ReconciliationReviewDialog({
           )
         `)
         .eq('reconciliation_id', reconciliationId)
-        .eq('account_id', bankAccountId)
-        .gt('credit', 0);
+        .eq('account_id', bankAccountId);
 
       const bpLines = (reconciledBillPaymentLines || []).filter(
         (line: any) => line.journal_entries?.source_type === 'bill_payment'
@@ -448,7 +448,7 @@ export function ReconciliationReviewDialog({
               source_id: bpLine.journal_entries?.source_id,
               line_id: bpLine.id,
               journal_entry_id: bpLine.journal_entry_id,
-              debit: 0,
+              debit: Number(bpLine.debit) || 0,
               credit: Number(bpLine.credit) || 0,
               created_at: (bpLine as any).created_at || new Date().toISOString(),
             },
@@ -459,6 +459,67 @@ export function ReconciliationReviewDialog({
         const t = sourceTxnMap.get(key);
         return t ? { ...bp, _txn: t } : bp;
       });
+
+      // ----- Combine lines paid together in one consolidated payment -----
+      // A payment that applies a vendor credit (bill + credit memo) clears the
+      // bank as ONE net amount, so show it as one row matching the statement.
+      const { data: reconciledPayments } = await supabase
+        .from('bill_payments')
+        .select('id, payment_date, bill_payment_allocations(bill_id)')
+        .eq('reconciliation_id', reconciliationId);
+
+      const paymentByBillDate = new Map<string, string>();
+      (reconciledPayments || []).forEach((p: any) => {
+        (p.bill_payment_allocations || []).forEach((a: any) => {
+          paymentByBillDate.set(`${a.bill_id}|${p.payment_date}`, p.id);
+        });
+      });
+
+      const lineById = new Map((bpLines as any[]).map((l) => [l.id, l]));
+      const groups = new Map<string, ClearedTransaction[]>();
+      const ungrouped: ClearedTransaction[] = [];
+      billPayments.forEach((bp) => {
+        const line = lineById.get(bp.id);
+        const paymentId = line
+          ? paymentByBillDate.get(`${line.journal_entries?.source_id}|${line.journal_entries?.entry_date}`)
+          : undefined;
+        if (!paymentId) {
+          ungrouped.push(bp);
+          return;
+        }
+        const arr = groups.get(paymentId) || [];
+        arr.push(bp);
+        groups.set(paymentId, arr);
+      });
+
+      const combined: ClearedTransaction[] = [];
+      groups.forEach((rows, paymentId) => {
+        if (rows.length === 1) {
+          combined.push(rows[0]);
+          return;
+        }
+        const netCents = rows.reduce((s, r) => s + Math.round(r.amount * 100), 0);
+        const main = [...rows].sort((a, b) => b.amount - a.amount)[0];
+        const refs = rows.map((r) => r.reference).filter(Boolean) as string[];
+        const breakdown: BreakdownEntry[] = rows.map((r) => {
+          const codes = (r.costCodeBreakdown || []).map((c) => c.code).join(', ');
+          const label = r.amount < 0 ? 'Credit' : 'Bill';
+          return {
+            code: `${label} ${r.reference || ''}${codes ? ` · ${codes}` : ''}`.trim(),
+            amount: r.amount,
+          };
+        });
+        combined.push({
+          ...main,
+          id: `payment:${paymentId}`,
+          reference: refs.length > 1 ? `${refs[0]} +${refs.length - 1}` : refs[0],
+          description: summarizeMemos(rows.map((r) => r.description)),
+          costCodeBreakdown: breakdown,
+          amount: netCents / 100,
+        });
+      });
+
+      billPayments = [...ungrouped, ...combined].filter((bp) => bp.amount !== 0);
 
       return {
         checks: (checks || []).map((c) => {
