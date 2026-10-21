@@ -248,7 +248,7 @@ export function CashPositionCard({ scope = "company" }: { scope?: CashPositionSc
             </TableRow>
           ) : rows.length === 0 ? (
             <TableRow className="h-11">
-              <TableCell colSpan={managerView ? 5 : 6} className="text-center text-muted-foreground">No active jobs</TableCell>
+              <TableCell colSpan={managerView ? 5 : 6} className="text-center text-muted-foreground">{negativeOnly ? "No jobs in the negative" : "No active jobs"}</TableCell>
             </TableRow>
           ) : (
             rows.map((r) => {
