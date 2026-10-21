@@ -213,7 +213,12 @@ export function CashPositionCard({ scope = "company" }: { scope?: CashPositionSc
           <Button
             variant={negativeOnly ? "destructive" : "outline"}
             size="sm"
-            className="shrink-0"
+            className={cn(
+              "shrink-0 font-semibold",
+              !negativeOnly && (negativeRows.length > 0
+                ? "text-destructive border-destructive hover:text-destructive"
+                : "text-green-600 border-green-600 hover:text-green-600"),
+            )}
             onClick={() => setNegativeOnly((v) => !v)}
             aria-pressed={negativeOnly}
             title="Show only jobs with a negative total"
