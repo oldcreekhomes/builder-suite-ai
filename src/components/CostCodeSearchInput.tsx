@@ -3,6 +3,7 @@ import { createPortal } from "react-dom";
 import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
 import { useCostCodeSearch } from "@/hooks/useCostCodeSearch";
+import { resolveCostCode } from "@/lib/costCodeMatch";
 
 interface CostCodeSearchInputProps {
   value: string;
@@ -22,9 +23,15 @@ export function CostCodeSearchInput({
   const [searchQuery, setSearchQuery] = useState(value);
   const [showResults, setShowResults] = useState(false);
   const [mounted, setMounted] = useState(false);
+  const [invalid, setInvalid] = useState(false);
   const [menuPos, setMenuPos] = useState({ top: 0, left: 0, width: 0 });
   const inputRef = useRef<HTMLInputElement>(null);
   const justSelectedRef = useRef(false);
+  // Text of the cost code that is really attached (loaded or picked).
+  const confirmedRef = useRef(value);
+  // Last text we emitted while the user was typing, so we can tell typed
+  // values apart from values the parent loaded or set itself.
+  const typedRef = useRef<string | null>(null);
   const { costCodes, loading } = useCostCodeSearch();
 
   useEffect(() => {
@@ -33,6 +40,10 @@ export function CostCodeSearchInput({
 
   useEffect(() => {
     setSearchQuery(value);
+    if (typedRef.current === null || value !== typedRef.current) {
+      confirmedRef.current = value;
+      typedRef.current = null;
+    }
   }, [value]);
 
   const updatePosition = () => {
@@ -60,7 +71,7 @@ export function CostCodeSearchInput({
   const filteredCostCodes = searchQuery.trim().length === 0
     ? costCodes
     : (() => {
-        const tokens = searchQuery.toLowerCase().split(/[-\s]+/).filter(Boolean);
+        const tokens = searchQuery.toLowerCase().split(/[-:\s]+/).filter(Boolean);
         return costCodes.filter(cc => 
           tokens.every(t =>
             cc.code.toLowerCase().includes(t) || cc.name.toLowerCase().includes(t)
@@ -70,7 +81,9 @@ export function CostCodeSearchInput({
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const newValue = e.target.value;
+    setInvalid(false);
     setSearchQuery(newValue);
+    typedRef.current = newValue;
     onChange(newValue);
     setShowResults(true);
   };
@@ -79,55 +92,26 @@ export function CostCodeSearchInput({
     setShowResults(true);
   };
 
+  /** Picks the typed cost code, or puts back the real one so the box never lies. */
   const attemptAutoSelect = () => {
-    if (!searchQuery.trim() || !onCostCodeSelect) return;
+    if (!onCostCodeSelect) return;
+    if (typedRef.current === null) return; // nothing typed since last confirm
 
-    // Search against the full costCodes list, not just filtered ones
-    const query = searchQuery.trim();
-    let codeToMatch = query;
-    
-    // Extract potential code from input
-    if (codeToMatch.includes(' - ')) {
-      codeToMatch = codeToMatch.split(' - ')[0].trim();
-    } else if (codeToMatch.includes(' ')) {
-      codeToMatch = codeToMatch.split(' ')[0].trim();
-    }
-    
-    // Try exact code match first (case-sensitive)
-    let match = costCodes.find(cc => cc.code === codeToMatch);
-    
-    // Try case-insensitive exact code match
-    if (!match) {
-      match = costCodes.find(cc => cc.code.toLowerCase() === codeToMatch.toLowerCase());
-    }
-    
-    // Try matching full "code - name" or "code name" format
-    if (!match) {
-      const normalized = query.toLowerCase();
-      match = costCodes.find(cc => 
-        `${cc.code} - ${cc.name}`.toLowerCase() === normalized ||
-        `${cc.code} ${cc.name}`.toLowerCase() === normalized
-      );
-    }
-    
-    // If still no match, try tokenized match with exactly one result
-    if (!match) {
-      const tokens = query.toLowerCase().split(/[-\s]+/).filter(Boolean);
-      if (tokens.length > 0) {
-        const matches = costCodes.filter(cc => 
-          tokens.every(t =>
-            cc.code.toLowerCase().includes(t) || cc.name.toLowerCase().includes(t)
-          )
-        );
-        if (matches.length === 1) {
-          match = matches[0];
-        }
-      }
-    }
-    
-    // If we found a match, select it
+    const match = resolveCostCode(searchQuery, costCodes);
     if (match) {
       handleSelectCostCode(match);
+      return;
+    }
+
+    // Still loading the list — don't revert on incomplete data.
+    if (loading || costCodes.length === 0) return;
+
+    const restore = confirmedRef.current || "";
+    if (searchQuery.trim() !== restore.trim()) {
+      setSearchQuery(restore);
+      typedRef.current = null;
+      onChange(restore);
+      if (searchQuery.trim()) setInvalid(true);
     }
   };
 
@@ -139,6 +123,7 @@ export function CostCodeSearchInput({
     }
     // Try to auto-select before hiding results
     attemptAutoSelect();
+    justSelectedRef.current = false;
     // Delay hiding results to allow for selection
     setTimeout(() => setShowResults(false), 200);
   };
@@ -147,6 +132,7 @@ export function CostCodeSearchInput({
     if (e.key === 'Enter') {
       e.preventDefault();
       attemptAutoSelect();
+      justSelectedRef.current = false;
       setShowResults(false);
     }
   };
@@ -154,7 +140,10 @@ export function CostCodeSearchInput({
   const handleSelectCostCode = (costCode: { id: string; code: string; name: string }) => {
     justSelectedRef.current = true;
     const selectedValue = `${costCode.code} - ${costCode.name}`;
+    setInvalid(false);
     setSearchQuery(selectedValue);
+    confirmedRef.current = selectedValue;
+    typedRef.current = null;
     onChange(selectedValue);
     setShowResults(false);
     if (onCostCodeSelect) {
@@ -173,7 +162,9 @@ export function CostCodeSearchInput({
         onBlur={handleInputBlur}
         onKeyDown={handleKeyDown}
         placeholder={placeholder}
-        className={className}
+        aria-invalid={invalid || undefined}
+        title={invalid ? "Pick a cost code from the list" : undefined}
+        className={cn(className, invalid && "border-destructive focus-visible:ring-destructive")}
       />
       
       {mounted && showResults && filteredCostCodes.length > 0 && createPortal(

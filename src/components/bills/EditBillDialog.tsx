@@ -9,6 +9,8 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { CostCodeSearchInput } from "@/components/CostCodeSearchInput";
+import { useCostCodeSearch } from "@/hooks/useCostCodeSearch";
+import { displayMatchesCostCode } from "@/lib/costCodeMatch";
 import { VendorSearchInput } from "@/components/VendorSearchInput";
 import { JobSearchInput } from "@/components/JobSearchInput";
 import { format, addDays } from "date-fns";
@@ -110,6 +112,7 @@ export function EditBillDialog({ open, onOpenChange, billId }: EditBillDialogPro
   const { updateBill, updateApprovedBill, correctBill } = useBills();
   const { openBillAttachment } = useUniversalFilePreviewContext();
   const { checkDuplicate } = useReferenceNumberValidation();
+  const { costCodes: searchCostCodeList } = useCostCodeSearch();
 
   // Load bill data
   const { data: billData, isLoading } = useQuery({
@@ -474,6 +477,21 @@ export function EditBillDialog({ open, onOpenChange, billId }: EditBillDialogPro
       toast({
         title: "Validation Error",
         description: "All job cost items must have a cost code selected",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    // Never save a cost code different from the one shown on screen.
+    const costCodeById = new Map(searchCostCodeList.map(cc => [cc.id, cc.code]));
+    const mismatchIndex = searchCostCodeList.length === 0 ? -1 : jobCostRows.findIndex(row =>
+      row.accountId && !displayMatchesCostCode(row.account || '', costCodeById.get(row.accountId))
+    );
+    if (mismatchIndex >= 0) {
+      const row = jobCostRows[mismatchIndex];
+      toast({
+        title: "Cost code not selected",
+        description: `Line "${row.memo || row.account}" shows "${row.account}" but that cost code wasn't picked from the list. Pick it from the list and save again.`,
         variant: "destructive",
       });
       return;
