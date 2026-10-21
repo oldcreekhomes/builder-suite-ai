@@ -123,6 +123,7 @@ export function CostCodeSearchInput({
     }
     // Try to auto-select before hiding results
     attemptAutoSelect();
+    justSelectedRef.current = false;
     // Delay hiding results to allow for selection
     setTimeout(() => setShowResults(false), 200);
   };
@@ -131,6 +132,7 @@ export function CostCodeSearchInput({
     if (e.key === 'Enter') {
       e.preventDefault();
       attemptAutoSelect();
+      justSelectedRef.current = false;
       setShowResults(false);
     }
   };
