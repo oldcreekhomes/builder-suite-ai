@@ -89,6 +89,7 @@ export function CashPositionCard({ scope = "company" }: { scope?: CashPositionSc
   const { user } = useAuth();
   const managerView = scope === "accounting-manager";
   const [days, setDays] = useState<number>(10);
+  const [negativeOnly, setNegativeOnly] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const { data: projects = [], isLoading: projectsLoading } = useProjects();
 
@@ -155,7 +156,7 @@ export function CashPositionCard({ scope = "company" }: { scope?: CashPositionSc
   });
   const allRows = scopeCashPositionRows(withLive, projects, scope, user?.id);
   const q = searchQuery.trim().toLowerCase();
-  const rows = q
+  const searchedRows = q
     ? allRows.filter((r) => {
         const project = projects.find((item) => item.id === r.project_id);
         const manager = project?.accounting_manager_user;
@@ -170,6 +171,8 @@ export function CashPositionCard({ scope = "company" }: { scope?: CashPositionSc
         );
       })
     : allRows;
+  const negativeRows = searchedRows.filter((r) => r2(r.bank_balance - r.approved_due) < 0);
+  const rows = negativeOnly ? negativeRows : searchedRows;
   const { bank: totBank, due: totDue, net: totNet } = cashPositionTotals(rows);
 
   const netClass = (n: number) => (n < 0 ? "text-destructive" : "text-green-600");
@@ -207,6 +210,16 @@ export function CashPositionCard({ scope = "company" }: { scope?: CashPositionSc
               ))}
             </SelectContent>
           </Select>
+          <Button
+            variant={negativeOnly ? "destructive" : "outline"}
+            size="sm"
+            className="shrink-0"
+            onClick={() => setNegativeOnly((v) => !v)}
+            aria-pressed={negativeOnly}
+            title="Show only jobs with a negative total"
+          >
+            Negative ({negativeRows.length})
+          </Button>
           {!managerView && (
             <PlaidConnectButton connected={bankAccounts.length > 0} onConnected={() => { connQuery.refetch(); }} />
           )}
@@ -235,7 +248,7 @@ export function CashPositionCard({ scope = "company" }: { scope?: CashPositionSc
             </TableRow>
           ) : rows.length === 0 ? (
             <TableRow className="h-11">
-              <TableCell colSpan={managerView ? 5 : 6} className="text-center text-muted-foreground">No active jobs</TableCell>
+              <TableCell colSpan={managerView ? 5 : 6} className="text-center text-muted-foreground">{negativeOnly ? "No jobs in the negative" : "No active jobs"}</TableCell>
             </TableRow>
           ) : (
             rows.map((r) => {
