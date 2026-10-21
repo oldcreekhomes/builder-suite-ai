@@ -1,3 +1,4 @@
+// @ts-ignore - bun's built-in test runner (matches existing project tests)
 import { describe, expect, it } from "bun:test";
 import { displayMatchesCostCode, resolveCostCode } from "./costCodeMatch";
 
