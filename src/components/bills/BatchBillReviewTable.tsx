@@ -21,6 +21,7 @@ import { POStatusBadge } from "./POStatusBadge";
 import { BillPOSummaryDialog } from "./BillPOSummaryDialog";
 import { useBillPOMatching, POMatch } from "@/hooks/useBillPOMatching";
 import { getBillCostCodeDisplay } from "@/lib/billListDisplay";
+import { CostCodeLabel } from "./CostCodeLabel";
 
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 // Helper function to format terms for display
@@ -903,7 +904,7 @@ export function BatchBillReviewTable({
                       <TooltipProvider>
                         <Tooltip>
                           <TooltipTrigger asChild>
-                            <span className="block truncate cursor-default">{accountDisplayData.display}</span>
+                            <span className="block"><CostCodeLabel display={accountDisplayData.display} /></span>
                           </TooltipTrigger>
                           <TooltipContent className="max-w-xs">
                             {accountDisplayData.count <= 1 ? (

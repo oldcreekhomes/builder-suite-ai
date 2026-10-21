@@ -1,4 +1,5 @@
 import { useMemo, useState } from "react";
+import { CostCodeLabel } from "./CostCodeLabel";
 import { cn } from "@/lib/utils";
 import { useLots } from "@/hooks/useLots";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
@@ -1022,16 +1023,14 @@ export function BillsApprovalTable({ status, projectId, projectIds, showProjectC
           </Tooltip>
         </TooltipProvider>
       </TableCell>
-      <TableCell className="w-36 max-w-[144px] overflow-hidden">
+      <TableCell className="w-44 max-w-[176px] overflow-hidden">
         {(() => {
           const { display, breakdown, total, count } = getCostCodeOrAccountData(bill);
           return (
             <TooltipProvider>
               <Tooltip>
                 <TooltipTrigger asChild>
-                  <span className="block truncate cursor-default">
-                    {display}
-                  </span>
+                  <span className="block"><CostCodeLabel display={display} /></span>
                 </TooltipTrigger>
                 <TooltipContent className="max-w-xs">
                   {count <= 1 ? (
@@ -1538,7 +1537,7 @@ export function BillsApprovalTable({ status, projectId, projectIds, showProjectC
                       'Vendor'
                     )}
                   </TableHead>
-                  <TableHead className="w-36">Cost Code</TableHead>
+                  <TableHead className="w-44">Cost Code</TableHead>
                   <TableHead className="w-20">
                     {enableSorting ? (
                       <button
@@ -1761,7 +1760,7 @@ export function BillsApprovalTable({ status, projectId, projectIds, showProjectC
                                 </Tooltip>
                               </TooltipProvider>
                             </TableCell>
-                            <TableCell className="w-36 max-w-[144px] overflow-hidden">
+                            <TableCell className="w-44 max-w-[176px] overflow-hidden">
                               <TooltipProvider>
                                 <Tooltip>
                                   <TooltipTrigger asChild>
@@ -1903,13 +1902,11 @@ export function BillsApprovalTable({ status, projectId, projectIds, showProjectC
                                     </Tooltip>
                                   </TooltipProvider>
                                 </TableCell>
-                                <TableCell className="w-36 max-w-[144px] overflow-hidden">
+                                <TableCell className="w-44 max-w-[176px] overflow-hidden">
                                   <TooltipProvider>
                                     <Tooltip>
                                       <TooltipTrigger asChild>
-                                        <span className="block truncate">
-                                          {childBill ? (() => { const { display } = getCostCodeOrAccountData(childBill); return display; })() : '-'}
-                                        </span>
+                                        <span className="block"><CostCodeLabel display={childBill ? getCostCodeOrAccountData(childBill).display : '-'} /></span>
                                       </TooltipTrigger>
                                       <TooltipContent>
                                         <p>{childBill ? (() => { const { display } = getCostCodeOrAccountData(childBill); return display; })() : '-'}</p>
