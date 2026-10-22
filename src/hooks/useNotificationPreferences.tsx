@@ -107,7 +107,7 @@ export const useNotificationPreferences = (userId?: string) => {
           can_access_estimate: true,
           can_delete_bills: false,
           can_delete_price_history: false,
-          can_connect_bank_accounts: true,
+          can_connect_bank_accounts: false,
         } : {};
 
         const defaultData = {
