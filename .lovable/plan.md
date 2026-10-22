@@ -1,17 +1,17 @@
-# Check Oxford A/P as of May 31, 2026
+# Make the A/P section totals clearly labeled
 
-## What the screenshots show
-The screens agree:
-- 1–30 days: 27 bills, which add up to exactly $80,354.14
-- 31–60 days: 3 bills, $320.28
-- Total Outstanding: $80,674.42
-- Balance Sheet, 2010 Accounts Payable: $80,674.42
+## What's going on (confirmed)
+Nothing is missing. The $80,354.14 at the top right is the total for the **1 - 30 Days** section only: its 27 bills add up to exactly that. The 31 - 60 Days section adds $320.28, and $80,354.14 + $320.28 = $80,674.42. That's the Total Outstanding, and it matches 2010 Accounts Payable on the Balance Sheet.
 
-## What I'll check next
-1. Export the A/P PDF for Oxford as of 5/31 and compare its total and bill list to the screen.
-2. Check each lot's A/P total and confirm the lots add up to the Total (all lots) view.
-3. Compare A/P to the bills' open balances as of 5/31, so no bill paid on or before 5/31 is still listed and no unpaid bill is left out.
-4. If any of these is off, fix it the same way as the earlier Oxford penny fix. Your books stay balanced and closed months stay closed.
+The confusing part is that the section total sits at the top right with no label, so it looks like the report's grand total.
 
-## Result
-I'll report every place that doesn't match, with the amounts. If everything matches, I'll tell you that and won't change anything.
+## Change
+1. Label each section total, for example "1 - 30 Days total: $80,354.14".
+2. Show the Total Outstanding ($80,674.42) at the top of the report as well as at the bottom, so the first number you see is the full A/P total.
+3. Make the same change to the exported A/P PDF so the screen and the PDF look the same.
+
+No amounts, bills or accounting change.
+
+## Technical details
+- `src/components/reports/AccountsPayableContent.tsx` ~line 619: prefix the bucket total with a muted "Section total" label. Add a summary row above the buckets showing the grand total that's already computed for the footer.
+- `src/components/reports/pdf/AccountsPayablePdfDocument.tsx`: the same label and top summary.
