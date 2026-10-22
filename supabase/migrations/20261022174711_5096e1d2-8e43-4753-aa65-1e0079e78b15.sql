@@ -1,0 +1,1 @@
+REVOKE EXECUTE ON FUNCTION public.guard_cash_negative_filter_pref() FROM PUBLIC, anon, authenticated;
