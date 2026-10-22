@@ -1,6 +1,7 @@
 import { corsHeaders } from "npm:@supabase/supabase-js@2/cors";
 import { createClient } from "npm:@supabase/supabase-js@2";
 import { z } from "npm:zod@3";
+import { planCarryOver } from "./carryOver.ts";
 
 const PLAID_ENV = (Deno.env.get("PLAID_ENV") || "production").trim().toLowerCase();
 const PLAID_BASE = PLAID_ENV === "sandbox" ? "https://sandbox.plaid.com" : "https://production.plaid.com";
@@ -123,6 +124,45 @@ Deno.serve(async (req) => {
       }, { onConflict: "plaid_item_id" }).select("id").single();
       if (error) throw error;
       await syncConnection(admin, conn.id, ownerId, ex.access_token);
+
+      // Re-sign-in to the same bank: carry job links over by last-4 digits. An old sign-in is
+      // removed only once none of its job links remain (a partial re-sign-in keeps the rest).
+      if (b.institution_name) {
+        const { data: olds } = await admin.from("bank_connections").select("id, access_token")
+          .eq("owner_id", ownerId).eq("institution_name", b.institution_name).neq("id", conn.id);
+        const oldIds = (olds || []).map((o: { id: string }) => o.id);
+        if (oldIds.length > 0) {
+          const [{ data: oldAccts }, { data: newAccts }] = await Promise.all([
+            admin.from("bank_connection_accounts").select("id, connection_id, mask, project_id, account_id")
+              .in("connection_id", oldIds).not("project_id", "is", null),
+            admin.from("bank_connection_accounts").select("id, mask, project_id").eq("connection_id", conn.id),
+          ]);
+          const updates = planCarryOver(oldAccts || [], newAccts || []);
+          const movedMasks = new Set(
+            (newAccts || []).filter((n: { id: string }) => updates.some((u) => u.id === n.id))
+              .map((n: { mask: string | null }) => n.mask),
+          );
+          const moving = (oldAccts || []).filter((o: { mask: string | null }) => movedMasks.has(o.mask));
+          if (moving.length > 0) {
+            // Free the job slots first (one bank account per job + book account).
+            await admin.from("bank_connection_accounts").update({ project_id: null, account_id: null })
+              .in("id", moving.map((o: { id: string }) => o.id));
+          }
+          for (const u of updates) {
+            await admin.from("bank_connection_accounts")
+              .update({ project_id: u.project_id, account_id: u.account_id, updated_at: now }).eq("id", u.id);
+          }
+          const stillLinked = new Set(
+            (oldAccts || []).filter((o: { mask: string | null }) => !movedMasks.has(o.mask))
+              .map((o: { connection_id: string }) => o.connection_id),
+          );
+          for (const o of olds || []) {
+            if (stillLinked.has(o.id)) continue;
+            try { await plaid("/item/remove", { access_token: o.access_token }); } catch { /* already gone */ }
+            await admin.from("bank_connections").delete().eq("id", o.id);
+          }
+        }
+      }
       return json({ ok: true });
     }
 
