@@ -25,6 +25,7 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/comp
 import { useProjects } from "@/hooks/useProjects";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/hooks/useAuth";
+import { useNotificationPreferences } from "@/hooks/useNotificationPreferences";
 import { cashPositionTotals, scopeCashPositionRows, type CashPositionScope } from "@/lib/cashPositionScope";
 import { PlaidConnectButton, invokePlaid } from "@/components/banking/PlaidConnectButton";
 import { toast } from "sonner";
@@ -90,6 +91,8 @@ export function CashPositionCard({ scope = "company" }: { scope?: CashPositionSc
   const managerView = scope === "accounting-manager";
   const [days, setDays] = useState<number>(10);
   const [negativeOnly, setNegativeOnly] = useState(false);
+  const { preferences } = useNotificationPreferences();
+  const canNegative = !!preferences?.can_view_cash_negative_filter;
   const [searchQuery, setSearchQuery] = useState("");
   const { data: projects = [], isLoading: projectsLoading } = useProjects();
 
@@ -172,7 +175,7 @@ export function CashPositionCard({ scope = "company" }: { scope?: CashPositionSc
       })
     : allRows;
   const negativeRows = searchedRows.filter((r) => r2(r.bank_balance - r.approved_due) < 0);
-  const rows = negativeOnly ? negativeRows : searchedRows;
+  const rows = canNegative && negativeOnly ? negativeRows : searchedRows;
   const { bank: totBank, due: totDue, net: totNet } = cashPositionTotals(rows);
 
   const netClass = (n: number) => (n < 0 ? "text-destructive" : "text-green-600");
@@ -210,7 +213,7 @@ export function CashPositionCard({ scope = "company" }: { scope?: CashPositionSc
               ))}
             </SelectContent>
           </Select>
-          <Button
+          {canNegative && <Button
             variant={negativeOnly ? "destructive" : "outline"}
             size="sm"
             className={cn(
@@ -224,7 +227,7 @@ export function CashPositionCard({ scope = "company" }: { scope?: CashPositionSc
             title="Show only jobs with a negative total"
           >
             Negative ({negativeRows.length})
-          </Button>
+          </Button>}
           {!managerView && (
             <PlaidConnectButton connected={bankAccounts.length > 0} onConnected={() => { connQuery.refetch(); }} />
           )}

@@ -2,6 +2,7 @@ import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { useNotificationPreferences } from "@/hooks/useNotificationPreferences";
 import { useCompanyFeatures } from "@/hooks/useCompanyFeatures";
+import { useUserRole } from "@/hooks/useUserRole";
 
 interface EmployeeAccessPreferencesProps {
   employeeId: string;
@@ -10,6 +11,7 @@ interface EmployeeAccessPreferencesProps {
 export function EmployeeAccessPreferences({ employeeId }: EmployeeAccessPreferencesProps) {
   const { preferences, updatePreferences, isLoading } = useNotificationPreferences(employeeId);
   const { features } = useCompanyFeatures();
+  const { isOwner } = useUserRole();
 
   if (isLoading) {
     return (
@@ -192,6 +194,25 @@ export function EmployeeAccessPreferences({ employeeId }: EmployeeAccessPreferen
               checked={preferences.can_undo_reconciliation}
               onCheckedChange={(checked) => 
                 updatePreferences({ can_undo_reconciliation: checked })
+              }
+            />
+          </div>
+
+          <div className="flex items-center justify-between gap-4">
+            <div className="space-y-0.5 flex-1">
+              <Label htmlFor="can-cash-negative" className="text-sm font-normal cursor-pointer">
+                Cash Position Negative Filter
+              </Label>
+              <p className="text-xs text-muted-foreground">
+                Show the Negative button on Cash Position{!isOwner && " (only the owner can change this)"}
+              </p>
+            </div>
+            <Switch
+              id="can-cash-negative"
+              checked={preferences.can_view_cash_negative_filter ?? false}
+              disabled={!isOwner}
+              onCheckedChange={(checked) =>
+                updatePreferences({ can_view_cash_negative_filter: checked })
               }
             />
           </div>
