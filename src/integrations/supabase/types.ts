@@ -6436,6 +6436,7 @@ export type Database = {
           can_lock_budgets: boolean | null
           can_reallocate: boolean
           can_undo_reconciliation: boolean
+          can_view_cash_negative_filter: boolean
           created_at: string
           created_by: string | null
           dashboard_type: string
@@ -6468,6 +6469,7 @@ export type Database = {
           can_lock_budgets?: boolean | null
           can_reallocate?: boolean
           can_undo_reconciliation?: boolean
+          can_view_cash_negative_filter?: boolean
           created_at?: string
           created_by?: string | null
           dashboard_type?: string
@@ -6500,6 +6502,7 @@ export type Database = {
           can_lock_budgets?: boolean | null
           can_reallocate?: boolean
           can_undo_reconciliation?: boolean
+          can_view_cash_negative_filter?: boolean
           created_at?: string
           created_by?: string | null
           dashboard_type?: string
