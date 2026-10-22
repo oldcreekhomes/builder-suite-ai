@@ -91,6 +91,11 @@ Deno.serve(async (req) => {
     if (!parsed.success) return json({ error: parsed.error.flatten().fieldErrors }, 400);
     const b = parsed.data;
 
+    if (b.action !== "refresh") {
+      const { data: pref } = await admin.from("user_notification_preferences").select("can_connect_bank_accounts").eq("user_id", uid).maybeSingle();
+      if (!pref?.can_connect_bank_accounts) return json({ error: "You don't have access to connect bank accounts" }, 403);
+    }
+
     if (b.action === "link_token") {
       const data = await plaid("/link/token/create", {
         user: { client_user_id: uid },

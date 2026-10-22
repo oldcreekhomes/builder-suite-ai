@@ -28,7 +28,7 @@ export interface NotificationPreferences {
   can_delete_price_history: boolean;
   can_edit_templates: boolean;
   can_access_apartments: boolean;
-  can_view_cash_negative_filter: boolean;
+  can_connect_bank_accounts: boolean;
 }
 
 const defaultPreferences: Omit<NotificationPreferences, 'id' | 'user_id'> = {
@@ -53,7 +53,7 @@ const defaultPreferences: Omit<NotificationPreferences, 'id' | 'user_id'> = {
   can_delete_price_history: false,
   can_edit_templates: false,
   can_access_apartments: false,
-  can_view_cash_negative_filter: false,
+  can_connect_bank_accounts: false,
 };
 
 export const useNotificationPreferences = (userId?: string) => {
@@ -107,6 +107,7 @@ export const useNotificationPreferences = (userId?: string) => {
           can_access_estimate: true,
           can_delete_bills: false,
           can_delete_price_history: false,
+          can_connect_bank_accounts: true,
         } : {};
 
         const defaultData = {
