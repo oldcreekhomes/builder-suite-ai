@@ -6428,6 +6428,7 @@ export type Database = {
           can_access_templates: boolean
           can_access_transactions: boolean
           can_close_books: boolean
+          can_connect_bank_accounts: boolean
           can_delete_bills: boolean
           can_delete_price_history: boolean
           can_edit_bills: boolean
@@ -6436,7 +6437,6 @@ export type Database = {
           can_lock_budgets: boolean | null
           can_reallocate: boolean
           can_undo_reconciliation: boolean
-          can_view_cash_negative_filter: boolean
           created_at: string
           created_by: string | null
           dashboard_type: string
@@ -6461,6 +6461,7 @@ export type Database = {
           can_access_templates?: boolean
           can_access_transactions?: boolean
           can_close_books?: boolean
+          can_connect_bank_accounts?: boolean
           can_delete_bills?: boolean
           can_delete_price_history?: boolean
           can_edit_bills?: boolean
@@ -6469,7 +6470,6 @@ export type Database = {
           can_lock_budgets?: boolean | null
           can_reallocate?: boolean
           can_undo_reconciliation?: boolean
-          can_view_cash_negative_filter?: boolean
           created_at?: string
           created_by?: string | null
           dashboard_type?: string
@@ -6494,6 +6494,7 @@ export type Database = {
           can_access_templates?: boolean
           can_access_transactions?: boolean
           can_close_books?: boolean
+          can_connect_bank_accounts?: boolean
           can_delete_bills?: boolean
           can_delete_price_history?: boolean
           can_edit_bills?: boolean
@@ -6502,7 +6503,6 @@ export type Database = {
           can_lock_budgets?: boolean | null
           can_reallocate?: boolean
           can_undo_reconciliation?: boolean
-          can_view_cash_negative_filter?: boolean
           created_at?: string
           created_by?: string | null
           dashboard_type?: string
