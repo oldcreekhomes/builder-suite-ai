@@ -123,6 +123,32 @@ Deno.serve(async (req) => {
       }, { onConflict: "plaid_item_id" }).select("id").single();
       if (error) throw error;
       await syncConnection(admin, conn.id, ownerId, ex.access_token);
+
+      // Re-sign-in to the same bank: carry job links over by last-4 digits, then drop the old sign-in.
+      if (b.institution_name) {
+        const { data: olds } = await admin.from("bank_connections").select("id, access_token")
+          .eq("owner_id", ownerId).eq("institution_name", b.institution_name).neq("id", conn.id);
+        const oldIds = (olds || []).map((o: { id: string }) => o.id);
+        if (oldIds.length > 0) {
+          const [{ data: oldAccts }, { data: newAccts }] = await Promise.all([
+            admin.from("bank_connection_accounts").select("mask, project_id, account_id")
+              .in("connection_id", oldIds).not("project_id", "is", null),
+            admin.from("bank_connection_accounts").select("id, mask, project_id").eq("connection_id", conn.id),
+          ]);
+          const updates = planCarryOver(oldAccts || [], newAccts || []);
+          // Free the job slots first (one bank account per job + book account).
+          await admin.from("bank_connection_accounts").update({ project_id: null, account_id: null })
+            .in("connection_id", oldIds);
+          for (const u of updates) {
+            await admin.from("bank_connection_accounts")
+              .update({ project_id: u.project_id, account_id: u.account_id, updated_at: now }).eq("id", u.id);
+          }
+          for (const o of olds || []) {
+            try { await plaid("/item/remove", { access_token: o.access_token }); } catch { /* already gone */ }
+          }
+          await admin.from("bank_connections").delete().in("id", oldIds);
+        }
+      }
       return json({ ok: true });
     }
 
