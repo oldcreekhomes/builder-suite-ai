@@ -63,7 +63,8 @@ export const useChecks = () => {
             project_lots:lot_id (id, lot_name, lot_number),
             cost_codes:cost_code_id (id, code, name),
             accounts:account_id (id, code, name)
-          )
+          ),
+          check_attachments (id, file_name, file_path, file_size, content_type)
         `)
         .eq('owner_id', owner_id)
         .eq('is_reversal', false)
@@ -72,8 +73,18 @@ export const useChecks = () => {
         .order('created_at', { ascending: false });
 
       if (error) throw error;
-      
-      return data || [];
+
+      const rows: any[] = data || [];
+      const creatorIds = Array.from(new Set(rows.map((c) => c.created_by).filter(Boolean)));
+      const creators = new Map<string, any>();
+      for (let i = 0; i < creatorIds.length; i += 150) {
+        const { data: users } = await supabase
+          .from('users')
+          .select('id, first_name, last_name, email')
+          .in('id', creatorIds.slice(i, i + 150));
+        (users || []).forEach((u: any) => creators.set(u.id, u));
+      }
+      return rows.map((c) => ({ ...c, creator: c.created_by ? creators.get(c.created_by) : undefined }));
     },
   });
 
