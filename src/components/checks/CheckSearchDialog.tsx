@@ -207,7 +207,7 @@ export function CheckSearchDialog({
                   <TableHead className="h-8 px-2 py-1 text-xs">Date</TableHead>
                   <TableHead className="h-8 px-2 py-1 text-xs">Pay To</TableHead>
                   <TableHead className="h-8 px-2 py-1 text-xs">Description</TableHead>
-                  <TableHead className="h-8 px-2 py-1 text-xs">Entered By</TableHead>
+                  <TableHead className="h-8 px-2 py-1 text-xs text-center">Entered By</TableHead>
                   <TableHead className="h-8 px-2 py-1 text-xs">Amount</TableHead>
                   <TableHead className="h-8 px-2 py-1 text-xs">Balance</TableHead>
                   <TableHead className="h-8 px-2 py-1 text-xs">Cleared</TableHead>
@@ -242,7 +242,7 @@ export function CheckSearchDialog({
                         </TableCell>
                         <TableCell className="px-2 py-1 text-xs">{check.pay_to}</TableCell>
                         <TableCell className="px-2 py-1 text-xs">{getCheckDescription(check)}</TableCell>
-                        <TableCell className="px-2 py-1 text-xs">
+                        <TableCell className="px-2 py-1 text-xs text-center">
                           {initials ? (
                             <TooltipProvider>
                               <Tooltip>
