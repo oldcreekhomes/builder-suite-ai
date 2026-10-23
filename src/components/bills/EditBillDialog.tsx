@@ -45,7 +45,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import { Textarea } from "@/components/ui/textarea";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
-import { groupBillLines, rowTotal, sumDisplayedTotal, roundCents, type DisplayGroup } from "@/lib/billLineMath";
+import { fixSplitLineAmounts, groupBillLines, rowTotal, sumDisplayedTotal, roundCents, type DisplayGroup } from "@/lib/billLineMath";
 import { toDateLocal, normalizeToYMD } from "@/utils/dateOnly";
 
 interface EditBillDialogProps {
@@ -510,7 +510,7 @@ export function EditBillDialog({ open, onOpenChange, billId }: EditBillDialogPro
       return;
     }
 
-    const billLines: BillLineData[] = [
+    const billLines: BillLineData[] = fixSplitLineAmounts([
       ...jobCostRows
         .filter(row => row.accountId || row.amount)
         .map(row => ({
@@ -539,7 +539,7 @@ export function EditBillDialog({ open, onOpenChange, billId }: EditBillDialogPro
           amount: (parseFloat(row.quantity) || 1) * (parseFloat(row.amount) || 0),
           memo: row.memo || undefined
         }))
-    ];
+    ] as any[]) as BillLineData[];
 
     if (billLines.length === 0) {
       toast({
@@ -578,7 +578,7 @@ export function EditBillDialog({ open, onOpenChange, billId }: EditBillDialogPro
       }
     }
 
-    const billLines: BillLineData[] = [
+    const billLines: BillLineData[] = fixSplitLineAmounts([
       ...jobCostRows
         .filter(row => row.accountId || row.amount)
         .map(row => ({
@@ -608,7 +608,7 @@ export function EditBillDialog({ open, onOpenChange, billId }: EditBillDialogPro
           amount: (parseFloat(row.quantity) || 1) * (parseFloat(row.amount) || 0),
           memo: row.memo || undefined
         }))
-    ];
+    ] as any[]) as BillLineData[];
 
     const updateData = {
       vendor_id: vendor,

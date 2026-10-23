@@ -9,7 +9,7 @@ test("$216.37 split over 2 lots adds up to $216.37, not $216.38", () => {
   expect(out.map((l) => l.amount)).toEqual([108.19, 108.18]);
 });
 
-test("$100 split over 3 lots gives 33.33 + 33.33 + 33.34", () => {
+test("split lots always add up exactly to the line total", () => {
   const out = fixSplitLineAmounts([line(0.33, 100), line(0.33, 100), line(0.34, 100)]);
   expect(out.map((l) => l.amount)).toEqual([33, 33, 34]);
   const out2 = fixSplitLineAmounts([line(1, 33.333333), line(1, 33.333333), line(1, 33.333333)]);
