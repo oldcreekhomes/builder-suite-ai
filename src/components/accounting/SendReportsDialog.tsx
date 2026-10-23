@@ -23,6 +23,8 @@ import { JobCostsPdfDocument } from '@/components/reports/pdf/JobCostsPdfDocumen
 import { AccountsPayablePdfDocument, APAgingBill } from '@/components/reports/pdf/AccountsPayablePdfDocument';
 import { calculateBudgetItemTotal } from '@/utils/budgetUtils';
 import { compareCostCodes } from "@/lib/costCodeSort";
+import { fetchAllRows } from "@/lib/supabasePaginate";
+import { isOpenForAging, toCents } from "@/lib/apAgingOpen";
 
 interface SendReportsDialogProps {
   projectId: string;
@@ -737,16 +739,16 @@ export function SendReportsDialog({ projectId, open, onOpenChange }: SendReports
 
         if (apAccountId) {
           // Pull A/P journal lines for the exact A/P account id (project + as-of, canonical filters)
-          const { data: apJournalLines, error: jeErr } = await supabase
+          const apJournalLines = await fetchAllRows<any>(() => supabase
             .from('journal_entry_lines')
-            .select('debit, credit, journal_entries!inner(source_id, source_type, entry_date, reversed_at, reversed_by_id, is_reversal)')
+            .select('id, debit, credit, journal_entries!inner(source_id, source_type, entry_date, reversed_at, reversed_by_id, is_reversal)')
             .eq('account_id', apAccountId)
             .eq('project_id', projectId)
             .lte('journal_entries.entry_date', asOfDateStr)
             .eq('journal_entries.is_reversal', false)
             .is('journal_entries.reversed_by_id', null)
-            .or(`reversed_at.is.null,reversed_at.gt.${asOfDateStr}`, { referencedTable: 'journal_entries' });
-          if (jeErr) throw jeErr;
+            .or(`reversed_at.is.null,reversed_at.gt.${asOfDateStr}`, { referencedTable: 'journal_entries' })
+            .order('id'));
 
           const openBySource: Record<string, number> = {};
           (apJournalLines || []).forEach((l: any) => {
@@ -798,8 +800,9 @@ export function SendReportsDialog({ projectId, open, onOpenChange }: SendReports
               openByDisplayBill[displayBill.id] = existing;
             });
 
-            Object.values(openByDisplayBill).forEach(({ bill, open }) => {
-              if (Math.abs(open) <= 0.01) return;
+            Object.values(openByDisplayBill).forEach(({ bill, open: rawOpen }) => {
+              const open = toCents(rawOpen);
+              if (!isOpenForAging(open)) return;
               const billDate = new Date(bill.bill_date + 'T00:00:00');
               const agingDays = Math.floor((asOfDate.getTime() - billDate.getTime()) / (1000 * 60 * 60 * 24));
               const agingBill: APAgingBill = {
@@ -815,7 +818,7 @@ export function SendReportsDialog({ projectId, open, onOpenChange }: SendReports
               else if (agingDays >= 31 && agingDays <= 60) agingBuckets['31-60'].push(agingBill);
               else if (agingDays >= 61 && agingDays <= 90) agingBuckets['61-90'].push(agingBill);
               else if (agingDays > 90) agingBuckets['>90'].push(agingBill);
-              grandTotal += open;
+              grandTotal = toCents(grandTotal + open);
             });
 
             Object.values(agingBuckets).forEach(bucket => bucket.sort((a, b) => a.aging - b.aging));
