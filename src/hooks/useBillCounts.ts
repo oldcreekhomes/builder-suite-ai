@@ -38,13 +38,15 @@ export function useBillCounts(projectId?: string, projectIds?: string[]) {
         .from('bills')
         .select('id', { count: 'exact', head: true })
         .eq('status', 'posted')
-        .eq('is_reversal', false);
+        .eq('is_reversal', false)
+        .is('reversed_by_id', null);
       
       const payBillsQuery = supabase
         .from('bills')
         .select('id', { count: 'exact', head: true })
         .eq('status', 'paid')
-        .eq('is_reversal', false);
+        .eq('is_reversal', false)
+        .is('reversed_by_id', null);
 
       // Get count for AI extraction (pending uploads)
       const aiExtractQuery = supabase

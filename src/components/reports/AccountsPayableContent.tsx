@@ -295,7 +295,7 @@ export function AccountsPayableContent({ projectId, onHeaderActionChange, asOfDa
 
       enriched = enriched.filter(bill => {
         const openBalance = bill.total_amount - bill.amount_paid;
-        return Math.abs(openBalance) > 0.01;
+        return Math.abs(openBalance) >= 0.005;
       });
 
       const displaySum = enriched.reduce((s, b) => s + (b.total_amount - b.amount_paid), 0);
