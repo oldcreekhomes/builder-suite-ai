@@ -20,31 +20,39 @@ export function useBillCounts(projectId?: string, projectIds?: string[]) {
       const pendingQuery = supabase
         .from('bills')
         .select('id', { count: 'exact', head: true })
-        .eq('status', 'draft');
+        .eq('status', 'draft')
+        .eq('is_reversal', false)
+        .is('reversed_at', null);
       
       const rejectedQuery = supabase
         .from('bills')
         .select('id', { count: 'exact', head: true })
         .eq('status', 'void')
+        .eq('is_reversal', false)
+        .is('reversed_at', null)
         .is('archived_at', null);
 
       const archivedQuery = supabase
         .from('bills')
         .select('id', { count: 'exact', head: true })
         .eq('status', 'void')
+        .eq('is_reversal', false)
+        .is('reversed_at', null)
         .not('archived_at', 'is', null);
       
       const approvedQuery = supabase
         .from('bills')
         .select('id', { count: 'exact', head: true })
         .eq('status', 'posted')
-        .eq('is_reversal', false);
+        .eq('is_reversal', false)
+        .is('reversed_at', null);
       
       const payBillsQuery = supabase
         .from('bills')
         .select('id', { count: 'exact', head: true })
         .eq('status', 'paid')
-        .eq('is_reversal', false);
+        .eq('is_reversal', false)
+        .is('reversed_at', null);
 
       // Get count for AI extraction (pending uploads)
       const aiExtractQuery = supabase

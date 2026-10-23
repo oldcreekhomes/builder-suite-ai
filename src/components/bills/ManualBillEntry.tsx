@@ -1,3 +1,4 @@
+import { fixSplitLineAmounts } from "@/lib/billLineMath";
 import { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { Card, CardContent } from "@/components/ui/card";
@@ -474,7 +475,7 @@ export function ManualBillEntry() {
     // Auto-assign single lot ID for single-lot projects
     const singleLotId = lots.length === 1 ? lots[0]?.id : undefined;
 
-    const billLines: BillLineData[] = [
+    const billLines: BillLineData[] = fixSplitLineAmounts([
       ...resolvedJobRows
         .filter(row => row.accountId || row.amount)
         .map(row => ({
@@ -503,7 +504,7 @@ export function ManualBillEntry() {
           amount: (parseFloat(row.quantity) || 1) * (parseFloat(row.amount) || 0),
           memo: row.memo || undefined
         }))
-    ];
+    ] as any[]) as BillLineData[];
 
     if (billLines.length === 0) {
       toast({

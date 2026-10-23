@@ -184,3 +184,44 @@ export function groupBillLines<T>(
 export function sumDisplayedTotal<T>(groups: DisplayGroup<T>[]): number {
   return roundCents(groups.reduce((s, g) => s + g.amount, 0));
 }
+
+// Cent-exact amounts for lines saved from one split group. Lines that share
+// cost code/account, unit cost, memo and PO are one invoice line split across
+// lots: their amounts must add up to round(totalQty * unitCost), never to the
+// sum of individually rounded halves (which drifts a penny high).
+export interface SplittableLine {
+  line_type?: string;
+  cost_code_id?: string | null;
+  account_id?: string | null;
+  unit_cost: number;
+  quantity: number;
+  amount: number;
+  memo?: string | null;
+  purchase_order_id?: string | null;
+  purchase_order_line_id?: string | null;
+}
+
+export function fixSplitLineAmounts<T extends SplittableLine>(lines: T[]): T[] {
+  const groups = new Map<string, number[]>();
+  lines.forEach((l, i) => {
+    const key = [l.line_type, l.cost_code_id || l.account_id || '', Number(l.unit_cost).toFixed(6),
+      (l.memo || '').trim(), l.purchase_order_id || '', l.purchase_order_line_id || ''].join('|');
+    if (!groups.has(key)) groups.set(key, []);
+    groups.get(key)!.push(i);
+  });
+  const out = lines.map((l) => ({ ...l, amount: roundCents(l.amount) }));
+  for (const idxs of groups.values()) {
+    if (idxs.length < 2) continue;
+    const totalQty = idxs.reduce((s, i) => s + (Number(lines[i].quantity) || 0), 0);
+    const totalCents = Math.round(roundCents(totalQty * Number(lines[idxs[0]].unit_cost)) * 100);
+    let used = 0;
+    idxs.forEach((i, n) => {
+      const cents = n === idxs.length - 1
+        ? totalCents - used
+        : Math.round(((Number(lines[i].quantity) || 0) / (totalQty || 1)) * totalCents);
+      used += cents;
+      out[i].amount = cents / 100;
+    });
+  }
+  return out;
+}
