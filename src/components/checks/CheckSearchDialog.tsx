@@ -9,6 +9,31 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/comp
 import { format } from "date-fns";
 import { formatDateSafe } from "@/utils/dateOnly";
 import { toast } from "@/hooks/use-toast";
+import { getFileIcon, getFileIconColor } from "@/components/bidding/utils/fileIconUtils";
+import { useUniversalFilePreviewContext } from "@/components/files/UniversalFilePreviewProvider";
+
+function CheckFilesIcons({ files }: { files: Array<{ id: string; file_name: string; file_path: string }> }) {
+  const { openCheckAttachment } = useUniversalFilePreviewContext();
+  if (!files.length) return null;
+  return (
+    <div className="flex items-center gap-1">
+      {files.map((f) => {
+        const Icon = getFileIcon(f.file_name);
+        return (
+          <button
+            key={f.id}
+            type="button"
+            title={f.file_name}
+            onClick={() => openCheckAttachment(f.file_path, f.file_name)}
+            className={`${getFileIconColor(f.file_name)} p-0.5 rounded hover:bg-muted`}
+          >
+            <Icon className="h-4 w-4" />
+          </button>
+        );
+      })}
+    </div>
+  );
+}
 
 interface CheckLine {
   id: string;
@@ -59,74 +84,23 @@ interface CheckSearchDialogProps {
   onDeleteCheck: (checkId: string) => Promise<void>;
 }
 
-interface LotBreakdownItem {
-  categoryName: string;
-  lots: Array<{ name: string; amount: number }>;
-}
+type PersonLike = { first_name?: string | null; last_name?: string | null; email?: string | null } | undefined;
 
-const getLotAllocationData = (lines: CheckLine[] | undefined) => {
-  if (!lines || lines.length === 0) {
-    return { display: '-', breakdown: [], totalAmount: 0, count: 0 };
-  }
+const getFullName = (p: PersonLike): string => {
+  if (!p) return '';
+  const name = `${p.first_name ?? ''} ${p.last_name ?? ''}`.trim();
+  return name || p.email || '';
+};
 
-  // Group lines by category (cost code or account), then by lot
-  const categoryMap = new Map<string, Map<string, number>>();
-  let totalAmount = 0;
-  const lotsWithData = new Set<string>();
-
-  for (const line of lines) {
-    const amount = line.amount || 0;
-    if (amount === 0) continue;
-    
-    totalAmount += amount;
-    
-    const lotInfo = line.project_lots;
-    if (!lotInfo) continue;
-    
-    lotsWithData.add(lotInfo.id);
-    const lotName = lotInfo.lot_name || `Lot ${lotInfo.lot_number}` || 'Unknown Lot';
-    
-    // Determine category name (cost code or account)
-    let categoryName = 'General';
-    if (line.cost_codes) {
-      categoryName = `${line.cost_codes.code}: ${line.cost_codes.name}`;
-    } else if (line.accounts) {
-      categoryName = `${line.accounts.code}: ${line.accounts.name}`;
-    }
-    
-    if (!categoryMap.has(categoryName)) {
-      categoryMap.set(categoryName, new Map());
-    }
-    const lotMap = categoryMap.get(categoryName)!;
-    lotMap.set(lotName, (lotMap.get(lotName) || 0) + amount);
-  }
-
-  const count = lotsWithData.size;
-  
-  if (count === 0) {
-    return { display: '-', breakdown: [], totalAmount, count: 0 };
-  }
-
-  // Build breakdown for tooltip
-  const breakdown: LotBreakdownItem[] = [];
-  categoryMap.forEach((lotMap, categoryName) => {
-    const lots: Array<{ name: string; amount: number }> = [];
-    lotMap.forEach((amount, lotName) => {
-      lots.push({ name: lotName, amount });
-    });
-    breakdown.push({ categoryName, lots });
-  });
-
-  // Determine display
-  if (count === 1) {
-    const firstLotId = Array.from(lotsWithData)[0];
-    const firstLine = lines.find(l => l.project_lots?.id === firstLotId);
-    const lotInfo = firstLine?.project_lots;
-    const display = lotInfo?.lot_name || `Lot ${lotInfo?.lot_number}` || 'Lot';
-    return { display, breakdown, totalAmount, count };
-  }
-
-  return { display: `+${count}`, breakdown, totalAmount, count };
+const getInitials = (p: PersonLike): string => {
+  if (!p) return '';
+  const first = (p.first_name ?? '').trim();
+  const last = (p.last_name ?? '').trim();
+  if (first || last) return `${first.charAt(0)}${last.charAt(0)}`.toUpperCase();
+  const local = ((p.email ?? '').trim().split('@')[0]) || '';
+  const parts = local.split(/[._-]+/).filter(Boolean);
+  if (parts.length >= 2) return `${parts[0].charAt(0)}${parts[1].charAt(0)}`.toUpperCase();
+  return local.slice(0, 2).toUpperCase();
 };
 
 export function CheckSearchDialog({
@@ -150,7 +124,8 @@ export function CheckSearchDialog({
       const payTo = (check.pay_to || '').toLowerCase();
       const memo = (check.memo || '').toLowerCase();
       
-      return dateStr.includes(query) || payTo.includes(query) || memo.includes(query);
+      const creator = getFullName(check.creator).toLowerCase();
+      return dateStr.includes(query) || payTo.includes(query) || memo.includes(query) || creator.includes(query);
     });
   }, [checks, searchQuery]);
 
@@ -232,17 +207,18 @@ export function CheckSearchDialog({
                   <TableHead className="h-8 px-2 py-1 text-xs">Date</TableHead>
                   <TableHead className="h-8 px-2 py-1 text-xs">Pay To</TableHead>
                   <TableHead className="h-8 px-2 py-1 text-xs">Description</TableHead>
-                  <TableHead className="h-8 px-2 py-1 text-xs">Address</TableHead>
+                  <TableHead className="h-8 px-2 py-1 text-xs">Entered By</TableHead>
                   <TableHead className="h-8 px-2 py-1 text-xs text-right">Amount</TableHead>
                   <TableHead className="h-8 px-2 py-1 text-xs text-right">Balance</TableHead>
                   <TableHead className="h-8 px-2 py-1 text-xs text-center">Cleared</TableHead>
+                  <TableHead className="h-8 px-2 py-1 text-xs">Attachments</TableHead>
                   <TableHead className="h-8 px-2 py-1 text-xs text-center">Actions</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {checksWithBalance.length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={8} className="text-center py-8 text-muted-foreground">
+                    <TableCell colSpan={9} className="text-center py-8 text-muted-foreground">
                       {searchQuery ? 'No checks match your search.' : 'No checks found'}
                     </TableCell>
                   </TableRow>
@@ -250,7 +226,7 @@ export function CheckSearchDialog({
                   checksWithBalance.map((check) => {
                     const isLocked = isDateLocked(check.check_date) || check.reversed_at;
                     const isReconciled = check.reconciled || !!check.reconciliation_id || !!check.reconciliation_date;
-                    const { display, breakdown, totalAmount, count } = getLotAllocationData(check.check_lines);
+                    const initials = getInitials(check.creator);
                     
                     return (
                       <TableRow
@@ -267,37 +243,10 @@ export function CheckSearchDialog({
                         <TableCell className="px-2 py-1 text-xs">{check.pay_to}</TableCell>
                         <TableCell className="px-2 py-1 text-xs">{getCheckDescription(check)}</TableCell>
                         <TableCell className="px-2 py-1 text-xs">
-                          {count <= 1 ? (
-                            display
+                          {initials ? (
+                            <span title={getFullName(check.creator)}>{initials}</span>
                           ) : (
-                            <TooltipProvider>
-                              <Tooltip>
-                                <TooltipTrigger className="cursor-default">
-                                  {display}
-                                </TooltipTrigger>
-                                <TooltipContent className="max-w-xs">
-                                  <div className="space-y-2">
-                                    {breakdown.map((cc, i) => (
-                                      <div key={i}>
-                                        <div className="font-medium text-xs">{cc.categoryName}</div>
-                                        <div className="pl-2 space-y-0.5">
-                                          {cc.lots.map((lot, j) => (
-                                            <div key={j} className="flex justify-between gap-4 text-xs">
-                                              <span className="text-muted-foreground">{lot.name}:</span>
-                                              <span>{formatCurrency(lot.amount)}</span>
-                                            </div>
-                                          ))}
-                                        </div>
-                                      </div>
-                                    ))}
-                                    <div className="border-t pt-1 flex justify-between font-medium text-xs">
-                                      <span>Total:</span>
-                                      <span>{formatCurrency(totalAmount)}</span>
-                                    </div>
-                                  </div>
-                                </TooltipContent>
-                              </Tooltip>
-                            </TooltipProvider>
+                            <span className="text-muted-foreground">—</span>
                           )}
                         </TableCell>
                         <TableCell className="px-2 py-1 text-xs text-right">
@@ -310,6 +259,9 @@ export function CheckSearchDialog({
                           {isReconciled && (
                             <Check className="h-4 w-4 text-green-600 mx-auto" />
                           )}
+                        </TableCell>
+                        <TableCell className="px-2 py-1" onClick={(e) => e.stopPropagation()}>
+                          <CheckFilesIcons files={check.check_attachments || []} />
                         </TableCell>
                         <TableCell className="px-2 py-1 text-center" onClick={(e) => e.stopPropagation()}>
                           <div className="flex items-center justify-center gap-1">
