@@ -208,9 +208,9 @@ export function CheckSearchDialog({
                   <TableHead className="h-8 px-2 py-1 text-xs">Pay To</TableHead>
                   <TableHead className="h-8 px-2 py-1 text-xs">Description</TableHead>
                   <TableHead className="h-8 px-2 py-1 text-xs">Entered By</TableHead>
-                  <TableHead className="h-8 px-2 py-1 text-xs text-right">Amount</TableHead>
-                  <TableHead className="h-8 px-2 py-1 text-xs text-right">Balance</TableHead>
-                  <TableHead className="h-8 px-2 py-1 text-xs text-center">Cleared</TableHead>
+                  <TableHead className="h-8 px-2 py-1 text-xs">Amount</TableHead>
+                  <TableHead className="h-8 px-2 py-1 text-xs">Balance</TableHead>
+                  <TableHead className="h-8 px-2 py-1 text-xs">Cleared</TableHead>
                   <TableHead className="h-8 px-2 py-1 text-xs">Attachments</TableHead>
                   <TableHead className="h-8 px-2 py-1 text-xs text-center">Actions</TableHead>
                 </TableRow>
@@ -244,20 +244,29 @@ export function CheckSearchDialog({
                         <TableCell className="px-2 py-1 text-xs">{getCheckDescription(check)}</TableCell>
                         <TableCell className="px-2 py-1 text-xs">
                           {initials ? (
-                            <span title={getFullName(check.creator)}>{initials}</span>
+                            <TooltipProvider>
+                              <Tooltip>
+                                <TooltipTrigger asChild>
+                                  <div className="inline-flex h-7 w-7 items-center justify-center rounded-full bg-muted text-xs font-medium">
+                                    {initials}
+                                  </div>
+                                </TooltipTrigger>
+                                <TooltipContent>{getFullName(check.creator) || 'Unknown'}</TooltipContent>
+                              </Tooltip>
+                            </TooltipProvider>
                           ) : (
                             <span className="text-muted-foreground">—</span>
                           )}
                         </TableCell>
-                        <TableCell className="px-2 py-1 text-xs text-right">
+                        <TableCell className="px-2 py-1 text-xs">
                           {formatCurrency(-check.amount)}
                         </TableCell>
-                        <TableCell className="px-2 py-1 text-xs text-right">
+                        <TableCell className="px-2 py-1 text-xs">
                           {formatCurrency(check.balance)}
                         </TableCell>
-                        <TableCell className="px-2 py-1 text-center">
+                        <TableCell className="px-2 py-1">
                           {isReconciled && (
-                            <Check className="h-4 w-4 text-green-600 mx-auto" />
+                            <Check className="h-4 w-4 text-green-600" />
                           )}
                         </TableCell>
                         <TableCell className="px-2 py-1" onClick={(e) => e.stopPropagation()}>
