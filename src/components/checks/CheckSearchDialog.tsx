@@ -16,7 +16,7 @@ function CheckFilesIcons({ files }: { files: Array<{ id: string; file_name: stri
   const { openCheckAttachment } = useUniversalFilePreviewContext();
   if (!files.length) return null;
   return (
-    <div className="flex items-center gap-1">
+    <div className="flex items-center justify-center gap-1">
       {files.map((f) => {
         const Icon = getFileIcon(f.file_name);
         return (
@@ -211,7 +211,7 @@ export function CheckSearchDialog({
                   <TableHead className="h-8 px-2 py-1 text-xs">Amount</TableHead>
                   <TableHead className="h-8 px-2 py-1 text-xs">Balance</TableHead>
                   <TableHead className="h-8 px-2 py-1 text-xs">Cleared</TableHead>
-                  <TableHead className="h-8 px-2 py-1 text-xs">Attachments</TableHead>
+                  <TableHead className="h-8 px-2 py-1 text-xs text-center">Attachments</TableHead>
                   <TableHead className="h-8 px-2 py-1 text-xs text-center">Actions</TableHead>
                 </TableRow>
               </TableHeader>
@@ -269,7 +269,7 @@ export function CheckSearchDialog({
                             <Check className="h-4 w-4 text-green-600" />
                           )}
                         </TableCell>
-                        <TableCell className="px-2 py-1" onClick={(e) => e.stopPropagation()}>
+                        <TableCell className="px-2 py-1 text-center" onClick={(e) => e.stopPropagation()}>
                           <CheckFilesIcons files={check.check_attachments || []} />
                         </TableCell>
                         <TableCell className="px-2 py-1 text-center" onClick={(e) => e.stopPropagation()}>
