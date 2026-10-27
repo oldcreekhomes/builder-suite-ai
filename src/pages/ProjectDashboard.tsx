@@ -90,7 +90,15 @@ export default function ProjectDashboard() {
                       {recentPhotos.length > 0 ? (
                         <div className="grid grid-cols-6 gap-2">
                           {recentPhotos.map((photo) => (
-                            <div key={photo.id} className="aspect-square rounded-md overflow-hidden bg-gray-100">
+                            <div
+                              key={photo.id}
+                              className="aspect-square rounded-md overflow-hidden bg-gray-100 cursor-pointer"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setSelectedPhoto(photo);
+                                setShowPhotoViewer(true);
+                              }}
+                            >
                               <img
                                 src={getThumbnailUrl(photo.url, 160)}
                                 alt={photo.description || 'Project photo'}
