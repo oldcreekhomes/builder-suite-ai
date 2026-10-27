@@ -226,7 +226,7 @@ export function CompanyPhotoGrid({ photos, onPhotoSelect, onRefresh }: CompanyPh
               <img
                 src={photo.url}
                 alt={photo.description || 'Company photo'}
-                className="w-full h-full object-cover cursor-pointer"
+                className="w-full h-full object-contain cursor-pointer"
                 onClick={() => onPhotoSelect(photo)}
               />
               <div className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity">
