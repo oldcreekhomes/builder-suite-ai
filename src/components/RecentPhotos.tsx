@@ -48,7 +48,7 @@ export function RecentPhotos() {
                 <img
                   src={getThumbnailUrl(photo.url, 256)}
                   alt={photo.description || 'Recent photo'}
-                  className="w-full h-full object-cover"
+                  className="w-full h-full object-contain"
                 />
               </div>
             ))}
