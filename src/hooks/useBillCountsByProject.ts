@@ -17,7 +17,7 @@ export function useBillCountsByProject(projectIds: string[]) {
 
       const { data: bills, error } = await supabase
         .from('bills')
-        .select('id, project_id, status, due_date, is_reversal, archived_at')
+        .select('id, project_id, status, terms, due_date, is_reversal, archived_at')
         .in('project_id', projectIds)
         .in('status', ['draft', 'posted', 'void']);
 

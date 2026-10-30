@@ -18,3 +18,13 @@ test("void bills are rejected; archived and reversal bills are excluded", () => 
   expect(isCountableBill({ status: "void", due_date: null, archived_at: "2026-01-01" })).toBe(false);
   expect(isCountableBill({ status: "draft", due_date: null, is_reversal: true })).toBe(false);
 });
+
+test("Paid at Purchase bills are never late, but can still be rejected", () => {
+  const b = { status: "void", due_date: "2026-01-01", terms: "paid-at-purchase" };
+  expect(isLateBill(b, "2026-10-30")).toBe(false);
+  expect(isRejectedBill(b)).toBe(true);
+});
+
+test("archived bills are never late", () => {
+  expect(isLateBill({ status: "void", due_date: "2026-01-01", archived_at: "2026-02-01" }, "2026-10-30")).toBe(false);
+});
