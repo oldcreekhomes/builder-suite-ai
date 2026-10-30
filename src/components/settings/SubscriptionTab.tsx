@@ -93,7 +93,10 @@ interface SubscriptionDetails {
     status: string;
     description: string;
     invoice_pdf: string | null;
+    cardBrand?: string | null;
+    cardLast4?: string | null;
   }>;
+  companyName?: string | null;
 }
 
 function getNextBillingDate(sub: SubscriptionDetails["subscription"]): Date | null {
@@ -119,10 +122,11 @@ function getNextBillingDate(sub: SubscriptionDetails["subscription"]): Date | nu
 
 async function downloadInvoiceReceipt(
   invoice: SubscriptionDetails["invoices"][0],
-  billingEmail: string
+  billingEmail: string,
+  companyName?: string | null
 ) {
   const blob = await pdf(
-    <SubscriptionInvoicePdfDocument invoice={invoice} billingEmail={billingEmail} />
+    <SubscriptionInvoicePdfDocument invoice={invoice} billingEmail={billingEmail} companyName={companyName} />
   ).toBlob();
   const url = URL.createObjectURL(blob);
   const link = document.createElement("a");
@@ -337,7 +341,7 @@ export function SubscriptionTab() {
     setSendingInvoiceId(selectedInvoiceForSend.id);
     try {
       const blob = await pdf(
-        <SubscriptionInvoicePdfDocument invoice={selectedInvoiceForSend} billingEmail={details?.billingEmail || ""} />
+        <SubscriptionInvoicePdfDocument invoice={selectedInvoiceForSend} billingEmail={details?.billingEmail || ""} companyName={details?.companyName} />
       ).toBlob();
       const arrayBuffer = await blob.arrayBuffer();
       const bytes = new Uint8Array(arrayBuffer);
@@ -589,7 +593,7 @@ export function SubscriptionTab() {
               <div className="rounded-lg border p-3">
                 <SectionLabel>Invoice History</SectionLabel>
                 {details.invoices.length > 0 ? (
-                  <div className="max-h-40 overflow-y-auto divide-y">
+                  <div className="max-h-[calc(100vh-20rem)] overflow-y-auto divide-y">
                     {details.invoices.map((inv) => (
                       <div key={inv.id} className="flex items-center gap-2 py-1.5 text-xs">
                         <FileText className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
@@ -601,6 +605,11 @@ export function SubscriptionTab() {
                         <span className="min-w-0 flex-1 truncate text-muted-foreground">
                           {inv.description}
                         </span>
+                        {inv.cardLast4 && (
+                          <span className="shrink-0 text-muted-foreground capitalize">
+                            {inv.cardBrand} •••• {inv.cardLast4}
+                          </span>
+                        )}
                         <Button
                           variant="ghost"
                           size="icon"
@@ -619,7 +628,7 @@ export function SubscriptionTab() {
                           size="icon"
                           className="h-6 w-6 shrink-0"
                           title="Download Receipt"
-                          onClick={() => downloadInvoiceReceipt(inv, details.billingEmail)}
+                          onClick={() => downloadInvoiceReceipt(inv, details.billingEmail, details.companyName)}
                         >
                           <Download className="h-3 w-3" />
                         </Button>

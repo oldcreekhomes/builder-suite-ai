@@ -32,14 +32,17 @@ interface InvoiceData {
   amount: number;
   status: string;
   description: string;
+  cardBrand?: string | null;
+  cardLast4?: string | null;
 }
 
 interface Props {
   invoice: InvoiceData;
   billingEmail: string;
+  companyName?: string | null;
 }
 
-export function SubscriptionInvoicePdfDocument({ invoice, billingEmail }: Props) {
+export function SubscriptionInvoicePdfDocument({ invoice, billingEmail, companyName }: Props) {
   const amount = `$${invoice.amount.toFixed(2)}`;
   const invoiceDate = invoice.date
     ? new Date(invoice.date).toLocaleDateString("en-US", { year: "numeric", month: "long", day: "numeric" })
@@ -50,13 +53,19 @@ export function SubscriptionInvoicePdfDocument({ invoice, billingEmail }: Props)
       <Page size="LETTER" style={styles.page}>
         <View style={styles.header}>
           <View>
-            <Text style={styles.company}>BuilderSuite</Text>
+            <Text style={styles.company}>BuilderSuite ML</Text>
             <Text style={styles.subtitle}>Subscription Invoice</Text>
           </View>
           <View>
             <Text style={styles.invoiceLabel}>Invoice</Text>
             <Text style={styles.invoiceId}>{invoice.id}</Text>
           </View>
+        </View>
+
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>Bill To</Text>
+          {companyName ? <Text style={styles.value}>{companyName}</Text> : null}
+          <Text style={styles.label}>{billingEmail}</Text>
         </View>
 
         <View style={styles.section}>
@@ -75,6 +84,14 @@ export function SubscriptionInvoicePdfDocument({ invoice, billingEmail }: Props)
             <Text style={styles.label}>Billing Email</Text>
             <Text style={styles.value}>{billingEmail}</Text>
           </View>
+          {invoice.cardLast4 ? (
+            <View style={styles.row}>
+              <Text style={styles.label}>Paid With</Text>
+              <Text style={styles.value}>
+                {(invoice.cardBrand || "Card").replace(/^\w/, (c) => c.toUpperCase())} ending in {invoice.cardLast4}
+              </Text>
+            </View>
+          ) : null}
         </View>
 
         <View style={styles.section}>
