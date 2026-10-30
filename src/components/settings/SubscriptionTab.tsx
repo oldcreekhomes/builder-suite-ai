@@ -596,7 +596,7 @@ export function SubscriptionTab() {
                 <SectionLabel>Invoice History</SectionLabel>
                 {details.invoices.length > 0 ? (
                   <div className="max-h-[calc(100vh-20rem)] overflow-y-auto divide-y">
-                    {details.invoices.map((inv) => (
+                    {details.invoices.filter((inv) => Math.round((inv.amount || 0) * 100) !== 0).map((inv) => (
                       <div key={inv.id} className="flex items-center gap-2 py-1.5 text-xs">
                         <FileText className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
                         <span className="text-muted-foreground shrink-0 w-24">
