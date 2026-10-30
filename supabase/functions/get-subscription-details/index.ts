@@ -187,6 +187,8 @@ serve(async (req) => {
         status: inv.status,
         description: inv.lines?.data?.[0]?.description || "BuilderSuite Pro",
         invoice_pdf: inv.invoice_pdf,
+        periodStart: (inv.lines?.data?.[0] as any)?.period?.start ? new Date((inv.lines!.data[0] as any).period.start * 1000).toISOString() : null,
+        periodEnd: (inv.lines?.data?.[0] as any)?.period?.end ? new Date((inv.lines!.data[0] as any).period.end * 1000).toISOString() : null,
         cardBrand: cards[idx]?.brand ?? null,
         cardLast4: cards[idx]?.last4 ?? null,
       };
