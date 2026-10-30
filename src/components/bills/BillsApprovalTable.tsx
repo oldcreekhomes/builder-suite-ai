@@ -826,6 +826,7 @@ export function BillsApprovalTable({ status, projectId, projectIds, showProjectC
     
     const termMap: Record<string, string> = {
       'due-on-receipt': 'On Receipt',
+      'paid-at-purchase': 'Paid at Purchase',
       'net-15': 'Net 15',
       'net-30': 'Net 30',
       'net-60': 'Net 60',
@@ -1065,7 +1066,7 @@ export function BillsApprovalTable({ status, projectId, projectIds, showProjectC
             today.setHours(0, 0, 0, 0);
             const dueDate = new Date(bill.due_date);
             dueDate.setHours(0, 0, 0, 0);
-            const isOverdue = dueDate < today && status !== 'paid';
+            const isOverdue = dueDate < today && status !== 'paid' && !archived && (bill as any).terms !== 'paid-at-purchase';
             
             return (
               <span className={isOverdue ? 'text-red-600 font-semibold' : ''}>

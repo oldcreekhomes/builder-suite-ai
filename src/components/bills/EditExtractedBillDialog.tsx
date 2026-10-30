@@ -40,7 +40,7 @@ function normalizeTermsForUI(terms: string | null | undefined): string {
   if (!terms) return 'net-30';
   
   // Already in correct format
-  if (['net-15', 'net-30', 'net-60', 'due-on-receipt'].includes(terms)) {
+  if (['net-15', 'net-30', 'net-60', 'due-on-receipt', 'paid-at-purchase'].includes(terms)) {
     return terms;
   }
   
@@ -67,6 +67,7 @@ function computeDueDate(billDate: Date, terms: string): Date {
     case 'net-60':
       result.setDate(result.getDate() + 60);
       break;
+    case 'paid-at-purchase':
     case 'due-on-receipt':
       // Due on receipt = same day as bill date
       break;
@@ -1152,6 +1153,7 @@ export function EditExtractedBillDialog({
                   <SelectItem value="net-30">Net 30</SelectItem>
                   <SelectItem value="net-60">Net 60</SelectItem>
                   <SelectItem value="due-on-receipt">On Receipt</SelectItem>
+                  <SelectItem value="paid-at-purchase">Paid at Purchase</SelectItem>
                 </SelectContent>
               </Select>
             </div>

@@ -634,7 +634,7 @@ export function BillsApprovalTabs({ projectId, projectIds, reviewOnly = false, o
   // Normalize terms from any format to standardized dropdown values
   const normalizeTermsForSubmit = (terms: string | null | undefined): string => {
     if (!terms) return 'net-30';
-    if (['net-15', 'net-30', 'net-60', 'due-on-receipt'].includes(terms)) {
+    if (['net-15', 'net-30', 'net-60', 'due-on-receipt', 'paid-at-purchase'].includes(terms)) {
       return terms;
     }
     const normalized = terms.toLowerCase().trim();
@@ -651,7 +651,8 @@ export function BillsApprovalTabs({ projectId, projectIds, reviewOnly = false, o
       case 'net-15': date.setDate(date.getDate() + 15); break;
       case 'net-30': date.setDate(date.getDate() + 30); break;
       case 'net-60': date.setDate(date.getDate() + 60); break;
-      case 'due-on-receipt': break; // same day
+      case 'paid-at-purchase':
+    case 'due-on-receipt': break; // same day
       default: date.setDate(date.getDate() + 30);
     }
     return date.toISOString().split('T')[0];

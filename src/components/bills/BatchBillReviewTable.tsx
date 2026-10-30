@@ -44,7 +44,7 @@ const formatTerms = (terms: string | null | undefined): string => {
 // Normalize terms from any format to standardized dropdown values (matches EditExtractedBillDialog)
 function normalizeTermsForUI(terms: string | null | undefined): string {
   if (!terms) return 'net-30';
-  if (['net-15', 'net-30', 'net-60', 'due-on-receipt'].includes(terms)) {
+  if (['net-15', 'net-30', 'net-60', 'due-on-receipt', 'paid-at-purchase'].includes(terms)) {
     return terms;
   }
   const normalized = terms.toLowerCase().trim();
@@ -61,6 +61,7 @@ function computeDueDate(billDate: Date, terms: string): Date {
     case 'net-15': result.setDate(result.getDate() + 15); break;
     case 'net-30': result.setDate(result.getDate() + 30); break;
     case 'net-60': result.setDate(result.getDate() + 60); break;
+    case 'paid-at-purchase':
     case 'due-on-receipt': break; // same day
     default: result.setDate(result.getDate() + 30);
   }
