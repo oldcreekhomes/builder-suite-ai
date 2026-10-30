@@ -2,7 +2,8 @@ import { useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { format, parseISO } from "date-fns";
-import { ChevronDown, ChevronRight, FileText, Search } from "lucide-react";
+import { ChevronDown, ChevronRight, Search } from "lucide-react";
+import { getFileIcon, getFileIconColor, getCleanFileName } from "@/components/bidding/utils/fileIconUtils";
 import { supabase } from "@/integrations/supabase/client";
 import { useProjects } from "@/hooks/useProjects";
 import { PROJECT_STATUS_GROUPS } from "@/constants/projectStatusGroups";
@@ -213,16 +214,19 @@ export function AccountantBillIssuesTable() {
                       <TableCell>{fmtMoney(b.total_amount)}</TableCell>
                       <TableCell className="text-center">
                         <div className="flex justify-center gap-1">
-                          {b.attachments.map((a) => (
-                            <button
-                              key={a.file_path}
-                              title={a.file_name}
-                              className="hover:opacity-80"
-                              onClick={(e) => { e.stopPropagation(); openBillAttachment(a.file_path, a.file_name); }}
-                            >
-                              <FileText className="h-4 w-4 text-destructive" />
-                            </button>
-                          ))}
+                          {b.attachments.map((a) => {
+                            const IconComponent = getFileIcon(a.file_name);
+                            return (
+                              <button
+                                key={a.file_path}
+                                title={getCleanFileName(a.file_name)}
+                                className={`inline-block ${getFileIconColor(a.file_name)} transition-colors p-1 hover:opacity-80`}
+                                onClick={(e) => { e.stopPropagation(); openBillAttachment(a.file_path, a.file_name); }}
+                              >
+                                <IconComponent className="h-4 w-4" />
+                              </button>
+                            );
+                          })}
                         </div>
                       </TableCell>
                     </TableRow>
