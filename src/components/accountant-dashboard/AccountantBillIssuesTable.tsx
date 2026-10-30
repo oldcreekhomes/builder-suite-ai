@@ -2,7 +2,7 @@ import { useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { format, parseISO } from "date-fns";
-import { FileText, Search } from "lucide-react";
+import { ChevronDown, ChevronRight, FileText, Search } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useProjects } from "@/hooks/useProjects";
 import { PROJECT_STATUS_GROUPS } from "@/constants/projectStatusGroups";
@@ -81,6 +81,13 @@ export function AccountantBillIssuesTable() {
   const { openBillAttachment } = useUniversalFilePreviewContext();
   const { data: projects = [] } = useProjects();
   const [searchQuery, setSearchQuery] = useState("");
+  const [expanded, setExpanded] = useState<Set<string>>(new Set());
+  const toggle = (id: string) =>
+    setExpanded((prev) => {
+      const next = new Set(prev);
+      next.has(id) ? next.delete(id) : next.add(id);
+      return next;
+    });
 
   const candidates = projects.filter((p) => p.status !== "Template" && p.status !== "Permanently Closed");
   const { data: bills = [], isLoading } = useBillIssues(candidates.map((p) => p.id));
@@ -96,12 +103,14 @@ export function AccountantBillIssuesTable() {
       .filter((p) => byProject.has(p.id))
       .map((p) => {
         let list = byProject.get(p.id)!;
+        let matchedBills = false;
         const mgr = p.accounting_manager_user ? `${p.accounting_manager_user.first_name} ${p.accounting_manager_user.last_name}` : "";
         if (q && !(p.address || "").toLowerCase().includes(q) && !mgr.toLowerCase().includes(q)) {
           list = list.filter((b) => `${b.vendor?.company_name || ""} ${b.reference_number || ""} ${b.notes || ""}`.toLowerCase().includes(q));
+          matchedBills = true;
         }
         list = [...list].sort((a, b) => Number(b.rejected) - Number(a.rejected) || b.days - a.days);
-        return { project: p, bills: list };
+        return { project: p, bills: list, autoOpen: matchedBills };
       })
       .filter((r) => r.bills.length > 0);
     return PROJECT_STATUS_GROUPS.map((g) => ({
@@ -159,13 +168,19 @@ export function AccountantBillIssuesTable() {
                   <Badge variant="outline" className={`${group.color} border-0`}>{group.status}</Badge>
                 </TableCell>
               </TableRow>,
-              ...group.rows.flatMap(({ project, bills: list }) => {
+              ...group.rows.flatMap(({ project, bills: list, autoOpen }) => {
+                const isOpen = autoOpen || expanded.has(project.id);
                 const late = list.filter((b) => b.late).length;
                 const rej = list.filter((b) => b.rejected).length;
                 const mi = initials(project.accounting_manager_user);
                 return [
-                  <TableRow key={project.id} className="cursor-pointer" onClick={() => navigate(`/project/${project.id}`)}>
-                    <TableCell className="font-medium truncate">{getStreetAddress(project.address)}</TableCell>
+                  <TableRow key={project.id} className="cursor-pointer" onClick={() => toggle(project.id)}>
+                    <TableCell className="font-medium truncate">
+                      <span className="inline-flex items-center gap-1">
+                        {isOpen ? <ChevronDown className="h-4 w-4 shrink-0" /> : <ChevronRight className="h-4 w-4 shrink-0" />}
+                        {getStreetAddress(project.address)}
+                      </span>
+                    </TableCell>
                     <TableCell className="text-center">
                       {mi ? <span className="inline-flex h-6 w-6 items-center justify-center rounded-full bg-muted text-xs font-medium">{mi}</span> : "-"}
                     </TableCell>
@@ -174,9 +189,9 @@ export function AccountantBillIssuesTable() {
                     <TableCell className="text-center">{rej ? <Badge variant="destructive">{rej}</Badge> : <span className="text-muted-foreground">-</span>}</TableCell>
                     <TableCell colSpan={3} />
                   </TableRow>,
-                  ...list.map((b) => (
+                  ...(isOpen ? list : []).map((b) => (
                     <TableRow key={b.id} className="cursor-pointer text-muted-foreground" onClick={() => goToBill(project.id, b)}>
-                      <TableCell className="pl-6 truncate">{b.vendor?.company_name || "No vendor"}</TableCell>
+                      <TableCell className="pl-8 truncate">{b.vendor?.company_name || "No vendor"}</TableCell>
                       <TableCell />
                       <TableCell className="truncate">{b.reference_number || "-"}</TableCell>
                       <TableCell>{fmtDate(b.bill_date)}</TableCell>
