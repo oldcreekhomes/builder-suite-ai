@@ -1,5 +1,6 @@
 const serve = (handler: (req: Request) => Response | Promise<Response>) => Deno.serve(handler);
 import { Resend } from "npm:resend@4";
+import { buildInvoiceLink } from "../_shared/invoiceLink.ts";
 
 const resendApiKey = Deno.env.get("RESEND_API_KEY");
 const resend = new Resend(resendApiKey);
@@ -53,7 +54,7 @@ serve(async (req) => {
           year: "numeric", month: "long", day: "numeric",
         })
       : null;
-    const hostedUrl: string | null = invoice.hostedUrl || null;
+    const hostedUrl: string | null = invoice.id ? await buildInvoiceLink(String(invoice.id)) : (invoice.hostedUrl || null);
     const pdfUrl: string | null = invoice.pdfUrl || null;
 
     // Fetch the PDF from Stripe's hosted URL (public, no auth needed)
