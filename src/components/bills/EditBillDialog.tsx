@@ -80,7 +80,7 @@ interface BillAttachment {
 
 function normalizeTermsForUI(terms: string | null | undefined): string {
   if (!terms) return 'net-30';
-  if (['net-15', 'net-30', 'net-60', 'due-on-receipt'].includes(terms)) {
+  if (['net-15', 'net-30', 'net-60', 'due-on-receipt', 'paid-at-purchase'].includes(terms)) {
     return terms;
   }
   const normalized = terms.toLowerCase().trim();
@@ -290,6 +290,7 @@ export function EditBillDialog({ open, onOpenChange, billId }: EditBillDialogPro
         case "net-60":
           daysToAdd = 60;
           break;
+        case "paid-at-purchase":
         case "due-on-receipt":
           daysToAdd = 0;
           break;
@@ -934,6 +935,7 @@ export function EditBillDialog({ open, onOpenChange, billId }: EditBillDialogPro
                   <SelectItem value="net-30">Net 30</SelectItem>
                   <SelectItem value="net-60">Net 60</SelectItem>
                   <SelectItem value="due-on-receipt">On Receipt</SelectItem>
+                  <SelectItem value="paid-at-purchase">Paid at Purchase</SelectItem>
                 </SelectContent>
               </Select>
             </div>
