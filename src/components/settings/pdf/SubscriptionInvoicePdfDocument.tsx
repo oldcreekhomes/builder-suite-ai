@@ -1,3 +1,4 @@
+// Layout MUST stay identical to supabase/functions/_shared/subscriptionInvoicePdf.ts (emailed copy).
 import {
   Document,
   Page,

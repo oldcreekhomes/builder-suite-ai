@@ -1,6 +1,50 @@
 const serve = (handler: (req: Request) => Response | Promise<Response>) => Deno.serve(handler);
 import { Resend } from "npm:resend@4";
 import { buildInvoiceLink } from "../_shared/invoiceLink.ts";
+import { buildSubscriptionInvoicePdf } from "../_shared/subscriptionInvoicePdf.ts";
+import Stripe from "npm:stripe@18";
+import { createClient } from "npm:@supabase/supabase-js@2.57.2";
+
+async function buildBrandedPdf(invoice: any, recipientEmail: string, amount: number): Promise<Uint8Array> {
+  const stripe = new Stripe(Deno.env.get("STRIPE_SECRET_KEY") || "", { apiVersion: "2025-08-27.basil" as any });
+  const inv: any = await stripe.invoices.retrieve(String(invoice.id), { expand: ["payments", "customer"] });
+  const line = inv.lines?.data?.[0];
+  let cardBrand: string | null = null, cardLast4: string | null = null;
+  try {
+    const piRef = inv.payments?.data?.find((p: any) => p.payment?.payment_intent)?.payment?.payment_intent ?? inv.payment_intent;
+    const piId = typeof piRef === "string" ? piRef : piRef?.id;
+    if (piId) {
+      const pi: any = await stripe.paymentIntents.retrieve(piId, { expand: ["latest_charge"] });
+      const card = pi.latest_charge?.payment_method_details?.card;
+      if (card) { cardBrand = card.brand; cardLast4 = card.last4; }
+    }
+  } catch (e) { console.error("card lookup failed", e); }
+
+  let companyName: string | null = null;
+  try {
+    const admin = createClient(Deno.env.get("SUPABASE_URL") ?? "", Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "", { auth: { persistSession: false } });
+    const customerId = typeof inv.customer === "string" ? inv.customer : inv.customer?.id;
+    const { data: sub } = await admin.from("subscriptions").select("owner_id").eq("stripe_customer_id", customerId).maybeSingle();
+    if ((sub as any)?.owner_id) {
+      const { data: u } = await admin.from("users").select("company_name").eq("id", (sub as any).owner_id).maybeSingle();
+      companyName = (u as any)?.company_name || null;
+    }
+    if (!companyName) companyName = inv.customer?.name || null;
+  } catch (e) { console.error("company lookup failed", e); }
+
+  return await buildSubscriptionInvoicePdf({
+    id: inv.id,
+    date: inv.created ? new Date(inv.created * 1000).toISOString() : null,
+    amount,
+    status: inv.status,
+    description: line?.description || "BuilderSuite Pro",
+    periodStart: line?.period?.start ? new Date(line.period.start * 1000).toISOString() : null,
+    periodEnd: line?.period?.end ? new Date(line.period.end * 1000).toISOString() : null,
+    cardBrand, cardLast4,
+    billingEmail: inv.customer_email || recipientEmail,
+    companyName,
+  });
+}
 
 const resendApiKey = Deno.env.get("RESEND_API_KEY");
 const resend = new Resend(resendApiKey);
@@ -55,25 +99,22 @@ serve(async (req) => {
         })
       : null;
     const hostedUrl: string | null = invoice.id ? await buildInvoiceLink(String(invoice.id)) : (invoice.hostedUrl || null);
-    const pdfUrl: string | null = invoice.pdfUrl || null;
 
-    // Fetch the PDF from Stripe's hosted URL (public, no auth needed)
+    // Skip $0 adjustment invoices entirely
+    if (Math.round(amount * 100) === 0) {
+      return new Response(JSON.stringify({ success: true, skipped: "zero" }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+        status: 200,
+      });
+    }
+
+    // Build the same BuilderSuite ML invoice PDF the Subscription page downloads
     const attachments: any[] = [];
-    if (pdfUrl) {
-      try {
-        const pdfResp = await fetch(pdfUrl);
-        if (pdfResp.ok) {
-          const buf = await pdfResp.arrayBuffer();
-          attachments.push({
-            filename: `Invoice_${number}.pdf`,
-            content: arrayBufferToBase64(buf),
-          });
-        } else {
-          console.error(`PDF fetch failed: ${pdfResp.status}`);
-        }
-      } catch (e) {
-        console.error("Error fetching invoice PDF:", e);
-      }
+    try {
+      const pdfBytes = await buildBrandedPdf(invoice, recipientEmail, amount);
+      attachments.push({ filename: `Invoice_${number}.pdf`, content: arrayBufferToBase64(pdfBytes.buffer as ArrayBuffer) });
+    } catch (e) {
+      console.error("Error building invoice PDF:", e);
     }
 
     const amountStr = `$${amount.toFixed(2)} ${currency}`;
