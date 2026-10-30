@@ -171,6 +171,7 @@ serve(async (req) => {
     } catch (_) { /* ignore */ }
     if (!companyName) companyName = customer.name || null;
 
+    // Hide $0 seat-change adjustments (Stripe keeps them; paid invoices can't be deleted)
     const invoiceList = invoices.data.map((inv, idx) => {
       let dateStr: string | null = null;
       try {
@@ -191,8 +192,9 @@ serve(async (req) => {
         periodEnd: (inv.lines?.data?.[0] as any)?.period?.end ? new Date((inv.lines!.data[0] as any).period.end * 1000).toISOString() : null,
         cardBrand: cards[idx]?.brand ?? null,
         cardLast4: cards[idx]?.last4 ?? null,
+        _zero: (inv.total ?? 0) === 0 && (inv.amount_paid ?? 0) === 0,
       };
-    });
+    }).filter((i) => !i._zero).map(({ _zero, ...rest }) => rest);
 
     return new Response(
       JSON.stringify({
