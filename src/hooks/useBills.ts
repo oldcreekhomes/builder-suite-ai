@@ -1115,11 +1115,15 @@ export const useBills = () => {
     mutationFn: async ({ 
       billId, 
       billDate,
-      billLines 
+      billLines,
+      terms,
+      dueDate,
     }: { 
       billId: string; 
       billDate: string;
       billLines: ApprovedBillLineUpdate[];
+      terms?: string;
+      dueDate?: string;
     }) => {
       if (!user) throw new Error("User not authenticated");
 
@@ -1137,6 +1141,20 @@ export const useBills = () => {
       });
 
       if (error) throw error;
+
+      // Terms and due date only affect when the bill is due; they never touch
+      // amounts or journal entries. Paid bills keep their original terms.
+      if (terms !== undefined || dueDate !== undefined) {
+        const { error: termsError } = await supabase
+          .from('bills')
+          .update({
+            ...(terms !== undefined ? { terms } : {}),
+            ...(dueDate !== undefined ? { due_date: dueDate } : {}),
+          })
+          .eq('id', billId)
+          .neq('status', 'paid');
+        if (termsError) throw termsError;
+      }
 
       return data;
     },
