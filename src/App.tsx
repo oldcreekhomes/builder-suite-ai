@@ -1,7 +1,7 @@
 import { Suspense, lazy, ComponentType } from "react";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { QueryClient, QueryClientProvider, MutationCache } from "@tanstack/react-query";
 import { useActivityHeartbeat } from "@/hooks/useActivityHeartbeat";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { ChatProvider } from "@/contexts/ChatContext";
@@ -204,13 +204,20 @@ import { MarketplaceGuard } from "./components/guards/MarketplaceGuard";
 import { TemplatesGuard } from "./components/guards/TemplatesGuard";
 import { ApartmentGuard } from "./components/guards/ApartmentGuard";
 
-const queryClient = new QueryClient({
+// Bill Issues / Active Jobs Late-Rejected counts refresh after any successful save.
+const BILL_SUMMARY_KEYS = [["bill-issues-by-project"], ["bill-counts-by-project"]];
+const queryClient: QueryClient = new QueryClient({
   defaultOptions: {
     queries: {
       staleTime: 60 * 1000,
       refetchOnWindowFocus: false,
     },
   },
+  mutationCache: new MutationCache({
+    onSuccess: () => {
+      BILL_SUMMARY_KEYS.forEach((queryKey) => queryClient.invalidateQueries({ queryKey }));
+    },
+  }),
 });
 
 const AppContent = () => {

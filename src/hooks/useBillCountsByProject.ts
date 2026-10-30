@@ -12,12 +12,13 @@ interface ProjectBillCounts {
 export function useBillCountsByProject(projectIds: string[]) {
   return useQuery({
     queryKey: ['bill-counts-by-project', projectIds],
+    refetchOnMount: 'always',
     queryFn: async (): Promise<Record<string, ProjectBillCounts>> => {
       if (!projectIds.length) return {};
 
       const { data: bills, error } = await supabase
         .from('bills')
-        .select('id, project_id, status, terms, due_date, is_reversal, archived_at')
+        .select('id, project_id, status, terms, due_date, is_reversal, reversed_by_id, archived_at')
         .in('project_id', projectIds)
         .in('status', ['draft', 'posted', 'void']);
 
