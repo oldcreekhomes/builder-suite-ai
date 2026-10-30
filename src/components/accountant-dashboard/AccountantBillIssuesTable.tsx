@@ -6,7 +6,7 @@ import { FileText, Search } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useProjects } from "@/hooks/useProjects";
 import { PROJECT_STATUS_GROUPS } from "@/constants/projectStatusGroups";
-import { batchedIn } from "@/lib/supabaseBatch";
+import { batchedIn } from "@/lib/supabasePaginate";
 import { daysLate, isCountableBill, isLateBill, isRejectedBill, todayLocalStr } from "@/lib/billIssues";
 import { useUniversalFilePreviewContext } from "@/components/files/UniversalFilePreviewProvider";
 import { Table, TableBody, TableCell, TableFooter, TableHead, TableHeader, TableRow } from "@/components/ui/table";
@@ -52,26 +52,18 @@ function useBillIssues(projectIds: string[]) {
     enabled: projectIds.length > 0,
     queryFn: async (): Promise<IssueBill[]> => {
       const today = todayLocalStr();
-      const rows: any[] = await batchedIn(projectIds, async (ids) => {
-        const { data, error } = await supabase
+      const rows: any[] = await batchedIn((ids) => supabase
           .from("bills")
           .select("id, project_id, status, due_date, bill_date, reference_number, total_amount, notes, is_reversal, archived_at, vendor:companies!bills_vendor_id_fkey(company_name)")
           .in("project_id", ids)
-          .in("status", ["draft", "posted", "void"]);
-        if (error) throw error;
-        return data || [];
-      });
+          .in("status", ["draft", "posted", "void"]), projectIds);
       const issues = rows
         .filter((b) => isCountableBill(b))
         .map((b) => ({ ...b, late: isLateBill(b, today), rejected: isRejectedBill(b), days: daysLate(b.due_date, today), attachments: [] }))
         .filter((b) => b.late || b.rejected) as IssueBill[];
 
       if (issues.length) {
-        const atts: any[] = await batchedIn(issues.map((b) => b.id), async (ids) => {
-          const { data, error } = await supabase.from("bill_attachments").select("bill_id, file_path, file_name").in("bill_id", ids);
-          if (error) throw error;
-          return data || [];
-        });
+        const atts: any[] = await batchedIn((ids) => supabase.from("bill_attachments").select("bill_id, file_path, file_name").in("bill_id", ids), issues.map((b) => b.id));
         const byBill = new Map<string, IssueBill["attachments"]>();
         atts.forEach((a) => {
           if (!byBill.has(a.bill_id)) byBill.set(a.bill_id, []);
@@ -175,7 +167,7 @@ export function AccountantBillIssuesTable() {
                   <TableRow key={project.id} className="cursor-pointer" onClick={() => navigate(`/project/${project.id}`)}>
                     <TableCell className="font-medium truncate">{getStreetAddress(project.address)}</TableCell>
                     <TableCell className="text-center">
-                      {mi ? <span className="inline-flex h-6 w-6 items-center justify-center rounded-full bg-muted text-[10px] font-medium">{mi}</span> : "-"}
+                      {mi ? <span className="inline-flex h-6 w-6 items-center justify-center rounded-full bg-muted text-xs font-medium">{mi}</span> : "-"}
                     </TableCell>
                     <TableCell colSpan={3} />
                     <TableCell className="text-center">{late ? <Badge variant="destructive">{late}</Badge> : <span className="text-muted-foreground">-</span>}</TableCell>
