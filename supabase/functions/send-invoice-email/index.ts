@@ -1,5 +1,6 @@
 const serve = (handler: (req: Request) => Response | Promise<Response>) => Deno.serve(handler);
 import { Resend } from "npm:resend@4";
+import { buildInvoiceLink } from "../_shared/invoiceLink.ts";
 
 const resendApiKey = Deno.env.get("RESEND_API_KEY");
 if (!resendApiKey) {
@@ -39,6 +40,7 @@ serve(async (req) => {
       });
     }
 
+    const viewLink = /^in_/.test(String(invoice.id)) ? await buildInvoiceLink(String(invoice.id)) : null;
     const invoiceDate = invoice.date
       ? new Date(invoice.date).toLocaleDateString("en-US", {
           year: "numeric",
@@ -120,6 +122,7 @@ serve(async (req) => {
                   </td>
                 </tr>
               </table>
+              ${viewLink ? `<p style="margin:24px 0 0 0;font-size:14px;font-family:Arial,sans-serif;"><a href="${viewLink}" style="color:#000;text-decoration:underline;" target="_blank">View invoice online</a></p>` : ""}
             </td>
           </tr>
           <tr>
