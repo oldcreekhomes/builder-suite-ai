@@ -62,8 +62,7 @@ export async function buildSubscriptionInvoicePdf(inv: InvoicePdfData): Promise<
     if (badge) {
       const w = bold.widthOfTextAtSize(value, 9) + 12;
       page.drawRectangle({ x: R - w, y: y - 20, width: w, height: 14, color: badge === "paid" ? C.paidBg : C.otherBg });
-      right(value, y - 16, bold, 9, badge === "paid" ? C.paidFg : C.otherFg);
-      txt("", 0, 0, reg, 1);
+      txt(value, R - 6 - bold.widthOfTextAtSize(value, 9), y - 16, bold, 9, badge === "paid" ? C.paidFg : C.otherFg);
     } else right(value, y - 6 - 11, bold, 11);
     y -= 26;
     page.drawLine({ start: { x: L, y }, end: { x: R, y }, thickness: 1, color: C.line });
