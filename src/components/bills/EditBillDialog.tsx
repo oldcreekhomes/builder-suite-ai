@@ -658,7 +658,11 @@ export function EditBillDialog({ open, onOpenChange, billId }: EditBillDialogPro
         await updateApprovedBill.mutateAsync({
           billId,
           billDate: normalizeToYMD(billDate),
-          billLines: lineUpdates
+          billLines: lineUpdates,
+          ...(billData?.status !== 'paid' ? {
+            terms,
+            dueDate: billDueDate ? normalizeToYMD(billDueDate) : undefined,
+          } : {}),
         });
       } else {
         // For draft bills, use regular updateBill
@@ -837,7 +841,7 @@ export function EditBillDialog({ open, onOpenChange, billId }: EditBillDialogPro
           <DialogTitle>Edit Bill</DialogTitle>
         <DialogDescription>
           {isApprovedBill 
-            ? "Only date, cost code, description, and equal lot division can be modified for approved bills."
+            ? "Only date, terms, due date, cost code, description, and equal lot division can be modified for approved bills."
             : "Make changes to this bill."
           }
         </DialogDescription>
@@ -902,7 +906,7 @@ export function EditBillDialog({ open, onOpenChange, billId }: EditBillDialogPro
                 <PopoverTrigger asChild>
                   <Button
                     variant="outline"
-                    disabled={isApprovedBill}
+                    disabled={billData?.status === 'paid'}
                     className={cn(
                       "w-full justify-start text-left font-normal",
                       !billDueDate && "text-muted-foreground"
@@ -926,7 +930,7 @@ export function EditBillDialog({ open, onOpenChange, billId }: EditBillDialogPro
 
             <div className="md:col-span-4 space-y-2">
               <Label htmlFor="terms">Terms</Label>
-              <Select value={terms} onValueChange={setTerms} disabled={isApprovedBill}>
+              <Select value={terms} onValueChange={setTerms} disabled={billData?.status === 'paid'}>
                 <SelectTrigger>
                   <SelectValue placeholder="Select terms" />
                 </SelectTrigger>
