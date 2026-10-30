@@ -1,5 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import { todayLocalStr, isCountableBill, isCurrentBill, isLateBill, isRejectedBill } from "@/lib/billIssues";
 
 interface ProjectBillCounts {
   currentCount: number;   // draft bills NOT past due
@@ -22,29 +23,17 @@ export function useBillCountsByProject(projectIds: string[]) {
 
       if (error) throw error;
 
-      const now = new Date();
-      const pad = (n: number) => String(n).padStart(2, '0');
-      const todayStr = `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}`;
-      const dueStr = (d: string | null) => (d ? String(d).slice(0, 10) : null);
-
+      const todayStr = todayLocalStr();
       const countsByProject: Record<string, ProjectBillCounts> = {};
 
       projectIds.forEach(projectId => {
         const projectBills = (bills?.filter(b => b.project_id === projectId) || [])
-          .filter(b => !(b as any).archived_at && !b.is_reversal);
+          .filter(b => isCountableBill(b as any));
 
         countsByProject[projectId] = {
-          currentCount: projectBills.filter(b => {
-            if (b.status !== 'draft') return false;
-            const d = dueStr(b.due_date);
-            return !d || d >= todayStr;
-          }).length,
-          // Late = any unpaid bill (Review, Rejected, Approved) past due
-          lateCount: projectBills.filter(b => {
-            const d = dueStr(b.due_date);
-            return !!d && d < todayStr;
-          }).length,
-          rejectedCount: projectBills.filter(b => b.status === 'void').length,
+          currentCount: projectBills.filter(b => isCurrentBill(b, todayStr)).length,
+          lateCount: projectBills.filter(b => isLateBill(b, todayStr)).length,
+          rejectedCount: projectBills.filter(b => isRejectedBill(b)).length,
           payCount: projectBills.filter(b => b.status === 'posted').length,
         };
       });
