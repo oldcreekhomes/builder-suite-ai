@@ -32,6 +32,8 @@ interface InvoiceData {
   amount: number;
   status: string;
   description: string;
+  periodStart?: string | null;
+  periodEnd?: string | null;
   cardBrand?: string | null;
   cardLast4?: string | null;
 }
@@ -41,6 +43,9 @@ interface Props {
   billingEmail: string;
   companyName?: string | null;
 }
+
+const fmt = (d: string) =>
+  new Date(d).toLocaleDateString("en-US", { year: "numeric", month: "long", day: "numeric" });
 
 export function SubscriptionInvoicePdfDocument({ invoice, billingEmail, companyName }: Props) {
   const amount = `$${invoice.amount.toFixed(2)}`;
@@ -74,6 +79,14 @@ export function SubscriptionInvoicePdfDocument({ invoice, billingEmail, companyN
             <Text style={styles.label}>Date</Text>
             <Text style={styles.value}>{invoiceDate}</Text>
           </View>
+          {invoice.periodStart && invoice.periodEnd ? (
+            <View style={styles.row}>
+              <Text style={styles.label}>Billing Period</Text>
+              <Text style={styles.value}>
+                {fmt(invoice.periodStart)} – {fmt(invoice.periodEnd)}
+              </Text>
+            </View>
+          ) : null}
           <View style={styles.row}>
             <Text style={styles.label}>Status</Text>
             <Text style={invoice.status === "paid" ? styles.statusPaid : styles.statusOther}>

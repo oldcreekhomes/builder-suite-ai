@@ -93,6 +93,8 @@ interface SubscriptionDetails {
     status: string;
     description: string;
     invoice_pdf: string | null;
+    periodStart?: string | null;
+    periodEnd?: string | null;
     cardBrand?: string | null;
     cardLast4?: string | null;
   }>;
@@ -597,11 +599,11 @@ export function SubscriptionTab() {
                     {details.invoices.map((inv) => (
                       <div key={inv.id} className="flex items-center gap-2 py-1.5 text-xs">
                         <FileText className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
-                        <span className="text-muted-foreground shrink-0">
+                        <span className="text-muted-foreground shrink-0 w-24">
                           {inv.date ? format(new Date(inv.date), "MMM d, yyyy") : "—"}
                         </span>
-                        <span className="font-medium shrink-0">${inv.amount.toFixed(2)}</span>
-                        <span className="shrink-0">{invoiceStatusBadge(inv.status || "unknown")}</span>
+                        <span className="font-medium shrink-0 w-20 text-right tabular-nums">${inv.amount.toFixed(2)}</span>
+                        <span className="shrink-0 w-16">{invoiceStatusBadge(inv.status || "unknown")}</span>
                         <span className="min-w-0 flex-1 truncate text-muted-foreground">
                           {inv.description}
                         </span>
