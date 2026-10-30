@@ -5,6 +5,7 @@ export interface BillIssueInput {
   status: string;
   due_date: string | null;
   is_reversal?: boolean | null;
+  reversed_by_id?: string | null;
   archived_at?: string | null;
   terms?: string | null;
 }
@@ -16,7 +17,7 @@ export const todayLocalStr = (now = new Date()) => {
 
 const dueStr = (d: string | null) => (d ? String(d).slice(0, 10) : null);
 
-export const isCountableBill = (b: BillIssueInput) => !b.archived_at && !b.is_reversal;
+export const isCountableBill = (b: BillIssueInput) => !b.archived_at && !b.is_reversal && !b.reversed_by_id;
 
 /** Late = any unpaid (draft/posted/void) bill past its due date. */
 export const isLateBill = (b: BillIssueInput, today: string) => {

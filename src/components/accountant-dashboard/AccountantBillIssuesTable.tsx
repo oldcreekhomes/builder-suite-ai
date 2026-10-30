@@ -50,12 +50,13 @@ const fmtMoney = (n: number | null) =>
 function useBillIssues(projectIds: string[]) {
   return useQuery({
     queryKey: ["bill-issues-by-project", projectIds],
+    refetchOnMount: "always",
     enabled: projectIds.length > 0,
     queryFn: async (): Promise<IssueBill[]> => {
       const today = todayLocalStr();
       const rows: any[] = await batchedIn((ids) => supabase
           .from("bills")
-          .select("id, project_id, status, terms, due_date, bill_date, reference_number, total_amount, notes, is_reversal, archived_at, vendor:companies!bills_vendor_id_fkey(company_name)")
+          .select("id, project_id, status, terms, due_date, bill_date, reference_number, total_amount, notes, is_reversal, reversed_by_id, archived_at, vendor:companies!bills_vendor_id_fkey(company_name)")
           .in("project_id", ids)
           .in("status", ["draft", "posted", "void"]), projectIds);
       const issues = rows
