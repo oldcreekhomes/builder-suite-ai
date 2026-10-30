@@ -143,10 +143,35 @@ serve(async (req) => {
     // Get recent invoices
     const invoices = await stripe.invoices.list({
       customer: customer.id,
-      limit: 10,
+      limit: 24,
+      expand: ["data.payments"],
     });
 
-    const invoiceList = invoices.data.map((inv) => {
+    // Card that actually paid each invoice
+    const cardFor = async (inv: any): Promise<{ brand: string; last4: string } | null> => {
+      try {
+        const piRef = inv.payments?.data?.find((p: any) => p.payment?.payment_intent)?.payment?.payment_intent
+          ?? inv.payment_intent;
+        const piId = typeof piRef === "string" ? piRef : piRef?.id;
+        if (!piId) return null;
+        const pi: any = await stripe.paymentIntents.retrieve(piId, { expand: ["latest_charge"] });
+        const card = pi.latest_charge?.payment_method_details?.card;
+        return card ? { brand: card.brand, last4: card.last4 } : null;
+      } catch (e) {
+        console.error("[get-subscription-details] card lookup failed", inv.id, e);
+        return null;
+      }
+    };
+    const cards = await Promise.all(invoices.data.map((inv) => cardFor(inv)));
+
+    let companyName: string | null = null;
+    try {
+      const { data: u } = await supabaseClient.from("users").select("company_name").eq("id", user.id).maybeSingle();
+      companyName = (u as any)?.company_name || null;
+    } catch (_) { /* ignore */ }
+    if (!companyName) companyName = customer.name || null;
+
+    const invoiceList = invoices.data.map((inv, idx) => {
       let dateStr: string | null = null;
       try {
         if (inv.created && typeof inv.created === "number") {
@@ -162,6 +187,8 @@ serve(async (req) => {
         status: inv.status,
         description: inv.lines?.data?.[0]?.description || "BuilderSuite Pro",
         invoice_pdf: inv.invoice_pdf,
+        cardBrand: cards[idx]?.brand ?? null,
+        cardLast4: cards[idx]?.last4 ?? null,
       };
     });
 
@@ -170,6 +197,7 @@ serve(async (req) => {
         subscription,
         paymentMethod,
         billingEmail: customer.email || user.email,
+        companyName,
         invoices: invoiceList,
       }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 200 }
