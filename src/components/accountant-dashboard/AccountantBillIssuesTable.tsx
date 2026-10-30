@@ -217,10 +217,10 @@ export function AccountantBillIssuesTable() {
                             <button
                               key={a.file_path}
                               title={a.file_name}
-                              className="hover:text-primary"
+                              className="hover:opacity-80"
                               onClick={(e) => { e.stopPropagation(); openBillAttachment(a.file_path, a.file_name); }}
                             >
-                              <FileText className="h-4 w-4" />
+                              <FileText className="h-4 w-4 text-destructive" />
                             </button>
                           ))}
                         </div>
