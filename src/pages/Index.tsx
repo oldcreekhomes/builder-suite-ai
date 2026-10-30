@@ -14,6 +14,7 @@ import { AccountantJobsTable } from "@/components/accountant-dashboard/Accountan
 import { EmployeeActivitySection } from "@/components/owner-dashboard/EmployeeActivitySection";
 import { MultipleProjectEntriesCard } from "@/components/owner-dashboard/MultipleProjectEntriesCard";
 import { CashPositionCard } from "@/components/owner-dashboard/CashPositionCard";
+import { AccountantBillIssuesTable } from "@/components/accountant-dashboard/AccountantBillIssuesTable";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { UniversalFilePreviewProvider } from "@/components/files/UniversalFilePreviewProvider";
 
@@ -103,6 +104,7 @@ export default function Index() {
                     <TabsTrigger value="active-jobs">Active Jobs</TabsTrigger>
                     <TabsTrigger value="cash-position">Cash Position</TabsTrigger>
                     <TabsTrigger value="multiple-entries">Multiple Project Entries</TabsTrigger>
+                    <TabsTrigger value="bill-issues">Bill Issues</TabsTrigger>
                   </TabsList>
                   <TabsContent value="active-jobs" className="mt-6">
                     <AccountantJobsTable />
@@ -114,6 +116,9 @@ export default function Index() {
                     <div className="max-w-md">
                       <MultipleProjectEntriesCard />
                     </div>
+                  </TabsContent>
+                  <TabsContent value="bill-issues" className="mt-6">
+                    <AccountantBillIssuesTable />
                   </TabsContent>
                 </Tabs>
               )}
