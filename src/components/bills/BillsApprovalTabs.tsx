@@ -984,7 +984,7 @@ export function BillsApprovalTabs({ projectId, projectIds, reviewOnly = false, o
   useEffect(() => {
     if (!onHeaderActionChange) return;
 
-    if (activeTab === 'review' || activeTab === 'rejected' || activeTab === 'pay') {
+    if (activeTab === 'review' || activeTab === 'rejected' || activeTab === 'pay' || activeTab === 'archived') {
       onHeaderActionChange(
         <div className="relative w-64">
           <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
