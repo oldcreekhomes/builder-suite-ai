@@ -1,6 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
+import { buildCreditCardJournalLines } from "@/lib/creditCardJournalLines";
 
 export interface CreditCardLineData {
   line_type: 'expense' | 'job_cost';
@@ -159,80 +160,20 @@ export function useCreditCards() {
 
       if (jeError) throw jeError;
 
-      // Create journal entry lines
-      const journalLines = [];
-      let lineNumber = 1;
-
-      if (data.transaction_type === 'purchase') {
-        // For purchase: DEBIT expenses/WIP, CREDIT credit card
-        for (const line of data.lines) {
-          const debitAccountId = line.line_type === 'job_cost' 
-            ? settings.wip_account_id 
-            : line.account_id;
-          
-          if (line.line_type === 'expense' && !line.account_id) {
-            throw new Error("Select an account for each expense line.");
-          }
-
-          journalLines.push({
-            journal_entry_id: journalEntry.id,
-            owner_id: ownerId,
-            line_number: lineNumber++,
-            account_id: debitAccountId,
-            debit: line.amount,
-            credit: 0,
-            project_id: line.project_id,
-            cost_code_id: line.cost_code_id,
-            lot_id: line.lot_id,
-            memo: line.memo,
-          });
-        }
-
-        // Credit the credit card account (no project_id - it's a company-wide liability)
-        journalLines.push({
-          journal_entry_id: journalEntry.id,
-          owner_id: ownerId,
-          line_number: lineNumber,
-          account_id: data.credit_card_account_id,
-          debit: 0,
-          credit: total,
-          memo: data.memo,
-        });
-      } else {
-        // For refund: DEBIT credit card, CREDIT expenses/WIP (no project_id - it's a company-wide liability)
-        journalLines.push({
-          journal_entry_id: journalEntry.id,
-          owner_id: ownerId,
-          line_number: lineNumber++,
-          account_id: data.credit_card_account_id,
-          debit: total,
-          credit: 0,
-          memo: data.memo,
-        });
-
-        for (const line of data.lines) {
-          const creditAccountId = line.line_type === 'job_cost' 
-            ? settings.wip_account_id 
-            : line.account_id;
-          
-          if (line.line_type === 'expense' && !line.account_id) {
-            throw new Error("Select an account for each expense line.");
-          }
-
-          journalLines.push({
-            journal_entry_id: journalEntry.id,
-            owner_id: ownerId,
-            line_number: lineNumber++,
-            account_id: creditAccountId,
-            debit: 0,
-            credit: line.amount,
-            project_id: line.project_id,
-            cost_code_id: line.cost_code_id,
-            lot_id: line.lot_id,
-            memo: line.memo,
-          });
-        }
-      }
+      // Create journal entry lines — the card line carries the job, like deposit bank lines
+      const journalLines = buildCreditCardJournalLines({
+        transactionType: data.transaction_type,
+        creditCardAccountId: data.credit_card_account_id,
+        projectId,
+        wipAccountId: settings.wip_account_id,
+        lines: data.lines,
+        cardMemo: data.memo,
+      }).map((line, index) => ({
+        ...line,
+        journal_entry_id: journalEntry.id,
+        owner_id: ownerId,
+        line_number: index + 1,
+      }));
 
       // FINAL SAFETY CHECK: Verify debits = credits before inserting
       const totalDebits = journalLines.reduce((sum, line) => sum + (line.debit || 0), 0);
