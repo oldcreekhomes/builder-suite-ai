@@ -18,6 +18,11 @@ import { VendorSearchInput } from "@/components/VendorSearchInput";
 import { useCreditCards, type CreditCardLineData } from "@/hooks/useCreditCards";
 import { useCostCodeSearch } from "@/hooks/useCostCodeSearch";
 import { useAccounts } from "@/hooks/useAccounts";
+import { useMemo } from "react";
+import { useQuery } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
+import { toDateLocal } from "@/utils/dateOnly";
+import { useProjectAccountNames, resolveAccountName } from "@/hooks/useProjectAccountNames";
 import { toast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
 import { format } from "date-fns";
@@ -51,7 +56,27 @@ interface CreditCardsContentProps {
 export function CreditCardsContent({ projectId, recurringTemplate, onClearTemplate }: CreditCardsContentProps) {
   const { creditCards, createCreditCard, updateCreditCard, deleteCreditCard } = useCreditCards(projectId);
   const { costCodes, loading: costCodesLoading } = useCostCodeSearch();
-  const { accounts } = useAccounts();
+  const { accounts: globalAccounts } = useAccounts();
+  const { data: projectScopedAccounts } = useQuery({
+    queryKey: ['project-scoped-accounts', projectId],
+    enabled: !!projectId,
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('accounts')
+        .select('id, code, name, type, parent_id, subtype, project_id, is_active')
+        .eq('is_active', true)
+        .eq('project_id', projectId!);
+      if (error) throw error;
+      return data ?? [];
+    },
+  });
+  const accounts = useMemo(
+    () => ([...(globalAccounts as any[]), ...((projectScopedAccounts as any[]) ?? [])]),
+    [globalAccounts, projectScopedAccounts]
+  );
+  const { data: accountNameOverrides } = useProjectAccountNames(projectId);
+  const labelForAccount = (acct: { id: string; code: string; name: string }) =>
+    `${acct.code} - ${resolveAccountName(acct, accountNameOverrides ?? null)}`;
   const { isDateLocked, latestClosedDate } = useClosedPeriodCheck(projectId);
   const { lots } = useLots(projectId);
   const showAddressColumn = lots.length > 1;
@@ -464,12 +489,12 @@ export function CreditCardsContent({ projectId, recurringTemplate, onClearTempla
     setIsViewingMode(true);
     setCurrentCreditCardId(card.id);
     setTransactionType(card.transaction_type as 'purchase' | 'refund');
-    setTransactionDate(new Date(card.transaction_date));
+    setTransactionDate(toDateLocal(card.transaction_date));
     
     const creditCardAcct = accounts.find(a => a.id === card.credit_card_account_id);
     if (creditCardAcct) {
       setCreditCardAccountId(creditCardAcct.id);
-      setCreditCardAccount(`${creditCardAcct.code} - ${creditCardAcct.name}`);
+      setCreditCardAccount(labelForAccount(creditCardAcct));
     } else {
       setCreditCardAccountId('');
       setCreditCardAccount('');
@@ -495,9 +520,9 @@ export function CreditCardsContent({ projectId, recurringTemplate, onClearTempla
       if (line.line_type === 'expense') {
         row.accountId = line.account_id;
         if (line.account_id) {
-          const account = accounts.find(a => a.id === line.account_id);
+          const account = accounts.find(a => a.id === line.account_id) || line.accounts;
           if (account) {
-            row.account = `${account.code} - ${account.name}`;
+            row.account = labelForAccount(account);
           }
         }
         expenseLines.push(row);
@@ -628,7 +653,7 @@ export function CreditCardsContent({ projectId, recurringTemplate, onClearTempla
                       onClick={goToNext} 
                       size="sm" 
                       variant="outline" 
-                      disabled={currentIndex <= 0 || creditCards.length === 0}
+                      disabled={currentIndex === -1}
                       className="h-10 w-10 p-0"
                     >
                       <ChevronRight className="h-4 w-4" />
