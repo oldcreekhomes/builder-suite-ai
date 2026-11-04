@@ -27,19 +27,21 @@ export interface CreditCardData {
   reconciliation_date?: string;
 }
 
-export function useCreditCards() {
+export function useCreditCards(projectId?: string) {
   const queryClient = useQueryClient();
   const { toast } = useToast();
 
   // Fetch all credit card transactions
   const { data: creditCards = [], isLoading } = useQuery({
-    queryKey: ['credit-cards'],
+    queryKey: ['credit-cards', projectId ?? 'all'],
     queryFn: async () => {
-      const { data: creditCardsData, error: creditCardsError } = await supabase
+      let query = supabase
         .from('credit_cards')
         .select('*')
         .eq('is_reversal', false)
-        .is('reversed_at', null)
+        .is('reversed_at', null);
+      if (projectId) query = query.eq('project_id', projectId);
+      const { data: creditCardsData, error: creditCardsError } = await query
         .order('transaction_date', { ascending: false })
         .order('created_at', { ascending: false });
 
@@ -265,6 +267,8 @@ export function useCreditCards() {
         throw new Error(`Credit card amount ($${data.amount.toFixed(2)}) does not match line items total ($${linesTotal.toFixed(2)}). Balance sheet would be out of balance.`);
       }
 
+      const effectiveProjectId = data.project_id || data.lines.find((l) => l.project_id)?.project_id || null;
+
       // Update the credit card header
       const { error: updateError, data: updatedCC } = await supabase
         .from('credit_cards')
@@ -273,7 +277,7 @@ export function useCreditCards() {
           transaction_type: data.transaction_type,
           credit_card_account_id: data.credit_card_account_id,
           vendor: data.vendor,
-          project_id: data.project_id || null,
+          project_id: effectiveProjectId,
           amount: data.amount,
           memo: data.memo || null,
         })
@@ -340,7 +344,7 @@ export function useCreditCards() {
           owner_id,
           line_number: lineNumber++,
           account_id: data.credit_card_account_id,
-          project_id: data.project_id || null,
+          project_id: effectiveProjectId,
           credit: isPurchase ? data.amount : 0,
           debit: isPurchase ? 0 : data.amount,
           memo: `${data.vendor} - ${isPurchase ? 'Purchase' : 'Refund'}`
