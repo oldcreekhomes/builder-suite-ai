@@ -49,20 +49,37 @@ export function useCreditCards(projectId?: string) {
       if (creditCardsError) throw creditCardsError;
 
       const cardIds = (creditCardsData || []).map((c) => c.id);
-      const linesData = await batchedIn<any>(
-        (ids) =>
-          supabase
-            .from('credit_card_lines')
-            .select(`
-              *,
-              project_lots:lot_id (id, lot_name, lot_number),
-              cost_codes:cost_code_id (id, code, name),
-              accounts:account_id (id, code, name)
-            `)
-            .in('credit_card_id', ids)
-            .order('line_number'),
-        cardIds,
-      );
+      let linesData: any[] = [];
+      try {
+        const raw = await batchedIn<any>(
+          (ids) =>
+            supabase
+              .from('credit_card_lines')
+              .select('*')
+              .in('credit_card_id', ids)
+              .order('line_number'),
+          cardIds,
+        );
+        const uniq = (k: string) => [...new Set(raw.map((l: any) => l[k]).filter(Boolean))] as string[];
+        const fetchMap = async (table: string, cols: string, ids: string[]) => {
+          if (!ids.length) return new Map<string, any>();
+          const rows = await batchedIn<any>((b) => (supabase.from(table as any) as any).select(cols).in('id', b), ids);
+          return new Map(rows.map((r: any) => [r.id, r]));
+        };
+        const [lots, codes, accts] = await Promise.all([
+          fetchMap('project_lots', 'id, lot_name, lot_number', uniq('lot_id')),
+          fetchMap('cost_codes', 'id, code, name', uniq('cost_code_id')),
+          fetchMap('accounts', 'id, code, name', uniq('account_id')),
+        ]);
+        linesData = raw.map((l: any) => ({
+          ...l,
+          project_lots: l.lot_id ? lots.get(l.lot_id) ?? null : null,
+          cost_codes: l.cost_code_id ? codes.get(l.cost_code_id) ?? null : null,
+          accounts: l.account_id ? accts.get(l.account_id) ?? null : null,
+        }));
+      } catch (e) {
+        console.error('Failed to load credit card lines', e);
+      }
 
       return creditCardsData.map(card => ({
         ...card,
