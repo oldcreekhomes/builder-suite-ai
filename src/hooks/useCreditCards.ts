@@ -2,6 +2,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { buildCreditCardJournalLines } from "@/lib/creditCardJournalLines";
+import { batchedIn } from "@/lib/supabasePaginate";
 
 export interface CreditCardLineData {
   line_type: 'expense' | 'job_cost';
@@ -47,17 +48,21 @@ export function useCreditCards(projectId?: string) {
 
       if (creditCardsError) throw creditCardsError;
 
-      const { data: linesData, error: linesError } = await supabase
-        .from('credit_card_lines')
-        .select(`
-          *,
-          project_lots:lot_id (id, lot_name, lot_number),
-          cost_codes:cost_code_id (id, code, name),
-          accounts:account_id (id, code, name)
-        `)
-        .order('line_number');
-
-      if (linesError) throw linesError;
+      const cardIds = (creditCardsData || []).map((c) => c.id);
+      const linesData = await batchedIn<any>(
+        (ids) =>
+          supabase
+            .from('credit_card_lines')
+            .select(`
+              *,
+              project_lots:lot_id (id, lot_name, lot_number),
+              cost_codes:cost_code_id (id, code, name),
+              accounts:account_id (id, code, name)
+            `)
+            .in('credit_card_id', ids)
+            .order('line_number'),
+        cardIds,
+      );
 
       return creditCardsData.map(card => ({
         ...card,

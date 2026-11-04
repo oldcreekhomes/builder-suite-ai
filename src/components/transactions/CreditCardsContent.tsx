@@ -49,7 +49,7 @@ interface CreditCardsContentProps {
 }
 
 export function CreditCardsContent({ projectId, recurringTemplate, onClearTemplate }: CreditCardsContentProps) {
-  const { creditCards, createCreditCard, updateCreditCard, deleteCreditCard } = useCreditCards();
+  const { creditCards, createCreditCard, updateCreditCard, deleteCreditCard } = useCreditCards(projectId);
   const { costCodes, loading: costCodesLoading } = useCostCodeSearch();
   const { accounts } = useAccounts();
   const { isDateLocked, latestClosedDate } = useClosedPeriodCheck(projectId);
@@ -409,11 +409,11 @@ export function CreditCardsContent({ projectId, recurringTemplate, onClearTempla
     }
 
     const creditCardData = {
-      transaction_date: transactionDate.toISOString().split('T')[0],
+      transaction_date: format(transactionDate, 'yyyy-MM-dd'),
       transaction_type: transactionType,
       credit_card_account_id: creditCardAccountId,
       vendor,
-      project_id: selectedProjectId || undefined,
+      project_id: selectedProjectId || projectId || undefined,
       amount: calculateTotal(),
       lines,
     };
