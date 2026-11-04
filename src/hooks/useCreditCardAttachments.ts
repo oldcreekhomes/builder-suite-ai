@@ -205,7 +205,8 @@ export function useCreditCardAttachments(creditCardId: string | null, draftId: s
       file_path: '', // Pending files don't have paths yet
       file_size: p.file.size,
       content_type: p.file.type,
-      uploaded_at: new Date().toISOString()
+      uploaded_at: new Date().toISOString(),
+      localFile: p.file,
     }))
   ];
 
