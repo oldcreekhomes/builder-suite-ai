@@ -69,7 +69,15 @@ export function useCreditCards() {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error("User not authenticated");
 
-      const ownerId = user.id;
+      const { data: ownerData } = await supabase
+        .from('users')
+        .select('role, home_builder_id')
+        .eq('id', user.id)
+        .maybeSingle();
+      const ownerId = ownerData?.home_builder_id && ownerData?.role !== 'owner'
+        ? ownerData.home_builder_id
+        : user.id;
+      const projectId = data.project_id || data.lines.find((l) => l.project_id)?.project_id || null;
 
       // Fetch WIP account for job cost lines
       const { data: settings, error: settingsError } = await supabase
@@ -89,10 +97,11 @@ export function useCreditCards() {
       }
 
       // Calculate total
-      const total = data.lines.reduce((sum, line) => sum + Number(line.amount), 0);
+      const totalCents = data.lines.reduce((sum, line) => sum + Math.round(Number(line.amount || 0) * 100), 0);
+      const total = totalCents / 100;
 
-      // CRITICAL: Validate that header amount matches line totals (if amount provided separately)
-      if (data.amount !== undefined && Math.abs(data.amount - total) > 0.01) {
+      // CRITICAL: Validate that header amount matches line totals to the cent
+      if (data.amount !== undefined && Math.round(Number(data.amount) * 100) !== totalCents) {
         throw new Error(`Credit card amount ($${data.amount.toFixed(2)}) does not match line items total ($${total.toFixed(2)}). Balance sheet would be out of balance.`);
       }
 
@@ -106,7 +115,7 @@ export function useCreditCards() {
           transaction_type: data.transaction_type,
           credit_card_account_id: data.credit_card_account_id,
           vendor: data.vendor,
-          project_id: data.project_id,
+          project_id: projectId,
           amount: total,
           memo: data.memo,
         })
