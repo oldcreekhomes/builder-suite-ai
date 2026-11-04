@@ -10,6 +10,7 @@ interface Attachment {
   id: string;
   file_name: string;
   file_path: string;
+  localFile?: File;
 }
 
 interface AttachmentFilesRowProps {
@@ -59,6 +60,15 @@ export function AttachmentFilesRow({
   };
 
   const handleFilePreview = (file: Attachment) => {
+    // Not yet uploaded (pending until Save): open the local copy instead of an empty storage link.
+    if (!file.file_path) {
+      if (file.localFile) {
+        const url = URL.createObjectURL(file.localFile);
+        window.open(url, '_blank', 'noopener');
+        setTimeout(() => URL.revokeObjectURL(url), 60_000);
+      }
+      return;
+    }
     switch (entityType) {
       case 'journal_entry':
         openJournalEntryAttachment(file.file_path, file.file_name);
