@@ -1,4 +1,5 @@
-import { describe, it, expect } from 'vitest';
+// @ts-ignore
+import { describe, it, expect } from 'bun:test';
 import { buildCreditCardJournalLines } from './creditCardJournalLines';
 
 const JOB = 'job-228';
