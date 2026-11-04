@@ -1,6 +1,8 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
+import { buildCreditCardJournalLines } from "@/lib/creditCardJournalLines";
+import { batchedIn } from "@/lib/supabasePaginate";
 
 export interface CreditCardLineData {
   line_type: 'expense' | 'job_cost';
@@ -26,35 +28,41 @@ export interface CreditCardData {
   reconciliation_date?: string;
 }
 
-export function useCreditCards() {
+export function useCreditCards(projectId?: string) {
   const queryClient = useQueryClient();
   const { toast } = useToast();
 
   // Fetch all credit card transactions
   const { data: creditCards = [], isLoading } = useQuery({
-    queryKey: ['credit-cards'],
+    queryKey: ['credit-cards', projectId ?? 'all'],
     queryFn: async () => {
-      const { data: creditCardsData, error: creditCardsError } = await supabase
+      let query = supabase
         .from('credit_cards')
         .select('*')
         .eq('is_reversal', false)
-        .is('reversed_at', null)
+        .is('reversed_at', null);
+      if (projectId) query = query.eq('project_id', projectId);
+      const { data: creditCardsData, error: creditCardsError } = await query
         .order('transaction_date', { ascending: false })
         .order('created_at', { ascending: false });
 
       if (creditCardsError) throw creditCardsError;
 
-      const { data: linesData, error: linesError } = await supabase
-        .from('credit_card_lines')
-        .select(`
-          *,
-          project_lots:lot_id (id, lot_name, lot_number),
-          cost_codes:cost_code_id (id, code, name),
-          accounts:account_id (id, code, name)
-        `)
-        .order('line_number');
-
-      if (linesError) throw linesError;
+      const cardIds = (creditCardsData || []).map((c) => c.id);
+      const linesData = await batchedIn<any>(
+        (ids) =>
+          supabase
+            .from('credit_card_lines')
+            .select(`
+              *,
+              project_lots:lot_id (id, lot_name, lot_number),
+              cost_codes:cost_code_id (id, code, name),
+              accounts:account_id (id, code, name)
+            `)
+            .in('credit_card_id', ids)
+            .order('line_number'),
+        cardIds,
+      );
 
       return creditCardsData.map(card => ({
         ...card,
@@ -69,7 +77,15 @@ export function useCreditCards() {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error("User not authenticated");
 
-      const ownerId = user.id;
+      const { data: ownerData } = await supabase
+        .from('users')
+        .select('role, home_builder_id')
+        .eq('id', user.id)
+        .maybeSingle();
+      const ownerId = ownerData?.home_builder_id && ownerData?.role !== 'owner'
+        ? ownerData.home_builder_id
+        : user.id;
+      const projectId = data.project_id || data.lines.find((l) => l.project_id)?.project_id || null;
 
       // Fetch WIP account for job cost lines
       const { data: settings, error: settingsError } = await supabase
@@ -89,10 +105,11 @@ export function useCreditCards() {
       }
 
       // Calculate total
-      const total = data.lines.reduce((sum, line) => sum + Number(line.amount), 0);
+      const totalCents = data.lines.reduce((sum, line) => sum + Math.round(Number(line.amount || 0) * 100), 0);
+      const total = totalCents / 100;
 
-      // CRITICAL: Validate that header amount matches line totals (if amount provided separately)
-      if (data.amount !== undefined && Math.abs(data.amount - total) > 0.01) {
+      // CRITICAL: Validate that header amount matches line totals to the cent
+      if (data.amount !== undefined && Math.round(Number(data.amount) * 100) !== totalCents) {
         throw new Error(`Credit card amount ($${data.amount.toFixed(2)}) does not match line items total ($${total.toFixed(2)}). Balance sheet would be out of balance.`);
       }
 
@@ -106,7 +123,7 @@ export function useCreditCards() {
           transaction_type: data.transaction_type,
           credit_card_account_id: data.credit_card_account_id,
           vendor: data.vendor,
-          project_id: data.project_id,
+          project_id: projectId,
           amount: total,
           memo: data.memo,
         })
@@ -150,80 +167,20 @@ export function useCreditCards() {
 
       if (jeError) throw jeError;
 
-      // Create journal entry lines
-      const journalLines = [];
-      let lineNumber = 1;
-
-      if (data.transaction_type === 'purchase') {
-        // For purchase: DEBIT expenses/WIP, CREDIT credit card
-        for (const line of data.lines) {
-          const debitAccountId = line.line_type === 'job_cost' 
-            ? settings.wip_account_id 
-            : line.account_id;
-          
-          if (line.line_type === 'expense' && !line.account_id) {
-            throw new Error("Select an account for each expense line.");
-          }
-
-          journalLines.push({
-            journal_entry_id: journalEntry.id,
-            owner_id: ownerId,
-            line_number: lineNumber++,
-            account_id: debitAccountId,
-            debit: line.amount,
-            credit: 0,
-            project_id: line.project_id,
-            cost_code_id: line.cost_code_id,
-            lot_id: line.lot_id,
-            memo: line.memo,
-          });
-        }
-
-        // Credit the credit card account (no project_id - it's a company-wide liability)
-        journalLines.push({
-          journal_entry_id: journalEntry.id,
-          owner_id: ownerId,
-          line_number: lineNumber,
-          account_id: data.credit_card_account_id,
-          debit: 0,
-          credit: total,
-          memo: data.memo,
-        });
-      } else {
-        // For refund: DEBIT credit card, CREDIT expenses/WIP (no project_id - it's a company-wide liability)
-        journalLines.push({
-          journal_entry_id: journalEntry.id,
-          owner_id: ownerId,
-          line_number: lineNumber++,
-          account_id: data.credit_card_account_id,
-          debit: total,
-          credit: 0,
-          memo: data.memo,
-        });
-
-        for (const line of data.lines) {
-          const creditAccountId = line.line_type === 'job_cost' 
-            ? settings.wip_account_id 
-            : line.account_id;
-          
-          if (line.line_type === 'expense' && !line.account_id) {
-            throw new Error("Select an account for each expense line.");
-          }
-
-          journalLines.push({
-            journal_entry_id: journalEntry.id,
-            owner_id: ownerId,
-            line_number: lineNumber++,
-            account_id: creditAccountId,
-            debit: 0,
-            credit: line.amount,
-            project_id: line.project_id,
-            cost_code_id: line.cost_code_id,
-            lot_id: line.lot_id,
-            memo: line.memo,
-          });
-        }
-      }
+      // Create journal entry lines — the card line carries the job, like deposit bank lines
+      const journalLines = buildCreditCardJournalLines({
+        transactionType: data.transaction_type,
+        creditCardAccountId: data.credit_card_account_id,
+        projectId,
+        wipAccountId: settings.wip_account_id,
+        lines: data.lines,
+        cardMemo: data.memo,
+      }).map((line, index) => ({
+        ...line,
+        journal_entry_id: journalEntry.id,
+        owner_id: ownerId,
+        line_number: index + 1,
+      }));
 
       // FINAL SAFETY CHECK: Verify debits = credits before inserting
       const totalDebits = journalLines.reduce((sum, line) => sum + (line.debit || 0), 0);
@@ -315,6 +272,8 @@ export function useCreditCards() {
         throw new Error(`Credit card amount ($${data.amount.toFixed(2)}) does not match line items total ($${linesTotal.toFixed(2)}). Balance sheet would be out of balance.`);
       }
 
+      const effectiveProjectId = data.project_id || data.lines.find((l) => l.project_id)?.project_id || null;
+
       // Update the credit card header
       const { error: updateError, data: updatedCC } = await supabase
         .from('credit_cards')
@@ -323,7 +282,7 @@ export function useCreditCards() {
           transaction_type: data.transaction_type,
           credit_card_account_id: data.credit_card_account_id,
           vendor: data.vendor,
-          project_id: data.project_id || null,
+          project_id: effectiveProjectId,
           amount: data.amount,
           memo: data.memo || null,
         })
@@ -390,7 +349,7 @@ export function useCreditCards() {
           owner_id,
           line_number: lineNumber++,
           account_id: data.credit_card_account_id,
-          project_id: data.project_id || null,
+          project_id: effectiveProjectId,
           credit: isPurchase ? data.amount : 0,
           debit: isPurchase ? 0 : data.amount,
           memo: `${data.vendor} - ${isPurchase ? 'Purchase' : 'Refund'}`
