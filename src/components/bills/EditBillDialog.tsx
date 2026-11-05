@@ -1,3 +1,4 @@
+import { jobCostLinesMissingLot, missingLotMessage } from '@/lib/billLotRequired';
 import { useState, useEffect, useMemo } from "react";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
@@ -481,6 +482,15 @@ export function EditBillDialog({ open, onOpenChange, billId }: EditBillDialogPro
         variant: "destructive",
       });
       return;
+    }
+
+
+    {
+      const missingLot = jobCostLinesMissingLot(jobCostRows, lots.length);
+      if (missingLot.length > 0) {
+        toast({ title: "Lot required", description: missingLotMessage(missingLot), variant: "destructive" });
+        return;
+      }
     }
 
     // Never save a cost code different from the one shown on screen.

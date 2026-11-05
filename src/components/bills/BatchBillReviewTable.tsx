@@ -322,6 +322,9 @@ export function BatchBillReviewTable({
       if (line.line_type === 'job_cost' && !line.cost_code_id) {
         issues.push(`Line ${idx + 1}: Cost code required`);
       }
+      if (line.line_type === 'job_cost' && lots.length > 1 && !line.lot_id && (Number(line.amount) || 0) !== 0) {
+        issues.push(`Line ${idx + 1}: Lot required`);
+      }
     });
     
     return issues;

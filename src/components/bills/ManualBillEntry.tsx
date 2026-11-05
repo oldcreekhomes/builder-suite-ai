@@ -1,3 +1,4 @@
+import { jobCostLinesMissingLot, missingLotMessage } from '@/lib/billLotRequired';
 import { fixSplitLineAmounts } from "@/lib/billLineMath";
 import { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
@@ -419,6 +420,16 @@ export function ManualBillEntry() {
       });
       setIsSubmitting(false);
       return;
+    }
+
+
+    {
+      const missingLot = jobCostLinesMissingLot(resolvedJobRows, lots.length);
+      if (missingLot.length > 0) {
+        toast({ title: "Lot required", description: missingLotMessage(missingLot), variant: "destructive" });
+        setIsSubmitting(false);
+        return;
+      }
     }
 
     // Auto-resolve account IDs for expense rows (similar to cost code resolution)

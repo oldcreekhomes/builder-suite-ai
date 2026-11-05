@@ -1,4 +1,4 @@
-import { actualsByCostCodeForLot } from '@/lib/jobCostLotAllocation';
+import { actualsByCostCodeForLot, UNASSIGNED_GROUP } from '@/lib/jobCostLotAllocation';
 import { useState, useEffect } from "react";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
@@ -506,10 +506,9 @@ export function SendReportsDialog({ projectId, open, onOpenChange }: SendReports
           console.log(`📊 Job Costs PDF: Found ${filteredWipLines?.length || 0} WIP journal lines for lot ${lotName || 'All'}`);
 
           // Step 4: Build actuals by cost code
-          const actualsByCostCode = actualsByCostCodeForLot(
+          const { assigned: actualsByCostCode, unassigned: unassignedByCostCode } = actualsByCostCodeForLot(
             (filteredWipLines || []) as any,
             lotId,
-            (projectLots || []).map((l: any) => l.id).filter(Boolean),
           );
 
           // Step 5: Collect cost code details
@@ -657,6 +656,20 @@ export function SendReportsDialog({ projectId, open, onOpenChange }: SendReports
             return numA - numB;
           });
 
+          const unassignedByParent: Record<string, number> = {};
+          Object.entries(unassignedByCostCode).forEach(([id, amount]) => {
+            const cd = costCodeData[id];
+            if (!cd) return;
+            const pc = getParentCode(cd.code);
+            unassignedByParent[pc] = Math.round(((unassignedByParent[pc] || 0) + amount) * 100) / 100;
+          });
+          Object.keys(unassignedByParent).sort((x, y) => (parseFloat(x) || 0) - (parseFloat(y) || 0)).forEach(pc => {
+            const amt = unassignedByParent[pc];
+            if (Math.abs(amt) < 0.005) return;
+            const name = parentNamesByCode[pc] || Object.values(costCodeData).find(cd => cd.code === pc)?.name || pc;
+            costCodeRows.push({ costCode: pc, costCodeName: name, parentGroup: UNASSIGNED_GROUP, budget: 0, actual: amt, variance: 0, unassigned: true });
+          });
+
           console.log(`📊 Job Costs PDF: Generated ${costCodeRows.length} parent cost code rows for lot ${lotName || 'All'}`);
 
           // Group by parent_group
@@ -670,8 +683,8 @@ export function SendReportsDialog({ projectId, open, onOpenChange }: SendReports
           });
 
           // Calculate totals
-          const totalBudget = costCodeRows.reduce((sum, row) => sum + row.budget, 0);
-          const totalActual = costCodeRows.reduce((sum, row) => sum + row.actual, 0);
+          const totalBudget = costCodeRows.filter(r => !r.unassigned).reduce((sum, row) => sum + row.budget, 0);
+          const totalActual = costCodeRows.filter(r => !r.unassigned).reduce((sum, row) => sum + row.actual, 0);
           const totalVariance = totalBudget - totalActual;
 
           const blob = await pdf(
