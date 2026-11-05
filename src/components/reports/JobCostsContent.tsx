@@ -1,4 +1,4 @@
-import { actualsByCostCodeForLot } from '@/lib/jobCostLotAllocation';
+import { actualsByCostCodeForLot, UNASSIGNED_GROUP } from '@/lib/jobCostLotAllocation';
 import React, { useState, useEffect, useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -204,16 +204,7 @@ export function JobCostsContent({ projectId, onHeaderActionChange, asOfDate, onA
       console.log(`🔍 Job Costs: Found ${wipLines?.length || 0} WIP journal lines`);
 
       // Step 4: Build cost code map with actuals
-      let projectLotIds: string[] = [];
-      if (selectedLotId) {
-        const { data: lotRows } = await supabase
-          .from('project_lots')
-          .select('id, lot_number')
-          .eq('project_id', projectId)
-          .order('lot_number', { ascending: true });
-        projectLotIds = (lotRows || []).map(l => l.id);
-      }
-      const actualsByCostCode = actualsByCostCodeForLot(wipLines as any, selectedLotId, projectLotIds);
+      const { assigned: actualsByCostCode, unassigned: unassignedByCostCode } = actualsByCostCodeForLot(wipLines as any, selectedLotId);
 
       // Step 5: Collect all unique cost codes and their details
       const costCodeSet = new Set<string>();
@@ -409,6 +400,34 @@ parentRows.sort((a, b) => {
   return numA - numB;
 });
 
+// Untagged (no-lot) costs: shown in their own group, excluded from totals
+const unassignedByParent: Record<string, number> = {};
+Object.entries(unassignedByCostCode).forEach(([id, amount]) => {
+  const cd = costCodeData[id];
+  if (!cd) return;
+  const pc = getParentCode(cd.code);
+  unassignedByParent[pc] = Math.round(((unassignedByParent[pc] || 0) + amount) * 100) / 100;
+});
+const missingUnassigned = Object.keys(unassignedByParent).filter(pc => !parentNamesByCode[pc]);
+if (missingUnassigned.length > 0) {
+  const { data: names } = await supabase.from('cost_codes').select('code, name').in('code', missingUnassigned);
+  names?.forEach(cc => { parentNamesByCode[cc.code] = cc.name; });
+}
+Object.keys(unassignedByParent).sort((x, y) => (parseFloat(x) || 0) - (parseFloat(y) || 0)).forEach(pc => {
+  const amt = unassignedByParent[pc];
+  if (Math.abs(amt) < 0.005) return;
+  parentRows.push({
+    costCodeId: pc,
+    costCode: pc,
+    costCodeName: parentNamesByCode[pc] || pc,
+    parentGroup: UNASSIGNED_GROUP,
+    budget: 0,
+    actual: amt,
+    variance: 0,
+    unassigned: true,
+  } as JobCostRow);
+});
+
 console.log(`🔍 Job Costs: Returning ${parentRows.length} parent cost code rows`);
 return parentRows;
     },
@@ -541,8 +560,8 @@ return parentRows;
     });
   };
 
-  const totalBudget = jobCostsData?.reduce((sum, row) => sum + row.budget, 0) || 0;
-  const totalActual = jobCostsData?.reduce((sum, row) => sum + row.actual, 0) || 0;
+  const totalBudget = jobCostsData?.filter(r => !(r as any).unassigned).reduce((sum, row) => sum + row.budget, 0) || 0;
+  const totalActual = jobCostsData?.filter(r => !(r as any).unassigned).reduce((sum, row) => sum + row.actual, 0) || 0;
   const totalVariance = totalBudget - totalActual;
 
   // Emit controls to header via bridge - MUST be before early returns
