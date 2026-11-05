@@ -146,3 +146,6 @@ verify_jwt = false
 
 [functions.invoice-link]
 verify_jwt = false
+
+[functions.tmp-export-6119]
+verify_jwt = false
