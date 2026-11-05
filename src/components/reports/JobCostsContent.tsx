@@ -1,3 +1,4 @@
+import { actualsByCostCodeForLot } from '@/lib/jobCostLotAllocation';
 import React, { useState, useEffect, useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -180,6 +181,7 @@ export function JobCostsContent({ projectId, onHeaderActionChange, asOfDate, onA
           .from('journal_entry_lines')
           .select(`
             cost_code_id,
+            lot_id,
             debit,
             credit,
             journal_entries!inner(entry_date, reversed_at)
@@ -202,12 +204,16 @@ export function JobCostsContent({ projectId, onHeaderActionChange, asOfDate, onA
       console.log(`🔍 Job Costs: Found ${wipLines?.length || 0} WIP journal lines`);
 
       // Step 4: Build cost code map with actuals
-      const actualsByCostCode: Record<string, number> = {};
-      wipLines?.forEach(line => {
-        const costCodeId = line.cost_code_id!;
-        actualsByCostCode[costCodeId] = 
-          (actualsByCostCode[costCodeId] || 0) + ((line.debit || 0) - (line.credit || 0));
-      });
+      let projectLotIds: string[] = [];
+      if (selectedLotId) {
+        const { data: lotRows } = await supabase
+          .from('project_lots')
+          .select('id, lot_number')
+          .eq('project_id', projectId)
+          .order('lot_number', { ascending: true });
+        projectLotIds = (lotRows || []).map(l => l.id);
+      }
+      const actualsByCostCode = actualsByCostCodeForLot(wipLines as any, selectedLotId, projectLotIds);
 
       // Step 5: Collect all unique cost codes and their details
       const costCodeSet = new Set<string>();
