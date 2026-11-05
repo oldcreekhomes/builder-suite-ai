@@ -1,3 +1,4 @@
+import { actualsByCostCodeForLot } from '@/lib/jobCostLotAllocation';
 import { useState, useEffect } from "react";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
@@ -505,12 +506,11 @@ export function SendReportsDialog({ projectId, open, onOpenChange }: SendReports
           console.log(`📊 Job Costs PDF: Found ${filteredWipLines?.length || 0} WIP journal lines for lot ${lotName || 'All'}`);
 
           // Step 4: Build actuals by cost code
-          const actualsByCostCode: Record<string, number> = {};
-          filteredWipLines?.forEach(line => {
-            const costCodeId = line.cost_code_id!;
-            actualsByCostCode[costCodeId] = 
-              (actualsByCostCode[costCodeId] || 0) + ((line.debit || 0) - (line.credit || 0));
-          });
+          const actualsByCostCode = actualsByCostCodeForLot(
+            (filteredWipLines || []) as any,
+            lotId,
+            (projectLots || []).map((l: any) => l.id).filter(Boolean),
+          );
 
           // Step 5: Collect cost code details
           const costCodeSet = new Set<string>();
