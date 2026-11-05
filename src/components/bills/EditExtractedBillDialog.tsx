@@ -1,3 +1,4 @@
+import { jobCostLinesMissingLot, missingLotMessage } from '@/lib/billLotRequired';
 import { useState, useEffect, useRef, useMemo } from "react";
 import { useParams } from "react-router-dom";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
@@ -871,6 +872,15 @@ export function EditExtractedBillDialog({
         variant: "destructive",
       });
       return;
+    }
+
+
+    {
+      const missingLot = jobCostLinesMissingLot(jobCostLines.map(l => ({ lotId: l.lot_id, amount: l.amount as any })), lots.length);
+      if (missingLot.length > 0) {
+        toast({ title: "Lot required", description: missingLotMessage(missingLot), variant: "destructive" });
+        return;
+      }
     }
 
     // Calculate and validate total
