@@ -47,6 +47,7 @@ interface JobCostRow {
   budget: number;
   actual: number;
   variance: number;
+  unassigned?: boolean;
 }
 
 interface JobCostsContentProps {
