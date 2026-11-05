@@ -13,3 +13,4 @@
 - Cost code pickers only show text that matches the selected cost code: typed text resolves through `src/lib/costCodeMatch.ts` on blur or reverts to the attached code, and Edit Bill blocks saving a mismatch; this prevents silently saving a stale code.
 - Subscription invoice PDFs have two renderers (client `SubscriptionInvoicePdfDocument.tsx`, server `_shared/subscriptionInvoicePdf.ts`) that must stay visually identical; downloaded and auto-emailed invoices must match.
 - Credit card journal entries are built by `src/lib/creditCardJournalLines.ts`, and the card (liability) line carries the entry's project_id like deposit bank lines; otherwise project balance sheets drop the liability and go out of balance.
+- Job Costs for a single lot adds only an even share (cent-exact, remainder on last lot) of no-lot lines via `src/lib/jobCostLotAllocation.ts`, in the screen, PDF, and emailed reports; otherwise no-lot costs count in full on every lot.
