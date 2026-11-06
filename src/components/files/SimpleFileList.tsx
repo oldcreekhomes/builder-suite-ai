@@ -248,15 +248,30 @@ export const SimpleFileList: React.FC<SimpleFileListProps> = ({
     }
   };
 
-  const handleFolderDownload = async (folder: SimpleFolder) => {
-    try {
-      const { data: allFiles = [], error: fetchError } = await supabase
+  // Reads every row under a folder in 1000-row pages (avoids the row cap on big jobs).
+  const fetchFolderRows = async (folderPath: string): Promise<any[]> => {
+    const escaped = folderPath.replace(/\/+$/g, '').replace(/[\\%_]/g, (c) => `\\${c}`);
+    const pageSize = 1000;
+    const rows: any[] = [];
+    for (let from = 0; ; from += pageSize) {
+      const { data, error } = await supabase
         .from('project_files')
         .select('*')
         .eq('project_id', projectId)
-        .neq('file_type', 'folderkeeper')
-        .eq('is_deleted', false);
-      if (fetchError) throw fetchError;
+        .eq('is_deleted', false)
+        .like('original_filename', `${escaped}/%`)
+        .order('id')
+        .range(from, from + pageSize - 1);
+      if (error) throw error;
+      rows.push(...(data || []));
+      if (!data || data.length < pageSize) break;
+    }
+    return rows;
+  };
+
+  const handleFolderDownload = async (folder: SimpleFolder) => {
+    try {
+      const allFiles = (await fetchFolderRows(folder.path)).filter((f: any) => f.file_type !== 'folderkeeper');
 
       const folderFiles = allFiles.filter(file =>
         file.original_filename.startsWith(`${folder.path}/`)
@@ -294,15 +309,10 @@ export const SimpleFileList: React.FC<SimpleFileListProps> = ({
 
   const handleFolderShare = async (folder: SimpleFolder) => {
     try {
-      const filesResult = await supabase
-        .from('project_files')
-        .select('*')
-        .eq('project_id', projectId)
-        .eq('is_deleted', false);
-      if (filesResult.error) throw filesResult.error;
+      const folderRows = await fetchFolderRows(folder.path);
 
       const rootPrefix = `${folder.path.replace(/\/+$/g, '')}/`;
-      const descendantRows = (filesResult.data || []).filter((file: any) =>
+      const descendantRows = folderRows.filter((file: any) =>
         file.original_filename?.startsWith(rootPrefix)
       );
       const folderFiles = descendantRows.filter((file: any) => file.file_type !== 'folderkeeper');
