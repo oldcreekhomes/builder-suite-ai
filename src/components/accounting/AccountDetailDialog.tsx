@@ -1661,7 +1661,7 @@ export function AccountDetailDialog({
                           </Tooltip>
                         )}
                       </TableCell>
-                      <TableCell className="px-2 py-1">
+                      <TableCell className="px-2 py-1 max-w-0">
                         <Tooltip>
                           <TooltipTrigger asChild>
                             <span className="text-xs truncate block">{txn.description || '-'}</span>
