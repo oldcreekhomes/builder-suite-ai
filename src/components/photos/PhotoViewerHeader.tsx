@@ -2,7 +2,7 @@
 import { Button } from "@/components/ui/button";
 import { Download, Trash2, ZoomIn, ZoomOut, Hand } from "lucide-react";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
-import { formatDistanceToNow } from "date-fns";
+import { format } from "date-fns";
 
 interface ProjectPhoto {
   id: string;
@@ -50,7 +50,7 @@ export function PhotoViewerHeader({
           {photo.description || 'Untitled'}
         </h3>
         <p className="text-sm text-gray-500">
-          {currentIndex + 1} of {totalPhotos} • {formatDistanceToNow(new Date(photo.uploaded_at), { addSuffix: true })}
+          {currentIndex + 1} of {totalPhotos} • {format(new Date(photo.uploaded_at), "MM/dd/yyyy")}
         </p>
       </div>
       <div className="flex items-center space-x-2">

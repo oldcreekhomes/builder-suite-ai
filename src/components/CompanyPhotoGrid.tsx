@@ -13,7 +13,7 @@ import {
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
-import { formatDistanceToNow } from "date-fns";
+import { format } from "date-fns";
 import { AllPhoto } from "@/hooks/useAllPhotos";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 
@@ -289,7 +289,7 @@ export function CompanyPhotoGrid({ photos, onPhotoSelect, onRefresh }: CompanyPh
                 {photo.project_name}
               </p>
               <p className="text-xs text-gray-500 mt-1">
-                {formatDistanceToNow(new Date(photo.uploaded_at), { addSuffix: true })}
+                {format(new Date(photo.uploaded_at), "MM/dd/yyyy")}
               </p>
             </div>
           </Card>

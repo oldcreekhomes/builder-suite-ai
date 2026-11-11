@@ -18,7 +18,7 @@ import {
   ContextMenuTrigger,
 } from "@/components/ui/context-menu";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
-import { formatDistanceToNow } from "date-fns";
+import { format } from "date-fns";
 import { getThumbnailUrl } from "@/utils/thumbnailUtils";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 
@@ -215,7 +215,7 @@ export function PhotoCard({
               )}
             </div>
             <p className="text-xs text-gray-500 mt-1">
-              {formatDistanceToNow(new Date(photo.uploaded_at), { addSuffix: true })}
+              {format(new Date(photo.uploaded_at), "MM/dd/yyyy")}
             </p>
             {photo.uploaded_by_profile && (
               <p className="text-xs text-gray-400 mt-1">
