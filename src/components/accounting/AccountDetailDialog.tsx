@@ -1459,7 +1459,7 @@ export function AccountDetailDialog({
   return (
     <>
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-[95vw] xl:max-w-7xl max-h-[85vh] overflow-hidden flex flex-col">
+      <DialogContent className="max-w-6xl max-h-[85vh] overflow-hidden flex flex-col">
         <DialogHeader className="py-3">
           <div className="flex items-center justify-between">
             <DialogTitle className="text-base">
@@ -1560,8 +1560,8 @@ export function AccountDetailDialog({
                 <TableRow>
                   <TableHead className="w-28">Type</TableHead>
                   <TableHead className="w-24">Date</TableHead>
-                  <TableHead className="w-32">Name</TableHead>
-                  <TableHead className="w-36">Account</TableHead>
+                  <TableHead className="w-48">Name</TableHead>
+                  <TableHead className="w-60">Account</TableHead>
                   <TableHead>Description</TableHead>
                   <TableHead className="w-24 text-right">Amount</TableHead>
                   <TableHead className="w-24 text-right">Balance</TableHead>
@@ -1595,7 +1595,7 @@ export function AccountDetailDialog({
                       <TableCell className="px-2 py-1">
                         <span className="text-xs">{formatDateSafe(txn.date, 'MM/dd/yyyy')}</span>
                       </TableCell>
-                      <TableCell className="px-2 py-1 max-w-[120px]">
+                      <TableCell className="px-2 py-1 max-w-[190px]">
                         <Tooltip>
                           <TooltipTrigger asChild>
                             <span className="text-xs truncate block">{txn.reference || '-'}</span>
@@ -1603,7 +1603,7 @@ export function AccountDetailDialog({
                           <TooltipContent>{txn.reference || '-'}</TooltipContent>
                         </Tooltip>
                       </TableCell>
-                      <TableCell className="px-2 py-1 max-w-[140px]">
+                      <TableCell className="px-2 py-1 max-w-[240px]">
                         {isConsolidated && extraCount > 0 ? (
                           <Tooltip>
                             <TooltipTrigger asChild>
@@ -1618,7 +1618,7 @@ export function AccountDetailDialog({
                                   .sort((a, b) => (a.accountDisplay || '').localeCompare(b.accountDisplay || ''))
                                   .map((bp) => (
                                   <div key={bp.bill_id} className="flex justify-between gap-4 text-xs">
-                                    <span className="truncate max-w-[150px]">{bp.accountDisplay || 'Unknown Account'}</span>
+                                    <span className="truncate max-w-[230px]">{bp.accountDisplay || 'Unknown Account'}</span>
                                     <span>{formatTooltipCurrency(bp.amount_allocated)}</span>
                                   </div>
                                 ))}
@@ -1641,7 +1641,7 @@ export function AccountDetailDialog({
                                 <p className="font-medium text-xs mb-2">Included Cost Codes:</p>
                                 {txn.accountBreakdown.map((b, i) => (
                                   <div key={`${b.label}-${i}`} className="flex justify-between gap-4 text-xs">
-                                    <span className="truncate max-w-[150px]">{b.label}</span>
+                                    <span className="truncate max-w-[230px]">{b.label}</span>
                                     <span>{formatTooltipCurrency(b.amount)}</span>
                                   </div>
                                 ))}

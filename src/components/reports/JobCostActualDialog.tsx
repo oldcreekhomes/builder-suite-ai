@@ -452,7 +452,7 @@ const formatCurrency = (value: number) => {
   return (
     <>
       <Dialog open={isOpen} onOpenChange={onClose}>
-        <DialogContent className="max-w-[95vw] xl:max-w-7xl max-h-[80vh] flex flex-col">
+        <DialogContent className="max-w-6xl max-h-[80vh] flex flex-col">
           <DialogHeader>
             <DialogTitle className="text-base font-semibold">
               {costCode} - {costCodeName}
