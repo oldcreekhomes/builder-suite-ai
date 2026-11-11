@@ -149,6 +149,16 @@ export function SendReportsDialog({ projectId, open, onOpenChange }: SendReports
 
       const asOfDateStr = format(asOfDate, 'yyyy-MM-dd');
       const generatedPdfs: any = {};
+      const overrideNames = new Map<string, string>();
+      if (projectId) {
+        const { data: ovr } = await supabase
+          .from("project_account_overrides" as any)
+          .select("account_id, display_name")
+          .eq("project_id", projectId);
+        for (const r of (ovr as any[]) ?? []) {
+          if (r?.account_id && r?.display_name) overrideNames.set(r.account_id, r.display_name);
+        }
+      }
 
       // Generate Balance Sheet PDF if selected
       // NOTE: This block must mirror BalanceSheetContent.tsx exactly so the
@@ -244,7 +254,7 @@ export function SendReportsDialog({ projectId, open, onOpenChange }: SendReports
               assets.current.push({
                 id: account.id,
                 code: account.code,
-                name: account.name,
+                name: overrideNames.get(account.id) ?? account.name,
                 balance: rawBalance,
               });
               break;
@@ -252,7 +262,7 @@ export function SendReportsDialog({ projectId, open, onOpenChange }: SendReports
               liabilities.current.push({
                 id: account.id,
                 code: account.code,
-                name: account.name,
+                name: overrideNames.get(account.id) ?? account.name,
                 balance: -rawBalance,
               });
               break;
@@ -260,7 +270,7 @@ export function SendReportsDialog({ projectId, open, onOpenChange }: SendReports
               equity.push({
                 id: account.id,
                 code: account.code,
-                name: account.name,
+                name: overrideNames.get(account.id) ?? account.name,
                 balance: -rawBalance,
               });
               break;
@@ -368,7 +378,7 @@ export function SendReportsDialog({ projectId, open, onOpenChange }: SendReports
             revenue.push({
               id: account.id,
               code: account.code,
-              name: account.name,
+              name: overrideNames.get(account.id) ?? account.name,
               balance: displayBalance
             });
           } else if (account.type === 'expense') {
@@ -376,7 +386,7 @@ export function SendReportsDialog({ projectId, open, onOpenChange }: SendReports
             expenses.push({
               id: account.id,
               code: account.code,
-              name: account.name,
+              name: overrideNames.get(account.id) ?? account.name,
               balance: displayBalance
             });
           }
