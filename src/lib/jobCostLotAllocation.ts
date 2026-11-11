@@ -24,6 +24,8 @@ const r2 = (n: number) => Math.round(n * 100) / 100;
 export function actualsByCostCodeForLot(
   lines: WipLineLike[],
   selectedLotId: string | null | undefined,
+  /** Number of lots on the job. With exactly one lot, untagged lines belong to it. */
+  lotCount?: number,
 ): LotActuals {
   const assigned: Record<string, number> = {};
   const unassigned: Record<string, number> = {};
@@ -33,7 +35,7 @@ export function actualsByCostCodeForLot(
     let target: Record<string, number>;
     if (!selectedLotId) target = assigned;
     else if (line.lot_id === selectedLotId) target = assigned;
-    else if (!line.lot_id) target = unassigned;
+    else if (!line.lot_id) target = lotCount === 1 ? assigned : unassigned;
     else continue;
     target[line.cost_code_id] = r2((target[line.cost_code_id] || 0) + amt);
   }
