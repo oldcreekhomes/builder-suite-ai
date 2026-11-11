@@ -1560,8 +1560,8 @@ export function AccountDetailDialog({
                 <TableRow>
                   <TableHead className="w-28">Type</TableHead>
                   <TableHead className="w-24">Date</TableHead>
-                  <TableHead className="w-48">Name</TableHead>
-                  <TableHead className="w-60">Account</TableHead>
+                  <TableHead className="w-36">Name</TableHead>
+                  <TableHead className="w-52">Account</TableHead>
                   <TableHead>Description</TableHead>
                   <TableHead className="w-24 text-right">Amount</TableHead>
                   <TableHead className="w-24 text-right">Balance</TableHead>
@@ -1595,7 +1595,7 @@ export function AccountDetailDialog({
                       <TableCell className="px-2 py-1">
                         <span className="text-xs">{formatDateSafe(txn.date, 'MM/dd/yyyy')}</span>
                       </TableCell>
-                      <TableCell className="px-2 py-1 max-w-[190px]">
+                      <TableCell className="px-2 py-1 max-w-[144px]">
                         <Tooltip>
                           <TooltipTrigger asChild>
                             <span className="text-xs truncate block">{txn.reference || '-'}</span>
@@ -1603,7 +1603,7 @@ export function AccountDetailDialog({
                           <TooltipContent>{txn.reference || '-'}</TooltipContent>
                         </Tooltip>
                       </TableCell>
-                      <TableCell className="px-2 py-1 max-w-[240px]">
+                      <TableCell className="px-2 py-1 max-w-[208px]">
                         {isConsolidated && extraCount > 0 ? (
                           <Tooltip>
                             <TooltipTrigger asChild>
@@ -1618,7 +1618,7 @@ export function AccountDetailDialog({
                                   .sort((a, b) => (a.accountDisplay || '').localeCompare(b.accountDisplay || ''))
                                   .map((bp) => (
                                   <div key={bp.bill_id} className="flex justify-between gap-4 text-xs">
-                                    <span className="truncate max-w-[230px]">{bp.accountDisplay || 'Unknown Account'}</span>
+                                    <span className="truncate max-w-[200px]">{bp.accountDisplay || 'Unknown Account'}</span>
                                     <span>{formatTooltipCurrency(bp.amount_allocated)}</span>
                                   </div>
                                 ))}
@@ -1641,7 +1641,7 @@ export function AccountDetailDialog({
                                 <p className="font-medium text-xs mb-2">Included Cost Codes:</p>
                                 {txn.accountBreakdown.map((b, i) => (
                                   <div key={`${b.label}-${i}`} className="flex justify-between gap-4 text-xs">
-                                    <span className="truncate max-w-[230px]">{b.label}</span>
+                                    <span className="truncate max-w-[200px]">{b.label}</span>
                                     <span>{formatTooltipCurrency(b.amount)}</span>
                                   </div>
                                 ))}
@@ -1661,10 +1661,10 @@ export function AccountDetailDialog({
                           </Tooltip>
                         )}
                       </TableCell>
-                      <TableCell className="px-2 py-1">
+                      <TableCell className="px-2 py-1 max-w-0">
                         <Tooltip>
                           <TooltipTrigger asChild>
-                            <span className="text-xs block whitespace-normal break-words">{txn.description || '-'}</span>
+                            <span className="text-xs truncate block">{txn.description || '-'}</span>
                           </TooltipTrigger>
                           <TooltipContent className="max-w-xs">{txn.description || '-'}</TooltipContent>
                         </Tooltip>
