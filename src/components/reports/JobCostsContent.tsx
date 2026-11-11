@@ -205,7 +205,8 @@ export function JobCostsContent({ projectId, onHeaderActionChange, asOfDate, onA
       console.log(`🔍 Job Costs: Found ${wipLines?.length || 0} WIP journal lines`);
 
       // Step 4: Build cost code map with actuals
-      const { assigned: actualsByCostCode, unassigned: unassignedByCostCode } = actualsByCostCodeForLot(wipLines as any, selectedLotId);
+      const { count: projectLotCount } = await supabase.from('project_lots').select('id', { count: 'exact', head: true }).eq('project_id', projectId);
+      const { assigned: actualsByCostCode, unassigned: unassignedByCostCode } = actualsByCostCodeForLot(wipLines as any, selectedLotId, projectLotCount ?? undefined);
 
       // Step 5: Collect all unique cost codes and their details
       const costCodeSet = new Set<string>();
