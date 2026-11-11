@@ -516,9 +516,11 @@ export function SendReportsDialog({ projectId, open, onOpenChange }: SendReports
           console.log(`📊 Job Costs PDF: Found ${filteredWipLines?.length || 0} WIP journal lines for lot ${lotName || 'All'}`);
 
           // Step 4: Build actuals by cost code
+          const { count: projectLotCount } = await supabase.from('project_lots').select('id', { count: 'exact', head: true }).eq('project_id', projectId);
           const { assigned: actualsByCostCode, unassigned: unassignedByCostCode } = actualsByCostCodeForLot(
             (filteredWipLines || []) as any,
             lotId,
+            projectLotCount ?? undefined,
           );
 
           // Step 5: Collect cost code details

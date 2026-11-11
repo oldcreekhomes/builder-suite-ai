@@ -26,3 +26,18 @@ describe("job cost lot actuals", () => {
     expect(Object.keys(r.unassigned).length).toBe(0);
   });
 });
+
+describe("single-lot job", () => {
+  test("counts untagged lines on the only lot", () => {
+    const r = actualsByCostCodeForLot(
+      [
+        { cost_code_id: "c", lot_id: "L1", debit: 100, credit: 0 },
+        { cost_code_id: "c", lot_id: null, debit: 50, credit: 0 },
+      ],
+      "L1",
+      1,
+    );
+    expect(r.assigned.c).toBe(150);
+    expect(r.unassigned.c).toBeUndefined();
+  });
+});
