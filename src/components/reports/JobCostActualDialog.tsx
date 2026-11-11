@@ -544,7 +544,7 @@ const formatCurrency = (value: number) => {
                         <TableCell className="whitespace-normal">
                           <Tooltip>
                             <TooltipTrigger asChild>
-                              <span className="text-xs block whitespace-normal break-words">{line.memo || line.journal_entries.description || '-'}</span>
+                              <span className="text-xs truncate block">{line.memo || line.journal_entries.description || '-'}</span>
                             </TooltipTrigger>
                             <TooltipContent side="top" align="start">
                               {line.memo || line.journal_entries.description || '-'}
