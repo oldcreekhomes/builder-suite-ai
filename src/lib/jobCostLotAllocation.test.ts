@@ -28,7 +28,7 @@ describe("job cost lot actuals", () => {
 });
 
 describe("single-lot job", () => {
-  it("counts untagged lines on the only lot", () => {
+  test("counts untagged lines on the only lot", () => {
     const r = actualsByCostCodeForLot(
       [
         { cost_code_id: "c", lot_id: "L1", debit: 100, credit: 0 },
