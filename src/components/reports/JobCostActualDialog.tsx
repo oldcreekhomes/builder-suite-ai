@@ -452,7 +452,7 @@ const formatCurrency = (value: number) => {
   return (
     <>
       <Dialog open={isOpen} onOpenChange={onClose}>
-        <DialogContent className="max-w-5xl max-h-[80vh] flex flex-col">
+        <DialogContent className="max-w-[95vw] xl:max-w-7xl max-h-[80vh] flex flex-col">
           <DialogHeader>
             <DialogTitle className="text-base font-semibold">
               {costCode} - {costCodeName}
@@ -541,10 +541,10 @@ const formatCurrency = (value: number) => {
                             </TooltipContent>
                           </Tooltip>
                         </TableCell>
-                        <TableCell className="max-w-0 truncate">
+                        <TableCell className="whitespace-normal">
                           <Tooltip>
                             <TooltipTrigger asChild>
-                              <span className="text-xs truncate block">{line.memo || line.journal_entries.description || '-'}</span>
+                              <span className="text-xs block whitespace-normal break-words">{line.memo || line.journal_entries.description || '-'}</span>
                             </TooltipTrigger>
                             <TooltipContent side="top" align="start">
                               {line.memo || line.journal_entries.description || '-'}
