@@ -1459,7 +1459,7 @@ export function AccountDetailDialog({
   return (
     <>
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-5xl max-h-[85vh] overflow-hidden flex flex-col">
+      <DialogContent className="max-w-[95vw] xl:max-w-7xl max-h-[85vh] overflow-hidden flex flex-col">
         <DialogHeader className="py-3">
           <div className="flex items-center justify-between">
             <DialogTitle className="text-base">
@@ -1562,7 +1562,7 @@ export function AccountDetailDialog({
                   <TableHead className="w-24">Date</TableHead>
                   <TableHead className="w-32">Name</TableHead>
                   <TableHead className="w-36">Account</TableHead>
-                  <TableHead className="w-40">Description</TableHead>
+                  <TableHead>Description</TableHead>
                   <TableHead className="w-24 text-right">Amount</TableHead>
                   <TableHead className="w-24 text-right">Balance</TableHead>
                   <TableHead className="w-24 text-center">Status</TableHead>
@@ -1661,10 +1661,10 @@ export function AccountDetailDialog({
                           </Tooltip>
                         )}
                       </TableCell>
-                      <TableCell className="px-2 py-1 max-w-[160px]">
+                      <TableCell className="px-2 py-1">
                         <Tooltip>
                           <TooltipTrigger asChild>
-                            <span className="text-xs truncate block">{txn.description || '-'}</span>
+                            <span className="text-xs block whitespace-normal break-words">{txn.description || '-'}</span>
                           </TooltipTrigger>
                           <TooltipContent className="max-w-xs">{txn.description || '-'}</TooltipContent>
                         </Tooltip>
