@@ -4,7 +4,7 @@ import { Dialog, DialogContent, DialogTitle, DialogDescription } from "@/compone
 import { Button } from "@/components/ui/button";
 import { X, ChevronLeft, ChevronRight, Download, Trash2, ZoomIn, ZoomOut, Hand } from "lucide-react";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
-import { formatDistanceToNow } from "date-fns";
+import { format } from "date-fns";
 import { AllPhoto } from "@/hooks/useAllPhotos";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
@@ -218,7 +218,7 @@ export function CompanyPhotoViewer({ photos, currentPhoto, isOpen, onClose, onPh
                 {photo.description || 'Untitled'}
               </h3>
               <p className="text-sm text-gray-500">
-                {photo.project_name} • {currentIndex + 1} of {photos.length} • {formatDistanceToNow(new Date(photo.uploaded_at), { addSuffix: true })}
+                {photo.project_name} • {currentIndex + 1} of {photos.length} • {format(new Date(photo.uploaded_at), "MM/dd/yyyy")}
               </p>
             </div>
             <div className="flex items-center space-x-2">
