@@ -1,5 +1,5 @@
 import { jobCostLinesMissingLot, missingLotMessage } from '@/lib/billLotRequired';
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, useRef } from "react";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -94,6 +94,7 @@ function normalizeTermsForUI(terms: string | null | undefined): string {
 export function EditBillDialog({ open, onOpenChange, billId }: EditBillDialogProps) {
   const [billDate, setBillDate] = useState<Date>(new Date());
   const [billDueDate, setBillDueDate] = useState<Date>();
+  const skipDueRecalcRef = useRef(false);
   const [vendor, setVendor] = useState<string>("");
   const [terms, setTerms] = useState<string>("net-30");
   const [referenceNumber, setReferenceNumber] = useState<string>("");
@@ -209,6 +210,8 @@ export function EditBillDialog({ open, onOpenChange, billId }: EditBillDialogPro
   // Populate form when bill data loads
   useEffect(() => {
     if (billData) {
+      // Keep the saved due date; only recalc when the user changes date or terms
+      skipDueRecalcRef.current = true;
       setBillDate(toDateLocal(normalizeToYMD(billData.bill_date)));
       setBillDueDate(billData.due_date ? toDateLocal(normalizeToYMD(billData.due_date)) : undefined);
       setVendor(billData.vendor_id);
@@ -279,6 +282,10 @@ export function EditBillDialog({ open, onOpenChange, billId }: EditBillDialogPro
 
   // Calculate due date when bill date or terms change
   useEffect(() => {
+    if (skipDueRecalcRef.current) {
+      skipDueRecalcRef.current = false;
+      return;
+    }
     if (billDate && terms) {
       let daysToAdd = 0;
       switch (terms) {
