@@ -1,6 +1,7 @@
 
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { useQueryClient } from "@tanstack/react-query";
 import {
   Dialog,
   DialogContent,
@@ -64,6 +65,7 @@ export function NewProjectDialog({ open, onOpenChange }: NewProjectDialogProps) 
   );
   const [missingChannels, setMissingChannels] = useState<Set<ChannelKey>>(new Set());
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
   const { toast } = useToast();
   const { user } = useAuth();
   const { profile } = useUserProfile();
@@ -193,6 +195,7 @@ export function NewProjectDialog({ open, onOpenChange }: NewProjectDialogProps) 
         description: "Project created successfully!",
       });
 
+      queryClient.invalidateQueries({ queryKey: ['projects'] });
       resetForm();
       onOpenChange(false);
       navigate(`/project/${project.id}`);
