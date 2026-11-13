@@ -262,12 +262,7 @@ export function MultiDepositTable() {
   return (
     <div className="rounded-lg border bg-card">
       <div className="p-4 border-b flex items-center justify-between gap-4 flex-wrap">
-        <div>
-          <h3 className="text-lg font-semibold">Enter Multiple Deposits</h3>
-          <p className="text-sm text-muted-foreground mt-0.5">
-            Each row is one deposit for one project. All rows save together as one batch.
-          </p>
-        </div>
+        <h3 className="text-lg font-semibold">New Batch</h3>
         <div className="flex items-center gap-4">
           <div className="flex items-center gap-2">
             <label className="text-sm text-muted-foreground">Default Date</label>

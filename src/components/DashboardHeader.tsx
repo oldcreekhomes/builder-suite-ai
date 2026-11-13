@@ -13,9 +13,11 @@ interface DashboardHeaderProps {
   subtitle?: string;
   projectId?: string;
   headerAction?: React.ReactNode;
+  /** Use the module-style title/subtitle bar even without a project. */
+  moduleStyle?: boolean;
 }
 
-export function DashboardHeader({ title, subtitle, projectId, headerAction }: DashboardHeaderProps) {
+export function DashboardHeader({ title, subtitle, projectId, headerAction, moduleStyle }: DashboardHeaderProps) {
   const [isNewProjectOpen, setIsNewProjectOpen] = useState(false);
   const { profile } = useUserProfile();
   const { preferences } = useNotificationPreferences();
@@ -49,7 +51,7 @@ export function DashboardHeader({ title, subtitle, projectId, headerAction }: Da
                       location.pathname === '/employees';
 
   // Project page header with title/subtitle inside the bar
-  if (projectId) {
+  if (projectId || moduleStyle) {
     return (
       <header className="bg-white border-b border-border px-6 py-3.5">
         <div className="flex items-center h-10">
