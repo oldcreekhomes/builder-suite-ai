@@ -442,12 +442,7 @@ export function MultiCheckTable() {
     <div className="rounded-lg border bg-card">
       <fieldset disabled={saveMutation.isPending || saveMutation.hasPendingBatch} className="min-w-0">
       <div className="p-4 border-b flex items-center justify-between gap-4 flex-wrap">
-        <div>
-          <h3 className="text-lg font-semibold">Enter Multiple Checks</h3>
-          <p className="text-sm text-muted-foreground mt-0.5">
-            Each row is one check for one project. All rows save together as one batch.
-          </p>
-        </div>
+        <h3 className="text-lg font-semibold">New Batch</h3>
         <div className="flex items-center gap-4">
           <div className="flex items-center gap-2">
             <label className="text-sm text-muted-foreground">Default Date</label>
