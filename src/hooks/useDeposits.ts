@@ -1,3 +1,4 @@
+import { assertBankNotParent } from "@/lib/bankParentGuard";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
@@ -48,6 +49,7 @@ export const useDeposits = () => {
       depositLines: DepositLineData[];
       silent?: boolean;
     }) => {
+      await assertBankNotParent(depositData.bank_account_id, depositData.project_id);
       console.log('Creating deposit:', depositData);
       console.log('Deposit lines:', depositLines);
 

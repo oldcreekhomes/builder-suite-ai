@@ -1,3 +1,4 @@
+import { assertBankNotParent } from "@/lib/bankParentGuard";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
@@ -90,6 +91,7 @@ export const useChecks = () => {
 
   const createCheck = useMutation({
     mutationFn: async ({ checkData, checkLines }: { checkData: CheckData; checkLines: CheckLineData[] }) => {
+      await assertBankNotParent(checkData.bank_account_id, checkData.project_id);
       // CRITICAL: Validate that check amount equals sum of line amounts
       const linesTotal = checkLines.reduce((sum, line) => sum + line.amount, 0);
       if (Math.abs(checkData.amount - linesTotal) > 0.01) {

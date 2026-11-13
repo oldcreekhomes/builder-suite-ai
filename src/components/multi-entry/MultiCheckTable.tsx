@@ -303,14 +303,18 @@ export function MultiCheckTable() {
     });
 
   const handleProjectPick = (id: string, projectId: string) => {
+    const current = rows.find((x) => x.id === id);
+    const keepBank = !!current?.bankAccountId && current.projectId === projectId;
     const defaultBankId = projectBankDefaults[projectId] || "";
     const acct = (accounts || []).find((a: any) => a.id === defaultBankId);
     updateRow(id, {
       projectId,
       lotId: "",
       splitGroupId: "",
-      bankAccountId: defaultBankId,
-      bankAccountLabel: acct ? labelForAccount(acct) : "",
+      ...(keepBank ? {} : {
+        bankAccountId: defaultBankId,
+        bankAccountLabel: acct ? labelForAccount(acct) : "",
+      }),
     });
   };
 
@@ -551,8 +555,8 @@ export function MultiCheckTable() {
                   <AccountSearchInput
                     value={r.bankAccountLabel}
                     onChange={(v) => {
-                      updateRow(r.id, { bankAccountLabel: v });
-                      if (!v) updateRow(r.id, { bankAccountId: "" });
+                      // Typed text never keeps a stale account; a real pick sets it again.
+                      updateRow(r.id, { bankAccountLabel: v, bankAccountId: "" });
                     }}
                     onAccountSelect={(a: any) =>
                       updateRow(r.id, {
