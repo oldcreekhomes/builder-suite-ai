@@ -405,11 +405,11 @@ export function BalanceSheetContent({ projectId, onHeaderActionChange, asOfDate,
                 {isExpanded ? <ChevronDown className="h-4 w-4 text-muted-foreground" /> : <ChevronRight className="h-4 w-4 text-muted-foreground" />}
               </button>
             )}
-            <span className="cursor-pointer flex-1" onClick={() => onSelect(root)}>
+            <span className={hasChildren ? "flex-1" : "cursor-pointer flex-1"} onClick={hasChildren ? undefined : () => onSelect(root)}>
               {root.code}: {root.name}
             </span>
           </span>
-          <span className="cursor-pointer" onClick={() => onSelect(root)}>
+          <span className={hasChildren ? undefined : "cursor-pointer"} onClick={hasChildren ? undefined : () => onSelect(root)}>
             {fmt(isExpanded ? root.balance : rolledUpBalance)}
           </span>
         </div>
