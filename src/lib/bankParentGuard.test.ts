@@ -1,4 +1,5 @@
-import { describe, it, expect } from "vitest";
+// @ts-ignore
+import { describe, it, expect } from "bun:test";
 import { isParentForProject } from "./bankParentGuard";
 
 const kids = [{ parent_id: "1015", project_id: "228" }];
