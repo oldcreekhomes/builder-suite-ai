@@ -258,7 +258,7 @@ export function DepositSearchDialog({
                           {formatDateSafe(deposit.deposit_date, 'MM/dd/yyyy')}
                         </TableCell>
                         <TableCell className="px-2 py-1 text-xs">
-                          {deposit.companies?.company_name || 'Cash'}
+                          {deposit.companies?.company_name || deposit.company_name || 'Cash'}
                         </TableCell>
                         <TableCell className="px-2 py-1 text-xs">{getDepositDescription(deposit)}</TableCell>
                         <TableCell className="px-2 py-1 text-xs">

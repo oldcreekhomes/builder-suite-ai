@@ -307,7 +307,7 @@ export function AccountDetailDialog({
         
         depositsData?.forEach((deposit: any) => {
           // Received From is the deposit memo, with company_name as fallback
-          const receivedFrom = deposit.memo || deposit.companies?.company_name || 'Cash';
+          const receivedFrom = deposit.companies?.company_name || deposit.company_name || deposit.memo || 'Cash';
           
           // First line memo is from the first deposit line
           const sortedLines = (deposit.deposit_lines || []).sort((a: any, b: any) => a.line_number - b.line_number);
