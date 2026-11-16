@@ -372,11 +372,12 @@ export function JobCostActualDialog({
   }, [sortedLines]);
 
 const formatCurrency = (value: number) => {
-  return new Intl.NumberFormat('en-US', {
+  const formatted = new Intl.NumberFormat('en-US', {
     style: 'currency',
     currency: 'USD',
     minimumFractionDigits: 2,
-  }).format(value);
+  }).format(Math.abs(value));
+  return value < 0 ? <span className="text-destructive">({formatted})</span> : formatted;
 };
 
   const getTypeLabel = getTransactionTypeLabel;
@@ -452,7 +453,7 @@ const formatCurrency = (value: number) => {
   return (
     <>
       <Dialog open={isOpen} onOpenChange={onClose}>
-        <DialogContent className="max-w-6xl max-h-[80vh] flex flex-col">
+        <DialogContent className="max-w-7xl max-h-[80vh] flex flex-col">
           <DialogHeader>
             <DialogTitle className="text-base font-semibold">
               {costCode} - {costCodeName}
@@ -468,7 +469,7 @@ const formatCurrency = (value: number) => {
               </div>
             ) : journalLines && journalLines.length > 0 ? (
               <Table className="text-xs table-fixed" containerClassName="relative w-full">
-                <TableHeader>
+                <TableHeader className="sticky top-0 z-10 bg-background">
                   <TableRow>
                     <TableHead className="w-[7%]">Type</TableHead>
                     <TableHead className="w-[9%]">Date</TableHead>
