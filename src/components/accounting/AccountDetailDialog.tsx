@@ -1359,7 +1359,7 @@ export function AccountDetailDialog({
     }).format(absAmount);
     
     if (amount < 0) {
-      return <span className="text-red-600">({formatted})</span>;
+      return <span className="text-destructive">({formatted})</span>;
     }
     return formatted;
   };
@@ -1383,7 +1383,7 @@ export function AccountDetailDialog({
     }).format(absAmount);
 
     if (amount < 0) {
-      return <span className="text-red-600">({formatted})</span>;
+      return <span className="text-destructive">({formatted})</span>;
     }
     return <span className="text-foreground">{formatted}</span>;
   };
@@ -1459,7 +1459,7 @@ export function AccountDetailDialog({
   return (
     <>
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-6xl max-h-[85vh] overflow-hidden flex flex-col">
+      <DialogContent className="max-w-7xl max-h-[85vh] overflow-hidden flex flex-col">
         <DialogHeader className="py-3">
           <div className="flex items-center justify-between">
             <DialogTitle className="text-base">
@@ -1556,7 +1556,7 @@ export function AccountDetailDialog({
             </div>
           ) : (
             <Table className="text-xs" containerClassName="relative w-full">
-              <TableHeader>
+              <TableHeader className="sticky top-0 z-10 bg-background">
                 <TableRow>
                   <TableHead className="w-28">Type</TableHead>
                   <TableHead className="w-24">Date</TableHead>
