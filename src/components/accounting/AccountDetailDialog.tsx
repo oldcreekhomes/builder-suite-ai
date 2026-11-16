@@ -295,7 +295,7 @@ export function AccountDetailDialog({
                 reconciled,
                 reconciliation_id,
                 reconciliation_date,
-                deposit_lines(memo, line_number, account_id),
+                deposit_lines(memo, line_number, account_id, cost_code_id),
                 companies(company_name)
               `)
               .eq('is_reversal', false)
@@ -763,6 +763,7 @@ export function AccountDetailDialog({
       // From deposits
       depositsMap.forEach((deposit: any) => {
         (deposit.deposit_lines || []).forEach((dl: any) => {
+          if (dl.cost_code_id) allCostCodeIds.add(dl.cost_code_id);
           if (dl.account_id) allAccountIds.add(dl.account_id);
         });
       });
@@ -877,10 +878,12 @@ export function AccountDetailDialog({
             reconciliation_date = deposit.reconciliation_date;
             // Use first deposit line memo as description
             description = deposit.firstLineMemo || description;
-            // Get account from first deposit line
+            // Get cost code or account from first deposit line
             const sortedLines = (deposit.deposit_lines || []).sort((a: any, b: any) => a.line_number - b.line_number);
             const firstLine = sortedLines[0];
-            if (firstLine?.account_id && accountsDisplayMap.has(firstLine.account_id)) {
+            if (firstLine?.cost_code_id && costCodesMap.has(firstLine.cost_code_id)) {
+              accountDisplay = costCodesMap.get(firstLine.cost_code_id) || null;
+            } else if (firstLine?.account_id && accountsDisplayMap.has(firstLine.account_id)) {
               accountDisplay = accountsDisplayMap.get(firstLine.account_id) || null;
             }
           }
