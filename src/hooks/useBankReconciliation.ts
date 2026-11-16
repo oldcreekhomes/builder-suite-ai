@@ -1229,7 +1229,7 @@ export const useBankReconciliation = () => {
             id: deposit.id,
             date: deposit.deposit_date,
             type: 'deposit' as const,
-            source: deposit.memo || 'Deposit',
+            source: (deposit as any).company_name || deposit.memo || 'Deposit',
             amount: Number(deposit.amount),
             reconciled: effectivelyReconciled, // Report as unreconciled if orphaned
             reconciliation_date: effectivelyReconciled ? deposit.reconciliation_date || undefined : undefined,
