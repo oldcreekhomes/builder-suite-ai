@@ -615,11 +615,11 @@ export function ReconciliationReviewDialog({
             (d.memo && String(d.memo).trim()) ||
             undefined;
           // Source mirrors the Bank Register "Name" column:
-          // deposit.memo || company_name || 'Cash'
+          // company name first, then memo, then 'Cash'
           const source =
-            (d.memo && String(d.memo).trim()) ||
             (d.company_id && depositCompanyMap.get(d.company_id)) ||
             (d.company_name && String(d.company_name).trim()) ||
+            (d.memo && String(d.memo).trim()) ||
             'Cash';
           return {
             id: d.id,
