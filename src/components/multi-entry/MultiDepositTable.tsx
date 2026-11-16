@@ -214,6 +214,7 @@ export function MultiDepositTable() {
       if (!r.projectId) errors.push(`${rowLabel}: pick a project.`);
       if (!r.bankAccountId) errors.push(`${rowLabel}: pick a deposit-to bank account.`);
       if (!r.accountId) errors.push(`${rowLabel}: pick an account.`);
+      if (!r.receivedFromCompanyId) errors.push(`${rowLabel}: pick who the deposit is received from.`);
       const amt = Number(r.amount);
       if (!amt || amt <= 0) errors.push(`${rowLabel}: enter an amount greater than 0.`);
       if (errors.length === 0) {
