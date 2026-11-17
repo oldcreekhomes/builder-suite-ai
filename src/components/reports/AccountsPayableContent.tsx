@@ -639,8 +639,8 @@ export function AccountsPayableContent({ projectId, onHeaderActionChange, asOfDa
                                 return (
                                 <TableRow key={bill.id}>
                                   <TableCell>{formatDate(bill.billDate)}</TableCell>
-                                  <TableCell>{bill.referenceNumber || '-'}</TableCell>
-                                  <TableCell className="font-medium">{bill.vendorName}</TableCell>
+                                  <TableCell className="max-w-0 truncate" title={bill.referenceNumber || undefined}>{bill.referenceNumber || '-'}</TableCell>
+                                  <TableCell className="font-medium max-w-0 truncate" title={bill.vendorName}>{bill.vendorName}</TableCell>
                                   <TableCell>{formatDate(bill.dueDate)}</TableCell>
                                   <TableCell className="text-right">{bill.aging}</TableCell>
                                   <TableCell className="pl-8">

@@ -542,7 +542,7 @@ const formatCurrency = (value: number) => {
                             </TooltipContent>
                           </Tooltip>
                         </TableCell>
-                        <TableCell className="whitespace-normal">
+                        <TableCell className="max-w-0 truncate">
                           <Tooltip>
                             <TooltipTrigger asChild>
                               <span className="text-xs truncate block">{line.memo || line.journal_entries.description || '-'}</span>
