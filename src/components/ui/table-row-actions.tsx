@@ -70,7 +70,7 @@ export function TableRowActions({ actions, disabled, lockedReason }: TableRowAct
     return (
       <Button
         variant="ghost"
-        className="h-8 w-8 p-0 mx-auto text-muted-foreground/40 cursor-not-allowed"
+        className="h-6 w-6 p-0 mx-auto text-muted-foreground/40 cursor-not-allowed"
         disabled
       >
         <span className="sr-only">No actions available</span>
@@ -80,7 +80,7 @@ export function TableRowActions({ actions, disabled, lockedReason }: TableRowAct
   }
 
   const triggerButton = (
-    <Button variant="ghost" className="h-8 w-8 p-0 mx-auto">
+    <Button variant="ghost" className="h-6 w-6 p-0 mx-auto">
       <span className="sr-only">{lockedReason ? 'Locked actions' : 'Open menu'}</span>
       {lockedReason ? (
         <Lock className="h-4 w-4 text-red-600" />
