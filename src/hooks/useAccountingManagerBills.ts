@@ -1,6 +1,7 @@
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
+import { todayLocalStr, isCountableBill, isCurrentBill, isLateBill } from "@/lib/billIssues";
 
 interface BillSummary {
   id: string;
@@ -69,10 +70,15 @@ export function useAccountingManagerBills() {
           bill_date,
           due_date,
           project_id,
+          status,
+          terms,
+          is_reversal,
+          reversed_by_id,
+          archived_at,
           vendor:companies!bills_vendor_id_fkey(company_name),
           project:projects!bills_project_id_fkey(address)
         `)
-        .eq('status', 'draft')
+        .in('status', ['draft', 'posted', 'void'])
         .in('project_id', projectIds)
         .order('bill_date', { ascending: false });
 
@@ -81,53 +87,28 @@ export function useAccountingManagerBills() {
         return { pendingCount: 0, currentCount: 0, lateCount: 0, totalAmount: 0, recentBills: [], projectIds: [], projectsWithCounts: [] };
       }
 
-      const today = new Date();
-      today.setHours(0, 0, 0, 0);
+      const todayStr = todayLocalStr();
+      const countable = (bills || []).filter(b => isCountableBill(b as any));
+      const isCur = (b: any) => isCurrentBill(b, todayStr);
+      const isLate = (b: any) => isLateBill(b, todayStr);
 
-      // Calculate per-project counts
+      // Same shared rules as the Accounting dashboard and project Accounting Alerts
       const projectsWithCounts: ProjectBillSummary[] = projects.map(project => {
-        const projectBills = bills?.filter(bill => bill.project_id === project.id) || [];
-        
-        const currentBills = projectBills.filter(bill => {
-          if (!bill.due_date) return true; // No due date = not late
-          const dueDate = new Date(bill.due_date);
-          dueDate.setHours(0, 0, 0, 0);
-          return dueDate >= today;
-        });
-
-        const lateBills = projectBills.filter(bill => {
-          if (!bill.due_date) return false; // No due date = not late
-          const dueDate = new Date(bill.due_date);
-          dueDate.setHours(0, 0, 0, 0);
-          return dueDate < today;
-        });
-
+        const projectBills = countable.filter(bill => bill.project_id === project.id);
         return {
           projectId: project.id,
           projectAddress: project.address || 'Unknown Project',
-          currentCount: currentBills.length,
-          lateCount: lateBills.length,
+          currentCount: projectBills.filter(isCur).length,
+          lateCount: projectBills.filter(isLate).length,
           totalCount: projectBills.length,
           qbInvoicesApprovedDate: (project as any).qb_invoices_approved_date ?? null,
         };
       });
 
-      // Calculate global counts
-      const currentBills = bills?.filter(bill => {
-        if (!bill.due_date) return true;
-        const dueDate = new Date(bill.due_date);
-        dueDate.setHours(0, 0, 0, 0);
-        return dueDate >= today;
-      }) || [];
+      const currentBills = countable.filter(isCur);
+      const lateBills = countable.filter(isLate);
 
-      const lateBills = bills?.filter(bill => {
-        if (!bill.due_date) return false;
-        const dueDate = new Date(bill.due_date);
-        dueDate.setHours(0, 0, 0, 0);
-        return dueDate < today;
-      }) || [];
-
-      const pendingCount = bills?.length || 0;
+      const pendingCount = countable.length;
       const currentCount = currentBills.length;
       const lateCount = lateBills.length;
       const totalAmount = bills?.reduce((sum, bill) => sum + Number(bill.total_amount), 0) || 0;
