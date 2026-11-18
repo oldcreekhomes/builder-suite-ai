@@ -955,6 +955,10 @@ export function AccountDetailDialog({
             });
             billAccountBreakdown = _breakdownLabels.map(l => ({ label: l, amount: _breakdownSums.get(l) || 0 }));
             billAccountBreakdownTotal = billAccountBreakdown.reduce((s, b) => s + b.amount, 0);
+            if (bill.reference_number) {
+              const ref = String(bill.reference_number);
+              description = description && description !== ref ? `${ref} · ${description}` : ref;
+            }
           }
         }
 
@@ -1029,7 +1033,10 @@ export function AccountDetailDialog({
             const fl = firstLineByBillForConsolidated.get(a.bill_id);
             if (fl?.memo && !billMemos.includes(fl.memo)) billMemos.push(fl.memo);
           });
-          const consolidatedDescription = billMemos.length > 0 ? billMemos.join('; ') : null;
+          const memoText = billMemos.length > 0 ? billMemos.join('; ') : null;
+          const refs = [...new Set(allocations.map(a => a.reference_number).filter(Boolean) as string[])];
+          const refText = refs.length > 0 ? refs.join(', ') : null;
+          const consolidatedDescription = refText && memoText ? `${refText} · ${memoText}` : (refText || memoText);
 
           // Derive reconciliation as a UNION of two signals (legacy data is out of sync in both
           // directions): (a) bill_payments.reconciled / reconciliation_id / reconciliation_date,
@@ -1430,8 +1437,13 @@ export function AccountDetailDialog({
     
     // Search filter
     if (searchQuery.trim()) {
-      const q = searchQuery.toLowerCase();
-      const searchFields = [txn.reference, txn.accountDisplay, txn.description, txn.memo, txn.source_type];
+      const q = searchQuery.toLowerCase().replace(/[$]/g, "").trim();
+      const amt = Math.abs(Number(txn.debit || 0) - Number(txn.credit || 0));
+      const searchFields = [
+        txn.reference, txn.accountDisplay, txn.description, txn.memo, txn.source_type,
+        ...(txn.includedBillPayments || []).map(b => b.reference_number),
+        amt.toFixed(2), amt.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }),
+      ];
       if (!searchFields.some(val => val?.toLowerCase().includes(q))) return false;
     }
     
