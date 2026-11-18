@@ -1,0 +1,1 @@
+REVOKE EXECUTE ON FUNCTION public.guard_bill_paid_on_reversal() FROM PUBLIC, anon, authenticated;
