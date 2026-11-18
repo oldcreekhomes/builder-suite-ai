@@ -1,12 +1,12 @@
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { todayLocalStr, isCountableBill, isCurrentBill, isLateBill, isRejectedBill } from "@/lib/billIssues";
+import { todayLocalStr, isCountableBill, isReviewBill, isApprovedBill, isLateBill, isRejectedBill } from "@/lib/billIssues";
 
 interface ProjectBillCounts {
-  currentCount: number;   // draft bills NOT past due
-  lateCount: number;      // draft bills past due
-  rejectedCount: number;  // void bills
-  payCount: number;       // posted bills
+  reviewCount: number;    // Review tab (draft)
+  approvedCount: number;  // Approved tab (posted)
+  rejectedCount: number;  // Rejected tab (void)
+  lateCount: number;      // Review or Approved, past due
 }
 
 export function useBillCountsByProject(projectIds: string[]) {
@@ -32,10 +32,10 @@ export function useBillCountsByProject(projectIds: string[]) {
           .filter(b => isCountableBill(b as any));
 
         countsByProject[projectId] = {
-          currentCount: projectBills.filter(b => isCurrentBill(b, todayStr)).length,
-          lateCount: projectBills.filter(b => isLateBill(b, todayStr)).length,
+          reviewCount: projectBills.filter(b => isReviewBill(b)).length,
+          approvedCount: projectBills.filter(b => isApprovedBill(b)).length,
           rejectedCount: projectBills.filter(b => isRejectedBill(b)).length,
-          payCount: projectBills.filter(b => b.status === 'posted').length,
+          lateCount: projectBills.filter(b => isLateBill(b, todayStr)).length,
         };
       });
 

@@ -23,8 +23,8 @@ export function ProjectAccountingAlerts({ projectId, projectAddress }: ProjectAc
   
   const { data: billCounts, isLoading, error } = useBillCountsByProject([projectId]);
   
-  const counts = billCounts?.[projectId] || { currentCount: 0, lateCount: 0 };
-  const hasAlerts = counts.currentCount > 0 || counts.lateCount > 0;
+  const counts = billCounts?.[projectId] || { reviewCount: 0, approvedCount: 0, rejectedCount: 0, lateCount: 0 };
+  const hasAlerts = counts.reviewCount > 0 || counts.approvedCount > 0 || counts.rejectedCount > 0 || counts.lateCount > 0;
 
   if (isLoading) {
     return (
@@ -76,8 +76,10 @@ export function ProjectAccountingAlerts({ projectId, projectAddress }: ProjectAc
             {/* Column headers - shown once */}
             <div className="flex items-center justify-end mb-1 pr-1">
               <div className="flex items-center gap-4">
-                <span className="text-[10px] text-muted-foreground w-[40px] text-center">Current</span>
-                <span className="text-[10px] text-muted-foreground w-[40px] text-center">Late</span>
+                <span className="text-[10px] text-muted-foreground w-[48px] text-center">Review</span>
+                <span className="text-[10px] text-muted-foreground w-[48px] text-center">Approved</span>
+                <span className="text-[10px] text-muted-foreground w-[48px] text-center">Rejected</span>
+                <span className="text-[10px] text-muted-foreground w-[48px] text-center">Late</span>
               </div>
             </div>
             <div
@@ -100,14 +102,23 @@ export function ProjectAccountingAlerts({ projectId, projectAddress }: ProjectAc
               </div>
               
               <div className="flex items-center gap-4 flex-shrink-0">
-                <div className="w-[40px] flex justify-center">
+                <div className="w-[48px] flex justify-center">
                   <Badge variant="secondary" className="bg-green-100 text-green-700 hover:bg-green-100">
-                    {counts.currentCount}
+                    {counts.reviewCount}
                   </Badge>
                 </div>
-                
-                <div className="w-[40px] flex justify-center">
-                  <Badge variant="destructive" className="bg-red-600 text-white hover:bg-red-600">
+                <div className="w-[48px] flex justify-center">
+                  <Badge variant="secondary">
+                    {counts.approvedCount}
+                  </Badge>
+                </div>
+                <div className="w-[48px] flex justify-center">
+                  <Badge variant="destructive">
+                    {counts.rejectedCount}
+                  </Badge>
+                </div>
+                <div className="w-[48px] flex justify-center">
+                  <Badge variant="destructive">
                     {counts.lateCount}
                   </Badge>
                 </div>

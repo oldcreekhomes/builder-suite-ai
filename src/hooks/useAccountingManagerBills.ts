@@ -1,7 +1,7 @@
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
-import { todayLocalStr, isCountableBill, isCurrentBill, isLateBill } from "@/lib/billIssues";
+import { todayLocalStr, isCountableBill, isReviewBill, isApprovedBill, isRejectedBill, isLateBill } from "@/lib/billIssues";
 
 interface BillSummary {
   id: string;
@@ -15,7 +15,9 @@ interface BillSummary {
 interface ProjectBillSummary {
   projectId: string;
   projectAddress: string;
-  currentCount: number;
+  reviewCount: number;
+  approvedCount: number;
+  rejectedCount: number;
   lateCount: number;
   totalCount: number;
   qbInvoicesApprovedDate: string | null;
@@ -89,7 +91,7 @@ export function useAccountingManagerBills() {
 
       const todayStr = todayLocalStr();
       const countable = (bills || []).filter(b => isCountableBill(b as any));
-      const isCur = (b: any) => isCurrentBill(b, todayStr);
+      const isCur = (b: any) => isReviewBill(b);
       const isLate = (b: any) => isLateBill(b, todayStr);
 
       // Same shared rules as the Accounting dashboard and project Accounting Alerts
@@ -98,7 +100,9 @@ export function useAccountingManagerBills() {
         return {
           projectId: project.id,
           projectAddress: project.address || 'Unknown Project',
-          currentCount: projectBills.filter(isCur).length,
+          reviewCount: projectBills.filter(isCur).length,
+          approvedCount: projectBills.filter(b => isApprovedBill(b as any)).length,
+          rejectedCount: projectBills.filter(b => isRejectedBill(b as any)).length,
           lateCount: projectBills.filter(isLate).length,
           totalCount: projectBills.length,
           qbInvoicesApprovedDate: (project as any).qb_invoices_approved_date ?? null,

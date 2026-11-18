@@ -1,6 +1,6 @@
 // @ts-ignore
 import { expect, test } from "bun:test";
-import { daysLate, isLateBill, isRejectedBill, isCountableBill, isCurrentBill } from "./billIssues";
+import { daysLate, isLateBill, isRejectedBill, isCountableBill, isReviewBill, isApprovedBill } from "./billIssues";
 
 test("bill due before today is late, with day count", () => {
   expect(isLateBill({ status: "draft", due_date: "2026-09-30" }, "2026-10-30")).toBe(true);
@@ -27,19 +27,20 @@ test("Paid at Purchase bills are never late, but can still be rejected", () => {
 });
 
 test("archived bills are never late", () => {
-  expect(isLateBill({ status: "void", due_date: "2026-01-01", archived_at: "2026-02-01" }, "2026-10-30")).toBe(false);
+  expect(isLateBill({ status: "posted", due_date: "2026-01-01", archived_at: "2026-02-01" }, "2026-10-30")).toBe(false);
 });
 
-test("Current counts review, rejected and approved bills not yet due", () => {
-  const today = "2026-11-18";
-  expect(isCurrentBill({ status: "posted", due_date: "2026-11-22", terms: "net-30" }, today)).toBe(true);
-  expect(isCurrentBill({ status: "draft", due_date: "2026-11-18" }, today)).toBe(true);
-  expect(isCurrentBill({ status: "void", due_date: "2026-12-01" }, today)).toBe(true);
+test("Review, Approved and Rejected match the Manage Bills tabs", () => {
+  expect(isReviewBill({ status: "draft", due_date: null })).toBe(true);
+  expect(isApprovedBill({ status: "posted", due_date: null })).toBe(true);
+  expect(isRejectedBill({ status: "void", due_date: null })).toBe(true);
+  expect(isReviewBill({ status: "posted", due_date: null })).toBe(false);
+  expect(isApprovedBill({ status: "paid", due_date: null })).toBe(false);
 });
 
-test("Current excludes past-due, paid-at-purchase and paid bills", () => {
+test("Late counts overdue Review and Approved bills, not Rejected", () => {
   const today = "2026-11-18";
-  expect(isCurrentBill({ status: "posted", due_date: "2026-11-17" }, today)).toBe(false);
-  expect(isCurrentBill({ status: "draft", due_date: "2026-12-01", terms: "paid-at-purchase" }, today)).toBe(false);
-  expect(isCurrentBill({ status: "paid", due_date: "2026-12-01" }, today)).toBe(false);
+  expect(isLateBill({ status: "draft", due_date: "2026-11-17" }, today)).toBe(true);
+  expect(isLateBill({ status: "posted", due_date: "2026-11-17" }, today)).toBe(true);
+  expect(isLateBill({ status: "void", due_date: "2026-11-17" }, today)).toBe(false);
 });

@@ -1,5 +1,5 @@
-// Shared Late / Rejected rules for the Accountant dashboard.
-// Active Jobs counts and the Bill Issues tab both use these so they never drift.
+// Shared Review / Approved / Rejected / Late rules for every dashboard bill count
+// (Accounting dashboard, PM dashboard, project Accounting Alerts, Bill Issues tab).
 
 export interface BillIssueInput {
   status: string;
@@ -19,8 +19,9 @@ const dueStr = (d: string | null) => (d ? String(d).slice(0, 10) : null);
 
 export const isCountableBill = (b: BillIssueInput) => !b.archived_at && !b.is_reversal && !b.reversed_by_id;
 
-/** Late = any unpaid (draft/posted/void) bill past its due date. */
+/** Late = any unpaid bill in Review or Approved past its due date. */
 export const isLateBill = (b: BillIssueInput, today: string) => {
+  if (b.status !== "draft" && b.status !== "posted") return false;
   if (b.archived_at || b.terms === "paid-at-purchase") return false;
   const d = dueStr(b.due_date);
   return !!d && d < today;
@@ -28,13 +29,11 @@ export const isLateBill = (b: BillIssueInput, today: string) => {
 
 export const isRejectedBill = (b: BillIssueInput) => b.status === "void";
 
-export const isCurrentBill = (b: BillIssueInput, today: string) => {
-  // Current = any bill in review, rejected, or approved (unpaid) that isn't due yet.
-  if (!["draft", "void", "posted"].includes(b.status as string)) return false;
-  if (b.archived_at || b.terms === "paid-at-purchase") return false;
-  const d = dueStr(b.due_date);
-  return !d || d >= today;
-};
+/** Review = bill waiting for approval (Manage Bills "Review" tab). */
+export const isReviewBill = (b: BillIssueInput) => b.status === "draft";
+
+/** Approved = approved, unpaid bill (Manage Bills "Approved" tab). */
+export const isApprovedBill = (b: BillIssueInput) => b.status === "posted";
 
 /** Whole days past due (0 when not late or no due date). */
 export const daysLate = (dueDate: string | null, today: string) => {

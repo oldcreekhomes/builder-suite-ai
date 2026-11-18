@@ -95,9 +95,11 @@ export function ProjectWarnings() {
               {/* Column headers */}
               <div className="flex items-center justify-end mb-1 pr-1">
                 <div className="flex items-center gap-2">
-                  <span className="text-[10px] text-muted-foreground text-center w-[50px]">Current</span>
-                  <span className="text-[10px] text-muted-foreground text-center w-[50px]">Late</span>
-                  <span className="text-[10px] text-muted-foreground text-center w-[95px]">Approved</span>
+                  <span className="text-[10px] text-muted-foreground text-center w-[44px]">Review</span>
+                  <span className="text-[10px] text-muted-foreground text-center w-[44px]">Approved</span>
+                  <span className="text-[10px] text-muted-foreground text-center w-[44px]">Rejected</span>
+                  <span className="text-[10px] text-muted-foreground text-center w-[44px]">Late</span>
+                  <span className="text-[10px] text-muted-foreground text-center w-[95px]">Inv. Approved</span>
                 </div>
               </div>
               {projectsWithCounts.map((project) => {
@@ -126,16 +128,34 @@ export function ProjectWarnings() {
                     </div>
 
                     <div className="flex items-center gap-2 shrink-0">
-                      <div className="w-[50px] flex justify-center">
-                        {project.currentCount > 0 ? (
+                      <div className="w-[44px] flex justify-center">
+                        {project.reviewCount > 0 ? (
                           <span className="bg-green-100 text-green-700 rounded-full min-w-5 h-5 flex items-center justify-center text-xs font-medium px-1.5">
-                            {project.currentCount}
+                            {project.reviewCount}
                           </span>
                         ) : (
                           <span className="text-xs text-muted-foreground">—</span>
                         )}
                       </div>
-                      <div className="w-[50px] flex justify-center">
+                      <div className="w-[44px] flex justify-center">
+                        {project.approvedCount > 0 ? (
+                          <span className="bg-secondary text-secondary-foreground rounded-full min-w-5 h-5 flex items-center justify-center text-xs font-medium px-1.5">
+                            {project.approvedCount}
+                          </span>
+                        ) : (
+                          <span className="text-xs text-muted-foreground">—</span>
+                        )}
+                      </div>
+                      <div className="w-[44px] flex justify-center">
+                        {project.rejectedCount > 0 ? (
+                          <span className="bg-red-600 text-white rounded-full min-w-5 h-5 flex items-center justify-center text-xs font-medium px-1.5">
+                            {project.rejectedCount}
+                          </span>
+                        ) : (
+                          <span className="text-xs text-muted-foreground">—</span>
+                        )}
+                      </div>
+                      <div className="w-[44px] flex justify-center">
                         {project.lateCount > 0 ? (
                           <span className="bg-red-600 text-white rounded-full min-w-5 h-5 flex items-center justify-center text-xs font-medium px-1.5">
                             {project.lateCount}

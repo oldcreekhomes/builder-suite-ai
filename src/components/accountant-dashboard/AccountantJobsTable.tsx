@@ -361,10 +361,10 @@ export function AccountantJobsTable() {
           
           {/* Second row - only bill sub-columns */}
           <TableRow className="border-b hover:bg-transparent">
-            <TableHead className="text-center py-1 h-auto">Current</TableHead>
-            <TableHead className="text-center py-1 h-auto">Late</TableHead>
+            <TableHead className="text-center py-1 h-auto">Review</TableHead>
+            <TableHead className="text-center py-1 h-auto">Approved</TableHead>
             <TableHead className="text-center py-1 h-auto">Rejected</TableHead>
-            <TableHead className="text-center py-1 h-auto">Pay</TableHead>
+            <TableHead className="text-center py-1 h-auto">Late</TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
@@ -591,25 +591,25 @@ export function AccountantJobsTable() {
                     </div>
                   </TableCell>
                   <TableCell className="text-center">
-                    {bills?.currentCount ? (
+                    {bills?.reviewCount ? (
                       <Badge
                         className="bg-green-100 text-green-800 hover:bg-green-200 cursor-pointer"
                         onClick={(e) => goToBills(e, project.id, 'review')}
                       >
-                        {bills.currentCount}
+                        {bills.reviewCount}
                       </Badge>
                     ) : (
                       <span className="text-muted-foreground">-</span>
                     )}
                   </TableCell>
                   <TableCell className="text-center">
-                    {bills?.lateCount ? (
+                    {bills?.approvedCount ? (
                       <Badge
-                        variant="destructive"
+                        variant="secondary"
                         className="cursor-pointer hover:opacity-80"
-                        onClick={(e) => goToBills(e, project.id, 'review')}
+                        onClick={(e) => goToBills(e, project.id, 'approve')}
                       >
-                        {bills.lateCount}
+                        {bills.approvedCount}
                       </Badge>
                     ) : (
                       <span className="text-muted-foreground">-</span>
@@ -629,13 +629,13 @@ export function AccountantJobsTable() {
                     )}
                   </TableCell>
                   <TableCell className="text-center">
-                    {bills?.payCount ? (
+                    {bills?.lateCount ? (
                       <Badge
-                        variant="secondary"
+                        variant="destructive"
                         className="cursor-pointer hover:opacity-80"
-                        onClick={(e) => goToBills(e, project.id, 'approve')}
+                        onClick={(e) => goToBills(e, project.id, 'review')}
                       >
-                        {bills.payCount}
+                        {bills.lateCount}
                       </Badge>
                     ) : (
                       <span className="text-muted-foreground">-</span>
@@ -654,12 +654,12 @@ export function AccountantJobsTable() {
             <TableCell colSpan={6} className="text-right">Totals</TableCell>
             <TableCell className="text-center">
               <Badge className="bg-green-100 text-green-800 hover:bg-green-100">
-                {sortedProjects.reduce((sum, p) => sum + (billCounts[p.id]?.currentCount || 0), 0)}
+                {sortedProjects.reduce((sum, p) => sum + (billCounts[p.id]?.reviewCount || 0), 0)}
               </Badge>
             </TableCell>
             <TableCell className="text-center">
-              <Badge variant="destructive">
-                {sortedProjects.reduce((sum, p) => sum + (billCounts[p.id]?.lateCount || 0), 0)}
+              <Badge variant="secondary">
+                {sortedProjects.reduce((sum, p) => sum + (billCounts[p.id]?.approvedCount || 0), 0)}
               </Badge>
             </TableCell>
             <TableCell className="text-center">
@@ -668,8 +668,8 @@ export function AccountantJobsTable() {
               </Badge>
             </TableCell>
             <TableCell className="text-center">
-              <Badge variant="secondary">
-                {sortedProjects.reduce((sum, p) => sum + (billCounts[p.id]?.payCount || 0), 0)}
+              <Badge variant="destructive">
+                {sortedProjects.reduce((sum, p) => sum + (billCounts[p.id]?.lateCount || 0), 0)}
               </Badge>
             </TableCell>
           </TableRow>

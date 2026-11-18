@@ -201,8 +201,8 @@ export function ActiveJobsTable() {
             filtered.map((project) => {
               const progress = scheduleProgress[project.id];
               const bills = billCounts[project.id];
-              const reviewCount = (bills?.currentCount || 0) + (bills?.lateCount || 0);
-              const payCount = bills?.payCount || 0;
+              const reviewCount = bills?.reviewCount || 0;
+              const payCount = bills?.approvedCount || 0;
               const isDragging = draggedProjectId === project.id;
               const isDropTarget = dropTargetId === project.id;
 
