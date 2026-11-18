@@ -474,7 +474,8 @@ const formatCurrency = (value: number) => {
                     <TableHead className="w-[7%]">Type</TableHead>
                     <TableHead className="w-[9%]">Date</TableHead>
                     <TableHead className="w-[12%]">Name</TableHead>
-                    <TableHead className="w-[44%]">
+                    <TableHead className="w-[10%]">Invoice #</TableHead>
+                    <TableHead className="w-[34%]">
                       <button 
                         className="flex items-center gap-1 hover:text-foreground text-muted-foreground transition-colors"
                         onClick={() => setDescriptionSort(prev => 
@@ -541,6 +542,9 @@ const formatCurrency = (value: number) => {
                               {line.vendor_name || '-'}
                             </TooltipContent>
                           </Tooltip>
+                        </TableCell>
+                        <TableCell className="max-w-0 truncate">
+                          <span className="text-xs truncate block" title={line.reference_number || ''}>{line.reference_number || '-'}</span>
                         </TableCell>
                         <TableCell className="max-w-0 truncate">
                           <Tooltip>
@@ -632,7 +636,7 @@ const formatCurrency = (value: number) => {
                   
                   {/* Total Row */}
                   <TableRow className="font-semibold bg-muted/30">
-                    <TableCell colSpan={5}>
+                    <TableCell colSpan={6}>
                       <span className="text-xs font-semibold">Total</span>
                     </TableCell>
                     <TableCell className="text-right">

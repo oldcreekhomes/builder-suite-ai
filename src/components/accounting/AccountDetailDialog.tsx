@@ -58,6 +58,7 @@ interface Transaction {
   memo: string | null;
   description: string | null;
   reference: string | null;
+  invoiceNumber?: string | null;
   accountDisplay: string | null;
   source_type: string;
   debit: number;
@@ -840,6 +841,7 @@ export function AccountDetailDialog({
         let memo = line.memo;
         let reference = null;
         let description = line.memo; // Description always comes from the line memo
+        let invoiceNumber: string | null = null;
         let reconciled = false;
         let reconciliation_date: string | null = null;
         let accountDisplay: string | null = null;
@@ -918,7 +920,7 @@ export function AccountDetailDialog({
           const bill = billsMap.get(line.journal_entries.source_id);
           if (bill) {
             reference = bill.vendor_name;
-            description = bill.firstLineMemo || line.memo || bill.reference_number || description;
+            description = bill.firstLineMemo || line.memo || description;
             billStatus = bill.status || null;
             if (line.journal_entries.source_type === 'bill_payment') {
               // Per-payment reconciliation lives on the JE line (bank-account credit line).
@@ -956,8 +958,7 @@ export function AccountDetailDialog({
             billAccountBreakdown = _breakdownLabels.map(l => ({ label: l, amount: _breakdownSums.get(l) || 0 }));
             billAccountBreakdownTotal = billAccountBreakdown.reduce((s, b) => s + b.amount, 0);
             if (bill.reference_number) {
-              const ref = String(bill.reference_number);
-              description = description && description !== ref ? `${ref} · ${description}` : ref;
+              invoiceNumber = String(bill.reference_number);
             }
           }
         }
@@ -992,6 +993,7 @@ export function AccountDetailDialog({
           memo: memo,
           description: description,
           reference: reference,
+          invoiceNumber,
           accountDisplay: accountDisplay,
           source_type: line.journal_entries.source_type,
           debit: line.debit || 0,
@@ -1036,7 +1038,7 @@ export function AccountDetailDialog({
           const memoText = billMemos.length > 0 ? billMemos.join('; ') : null;
           const refs = [...new Set(allocations.map(a => a.reference_number).filter(Boolean) as string[])];
           const refText = refs.length > 0 ? refs.join(', ') : null;
-          const consolidatedDescription = refText && memoText ? `${refText} · ${memoText}` : (refText || memoText);
+          const consolidatedDescription = memoText;
 
           // Derive reconciliation as a UNION of two signals (legacy data is out of sync in both
           // directions): (a) bill_payments.reconciled / reconciliation_id / reconciliation_date,
@@ -1103,6 +1105,7 @@ export function AccountDetailDialog({
             memo: cp.memo,
             description: consolidatedDescription,
             reference: vendorName,
+            invoiceNumber: refText,
             accountDisplay: accountDisplay,
             source_type: 'consolidated_bill_payment',
             debit: 0,
@@ -1440,7 +1443,7 @@ export function AccountDetailDialog({
       const q = searchQuery.toLowerCase().replace(/[$]/g, "").trim();
       const amt = Math.abs(Number(txn.debit || 0) - Number(txn.credit || 0));
       const searchFields = [
-        txn.reference, txn.accountDisplay, txn.description, txn.memo, txn.source_type,
+        txn.reference, txn.invoiceNumber, txn.accountDisplay, txn.description, txn.memo, txn.source_type,
         ...(txn.includedBillPayments || []).map(b => b.reference_number),
         amt.toFixed(2), amt.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }),
       ];
@@ -1577,6 +1580,7 @@ export function AccountDetailDialog({
                   <TableHead className="w-24">Date</TableHead>
                   <TableHead className="w-36">Name</TableHead>
                   <TableHead className="w-52">Account</TableHead>
+                  <TableHead className="w-28">Invoice #</TableHead>
                   <TableHead>Description</TableHead>
                   <TableHead className="w-24 text-right">Amount</TableHead>
                   <TableHead className="w-24 text-right">Balance</TableHead>
@@ -1675,6 +1679,9 @@ export function AccountDetailDialog({
                             <TooltipContent>{txn.accountDisplay || '-'}</TooltipContent>
                           </Tooltip>
                         )}
+                      </TableCell>
+                      <TableCell className="px-2 py-1 max-w-0">
+                        <span className="text-xs truncate block" title={txn.invoiceNumber || ''}>{txn.invoiceNumber || '-'}</span>
                       </TableCell>
                       <TableCell className="px-2 py-1 max-w-0">
                         <Tooltip>
