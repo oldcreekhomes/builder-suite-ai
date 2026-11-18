@@ -29,7 +29,9 @@ export const isLateBill = (b: BillIssueInput, today: string) => {
 export const isRejectedBill = (b: BillIssueInput) => b.status === "void";
 
 export const isCurrentBill = (b: BillIssueInput, today: string) => {
-  if (b.status !== "draft") return false;
+  // Current = any bill in review, rejected, or approved (unpaid) that isn't due yet.
+  if (!["draft", "void", "posted"].includes(b.status as string)) return false;
+  if (b.archived_at || b.terms === "paid-at-purchase") return false;
   const d = dueStr(b.due_date);
   return !d || d >= today;
 };
