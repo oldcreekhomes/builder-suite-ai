@@ -486,7 +486,7 @@ export function EditCompanyDialog({ company, open, onOpenChange }: EditCompanyDi
                       <div className="flex gap-2">
                         {[
                           { value: "trade_partner", label: "Trade Partner", desc: "Subcontractors & vendors we bid, send POs, and notify (e.g. plumber, electrician). Requires a contact." },
-                          { value: "supplier", label: "Supplier / Retail", desc: "Places we just buy from or pay bills (e.g. Home Depot, CVS, gas station). No contact needed." },
+                          { value: "supplier", label: "General Payee", desc: "Anyone we just pay or receive money from, like stores, utilities, or the IRS. No contact needed." },
                         ].map((opt) => (
                           <button
                             key={opt.value}

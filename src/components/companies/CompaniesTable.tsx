@@ -254,7 +254,7 @@ export function CompaniesTable({ searchQuery = "" }: CompaniesTableProps) {
                     </Badge>
                     {company.engagement_type === 'supplier' && (
                       <Badge variant="outline" className="w-fit text-[10px] px-1 py-0">
-                        Supplier
+                        General Payee
                       </Badge>
                     )}
                   </div>
