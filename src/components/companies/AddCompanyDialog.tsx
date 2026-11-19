@@ -44,6 +44,10 @@ import { Search, HelpCircle } from "lucide-react";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import type { Json } from "@/integrations/supabase/types";
 import { normalizeServiceAreas, inferServiceAreaFromAddress } from "@/lib/serviceArea";
+import {
+  getCompanyRequirementErrors,
+  getRequiredCompanyFieldLabels,
+} from "@/lib/companyRequirements";
 
 // Helper function to parse address components from Google Places
 const parseAddressComponents = (addressComponents: google.maps.GeocoderAddressComponent[] | undefined) => {
@@ -78,11 +82,13 @@ const parseAddressComponents = (addressComponents: google.maps.GeocoderAddressCo
   return result;
 };
 
+// Required-field rules live in src/lib/companyRequirements.ts and are applied
+// in onSubmit, so both company dialogs share one rule set.
 const companySchema = z.object({
-  company_name: z.string().min(1, "Company name is required"),
-  company_type: z.enum(["Subcontractor", "Vendor", "Consultant", "Lender", "Municipality", "Utility"]),
+  company_name: z.string(),
+  company_type: z.string(),
   engagement_type: z.enum(["trade_partner", "supplier"]).default("trade_partner"),
-  address_line_1: z.string().min(1, "Street address is required"),
+  address_line_1: z.string().optional(),
   address_line_2: z.string().optional(),
   city: z.string().optional(),
   state: z.string().optional(),
@@ -121,6 +127,7 @@ export function AddCompanyDialog({
   const [selectedCostCodes, setSelectedCostCodes] = useState<string[]>([]);
   const [selectedServiceAreas, setSelectedServiceAreas] = useState<string[]>([]);
   const [costCodeError, setCostCodeError] = useState<string>("");
+  const [serviceAreaError, setServiceAreaError] = useState<string>("");
   const [extractedInsuranceData, setExtractedInsuranceData] = useState<ExtractedInsuranceData | null>(null);
   const [pendingInsuranceFilePath, setPendingInsuranceFilePath] = useState<string | null>(null);
   
@@ -428,6 +435,28 @@ export function AddCompanyDialog({
   const onSubmit = async (data: CompanyFormData) => {
     const supplierMode = data.engagement_type === "supplier";
 
+    const requirementErrors = getCompanyRequirementErrors({
+      engagementType: data.engagement_type,
+      companyName: data.company_name,
+      companyType: data.company_type,
+      serviceAreas: selectedServiceAreas,
+      addressLine1: data.address_line_1,
+    });
+    setServiceAreaError(requirementErrors.service_areas ?? "");
+    (["company_name", "company_type", "address_line_1"] as const).forEach((field) => {
+      const message = requirementErrors[field];
+      if (message) form.setError(field, { message });
+      else form.clearErrors(field);
+    });
+    if (Object.keys(requirementErrors).length > 0) {
+      toast({
+        title: "Missing required information",
+        description: `Please fill in: ${getRequiredCompanyFieldLabels(data.engagement_type).join(", ")}.`,
+        variant: "destructive",
+      });
+      return;
+    }
+
     // Validate cost codes (only required for trade partners)
     if (!supplierMode && selectedCostCodes.length === 0) {
       setCostCodeError("Associated cost codes are required");
@@ -505,6 +534,7 @@ export function AddCompanyDialog({
       setSelectedCostCodes([]);
       setSelectedServiceAreas([]);
       setCostCodeError("");
+      setServiceAreaError("");
       setExtractedInsuranceData(null);
       setPendingInsuranceFilePath(null);
       representativeFormRef.current?.reset();
@@ -521,7 +551,7 @@ export function AddCompanyDialog({
         </DialogHeader>
         
         <p className="text-sm text-muted-foreground">
-          <span className="text-destructive">*</span> {isSupplier ? "Company Information is required" : "Company Information and Representatives are required"}
+          <span className="text-destructive">*</span> Required: {getRequiredCompanyFieldLabels(isSupplier ? "supplier" : "trade_partner").join(", ")}
         </p>
 
         <ScrollArea className="max-h-[calc(90vh-120px)] pr-6">
@@ -546,7 +576,16 @@ export function AddCompanyDialog({
                             <button
                               key={opt.value}
                               type="button"
-                              onClick={() => field.onChange(opt.value)}
+                              onClick={() => {
+                                field.onChange(opt.value);
+                                // A General Payee must pick its own type — the
+                                // Trade Partner default is never correct for it.
+                                if (opt.value === "supplier" && form.getValues("company_type") === "Subcontractor") {
+                                  form.setValue("company_type", "");
+                                } else if (opt.value === "trade_partner" && !form.getValues("company_type")) {
+                                  form.setValue("company_type", "Subcontractor");
+                                }
+                              }}
                               className={`inline-flex items-center gap-1.5 rounded-md px-3 py-1.5 text-sm transition border-2 ${field.value === opt.value ? "border-primary bg-background" : "border-border bg-background hover:bg-muted"}`}
                             >
                               <span>{opt.label}</span>
@@ -624,7 +663,7 @@ export function AddCompanyDialog({
                       render={({ field }) => (
                         <FormItem>
                           <FormLabel>Company Type <span className="text-destructive">*</span></FormLabel>
-                          <Select onValueChange={field.onChange} defaultValue={field.value}>
+                          <Select onValueChange={field.onChange} value={field.value}>
                             <FormControl>
                               <SelectTrigger>
                                 <SelectValue placeholder="Select type" />
@@ -645,11 +684,19 @@ export function AddCompanyDialog({
                     />
 
                     <div className="space-y-2">
-                      <FormLabel>Service Area</FormLabel>
+                      <FormLabel>
+                        Service Area {isSupplier && <span className="text-destructive">*</span>}
+                      </FormLabel>
                       <ServiceAreaSelector
                         selectedAreas={selectedServiceAreas}
-                        onAreasChange={setSelectedServiceAreas}
+                        onAreasChange={(areas) => {
+                          setSelectedServiceAreas(areas);
+                          setServiceAreaError("");
+                        }}
                       />
+                      {serviceAreaError && (
+                        <p className="text-sm font-medium text-destructive">{serviceAreaError}</p>
+                      )}
                     </div>
                   </div>
                   <div className="space-y-4">

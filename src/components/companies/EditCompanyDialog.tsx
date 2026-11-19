@@ -41,10 +41,16 @@ import { Search, ShieldOff, Info, Upload, HelpCircle } from "lucide-react";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { normalizeServiceAreas, getCompanyServiceAreasOrDefault } from "@/lib/serviceArea";
+import {
+  getCompanyRequirementErrors,
+  getRequiredCompanyFieldLabels,
+} from "@/lib/companyRequirements";
 
+// Required-field rules live in src/lib/companyRequirements.ts and are applied
+// in onSubmit, so both company dialogs share one rule set.
 const companySchema = z.object({
-  company_name: z.string().min(1, "Company name is required"),
-  company_type: z.enum(["Subcontractor", "Vendor", "Consultant", "Lender", "Municipality", "Utility"]),
+  company_name: z.string(),
+  company_type: z.string(),
   engagement_type: z.enum(["trade_partner", "supplier"]).default("trade_partner"),
   address_line_1: z.string().optional(),
   address_line_2: z.string().optional(),
@@ -181,6 +187,7 @@ export function EditCompanyDialog({ company, open, onOpenChange }: EditCompanyDi
   const queryClient = useQueryClient();
   const [selectedCostCodes, setSelectedCostCodes] = useState<string[]>([]);
   const [selectedServiceAreas, setSelectedServiceAreas] = useState<string[]>([]);
+  const [serviceAreaError, setServiceAreaError] = useState<string>("");
   const [activeTab, setActiveTab] = useState<'company-info' | 'representatives' | 'insurance'>('company-info');
   const [showInsuranceUpload, setShowInsuranceUpload] = useState(false);
   const initializationDone = useRef(false);
@@ -287,8 +294,11 @@ export function EditCompanyDialog({ company, open, onOpenChange }: EditCompanyDi
       
       form.reset({
         company_name: company.company_name,
-        company_type: (company.company_type || 'Subcontractor') as any,
         engagement_type: ((company.engagement_type as any) || 'trade_partner'),
+        // A General Payee with no stored type must not inherit the Trade
+        // Partner default — it has to pick one.
+        company_type: (company.company_type ||
+          ((company.engagement_type as any) === 'supplier' ? '' : 'Subcontractor')) as any,
         ...addressFields,
         phone_number: company.phone_number || "",
         website: company.website || "",
@@ -316,6 +326,7 @@ export function EditCompanyDialog({ company, open, onOpenChange }: EditCompanyDi
     if (!open) {
       setSelectedCostCodes([]);
       setSelectedServiceAreas([]);
+      setServiceAreaError("");
       setActiveTab('company-info');
       setShowInsuranceUpload(false);
       initializationDone.current = false;
@@ -448,6 +459,28 @@ export function EditCompanyDialog({ company, open, onOpenChange }: EditCompanyDi
   };
 
   const onSubmit = (data: CompanyFormData) => {
+    const requirementErrors = getCompanyRequirementErrors({
+      engagementType: data.engagement_type,
+      companyName: data.company_name,
+      companyType: data.company_type,
+      serviceAreas: selectedServiceAreas,
+      addressLine1: data.address_line_1,
+    });
+    setServiceAreaError(requirementErrors.service_areas ?? "");
+    (["company_name", "company_type", "address_line_1"] as const).forEach((field) => {
+      const message = requirementErrors[field];
+      if (message) form.setError(field, { message });
+      else form.clearErrors(field);
+    });
+    if (Object.keys(requirementErrors).length > 0) {
+      toast({
+        title: "Missing required information",
+        description: `Please fill in: ${getRequiredCompanyFieldLabels(data.engagement_type).join(", ")}.`,
+        variant: "destructive",
+      });
+      return;
+    }
+
     updateCompanyMutation.mutate(data);
   };
 
@@ -467,6 +500,9 @@ export function EditCompanyDialog({ company, open, onOpenChange }: EditCompanyDi
       >
         <DialogHeader className="px-6 pt-6 shrink-0">
           <DialogTitle>Edit Company</DialogTitle>
+          <p className="text-sm text-muted-foreground">
+            <span className="text-destructive">*</span> Required: {getRequiredCompanyFieldLabels(isSupplier ? "supplier" : "trade_partner").join(", ")}
+          </p>
         </DialogHeader>
         
         <Form {...form}>
@@ -493,6 +529,13 @@ export function EditCompanyDialog({ company, open, onOpenChange }: EditCompanyDi
                             type="button"
                             onClick={() => {
                               field.onChange(opt.value);
+                              // A General Payee must pick its own type — the
+                              // Trade Partner default is never correct for it.
+                              if (opt.value === "supplier" && form.getValues("company_type") === "Subcontractor") {
+                                form.setValue("company_type", "");
+                              } else if (opt.value === "trade_partner" && !form.getValues("company_type")) {
+                                form.setValue("company_type", "Subcontractor");
+                              }
                               if (opt.value === "supplier" && (activeTab === "representatives" || activeTab === "insurance")) {
                                 setActiveTab("company-info");
                               }
@@ -584,11 +627,19 @@ export function EditCompanyDialog({ company, open, onOpenChange }: EditCompanyDi
                   />
 
                   <div className="space-y-2">
-                    <FormLabel>Service Area</FormLabel>
+                    <FormLabel>
+                      Service Area {isSupplier && <span className="text-destructive">*</span>}
+                    </FormLabel>
                     <ServiceAreaSelector
                       selectedAreas={selectedServiceAreas}
-                      onAreasChange={setSelectedServiceAreas}
+                      onAreasChange={(areas) => {
+                        setSelectedServiceAreas(areas);
+                        setServiceAreaError("");
+                      }}
                     />
+                    {serviceAreaError && (
+                      <p className="text-sm font-medium text-destructive">{serviceAreaError}</p>
+                    )}
                   </div>
                 </div>
                 <div className="space-y-4">
