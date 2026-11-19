@@ -170,16 +170,40 @@ export function VendorSearchInput({
           {loading ? (
             <div className="p-2 text-sm text-muted-foreground">Loading...</div>
           ) : filteredCompanies.length > 0 ? (
-            filteredCompanies.slice(0, 8).map((company) => (
-              <button
-                key={company.id}
-                type="button"
-                className="block w-full px-3 py-2 text-left text-sm hover:bg-accent cursor-pointer"
-                onMouseDown={() => handleSelectCompany(company)}
-              >
-                <div className="font-medium">{company.company_name}</div>
-              </button>
-            ))
+            <>
+              {filteredCompanies.slice(0, 8).map((company) => (
+                <button
+                  key={company.id}
+                  type="button"
+                  className="block w-full px-3 py-2 text-left text-sm hover:bg-accent cursor-pointer"
+                  onMouseDown={() => handleSelectCompany(company)}
+                >
+                  <div className="font-medium">{company.company_name}</div>
+                </button>
+              ))}
+              {searchQuery.trim() &&
+                !filteredCompanies.some(
+                  (c) => c.company_name.trim().toLowerCase() === searchQuery.trim().toLowerCase()
+                ) && (
+                  <div className="border-t p-2">
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      className="w-full h-auto py-2 whitespace-normal"
+                      onMouseDown={(e) => {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        setShowAddDialog(true);
+                        setShowResults(false);
+                      }}
+                    >
+                      <Plus className="h-4 w-4 mr-2 shrink-0" />
+                      <span className="break-words text-left leading-tight">Add New Company "{searchQuery}"</span>
+                    </Button>
+                  </div>
+                )}
+            </>
           ) : searchQuery && (
             <div className="p-2">
               <div className="p-2 text-sm text-muted-foreground mb-2">
