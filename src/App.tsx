@@ -157,6 +157,7 @@ const BlogPost = safeLazy(() => import("./pages/blog/BlogPost"));
 const RootRoute = safeLazy(() => import("./components/RootRoute"));
 const ProjectDashboard = safeLazy(() => import("./pages/ProjectDashboard"));
 const ProjectPhotos = safeLazy(() => import("./pages/ProjectPhotos"));
+const ProjectDrawings = safeLazy(() => import("./pages/ProjectDrawings"));
 const ProjectFiles = safeLazy(() => import("./pages/ProjectFiles"));
 const ProjectBudget = safeLazy(() => import("./pages/ProjectBudget"));
 const ProjectSchedule = safeLazy(() => import("./pages/ProjectSchedule"));
@@ -278,6 +279,7 @@ const AppContent = () => {
                 <Route path="/estimating-ai" element={<ProtectedRoute><EstimatingAI /></ProtectedRoute>} />
                 <Route path="/project/:projectId" element={<ProtectedRoute><ProjectDashboard /></ProtectedRoute>} />
                 <Route path="/project/:projectId/photos" element={<ProtectedRoute><ProjectPhotos /></ProtectedRoute>} />
+                <Route path="/project/:projectId/drawings" element={<ProtectedRoute><ProjectDrawings /></ProtectedRoute>} />
                 <Route path="/project/:projectId/files" element={<ProtectedRoute><ProjectFiles /></ProtectedRoute>} />
                 <Route path="/project/:projectId/estimate" element={<ProtectedRoute><TakeoffEditor /></ProtectedRoute>} />
                 <Route path="/project/:projectId/budget" element={<ProtectedRoute><ProjectBudget /></ProtectedRoute>} />

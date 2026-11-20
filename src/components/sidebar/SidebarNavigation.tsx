@@ -23,6 +23,7 @@ import {
   BarChart3,
   Store,
   Building
+  PenTool,
 } from "lucide-react";
 import { UnreadBadge } from "@/components/ui/unread-badge";
 import { useCompanyUsers } from "@/hooks/useCompanyUsers";
@@ -58,6 +59,12 @@ const navigationItems = [
     title: "Files",
     url: "/files",
     icon: File,
+    enabled: true,
+  },
+  {
+    title: "Drawings",
+    url: "/drawings",
+    icon: PenTool,
     enabled: true,
   },
   {
