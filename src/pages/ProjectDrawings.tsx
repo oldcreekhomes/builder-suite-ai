@@ -77,43 +77,92 @@ export default function ProjectDrawings() {
     return [...g.entries()];
   }, [sheets, search]);
 
-  const handleFile = async (file: File) => {
-    if (!file.name.toLowerCase().endsWith(".pdf")) { toast({ title: "Please choose a PDF drawing set", variant: "destructive" }); return; }
-    setPreparing(true);
-    try {
-      ensurePdfWorker();
-      const bytes = new Uint8Array(await file.arrayBuffer());
-      const src = await PDFDocument.load(bytes, { ignoreEncryption: true });
-      const pdf = await pdfjsLib.getDocument({ data: bytes.slice() }).promise;
-      const batch = crypto.randomUUID();
-      const items: Pending[] = [];
-      for (let i = 0; i < src.getPageCount(); i++) {
-        const one = await PDFDocument.create();
-        const [pg] = await one.copyPages(src, [i]);
-        one.addPage(pg);
-        const pdfBytes = await one.save();
-        const img = await renderPage(pdf, i + 1);
-        const imagePath = `drawings/${projectId}/${batch}/page-${i + 1}.png`;
-        const up = await supabase.storage.from(BUCKET).upload(imagePath, img, { contentType: "image/png" });
-        if (up.error) throw up.error;
-        items.push({ pageIndex: i, pdfBytes, imagePath, sheetNumber: "", title: "", reading: true });
-      }
-      setSetName(`${file.name.replace(/\.pdf$/i, "")} ${format(new Date(), "MM/dd/yyyy")}`);
-      setPending(items);
-      setReviewOpen(true);
-      // Read title blocks in the background
-      items.forEach(async (it) => {
+  const [progress, setProgress] = useState("");
+
+  const readTitleBlocks = async (items: Pending[]) => {
+    const queue = [...items];
+    const worker = async () => {
+      while (queue.length) {
+        const it = queue.shift()!;
         try {
           const { data } = await supabase.functions.invoke("detect-sheet-info", { body: { file_path: it.imagePath } });
-          setPending((p) => p.map((x) => x.pageIndex === it.pageIndex
+          setPending((p) => p.map((x) => x.imagePath === it.imagePath
             ? { ...x, reading: false, sheetNumber: x.sheetNumber || data?.sheet_number || "", title: x.title || data?.sheet_title || "" } : x));
         } catch {
-          setPending((p) => p.map((x) => x.pageIndex === it.pageIndex ? { ...x, reading: false } : x));
+          setPending((p) => p.map((x) => x.imagePath === it.imagePath ? { ...x, reading: false } : x));
         }
-      });
-    } catch (e: any) {
-      toast({ title: "Could not read that PDF", description: e.message, variant: "destructive" });
-    } finally { setPreparing(false); }
+      }
+    };
+    await Promise.all([worker(), worker(), worker(), worker()]);
+  };
+
+  const handleFiles = async (input: File[]) => {
+    const files = input
+      .filter((f) => /\.(pdf|png|jpe?g)$/i.test(f.name))
+      .sort((a, b) => a.name.localeCompare(b.name, undefined, { numeric: true }));
+    if (!files.length) { toast({ title: "Please choose PDF, PNG or JPG drawings", variant: "destructive" }); return; }
+    setPreparing(true);
+    ensurePdfWorker();
+    const batch = crypto.randomUUID();
+    const items: Pending[] = [];
+    const failed: string[] = [];
+    let n = 0;
+    for (const file of files) {
+      try {
+        const bytes = new Uint8Array(await file.arrayBuffer());
+        if (/\.pdf$/i.test(file.name)) {
+          const src = await PDFDocument.load(bytes, { ignoreEncryption: true });
+          const pdf = await pdfjsLib.getDocument({ data: bytes.slice() }).promise;
+          for (let i = 0; i < src.getPageCount(); i++) {
+            n++; setProgress(`Preparing page ${n}...`);
+            const one = await PDFDocument.create();
+            const [pg] = await one.copyPages(src, [i]);
+            one.addPage(pg);
+            const pdfBytes = await one.save();
+            const img = await renderPage(pdf, i + 1);
+            const imagePath = `drawings/${projectId}/${batch}/${n}.png`;
+            const up = await supabase.storage.from(BUCKET).upload(imagePath, img, { contentType: "image/png" });
+            if (up.error) throw up.error;
+            items.push({ pageIndex: n - 1, pdfBytes, imagePath, sheetNumber: "", title: "", reading: true });
+          }
+        } else {
+          n++; setProgress(`Preparing page ${n}...`);
+          const isPng = /\.png$/i.test(file.name);
+          const one = await PDFDocument.create();
+          const im = isPng ? await one.embedPng(bytes) : await one.embedJpg(bytes);
+          one.addPage([im.width, im.height]).drawImage(im, { x: 0, y: 0, width: im.width, height: im.height });
+          const pdfBytes = await one.save();
+          const imagePath = `drawings/${projectId}/${batch}/${n}.${isPng ? "png" : "jpg"}`;
+          const up = await supabase.storage.from(BUCKET).upload(imagePath, file, { contentType: file.type || (isPng ? "image/png" : "image/jpeg") });
+          if (up.error) throw up.error;
+          items.push({ pageIndex: n - 1, pdfBytes, imagePath, sheetNumber: "", title: "", reading: true });
+        }
+      } catch (e: any) {
+        failed.push(file.name);
+      }
+    }
+    setPreparing(false); setProgress("");
+    if (failed.length) toast({ title: `Couldn't read ${failed.length} file${failed.length === 1 ? "" : "s"}`, description: failed.join(", "), variant: "destructive" });
+    if (!items.length) return;
+    setSetName(`${files.length === 1 ? files[0].name.replace(/\.\w+$/, "") : "Drawing set"} ${format(new Date(), "MM/dd/yyyy")}`);
+    setPending(items);
+    setReviewOpen(true);
+    readTitleBlocks(items);
+  };
+
+  const collectDropped = async (dt: DataTransfer): Promise<File[]> => {
+    const out: File[] = [];
+    const walk = async (entry: any): Promise<void> => {
+      if (entry.isFile) { out.push(await new Promise<File>((r, j) => entry.file(r, j))); return; }
+      if (entry.isDirectory) {
+        const reader = entry.createReader();
+        let batch: any[];
+        do { batch = await new Promise<any[]>((r, j) => reader.readEntries(r, j)); for (const e of batch) await walk(e); } while (batch.length);
+      }
+    };
+    const entries = Array.from(dt.items).map((i) => (i as any).webkitGetAsEntry?.()).filter(Boolean);
+    if (entries.length) { for (const e of entries) await walk(e); return out; }
+    return Array.from(dt.files);
   };
 
   const save = async () => {
@@ -122,7 +171,7 @@ export default function ProjectDrawings() {
     setSaving(true);
     try {
       for (const p of pending) {
-        const filePath = p.imagePath.replace(/\.png$/, ".pdf");
+        const filePath = p.imagePath.replace(/\.(png|jpg)$/, ".pdf");
         const up = await supabase.storage.from(BUCKET).upload(filePath, new Blob([p.pdfBytes as BlobPart], { type: "application/pdf" }), { contentType: "application/pdf" });
         if (up.error) throw up.error;
         const { error } = await db.rpc("add_drawing_version", {
@@ -177,13 +226,18 @@ export default function ProjectDrawings() {
             headerAction={
               <Button size="sm" onClick={() => fileRef.current?.click()} disabled={preparing}>
                 {preparing ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Upload className="h-4 w-4 mr-2" />}
-                {preparing ? "Splitting pages..." : "Upload Drawing Set"}
+                {preparing ? progress || "Preparing..." : "Upload Drawing Set"}
               </Button>
             }
           />
-          <input ref={fileRef} type="file" accept="application/pdf" className="hidden"
-            onChange={(e) => { const f = e.target.files?.[0]; if (f) handleFile(f); e.target.value = ""; }} />
-          <div className="p-6 space-y-4">
+          <input ref={fileRef} type="file" multiple accept="application/pdf,image/png,image/jpeg" className="hidden"
+            onChange={(e) => { const f = Array.from(e.target.files || []); if (f.length) handleFiles(f); e.target.value = ""; }} />
+          <div className="p-6 space-y-4 min-h-[60vh]"
+            onDragOver={(e) => e.preventDefault()}
+            onDrop={async (e) => { e.preventDefault(); if (preparing) return; handleFiles(await collectDropped(e.dataTransfer)); }}>
+            <div className="border border-dashed rounded-md p-4 text-sm text-muted-foreground text-center">
+              {preparing ? progress || "Preparing..." : "Drag drawing files or a whole folder here, or use Upload Drawing Set (pick as many as you want)"}
+            </div>
             <Input placeholder="Search sheet number or title" value={search} onChange={(e) => setSearch(e.target.value)} className="max-w-sm" />
             {isLoading ? <p className="text-sm text-muted-foreground">Loading...</p> :
               grouped.length === 0 ? <p className="text-sm text-muted-foreground">No drawings yet. Upload a PDF drawing set to get started.</p> :
