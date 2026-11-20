@@ -1,5 +1,5 @@
 import { useParams } from "react-router-dom";
-import { useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { PDFDocument } from "pdf-lib";
 import * as pdfjsLib from "pdfjs-dist";
@@ -28,13 +28,29 @@ type Sheet = { id: string; sheet_number: string; sheet_key: string; title: strin
 type Version = { id: string; sheet_id: string; version_number: number; file_path: string; image_path: string | null; set_name: string | null; uploaded_at: string; uploaded_by: string | null };
 type Pending = { pageIndex: number; pdfBytes: Uint8Array; imagePath: string; sheetNumber: string; title: string; reading: boolean };
 
+const MAX_PREVIEW_PX = 1600;
+
+function withTimeout<T>(p: Promise<T>, ms: number, label: string): Promise<T> {
+  return new Promise((res, rej) => {
+    const t = setTimeout(() => rej(new Error(`Timed out: ${label}`)), ms);
+    p.then((v) => { clearTimeout(t); res(v); }, (e) => { clearTimeout(t); rej(e); });
+  });
+}
+
 async function renderPage(pdf: any, n: number): Promise<Blob> {
   const page = await pdf.getPage(n);
-  const vp = page.getViewport({ scale: 1.5 });
+  const base = page.getViewport({ scale: 1 });
+  const scale = Math.min(2, MAX_PREVIEW_PX / Math.max(base.width, base.height));
+  const vp = page.getViewport({ scale });
   const canvas = document.createElement("canvas");
-  canvas.width = vp.width; canvas.height = vp.height;
-  await page.render({ canvasContext: canvas.getContext("2d")!, viewport: vp, canvas } as any).promise;
-  return await new Promise((r) => canvas.toBlob((b) => r(b!), "image/png"));
+  canvas.width = Math.floor(vp.width); canvas.height = Math.floor(vp.height);
+  try {
+    await page.render({ canvasContext: canvas.getContext("2d")!, viewport: vp, canvas } as any).promise;
+    return await new Promise((r, j) => canvas.toBlob((b) => (b ? r(b) : j(new Error("Could not make preview"))), "image/jpeg", 0.8));
+  } finally {
+    canvas.width = 0; canvas.height = 0;
+    page.cleanup();
+  }
 }
 
 export default function ProjectDrawings() {
@@ -98,59 +114,96 @@ export default function ProjectDrawings() {
     await Promise.all([worker(), worker(), worker(), worker()]);
   };
 
+  const cancelRef = useRef(false);
+
   const handleFiles = async (input: File[]) => {
     const files = input
       .filter((f) => /\.(pdf|png|jpe?g)$/i.test(f.name))
       .sort((a, b) => a.name.localeCompare(b.name, undefined, { numeric: true }));
-    if (!files.length) { toast({ title: "Please choose PDF, PNG or JPG drawings", variant: "destructive" }); return; }
+    if (!files.length) { toast({ title: "No drawings found", description: "Drop PDF, PNG or JPG files.", variant: "destructive" }); return; }
     setPreparing(true);
+    cancelRef.current = false;
     ensurePdfWorker();
     const batch = crypto.randomUUID();
-    const items: Pending[] = [];
     const failed: string[] = [];
+    setSetName(`${files.length === 1 ? files[0].name.replace(/\.\w+$/, "") : "Drawing set"} ${format(new Date(), "MM/dd/yyyy")}`);
+    setPending([]);
+    setReviewOpen(true);
+
+    // Count pages first
+    const pageCounts: number[] = [];
+    for (const f of files) {
+      if (/\.pdf$/i.test(f.name)) {
+        try { pageCounts.push((await PDFDocument.load(await f.arrayBuffer(), { ignoreEncryption: true })).getPageCount()); }
+        catch { pageCounts.push(0); }
+      } else pageCounts.push(1);
+    }
+    const total = pageCounts.reduce((a, b) => a + b, 0);
+    toast({ title: `Found ${files.length} file${files.length === 1 ? "" : "s"}, ${total} page${total === 1 ? "" : "s"}` });
+
     let n = 0;
+    const add = (it: Pending) => { setPending((p) => [...p, it]); readTitleBlocks([it]); };
     for (const file of files) {
+      if (cancelRef.current) break;
+      let pdf: any = null;
       try {
         const bytes = new Uint8Array(await file.arrayBuffer());
         if (/\.pdf$/i.test(file.name)) {
           const src = await PDFDocument.load(bytes, { ignoreEncryption: true });
-          const pdf = await pdfjsLib.getDocument({ data: bytes.slice() }).promise;
+          pdf = await pdfjsLib.getDocument({ data: bytes.slice() }).promise;
           for (let i = 0; i < src.getPageCount(); i++) {
-            n++; setProgress(`Preparing page ${n}...`);
-            const one = await PDFDocument.create();
-            const [pg] = await one.copyPages(src, [i]);
-            one.addPage(pg);
-            const pdfBytes = await one.save();
-            const img = await renderPage(pdf, i + 1);
-            const imagePath = `drawings/${projectId}/${batch}/${n}.png`;
-            const up = await supabase.storage.from(BUCKET).upload(imagePath, img, { contentType: "image/png" });
-            if (up.error) throw up.error;
-            items.push({ pageIndex: n - 1, pdfBytes, imagePath, sheetNumber: "", title: "", reading: true });
+            if (cancelRef.current) break;
+            n++; setProgress(`Preparing ${n} of ${total}...`);
+            const idx = n;
+            try {
+              await withTimeout((async () => {
+                const one = await PDFDocument.create();
+                const [pg] = await one.copyPages(src, [i]);
+                one.addPage(pg);
+                const pdfBytes = await one.save();
+                const img = await renderPage(pdf, i + 1);
+                const imagePath = `drawings/${projectId}/${batch}/${idx}.jpg`;
+                const up = await supabase.storage.from(BUCKET).upload(imagePath, img, { contentType: "image/jpeg" });
+                if (up.error) throw up.error;
+                add({ pageIndex: idx - 1, pdfBytes, imagePath, sheetNumber: "", title: "", reading: true });
+              })(), 60000, `${file.name} page ${i + 1}`);
+            } catch (e) {
+              console.error("Drawing page failed", file.name, "page", i + 1, e);
+              failed.push(`${file.name}, page ${i + 1}`);
+            }
           }
         } else {
-          n++; setProgress(`Preparing page ${n}...`);
-          const isPng = /\.png$/i.test(file.name);
-          const one = await PDFDocument.create();
-          const im = isPng ? await one.embedPng(bytes) : await one.embedJpg(bytes);
-          one.addPage([im.width, im.height]).drawImage(im, { x: 0, y: 0, width: im.width, height: im.height });
-          const pdfBytes = await one.save();
-          const imagePath = `drawings/${projectId}/${batch}/${n}.${isPng ? "png" : "jpg"}`;
-          const up = await supabase.storage.from(BUCKET).upload(imagePath, file, { contentType: file.type || (isPng ? "image/png" : "image/jpeg") });
-          if (up.error) throw up.error;
-          items.push({ pageIndex: n - 1, pdfBytes, imagePath, sheetNumber: "", title: "", reading: true });
+          n++; setProgress(`Preparing ${n} of ${total}...`);
+          const idx = n;
+          await withTimeout((async () => {
+            const isPng = /\.png$/i.test(file.name);
+            const one = await PDFDocument.create();
+            const im = isPng ? await one.embedPng(bytes) : await one.embedJpg(bytes);
+            one.addPage([im.width, im.height]).drawImage(im, { x: 0, y: 0, width: im.width, height: im.height });
+            const pdfBytes = await one.save();
+            const imagePath = `drawings/${projectId}/${batch}/${idx}.${isPng ? "png" : "jpg"}`;
+            const up = await supabase.storage.from(BUCKET).upload(imagePath, file, { contentType: file.type || (isPng ? "image/png" : "image/jpeg") });
+            if (up.error) throw up.error;
+            add({ pageIndex: idx - 1, pdfBytes, imagePath, sheetNumber: "", title: "", reading: true });
+          })(), 60000, file.name);
         }
-      } catch (e: any) {
+      } catch (e) {
+        console.error("Drawing file failed", file.name, e);
         failed.push(file.name);
+      } finally {
+        try { await pdf?.destroy(); } catch { /* ignore */ }
       }
     }
     setPreparing(false); setProgress("");
-    if (failed.length) toast({ title: `Couldn't read ${failed.length} file${failed.length === 1 ? "" : "s"}`, description: failed.join(", "), variant: "destructive" });
-    if (!items.length) return;
-    setSetName(`${files.length === 1 ? files[0].name.replace(/\.\w+$/, "") : "Drawing set"} ${format(new Date(), "MM/dd/yyyy")}`);
-    setPending(items);
-    setReviewOpen(true);
-    readTitleBlocks(items);
+    if (failed.length) toast({ title: `Couldn't read ${failed.length} page${failed.length === 1 ? "" : "s"}`, description: failed.join("; "), variant: "destructive" });
   };
+
+  useEffect(() => {
+    if (!preparing) return;
+    const h = (e: BeforeUnloadEvent) => { e.preventDefault(); e.returnValue = ""; };
+    window.addEventListener("beforeunload", h);
+    return () => window.removeEventListener("beforeunload", h);
+  }, [preparing]);
 
   const { getRootProps, getInputProps, isDragActive } = useDropzone({
     multiple: true,
@@ -185,6 +238,7 @@ export default function ProjectDrawings() {
   };
 
   const cancelReview = async () => {
+    cancelRef.current = true;
     const paths = pending.map((p) => p.imagePath);
     setPending([]); setReviewOpen(false);
     if (paths.length) await supabase.storage.from(BUCKET).remove(paths);
@@ -275,6 +329,7 @@ export default function ProjectDrawings() {
       <Dialog open={reviewOpen} onOpenChange={(o) => { if (!o && !saving) cancelReview(); }}>
         <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
           <DialogHeader><DialogTitle>Review sheets before saving</DialogTitle></DialogHeader>
+          {preparing && <p className="text-sm text-muted-foreground flex items-center gap-2"><Loader2 className="h-4 w-4 animate-spin" />{progress || "Preparing..."}</p>}
           <div className="flex items-center gap-2">
             <span className="text-sm whitespace-nowrap">Set name</span>
             <Input value={setName} onChange={(e) => setSetName(e.target.value)} />
@@ -300,7 +355,7 @@ export default function ProjectDrawings() {
           </Table>
           <DialogFooter>
             <Button variant="outline" onClick={cancelReview} disabled={saving}>Cancel</Button>
-            <Button onClick={save} disabled={saving || pending.some((p) => p.reading)}>
+            <Button onClick={save} disabled={saving || preparing || pending.length === 0 || pending.some((p) => p.reading)}>
               {saving && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}Save {pending.length} sheets
             </Button>
           </DialogFooter>
