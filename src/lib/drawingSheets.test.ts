@@ -1,3 +1,4 @@
+// @ts-ignore
 import { expect, test } from "bun:test";
 import { sheetKey, nextVersionFor, disciplineFor } from "./drawingSheets";
 
