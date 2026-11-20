@@ -1,3 +1,4 @@
+import { DeleteConfirmationDialog } from "@/components/ui/delete-confirmation-dialog";
 import { useState } from "react";
 import {
   Table,
@@ -50,11 +51,8 @@ export const BillsReviewLineItemsTable = ({
     setEditedLine({});
   };
 
-  const handleDelete = (lineId: string) => {
-    if (confirm('Delete this line item?')) {
-      deleteLine.mutate(lineId);
-    }
-  };
+  const [pendingLineDelete, setPendingLineDelete] = useState<string | null>(null);
+  const handleDelete = (lineId: string) => setPendingLineDelete(lineId);
 
   const handleAddLine = () => {
     addLine.mutate({
@@ -277,6 +275,13 @@ export const BillsReviewLineItemsTable = ({
           </div>
         </div>
       )}
+      <DeleteConfirmationDialog
+        open={!!pendingLineDelete}
+        onOpenChange={(o) => { if (!o) setPendingLineDelete(null); }}
+        title="Delete this line item?"
+        description="Are you sure you want to delete this line item? This can't be undone."
+        onConfirm={() => { if (pendingLineDelete) deleteLine.mutate(pendingLineDelete); setPendingLineDelete(null); }}
+      />
     </div>
   );
 };

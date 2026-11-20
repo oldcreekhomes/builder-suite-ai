@@ -1,3 +1,4 @@
+import { DeleteConfirmationDialog } from "@/components/ui/delete-confirmation-dialog";
 import { useState, useEffect, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -123,8 +124,8 @@ export function PriceHistoryManager({ costCode, open, onOpenChange, onPriceUpdat
     }
   };
 
+  const [pendingFileDelete, setPendingFileDelete] = useState<{ id: string; path: string } | null>(null);
   const handleDeleteHistoricalFile = async (historyId: string, filePath: string) => {
-    if (!confirm("Are you sure you want to delete this file?")) return;
 
     setDeletingFileId(historyId);
     try {
@@ -320,6 +321,7 @@ export function PriceHistoryManager({ costCode, open, onOpenChange, onPriceUpdat
   };
 
   return (
+    <>
     <Sheet open={open} onOpenChange={onOpenChange}>
       <SheetContent className="w-full sm:max-w-xl overflow-y-auto">
         <SheetHeader>
@@ -524,7 +526,7 @@ export function PriceHistoryManager({ costCode, open, onOpenChange, onPriceUpdat
                               <button
                                 onClick={(e) => {
                                   e.stopPropagation();
-                                  handleDeleteHistoricalFile(entry.id, entry.file_path!);
+                                  setPendingFileDelete({ id: entry.id, path: entry.file_path! });
                                 }}
                                 className="absolute -top-1 -right-1 bg-red-500 hover:bg-red-600 text-white rounded-full w-3 h-3 flex items-center justify-center"
                                 type="button"
@@ -548,5 +550,13 @@ export function PriceHistoryManager({ costCode, open, onOpenChange, onPriceUpdat
         </div>
       </SheetContent>
     </Sheet>
+    <DeleteConfirmationDialog
+      open={!!pendingFileDelete}
+      onOpenChange={(o) => { if (!o) setPendingFileDelete(null); }}
+      title="Delete this file?"
+      description="Are you sure you want to delete this file? This can't be undone."
+      onConfirm={() => { const f = pendingFileDelete; setPendingFileDelete(null); if (f) handleDeleteHistoricalFile(f.id, f.path); }}
+    />
+    </>
   );
 }
