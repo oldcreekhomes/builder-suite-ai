@@ -402,6 +402,7 @@ function ZoomableImage({ src }: { src: string }) {
   const [view, setView] = useState({ z: 1, x: 0, y: 0 });
   const viewRef = useRef(view); viewRef.current = view;
   const drag = useRef<{ x: number; y: number; ox: number; oy: number } | null>(null);
+  const [dragging, setDragging] = useState(false);
   useEffect(() => { setView({ z: 1, x: 0, y: 0 }); }, [src]);
   const clampView = (z: number, x: number, y: number) => {
     const el = ref.current; if (!el || z <= 1) return { z: 1, x: 0, y: 0 };
@@ -422,11 +423,12 @@ function ZoomableImage({ src }: { src: string }) {
     return () => el.removeEventListener("wheel", onWheel);
   }, []);
   return (
-    <div ref={ref} className="relative w-full h-full overflow-hidden select-none" style={{ cursor: view.z > 1 ? (drag.current ? "grabbing" : "grab") : "zoom-in", touchAction: "none" }}
+    <div ref={ref} className="relative w-full h-full overflow-hidden select-none" style={{ cursor: dragging ? "grabbing" : "grab", touchAction: "none" }}
       onDoubleClick={() => setView({ z: 1, x: 0, y: 0 })}
-      onPointerDown={(e) => { if (viewRef.current.z <= 1) return; (e.target as HTMLElement).setPointerCapture(e.pointerId); drag.current = { x: e.clientX, y: e.clientY, ox: viewRef.current.x, oy: viewRef.current.y }; }}
+      onPointerDown={(e) => { if (e.button !== 0 || (e.target as HTMLElement).closest("button")) return; e.preventDefault(); e.currentTarget.setPointerCapture(e.pointerId); drag.current = { x: e.clientX, y: e.clientY, ox: viewRef.current.x, oy: viewRef.current.y }; setDragging(true); }}
       onPointerMove={(e) => { const d = drag.current; if (!d) return; setView(clampView(viewRef.current.z, d.ox + e.clientX - d.x, d.oy + e.clientY - d.y)); }}
-      onPointerUp={() => { drag.current = null; }}>
+      onPointerUp={() => { drag.current = null; setDragging(false); }}
+      onPointerCancel={() => { drag.current = null; setDragging(false); }}>
       <img src={src} alt="" draggable={false} className="w-full h-full object-contain"
         style={{ transform: `translate(${view.x}px, ${view.y}px) scale(${view.z})`, transformOrigin: "0 0" }} />
       <div className="absolute bottom-2 right-2 flex items-center gap-2 rounded bg-background/90 border px-2 py-1 text-xs">
