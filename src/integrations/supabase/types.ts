@@ -3065,6 +3065,122 @@ export type Database = {
           },
         ]
       }
+      drawing_sheet_versions: {
+        Row: {
+          created_by: string | null
+          file_path: string
+          id: string
+          image_path: string | null
+          page_index: number | null
+          project_id: string
+          set_name: string | null
+          sheet_id: string
+          title: string | null
+          updated_at: string
+          updated_by: string | null
+          uploaded_at: string
+          uploaded_by: string | null
+          version_number: number
+        }
+        Insert: {
+          created_by?: string | null
+          file_path: string
+          id?: string
+          image_path?: string | null
+          page_index?: number | null
+          project_id: string
+          set_name?: string | null
+          sheet_id: string
+          title?: string | null
+          updated_at?: string
+          updated_by?: string | null
+          uploaded_at?: string
+          uploaded_by?: string | null
+          version_number: number
+        }
+        Update: {
+          created_by?: string | null
+          file_path?: string
+          id?: string
+          image_path?: string | null
+          page_index?: number | null
+          project_id?: string
+          set_name?: string | null
+          sheet_id?: string
+          title?: string | null
+          updated_at?: string
+          updated_by?: string | null
+          uploaded_at?: string
+          uploaded_by?: string | null
+          version_number?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "drawing_sheet_versions_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "drawing_sheet_versions_sheet_id_fkey"
+            columns: ["sheet_id"]
+            isOneToOne: false
+            referencedRelation: "drawing_sheets"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      drawing_sheets: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          current_version: number
+          discipline: string | null
+          id: string
+          project_id: string
+          sheet_key: string
+          sheet_number: string
+          title: string | null
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          current_version?: number
+          discipline?: string | null
+          id?: string
+          project_id: string
+          sheet_key: string
+          sheet_number: string
+          title?: string | null
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          current_version?: number
+          discipline?: string | null
+          id?: string
+          project_id?: string
+          sheet_key?: string
+          sheet_number?: string
+          title?: string | null
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "drawing_sheets_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       issue_files: {
         Row: {
           created_by: string | null
@@ -6685,6 +6801,19 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      add_drawing_version: {
+        Args: {
+          _discipline: string
+          _file_path: string
+          _image_path: string
+          _page_index: number
+          _project_id: string
+          _set_name: string
+          _sheet_number: string
+          _title: string
+        }
+        Returns: number
+      }
       add_task_above_atomic: {
         Args: {
           duration_param?: number
@@ -6804,6 +6933,7 @@ export type Database = {
         Args: { lat1: number; lat2: number; lng1: number; lng2: number }
         Returns: number
       }
+      can_access_project: { Args: { _project_id: string }; Returns: boolean }
       can_close_period: {
         Args: { check_date: string; check_project_id: string }
         Returns: {
