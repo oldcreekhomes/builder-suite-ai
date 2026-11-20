@@ -13,7 +13,8 @@ import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { MlProcessingMessage } from "@/components/ui/ml-processing-message";
-import { Upload, Loader2, Trash2, ExternalLink, FileText, FolderOpen } from "lucide-react";
+import { DeleteConfirmationDialog } from "@/components/ui/delete-confirmation-dialog";
+import { Upload, X, Loader2, Trash2, ExternalLink, FileText, FolderOpen } from "lucide-react";
 import { useDropzone } from "react-dropzone";
 import { Card } from "@/components/ui/card";
 import { supabase } from "@/integrations/supabase/client";
@@ -249,8 +250,8 @@ export default function ProjectDrawings() {
     if (paths.length) await supabase.storage.from(BUCKET).remove(paths);
   };
 
+  const [pendingDelete, setPendingDelete] = useState<Version | null>(null);
   const deleteVersion = async (v: Version) => {
-    if (!confirm(`Delete version ${v.version_number}?`)) return;
     const rest = versionsOf(v.sheet_id).filter((x) => x.id !== v.id);
     const { error } = await db.from("drawing_sheet_versions").delete().eq("id", v.id);
     if (error) { toast({ title: "Delete failed", description: error.message, variant: "destructive" }); return; }
@@ -368,10 +369,13 @@ export default function ProjectDrawings() {
       <Dialog open={!!openSheet} onOpenChange={(o) => { if (!o) { setOpenSheet(null); setViewVersion(null); } }}>
         <DialogContent className="max-w-none w-screen h-screen sm:rounded-none flex flex-col p-4 gap-3">
           {openSheet && (<>
-            <DialogHeader><DialogTitle>{openSheet.sheet_number} {openSheet.title ? `- ${openSheet.title}` : ""}</DialogTitle></DialogHeader>
+            <DialogHeader className="flex-row items-center justify-between space-y-0">
+              <DialogTitle>{openSheet.sheet_number} {openSheet.title ? `- ${openSheet.title}` : ""}</DialogTitle>
+              <Button variant="ghost" size="icon" aria-label="Close" onClick={() => { setOpenSheet(null); setViewVersion(null); }}><X className="h-5 w-5" /></Button>
+            </DialogHeader>
             <div className="grid grid-cols-[1fr_260px] gap-4 flex-1 min-h-0">
               <div className="bg-muted rounded min-h-0 h-full">
-                {shown?.image_path && <ZoomableImage src={publicUrl(shown.image_path)} />}
+                {shown?.image_path && <ZoomableImage src={publicUrl(shown.image_path)} pdfUrl={shown.file_path ? publicUrl(shown.file_path) : undefined} />}
               </div>
               <div className="space-y-2 overflow-y-auto min-h-0">
                 <h4 className="text-sm font-semibold">Version history</h4>
@@ -381,7 +385,7 @@ export default function ProjectDrawings() {
                       <span className="font-medium">Version {v.version_number}{v.version_number === openSheet.current_version ? " (current)" : ""}</span>
                       <div className="flex gap-1">
                         <a href={publicUrl(v.file_path)} target="_blank" rel="noreferrer" onClick={(e) => e.stopPropagation()} title="Open PDF"><ExternalLink className="h-3.5 w-3.5" /></a>
-                        <button onClick={(e) => { e.stopPropagation(); deleteVersion(v); }} title="Delete version"><Trash2 className="h-3.5 w-3.5 text-destructive" /></button>
+                        <button onClick={(e) => { e.stopPropagation(); setPendingDelete(v); }} title="Delete version"><Trash2 className="h-3.5 w-3.5 text-destructive" /></button>
                       </div>
                     </div>
                     <div className="text-muted-foreground">{format(new Date(v.uploaded_at), "MM/dd/yyyy")}</div>
@@ -393,17 +397,55 @@ export default function ProjectDrawings() {
           </>)}
         </DialogContent>
       </Dialog>
+      <DeleteConfirmationDialog
+        open={!!pendingDelete}
+        onOpenChange={(o) => { if (!o) setPendingDelete(null); }}
+        title="Delete this version?"
+        description={pendingDelete && openSheet ? `Delete Version ${pendingDelete.version_number} of sheet ${openSheet.sheet_number}${openSheet.title ? ` - ${openSheet.title}` : ""}? This can't be undone.` : ""}
+        onConfirm={async () => { const v = pendingDelete; setPendingDelete(null); if (v) await deleteVersion(v); }}
+      />
     </SidebarProvider>
   );
 }
 
-function ZoomableImage({ src }: { src: string }) {
+function ZoomableImage({ src, pdfUrl }: { src: string; pdfUrl?: string }) {
   const ref = useRef<HTMLDivElement>(null);
   const [view, setView] = useState({ z: 1, x: 0, y: 0 });
   const viewRef = useRef(view); viewRef.current = view;
   const drag = useRef<{ x: number; y: number; ox: number; oy: number } | null>(null);
   const [dragging, setDragging] = useState(false);
   useEffect(() => { setView({ z: 1, x: 0, y: 0 }); }, [src]);
+  const [sharp, setSharp] = useState<string | null>(null);
+  const pageRef = useRef<any>(null);
+  const [renderZoom, setRenderZoom] = useState(1);
+  useEffect(() => {
+    setSharp(null); pageRef.current = null; if (!pdfUrl) return;
+    let doc: any; let dead = false;
+    (async () => {
+      try {
+        ensurePdfWorker(); doc = await pdfjsLib.getDocument(pdfUrl).promise;
+        const page = await doc.getPage(1);
+        if (dead) return; pageRef.current = page; setRenderZoom((z) => z + 0.0001);
+      } catch (e) { console.error("Drawing PDF load failed", e); }
+    })();
+    return () => { dead = true; doc?.destroy?.(); };
+  }, [pdfUrl]);
+  useEffect(() => { const t = setTimeout(() => setRenderZoom(view.z), 250); return () => clearTimeout(t); }, [view.z]);
+  useEffect(() => {
+    const page = pageRef.current, el = ref.current; if (!page || !el) return;
+    let task: any; let dead = false;
+    const base = page.getViewport({ scale: 1 });
+    const fit = Math.min(el.clientWidth / base.width, el.clientHeight / base.height);
+    let scale = fit * (window.devicePixelRatio || 1) * Math.max(1, renderZoom);
+    const longest = Math.max(base.width, base.height) * scale;
+    if (longest > 8000) scale *= 8000 / longest;
+    const vp = page.getViewport({ scale });
+    const canvas = document.createElement("canvas");
+    canvas.width = Math.floor(vp.width); canvas.height = Math.floor(vp.height);
+    task = page.render({ canvasContext: canvas.getContext("2d")!, viewport: vp });
+    task.promise.then(() => { if (!dead) canvas.toBlob((b) => { if (b && !dead) setSharp((old) => { if (old) URL.revokeObjectURL(old); return URL.createObjectURL(b); }); }); }).catch(() => {});
+    return () => { dead = true; task?.cancel?.(); };
+  }, [renderZoom]);
   const clampView = (z: number, x: number, y: number) => {
     const el = ref.current; if (!el || z <= 1) return { z: 1, x: 0, y: 0 };
     const w = el.clientWidth, h = el.clientHeight;
@@ -429,7 +471,7 @@ function ZoomableImage({ src }: { src: string }) {
       onPointerMove={(e) => { const d = drag.current; if (!d) return; setView(clampView(viewRef.current.z, d.ox + e.clientX - d.x, d.oy + e.clientY - d.y)); }}
       onPointerUp={() => { drag.current = null; setDragging(false); }}
       onPointerCancel={() => { drag.current = null; setDragging(false); }}>
-      <img src={src} alt="" draggable={false} className="w-full h-full object-contain"
+      <img src={sharp || src} alt="" draggable={false} className="w-full h-full object-contain"
         style={{ transform: `translate(${view.x}px, ${view.y}px) scale(${view.z})`, transformOrigin: "0 0" }} />
       <div className="absolute bottom-2 right-2 flex items-center gap-2 rounded bg-background/90 border px-2 py-1 text-xs">
         <span>{Math.round(view.z * 100)}%</span>
