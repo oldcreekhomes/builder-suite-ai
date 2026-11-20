@@ -1,3 +1,4 @@
+import { cleanSheetNumber } from '@/lib/drawingSheets';
 import { useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
@@ -234,13 +235,13 @@ export function UploadSheetDialog({ open, onOpenChange, takeoffId, onSuccess }: 
               ...d,
               status: 'ready',
               aiSuggestion: {
-                sheet_number: data.sheet_number,
+                sheet_number: data.sheet_number ? cleanSheetNumber(data.sheet_number) : null,
                 sheet_title: data.sheet_title,
                 scale: data.scale,
                 confidence: data.confidence || 'low',
               },
               userValues: {
-                sheet_number: data.sheet_number || '',
+                sheet_number: cleanSheetNumber(data.sheet_number),
                 sheet_title: data.sheet_title || '',
                 scale: COMMON_SCALES.includes(data.scale) ? data.scale : '',
               }
