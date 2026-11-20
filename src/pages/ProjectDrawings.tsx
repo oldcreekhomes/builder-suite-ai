@@ -12,6 +12,7 @@ import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { MlProcessingMessage } from "@/components/ui/ml-processing-message";
 import { Upload, Loader2, Trash2, ExternalLink, FileText, FolderOpen } from "lucide-react";
 import { useDropzone } from "react-dropzone";
 import { Card } from "@/components/ui/card";
@@ -96,6 +97,10 @@ export default function ProjectDrawings() {
   }, [sheets, search]);
 
   const [progress, setProgress] = useState("");
+  const readingCount = pending.filter((p) => p.reading).length;
+  const mlBusy = preparing || readingCount > 0;
+  const mlText = `Reading ${pending.length || ""} sheet${pending.length === 1 ? "" : "s"} from machine learning`.replace("  ", " ");
+  const mlDetail = `Finding sheet numbers and titles · ${pending.length - readingCount} of ${pending.length}${preparing && progress ? ` · ${progress}` : ""}`;
 
   const readTitleBlocks = async (items: Pending[]) => {
     const queue = [...items];
@@ -291,13 +296,11 @@ export default function ProjectDrawings() {
             <Card>
               <div {...getRootProps()} className={`p-8 text-center cursor-pointer ${isDragActive ? "bg-muted" : ""}`}>
                 <input {...getInputProps()} />
-                {preparing ? <Loader2 className="h-12 w-12 text-muted-foreground mx-auto mb-4 animate-spin" />
-                  : <Upload className="h-12 w-12 text-muted-foreground mx-auto mb-4" />}
-                <h3 className="text-lg font-semibold mb-2">
-                  {preparing ? progress || "Preparing..." : isDragActive ? "Drop drawings here" : "Upload drawings by dragging and dropping here"}
-                </h3>
+                {mlBusy ? <MlProcessingMessage text={mlText} detail={mlDetail} className="py-4" /> : (<>
+                <Upload className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+                <h3 className="text-lg font-semibold mb-2">{isDragActive ? "Drop drawings here" : "Upload drawings by dragging and dropping here"}</h3>
                 <p className="text-muted-foreground mb-4">Drag and drop drawings or folders here, or use the buttons in the header to select files.</p>
-                <p className="text-sm text-muted-foreground">Supports: PDF, PNG, JPG</p>
+                <p className="text-sm text-muted-foreground">Supports: PDF, PNG, JPG</p></>)}
               </div>
             </Card>
             <Input placeholder="Search sheet number or title" value={search} onChange={(e) => setSearch(e.target.value)} className="max-w-sm" />
@@ -329,7 +332,7 @@ export default function ProjectDrawings() {
       <Dialog open={reviewOpen} onOpenChange={(o) => { if (!o && !saving) cancelReview(); }}>
         <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
           <DialogHeader><DialogTitle>Review sheets before saving</DialogTitle></DialogHeader>
-          {preparing && <p className="text-sm text-muted-foreground flex items-center gap-2"><Loader2 className="h-4 w-4 animate-spin" />{progress || "Preparing..."}</p>}
+          {mlBusy && <div className="rounded-md border bg-muted/30"><MlProcessingMessage text={mlText} detail={mlDetail} className="py-6" /></div>}
           <div className="flex items-center gap-2">
             <span className="text-sm whitespace-nowrap">Set name</span>
             <Input value={setName} onChange={(e) => setSetName(e.target.value)} />
@@ -343,9 +346,9 @@ export default function ProjectDrawings() {
               {pending.map((p, i) => (
                 <TableRow key={p.pageIndex}>
                   <TableCell><img src={publicUrl(p.imagePath)} alt="" className="h-12 w-16 object-contain bg-muted rounded" /></TableCell>
-                  <TableCell><Input value={p.sheetNumber} placeholder={p.reading ? "Reading..." : "e.g. A-101"}
+                  <TableCell><Input value={p.sheetNumber} placeholder={p.reading ? "✦ Reading..." : "e.g. A-101"}
                     onChange={(e) => setPending((x) => x.map((y) => y.pageIndex === p.pageIndex ? { ...y, sheetNumber: e.target.value } : y))} /></TableCell>
-                  <TableCell><Input value={p.title} placeholder={p.reading ? "Reading..." : "Sheet title"}
+                  <TableCell><Input value={p.title} placeholder={p.reading ? "✦ Reading..." : "Sheet title"}
                     onChange={(e) => setPending((x) => x.map((y) => y.pageIndex === p.pageIndex ? { ...y, title: e.target.value } : y))} /></TableCell>
                   <TableCell>{batchTags[i] == null ? <span className="text-xs text-destructive">Needs sheet #</span>
                     : batchTags[i] === 1 ? <Badge>New</Badge> : <Badge variant="secondary">Version {batchTags[i]}</Badge>}</TableCell>

@@ -1,6 +1,7 @@
 import { useState, useCallback, useEffect, ReactNode, useRef } from "react";
 import { useSearchParams } from "react-router-dom";
 import { Receipt, Upload, Sparkles } from "lucide-react";
+import { MlProcessingMessage } from "@/components/ui/ml-processing-message";
 import { useDropzone } from "react-dropzone";
 import { ContentSidebar } from "@/components/ui/ContentSidebar";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -995,6 +996,106 @@ export function BillsApprovalTabs({ projectId, projectIds, reviewOnly = false, o
             className="pl-9 h-9"
           />
         </div>
+      );
+    } else if (activeTab === 'approve') {
+      onHeaderActionChange(
+        <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 px-3 rounded-lg border bg-background h-9">
+            <span className="text-xs font-medium whitespace-nowrap">Show bills</span>
+            <RadioGroup value={dueDateFilter} onValueChange={(value) => setDueDateFilter(value as "all" | "due-on-or-before")} className="flex items-center gap-3">
+              <div className="flex items-center gap-1.5">
+                <RadioGroupItem value="due-on-or-before" id="due-filter" />
+                <Label htmlFor="due-filter" className="cursor-pointer font-normal whitespace-nowrap text-xs">Due on or before</Label>
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <Button
+                      variant="outline"
+                      disabled={dueDateFilter !== "due-on-or-before"}
+                      className={cn(
+                        "w-[130px] justify-start text-left font-normal h-7 text-xs text-foreground",
+                        !filterDate && "text-foreground"
+                      )}
+                    >
+                      <CalendarIcon className="mr-1.5 h-3 w-3 text-foreground" />
+                      {filterDate ? format(filterDate, "MM/dd/yyyy") : <span>Pick a date</span>}
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-auto p-0" align="start">
+                    <Calendar
+                      mode="single"
+                      selected={filterDate}
+                      onSelect={setFilterDate}
+                      initialFocus
+                      className="pointer-events-auto"
+                    />
+                  </PopoverContent>
+                </Popover>
+              </div>
+              <div className="flex items-center gap-1.5">
+                <RadioGroupItem value="all" id="all-filter" />
+                <Label htmlFor="all-filter" className="cursor-pointer font-normal whitespace-nowrap text-xs">All</Label>
+              </div>
+            </RadioGroup>
+          </div>
+          <div className="relative w-64">
+            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
+            <Input
+              placeholder="Search bills..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="pl-9 h-9"
+            />
+          </div>
+        </div>
+      );
+    } else if (activeTab === 'upload') {
+      onHeaderActionChange(
+        <div className="flex items-center gap-2">
+          <SimplifiedAIBillExtraction 
+            ref={extractionRef}
+            onDataExtracted={() => {}}
+            onSwitchToManual={() => setActiveTab("manual")}
+            suppressIndividualToasts={true}
+            onExtractionStart={(total) => handleExtractionStart(total)}
+            onExtractionComplete={handleExtractionComplete}
+            onExtractionProgress={handleExtractionProgress}
+            projectId={effectiveProjectId}
+          />
+          {batchBills.length > 0 && (
+            <Button onClick={handleSubmitAllBills} disabled={isSubmitting || selectedBillIds.size === 0} size="sm" className="bg-black hover:bg-gray-800 text-white">
+              {isSubmitting ? "Submitting..." : `Submit Selected Bills (${selectedBillIds.size})`}
+            </Button>
+          )}
+        </div>
+      );
+    } else {
+      onHeaderActionChange(null);
+    }
+
+    return () => onHeaderActionChange(null);
+  }, [onHeaderActionChange, activeTab, searchQuery, dueDateFilter, filterDate, handleExtractionStart, handleExtractionComplete, batchBills.length, selectedBillIds.size, isSubmitting]);
+
+  return (
+    <>
+    <div className="flex flex-1 overflow-hidden">
+      <ContentSidebar
+        title="Bill Actions"
+        icon={Receipt}
+        items={sidebarItems}
+        activeItem={activeTab}
+        onItemChange={setActiveTab}
+      />
+      <div className="flex-1 min-w-0 px-6 pt-3 pb-6 overflow-auto">
+
+      {!reviewOnly && activeTab === "manual" && (
+            <ManualBillEntry />
+      )}
+
+      {!reviewOnly && activeTab === "upload" && (
+          <div className="space-y-4">
+          {isExtracting ? (
+            <div className="rounded-md border bg-muted/30">
+              <MlProcessingMessage text={`Extracting ${extractingTotal} bill${extractingTotal !== 1 ? "s" : ""} from machine learning`} />
       );
     } else if (activeTab === 'approve') {
       onHeaderActionChange(
