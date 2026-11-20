@@ -22,7 +22,7 @@ import {
   ChevronDown,
   BarChart3,
   Store,
-  Building
+  Building,
   PenTool,
 } from "lucide-react";
 import { UnreadBadge } from "@/components/ui/unread-badge";
