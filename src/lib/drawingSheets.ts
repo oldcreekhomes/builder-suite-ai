@@ -1,6 +1,16 @@
+/** Strips "Sheet"/"Sht"/"Dwg" prefixes and "of N" / "/N" page counts: "Sheet 2 of 19" -> "2". Must match add_drawing_version in SQL. */
+export function cleanSheetNumber(raw: string | null | undefined): string {
+  return (raw || "")
+    .trim()
+    .replace(/^(sheet|sht|dwg)\.?\s*(no\.?|#)?\s*/i, "")
+    .replace(/\s*(of|\/)\s*\d+\s*$/i, "")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
 /** Normalizes a sheet number so "A-101", "a101" and "A 101" are the same sheet. Must match add_drawing_version in SQL. */
 export function sheetKey(sheetNumber: string | null | undefined): string {
-  return (sheetNumber || "").replace(/[\s.\-_]/g, "").toUpperCase();
+  return cleanSheetNumber(sheetNumber).replace(/[\s.\-_]/g, "").toUpperCase();
 }
 
 const DISCIPLINES: [RegExp, string][] = [

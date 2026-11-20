@@ -18,7 +18,7 @@ import { Card } from "@/components/ui/card";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { format } from "date-fns";
-import { sheetKey, disciplineFor, nextVersionFor } from "@/lib/drawingSheets";
+import { cleanSheetNumber, sheetKey, disciplineFor, nextVersionFor } from "@/lib/drawingSheets";
 
 const db = supabase as any;
 const BUCKET = "project-files";
@@ -105,7 +105,7 @@ export default function ProjectDrawings() {
         try {
           const { data } = await supabase.functions.invoke("detect-sheet-info", { body: { file_path: it.imagePath } });
           setPending((p) => p.map((x) => x.imagePath === it.imagePath
-            ? { ...x, reading: false, sheetNumber: x.sheetNumber || data?.sheet_number || "", title: x.title || data?.sheet_title || "" } : x));
+            ? { ...x, reading: false, sheetNumber: x.sheetNumber || cleanSheetNumber(data?.sheet_number), title: x.title || data?.sheet_title || "" } : x));
         } catch {
           setPending((p) => p.map((x) => x.imagePath === it.imagePath ? { ...x, reading: false } : x));
         }
@@ -223,7 +223,7 @@ export default function ProjectDrawings() {
         const up = await supabase.storage.from(BUCKET).upload(filePath, new Blob([p.pdfBytes as BlobPart], { type: "application/pdf" }), { contentType: "application/pdf" });
         if (up.error) throw up.error;
         const { error } = await db.rpc("add_drawing_version", {
-          _project_id: projectId, _sheet_number: p.sheetNumber, _title: p.title,
+          _project_id: projectId, _sheet_number: cleanSheetNumber(p.sheetNumber), _title: p.title,
           _discipline: disciplineFor(p.sheetNumber), _file_path: filePath, _image_path: p.imagePath,
           _set_name: setName, _page_index: p.pageIndex,
         });

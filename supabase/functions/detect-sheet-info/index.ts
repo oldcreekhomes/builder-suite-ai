@@ -173,6 +173,8 @@ CRITICAL INSTRUCTIONS - READ CAREFULLY:
    - Returning all null values is almost never correct for a valid drawing page
 
 Return ONLY valid JSON (no markdown, no code blocks):
+Return ONLY the sheet identifier for sheet_number (e.g. "A-101" or "2"). Never include page counts like "of 19" or the word "Sheet".
+
 {"sheet_number": "exact value found or null", "sheet_title": "exact value found or null", "scale": "exact value found or null", "confidence": "high/medium/low"}`
               },
               {
