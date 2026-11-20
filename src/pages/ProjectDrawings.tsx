@@ -12,7 +12,9 @@ import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Upload, Loader2, Trash2, ExternalLink } from "lucide-react";
+import { Upload, Loader2, Trash2, ExternalLink, FileText, FolderOpen } from "lucide-react";
+import { useDropzone } from "react-dropzone";
+import { Card } from "@/components/ui/card";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { format } from "date-fns";
@@ -150,20 +152,13 @@ export default function ProjectDrawings() {
     readTitleBlocks(items);
   };
 
-  const collectDropped = async (dt: DataTransfer): Promise<File[]> => {
-    const out: File[] = [];
-    const walk = async (entry: any): Promise<void> => {
-      if (entry.isFile) { out.push(await new Promise<File>((r, j) => entry.file(r, j))); return; }
-      if (entry.isDirectory) {
-        const reader = entry.createReader();
-        let batch: any[];
-        do { batch = await new Promise<any[]>((r, j) => reader.readEntries(r, j)); for (const e of batch) await walk(e); } while (batch.length);
-      }
-    };
-    const entries = Array.from(dt.items).map((i) => (i as any).webkitGetAsEntry?.()).filter(Boolean);
-    if (entries.length) { for (const e of entries) await walk(e); return out; }
-    return Array.from(dt.files);
-  };
+  const { getRootProps, getInputProps, isDragActive } = useDropzone({
+    multiple: true,
+    disabled: preparing,
+    accept: { "application/pdf": [".pdf"], "image/png": [".png"], "image/jpeg": [".jpg", ".jpeg"] },
+    onDrop: (files) => { if (files.length) handleFiles(files); },
+  });
+  const folderRef = useRef<HTMLInputElement>(null);
 
   const save = async () => {
     const missing = pending.filter((p) => !sheetKey(p.sheetNumber));
@@ -224,20 +219,33 @@ export default function ProjectDrawings() {
             subtitle="One place for every sheet, always on the latest version."
             projectId={projectId}
             headerAction={
-              <Button size="sm" onClick={() => fileRef.current?.click()} disabled={preparing}>
-                {preparing ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Upload className="h-4 w-4 mr-2" />}
-                {preparing ? progress || "Preparing..." : "Upload Drawing Set"}
-              </Button>
+              <div className="flex items-center gap-2">
+                <Button variant="outline" size="sm" onClick={() => fileRef.current?.click()} disabled={preparing}>
+                  <FileText className="h-4 w-4 mr-2" />Choose Drawings
+                </Button>
+                <Button variant="outline" size="sm" onClick={() => folderRef.current?.click()} disabled={preparing}>
+                  <FolderOpen className="h-4 w-4 mr-2" />Choose Folder
+                </Button>
+              </div>
             }
           />
           <input ref={fileRef} type="file" multiple accept="application/pdf,image/png,image/jpeg" className="hidden"
             onChange={(e) => { const f = Array.from(e.target.files || []); if (f.length) handleFiles(f); e.target.value = ""; }} />
-          <div className="p-6 space-y-4 min-h-[60vh]"
-            onDragOver={(e) => e.preventDefault()}
-            onDrop={async (e) => { e.preventDefault(); if (preparing) return; handleFiles(await collectDropped(e.dataTransfer)); }}>
-            <div className="border border-dashed rounded-md p-4 text-sm text-muted-foreground text-center">
-              {preparing ? progress || "Preparing..." : "Drag drawing files or a whole folder here, or use Upload Drawing Set (pick as many as you want)"}
-            </div>
+          <input ref={folderRef} type="file" multiple className="hidden" {...({ webkitdirectory: "", directory: "" } as any)}
+            onChange={(e) => { const f = Array.from(e.target.files || []); if (f.length) handleFiles(f); e.target.value = ""; }} />
+          <div className="p-6 space-y-4">
+            <Card>
+              <div {...getRootProps()} className={`p-8 text-center cursor-pointer ${isDragActive ? "bg-muted" : ""}`}>
+                <input {...getInputProps()} />
+                {preparing ? <Loader2 className="h-12 w-12 text-muted-foreground mx-auto mb-4 animate-spin" />
+                  : <Upload className="h-12 w-12 text-muted-foreground mx-auto mb-4" />}
+                <h3 className="text-lg font-semibold mb-2">
+                  {preparing ? progress || "Preparing..." : isDragActive ? "Drop drawings here" : "Upload drawings by dragging and dropping here"}
+                </h3>
+                <p className="text-muted-foreground mb-4">Drag and drop drawings or folders here, or use the buttons in the header to select files.</p>
+                <p className="text-sm text-muted-foreground">Supports: PDF, PNG, JPG</p>
+              </div>
+            </Card>
             <Input placeholder="Search sheet number or title" value={search} onChange={(e) => setSearch(e.target.value)} className="max-w-sm" />
             {isLoading ? <p className="text-sm text-muted-foreground">Loading...</p> :
               grouped.length === 0 ? <p className="text-sm text-muted-foreground">No drawings yet. Upload a PDF drawing set to get started.</p> :
