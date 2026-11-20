@@ -366,14 +366,14 @@ export default function ProjectDrawings() {
       </Dialog>
 
       <Dialog open={!!openSheet} onOpenChange={(o) => { if (!o) { setOpenSheet(null); setViewVersion(null); } }}>
-        <DialogContent className="max-w-6xl max-h-[92vh] overflow-y-auto">
+        <DialogContent className="max-w-none w-screen h-screen sm:rounded-none flex flex-col p-4 gap-3">
           {openSheet && (<>
             <DialogHeader><DialogTitle>{openSheet.sheet_number} {openSheet.title ? `- ${openSheet.title}` : ""}</DialogTitle></DialogHeader>
-            <div className="grid grid-cols-[1fr_260px] gap-4">
-              <div className="bg-muted rounded min-h-[400px] flex items-center justify-center">
-                {shown?.image_path && <img src={publicUrl(shown.image_path)} alt="" className="max-h-[75vh] object-contain" />}
+            <div className="grid grid-cols-[1fr_260px] gap-4 flex-1 min-h-0">
+              <div className="bg-muted rounded min-h-0 h-full">
+                {shown?.image_path && <ZoomableImage src={publicUrl(shown.image_path)} />}
               </div>
-              <div className="space-y-2">
+              <div className="space-y-2 overflow-y-auto min-h-0">
                 <h4 className="text-sm font-semibold">Version history</h4>
                 {versionsOf(openSheet.id).map((v) => (
                   <div key={v.id} className={`border rounded p-2 text-xs cursor-pointer ${shown?.id === v.id ? "border-foreground" : ""}`} onClick={() => setViewVersion(v)}>
@@ -394,5 +394,45 @@ export default function ProjectDrawings() {
         </DialogContent>
       </Dialog>
     </SidebarProvider>
+  );
+}
+
+function ZoomableImage({ src }: { src: string }) {
+  const ref = useRef<HTMLDivElement>(null);
+  const [view, setView] = useState({ z: 1, x: 0, y: 0 });
+  const viewRef = useRef(view); viewRef.current = view;
+  const drag = useRef<{ x: number; y: number; ox: number; oy: number } | null>(null);
+  useEffect(() => { setView({ z: 1, x: 0, y: 0 }); }, [src]);
+  const clampView = (z: number, x: number, y: number) => {
+    const el = ref.current; if (!el || z <= 1) return { z: 1, x: 0, y: 0 };
+    const w = el.clientWidth, h = el.clientHeight;
+    return { z, x: Math.min(0, Math.max(w - w * z, x)), y: Math.min(0, Math.max(h - h * z, y)) };
+  };
+  useEffect(() => {
+    const el = ref.current; if (!el) return;
+    const onWheel = (e: WheelEvent) => {
+      e.preventDefault();
+      const v = viewRef.current;
+      const dy = e.deltaY * (e.deltaMode === 1 ? 16 : e.deltaMode === 2 ? 100 : 1);
+      const next = Math.min(8, Math.max(1, v.z * Math.exp(-dy * 0.0015)));
+      const r = el.getBoundingClientRect(); const px = e.clientX - r.left, py = e.clientY - r.top; const k = next / v.z;
+      setView(clampView(next, px - (px - v.x) * k, py - (py - v.y) * k));
+    };
+    el.addEventListener("wheel", onWheel, { passive: false });
+    return () => el.removeEventListener("wheel", onWheel);
+  }, []);
+  return (
+    <div ref={ref} className="relative w-full h-full overflow-hidden select-none" style={{ cursor: view.z > 1 ? (drag.current ? "grabbing" : "grab") : "zoom-in", touchAction: "none" }}
+      onDoubleClick={() => setView({ z: 1, x: 0, y: 0 })}
+      onPointerDown={(e) => { if (viewRef.current.z <= 1) return; (e.target as HTMLElement).setPointerCapture(e.pointerId); drag.current = { x: e.clientX, y: e.clientY, ox: viewRef.current.x, oy: viewRef.current.y }; }}
+      onPointerMove={(e) => { const d = drag.current; if (!d) return; setView(clampView(viewRef.current.z, d.ox + e.clientX - d.x, d.oy + e.clientY - d.y)); }}
+      onPointerUp={() => { drag.current = null; }}>
+      <img src={src} alt="" draggable={false} className="w-full h-full object-contain"
+        style={{ transform: `translate(${view.x}px, ${view.y}px) scale(${view.z})`, transformOrigin: "0 0" }} />
+      <div className="absolute bottom-2 right-2 flex items-center gap-2 rounded bg-background/90 border px-2 py-1 text-xs">
+        <span>{Math.round(view.z * 100)}%</span>
+        <button className="font-medium" onClick={() => setView({ z: 1, x: 0, y: 0 })}>Fit</button>
+      </div>
+    </div>
   );
 }
