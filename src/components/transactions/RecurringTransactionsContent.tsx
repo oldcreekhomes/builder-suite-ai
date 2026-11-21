@@ -9,6 +9,8 @@ import { TableRowActions } from "@/components/ui/table-row-actions";
 import { AlertCircle } from "lucide-react";
 import { format } from "date-fns";
 import { toDateLocal } from "@/utils/dateOnly";
+import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
+import { CreditCardsContent } from "@/components/transactions/CreditCardsContent";
 
 interface RecurringTransactionsContentProps {
   projectId?: string;
@@ -18,6 +20,7 @@ interface RecurringTransactionsContentProps {
 export function RecurringTransactionsContent({ projectId, onEnterTransaction }: RecurringTransactionsContentProps) {
   const { recurringTransactions, dueTransactions, isLoading, deleteRecurring, toggleActive } = useRecurringTransactions(projectId);
   const [typeFilter, setTypeFilter] = useState<string>("all");
+  const [editing, setEditing] = useState<RecurringTransaction | null>(null);
 
   const { data: projectNames = {} } = useQuery({
     queryKey: ["recurring-project-names"],
@@ -96,6 +99,7 @@ export function RecurringTransactionsContent({ projectId, onEnterTransaction }: 
           <TableHeader>
             <TableRow>
               <TableHead>Name</TableHead>
+              <TableHead>Card</TableHead>
               {!projectId && <TableHead>Project</TableHead>}
               <TableHead>Type</TableHead>
               <TableHead>Amount</TableHead>
@@ -116,6 +120,9 @@ export function RecurringTransactionsContent({ projectId, onEnterTransaction }: 
                       {due && <AlertCircle className="h-4 w-4 text-amber-600" />}
                       {rt.name}
                     </div>
+                  </TableCell>
+                  <TableCell className="text-muted-foreground max-w-0 truncate" title={rt.template_data?.credit_card_account || rt.template_data?.bank_account || ""}>
+                    {rt.template_data?.credit_card_account || rt.template_data?.bank_account || "-"}
                   </TableCell>
                   {!projectId && (
                     <TableCell className="text-muted-foreground">
@@ -146,6 +153,11 @@ export function RecurringTransactionsContent({ projectId, onEnterTransaction }: 
                           hidden: !due || !onEnterTransaction,
                         },
                         {
+                          label: "Edit",
+                          onClick: () => setEditing(rt),
+                          hidden: rt.transaction_type !== "credit_card",
+                        },
+                        {
                           label: rt.is_active ? "Pause" : "Resume",
                           onClick: () => toggleActive.mutate({ id: rt.id, is_active: !rt.is_active }),
                           disabled: toggleActive.isPending,
@@ -168,6 +180,18 @@ export function RecurringTransactionsContent({ projectId, onEnterTransaction }: 
           </TableBody>
         </Table>
       )}
+      <Dialog open={!!editing} onOpenChange={(o) => { if (!o) setEditing(null); }}>
+        <DialogContent className="max-w-[95vw] max-h-[92vh] overflow-y-auto p-0">
+          <DialogTitle className="sr-only">Edit {editing?.name}</DialogTitle>
+          {editing && (
+            <CreditCardsContent
+              key={editing.id}
+              projectId={editing.project_id || projectId}
+              recurringEdit={{ template: editing, onSaved: () => setEditing(null), onCancel: () => setEditing(null) }}
+            />
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

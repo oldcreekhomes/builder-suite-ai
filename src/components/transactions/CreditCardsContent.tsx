@@ -32,7 +32,7 @@ import { useCreditCardAttachments } from "@/hooks/useCreditCardAttachments";
 import { CreditCardSearchDialog } from "@/components/creditcards/CreditCardSearchDialog";
 import { useLots } from "@/hooks/useLots";
 import { MemorizeTransactionDialog } from "./MemorizeTransactionDialog";
-import type { RecurringTransaction, RecurringTransactionLine } from "@/hooks/useRecurringTransactions";
+import { useRecurringTransactions, type RecurringTransaction, type RecurringTransactionLine } from "@/hooks/useRecurringTransactions";
 
 interface CreditCardRow {
   id: string;
@@ -50,10 +50,13 @@ interface CreditCardRow {
 interface CreditCardsContentProps {
   projectId?: string;
   recurringTemplate?: RecurringTransaction | null;
+  /** Edit a memorized credit card template using this exact screen. Saves the template, never posts. */
+  recurringEdit?: { template: RecurringTransaction; onSaved: () => void; onCancel: () => void };
   onClearTemplate?: () => void;
 }
 
-export function CreditCardsContent({ projectId, recurringTemplate, onClearTemplate }: CreditCardsContentProps) {
+export function CreditCardsContent({ projectId, recurringTemplate, onClearTemplate, recurringEdit }: CreditCardsContentProps) {
+  const { updateRecurring } = useRecurringTransactions(projectId);
   const { creditCards, createCreditCard, updateCreditCard, deleteCreditCard } = useCreditCards(projectId);
   const { costCodes, loading: costCodesLoading } = useCostCodeSearch();
   const { accounts: globalAccounts } = useAccounts();
@@ -245,6 +248,7 @@ export function CreditCardsContent({ projectId, recurringTemplate, onClearTempla
   const { registerForm, unregisterForm } = useUnsavedChangesContext();
 
   useEffect(() => {
+    if (recurringEdit) return;
     const handleSaveForContext = async () => {
       await handleSave('stay');
       initialFormStateRef.current = getFormStateSnapshot();
@@ -258,7 +262,7 @@ export function CreditCardsContent({ projectId, recurringTemplate, onClearTempla
     return () => {
       unregisterForm();
     };
-  }, [registerForm, unregisterForm, hasFormChanges, getFormStateSnapshot]);
+  }, [registerForm, unregisterForm, hasFormChanges, getFormStateSnapshot, recurringEdit]);
 
   const clearForm = () => {
     setTransactionType('purchase');
@@ -492,6 +496,10 @@ export function CreditCardsContent({ projectId, recurringTemplate, onClearTempla
     setCurrentIndex(index);
     setIsViewingMode(true);
     setCurrentCreditCardId(card.id);
+    fillFormFromCard(card);
+  };
+
+  const fillFormFromCard = (card: any) => {
     setTransactionType(card.transaction_type as 'purchase' | 'refund');
     setTransactionDate(toDateLocal(card.transaction_date));
     
@@ -559,6 +567,70 @@ export function CreditCardsContent({ projectId, recurringTemplate, onClearTempla
     }
   };
 
+  const recurringHydratedRef = useRef(false);
+  useEffect(() => {
+    if (!recurringEdit || recurringHydratedRef.current) return;
+    if (!accounts.length || costCodesLoading) return;
+    recurringHydratedRef.current = true;
+    const t = recurringEdit.template;
+    const td = t.template_data || {};
+    fillFormFromCard({
+      transaction_type: td.transaction_type || 'purchase',
+      transaction_date: format(new Date(), 'yyyy-MM-dd'),
+      credit_card_account_id: td.credit_card_account_id,
+      vendor: td.vendor || '',
+      reference_number: td.reference_number || '',
+      project_id: td.project_id || t.project_id || '',
+      lines: [...(t.recurring_transaction_lines || [])].sort((a, b) => a.line_number - b.line_number),
+    });
+    setVendorId(td.vendor_id || '');
+    if (!td.credit_card_account_id && td.credit_card_account) setCreditCardAccount(td.credit_card_account);
+  }, [recurringEdit, accounts, costCodesLoading]);
+
+  const buildTemplatePayload = () => ({
+    templateData: {
+      credit_card_account: creditCardAccount,
+      credit_card_account_id: creditCardAccountId,
+      vendor: vendor,
+      vendor_id: vendorId,
+      reference_number: referenceNumber.trim() || null,
+      transaction_type: transactionType,
+      amount: calculateTotal(),
+      project_id: selectedProjectId || projectId,
+    },
+    lines: [
+      ...expenseRows.filter(r => parseFloat(r.amount) > 0).map((r, i) => ({
+        line_type: "expense" as const,
+        account_id: r.accountId,
+        project_id: r.projectId,
+        lot_id: r.lotId,
+        quantity: parseFloat(r.quantity || "1") || 1,
+        amount: parseFloat(r.amount) || 0,
+        memo: r.memo,
+        line_number: i + 1,
+      })),
+      ...jobCostRows.filter(r => parseFloat(r.amount) > 0).map((r, i) => ({
+        line_type: "job_cost" as const,
+        cost_code_id: r.costCodeId,
+        project_id: r.projectId,
+        lot_id: r.lotId,
+        quantity: parseFloat(r.quantity || "1") || 1,
+        amount: parseFloat(r.amount) || 0,
+        memo: r.memo,
+        line_number: i + 1,
+      })),
+    ],
+  });
+
+  const saveRecurring = async () => {
+    if (!recurringEdit) return;
+    if (!creditCardAccountId) { toast({ title: "Credit card account is required", variant: "destructive" }); return; }
+    const { templateData, lines } = buildTemplatePayload();
+    if (lines.length === 0) { toast({ title: "Add at least one line with an amount", variant: "destructive" }); return; }
+    await updateRecurring.mutateAsync({ id: recurringEdit.template.id, template_data: { ...(recurringEdit.template.template_data || {}), ...templateData }, lines });
+    recurringEdit.onSaved();
+  };
+
   const handleCreditCardSelect = (creditCard: any) => {
     const index = creditCards.findIndex(cc => cc.id === creditCard.id);
     if (index !== -1) {
@@ -612,7 +684,7 @@ export function CreditCardsContent({ projectId, recurringTemplate, onClearTempla
               </div>
             </div>
             
-            <div className="flex items-center gap-4">
+            <div className={recurringEdit ? "hidden" : "flex items-center gap-4"}>
               {/* Navigation Controls */}
               <div className="flex items-center gap-2">
                 <Button 
@@ -1075,7 +1147,14 @@ export function CreditCardsContent({ projectId, recurringTemplate, onClearTempla
               <div className="text-base font-semibold">
                 Total: ${calculateTotal().toFixed(2)}
               </div>
-              {isTransactionLocked ? (
+              {recurringEdit ? (
+                <div className="flex gap-2">
+                  <Button type="button" variant="outline" size="sm" className="h-10" onClick={recurringEdit.onCancel}>Cancel</Button>
+                  <Button type="button" size="sm" className="h-10" onClick={saveRecurring} disabled={updateRecurring.isPending}>
+                    {updateRecurring.isPending ? "Saving..." : "Save Recurring"}
+                  </Button>
+                </div>
+              ) : isTransactionLocked ? (
                 <div className="flex items-center gap-2 text-amber-700">
                   <Lock className="h-4 w-4 text-red-600" />
                   <span className="text-sm font-medium">This transaction cannot be edited</span>
@@ -1152,37 +1231,8 @@ export function CreditCardsContent({ projectId, recurringTemplate, onClearTempla
           open={memorizeDialogOpen}
           onOpenChange={setMemorizeDialogOpen}
           transactionType="credit_card"
-          templateData={{
-            credit_card_account: creditCardAccount,
-            credit_card_account_id: creditCardAccountId,
-            vendor: vendor,
-            vendor_id: vendorId,
-            transaction_type: transactionType,
-            amount: calculateTotal(),
-            project_id: selectedProjectId || projectId,
-          }}
-          lines={[
-            ...expenseRows.filter(r => parseFloat(r.amount) > 0).map((r, i) => ({
-              line_type: "expense" as const,
-              account_id: r.accountId,
-              project_id: r.projectId,
-              lot_id: r.lotId,
-              quantity: parseFloat(r.quantity || "1") || 1,
-              amount: parseFloat(r.amount) || 0,
-              memo: r.memo,
-              line_number: i + 1,
-            })),
-            ...jobCostRows.filter(r => parseFloat(r.amount) > 0).map((r, i) => ({
-              line_type: "job_cost" as const,
-              cost_code_id: r.costCodeId,
-              project_id: r.projectId,
-              lot_id: r.lotId,
-              quantity: parseFloat(r.quantity || "1") || 1,
-              amount: parseFloat(r.amount) || 0,
-              memo: r.memo,
-              line_number: i + 1,
-            })),
-          ]}
+          templateData={buildTemplatePayload().templateData}
+          lines={buildTemplatePayload().lines}
           defaultName={vendor}
         />
       </TooltipProvider>

@@ -148,6 +148,39 @@ export function useRecurringTransactions(projectId?: string) {
     },
   });
 
+  const updateRecurring = useMutation({
+    mutationFn: async ({ id, template_data, lines }: { id: string; template_data: Record<string, any>; lines: RecurringTransactionLine[] }) => {
+      const ownerId = await getEffectiveOwnerId();
+      const { error } = await supabase.from("recurring_transactions").update({ template_data }).eq("id", id);
+      if (error) throw error;
+      const { error: delError } = await supabase.from("recurring_transaction_lines").delete().eq("recurring_transaction_id", id);
+      if (delError) throw delError;
+      if (lines.length > 0) {
+        const { error: lineError } = await supabase.from("recurring_transaction_lines").insert(lines.map((line, idx) => ({
+          recurring_transaction_id: id,
+          owner_id: ownerId,
+          line_type: line.line_type,
+          account_id: line.account_id || null,
+          cost_code_id: line.cost_code_id || null,
+          project_id: line.project_id || null,
+          lot_id: line.lot_id || null,
+          quantity: line.quantity || 1,
+          amount: line.amount || 0,
+          memo: line.memo || null,
+          line_number: idx + 1,
+        })));
+        if (lineError) throw lineError;
+      }
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["recurring-transactions"] });
+      toast({ title: "Recurring transaction updated" });
+    },
+    onError: (error: any) => {
+      toast({ title: "Error", description: error.message, variant: "destructive" });
+    },
+  });
+
   const deleteRecurring = useMutation({
     mutationFn: async (id: string) => {
       const { error } = await supabase
@@ -201,6 +234,7 @@ export function useRecurringTransactions(projectId?: string) {
     dueTransactions,
     isLoading,
     createRecurring,
+    updateRecurring,
     deleteRecurring,
     toggleActive,
     advanceNextDate,
