@@ -47,6 +47,24 @@ export function RecurringTransactionsContent({ projectId, onEnterTransaction }: 
     }
   };
 
+  const vendorOf = (rt: RecurringTransaction) => {
+    const td = rt.template_data || {};
+    return td.vendor || td.pay_to_name || td.company_name || td.pay_to || td.payee || "-";
+  };
+  const descriptionOf = (rt: RecurringTransaction) => {
+    const memos = [...(rt.recurring_transaction_lines || [])]
+      .sort((a, b) => a.line_number - b.line_number)
+      .map((l) => (l.memo || "").trim())
+      .filter(Boolean);
+    return memos.length ? Array.from(new Set(memos)).join(", ") : rt.name;
+  };
+  const accountOf = (rt: RecurringTransaction) => rt.template_data?.credit_card_account || rt.template_data?.bank_account || "-";
+  const typeOf = (rt: RecurringTransaction) => {
+    if (rt.transaction_type === "credit_card") return rt.template_data?.transaction_type === "refund" ? "Refund" : "Purchase";
+    return formatType(rt.transaction_type);
+  };
+  const accountLabel = typeFilter === "credit_card" ? "Credit Card Account" : typeFilter === "check" ? "Bank Account" : "Account";
+
   const formatFrequency = (freq: string) => {
     return freq.charAt(0).toUpperCase() + freq.slice(1);
   };
@@ -95,48 +113,47 @@ export function RecurringTransactionsContent({ projectId, onEnterTransaction }: 
           <p className="text-sm mt-1">Use the "Memorize" button on any check, credit card charge, or bill to save it as a recurring template.</p>
         </div>
       ) : (
-        <Table>
+        <Table className="table-fixed">
           <TableHeader>
             <TableRow>
-              <TableHead>Name</TableHead>
-              <TableHead>Card</TableHead>
-              {!projectId && <TableHead>Project</TableHead>}
-              <TableHead>Type</TableHead>
-              <TableHead>Amount</TableHead>
-              <TableHead>Frequency</TableHead>
-              <TableHead>Next Date</TableHead>
-              <TableHead>Status</TableHead>
-              <TableHead className="w-20 text-center">Actions</TableHead>
+              <TableHead className="w-[14%]">Vendor</TableHead>
+              <TableHead className="w-[20%]">Description</TableHead>
+              <TableHead className="w-[15%]">{accountLabel}</TableHead>
+              <TableHead className="w-[9%]">Reference No.</TableHead>
+              {!projectId && <TableHead className="w-[12%]">Project</TableHead>}
+              <TableHead className="w-[8%]">Type</TableHead>
+              <TableHead className="w-[8%] text-right">Total</TableHead>
+              <TableHead className="w-[8%]">Frequency</TableHead>
+              <TableHead className="w-[8%]">Next Date</TableHead>
+              <TableHead className="w-[7%]">Status</TableHead>
+              <TableHead className="w-16 text-center">Actions</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
             {filtered.map((rt) => {
               const amount = rt.template_data?.amount ?? 0;
               const due = isDue(rt);
+              const vendor = vendorOf(rt), desc = descriptionOf(rt), acct = accountOf(rt), ref = rt.template_data?.reference_number || rt.template_data?.check_number || "-";
               return (
                 <TableRow key={rt.id} className={due ? "bg-amber-50 dark:bg-amber-950/20" : ""}>
-                  <TableCell className="font-medium">
-                    <div className="flex items-center gap-2">
-                      {due && <AlertCircle className="h-4 w-4 text-amber-600" />}
-                      {rt.name}
-                    </div>
+                  <TableCell className="font-medium max-w-0 truncate" title={vendor}>
+                    <span className="inline-flex items-center gap-2 max-w-full">
+                      {due && <AlertCircle className="h-4 w-4 shrink-0 text-amber-600" />}
+                      <span className="truncate">{vendor}</span>
+                    </span>
                   </TableCell>
-                  <TableCell className="text-muted-foreground max-w-0 truncate" title={rt.template_data?.credit_card_account || rt.template_data?.bank_account || ""}>
-                    {rt.template_data?.credit_card_account || rt.template_data?.bank_account || "-"}
-                  </TableCell>
+                  <TableCell className="max-w-0 truncate" title={desc}>{desc}</TableCell>
+                  <TableCell className="max-w-0 truncate text-muted-foreground" title={acct}>{acct}</TableCell>
+                  <TableCell className="max-w-0 truncate" title={ref}>{ref}</TableCell>
                   {!projectId && (
-                    <TableCell className="text-muted-foreground">
-                      {rt.project_id ? (projectNames[rt.project_id] ?? "—") : "—"}
+                    <TableCell className="max-w-0 truncate text-muted-foreground">
+                      {rt.project_id ? (projectNames[rt.project_id] ?? "-") : "-"}
                     </TableCell>
                   )}
-                  <TableCell>
-                    <Badge variant="outline">{formatType(rt.transaction_type)}</Badge>
-                  </TableCell>
-                  <TableCell>${Number(amount).toLocaleString("en-US", { minimumFractionDigits: 2 })}</TableCell>
+                  <TableCell><Badge variant="outline">{typeOf(rt)}</Badge></TableCell>
+                  <TableCell className="text-right">${Number(amount).toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</TableCell>
                   <TableCell>{formatFrequency(rt.frequency)}</TableCell>
-                  <TableCell>
-                    {format(toDateLocal(rt.next_date), "MM/dd/yyyy")}
-                  </TableCell>
+                  <TableCell>{format(toDateLocal(rt.next_date), "MM/dd/yyyy")}</TableCell>
                   <TableCell>
                     {rt.is_active ? (
                       <Badge className="bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200">Active</Badge>
