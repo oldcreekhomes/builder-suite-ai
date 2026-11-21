@@ -19,6 +19,7 @@ export interface CreditCardData {
   transaction_type: 'purchase' | 'refund';
   credit_card_account_id: string;
   vendor: string;
+  reference_number?: string | null;
   project_id?: string;
   amount: number;
   memo?: string;
@@ -140,6 +141,7 @@ export function useCreditCards(projectId?: string) {
           transaction_type: data.transaction_type,
           credit_card_account_id: data.credit_card_account_id,
           vendor: data.vendor,
+          reference_number: data.reference_number || null,
           project_id: projectId,
           amount: total,
           memo: data.memo,
@@ -299,6 +301,7 @@ export function useCreditCards(projectId?: string) {
           transaction_type: data.transaction_type,
           credit_card_account_id: data.credit_card_account_id,
           vendor: data.vendor,
+          reference_number: data.reference_number || null,
           project_id: effectiveProjectId,
           amount: data.amount,
           memo: data.memo || null,
@@ -471,6 +474,7 @@ export function useCreditCards(projectId?: string) {
           transaction_type: originalCC.transaction_type,
           credit_card_account_id: originalCC.credit_card_account_id,
           vendor: originalCC.vendor,
+          reference_number: (originalCC as any).reference_number ?? null,
           project_id: originalCC.project_id,
           amount: originalCC.amount,
           memo: `REVERSAL: ${originalCC.memo || ''}`,

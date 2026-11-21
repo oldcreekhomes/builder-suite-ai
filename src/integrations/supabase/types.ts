@@ -2627,6 +2627,7 @@ export type Database = {
           reconciled: boolean
           reconciliation_date: string | null
           reconciliation_id: string | null
+          reference_number: string | null
           reversed_at: string | null
           reversed_by_id: string | null
           reverses_id: string | null
@@ -2651,6 +2652,7 @@ export type Database = {
           reconciled?: boolean
           reconciliation_date?: string | null
           reconciliation_id?: string | null
+          reference_number?: string | null
           reversed_at?: string | null
           reversed_by_id?: string | null
           reverses_id?: string | null
@@ -2675,6 +2677,7 @@ export type Database = {
           reconciled?: boolean
           reconciliation_date?: string | null
           reconciliation_id?: string | null
+          reference_number?: string | null
           reversed_at?: string | null
           reversed_by_id?: string | null
           reverses_id?: string | null

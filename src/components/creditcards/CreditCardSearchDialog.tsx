@@ -132,7 +132,7 @@ export function CreditCardSearchDialog({
       const vendor = (cc.vendor || '').toLowerCase();
       const memo = (cc.memo || '').toLowerCase();
       
-      return dateStr.includes(query) || vendor.includes(query) || memo.includes(query);
+      return dateStr.includes(query) || vendor.includes(query) || memo.includes(query) || ((cc as any).reference_number || '').toLowerCase().includes(query);
     });
   }, [creditCards, searchQuery]);
 
@@ -218,6 +218,7 @@ export function CreditCardSearchDialog({
                 <TableRow>
                   <TableHead>Date</TableHead>
                   <TableHead>Vendor</TableHead>
+                  <TableHead>Reference No.</TableHead>
                   <TableHead>Description</TableHead>
                   <TableHead>Address</TableHead>
                   <TableHead className="text-right">Amount</TableHead>
@@ -229,7 +230,7 @@ export function CreditCardSearchDialog({
               <TableBody>
                 {creditCardsWithBalance.length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={8} className="text-center py-8 text-muted-foreground">
+                    <TableCell colSpan={9} className="text-center py-8 text-muted-foreground">
                       {searchQuery ? 'No credit card transactions match your search.' : 'No credit card transactions found'}
                     </TableCell>
                   </TableRow>
@@ -252,6 +253,7 @@ export function CreditCardSearchDialog({
                           {formatDateSafe(cc.transaction_date, 'MM/dd/yyyy')}
                         </TableCell>
                         <TableCell className="px-2 py-1 text-xs">{cc.vendor}</TableCell>
+                        <TableCell className="px-2 py-1 text-xs">{(cc as any).reference_number || "-"}</TableCell>
                         <TableCell className="px-2 py-1 text-xs">{cc.memo || ''}</TableCell>
                         <TableCell className="px-2 py-1 text-xs">
                           {count <= 1 ? (

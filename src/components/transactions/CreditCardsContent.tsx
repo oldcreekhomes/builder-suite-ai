@@ -86,6 +86,7 @@ export function CreditCardsContent({ projectId, recurringTemplate, onClearTempla
   const [creditCardAccount, setCreditCardAccount] = useState('');
   const [creditCardAccountId, setCreditCardAccountId] = useState('');
   const [vendor, setVendor] = useState('');
+  const [referenceNumber, setReferenceNumber] = useState('');
   const [vendorId, setVendorId] = useState('');
   const [selectedProjectId, setSelectedProjectId] = useState('');
 
@@ -128,11 +129,12 @@ export function CreditCardsContent({ projectId, recurringTemplate, onClearTempla
       transactionDate: transactionDate.toISOString(),
       creditCardAccountId,
       vendor,
+      referenceNumber,
       selectedProjectId,
       expenseRows: expenseRows.map(r => ({ accountId: r.accountId, amount: r.amount, memo: r.memo })),
       jobCostRows: jobCostRows.map(r => ({ costCodeId: r.costCodeId, amount: r.amount, memo: r.memo })),
     });
-  }, [transactionType, transactionDate, creditCardAccountId, vendor, selectedProjectId, expenseRows, jobCostRows]);
+  }, [transactionType, transactionDate, creditCardAccountId, vendor, referenceNumber, selectedProjectId, expenseRows, jobCostRows]);
 
   const hasFormChanges = useCallback(() => {
     if (!initialFormStateRef.current) return false;
@@ -264,6 +266,7 @@ export function CreditCardsContent({ projectId, recurringTemplate, onClearTempla
     setCreditCardAccount('');
     setCreditCardAccountId('');
     setVendor('');
+    setReferenceNumber('');
     setVendorId('');
     setSelectedProjectId('');
     setExpenseRows([{ id: crypto.randomUUID(), amount: '0.00', quantity: '1' }]);
@@ -438,6 +441,7 @@ export function CreditCardsContent({ projectId, recurringTemplate, onClearTempla
       transaction_type: transactionType,
       credit_card_account_id: creditCardAccountId,
       vendor,
+      reference_number: referenceNumber.trim() || null,
       project_id: selectedProjectId || projectId || undefined,
       amount: calculateTotal(),
       lines,
@@ -501,6 +505,7 @@ export function CreditCardsContent({ projectId, recurringTemplate, onClearTempla
     }
 
     setVendor(card.vendor);
+    setReferenceNumber(card.reference_number || '');
     setVendorId('');
     setSelectedProjectId(card.project_id || '');
 
@@ -730,7 +735,7 @@ export function CreditCardsContent({ projectId, recurringTemplate, onClearTempla
                 />
               </div>
 
-              <div className={`col-span-7 ${isTransactionLocked ? 'pointer-events-none' : ''}`}>
+              <div className={`col-span-5 ${isTransactionLocked ? 'pointer-events-none' : ''}`}>
                 <Label>Vendor</Label>
                 <VendorSearchInput
                   value={vendor}
@@ -739,6 +744,17 @@ export function CreditCardsContent({ projectId, recurringTemplate, onClearTempla
                     if (!isTransactionLocked) setVendor(company.company_name);
                   }}
                   placeholder="Enter vendor name"
+                />
+              </div>
+
+              <div className={`col-span-2 ${isTransactionLocked ? 'pointer-events-none' : ''}`}>
+                <Label>Reference No.</Label>
+                <Input
+                  value={referenceNumber}
+                  onChange={(e) => !isTransactionLocked && setReferenceNumber(e.target.value)}
+                  placeholder="Reference No."
+                  className="h-10"
+                  readOnly={isTransactionLocked}
                 />
               </div>
 
