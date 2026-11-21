@@ -36,7 +36,7 @@ import { CheckPrintPreview } from "@/components/checks/CheckPrintPreview";
 import { CheckPrintSettingsDialog } from "@/components/checks/CheckPrintSettingsDialog";
 import { useCheckPrintSettings } from "@/hooks/useCheckPrintSettings";
 import { MemorizeTransactionDialog } from "./MemorizeTransactionDialog";
-import type { RecurringTransaction, RecurringTransactionLine } from "@/hooks/useRecurringTransactions";
+import { useRecurringTransactions, type RecurringTransaction, type RecurringTransactionLine } from "@/hooks/useRecurringTransactions";
 
 interface CheckRow {
   id: string;
@@ -54,9 +54,11 @@ interface WriteChecksContentProps {
   projectId?: string;
   recurringTemplate?: RecurringTransaction | null;
   onClearTemplate?: () => void;
+  recurringEdit?: { template: RecurringTransaction; onSaved: () => void; onCancel: () => void };
 }
 
-export function WriteChecksContent({ projectId, recurringTemplate, onClearTemplate }: WriteChecksContentProps) {
+export function WriteChecksContent({ projectId, recurringTemplate, onClearTemplate, recurringEdit }: WriteChecksContentProps) {
+  const { updateRecurring } = useRecurringTransactions(projectId);
   const navigate = useNavigate();
   const { isDateLocked, latestClosedDate } = useClosedPeriodCheck(projectId);
   const [checkDate, setCheckDate] = useState<Date>(new Date());
@@ -207,6 +209,7 @@ export function WriteChecksContent({ projectId, recurringTemplate, onClearTempla
   const { registerForm, unregisterForm } = useUnsavedChangesContext();
 
   useEffect(() => {
+    if (recurringEdit) return;
     const handleSaveForContext = async () => {
       await handleSaveEntry();
       initialFormStateRef.current = getFormStateSnapshot();
@@ -220,7 +223,7 @@ export function WriteChecksContent({ projectId, recurringTemplate, onClearTempla
     return () => {
       unregisterForm();
     };
-  }, [registerForm, unregisterForm, hasFormChanges, getFormStateSnapshot]);
+  }, [registerForm, unregisterForm, hasFormChanges, getFormStateSnapshot, recurringEdit]);
 
   useEffect(() => {
     if (settings) {
@@ -237,6 +240,7 @@ export function WriteChecksContent({ projectId, recurringTemplate, onClearTempla
   }, [settings, checkNumber, getNextCheckNumber, isViewingMode]);
 
   useEffect(() => {
+    if (recurringEdit) return;
     if (!checksLoading && filteredChecks.length > 0 && !hasInitiallyLoaded.current && currentEntryIndex !== -1) {
       setCurrentEntryIndex(0);
       loadCheckData(filteredChecks[0]);
@@ -1126,6 +1130,56 @@ export function WriteChecksContent({ projectId, recurringTemplate, onClearTempla
     setExpenseRows([{ id: "1", account: "", accountId: "", project: "", projectId: "", quantity: "1", amount: "", memo: "" }]);
   };
 
+  const recurringHydratedRef = useRef(false);
+  useEffect(() => {
+    if (!recurringEdit || recurringHydratedRef.current) return;
+    if (!allAccounts.length || !costCodes.length) return;
+    recurringHydratedRef.current = true;
+    const t = recurringEdit.template;
+    const td = t.template_data || {};
+    loadCheckData({
+      check_date: format(new Date(), 'yyyy-MM-dd'),
+      pay_to: td.pay_to_name || td.pay_to || "",
+      check_number: td.check_number || "",
+      bank_account_id: td.bank_account_id,
+      company_name: td.company_name,
+      company_address: td.company_address,
+      company_city_state: td.company_city_state,
+      bank_name: td.bank_name,
+      check_lines: [...(t.recurring_transaction_lines || [])].sort((a, b) => a.line_number - b.line_number),
+    });
+    setPayTo(td.pay_to || "");
+    setPayToName(td.pay_to_name || td.pay_to || "");
+    if (!td.bank_account_id && td.bank_account) setBankAccount(td.bank_account);
+    setCurrentCheckId(null);
+    setIsViewingMode(false);
+    setAttachments([]);
+  }, [recurringEdit, allAccounts, costCodes]);
+
+  const saveRecurring = async () => {
+    if (!recurringEdit) return;
+    if (!bankAccountId) { toast({ title: "Bank account is required", variant: "destructive" }); return; }
+    const mapRows = (rows: CheckRow[], type: "job_cost" | "expense") => rows.filter(r => parseFloat(r.amount) > 0).map((r, i) => ({
+      line_type: type,
+      ...(type === "job_cost" ? { cost_code_id: r.accountId } : { account_id: r.accountId }),
+      project_id: r.projectId,
+      lot_id: r.lotId,
+      quantity: parseFloat(r.quantity || "1") || 1,
+      amount: parseFloat(r.amount) || 0,
+      memo: r.memo,
+      line_number: i + 1,
+    }));
+    const lines = [...mapRows(jobCostRows, "job_cost"), ...mapRows(expenseRows, "expense")] as any[];
+    if (lines.length === 0) { toast({ title: "Add at least one line with an amount", variant: "destructive" }); return; }
+    const templateData = {
+      pay_to: payTo, pay_to_name: payToName, bank_account_id: bankAccountId, bank_account: bankAccount,
+      check_number: checkNumber, amount: parseFloat(calculateTotal()) || 0,
+      company_name: companyName, company_address: companyAddress, company_city_state: companyCityState, bank_name: bankName,
+    };
+    await updateRecurring.mutateAsync({ id: recurringEdit.template.id, template_data: { ...(recurringEdit.template.template_data || {}), ...templateData }, lines });
+    recurringEdit.onSaved();
+  };
+
   return (
     <TooltipProvider>
       <div className="space-y-4">
@@ -1144,7 +1198,7 @@ export function WriteChecksContent({ projectId, recurringTemplate, onClearTempla
                 )}
               </div>
               
-              <div className="flex items-center gap-4">
+              <div className={recurringEdit ? "hidden" : "flex items-center gap-4"}>
                 <div className="flex items-center gap-2">
               <Button 
                 size="sm" 
@@ -1613,7 +1667,14 @@ export function WriteChecksContent({ projectId, recurringTemplate, onClearTempla
                     </Tooltip>
                   </div>
                 </div>
-                {isTransactionLocked ? (
+                {recurringEdit ? (
+                  <div className="flex gap-2">
+                    <Button type="button" variant="outline" size="sm" className="h-10" onClick={recurringEdit.onCancel}>Cancel</Button>
+                    <Button type="button" size="sm" className="h-10" onClick={saveRecurring} disabled={updateRecurring.isPending}>
+                      {updateRecurring.isPending ? "Saving..." : "Save Recurring"}
+                    </Button>
+                  </div>
+                ) : isTransactionLocked ? (
                   <div className="flex items-center gap-2 text-amber-700">
                     <Lock className="h-4 w-4 text-red-600" />
                     <span className="text-sm font-medium">This transaction cannot be edited</span>
