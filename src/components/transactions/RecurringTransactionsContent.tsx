@@ -209,7 +209,7 @@ export function RecurringTransactionsContent({ projectId, onEnterTransaction }: 
         </TooltipProvider>
       )}
       <Dialog open={!!editing} onOpenChange={(o) => { if (!o) setEditing(null); }}>
-        <DialogContent className="max-w-[95vw] max-h-[92vh] overflow-y-auto p-0">
+        <DialogContent className="w-[calc(100vw-280px)] max-w-[1320px] max-h-[92vh] overflow-y-auto p-0">
           <DialogTitle className="sr-only">Edit {editing?.name}</DialogTitle>
           {editing && editing.transaction_type === "check" ? (
             <WriteChecksContent
