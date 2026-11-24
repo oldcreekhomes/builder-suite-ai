@@ -29,11 +29,11 @@ export const isLateBill = (b: BillIssueInput, today: string) => {
 
 export const isRejectedBill = (b: BillIssueInput) => b.status === "void";
 
-/** Review = bill waiting for approval (Manage Bills "Review" tab). */
-export const isReviewBill = (b: BillIssueInput) => b.status === "draft";
+/** Review = bill waiting for approval and not yet late (strict 1-bucket: late bills count only in Late). */
+export const isReviewBill = (b: BillIssueInput, today: string) => b.status === "draft" && !isLateBill(b, today);
 
-/** Approved = approved, unpaid bill (Manage Bills "Approved" tab). */
-export const isApprovedBill = (b: BillIssueInput) => b.status === "posted";
+/** Approved = approved, unpaid bill not yet late (strict 1-bucket: late bills count only in Late). */
+export const isApprovedBill = (b: BillIssueInput, today: string) => b.status === "posted" && !isLateBill(b, today);
 
 /** Whole days past due (0 when not late or no due date). */
 export const daysLate = (dueDate: string | null, today: string) => {

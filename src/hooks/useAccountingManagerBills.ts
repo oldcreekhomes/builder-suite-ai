@@ -91,7 +91,7 @@ export function useAccountingManagerBills() {
 
       const todayStr = todayLocalStr();
       const countable = (bills || []).filter(b => isCountableBill(b as any));
-      const isCur = (b: any) => isReviewBill(b);
+      const isCur = (b: any) => isReviewBill(b, todayStr);
       const isLate = (b: any) => isLateBill(b, todayStr);
 
       // Same shared rules as the Accounting dashboard and project Accounting Alerts
@@ -101,7 +101,7 @@ export function useAccountingManagerBills() {
           projectId: project.id,
           projectAddress: project.address || 'Unknown Project',
           reviewCount: projectBills.filter(isCur).length,
-          approvedCount: projectBills.filter(b => isApprovedBill(b as any)).length,
+          approvedCount: projectBills.filter(b => isApprovedBill(b as any, todayStr)).length,
           rejectedCount: projectBills.filter(b => isRejectedBill(b as any)).length,
           lateCount: projectBills.filter(isLate).length,
           totalCount: projectBills.length,

@@ -32,8 +32,8 @@ export function useBillCountsByProject(projectIds: string[]) {
           .filter(b => isCountableBill(b as any));
 
         countsByProject[projectId] = {
-          reviewCount: projectBills.filter(b => isReviewBill(b)).length,
-          approvedCount: projectBills.filter(b => isApprovedBill(b)).length,
+          reviewCount: projectBills.filter(b => isReviewBill(b, todayStr)).length,
+          approvedCount: projectBills.filter(b => isApprovedBill(b, todayStr)).length,
           rejectedCount: projectBills.filter(b => isRejectedBill(b)).length,
           lateCount: projectBills.filter(b => isLateBill(b, todayStr)).length,
         };

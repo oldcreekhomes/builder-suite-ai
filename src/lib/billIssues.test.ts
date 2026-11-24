@@ -14,7 +14,7 @@ test("bill due today or with no due date is not late", () => {
 });
 
 test("void bills are rejected; archived and reversal bills are excluded", () => {
-  expect(isRejectedBill({ status: "void", due_date: null })).toBe(true);
+  expect(isRejectedBill({ status: "void", due_date: null }, "2026-11-24")).toBe(true);
   expect(isCountableBill({ status: "void", due_date: null, archived_at: "2026-01-01" })).toBe(false);
   expect(isCountableBill({ status: "draft", due_date: null, is_reversal: true })).toBe(false);
   expect(isCountableBill({ status: "posted", due_date: "2025-12-15", reversed_by_id: "abc" })).toBe(false);
@@ -31,11 +31,11 @@ test("archived bills are never late", () => {
 });
 
 test("Review, Approved and Rejected match the Manage Bills tabs", () => {
-  expect(isReviewBill({ status: "draft", due_date: null })).toBe(true);
-  expect(isApprovedBill({ status: "posted", due_date: null })).toBe(true);
-  expect(isRejectedBill({ status: "void", due_date: null })).toBe(true);
-  expect(isReviewBill({ status: "posted", due_date: null })).toBe(false);
-  expect(isApprovedBill({ status: "paid", due_date: null })).toBe(false);
+  expect(isReviewBill({ status: "draft", due_date: null }, "2026-11-24")).toBe(true);
+  expect(isApprovedBill({ status: "posted", due_date: null }, "2026-11-24")).toBe(true);
+  expect(isRejectedBill({ status: "void", due_date: null }, "2026-11-24")).toBe(true);
+  expect(isReviewBill({ status: "posted", due_date: null }, "2026-11-24")).toBe(false);
+  expect(isApprovedBill({ status: "paid", due_date: null }, "2026-11-24")).toBe(false);
 });
 
 test("Late counts overdue Review and Approved bills, not Rejected", () => {
@@ -43,4 +43,17 @@ test("Late counts overdue Review and Approved bills, not Rejected", () => {
   expect(isLateBill({ status: "draft", due_date: "2026-11-17" }, today)).toBe(true);
   expect(isLateBill({ status: "posted", due_date: "2026-11-17" }, today)).toBe(true);
   expect(isLateBill({ status: "void", due_date: "2026-11-17" }, today)).toBe(false);
+});
+
+test("strict 1-bucket: overdue bills count only in Late", () => {
+  const today = "2026-11-24";
+  const lateApproved = { status: "posted", due_date: "2026-11-16" };
+  const lateDraft = { status: "draft", due_date: "2026-11-23" };
+  const currentApproved = { status: "posted", due_date: "2026-12-05" };
+  expect(isApprovedBill(lateApproved, today)).toBe(false);
+  expect(isLateBill(lateApproved, today)).toBe(true);
+  expect(isReviewBill(lateDraft, today)).toBe(false);
+  expect(isLateBill(lateDraft, today)).toBe(true);
+  expect(isApprovedBill(currentApproved, today)).toBe(true);
+  expect(isLateBill(currentApproved, today)).toBe(false);
 });
