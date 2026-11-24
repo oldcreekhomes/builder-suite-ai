@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { Input } from "@/components/ui/input";
+import { committedBillNumber } from '@/lib/billEditMath';
 
 interface EditableNumberInputProps {
   value: number;
@@ -40,6 +41,7 @@ export function EditableNumberInput({
       className={className}
       value={buffer ?? formattedDisplay}
       onFocus={(e) => {
+        if (readOnly) return;
         setBuffer(editingValue);
         requestAnimationFrame(() => {
           try {
@@ -50,10 +52,8 @@ export function EditableNumberInput({
       }}
       onChange={(e) => setBuffer(e.target.value)}
       onBlur={() => {
-        const raw = buffer === null ? "" : buffer.replace(/,/g, "").trim();
-        const parsed = raw === "" ? 0 : parseFloat(raw);
-        const next = Number.isFinite(parsed) ? parsed : 0;
-        if (next !== value) onCommit(next);
+        const next = committedBillNumber(buffer, value, readOnly);
+        if (next !== null) onCommit(next);
         setBuffer(null);
       }}
     />

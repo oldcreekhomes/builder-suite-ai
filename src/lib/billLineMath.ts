@@ -12,6 +12,7 @@ export interface NormalizedLine {
   // numeric facts
   quantity: number;
   unitCost: number;
+  amount?: number;
   // optional metadata
   lotId?: string;
 }
@@ -20,9 +21,9 @@ export interface DisplayGroup<TChild = unknown> {
   key: string;
   children: TChild[];
   isGrouped: boolean;
-  quantity: number;     // SUM of child quantities (raw, unrounded)
-  unitCost: number;     // shared rate
-  amount: number;       // displayed total = round(quantity * unitCost, 2)
+  quantity: number;     // 1 for a lot allocation group; otherwise combined invoice qty
+  unitCost: number;     // invoice total for lot groups; otherwise shared rate
+  amount: number;       // sum of the saved/rounded child allocations
   lotCost: number;      // amount / lotCount
   lotIds: string[];
 }
@@ -64,7 +65,7 @@ export function groupBillLines<T>(
       buckets.set(key, []);
       order.push(key);
     }
-    buckets.get(key)!.push(item);
+    buckets.get(key)?.push(item);
   }
 
   // Second pass: merge lot-distributed groups that share
@@ -82,7 +83,7 @@ export function groupBillLines<T>(
 
   for (const key of order) {
     if (used.has(key)) continue;
-    const children = buckets.get(key)!;
+    const children = buckets.get(key) ?? [];
     const allHaveLot = children.every((c) => Boolean(pick(c).lotId));
     if (!allHaveLot) {
       mergedBuckets.set(key, children);
@@ -98,7 +99,7 @@ export function groupBillLines<T>(
     used.add(key);
     for (const otherKey of order) {
       if (used.has(otherKey)) continue;
-      const otherChildren = buckets.get(otherKey)!;
+      const otherChildren = buckets.get(otherKey) ?? [];
       const otherAllLot = otherChildren.every((c) => Boolean(pick(c).lotId));
       if (!otherAllLot) continue;
       if (lotMergeKey(pick(otherChildren[0])) !== mk) continue;
@@ -116,44 +117,28 @@ export function groupBillLines<T>(
 
 
   return mergedOrder.map((key) => {
-    const children = mergedBuckets.get(key)!;
+    const children = mergedBuckets.get(key) ?? [];
     const lotIds = children
       .map((c) => pick(c).lotId)
       .filter((x): x is string => Boolean(x));
     const allHaveLot = children.length > 0 && children.every((c) => Boolean(pick(c).lotId));
 
     if (allHaveLot && children.length >= 2) {
-      // Lot-distributed: amount = sum of each child's row total (naturally
-      // includes the remainder lot's rounded cents). Display unitCost = modal
-      // (most common) child rate, shown as the per-lot value.
+      // Show the invoice amount once. A lot count is allocation metadata,
+      // never the invoice quantity or a multiplier on the editable rate.
       const amount = roundCents(
         children.reduce((s, c) => {
           const n = pick(c);
-          return s + rowTotal(n.quantity, n.unitCost);
+          return s + (n.amount ?? rowTotal(n.quantity, n.unitCost));
         }, 0),
       );
-      const totalQty = children.reduce((s, c) => s + (pick(c).quantity || 0), 0);
-      const cleanQty = Math.round(totalQty * 100) / 100;
-      const counts = new Map<number, number>();
-      for (const c of children) {
-        const u = pick(c).unitCost;
-        counts.set(u, (counts.get(u) || 0) + 1);
-      }
-      let modalUnit = pick(children[0]).unitCost;
-      let best = -1;
-      for (const [u, n] of counts.entries()) {
-        if (n > best) {
-          best = n;
-          modalUnit = u;
-        }
-      }
       const lotCount = Math.max(lotIds.length, children.length, 1);
       return {
         key,
         children,
         isGrouped: true,
-        quantity: cleanQty,
-        unitCost: modalUnit,
+        quantity: 1,
+        unitCost: amount,
         amount,
         lotCost: amount / lotCount,
         lotIds,
@@ -164,7 +149,10 @@ export function groupBillLines<T>(
     const firstN = pick(children[0]);
     const totalQty = children.reduce((s, c) => s + (pick(c).quantity || 0), 0);
     const cleanQty = Math.round(totalQty * 100) / 100;
-    const amount = rowTotal(cleanQty, firstN.unitCost);
+    const amount = roundCents(children.reduce((sum, child) => {
+      const n = pick(child);
+      return sum + (n.amount ?? rowTotal(n.quantity, n.unitCost));
+    }, 0));
     const lotCount = Math.max(lotIds.length, children.length, 1);
     return {
       key,
@@ -207,7 +195,7 @@ export function fixSplitLineAmounts<T extends SplittableLine>(lines: T[]): T[] {
     const key = [l.line_type, l.cost_code_id || l.account_id || '', Number(l.unit_cost).toFixed(6),
       (l.memo || '').trim(), l.purchase_order_id || '', l.purchase_order_line_id || ''].join('|');
     if (!groups.has(key)) groups.set(key, []);
-    groups.get(key)!.push(i);
+    groups.get(key)?.push(i);
   });
   const out = lines.map((l) => ({ ...l, amount: roundCents(l.amount) }));
   for (const idxs of groups.values()) {

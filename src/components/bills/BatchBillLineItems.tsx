@@ -5,6 +5,8 @@ import { AccountSearchInput } from "@/components/AccountSearchInput";
 import { CostCodeSearchInput } from "@/components/CostCodeSearchInput";
 import { JobSearchInput } from "@/components/JobSearchInput";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { savedBillRate } from '@/lib/billEditMath';
+import { rowTotal } from '@/lib/billLineMath';
 
 interface LineItem {
   line_number: number;
@@ -31,7 +33,8 @@ export function BatchBillLineItems({ lines, onLinesChange }: BatchBillLineItemsP
   // Normalize lines - set default line_type to 'job_cost' if not specified
   const normalizedLines = lines.map(line => ({
     ...line,
-    line_type: line.line_type || 'job_cost'
+    line_type: line.line_type || 'job_cost',
+    unit_cost: savedBillRate(line.amount, line.quantity || 1),
   }));
 
   const updateLine = (index: number, field: keyof LineItem, value: any) => {
@@ -42,7 +45,7 @@ export function BatchBillLineItems({ lines, onLinesChange }: BatchBillLineItemsP
     if (field === 'quantity' || field === 'unit_cost') {
       const qty = field === 'quantity' ? value : updated[index].quantity || 0;
       const cost = field === 'unit_cost' ? value : updated[index].unit_cost || 0;
-      updated[index].amount = Number(qty) * Number(cost);
+      updated[index].amount = rowTotal(Number(qty), Number(cost));
     }
     
     onLinesChange(updated);
@@ -161,7 +164,7 @@ export function BatchBillLineItems({ lines, onLinesChange }: BatchBillLineItemsP
                   </div>
                   <div className="col-span-1 flex items-center">
                     <span className="text-sm font-medium">
-                      ${((Number(line.quantity) || 0) * (Number(line.unit_cost) || 0)).toFixed(2)}
+                      ${line.amount.toFixed(2)}
                     </span>
                   </div>
                   <div className="col-span-1 flex justify-center items-center">
@@ -254,7 +257,7 @@ export function BatchBillLineItems({ lines, onLinesChange }: BatchBillLineItemsP
                   </div>
                   <div className="col-span-1 flex items-center">
                     <span className="text-sm font-medium">
-                      ${((Number(line.quantity) || 0) * (Number(line.unit_cost) || 0)).toFixed(2)}
+                      ${line.amount.toFixed(2)}
                     </span>
                   </div>
                   <div className="col-span-1 flex justify-center items-center">

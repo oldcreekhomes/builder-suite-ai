@@ -11,7 +11,7 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
-import { rowTotal, roundCents } from "@/lib/billLineMath";
+import { groupBillLines, rowTotal, roundCents } from "@/lib/billLineMath";
 import { CostCodeSearchInput } from "@/components/CostCodeSearchInput";
 import { VendorSearchInput } from "@/components/VendorSearchInput";
 import { JobSearchInput } from "@/components/JobSearchInput";
@@ -36,6 +36,8 @@ import { sanitizePoId } from "@/utils/poSentinelUtils";
 import { useVendorPurchaseOrders } from "@/hooks/useVendorPurchaseOrders";
 import { getBestPOLineMatch, POLineCandidate } from "@/utils/poLineMatching";
 import { EditableNumberInput } from "./EditableNumberInput";
+import { savedBillRate, splitEditedBillTotal, billTotalChanged } from '@/lib/billEditMath';
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 // Normalize terms from any format to standardized dropdown values
 function normalizeTermsForUI(terms: string | null | undefined): string {
   if (!terms) return 'net-30';
@@ -128,6 +130,8 @@ export function EditExtractedBillDialog({
   const [notesDialogOpen, setNotesDialogOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [poSummaryOpen, setPoSummaryOpen] = useState(false);
+  const [confirmAmountChange, setConfirmAmountChange] = useState(false);
+  const originalTotalRef = useRef(0);
   const { openBillAttachment } = useUniversalFilePreviewContext();
   const { checkDuplicate } = useReferenceNumberValidation();
   const showPOSelection = useShouldShowPOSelection(projectId, vendorId);
@@ -335,7 +339,7 @@ export function EditExtractedBillDialog({
           amt = reasonableUnitCost * qty;
         }
 
-        const unitCost = rawUnitCost > 0 ? rawUnitCost : (qty > 0 && amt > 0 ? Math.round((amt / qty) * 100) / 100 : 0);
+        const unitCost = savedBillRate(amt, qty);
 
         const costCodeToUse = line.cost_code_id || defaultCostCode;
         const costCodeDisplay = costCodeToUse ? (ccDisplayMap.get(costCodeToUse) || '') : '';
@@ -378,6 +382,7 @@ export function EditExtractedBillDialog({
               id: line.id,
               line_type: 'expense',
               account_id: line.account_id || undefined,
+              lot_id: line.lot_id || undefined,
               quantity: qty,
               unit_cost: unitCost,
               amount: amt,
@@ -390,6 +395,7 @@ export function EditExtractedBillDialog({
 
       const allLines = [...jobCost, ...expense];
       const lineSum = allLines.reduce((sum, line) => sum + line.amount, 0);
+      originalTotalRef.current = roundCents(lineSum);
       if (extractedTotal > 0 && Math.abs(lineSum - extractedTotal) > 0.01) {
         console.warn(
           `Line sum (${lineSum}) differs from extracted total (${extractedTotal}). Showing line breakdown for user review.`
@@ -670,7 +676,7 @@ export function EditExtractedBillDialog({
         if (line.id !== id) return line;
         const updated = { ...line, [field]: value };
         if (field === 'quantity' || field === 'unit_cost') {
-          updated.amount = (updated.quantity || 0) * (updated.unit_cost || 0);
+          updated.amount = rowTotal(updated.quantity || 0, updated.unit_cost || 0);
         }
         // If cost_code_display is being updated, keep cost_code_id in sync
         if (field === 'cost_code_display') {
@@ -687,7 +693,7 @@ export function EditExtractedBillDialog({
         if (line.id !== id) return line;
         const updated = { ...line, [field]: value };
         if (field === 'quantity' || field === 'unit_cost') {
-          updated.amount = (updated.quantity || 0) * (updated.unit_cost || 0);
+          updated.amount = rowTotal(updated.quantity || 0, updated.unit_cost || 0);
         }
         return updated;
       })
@@ -699,7 +705,7 @@ export function EditExtractedBillDialog({
     // plus expense row totals (also qty × unit_cost). Footer always matches rows.
     const jobCostSum = jobCostDisplayLines.reduce((s, g) => s + g.amount, 0);
     const expenseSum = expenseLines.reduce(
-      (s, l) => s + rowTotal(Number(l.quantity) || 0, Number(l.unit_cost) || 0),
+      (s, l) => s + roundCents(l.amount),
       0,
     );
     return roundCents(jobCostSum + expenseSum).toFixed(2);
@@ -729,50 +735,24 @@ export function EditExtractedBillDialog({
   };
 
   const buildJobCostDisplayLines = (lines: LineItem[]): DisplayLine[] => {
-    const groups = new Map<string, LineItem[]>();
-    const order: string[] = [];
-    for (const l of lines) {
-      // NOTE: key must NOT include editable fields (memo, cost_code_display, quantity, etc.)
-      // because changing them mid-edit would change the row key, unmount the input,
-      // and cause focus loss on every keystroke.
-      const key = [
-        l.cost_code_id || '',
-        Number(l.unit_cost || 0).toFixed(6),
-        (l.matchingText || '').trim(),
-        l.purchase_order_id || '',
-        l.purchase_order_line_id || '',
-      ].join('|');
-      if (!groups.has(key)) {
-        groups.set(key, []);
-        order.push(key);
-      }
-      groups.get(key)!.push(l);
-    }
-    return order.map((key) => {
-      const children = groups.get(key)!;
-      const first = children[0];
-      const totalQty = children.reduce((s, c) => s + (Number(c.quantity) || 0), 0);
-      const lotIds = children.map((c) => c.lot_id).filter(Boolean) as string[];
-      const lotCount = Math.max(lotIds.length, children.length);
-      // Display the invoice's clean 2-decimal quantity (e.g. 0.5, 1, 0.4) instead of
-      // the reconstructed sum of 6-decimal child splits (e.g. 0.499999).
-      const cleanQty = Math.round(totalQty * 100) / 100;
-      const unitCost = Number(first.unit_cost) || 0;
-      // Displayed group total = quantity * unitCost. Footer sums these so the
-      // bottom line ALWAYS equals what the user reads on each row.
-      const displayedAmt = rowTotal(cleanQty, unitCost);
+    return groupBillLines(lines, l => ({
+      id: l.id,
+      costCodeKey: l.cost_code_id || '',
+      memo: l.matchingText || '',
+      purchaseOrderId: l.purchase_order_id || '',
+      purchaseOrderLineId: l.purchase_order_line_id || '',
+      quantity: l.quantity,
+      unitCost: l.unit_cost,
+      amount: l.amount,
+      lotId: l.lot_id,
+    })).map(g => {
+      const first = g.children[0];
       return {
-        key,
-        children,
-        isGrouped: children.length > 1,
+        ...g,
         cost_code_id: first.cost_code_id,
         cost_code_display: first.cost_code_display,
         memo: first.memo,
-        unit_cost: unitCost,
-        quantity: cleanQty,
-        amount: displayedAmt,
-        lotCost: lotCount > 0 ? displayedAmt / lotCount : displayedAmt,
-        lotIds,
+        unit_cost: g.unitCost,
         purchase_order_id: first.purchase_order_id,
         purchase_order_line_id: first.purchase_order_line_id,
         po_assignment: first.po_assignment,
@@ -799,27 +779,12 @@ export function EditExtractedBillDialog({
 
       const newUnit = patch.unit_cost !== undefined ? Number(patch.unit_cost) || 0 : group.unit_cost;
       const newQty = patch.quantity !== undefined ? Number(patch.quantity) || 0 : group.quantity;
-      const newTotal = Math.round(newQty * newUnit * 100) / 100;
-
-      // Cent-precise per-lot AMOUNT split: a few lots absorb the leftover penny.
-      const totalCents = Math.round(newTotal * 100);
-      const baseCents = Math.floor(totalCents / lotCount);
-      const extraCents = totalCents - baseCents * lotCount;
-
-      // Clean 2-decimal per-lot QUANTITY split: a few lots absorb the leftover hundredth.
-      const totalQtyHundredths = Math.round(newQty * 100);
-      const baseQtyHundredths = Math.floor(totalQtyHundredths / lotCount);
-      const extraQtyHundredths = totalQtyHundredths - baseQtyHundredths * lotCount;
-
+      const changesNumbers = patch.quantity !== undefined || patch.unit_cost !== undefined;
+      const allocations = splitEditedBillTotal(rowTotal(newQty, newUnit), lotCount);
       let i = 0;
       return prev.map((l) => {
         if (!childIds.has(l.id)) return l;
-        // First `extraCents` children get +1¢; first `extraQtyHundredths` children get +0.01.
-        const childCents = baseCents + (i < extraCents ? 1 : 0);
-        const childQtyHundredths = baseQtyHundredths + (i < extraQtyHundredths ? 1 : 0);
-        const childAmt = childCents / 100;
-        const childQty = childQtyHundredths / 100;
-        i += 1;
+        const childAmt = allocations[i++];
         return {
           ...l,
           ...('cost_code_id' in patch ? { cost_code_id: patch.cost_code_id } : {}),
@@ -829,9 +794,7 @@ export function EditExtractedBillDialog({
           ...('purchase_order_line_id' in patch ? { purchase_order_line_id: patch.purchase_order_line_id } : {}),
           ...('po_assignment' in patch ? { po_assignment: patch.po_assignment ?? null } : {}),
           ...('poConfidence' in patch ? { poConfidence: patch.poConfidence } : {}),
-          unit_cost: newUnit,
-          quantity: childQty,
-          amount: childAmt,
+          ...(changesNumbers ? { unit_cost: childAmt, quantity: 1, amount: childAmt } : {}),
         };
       });
     });
@@ -853,7 +816,7 @@ export function EditExtractedBillDialog({
   };
 
 
-  const handleSave = async () => {
+  const handleSave = async (amountChangeConfirmed = false) => {
     if (!vendorId) {
       toast({
         title: "Validation Error",
@@ -891,6 +854,11 @@ export function EditExtractedBillDialog({
         description: "Bill total must be greater than $0.00 - please verify line item amounts",
         variant: "destructive",
       });
+      return;
+    }
+
+    if (!amountChangeConfirmed && billTotalChanged(originalTotalRef.current, allLines.map(line => line.amount))) {
+      setConfirmAmountChange(true);
       return;
     }
 
@@ -960,7 +928,7 @@ export function EditExtractedBillDialog({
     // Save all lines with display names
     for (const line of allLines) {
       // Ensure amount is calculated correctly
-      const lineAmount = line.amount || ((line.quantity || 0) * (line.unit_cost || 0));
+      const lineAmount = roundCents(line.amount);
       // Query display names for this line
       let accountName = '';
       let costCodeName = '';
@@ -1106,6 +1074,20 @@ export function EditExtractedBillDialog({
   return (
     <>
     <Dialog open={open} onOpenChange={onOpenChange}>
+      <AlertDialog open={confirmAmountChange} onOpenChange={setConfirmAmountChange}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Confirm Bill Amount Change</AlertDialogTitle>
+            <AlertDialogDescription>
+              Total changes from ${originalTotalRef.current.toFixed(2)} to ${calculateTotal()}. Confirm this matches the invoice before saving.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={() => handleSave(true)}>Confirm &amp; Save</AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
       <DialogContent className="max-w-6xl max-h-[90vh] flex flex-col p-8" onOpenAutoFocus={(e) => e.preventDefault()}>
         <DialogHeader>
           <DialogTitle>Edit Extracted Bill</DialogTitle>
@@ -1678,7 +1660,7 @@ export function EditExtractedBillDialog({
             <Button variant="outline" onClick={() => onOpenChange(false)}>
               Cancel
             </Button>
-            <Button onClick={handleSave}>
+            <Button onClick={() => handleSave()}>
               Save Changes
             </Button>
           </div>

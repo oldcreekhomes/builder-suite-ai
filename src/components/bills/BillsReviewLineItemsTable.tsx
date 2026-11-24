@@ -17,6 +17,9 @@ import { CostCodeSearchInput } from "@/components/CostCodeSearchInput";
 import { JobSearchInput } from "@/components/JobSearchInput";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { savedBillRate, billTotalChanged } from '@/lib/billEditMath';
+import { rowTotal } from '@/lib/billLineMath';
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 
 interface BillsReviewLineItemsTableProps {
   pendingUploadId: string;
@@ -29,14 +32,20 @@ export const BillsReviewLineItemsTable = ({
   const { data: lines, isLoading } = usePendingBillLines(pendingUploadId);
   const [editingLineId, setEditingLineId] = useState<string | null>(null);
   const [editedLine, setEditedLine] = useState<Partial<PendingBillLine>>({});
+  const [confirmAmountChange, setConfirmAmountChange] = useState(false);
 
   const handleStartEdit = (line: PendingBillLine) => {
     setEditingLineId(line.id);
-    setEditedLine(line);
+    setEditedLine({ ...line, unit_cost: savedBillRate(line.amount, line.quantity || 1) });
   };
 
-  const handleSaveEdit = () => {
+  const handleSaveEdit = (confirmed = false) => {
     if (editingLineId && editedLine) {
+      const original = lines?.find(line => line.id === editingLineId);
+      if (original && !confirmed && billTotalChanged(original.amount, [editedLine.amount ?? original.amount])) {
+        setConfirmAmountChange(true);
+        return;
+      }
       updateLine.mutate({
         lineId: editingLineId,
         updates: editedLine,
@@ -187,6 +196,7 @@ export const BillsReviewLineItemsTable = ({
                       setEditedLine({
                         ...editedLine,
                         quantity: parseFloat(e.target.value) || 0,
+                        amount: rowTotal(parseFloat(e.target.value) || 0, editedLine.unit_cost || 0),
                       })
                     }
                     className="h-8 w-20"
@@ -207,6 +217,7 @@ export const BillsReviewLineItemsTable = ({
                       setEditedLine({
                         ...editedLine,
                         unit_cost: parseFloat(e.target.value) || 0,
+                        amount: rowTotal(editedLine.quantity || 0, parseFloat(e.target.value) || 0),
                       })
                     }
                     className="h-8 w-24"
@@ -227,6 +238,7 @@ export const BillsReviewLineItemsTable = ({
                       setEditedLine({
                         ...editedLine,
                         amount: parseFloat(e.target.value) || 0,
+                        unit_cost: savedBillRate(parseFloat(e.target.value) || 0, editedLine.quantity || 1),
                       })
                     }
                     className="h-8 w-24"
@@ -243,7 +255,7 @@ export const BillsReviewLineItemsTable = ({
               <TableCell className="text-right">
                 {editingLineId === line.id ? (
                   <div className="flex justify-end gap-2">
-                    <Button size="sm" variant="ghost" onClick={handleSaveEdit}>
+                    <Button size="sm" variant="ghost" onClick={() => handleSaveEdit()}>
                       <Save className="h-4 w-4" />
                     </Button>
                     <Button size="sm" variant="ghost" onClick={handleCancelEdit}>
@@ -275,6 +287,20 @@ export const BillsReviewLineItemsTable = ({
           </div>
         </div>
       )}
+      <AlertDialog open={confirmAmountChange} onOpenChange={setConfirmAmountChange}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Confirm Bill Amount Change</AlertDialogTitle>
+            <AlertDialogDescription>
+              Line changes from ${Number(lines?.find(line => line.id === editingLineId)?.amount || 0).toFixed(2)} to ${Number(editedLine.amount || 0).toFixed(2)}. Confirm this matches the invoice.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={() => handleSaveEdit(true)}>Confirm &amp; Save</AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
       <DeleteConfirmationDialog
         open={!!pendingLineDelete}
         onOpenChange={(o) => { if (!o) setPendingLineDelete(null); }}

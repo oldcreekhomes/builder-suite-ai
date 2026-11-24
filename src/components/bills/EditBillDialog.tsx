@@ -48,6 +48,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { fixSplitLineAmounts, groupBillLines, rowTotal, sumDisplayedTotal, roundCents, type DisplayGroup } from "@/lib/billLineMath";
 import { toDateLocal, normalizeToYMD } from "@/utils/dateOnly";
+import { savedBillRate, splitEditedBillTotal, billTotalChanged } from '@/lib/billEditMath';
 
 interface EditBillDialogProps {
   open: boolean;
@@ -225,7 +226,7 @@ export function EditBillDialog({ open, onOpenChange, billId }: EditBillDialogPro
           const qty = parseFloat(line.quantity) || 1;
           const uc = parseFloat(line.unit_cost) || 0;
           const amt = parseFloat(line.amount) || 0;
-          const unitCostDisplay = uc !== 0 ? uc : (qty ? amt / qty : amt);
+          const unitCostDisplay = savedBillRate(amt, qty);
           return {
             id: `job-${index}`,
             dbId: line.id,
@@ -253,7 +254,7 @@ export function EditBillDialog({ open, onOpenChange, billId }: EditBillDialogPro
           const qty = parseFloat(line.quantity) || 1;
           const uc = parseFloat(line.unit_cost) || 0;
           const amt = parseFloat(line.amount) || 0;
-          const unitCostDisplay = uc !== 0 ? uc : (qty ? amt / qty : amt);
+          const unitCostDisplay = savedBillRate(amt, qty);
           return {
             id: `expense-${index}`,
             dbId: line.id,
@@ -568,7 +569,10 @@ export function EditBillDialog({ open, onOpenChange, billId }: EditBillDialogPro
       return;
     }
 
-    // Save directly without requiring review confirmation
+    if (!isApprovedBill && billTotalChanged(Number(billData.total_amount), billLines.map(line => line.amount))) {
+      setShowSaveConfirmation(true);
+      return;
+    }
     await handleConfirmedSave();
   };
 
@@ -618,6 +622,7 @@ export function EditBillDialog({ open, onOpenChange, billId }: EditBillDialogPro
           line_type: 'expense' as const,
           account_id: row.accountId || undefined,
           project_id: row.projectId || billData.project_id || undefined,
+          lot_id: row.lotId || undefined,
           purchase_order_id: sanitizePoId(row.purchaseOrderId),
           purchase_order_line_id: sanitizePoId(row.purchaseOrderLineId),
           po_assignment: derivePoAssignment(row.purchaseOrderId),
@@ -811,15 +816,12 @@ export function EditBillDialog({ open, onOpenChange, billId }: EditBillDialogPro
       const changesUnitCost = patch.unit_cost !== undefined;
       const newUnit = changesUnitCost ? Number(patch.unit_cost) || 0 : group.unitCost;
       const newQty = changesQuantity ? Number(patch.quantity) || 0 : group.quantity;
-      const totalQtyHundredths = Math.round(newQty * 100);
-      const baseQtyHundredths = Math.floor(totalQtyHundredths / lotCount);
-      const extraQtyHundredths = totalQtyHundredths - baseQtyHundredths * lotCount;
+      const allocations = splitEditedBillTotal(rowTotal(newQty, newUnit), lotCount);
 
       let i = 0;
       return prev.map((r) => {
         if (!childIds.has(r.id)) return r;
-        const childQtyHundredths = baseQtyHundredths + (i < extraQtyHundredths ? 1 : 0);
-        const childQty = childQtyHundredths / 100;
+        const childAmount = allocations[i];
         i += 1;
         return {
           ...r,
@@ -828,8 +830,7 @@ export function EditBillDialog({ open, onOpenChange, billId }: EditBillDialogPro
           ...('memo' in patch ? { memo: patch.memo || '' } : {}),
           ...('purchaseOrderId' in patch ? { purchaseOrderId: patch.purchaseOrderId || '' } : {}),
           ...('purchaseOrderLineId' in patch ? { purchaseOrderLineId: patch.purchaseOrderLineId || '' } : {}),
-          ...(changesQuantity ? { quantity: childQty.toString() } : {}),
-          ...(changesUnitCost ? { amount: newUnit.toString() } : {}),
+          ...(changesQuantity || changesUnitCost ? { quantity: '1', amount: childAmount.toString() } : {}),
         };
       });
     });
@@ -1405,7 +1406,10 @@ export function EditBillDialog({ open, onOpenChange, billId }: EditBillDialogPro
         <AlertDialog open={showSaveConfirmation} onOpenChange={setShowSaveConfirmation}>
           <AlertDialogContent>
             <AlertDialogHeader>
-              <AlertDialogTitle>Send Bill Back for Review</AlertDialogTitle>
+              <AlertDialogTitle>Confirm Bill Amount Change</AlertDialogTitle>
+              <AlertDialogDescription>
+                Total changes from ${Number(billData.total_amount).toFixed(2)} to ${roundCents(jobCostSubtotal + expenseSubtotal).toFixed(2)}. Confirm the invoice amount and explain the change before saving.
+              </AlertDialogDescription>
             </AlertDialogHeader>
             
             <div className="space-y-2">

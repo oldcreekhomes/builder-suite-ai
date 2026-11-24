@@ -1,6 +1,7 @@
 # Roadmap
 
 ## In progress
+- [x] Fix lot-split bill editing without silent total changes; 18 tests and real input browser checks passed; audit of 2,985 bills across 19 jobs delivered (5 documented related incidents, 5 suspected double-line records, 7 other mismatches); no historical records changed; authenticated save/payment verification and undocumented historical incidents unavailable.
 - [x] Reconciliation Review: vendor credits on payments counted permanently (saved payment totals; clearing tags credit side; past months backfilled; OW Nov–Mar match statements; 3 tests passed)
 - [x] Cash Position: search box hidden on PM dashboard only, accountant keeps it (shared component conditional; build OK; signed-in visual verification unavailable with external auth)
 - [x] Accountant dashboard Active Jobs rows tightened to Cash Position density via shared `.table-compact` (build OK; rendered rows measured 33px vs 45px before; Cash Position rows unchanged at 32px; signed-in visual verification unavailable with external auth)
