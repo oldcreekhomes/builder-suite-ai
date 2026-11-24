@@ -9,6 +9,7 @@ import { Button } from "@/components/ui/button";
 import { AlertTriangle, CheckCircle2 } from "lucide-react";
 import { format } from "date-fns";
 import { cn } from "@/lib/utils";
+import { BillAlertBadge } from "@/components/accounting/BillAlertBadge";
 import { useAccountingManagerBills } from "@/hooks/useAccountingManagerBills";
 import { useUpdateProjectQBInvoiceDates } from "@/hooks/useUpdateProjectQBInvoiceDates";
 
@@ -94,11 +95,11 @@ export function ProjectWarnings() {
             <div className="px-4 py-2">
               {/* Column headers */}
               <div className="flex items-center justify-end mb-1 pr-1">
-                <div className="flex items-center gap-2">
-                  <span className="text-[10px] text-muted-foreground text-center w-[44px]">Review</span>
-                  <span className="text-[10px] text-muted-foreground text-center w-[44px]">Approved</span>
-                  <span className="text-[10px] text-muted-foreground text-center w-[44px]">Rejected</span>
-                  <span className="text-[10px] text-muted-foreground text-center w-[44px]">Late</span>
+                <div className="flex items-center gap-4">
+                  <span className="text-[10px] text-muted-foreground text-center w-[48px]">Review</span>
+                  <span className="text-[10px] text-muted-foreground text-center w-[48px]">Approved</span>
+                  <span className="text-[10px] text-muted-foreground text-center w-[48px]">Rejected</span>
+                  <span className="text-[10px] text-muted-foreground text-center w-[48px]">Late</span>
                   <span className="text-[10px] text-muted-foreground text-center w-[95px]">Inv. Approved</span>
                 </div>
               </div>
@@ -127,42 +128,18 @@ export function ProjectWarnings() {
                       </TooltipProvider>
                     </div>
 
-                    <div className="flex items-center gap-2 shrink-0">
-                      <div className="w-[44px] flex justify-center">
-                        {project.reviewCount > 0 ? (
-                          <span className="bg-green-100 text-green-700 rounded-full min-w-5 h-5 flex items-center justify-center text-xs font-medium px-1.5">
-                            {project.reviewCount}
-                          </span>
-                        ) : (
-                          <span className="text-xs text-muted-foreground">—</span>
-                        )}
+                    <div className="flex items-center gap-4 shrink-0">
+                      <div className="w-[48px] flex justify-center">
+                        <BillAlertBadge type="review" count={project.reviewCount} />
                       </div>
-                      <div className="w-[44px] flex justify-center">
-                        {project.approvedCount > 0 ? (
-                          <span className="bg-secondary text-secondary-foreground rounded-full min-w-5 h-5 flex items-center justify-center text-xs font-medium px-1.5">
-                            {project.approvedCount}
-                          </span>
-                        ) : (
-                          <span className="text-xs text-muted-foreground">—</span>
-                        )}
+                      <div className="w-[48px] flex justify-center">
+                        <BillAlertBadge type="approved" count={project.approvedCount} />
                       </div>
-                      <div className="w-[44px] flex justify-center">
-                        {project.rejectedCount > 0 ? (
-                          <span className="bg-red-600 text-white rounded-full min-w-5 h-5 flex items-center justify-center text-xs font-medium px-1.5">
-                            {project.rejectedCount}
-                          </span>
-                        ) : (
-                          <span className="text-xs text-muted-foreground">—</span>
-                        )}
+                      <div className="w-[48px] flex justify-center">
+                        <BillAlertBadge type="rejected" count={project.rejectedCount} />
                       </div>
-                      <div className="w-[44px] flex justify-center">
-                        {project.lateCount > 0 ? (
-                          <span className="bg-red-600 text-white rounded-full min-w-5 h-5 flex items-center justify-center text-xs font-medium px-1.5">
-                            {project.lateCount}
-                          </span>
-                        ) : (
-                          <span className="text-xs text-muted-foreground">—</span>
-                        )}
+                      <div className="w-[48px] flex justify-center">
+                        <BillAlertBadge type="late" count={project.lateCount} />
                       </div>
                       <div
                         className="w-[95px] flex justify-center"

@@ -1,6 +1,6 @@
 import { useNavigate } from "react-router-dom";
 import { Card, CardContent } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
+import { BillAlertBadge } from "@/components/accounting/BillAlertBadge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Tooltip, TooltipContent, TooltipTrigger, TooltipProvider } from "@/components/ui/tooltip";
 import { AlertTriangle } from "lucide-react";
@@ -103,24 +103,16 @@ export function ProjectAccountingAlerts({ projectId, projectAddress }: ProjectAc
               
               <div className="flex items-center gap-4 flex-shrink-0">
                 <div className="w-[48px] flex justify-center">
-                  <Badge variant="secondary" className="bg-green-100 text-green-700 hover:bg-green-100">
-                    {counts.reviewCount}
-                  </Badge>
+                  <BillAlertBadge type="review" count={counts.reviewCount} />
                 </div>
                 <div className="w-[48px] flex justify-center">
-                  <Badge variant="secondary">
-                    {counts.approvedCount}
-                  </Badge>
+                  <BillAlertBadge type="approved" count={counts.approvedCount} />
                 </div>
                 <div className="w-[48px] flex justify-center">
-                  <Badge variant="destructive">
-                    {counts.rejectedCount}
-                  </Badge>
+                  <BillAlertBadge type="rejected" count={counts.rejectedCount} />
                 </div>
                 <div className="w-[48px] flex justify-center">
-                  <Badge variant="destructive">
-                    {counts.lateCount}
-                  </Badge>
+                  <BillAlertBadge type="late" count={counts.lateCount} />
                 </div>
               </div>
             </div>

@@ -2,6 +2,7 @@ import { useState, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { format, parseISO } from "date-fns";
 import { useProjects } from "@/hooks/useProjects";
+import { BillAlertBadge } from "@/components/accounting/BillAlertBadge";
 import { useBillCountsByProject } from "@/hooks/useBillCountsByProject";
 import { useProjectDisplayOrder } from "@/hooks/useProjectDisplayOrder";
 import { useLatestClosedPeriodsByProject } from "@/hooks/useLatestClosedPeriods";
@@ -592,51 +593,28 @@ export function AccountantJobsTable() {
                   </TableCell>
                   <TableCell className="text-center">
                     {bills?.reviewCount ? (
-                      <Badge
-                        className="bg-green-100 text-green-800 hover:bg-green-200 cursor-pointer"
-                        onClick={(e) => goToBills(e, project.id, 'review')}
-                      >
-                        {bills.reviewCount}
-                      </Badge>
+                      <BillAlertBadge type="review" count={bills.reviewCount} onClick={(e) => goToBills(e, project.id, 'review')} />
                     ) : (
                       <span className="text-muted-foreground">-</span>
                     )}
                   </TableCell>
                   <TableCell className="text-center">
                     {bills?.approvedCount ? (
-                      <Badge
-                        variant="secondary"
-                        className="cursor-pointer hover:opacity-80"
-                        onClick={(e) => goToBills(e, project.id, 'approve')}
-                      >
-                        {bills.approvedCount}
-                      </Badge>
+                      <BillAlertBadge type="approved" count={bills.approvedCount} onClick={(e) => goToBills(e, project.id, 'approve')} />
                     ) : (
                       <span className="text-muted-foreground">-</span>
                     )}
                   </TableCell>
                   <TableCell className="text-center">
                     {bills?.rejectedCount ? (
-                      <Badge
-                        variant="destructive"
-                        className="cursor-pointer hover:opacity-80"
-                        onClick={(e) => goToBills(e, project.id, 'rejected')}
-                      >
-                        {bills.rejectedCount}
-                      </Badge>
+                      <BillAlertBadge type="rejected" count={bills.rejectedCount} onClick={(e) => goToBills(e, project.id, 'rejected')} />
                     ) : (
                       <span className="text-muted-foreground">-</span>
                     )}
                   </TableCell>
                   <TableCell className="text-center">
                     {bills?.lateCount ? (
-                      <Badge
-                        variant="destructive"
-                        className="cursor-pointer hover:opacity-80"
-                        onClick={(e) => goToBills(e, project.id, 'review')}
-                      >
-                        {bills.lateCount}
-                      </Badge>
+                      <BillAlertBadge type="late" count={bills.lateCount} onClick={(e) => goToBills(e, project.id, 'review')} />
                     ) : (
                       <span className="text-muted-foreground">-</span>
                     )}
@@ -653,24 +631,16 @@ export function AccountantJobsTable() {
             {isReorderEnabled && <TableCell />}
             <TableCell colSpan={6} className="text-right">Totals</TableCell>
             <TableCell className="text-center">
-              <Badge className="bg-green-100 text-green-800 hover:bg-green-100">
-                {sortedProjects.reduce((sum, p) => sum + (billCounts[p.id]?.reviewCount || 0), 0)}
-              </Badge>
+              <BillAlertBadge type="review" count={sortedProjects.reduce((sum, p) => sum + (billCounts[p.id]?.reviewCount || 0), 0)} />
             </TableCell>
             <TableCell className="text-center">
-              <Badge variant="secondary">
-                {sortedProjects.reduce((sum, p) => sum + (billCounts[p.id]?.approvedCount || 0), 0)}
-              </Badge>
+              <BillAlertBadge type="approved" count={sortedProjects.reduce((sum, p) => sum + (billCounts[p.id]?.approvedCount || 0), 0)} />
             </TableCell>
             <TableCell className="text-center">
-              <Badge variant="destructive">
-                {sortedProjects.reduce((sum, p) => sum + (billCounts[p.id]?.rejectedCount || 0), 0)}
-              </Badge>
+              <BillAlertBadge type="rejected" count={sortedProjects.reduce((sum, p) => sum + (billCounts[p.id]?.rejectedCount || 0), 0)} />
             </TableCell>
             <TableCell className="text-center">
-              <Badge variant="destructive">
-                {sortedProjects.reduce((sum, p) => sum + (billCounts[p.id]?.lateCount || 0), 0)}
-              </Badge>
+              <BillAlertBadge type="late" count={sortedProjects.reduce((sum, p) => sum + (billCounts[p.id]?.lateCount || 0), 0)} />
             </TableCell>
           </TableRow>
         </TableFooter>
