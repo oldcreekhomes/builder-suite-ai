@@ -14,7 +14,7 @@ test("bill due today or with no due date is not late", () => {
 });
 
 test("void bills are rejected; archived and reversal bills are excluded", () => {
-  expect(isRejectedBill({ status: "void", due_date: null }, "2026-11-24")).toBe(true);
+  expect(isRejectedBill({ status: "void", due_date: null })).toBe(true);
   expect(isCountableBill({ status: "void", due_date: null, archived_at: "2026-01-01" })).toBe(false);
   expect(isCountableBill({ status: "draft", due_date: null, is_reversal: true })).toBe(false);
   expect(isCountableBill({ status: "posted", due_date: "2025-12-15", reversed_by_id: "abc" })).toBe(false);
@@ -33,7 +33,7 @@ test("archived bills are never late", () => {
 test("Review, Approved and Rejected match the Manage Bills tabs", () => {
   expect(isReviewBill({ status: "draft", due_date: null }, "2026-11-24")).toBe(true);
   expect(isApprovedBill({ status: "posted", due_date: null }, "2026-11-24")).toBe(true);
-  expect(isRejectedBill({ status: "void", due_date: null }, "2026-11-24")).toBe(true);
+  expect(isRejectedBill({ status: "void", due_date: null })).toBe(true);
   expect(isReviewBill({ status: "posted", due_date: null }, "2026-11-24")).toBe(false);
   expect(isApprovedBill({ status: "paid", due_date: null }, "2026-11-24")).toBe(false);
 });
