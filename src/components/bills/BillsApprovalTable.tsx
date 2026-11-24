@@ -1,3 +1,4 @@
+import { isLateBill, todayLocalStr } from "@/lib/billIssues";
 import { useMemo, useState } from "react";
 import { CostCodeLabel } from "./CostCodeLabel";
 import { cn } from "@/lib/utils";
@@ -120,9 +121,11 @@ interface BillsApprovalTableProps {
   filterDate?: Date;
   /** Show archived (tracking-only) rejected bills instead of active ones. */
   archived?: boolean;
+  /** Strict 1-bucket: "only" shows past-due unpaid bills (Late tab), "exclude" hides them. */
+  lateFilter?: "only" | "exclude";
 }
 
-export function BillsApprovalTable({ status, projectId, projectIds, showProjectColumn = true, defaultSortBy, sortOrder, enableSorting = false, showPayBillButton = false, searchQuery, showEditButton = false, enableBatchPayment = false, dueDateFilter = "all", filterDate, archived = false }: BillsApprovalTableProps) {
+export function BillsApprovalTable({ status, projectId, projectIds, showProjectColumn = true, defaultSortBy, sortOrder, enableSorting = false, showPayBillButton = false, searchQuery, showEditButton = false, enableBatchPayment = false, dueDateFilter = "all", filterDate, archived = false, lateFilter }: BillsApprovalTableProps) {
   const { lots } = useLots(projectId);
   const showAddressColumn = lots.length > 1;
   const { approveBill, rejectBill, rejectApprovedBill, deleteBill, payBill, payMultipleBills, resendBillToReview } = useBills();
@@ -650,6 +653,11 @@ export function BillsApprovalTable({ status, projectId, projectIds, showProjectC
   const filteredBills = useMemo(() => {
     let filtered = sortedBills;
 
+    if (lateFilter && filtered) {
+      const today = todayLocalStr();
+      filtered = filtered.filter(bill => isLateBill(bill as any, today) === (lateFilter === "only"));
+    }
+
     // Apply due-date filter (Approved tab "Due on or before" picker)
     if (dueDateFilter === "due-on-or-before" && filterDate && filtered) {
       const filterYMD = normalizeToYMD(filterDate.toISOString());
@@ -680,7 +688,7 @@ export function BillsApprovalTable({ status, projectId, projectIds, showProjectC
 
       return false;
     });
-  }, [sortedBills, searchQuery, dueDateFilter, filterDate]);
+  }, [sortedBills, searchQuery, dueDateFilter, filterDate, lateFilter]);
 
   const handleActionChange = (billId: string, action: string) => {
     if (action === 'edit') {
@@ -1339,14 +1347,14 @@ export function BillsApprovalTable({ status, projectId, projectIds, showProjectC
 
       {showPayBillButton && (
         <TableCell className="text-center w-24" onClick={(e) => e.stopPropagation()}>
-          <Button
+          {bill.status === 'posted' ? <Button
             size="sm"
             onClick={(e) => { e.stopPropagation(); handlePayBill(bill); }}
             disabled={payBill.isPending}
             className="h-7 text-xs px-2"
           >
             {payBill.isPending ? "..." : "Pay Bill"}
-          </Button>
+          </Button> : <span className="text-xs text-muted-foreground">In Review</span>}
         </TableCell>
       )}
       {canShowDeleteButton && (

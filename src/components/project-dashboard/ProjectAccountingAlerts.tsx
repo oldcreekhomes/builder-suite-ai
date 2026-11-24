@@ -112,7 +112,7 @@ export function ProjectAccountingAlerts({ projectId, projectAddress }: ProjectAc
                   <BillAlertBadge type="rejected" count={counts.rejectedCount} />
                 </div>
                 <div className="w-[48px] flex justify-center">
-                  <BillAlertBadge type="late" count={counts.lateCount} />
+                  <BillAlertBadge type="late" count={counts.lateCount} onClick={(e) => { e.stopPropagation(); navigate(`/project/${projectId}/accounting/bills/approve?tab=late`); }} />
                 </div>
               </div>
             </div>

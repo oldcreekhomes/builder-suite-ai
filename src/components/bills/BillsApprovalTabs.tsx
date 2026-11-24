@@ -1,3 +1,4 @@
+import { BillAlertBadge, type BillAlertType } from "@/components/accounting/BillAlertBadge";
 import { useState, useCallback, useEffect, ReactNode, useRef } from "react";
 import { useSearchParams } from "react-router-dom";
 import { Receipt, Upload, Sparkles } from "lucide-react";
@@ -966,6 +967,7 @@ export function BillsApprovalTabs({ projectId, projectIds, reviewOnly = false, o
         { value: "review", label: getTabLabel('review', counts?.pendingCount) },
         { value: "rejected", label: getTabLabel('rejected', counts?.rejectedCount) },
         { value: "approve", label: getTabLabel('approve', counts?.approvedCount) },
+        { value: "late", label: "Late" },
         { value: "pay", label: getTabLabel('pay', counts?.payBillsCount) },
         { value: "archived", label: getTabLabel('archived', counts?.archivedCount) },
       ]
@@ -975,17 +977,34 @@ export function BillsApprovalTabs({ projectId, projectIds, reviewOnly = false, o
         { value: "review", label: getTabLabel('review', counts?.pendingCount) },
         { value: "rejected", label: getTabLabel('rejected', counts?.rejectedCount) },
         { value: "approve", label: getTabLabel('approve', counts?.approvedCount) },
+        { value: "late", label: "Late" },
         { value: "pay", label: getTabLabel('pay', counts?.payBillsCount) },
         { value: "archived", label: getTabLabel('archived', counts?.archivedCount) },
       ];
 
-  const sidebarItems = tabs.map(tab => ({ value: tab.value, label: tab.label }));
+  const badgeFor: Record<string, { type: BillAlertType; count?: number }> = {
+    upload: { type: "neutral", count: counts?.aiExtractCount },
+    review: { type: "review", count: counts?.pendingCount },
+    approve: { type: "approved", count: counts?.approvedCount },
+    late: { type: "late", count: counts?.lateCount },
+    rejected: { type: "rejected", count: counts?.rejectedCount },
+    pay: { type: "neutral", count: counts?.payBillsCount },
+    archived: { type: "neutral", count: counts?.archivedCount },
+  };
+  const sidebarItems = tabs.map(tab => {
+    const b = badgeFor[tab.value];
+    return {
+      value: tab.value,
+      label: tab.label.replace(/\s*\([^)]*\)$/, ""),
+      badge: b && !countsLoading ? <BillAlertBadge type={b.type} count={b.count || 0} /> : undefined,
+    };
+  });
 
   // Emit header actions based on active tab
   useEffect(() => {
     if (!onHeaderActionChange) return;
 
-    if (activeTab === 'review' || activeTab === 'rejected' || activeTab === 'pay' || activeTab === 'archived') {
+    if (activeTab === 'review' || activeTab === 'late' || activeTab === 'rejected' || activeTab === 'pay' || activeTab === 'archived') {
       onHeaderActionChange(
         <div className="relative w-64">
           <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
@@ -1127,6 +1146,7 @@ export function BillsApprovalTabs({ projectId, projectIds, reviewOnly = false, o
           defaultSortBy="due_date"
           sortOrder="asc"
           searchQuery={searchQuery}
+          lateFilter="exclude"
         />
       )}
 
@@ -1156,8 +1176,24 @@ export function BillsApprovalTabs({ projectId, projectIds, reviewOnly = false, o
           searchQuery={searchQuery}
           showPayBillButton={true}
           enableBatchPayment={true}
+          lateFilter="exclude"
           dueDateFilter={dueDateFilter}
           filterDate={filterDate}
+        />
+      )}
+
+      {activeTab === "late" && (
+        <BillsApprovalTable
+          status={['draft', 'posted']}
+          projectId={effectiveProjectId}
+          projectIds={projectIds}
+          showProjectColumn={false}
+          enableSorting={true}
+          defaultSortBy="due_date"
+          sortOrder="asc"
+          searchQuery={searchQuery}
+          showPayBillButton={true}
+          lateFilter="only"
         />
       )}
 

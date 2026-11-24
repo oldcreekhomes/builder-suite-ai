@@ -1,3 +1,4 @@
+import type React from "react";
 import { LucideIcon, ChevronRight } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -11,6 +12,7 @@ export interface ContentSidebarItem {
   value: string;
   label: string;
   count?: number;
+  badge?: React.ReactNode;
 }
 
 export interface ContentSidebarGroup {
@@ -52,7 +54,7 @@ export function ContentSidebar({
         key={item.value}
         onClick={() => onItemChange(item.value)}
         className={cn(
-          "w-full text-left px-3 py-2 text-sm rounded-md transition-colors",
+          "w-full flex items-center justify-between gap-2 text-left px-3 py-2 text-sm rounded-md transition-colors",
           "hover:bg-muted",
           indent && "pl-6",
           isActive
@@ -60,7 +62,8 @@ export function ContentSidebar({
             : "text-foreground"
         )}
       >
-        {item.label}
+        <span className="truncate">{item.label}</span>
+        {item.badge}
       </button>
     );
   };

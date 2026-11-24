@@ -1,3 +1,4 @@
+import { todayLocalStr, isReviewBill, isApprovedBill, isLateBill } from "@/lib/billIssues";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 
@@ -8,6 +9,7 @@ interface BillCounts {
   payBillsCount: number;
   aiExtractCount: number;
   archivedCount: number;
+  lateCount: number;
 }
 
 export function useBillCounts(projectId?: string, projectIds?: string[]) {
@@ -47,6 +49,14 @@ export function useBillCounts(projectId?: string, projectIds?: string[]) {
         .eq('is_reversal', false)
         .is('reversed_at', null);
       
+      // Strict 1-bucket split of draft/posted into Review / Approved / Late
+      const openQuery = supabase
+        .from('bills')
+        .select('id, status, due_date, terms, archived_at, is_reversal, reversed_by_id')
+        .in('status', ['draft', 'posted'])
+        .eq('is_reversal', false)
+        .is('reversed_at', null);
+
       const payBillsQuery = supabase
         .from('bills')
         .select('id', { count: 'exact', head: true })
@@ -63,6 +73,7 @@ export function useBillCounts(projectId?: string, projectIds?: string[]) {
       // Apply project filter if provided
       if (projectIds && projectIds.length > 0) {
         pendingQuery.in('project_id', projectIds);
+        openQuery.in('project_id', projectIds);
         rejectedQuery.in('project_id', projectIds);
         archivedQuery.in('project_id', projectIds);
         approvedQuery.in('project_id', projectIds);
@@ -70,6 +81,7 @@ export function useBillCounts(projectId?: string, projectIds?: string[]) {
         aiExtractQuery.in('project_id', projectIds);
       } else if (projectId) {
         pendingQuery.eq('project_id', projectId);
+        openQuery.eq('project_id', projectId);
         rejectedQuery.eq('project_id', projectId);
         archivedQuery.eq('project_id', projectId);
         approvedQuery.eq('project_id', projectId);
@@ -83,8 +95,15 @@ export function useBillCounts(projectId?: string, projectIds?: string[]) {
         approvedQuery,
         payBillsQuery,
         aiExtractQuery,
-        archivedQuery
+        archivedQuery,
       ]);
+      const openResult = await openQuery;
+      if (openResult.error) throw openResult.error;
+      const today = todayLocalStr();
+      const open = (openResult.data || []) as any[];
+      const reviewCount = open.filter(b => isReviewBill(b, today)).length;
+      const approvedOpen = open.filter(b => isApprovedBill(b, today)).length;
+      const lateCount = open.filter(b => isLateBill(b, today)).length;
 
       if (pendingResult.error) throw pendingResult.error;
       if (rejectedResult.error) throw rejectedResult.error;
@@ -93,12 +112,13 @@ export function useBillCounts(projectId?: string, projectIds?: string[]) {
       if (aiExtractResult.error) throw aiExtractResult.error;
 
       return {
-        pendingCount: pendingResult.count || 0,
+        pendingCount: reviewCount,
         rejectedCount: rejectedResult.count || 0,
-        approvedCount: approvedResult.count || 0,
+        approvedCount: approvedOpen,
         payBillsCount: payBillsResult.count || 0,
         aiExtractCount: aiExtractResult.count || 0,
-        archivedCount: archivedResult.count || 0
+        archivedCount: archivedResult.count || 0,
+        lateCount,
       };
     },
   });

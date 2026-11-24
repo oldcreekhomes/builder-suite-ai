@@ -1,7 +1,7 @@
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
 
-export type BillAlertType = "review" | "approved" | "rejected" | "late";
+export type BillAlertType = "review" | "approved" | "rejected" | "late" | "neutral";
 
 // Single source of style for every Accounting Alerts count (PM, Project, Accounting dashboards).
 const GREEN = "bg-green-100 text-green-700 hover:bg-green-100";
@@ -18,6 +18,9 @@ export function BillAlertBadge({
   className?: string;
 }) {
   const green = type === "review" || type === "approved";
+  if (type === "neutral") {
+    return <Badge variant="secondary" className={cn(onClick && "cursor-pointer hover:opacity-80", className)} onClick={onClick}>{count}</Badge>;
+  }
   return (
     <Badge
       variant={green ? "secondary" : "destructive"}
