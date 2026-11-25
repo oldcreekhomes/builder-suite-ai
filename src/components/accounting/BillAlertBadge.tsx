@@ -7,7 +7,8 @@ export type BillAlertType = "review" | "approved" | "rejected" | "late" | "neutr
 const GREEN = "bg-green-100 text-green-700 hover:bg-green-100";
 
 /**
- * Review/Approved with `overdue` render a split pill: left = on time (green), right = overdue (red).
+ * Zero totals show a dash; Review/Approved split only when both counts are nonzero.
+ * On-time-only is green and overdue-only is red, without a zero segment.
  * Left + right always equals the stage's total, so nothing is counted twice.
  */
 export function BillAlertBadge({
@@ -26,11 +27,14 @@ export function BillAlertBadge({
   className?: string;
 }) {
   const green = type === "review" || type === "approved";
+  if (count === 0) {
+    return <span className={cn("text-muted-foreground", className)} aria-label="No bills">—</span>;
+  }
   if (type === "neutral") {
     return <Badge variant="secondary" className={cn(onClick && "cursor-pointer hover:opacity-80", className)} onClick={onClick}>{count}</Badge>;
   }
   const late = green ? Math.min(overdue || 0, count) : 0;
-  if (late > 0) {
+  if (late > 0 && late < count) {
     const onTime = count - late;
     return (
       <span className={cn("inline-flex overflow-hidden rounded-full text-xs font-semibold", className)} title={`${onTime} on time, ${late} overdue`}>
@@ -39,11 +43,14 @@ export function BillAlertBadge({
       </span>
     );
   }
+  const overdueOnly = green && late === count;
+  const handleClick = overdueOnly ? onOverdueClick || onClick : onClick;
   return (
     <Badge
-      variant={green ? "secondary" : "destructive"}
-      className={cn(green && GREEN, onClick && "cursor-pointer hover:opacity-80", className)}
-      onClick={onClick}
+      variant={green && !overdueOnly ? "secondary" : "destructive"}
+      className={cn(green && !overdueOnly && GREEN, handleClick && "cursor-pointer hover:opacity-80", className)}
+      title={green ? `${count} ${overdueOnly ? "overdue" : "on time"}` : undefined}
+      onClick={handleClick}
     >
       {count}
     </Badge>
