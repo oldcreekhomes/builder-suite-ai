@@ -569,7 +569,7 @@ export function EditBillDialog({ open, onOpenChange, billId }: EditBillDialogPro
       return;
     }
 
-    if (!isApprovedBill && billTotalChanged(Number(billData.total_amount), billLines.map(line => line.amount))) {
+    if (!isApprovedBill && billTotalChanged(Number(billData?.total_amount ?? 0), billLines.map(line => line.amount))) {
       setShowSaveConfirmation(true);
       return;
     }
@@ -1408,7 +1408,7 @@ export function EditBillDialog({ open, onOpenChange, billId }: EditBillDialogPro
             <AlertDialogHeader>
               <AlertDialogTitle>Confirm Bill Amount Change</AlertDialogTitle>
               <AlertDialogDescription>
-                Total changes from ${Number(billData.total_amount).toFixed(2)} to ${roundCents(jobCostSubtotal + expenseSubtotal).toFixed(2)}. Confirm the invoice amount and explain the change before saving.
+                Total changes from ${Number(billData?.total_amount ?? 0).toFixed(2)} to ${roundCents(jobCostSubtotal + expenseSubtotal).toFixed(2)}. Confirm the invoice amount and explain the change before saving.
               </AlertDialogDescription>
             </AlertDialogHeader>
             
