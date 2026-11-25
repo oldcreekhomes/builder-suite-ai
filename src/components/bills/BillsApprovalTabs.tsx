@@ -81,7 +81,8 @@ interface BatchBill extends PendingBill {
 export function BillsApprovalTabs({ projectId, projectIds, reviewOnly = false, onHeaderActionChange }: BillsApprovalTabsProps) {
   const [searchParams] = useSearchParams();
   const initialTab = searchParams.get('tab') || (reviewOnly ? "review" : "upload");
-  const [activeTab, setActiveTab] = useState(initialTab);
+  const [activeTab, setActiveTab] = useState(initialTab === 'late' ? 'review' : initialTab);
+  const [overdueOnly, setOverdueOnly] = useState(searchParams.get('overdue') === '1' || initialTab === 'late');
   const [searchQuery, setSearchQuery] = useState("");
   const [dueDateFilter, setDueDateFilter] = useState<"all" | "due-on-or-before">("all");
   const [filterDate, setFilterDate] = useState<Date | undefined>(new Date());
@@ -967,7 +968,6 @@ export function BillsApprovalTabs({ projectId, projectIds, reviewOnly = false, o
         { value: "review", label: getTabLabel('review', counts?.pendingCount) },
         { value: "rejected", label: getTabLabel('rejected', counts?.rejectedCount) },
         { value: "approve", label: getTabLabel('approve', counts?.approvedCount) },
-        { value: "late", label: "Late" },
         { value: "pay", label: getTabLabel('pay', counts?.payBillsCount) },
         { value: "archived", label: getTabLabel('archived', counts?.archivedCount) },
       ]
@@ -977,7 +977,6 @@ export function BillsApprovalTabs({ projectId, projectIds, reviewOnly = false, o
         { value: "review", label: getTabLabel('review', counts?.pendingCount) },
         { value: "rejected", label: getTabLabel('rejected', counts?.rejectedCount) },
         { value: "approve", label: getTabLabel('approve', counts?.approvedCount) },
-        { value: "late", label: "Late" },
         { value: "pay", label: getTabLabel('pay', counts?.payBillsCount) },
         { value: "archived", label: getTabLabel('archived', counts?.archivedCount) },
       ];
@@ -986,7 +985,6 @@ export function BillsApprovalTabs({ projectId, projectIds, reviewOnly = false, o
     upload: { type: "neutral", count: counts?.aiExtractCount },
     review: { type: "review", count: counts?.pendingCount },
     approve: { type: "approved", count: counts?.approvedCount },
-    late: { type: "late", count: counts?.lateCount },
     rejected: { type: "rejected", count: counts?.rejectedCount },
     pay: { type: "neutral", count: counts?.payBillsCount },
     archived: { type: "neutral", count: counts?.archivedCount },
@@ -1004,8 +1002,16 @@ export function BillsApprovalTabs({ projectId, projectIds, reviewOnly = false, o
   useEffect(() => {
     if (!onHeaderActionChange) return;
 
-    if (activeTab === 'review' || activeTab === 'late' || activeTab === 'rejected' || activeTab === 'pay' || activeTab === 'archived') {
+const overdueToggle = (
+        <div className="flex items-center rounded-lg border bg-background h-9 p-0.5">
+          <Button size="sm" variant={overdueOnly ? "ghost" : "secondary"} className="h-8 text-xs" onClick={() => setOverdueOnly(false)}>All</Button>
+          <Button size="sm" variant={overdueOnly ? "destructive" : "ghost"} className="h-8 text-xs" onClick={() => setOverdueOnly(true)}>Overdue Only</Button>
+        </div>
+      );
+    if (activeTab === 'review' || activeTab === 'rejected' || activeTab === 'pay' || activeTab === 'archived') {
       onHeaderActionChange(
+        <div className="flex items-center gap-2">
+        {activeTab === 'review' && overdueToggle}
         <div className="relative w-64">
           <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
           <Input
@@ -1015,10 +1021,12 @@ export function BillsApprovalTabs({ projectId, projectIds, reviewOnly = false, o
             className="pl-9 h-9"
           />
         </div>
+        </div>
       );
     } else if (activeTab === 'approve') {
       onHeaderActionChange(
         <div className="flex items-center gap-2">
+          {overdueToggle}
           <div className="flex items-center gap-2 px-3 rounded-lg border bg-background h-9">
             <span className="text-xs font-medium whitespace-nowrap">Show bills</span>
             <RadioGroup value={dueDateFilter} onValueChange={(value) => setDueDateFilter(value as "all" | "due-on-or-before")} className="flex items-center gap-3">
@@ -1092,7 +1100,7 @@ export function BillsApprovalTabs({ projectId, projectIds, reviewOnly = false, o
     }
 
     return () => onHeaderActionChange(null);
-  }, [onHeaderActionChange, activeTab, searchQuery, dueDateFilter, filterDate, handleExtractionStart, handleExtractionComplete, batchBills.length, selectedBillIds.size, isSubmitting]);
+  }, [onHeaderActionChange, activeTab, overdueOnly, searchQuery, dueDateFilter, filterDate, handleExtractionStart, handleExtractionComplete, batchBills.length, selectedBillIds.size, isSubmitting]);
 
   return (
     <>
@@ -1146,7 +1154,7 @@ export function BillsApprovalTabs({ projectId, projectIds, reviewOnly = false, o
           defaultSortBy="due_date"
           sortOrder="asc"
           searchQuery={searchQuery}
-          lateFilter="exclude"
+          lateFilter={overdueOnly ? "only" : undefined}
         />
       )}
 
@@ -1176,26 +1184,12 @@ export function BillsApprovalTabs({ projectId, projectIds, reviewOnly = false, o
           searchQuery={searchQuery}
           showPayBillButton={true}
           enableBatchPayment={true}
-          lateFilter="exclude"
+          lateFilter={overdueOnly ? "only" : undefined}
           dueDateFilter={dueDateFilter}
           filterDate={filterDate}
         />
       )}
 
-      {activeTab === "late" && (
-        <BillsApprovalTable
-          status={['draft', 'posted']}
-          projectId={effectiveProjectId}
-          projectIds={projectIds}
-          showProjectColumn={false}
-          enableSorting={true}
-          defaultSortBy="due_date"
-          sortOrder="asc"
-          searchQuery={searchQuery}
-          showPayBillButton={true}
-          lateFilter="only"
-        />
-      )}
 
       {activeTab === "pay" && (
         <BillsApprovalTable 

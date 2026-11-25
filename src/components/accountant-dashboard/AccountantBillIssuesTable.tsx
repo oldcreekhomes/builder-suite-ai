@@ -149,7 +149,7 @@ export function AccountantBillIssuesTable() {
             <TableHead className="w-[11%]">Invoice #</TableHead>
             <TableHead className="w-[9%]">Bill Date</TableHead>
             <TableHead className="w-[9%]">Due Date</TableHead>
-            <TableHead className="w-[8%] text-center">Late</TableHead>
+            <TableHead className="w-[8%] text-center">Overdue</TableHead>
             <TableHead className="w-[8%] text-center">Rejected</TableHead>
             <TableHead className="w-[14%]">Why</TableHead>
             <TableHead className="w-[9%]">Amount</TableHead>

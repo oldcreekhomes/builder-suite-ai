@@ -365,7 +365,7 @@ export function AccountantJobsTable() {
             <TableHead className="text-center py-1 h-auto">Review</TableHead>
             <TableHead className="text-center py-1 h-auto">Approved</TableHead>
             <TableHead className="text-center py-1 h-auto">Rejected</TableHead>
-            <TableHead className="text-center py-1 h-auto">Late</TableHead>
+            <TableHead className="text-center py-1 h-auto">Overdue</TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>

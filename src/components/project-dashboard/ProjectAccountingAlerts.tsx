@@ -79,7 +79,7 @@ export function ProjectAccountingAlerts({ projectId, projectAddress }: ProjectAc
                 <span className="text-[10px] text-muted-foreground w-[48px] text-center">Review</span>
                 <span className="text-[10px] text-muted-foreground w-[48px] text-center">Approved</span>
                 <span className="text-[10px] text-muted-foreground w-[48px] text-center">Rejected</span>
-                <span className="text-[10px] text-muted-foreground w-[48px] text-center">Late</span>
+                <span className="text-[10px] text-muted-foreground w-[48px] text-center">Overdue</span>
               </div>
             </div>
             <div
@@ -112,7 +112,7 @@ export function ProjectAccountingAlerts({ projectId, projectAddress }: ProjectAc
                   <BillAlertBadge type="rejected" count={counts.rejectedCount} />
                 </div>
                 <div className="w-[48px] flex justify-center">
-                  <BillAlertBadge type="late" count={counts.lateCount} onClick={(e) => { e.stopPropagation(); navigate(`/project/${projectId}/accounting/bills/approve?tab=late`); }} />
+                  <BillAlertBadge type="late" count={counts.lateCount} onClick={(e) => { e.stopPropagation(); navigate(`/project/${projectId}/accounting/bills/approve?tab=review&overdue=1`); }} />
                 </div>
               </div>
             </div>

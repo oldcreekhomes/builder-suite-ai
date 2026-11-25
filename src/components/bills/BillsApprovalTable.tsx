@@ -121,7 +121,7 @@ interface BillsApprovalTableProps {
   filterDate?: Date;
   /** Show archived (tracking-only) rejected bills instead of active ones. */
   archived?: boolean;
-  /** Strict 1-bucket: "only" shows past-due unpaid bills (Late tab), "exclude" hides them. */
+  /** "only" = Overdue Only filter (past-due unpaid bills within the tab). */
   lateFilter?: "only" | "exclude";
 }
 

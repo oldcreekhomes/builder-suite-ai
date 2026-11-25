@@ -99,7 +99,7 @@ export function ProjectWarnings() {
                   <span className="text-[10px] text-muted-foreground text-center w-[48px]">Review</span>
                   <span className="text-[10px] text-muted-foreground text-center w-[48px]">Approved</span>
                   <span className="text-[10px] text-muted-foreground text-center w-[48px]">Rejected</span>
-                  <span className="text-[10px] text-muted-foreground text-center w-[48px]">Late</span>
+                  <span className="text-[10px] text-muted-foreground text-center w-[48px]">Overdue</span>
                   <span className="text-[10px] text-muted-foreground text-center w-[95px]">Inv. Approved</span>
                 </div>
               </div>

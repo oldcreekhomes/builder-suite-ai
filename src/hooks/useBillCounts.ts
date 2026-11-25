@@ -49,7 +49,7 @@ export function useBillCounts(projectId?: string, projectIds?: string[]) {
         .eq('is_reversal', false)
         .is('reversed_at', null);
       
-      // Strict 1-bucket split of draft/posted into Review / Approved / Late
+      // Review/Approved are full workflow counts; Overdue is an alert subset of them
       const openQuery = supabase
         .from('bills')
         .select('id, status, due_date, terms, archived_at, is_reversal, reversed_by_id')

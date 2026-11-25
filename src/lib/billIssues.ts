@@ -19,7 +19,7 @@ const dueStr = (d: string | null) => (d ? String(d).slice(0, 10) : null);
 
 export const isCountableBill = (b: BillIssueInput) => !b.archived_at && !b.is_reversal && !b.reversed_by_id;
 
-/** Late = any unpaid bill in Review or Approved past its due date. */
+/** Overdue (alert flag) = any unpaid bill in Review or Approved past its due date. */
 export const isLateBill = (b: BillIssueInput, today: string) => {
   if (b.status !== "draft" && b.status !== "posted") return false;
   if (b.archived_at || b.terms === "paid-at-purchase") return false;
@@ -29,11 +29,11 @@ export const isLateBill = (b: BillIssueInput, today: string) => {
 
 export const isRejectedBill = (b: BillIssueInput) => b.status === "void";
 
-/** Review = bill waiting for approval and not yet late (strict 1-bucket: late bills count only in Late). */
-export const isReviewBill = (b: BillIssueInput, today: string) => b.status === "draft" && !isLateBill(b, today);
+/** Review = every bill waiting for approval. Overdue is an alert flag (isLateBill), never a separate stage. */
+export const isReviewBill = (b: BillIssueInput, _today?: string) => b.status === "draft";
 
-/** Approved = approved, unpaid bill not yet late (strict 1-bucket: late bills count only in Late). */
-export const isApprovedBill = (b: BillIssueInput, today: string) => b.status === "posted" && !isLateBill(b, today);
+/** Approved = every approved, unpaid bill. Overdue is an alert flag (isLateBill), never a separate stage. */
+export const isApprovedBill = (b: BillIssueInput, _today?: string) => b.status === "posted";
 
 /** Whole days past due (0 when not late or no due date). */
 export const daysLate = (dueDate: string | null, today: string) => {

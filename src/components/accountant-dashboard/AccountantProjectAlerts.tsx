@@ -84,7 +84,7 @@ export function AccountantProjectAlerts() {
                   </div>
                   
                   <div className="relative">
-                    <span className="absolute -top-5 left-1/2 -translate-x-1/2 text-[10px] text-muted-foreground whitespace-nowrap">Late</span>
+                    <span className="absolute -top-5 left-1/2 -translate-x-1/2 text-[10px] text-muted-foreground whitespace-nowrap">Overdue</span>
                     <Badge variant="destructive" className="bg-red-600 text-white hover:bg-red-600">
                       {lateCount}
                     </Badge>
