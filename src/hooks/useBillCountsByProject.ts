@@ -7,6 +7,8 @@ interface ProjectBillCounts {
   approvedCount: number;  // Approved tab (posted)
   rejectedCount: number;  // Rejected tab (void)
   lateCount: number;      // Review or Approved, past due
+  reviewLateCount: number;
+  approvedLateCount: number;
 }
 
 export function useBillCountsByProject(projectIds: string[]) {
@@ -36,6 +38,8 @@ export function useBillCountsByProject(projectIds: string[]) {
           approvedCount: projectBills.filter(b => isApprovedBill(b, todayStr)).length,
           rejectedCount: projectBills.filter(b => isRejectedBill(b)).length,
           lateCount: projectBills.filter(b => isLateBill(b, todayStr)).length,
+          reviewLateCount: projectBills.filter(b => isReviewBill(b, todayStr) && isLateBill(b, todayStr)).length,
+          approvedLateCount: projectBills.filter(b => isApprovedBill(b, todayStr) && isLateBill(b, todayStr)).length,
         };
       });
 

@@ -17,6 +17,8 @@ interface ProjectBillSummary {
   projectAddress: string;
   reviewCount: number;
   approvedCount: number;
+  reviewLateCount: number;
+  approvedLateCount: number;
   rejectedCount: number;
   lateCount: number;
   totalCount: number;
@@ -104,6 +106,8 @@ export function useAccountingManagerBills() {
           approvedCount: projectBills.filter(b => isApprovedBill(b as any, todayStr)).length,
           rejectedCount: projectBills.filter(b => isRejectedBill(b as any)).length,
           lateCount: projectBills.filter(isLate).length,
+          reviewLateCount: projectBills.filter(b => isCur(b) && isLate(b)).length,
+          approvedLateCount: projectBills.filter(b => isApprovedBill(b as any, todayStr) && isLate(b)).length,
           totalCount: projectBills.length,
           qbInvoicesApprovedDate: (project as any).qb_invoices_approved_date ?? null,
         };

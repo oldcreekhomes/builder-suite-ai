@@ -23,7 +23,7 @@ export function ProjectAccountingAlerts({ projectId, projectAddress }: ProjectAc
   
   const { data: billCounts, isLoading, error } = useBillCountsByProject([projectId]);
   
-  const counts = billCounts?.[projectId] || { reviewCount: 0, approvedCount: 0, rejectedCount: 0, lateCount: 0 };
+  const counts = billCounts?.[projectId] || { reviewCount: 0, approvedCount: 0, rejectedCount: 0, lateCount: 0, reviewLateCount: 0, approvedLateCount: 0 };
   const hasAlerts = counts.reviewCount > 0 || counts.approvedCount > 0 || counts.rejectedCount > 0 || counts.lateCount > 0;
 
   if (isLoading) {
@@ -79,7 +79,6 @@ export function ProjectAccountingAlerts({ projectId, projectAddress }: ProjectAc
                 <span className="text-[10px] text-muted-foreground w-[48px] text-center">Review</span>
                 <span className="text-[10px] text-muted-foreground w-[48px] text-center">Approved</span>
                 <span className="text-[10px] text-muted-foreground w-[48px] text-center">Rejected</span>
-                <span className="text-[10px] text-muted-foreground w-[48px] text-center">Overdue</span>
               </div>
             </div>
             <div
@@ -103,16 +102,13 @@ export function ProjectAccountingAlerts({ projectId, projectAddress }: ProjectAc
               
               <div className="flex items-center gap-4 flex-shrink-0">
                 <div className="w-[48px] flex justify-center">
-                  <BillAlertBadge type="review" count={counts.reviewCount} />
+                  <BillAlertBadge type="review" count={counts.reviewCount} overdue={counts.reviewLateCount} onOverdueClick={(e) => { e.stopPropagation(); navigate(`/project/${projectId}/accounting/bills/approve?tab=review&overdue=1`); }} />
                 </div>
                 <div className="w-[48px] flex justify-center">
-                  <BillAlertBadge type="approved" count={counts.approvedCount} />
+                  <BillAlertBadge type="approved" count={counts.approvedCount} overdue={counts.approvedLateCount} onOverdueClick={(e) => { e.stopPropagation(); navigate(`/project/${projectId}/accounting/bills/approve?tab=approve&overdue=1`); }} />
                 </div>
                 <div className="w-[48px] flex justify-center">
                   <BillAlertBadge type="rejected" count={counts.rejectedCount} />
-                </div>
-                <div className="w-[48px] flex justify-center">
-                  <BillAlertBadge type="late" count={counts.lateCount} onClick={(e) => { e.stopPropagation(); navigate(`/project/${projectId}/accounting/bills/approve?tab=review&overdue=1`); }} />
                 </div>
               </div>
             </div>

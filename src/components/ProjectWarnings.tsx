@@ -99,7 +99,6 @@ export function ProjectWarnings() {
                   <span className="text-[10px] text-muted-foreground text-center w-[48px]">Review</span>
                   <span className="text-[10px] text-muted-foreground text-center w-[48px]">Approved</span>
                   <span className="text-[10px] text-muted-foreground text-center w-[48px]">Rejected</span>
-                  <span className="text-[10px] text-muted-foreground text-center w-[48px]">Overdue</span>
                   <span className="text-[10px] text-muted-foreground text-center w-[95px]">Inv. Approved</span>
                 </div>
               </div>
@@ -130,16 +129,13 @@ export function ProjectWarnings() {
 
                     <div className="flex items-center gap-4 shrink-0">
                       <div className="w-[48px] flex justify-center">
-                        <BillAlertBadge type="review" count={project.reviewCount} />
+                        <BillAlertBadge type="review" count={project.reviewCount} overdue={project.reviewLateCount} />
                       </div>
                       <div className="w-[48px] flex justify-center">
-                        <BillAlertBadge type="approved" count={project.approvedCount} />
+                        <BillAlertBadge type="approved" count={project.approvedCount} overdue={project.approvedLateCount} />
                       </div>
                       <div className="w-[48px] flex justify-center">
                         <BillAlertBadge type="rejected" count={project.rejectedCount} />
-                      </div>
-                      <div className="w-[48px] flex justify-center">
-                        <BillAlertBadge type="late" count={project.lateCount} />
                       </div>
                       <div
                         className="w-[95px] flex justify-center"

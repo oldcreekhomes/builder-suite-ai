@@ -250,9 +250,9 @@ export function AccountantJobsTable() {
     navigate(`/project/${projectId}`);
   };
 
-  const goToBills = (e: React.MouseEvent, projectId: string, tab: 'review' | 'rejected' | 'approve') => {
+  const goToBills = (e: React.MouseEvent, projectId: string, tab: 'review' | 'rejected' | 'approve', overdue = false) => {
     e.stopPropagation();
-    navigate(`/project/${projectId}/accounting/bills/approve?tab=${tab}`);
+    navigate(`/project/${projectId}/accounting/bills/approve?tab=${tab}${overdue ? '&overdue=1' : ''}`);
   };
 
 
@@ -351,7 +351,7 @@ export function AccountantJobsTable() {
             <TableHead rowSpan={2} className="w-[11%] align-bottom">Closed Books</TableHead>
             <TableHead rowSpan={2} className="w-[12%] align-bottom">Invoices Approved?</TableHead>
             <TableHead rowSpan={2} className="w-[11%] align-bottom">Invoices Paid?</TableHead>
-            <TableHead colSpan={4} className="w-[24%] text-center py-1 h-auto border-b-0">
+            <TableHead colSpan={3} className="w-[24%] text-center py-1 h-auto border-b-0">
               <div className="flex items-center justify-center gap-1">
                 <div className="flex-1 h-px bg-muted-foreground/30"></div>
                 <span className="text-[10px] text-muted-foreground font-normal px-1">Bills</span>
@@ -365,20 +365,19 @@ export function AccountantJobsTable() {
             <TableHead className="text-center py-1 h-auto">Review</TableHead>
             <TableHead className="text-center py-1 h-auto">Approved</TableHead>
             <TableHead className="text-center py-1 h-auto">Rejected</TableHead>
-            <TableHead className="text-center py-1 h-auto">Overdue</TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
           {activeProjects.length === 0 ? (
             <TableRow>
-              <TableCell colSpan={isReorderEnabled ? 11 : 10} className="text-center text-muted-foreground !py-8">
+              <TableCell colSpan={isReorderEnabled ? 10 : 9} className="text-center text-muted-foreground !py-8">
                 No active projects
               </TableCell>
             </TableRow>
           ) : (
             projectsByStatus.flatMap((group) => [
               <TableRow key={`group-${group.status}`} className="bg-muted/30 hover:bg-muted/30">
-                <TableCell colSpan={isReorderEnabled ? 11 : 10} className="py-1">
+                <TableCell colSpan={isReorderEnabled ? 10 : 9} className="py-1">
                   <span className={`text-xs font-semibold px-2 py-1 rounded ${group.color}`}>
                     {group.status}
                   </span>
@@ -593,14 +592,14 @@ export function AccountantJobsTable() {
                   </TableCell>
                   <TableCell className="text-center">
                     {bills?.reviewCount ? (
-                      <BillAlertBadge type="review" count={bills.reviewCount} onClick={(e) => goToBills(e, project.id, 'review')} />
+                      <BillAlertBadge type="review" count={bills.reviewCount} overdue={bills.reviewLateCount} onClick={(e) => goToBills(e, project.id, 'review')} onOverdueClick={(e) => goToBills(e, project.id, 'review', true)} />
                     ) : (
                       <span className="text-muted-foreground">-</span>
                     )}
                   </TableCell>
                   <TableCell className="text-center">
                     {bills?.approvedCount ? (
-                      <BillAlertBadge type="approved" count={bills.approvedCount} onClick={(e) => goToBills(e, project.id, 'approve')} />
+                      <BillAlertBadge type="approved" count={bills.approvedCount} overdue={bills.approvedLateCount} onClick={(e) => goToBills(e, project.id, 'approve')} onOverdueClick={(e) => goToBills(e, project.id, 'approve', true)} />
                     ) : (
                       <span className="text-muted-foreground">-</span>
                     )}
@@ -608,13 +607,6 @@ export function AccountantJobsTable() {
                   <TableCell className="text-center">
                     {bills?.rejectedCount ? (
                       <BillAlertBadge type="rejected" count={bills.rejectedCount} onClick={(e) => goToBills(e, project.id, 'rejected')} />
-                    ) : (
-                      <span className="text-muted-foreground">-</span>
-                    )}
-                  </TableCell>
-                  <TableCell className="text-center">
-                    {bills?.lateCount ? (
-                      <BillAlertBadge type="late" count={bills.lateCount} onClick={(e) => goToBills(e, project.id, 'review')} />
                     ) : (
                       <span className="text-muted-foreground">-</span>
                     )}
@@ -631,16 +623,13 @@ export function AccountantJobsTable() {
             {isReorderEnabled && <TableCell />}
             <TableCell colSpan={6} className="text-right">Totals</TableCell>
             <TableCell className="text-center">
-              <BillAlertBadge type="review" count={sortedProjects.reduce((sum, p) => sum + (billCounts[p.id]?.reviewCount || 0), 0)} />
+              <BillAlertBadge type="review" count={sortedProjects.reduce((sum, p) => sum + (billCounts[p.id]?.reviewCount || 0), 0)} overdue={sortedProjects.reduce((sum, p) => sum + (billCounts[p.id]?.reviewLateCount || 0), 0)} />
             </TableCell>
             <TableCell className="text-center">
-              <BillAlertBadge type="approved" count={sortedProjects.reduce((sum, p) => sum + (billCounts[p.id]?.approvedCount || 0), 0)} />
+              <BillAlertBadge type="approved" count={sortedProjects.reduce((sum, p) => sum + (billCounts[p.id]?.approvedCount || 0), 0)} overdue={sortedProjects.reduce((sum, p) => sum + (billCounts[p.id]?.approvedLateCount || 0), 0)} />
             </TableCell>
             <TableCell className="text-center">
               <BillAlertBadge type="rejected" count={sortedProjects.reduce((sum, p) => sum + (billCounts[p.id]?.rejectedCount || 0), 0)} />
-            </TableCell>
-            <TableCell className="text-center">
-              <BillAlertBadge type="late" count={sortedProjects.reduce((sum, p) => sum + (billCounts[p.id]?.lateCount || 0), 0)} />
             </TableCell>
           </TableRow>
         </TableFooter>

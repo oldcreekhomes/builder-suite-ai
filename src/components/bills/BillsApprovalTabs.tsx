@@ -981,10 +981,10 @@ export function BillsApprovalTabs({ projectId, projectIds, reviewOnly = false, o
         { value: "archived", label: getTabLabel('archived', counts?.archivedCount) },
       ];
 
-  const badgeFor: Record<string, { type: BillAlertType; count?: number }> = {
+  const badgeFor: Record<string, { type: BillAlertType; count?: number; overdue?: number }> = {
     upload: { type: "neutral", count: counts?.aiExtractCount },
-    review: { type: "review", count: counts?.pendingCount },
-    approve: { type: "approved", count: counts?.approvedCount },
+    review: { type: "review", count: counts?.pendingCount, overdue: counts?.reviewLateCount },
+    approve: { type: "approved", count: counts?.approvedCount, overdue: counts?.approvedLateCount },
     rejected: { type: "rejected", count: counts?.rejectedCount },
     pay: { type: "neutral", count: counts?.payBillsCount },
     archived: { type: "neutral", count: counts?.archivedCount },
@@ -994,7 +994,7 @@ export function BillsApprovalTabs({ projectId, projectIds, reviewOnly = false, o
     return {
       value: tab.value,
       label: tab.label.replace(/\s*\([^)]*\)$/, ""),
-      badge: b && !countsLoading ? <BillAlertBadge type={b.type} count={b.count || 0} /> : undefined,
+      badge: b && !countsLoading ? <BillAlertBadge type={b.type} count={b.count || 0} overdue={b.overdue} /> : undefined,
     };
   });
 

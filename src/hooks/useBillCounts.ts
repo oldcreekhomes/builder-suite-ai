@@ -10,6 +10,8 @@ interface BillCounts {
   aiExtractCount: number;
   archivedCount: number;
   lateCount: number;
+  reviewLateCount: number;
+  approvedLateCount: number;
 }
 
 export function useBillCounts(projectId?: string, projectIds?: string[]) {
@@ -119,6 +121,8 @@ export function useBillCounts(projectId?: string, projectIds?: string[]) {
         aiExtractCount: aiExtractResult.count || 0,
         archivedCount: archivedResult.count || 0,
         lateCount,
+        reviewLateCount: open.filter(b => isReviewBill(b, today) && isLateBill(b, today)).length,
+        approvedLateCount: open.filter(b => isApprovedBill(b, today) && isLateBill(b, today)).length,
       };
     },
   });
